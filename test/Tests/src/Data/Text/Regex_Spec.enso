@@ -9,12 +9,12 @@ import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 spec =
     Test.group "Regex options handling" <|
         Test.specify "should work properly with flag options" <|
-            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dotall=True multiline=False verbose=True extra_opts=[]
-            flags . should_equal [Option.Ascii_Matching, Option.Dotall, Option.Verbose]
+            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False verbose=True extra_opts=[]
+            flags . should_equal [Option.Ascii_Matching, Option.Dot_Matches_Newline, Option.Verbose]
 
         Test.specify "should properly override vector options" <|
-            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dotall=True multiline=False verbose=True extra_opts=[Option.Multiline, Option.Case_Insensitive]
-            flags . should_equal [Option.Ascii_Matching, Option.Case_Insensitive, Option.Dotall, Option.Verbose]
+            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False verbose=True extra_opts=[Option.Multiline, Option.Case_Insensitive]
+            flags . should_equal [Option.Ascii_Matching, Option.Case_Insensitive, Option.Dot_Matches_Newline, Option.Verbose]
 
     Test.group "Regexes" <|
         Test.specify "should be able to be compiled" <|

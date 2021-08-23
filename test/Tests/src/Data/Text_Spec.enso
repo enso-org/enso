@@ -115,8 +115,8 @@ spec =
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal "MY"
 
-        Test.specify "should be possible in dotall mode" <|
-            match = 'Foo\n'.match "(....)" mode=Regex_Mode.First dotall=True
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            match = 'Foo\n'.match "(....)" mode=Regex_Mode.First dot_matches_newline=True
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal 'Foo\n'
 
@@ -144,8 +144,8 @@ spec =
         Test.specify "should be possible in case-insensitive mode" <|
             "MY".matches "my" case_insensitive=True . should_be_true
 
-        Test.specify "should be possible in dotall mode" <|
-            'Foo\n'.matches "(....)" dotall=True . should_be_true
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            'Foo\n'.matches "(....)" dot_matches_newline=True . should_be_true
 
         Test.specify "should be possible in multiline mode" <|
             text = """
@@ -171,8 +171,8 @@ spec =
             match . should_be_a Text
             match . should_equal "MY"
 
-        Test.specify "should be possible in dotall mode" <|
-            match = 'Foo\n'.find "(....)" mode=Regex_Mode.First dotall=True
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            match = 'Foo\n'.find "(....)" mode=Regex_Mode.First dot_matches_newline=True
             match . should_be_a Text
             match . should_equal 'Foo\n'
 
@@ -211,8 +211,8 @@ spec =
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
-        Test.specify "should be possible in dotall mode" <|
-            splits = 'ab\nabcd'.split "b." dotall=True
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            splits = 'ab\nabcd'.split "b." dot_matches_newline=True
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
@@ -245,8 +245,8 @@ spec =
             result = "abaBa".replace "b" "a" case_insensitive=True
             result . should_equal "aaaaa"
 
-        Test.specify "should be possible in dotall mode" <|
-            result = 'ab\na'.replace "b." "a" dotall=True
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            result = 'ab\na'.replace "b." "a" dot_matches_newline=True
             result . should_equal "aaa"
 
         Test.specify "should be possible in multiline mode" <|

@@ -249,7 +249,7 @@ Any.is_error = False
    > Example
      Applying a function over a value 10.
 
-         10.map *2
+         10.map_nothing *2
 Any.map_nothing : (a -> b) -> b | Nothing
 Any.map_nothing f = case this of
     Nothing -> Nothing

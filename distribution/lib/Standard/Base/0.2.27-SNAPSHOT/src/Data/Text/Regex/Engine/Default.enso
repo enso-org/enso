@@ -840,7 +840,7 @@ from_enso_options opts =
         Literal_Pattern -> [Java_Pattern.LITERAL]
         Unix_Lines -> [Java_Pattern.UNIX_LINES]
         Global_Option.Case_Insensitive -> [Java_Pattern.CASE_INSENSITIVE]
-        Global_Option.Dotall -> [Java_Pattern.DOTALL]
+        Global_Option.Dot_Matches_Newline -> [Java_Pattern.DOTALL]
         Global_Option.Multiline -> [Java_Pattern.MULTILINE]
         Global_Option.Verbose -> [Java_Pattern.COMMENTS]
         Global_Option.Ascii_Matching -> []

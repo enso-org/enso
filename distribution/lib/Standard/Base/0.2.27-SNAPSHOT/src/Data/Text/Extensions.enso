@@ -110,10 +110,10 @@ Text.characters =
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
-   - dotall: Enables or disables the dotall option. Dotall specifies that the
-     `.` special character should match everything _including_ newline
-     characters. Without this flag, it will match all characters _except_
-     newlines.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
@@ -126,9 +126,11 @@ Text.characters =
        preceeded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. Where these overlap
-     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
-     `multiline` and `verbose`), the flags take precedence.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
 
    ! Boolean Flags and Extra Options
      This function contains a number of arguments that are boolean flags that
@@ -148,8 +150,8 @@ Text.characters =
              regex = ".+@.+"
              "contact@enso.org".match regex
 Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
-Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
     compiled_pattern.match this mode
 
 ## ALIAS Check Matches
@@ -170,10 +172,10 @@ Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing do
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
-   - dotall: Enables or disables the dotall option. Dotall specifies that the
-     `.` special character should match everything _including_ newline
-     characters. Without this flag, it will match all characters _except_
-     newlines.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
@@ -186,9 +188,11 @@ Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing do
        preceeded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. Where these overlap
-     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
-     `multiline` and `verbose`), the flags take precedence.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
 
    ! Boolean Flags and Extra Options
      This function contains a number of arguments that are boolean flags that
@@ -208,8 +212,8 @@ Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing do
              regex = ".+@.+"
              "contact@enso.org".matches regex
 Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Boolean ! Regex.Compile_Error
-Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
     compiled_pattern.matches this
 
 ## ALIAS Find Text
@@ -230,10 +234,10 @@ Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dotall=Nothing
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
-   - dotall: Enables or disables the dotall option. Dotall specifies that the
-     `.` special character should match everything _including_ newline
-     characters. Without this flag, it will match all characters _except_
-     newlines.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
@@ -246,9 +250,11 @@ Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dotall=Nothing
        preceeded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. Where these overlap
-     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
-     `multiline` and `verbose`), the flags take precedence.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
 
    ! Boolean Flags and Extra Options
      This function contains a number of arguments that are boolean flags that
@@ -267,8 +273,8 @@ Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dotall=Nothing
              text = "Now I know my ABCs"
              text.find "\w{1,3}"
 Text.find : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
-Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
     compiled_pattern.find this mode
 
 ## ALIAS Split Text
@@ -288,10 +294,10 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
-   - dotall: Enables or disables the dotall option. Dotall specifies that the
-     `.` special character should match everything _including_ newline
-     characters. Without this flag, it will match all characters _except_
-     newlines.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
@@ -304,9 +310,11 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
        preceeded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. Where these overlap
-     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
-     `multiline` and `verbose`), the flags take precedence.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
 
    ! Boolean Flags and Extra Options
      This function contains a number of arguments that are boolean flags that
@@ -335,17 +343,17 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
              text = "Namespace::package::package::Type"
              text.split ":::"
 Text.split : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
-Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
     case separator of
         Split_Kind.Words -> Vector.Vector this.words
         Split_Kind.Whitespace ->
-            pattern = Regex.compile "\s+" match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern = Regex.compile "\s+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
             pattern.split this mode=mode
         Split_Kind.Lines ->
-            pattern = Regex.compile "\v+" match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern = Regex.compile "\v+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
             pattern.split this mode=mode
         Text ->
-            pattern = Regex.compile separator match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern = Regex.compile separator match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
             pattern.split this mode=mode
 
 ## ALIAS Replace Text
@@ -364,10 +372,10 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
-   - dotall: Enables or disables the dotall option. Dotall specifies that the
-     `.` special character should match everything _including_ newline
-     characters. Without this flag, it will match all characters _except_
-     newlines.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
@@ -380,9 +388,11 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
        preceeded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. Where these overlap
-     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
-     `multiline` and `verbose`), the flags take precedence.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
 
    ! Boolean Flags and Extra Options
      This function contains a number of arguments that are boolean flags that
@@ -406,8 +416,8 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
              text = "I am a very smol word."
              text.replace "\w\w(?!\w)"
 Text.replace : Text | Engine.Pattern -> Text -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text
-Text.replace old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile old_sequence match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.replace old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile old_sequence match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
     compiled_pattern.replace this new_sequence mode
 
 ## ALIAS Get Words
@@ -576,7 +586,7 @@ Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
      Get the UTF-16 bytes of the text "Hello".
 
          "Hello".utf_16
-Text.utf_16 : Vector.Vector Char
+Text.utf_16 : Vector.Vector Integer
 Text.utf_16 = Vector.Vector (Text_Utils.get_chars this)
 
 ## ADVANCED
@@ -589,7 +599,7 @@ Text.utf_16 = Vector.Vector (Text_Utils.get_chars this)
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_utf_16 : Vector.Vector Char -> Text
+Text.from_utf_16 : Vector.Vector Integer -> Text
 Text.from_utf_16 chars = Text_Utils.from_chars chars.to_array
 
 ## Returns a vector containing integers representing the Unicode codepoints of

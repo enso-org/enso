@@ -31,10 +31,10 @@ import Standard.Base.Error.Extensions as Errors
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
-   - dotall: Enables or disables the dotall option. Dotall specifies that the
-     `.` special character should match everything _including_ newline
-     characters. Without this flag, it will match all characters _except_
-     newlines.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
@@ -47,9 +47,11 @@ import Standard.Base.Error.Extensions as Errors
        preceeded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. Where these overlap
-     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
-     `multiline` and `verbose`), the flags take precedence.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
 
    ! Boolean Flags and Extra Options
      This function contains a number of arguments that are boolean flags that
@@ -67,8 +69,8 @@ import Standard.Base.Error.Extensions as Errors
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
 compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern ! Compile_Error
-compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    options_vec = here.from_flags match_ascii case_insensitive dotall multiline verbose extra_opts
+compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    options_vec = here.from_flags match_ascii case_insensitive dot_matches_newline multiline verbose extra_opts
     engine.compile expression options_vec
 
 ## Escape the special characters in `expression` such that the result is a valid
@@ -89,7 +91,7 @@ escape expression engine=Default_Engine.new = engine.escape expression
 
    Turns the options flags into a vector of options.
 from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Option.Option
-from_flags match_ascii case_insensitive dotall multiline verbose extra_opts =
+from_flags match_ascii case_insensitive dot_matches_newline multiline verbose extra_opts =
     builder = Vector.new_builder
 
     process_override : Boolean | Nothing -> Option -> Nothing
@@ -99,7 +101,7 @@ from_flags match_ascii case_insensitive dotall multiline verbose extra_opts =
 
     process_override match_ascii Option.Ascii_Matching
     process_override case_insensitive Option.Case_Insensitive
-    process_override dotall Option.Dotall
+    process_override dot_matches_newline Option.Dot_Matches_Newline
     process_override multiline Option.Multiline
     process_override verbose Option.Verbose
 
@@ -107,11 +109,11 @@ from_flags match_ascii case_insensitive dotall multiline verbose extra_opts =
     extra_opts.each opt->
         not_ascii = opt != Option.Ascii_Matching
         not_insensitive = opt != Option.Case_Insensitive
-        not_dotall = opt != Option.Dotall
+        not_dot_matches_newline = opt != Option.Dot_Matches_Newline
         not_multiline = opt != Option.Multiline
         not_verbose = opt != Option.Verbose
 
-        if not_ascii && not_insensitive && not_dotall && not_multiline && not_verbose then
+        if not_ascii && not_insensitive && not_dot_matches_newline && not_multiline && not_verbose then
             builder.append opt
 
     builder.to_vector

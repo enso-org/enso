@@ -23,7 +23,7 @@ type Option
     ## Specifies that the `.` special character should match everything
        _including_ newline characters. Without this flag, it will match all
        characters _except_ newlines.
-    type Dotall
+    type Dot_Matches_Newline
 
     ## Specifies that the pattern character `^` matches at both the beginning of
        the string and at the beginning of each line (immediately following a
