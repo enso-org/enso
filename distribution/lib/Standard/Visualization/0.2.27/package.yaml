@@ -1,6 +1,6 @@
-name: Image
+name: Visualization
 namespace: Standard
-version: 0.2.27-SNAPSHOT
+version: 0.2.27
 license: APLv2
 authors:
   - name: Enso Team
