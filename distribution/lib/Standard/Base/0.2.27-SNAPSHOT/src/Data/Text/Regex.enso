@@ -38,8 +38,8 @@ import Standard.Base.Error.Extensions as Errors
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
-   - verbose: Enables or disables the verbose mode for the regular expression.
-     In verbose mode, the following changes apply:
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
        character class or when preceeded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
@@ -69,8 +69,8 @@ import Standard.Base.Error.Extensions as Errors
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
 compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern ! Compile_Error
-compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    options_vec = here.from_flags match_ascii case_insensitive dot_matches_newline multiline verbose extra_opts
+compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    options_vec = here.from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
     engine.compile expression options_vec
 
 ## Escape the special characters in `expression` such that the result is a valid
@@ -91,7 +91,7 @@ escape expression engine=Default_Engine.new = engine.escape expression
 
    Turns the options flags into a vector of options.
 from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Option.Option
-from_flags match_ascii case_insensitive dot_matches_newline multiline verbose extra_opts =
+from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts =
     builder = Vector.new_builder
 
     process_override : Boolean | Nothing -> Option -> Nothing
@@ -103,7 +103,7 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline verbose ex
     process_override case_insensitive Option.Case_Insensitive
     process_override dot_matches_newline Option.Dot_Matches_Newline
     process_override multiline Option.Multiline
-    process_override verbose Option.Verbose
+    process_override comments Option.Comments
 
     ## Add any non-overridable options from extra_opts
     extra_opts.each opt->
@@ -111,9 +111,9 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline verbose ex
         not_insensitive = opt != Option.Case_Insensitive
         not_dot_matches_newline = opt != Option.Dot_Matches_Newline
         not_multiline = opt != Option.Multiline
-        not_verbose = opt != Option.Verbose
+        not_comments = opt != Option.Comments
 
-        if not_ascii && not_insensitive && not_dot_matches_newline && not_multiline && not_verbose then
+        if not_ascii && not_insensitive && not_dot_matches_newline && not_multiline && not_comments then
             builder.append opt
 
     builder.to_vector

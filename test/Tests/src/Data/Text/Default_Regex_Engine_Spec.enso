@@ -20,7 +20,7 @@ spec =
     Test.group "The default regex engine's options handling" <|
 
         Test.specify "should convert options to Java" <|
-            options = [Global_Option.Verbose, Global_Option.Multiline, Default_Engine.Unix_Lines]
+            options = [Global_Option.Comments, Global_Option.Multiline, Default_Engine.Unix_Lines]
             expected_mask = Java_Pattern.UNIX_LINES.bit_or Java_Pattern.COMMENTS . bit_or Java_Pattern.MULTILINE . bit_or here.default_mask
             actual_mask = Default_Engine.from_enso_options options
 
@@ -64,10 +64,10 @@ spec =
 
         Test.specify "should be able to compile patterns with combined options" <|
             engine = Default_Engine.new [Default_Engine.Literal_Pattern]
-            pattern = engine.compile "^a$" [Global_Option.Verbose]
+            pattern = engine.compile "^a$" [Global_Option.Comments]
             pattern.engine . should_equal engine
             pattern.options.contains Default_Engine.Literal_Pattern . should_be_true
-            pattern.options.contains Global_Option.Verbose . should_be_true
+            pattern.options.contains Global_Option.Comments . should_be_true
             pattern.internal_pattern.flags . should_equal (here.default_mask . bit_or Java_Pattern.LITERAL . bit_or Java_Pattern.COMMENTS)
 
         Test.specify "should return a syntax error of the regex syntax is invalid" <|

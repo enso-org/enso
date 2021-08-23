@@ -117,8 +117,8 @@ Text.characters =
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
-   - verbose: Enables or disables the verbose mode for the regular expression.
-     In verbose mode, the following changes apply:
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
        character class or when preceeded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
@@ -150,8 +150,8 @@ Text.characters =
              regex = ".+@.+"
              "contact@enso.org".match regex
 Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
-Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.match this mode
 
 ## ALIAS Check Matches
@@ -179,8 +179,8 @@ Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing do
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
-   - verbose: Enables or disables the verbose mode for the regular expression.
-     In verbose mode, the following changes apply:
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
        character class or when preceeded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
@@ -212,8 +212,8 @@ Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing do
              regex = ".+@.+"
              "contact@enso.org".matches regex
 Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Boolean ! Regex.Compile_Error
-Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.matches this
 
 ## ALIAS Find Text
@@ -241,8 +241,8 @@ Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_ne
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
-   - verbose: Enables or disables the verbose mode for the regular expression.
-     In verbose mode, the following changes apply:
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
        character class or when preceeded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
@@ -273,8 +273,8 @@ Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_ne
              text = "Now I know my ABCs"
              text.find "\w{1,3}"
 Text.find : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
-Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.find this mode
 
 ## ALIAS Split Text
@@ -343,17 +343,17 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
              text = "Namespace::package::package::Type"
              text.split ":::"
 Text.split : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
-Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     case separator of
         Split_Kind.Words -> Vector.Vector this.words
         Split_Kind.Whitespace ->
-            pattern = Regex.compile "\s+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern = Regex.compile "\s+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
             pattern.split this mode=mode
         Split_Kind.Lines ->
-            pattern = Regex.compile "\v+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern = Regex.compile "\v+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
             pattern.split this mode=mode
         Text ->
-            pattern = Regex.compile separator match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern = Regex.compile separator match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
             pattern.split this mode=mode
 
 ## ALIAS Replace Text
@@ -379,8 +379,8 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
    - multiline: Enables or disables the multiline option. Multiline specifies
      that the `^` and `$` pattern characters match the start and end of lines,
      as well as the start and end of the input respectively.
-   - verbose: Enables or disables the verbose mode for the regular expression.
-     In verbose mode, the following changes apply:
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
        character class or when preceeded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
@@ -416,8 +416,8 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
              text = "I am a very smol word."
              text.replace "\w\w(?!\w)"
 Text.replace : Text | Engine.Pattern -> Text -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text
-Text.replace old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile old_sequence match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline verbose=verbose extra_opts=extra_opts
+Text.replace old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile old_sequence match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.replace this new_sequence mode
 
 ## ALIAS Get Words

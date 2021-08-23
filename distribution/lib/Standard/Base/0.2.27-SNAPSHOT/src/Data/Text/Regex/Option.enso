@@ -20,6 +20,19 @@ type Option
     ## Specifies that matching should be performed in a case-insensitive manner.
     type Case_Insensitive
 
+    ## Specifies that the regular expression should be interpreted in comments
+       mode.
+
+       Comments mode has the following changes:
+       - Whitespace within the pattern is ignored, except when within a
+         character class or when preceeded by an unescaped backslash, or within
+         grouping constructs (e.g. `(?...)`).
+       - When a line contains a `#`, that is not in a character class and is not
+         preceeded by an unescaped backslash, all characters from the leftmost
+         such `#` to the end of the line are ignored. That is to say, they act
+         as _comments_ in the regex.
+    type Comments
+
     ## Specifies that the `.` special character should match everything
        _including_ newline characters. Without this flag, it will match all
        characters _except_ newlines.
@@ -30,17 +43,4 @@ type Option
        newline), and that the pattern character `$` matches at the end of each
        line _and_ at the end of the string.
     type Multiline
-
-    ## Specifies that the regular expression should be interpreted in _verbose_
-       mode.
-
-       Verbose mode has the following changes:
-       - Whitespace within the pattern is ignored, except when within a
-         character class or when preceeded by an unescaped backslash, or within
-         grouping constructs (e.g. `(?...)`).
-       - When a line contains a `#`, that is not in a character class and is not
-         preceeded by an unescaped backslash, all characters from the leftmost
-         such `#` to the end of the line are ignored. That is to say, they act
-         as _comments_ in the regex.
-    type Verbose
 

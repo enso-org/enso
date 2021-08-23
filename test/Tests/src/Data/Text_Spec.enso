@@ -134,8 +134,8 @@ spec =
             match.at 0 . group 1 . should_equal "Foo"
             match.at 1 . group 1 . should_equal "bar"
 
-        Test.specify "should be possible in verbose mode" <|
-            match = "abcde".match "(..) # Match two of any character" verbose=True mode=Regex_Mode.First
+        Test.specify "should be possible in comments mode" <|
+            match = "abcde".match "(..) # Match two of any character" comments=True mode=Regex_Mode.First
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal "ab"
 
@@ -161,8 +161,8 @@ spec =
                 bar
             text.matches "^(...)$" multiline=True . should_be_true
 
-        Test.specify "should be possible in verbose mode" <|
-            "abcde".matches "(..) # Match two of any character" verbose=True . should_be_true
+        Test.specify "should be possible in comments mode" <|
+            "abcde".matches "(..) # Match two of any character" comments=True . should_be_true
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|
@@ -198,8 +198,8 @@ spec =
             match.at 0 . should_equal "Foo"
             match.at 1 . should_equal "bar"
 
-        Test.specify "should be possible in verbose mode" <|
-            match = "abcde".find "(..) # Match two of any character" verbose=True mode=Regex_Mode.First
+        Test.specify "should be possible in comments mode" <|
+            match = "abcde".find "(..) # Match two of any character" comments=True mode=Regex_Mode.First
             match . should_be_a Text
             match . should_equal "ab"
 
@@ -245,8 +245,8 @@ spec =
             match = text.split "$" multiline=True
             match.length . should_equal 2
 
-        Test.specify "should be possible in verbose mode" <|
-            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" verbose=True
+        Test.specify "should be possible in comments mode" <|
+            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" comments=True
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
@@ -279,7 +279,7 @@ spec =
             result = text.replace '\n' "" multiline=True
             result . should_equal "Foobar"
 
-        Test.specify "should be possible in verbose mode" <|
-            result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" verbose=True
+        Test.specify "should be possible in comments mode" <|
+            result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" comments=True
             result . should_equal "aaa"
 

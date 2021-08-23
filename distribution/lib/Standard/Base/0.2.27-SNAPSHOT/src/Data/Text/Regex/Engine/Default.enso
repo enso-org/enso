@@ -842,7 +842,7 @@ from_enso_options opts =
         Global_Option.Case_Insensitive -> [Java_Pattern.CASE_INSENSITIVE]
         Global_Option.Dot_Matches_Newline -> [Java_Pattern.DOTALL]
         Global_Option.Multiline -> [Java_Pattern.MULTILINE]
-        Global_Option.Verbose -> [Java_Pattern.COMMENTS]
+        Global_Option.Comments -> [Java_Pattern.COMMENTS]
         Global_Option.Ascii_Matching -> []
         No_Anchoring_Bounds -> []
         Transparent_Bounds -> []
