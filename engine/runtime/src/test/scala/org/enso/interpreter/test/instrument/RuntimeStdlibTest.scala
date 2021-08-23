@@ -1,19 +1,19 @@
 package org.enso.interpreter.test.instrument
 
+import org.enso.distribution.FileSystem
+import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.ByteBuffer
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
@@ -31,16 +31,19 @@ class RuntimeStdlibTest
 
   class TestContext(packageName: String) {
 
-    var endPoint: MessageEndpoint = _
     val messageQueue: LinkedBlockingQueue[Api.Response] =
       new LinkedBlockingQueue()
 
-    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
+    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
+    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
+    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
+    val runtimeServerEmulator =
+      new RuntimeServerEmulator(messageQueue, lockManager)
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
+      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -57,23 +60,7 @@ class RuntimeStdlibTest
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .out(out)
-        .serverTransport { (uri, peer) =>
-          if (uri.toString == RuntimeServerInfo.URI) {
-            endPoint = peer
-            new MessageEndpoint {
-              override def sendText(text: String): Unit = {}
-
-              override def sendBinary(data: ByteBuffer): Unit =
-                Api.deserializeResponse(data).foreach(messageQueue.add)
-
-              override def sendPing(data: ByteBuffer): Unit = {}
-
-              override def sendPong(data: ByteBuffer): Unit = {}
-
-              override def sendClose(): Unit = {}
-            }
-          } else null
-        }
+        .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
@@ -92,7 +79,7 @@ class RuntimeStdlibTest
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
+    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
     def receiveOne: Option[Api.Response] = {
       Option(messageQueue.poll())

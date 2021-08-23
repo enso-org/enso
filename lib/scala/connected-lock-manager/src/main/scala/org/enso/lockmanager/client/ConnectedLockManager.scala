@@ -1,26 +1,28 @@
-package org.enso.interpreter.instrument
+package org.enso.lockmanager.client
 
 import org.enso.distribution.locking.{Lock, LockManager, LockType}
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.AcquireLockRequest
 
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class ConnectedLockManager() extends LockManager {
-  private var endpoint: Option[Endpoint] = None
+class ConnectedLockManager extends LockManager {
+  private var endpoint: Option[RuntimeServerConnectionEndpoint] = None
 
-  def connect(endpoint: Endpoint): Unit = {
+  def isConnected: Boolean = endpoint.isDefined
+
+  def connect(endpoint: RuntimeServerConnectionEndpoint): Unit = {
     this.endpoint = Some(endpoint)
   }
 
-  private def getEndpoint: Endpoint = endpoint.getOrElse {
-    throw new IllegalStateException(
-      "LockManager is used before the Language Server connection has been established."
-    )
-  }
+  private def getEndpoint: RuntimeServerConnectionEndpoint =
+    endpoint.getOrElse {
+      throw new IllegalStateException(
+        "LockManager is used before the Language Server connection has been established."
+      )
+    }
 
   private def isExclusive(lockType: LockType): Boolean = lockType match {
     case LockType.Exclusive => true
@@ -29,7 +31,7 @@ class ConnectedLockManager() extends LockManager {
 
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val response = sendRequestAndWaitForResponse(
-      AcquireLockRequest(
+      Api.AcquireLockRequest(
         resourceName,
         isExclusive(lockType),
         returnImmediately = false
@@ -50,7 +52,7 @@ class ConnectedLockManager() extends LockManager {
     lockType: LockType
   ): Option[Lock] = {
     val response = sendRequestAndWaitForResponse(
-      AcquireLockRequest(
+      Api.AcquireLockRequest(
         resourceName,
         isExclusive(lockType),
         returnImmediately = true
@@ -71,7 +73,7 @@ class ConnectedLockManager() extends LockManager {
   private def sendRequestAndWaitForResponse(
     request: Runtime.ApiRequest
   ): Runtime.ApiResponse = {
-    val future = getEndpoint.sendRequestToClient(request)
+    val future = getEndpoint.sendRequest(request)
     Await.result(future, Duration.Inf)
   }
 

@@ -35,14 +35,18 @@ import org.enso.languageserver.protocol.json.{
   JsonRpc
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
-import org.enso.languageserver.runtime.lockmanager.LockManagerService
-import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
+import org.enso.languageserver.runtime.{
+  ContextRegistry,
+  RuntimeFailureMapper,
+  RuntimeRequestHandler
+}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
+import org.enso.lockmanager.server.LockManagerService
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -243,11 +247,6 @@ class BaseServerTest
       editionResolver
     )
     val editionManager = EditionManager(distributionManager, Some(languageHome))
-    val lockManager = new ThreadSafeFileLockManager(
-      distributionManager.paths.locks
-    )
-
-    system.actorOf(LockManagerService.props(lockManager))
 
     val projectSettingsManager = system.actorOf(
       ProjectSettingsManager.props(

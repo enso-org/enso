@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.InstrumentInfo;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -13,17 +14,19 @@ import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
-import org.enso.interpreter.instrument.ConnectedLockManager;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.instrument.RuntimeServerInstrument;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.util.FileDetector;
+import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionDescriptors;
 
 /**
@@ -74,16 +77,22 @@ public final class Language extends TruffleLanguage<Context> {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
 
+    TruffleLogger logger = env.getLogger(Language.class);
+
     var environment = new Environment() {};
     var distributionManager = new DistributionManager(environment);
 
     LockManager lockManager;
     ConnectedLockManager connectedLockManager = null;
-    if (isTextMode) {
-      lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
-    } else {
+
+    if (isInteractiveMode) {
+      logger.finest(
+          "Runtime Server Instrument detected, will try to connect to a lock manager managed by it.");
       connectedLockManager = new ConnectedLockManager();
       lockManager = connectedLockManager;
+    } else {
+      logger.finest("No Runtime Server Instrument detected, using a standalone lock manager.");
+      lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     }
 
     Context context =

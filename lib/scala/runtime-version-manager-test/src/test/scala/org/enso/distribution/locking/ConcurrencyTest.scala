@@ -1,21 +1,13 @@
 package org.enso.distribution.locking
 
-import java.nio.file.{Files, Path}
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{
   DistributionManager,
   FileSystem,
   TemporaryDirectoryManager
 }
-import org.enso.distribution.locking.{
-  LockManager,
-  LockType,
-  LockUserInterface,
-  Resource,
-  ResourceManager
-}
-import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
   GraalVMVersion,
@@ -30,7 +22,12 @@ import org.enso.runtimeversionmanager.releases.engine.{
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
-import org.enso.testkit.{FlakySpec, RetrySpec, WithTemporaryDirectory}
+import org.enso.testkit.{
+  FlakySpec,
+  RetrySpec,
+  TestSynchronizer,
+  WithTemporaryDirectory
+}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers
@@ -38,6 +35,7 @@ import org.scalatest.time.Span
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.nio.file.{Files, Path}
 import scala.util.Try
 
 class ConcurrencyTest

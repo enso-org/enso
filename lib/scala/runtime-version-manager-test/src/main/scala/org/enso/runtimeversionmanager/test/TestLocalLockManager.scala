@@ -1,6 +1,11 @@
 package org.enso.runtimeversionmanager.test
 
-import org.enso.distribution.locking.{Lock, LockManager, LockType}
+import org.enso.distribution.locking.{
+  Lock,
+  LockManager,
+  LockType,
+  ThreadSafeLockManager
+}
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.{
@@ -19,10 +24,9 @@ import java.util.concurrent.locks.{
   * or the thread is interrupted. To aid with testing, this implementation times
   * out after 30 seconds.
   */
-class TestLocalLockManager extends LockManager {
+class TestLocalLockManager extends ThreadSafeLockManager {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val lock   = getLock(resourceName, lockType)
     val locked = lock.tryLock(30, TimeUnit.SECONDS)
@@ -34,8 +38,7 @@ class TestLocalLockManager extends LockManager {
     WrapLock(lock)
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def tryAcquireLock(
     resourceName: String,
     lockType: LockType

@@ -242,6 +242,7 @@ lazy val enso = (project in file("."))
     `edition-uploader`,
     `library-manager`,
     `library-manager-test`,
+    `connected-lock-manager`,
     `stdlib-version-updater`,
     syntax.jvm,
     testkit
@@ -1011,6 +1012,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`json-rpc-server`)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`library-manager`)
+  .dependsOn(`connected-lock-manager`)
   .dependsOn(`edition-updater`)
   .dependsOn(`logging-service`)
   .dependsOn(`polyglot-api`)
@@ -1100,7 +1102,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion,
+      "eu.timepit"         %% "refined"               % refinedVersion
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -1186,6 +1188,9 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(graph)
   .dependsOn(pkg)
   .dependsOn(searcher)
+  .dependsOn(`edition-updater`)
+  .dependsOn(`library-manager`)
+  .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
   .dependsOn(testkit % Test)
 
@@ -1423,6 +1428,21 @@ lazy val `library-manager-test` = project
   .dependsOn(`library-manager`)
   .dependsOn(testkit)
   .dependsOn(`logging-service`)
+
+lazy val `connected-lock-manager` = project
+  .in(file("lib/scala/connected-lock-manager"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      akkaActor,
+      akkaTestkit      % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
+    )
+  )
+  .dependsOn(`distribution-manager`)
+  .dependsOn(`polyglot-api`)
+  .dependsOn(testkit % Test)
 
 lazy val `stdlib-version-updater` = project
   .in(file("lib/scala/stdlib-version-updater"))

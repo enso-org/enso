@@ -7,6 +7,7 @@ import org.enso.interpreter.instrument.execution.{
   CommandProcessor
 }
 import org.enso.interpreter.service.ExecutionService
+import org.enso.lockmanager.client.RuntimeServerConnectionEndpoint
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.{
   Api,
@@ -18,14 +19,15 @@ import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
 import java.util.UUID
-import scala.collection.concurrent.TrieMap
 import scala.concurrent.{Future, Promise}
 import scala.util.Success
 
 /** A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
   */
-class Endpoint(handler: Handler) extends MessageEndpoint {
+class Endpoint(handler: Handler)
+    extends MessageEndpoint
+    with RuntimeServerConnectionEndpoint {
 
   var client: MessageEndpoint = _
 
@@ -43,8 +45,8 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
     client.sendBinary(Api.serialize(msg))
 
   /** Sends a request to the connected client and expects a reply. */
-  def sendRequestToClient(msg: ApiRequest): Future[ApiResponse] = {
-    val promise = Promise[ApiResponse]
+  def sendRequest(msg: ApiRequest): Future[ApiResponse] = {
+    val promise = Promise[ApiResponse]()
     val uuid    = UUID.randomUUID()
     handler.registerPromise(uuid, promise)
     val request = Api.Request(uuid, msg)

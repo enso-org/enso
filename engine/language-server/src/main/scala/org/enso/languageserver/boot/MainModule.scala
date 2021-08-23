@@ -34,7 +34,6 @@ import org.enso.languageserver.protocol.json.{
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
-import org.enso.languageserver.runtime.lockmanager.LockManagerService
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
@@ -42,6 +41,7 @@ import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
+import org.enso.lockmanager.server.LockManagerService
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -291,9 +291,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     distributionManager.paths.locks
   )
 
-  system.actorOf(
+  val lockManagerService = system.actorOf(
     LockManagerService.props(lockManager),
     "lock-manager-service"
+  )
+
+  system.actorOf(
+    RuntimeRequestHandler.props(
+      runtimeConnector   = runtimeConnector,
+      lockManagerService = lockManagerService
+    ),
+    "runtime-request-handler"
   )
 
   val projectSettingsManager = system.actorOf(

@@ -1,10 +1,7 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.ByteBuffer
-import java.nio.file.{Files, Paths}
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import org.enso.distribution.FileSystem
+import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.interpreter.test.Metadata
@@ -13,10 +10,14 @@ import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeInstrumentTest
@@ -35,14 +36,17 @@ class RuntimeInstrumentTest
   var context: TestContext = _
 
   class TestContext(packageName: String) {
-    var endPoint: MessageEndpoint = _
     val messageQueue: LinkedBlockingQueue[Api.Response] =
       new LinkedBlockingQueue()
 
-    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
+    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
+    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
+    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
+    val runtimeServerEmulator =
+      new RuntimeServerEmulator(messageQueue, lockManager)
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
+      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -61,23 +65,7 @@ class RuntimeInstrumentTest
           Paths.get("../../distribution/component").toFile.getAbsolutePath
         )
         .out(out)
-        .serverTransport { (uri, peer) =>
-          if (uri.toString == RuntimeServerInfo.URI) {
-            endPoint = peer
-            new MessageEndpoint {
-              override def sendText(text: String): Unit = {}
-
-              override def sendBinary(data: ByteBuffer): Unit =
-                Api.deserializeResponse(data).foreach(messageQueue.add)
-
-              override def sendPing(data: ByteBuffer): Unit = {}
-
-              override def sendPong(data: ByteBuffer): Unit = {}
-
-              override def sendClose(): Unit = {}
-            }
-          } else null
-        }
+        .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
@@ -100,7 +88,7 @@ class RuntimeInstrumentTest
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
+    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
     def receiveNone: Option[Api.Response] = {
       Option(messageQueue.poll())

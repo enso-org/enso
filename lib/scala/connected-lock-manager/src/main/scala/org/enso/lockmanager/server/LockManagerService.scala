@@ -1,4 +1,4 @@
-package org.enso.languageserver.runtime.lockmanager
+package org.enso.lockmanager.server
 
 import akka.actor.{Actor, Props}
 import org.enso.distribution.locking.{Lock, LockType, ThreadSafeLockManager}
@@ -17,10 +17,6 @@ import scala.util.{Failure, Success}
 
 class LockManagerService(underlyingLockManager: ThreadSafeLockManager)
     extends Actor {
-
-  override def preStart(): Unit = {
-    context.system.eventStream.subscribe(self, classOf[Runtime.Api.Request])
-  }
 
   /** This needs to be a mutable state, because a lock may be added
     * asynchronously from a Future waiting on a blocking lock.
@@ -70,9 +66,6 @@ class LockManagerService(underlyingLockManager: ThreadSafeLockManager)
     case Runtime.Api.Request(requestId, ReleaseLockRequest(lockId)) =>
       val response = releaseLock(lockId)
       sender() ! Runtime.Api.Response(requestId, response)
-
-    // ignore other requests
-    case Runtime.Api.Request(_, _) =>
   }
 
   private def releaseLock(
@@ -123,5 +116,10 @@ class LockManagerService(underlyingLockManager: ThreadSafeLockManager)
 object LockManagerService {
   def props(underlyingLockManager: ThreadSafeLockManager): Props = Props(
     new LockManagerService(underlyingLockManager)
+  )
+
+  def handledRequestTypes: Seq[Class[_ <: Runtime.ApiRequest]] = Seq(
+    classOf[Runtime.Api.AcquireLockRequest],
+    classOf[Runtime.Api.ReleaseLockRequest]
   )
 }
