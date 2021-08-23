@@ -1,5 +1,7 @@
 # Enso Next
 
+# Enso 0.2.27 (2021-08-23)
+
 ## Libraries
 
 - Added support for regular expressions
@@ -12,6 +14,12 @@
 
 - Implement Language Server endpoints for getting and setting library metadata
   ([#1967](https://github.com/enso-org/enso/pull/1967)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-08-23)
+  for issues opened before the release date.
 
 # Enso 0.2.26 (2021-08-19)
 
