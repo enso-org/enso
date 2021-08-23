@@ -18,8 +18,8 @@ val scalacVersion  = "2.13.6"
 val rustVersion    = "1.54.0-nightly"
 val graalVersion   = "21.1.0"
 val javaVersion    = "11"
-val ensoVersion    = "0.2.27"  // Note [Engine And Launcher Version]
-val currentEdition = "2021.15" // Note [Default Editions]
+val ensoVersion    = "0.2.28-SNAPSHOT"  // Note [Engine And Launcher Version]
+val currentEdition = "2021.16-SNAPSHOT" // Note [Default Editions]
 val stdLibVersion  = ensoVersion
 
 /* Note [Engine And Launcher Version]
