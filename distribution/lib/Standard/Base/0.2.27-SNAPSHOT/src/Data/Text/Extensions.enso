@@ -1,6 +1,10 @@
+## Methods for operating on `Text` in Enso.
+
 from Standard.Base import all
 from Standard.Builtins import Text, Prim_Text_Helpers
 
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Locale
@@ -88,13 +92,239 @@ Text.characters =
     this.each bldr.append
     bldr.to_vector
 
-## ALIAS Split
+## ALIAS Match Text
 
-   Takes a separator string and returns a vector resulting from splitting
-   `this` on each occurence of `separator`.
+   Matches the text in `this` against the provided regex `pattern`, returning
+   the match(es) if present or `Nothing` if there are no matches.
 
    Arguments:
-   - separator: The separator to use to split the text.
+   - pattern: The pattern to match `this` against. We recommend using _raw text_
+     to write your patterns.
+   - mode: This argument specifies how many matches the engine will try and
+     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     will return either a single `Match` or `Nothing`. If set to an `Integer` or
+     `Mode.All`, this method will return either a `Vector Match` or `Nothing`.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     Find matches for a basic email regex in some text. NOTE: This regex is
+     _not_ compliant with RFC 5322.
+
+         example_match =
+             regex = ".+@.+"
+             "contact@enso.org".match regex
+Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
+Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
+    compiled_pattern.match this mode
+
+## ALIAS Check Matches
+
+   Matches the text in `this` against the provided regex `pattern`, returning
+   `True` if the text matches at least once, and `False` otherwise.
+
+   Arguments:
+   - pattern: The pattern to match `this` against. We recommend using _raw text_
+     to write your patterns.
+   - mode: This argument specifies how many matches the engine will try and
+     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     will return either a single `Match` or `Nothing`. If set to an `Integer` or
+     `Mode.All`, this method will return either a `Vector Match` or `Nothing`.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     Checks if some text matches a basic email regex. NOTE: This regex is _not_
+     compliant with RFC 5322.
+
+         example_match =
+             regex = ".+@.+"
+             "contact@enso.org".matches regex
+Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Boolean ! Regex.Compile_Error
+Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
+    compiled_pattern.matches this
+
+## ALIAS Find Text
+
+   Finds all occurrences of `pattern` in the text `this`, returning the text(s)
+   if present, or `Nothing` if there are no matches.
+
+   Arguments:
+   - pattern: The pattern to match `this` against. We recommend using _raw text_
+     to write your patterns.
+   - mode: This argument specifies how many matches the engine will try and
+     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     will return either a single `Text` or `Nothing`. If set to an `Integer` or
+     `Mode.All`, this method will return either a `Vector Text` or `Nothing`.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     Find words that contain three or less letters in text`"\w{1,3}"`
+
+         example_find =
+             text = "Now I know my ABCs"
+             text.find "\w{1,3}"
+Text.find : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
+Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
+    compiled_pattern.find this mode
+
+## ALIAS Split Text
+
+   Takes a separator and returns the vector that results from splitting `this`
+   on the configured number of occurrences of `separator`.
+
+   Arguments:
+   - separator: The pattern used to split the text.
+   - mode: This argument specifies how many matches the engine will try and
+     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     will return either a single `Text` or `Nothing`. If set to an `Integer` or
+     `Mode.All`, this method will return either a `Vector Text` or `Nothing`.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - verbose: Enables or disables the verbose mode for the regular expression.
+     In verbose mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
 
    > Example
      Split the comma-separated text into a vector of items.
@@ -105,14 +335,90 @@ Text.characters =
      Split the text on whitespace into a vector of items.
 
          "ham eggs cheese tomatoes".split Split_Kind.Whitespace
-Text.split : Split_Kind -> Vector.Vector Text
-Text.split (separator = Split_Kind.Whitespace) =
-    result = case separator of
-        Split_Kind.Whitespace -> Text_Utils.split_on_whitespace this
-        Split_Kind.Lines -> Text_Utils.split_on_lines this
-        Split_Kind.Words -> this.words
-        Text -> Text_Utils.split_by_literal this separator
-    Vector.from_array result
+
+   > Example
+     Split the text on any occurrence of the separator `"::"`.
+
+         example_split =
+             text = "Namespace::package::package::Type"
+             text.split ":::"
+Text.split : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
+Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    case separator of
+        Split_Kind.Words -> Vector.Vector this.words
+        Split_Kind.Whitespace ->
+            pattern = Regex.compile "\s+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
+            pattern.split this mode=mode
+        Split_Kind.Lines ->
+            pattern = Regex.compile "\v+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
+            pattern.split this mode=mode
+        Text ->
+            pattern = Regex.compile separator match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
+            pattern.split this mode=mode
+
+## ALIAS Replace Text
+
+   Replaces each occurrence of `old_sequence` with `new_sequence`, returning
+   `this` unchanged if no matches are found.
+
+   Arguments:
+   - old_sequence: The pattern to search for in `this`.
+   - new_sequence: The text to replace every occurrence of `old_sequence` with.
+   - mode: This argument specifies how many matches the engine will try to
+     replace.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     Replace letters in the text "aaa".
+
+         'aaa'.replace 'aa' 'b' == 'ba'
+
+   > Example
+     Replace every word of two letters or less with the string "SMOL".
+
+         example_replace =
+             text = "I am a very smol word."
+             text.replace "\w\w(?!\w)"
+Text.replace : Text | Engine.Pattern -> Text -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text
+Text.replace old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile old_sequence match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
+    compiled_pattern.replace this new_sequence mode
 
 ## ALIAS Get Words
 
@@ -269,6 +575,33 @@ Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
 Text.from_utf_8 : Vector.Vector Byte -> Text
 Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
 
+## ADVANCED
+
+   Returns a vector containing the UTF-16 characters that encode the input text.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+
+   > Example
+     Get the UTF-16 bytes of the text "Hello".
+
+         "Hello".utf_16
+Text.utf_16 : Vector.Vector Integer
+Text.utf_16 = Vector.Vector (Text_Utils.get_chars this)
+
+## ADVANCED
+
+   Takes a vector of UTF-16 characters and returns the text that results from
+   decoding it as UTF-16.
+
+   Arguments:
+   - chars: The vector of UTF-16 characters.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+Text.from_utf_16 : Vector.Vector Integer -> Text
+Text.from_utf_16 chars = Text_Utils.from_chars chars.to_array
+
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
 
@@ -352,24 +685,6 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
          "Hello".contains "ell"
 Text.contains : Text -> Boolean
 Text.contains sequence = Text_Utils.contains this sequence
-
-## ALIAS Replace Text
-
-   Replaces each occurrences of `old_sequence` within `this` with `new_sequence`.
-
-   Arguments:
-   - old_sequence: The text to search for in `this`.
-   - new_sequence: The text to replace any occurrence of `old_sequence` with.
-
-   The replacement from the beginning of the text, as shown in the example below.
-
-   > Example
-     Replace letters in the text "aaa".
-
-         'aaa'.replace 'aa' 'b' == 'ba'
-Text.replace : Text -> Text -> Text
-Text.replace old_sequence new_sequence =
-    Text_Utils.replace this old_sequence new_sequence
 
 ## Text to JSON conversion.
 

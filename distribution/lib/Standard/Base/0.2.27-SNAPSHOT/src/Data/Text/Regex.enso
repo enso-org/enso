@@ -1,0 +1,153 @@
+## This module contains the basic interface to the more advanced functionality
+   of Enso's regular expression engine.
+
+   TODO Examples
+
+from Standard.Base import all
+
+import Standard.Base.Data.Map
+import Standard.Base.Data.Text.Span
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Engine
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Regex.Option
+import Standard.Base.Data.Text.Split_Kind
+import Standard.Base.Data.Map
+
+import Standard.Base.Error.Extensions as Errors
+
+## Compile the provided `expression` into a regex pattern that can be used for
+   matching.
+
+   Arguments
+   - expression: The text representing the regular expression that you want to
+     compile.
+   - engine: The regular expression engine to use. It defaults to Enso's
+     built-in one which has good performance and a full feature-set.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dot_matches_newline: Enables or disables the dot matches newline option.
+     This specifies that the `.` special character should match everything
+     _including_ newline characters. Without this flag, it will match all
+     characters _except_ newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - comments: Enables or disables the comments mode for the regular expression.
+     In comments mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. This allows options
+     to be supplied and computed without having to break them out into arguments
+     to the function. Where these overlap with one of the flags (`match_ascii`,
+     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
+     flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern` object,
+     instead of immediately proceeding to match using it.
+compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern ! Compile_Error
+compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+    options_vec = here.from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
+    engine.compile expression options_vec
+
+## Escape the special characters in `expression` such that the result is a valid
+   literal pattern for the original string.
+
+   Arguments:
+   - expression: The expression to escape metacharacters in.
+   - engine: The regular expression engine to use. It defaults to Enso's
+     built-in one which has good performance and a full feature-set.
+
+   ! Matching Engines
+     Care should be taken to ensure that you use the same engine for escaping
+     and matching, as engine syntax may differ in certain cases.
+escape : Text -> Engine.Engine -> Text
+escape expression engine=Default_Engine.new = engine.escape expression
+
+## PRIVATE
+
+   Turns the options flags into a vector of options.
+from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Option.Option
+from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts =
+    builder = Vector.new_builder
+
+    process_override : Boolean | Nothing -> Option -> Nothing
+    process_override param option = case param of
+        Boolean -> if param then builder.append option
+        Nothing -> if extra_opts.contains option then builder.append option
+
+    process_override match_ascii Option.Ascii_Matching
+    process_override case_insensitive Option.Case_Insensitive
+    process_override dot_matches_newline Option.Dot_Matches_Newline
+    process_override multiline Option.Multiline
+    process_override comments Option.Comments
+
+    ## Add any non-overridable options from extra_opts
+    extra_opts.each opt->
+        not_ascii = opt != Option.Ascii_Matching
+        not_insensitive = opt != Option.Case_Insensitive
+        not_dot_matches_newline = opt != Option.Dot_Matches_Newline
+        not_multiline = opt != Option.Multiline
+        not_comments = opt != Option.Comments
+
+        if not_ascii && not_insensitive && not_dot_matches_newline && not_multiline && not_comments then
+            builder.append opt
+
+    builder.to_vector
+
+## PRIVATE
+
+   An error that is emitted when there is no such group in the match for the
+   provided `id`.
+
+   Arguments:
+   - id: The identifier of the group that was asked for but does not exist.
+type No_Such_Group_Error (id : Text | Integer)
+
+## PRIVATE
+
+   Provides a human-readable representation of the `No_Such_Group_Error`.
+No_Such_Group_Error.to_display_text : Text
+No_Such_Group_Error.to_display_text = case this.id of
+    Integer -> "No group exists with the index " + this.id.to_text + "."
+    Text -> "No group exists with the name " + this.id + "."
+
+## PRIVATE
+
+   An error that is emitted when the regex could not be compiled due to
+   syntactic errors
+
+   Arguments:
+   - message: A description of the syntactic error.
+type Syntax_Error (message : Text)
+
+## PRIVATE
+
+   Converts the compile error to a human-readable representation.
+Syntax_Error.to_display_text : Text
+Syntax_Error.to_display_text =
+    "The regex could not be compiled: " + this.message
+

@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Test
@@ -10,68 +11,275 @@ type Manual b
 
 Manual.to_text = "[[[MyREP " + this.b.to_text + "]]]"
 
-spec = Test.group "Text" <|
-    kshi = '\u0915\u094D\u0937\u093F'
-    kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
-    facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
-    facepalm_codes = [129318, 127996, 8205, 9794, 65039]
-    accent_1 = '\u00E9'
-    accent_2 = '\u0065\u{301}'
-    utf_8_whitespace = 'foo\n bar     baz \u202F quux'
-    utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
-    utf_8_vertical = 'foo\n   bar \v baz \r quux'
-    utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
-    sentences = '''
-        I have a very long block of text, here. It goes on and on, containing
-        things like decimal points (1.0314e3) and other language scripts as well
-        건반(Korean).
-    sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
-    Test.specify "should allow naive length computation over grapheme clusters" <|
-        kshi.length . should_equal 1
-        facepalm.length . should_equal 1
-    Test.specify "should compare strings using utf normalization" <|
-        "abc"=="def" . should_be_false
-        accent_1 . should_equal accent_2
-    Test.specify "should split the text into grapheme clusters" <|
-        str = kshi + facepalm + accent_1 + accent_2
-        str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
-    Test.specify "should be able to split the text into words" <|
-        sentences.words . should_equal sentence_words
-    Test.specify "should be able to split the text on UTF-8 whitespace" <|
-        utf_8_whitespace.split . should_equal utf_8_whitespace_split
-    Test.specify "should be able to split the text on UTF-8 newlines" <|
-        utf_8_vertical.split Split_Kind.Lines . should_equal utf_8_vertical_split
-    Test.specify "should be able to split the text on arbitrary text sequence" <|
-        "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
-    Test.specify "should dump utf-8 bytes to a vector" <|
-        kshi.utf_8.should_equal kshi_utf_8
-    Test.specify "should convert an array of bytes to text" <|
-        Text.from_utf_8 kshi_utf_8 . should_equal kshi
-    Test.specify "should dump utf codepoints to a vector" <|
-        facepalm.codepoints.should_equal facepalm_codes
-    Test.specify "should convert an array of codepoints to text" <|
-        Text.from_codepoints facepalm_codes . should_equal facepalm
-    Test.specify "should convert any type to text automatically and using provided methods" <|
-        t = Auto (Manual 123) . to_text
-        t.should_equal "(Auto [[[MyREP 123]]])"
-    Test.specify "should escape special characters when debug-printing text" <|
-        text_1 = '''
-            foo
-            bar\r\tbaz
-        text_1.to_text.should_equal "'foo\\nbar\\r\\tbaz'"
-        text_2 = '\n\t\a\b\f\r\v\e\''
-        text_2.to_text.should_equal "'\\n\\t\\a\\b\\f\\r\\v\\e\\''"
-    Test.specify "should allow selecting substrings by characters" <|
-        txt = kshi + facepalm + accent_1 + accent_2
-        txt.take_first 2 . should_equal (kshi + facepalm)
-        txt.drop_first 2 . should_equal (accent_1 + accent_2)
-        txt.take_last  2 . should_equal (accent_1 + accent_2)
-        txt.drop_last  2 . should_equal (kshi + facepalm)
+spec =
+    Test.group "Text" <|
+        kshi = '\u0915\u094D\u0937\u093F'
+        kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
+        facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
+        facepalm_codes = [129318, 127996, 8205, 9794, 65039]
+        accent_1 = '\u00E9'
+        accent_2 = '\u0065\u{301}'
+        utf_8_whitespace = 'foo\n bar     baz \u202F quux'
+        utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
+        utf_8_vertical = 'foo\n   bar \v baz \r quux'
+        utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
+        sentences = '''
+            I have a very long block of text, here. It goes on and on, containing
+            things like decimal points (1.0314e3) and other language scripts as well
+            건반(Korean).
+        sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
 
-    Test.specify "should correctly convert character case" <|
-        "FooBar Baz".to_lower_case.should_equal "foobar baz"
-        "FooBar Baz".to_upper_case.should_equal "FOOBAR BAZ"
-        "i".to_upper_case . should_equal "I"
-        "I".to_lower_case . should_equal "i"
-        "i".to_upper_case (Locale.new "tr") . should_equal "İ"
-        "I".to_lower_case (Locale.new "tr") . should_equal "ı"
+        Test.specify "should allow naive length computation over grapheme clusters" <|
+            kshi.length . should_equal 1
+            facepalm.length . should_equal 1
+
+        Test.specify "should compare strings using utf normalization" <|
+            "abc"=="def" . should_be_false
+            accent_1 . should_equal accent_2
+
+        Test.specify "should split the text into grapheme clusters" <|
+            str = kshi + facepalm + accent_1 + accent_2
+            str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
+
+        Test.specify "should be able to split the text into words" <|
+            sentences.words . should_equal sentence_words
+
+        Test.specify "should be able to split the text on UTF-8 whitespace" <|
+            utf_8_whitespace.split . should_equal utf_8_whitespace_split
+
+        Test.specify "should be able to split the text on UTF-8 newlines" <|
+            utf_8_vertical.split Split_Kind.Lines . should_equal utf_8_vertical_split
+
+        Test.specify "should be able to split the text on arbitrary text sequence" <|
+            "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
+
+        Test.specify "should dump utf-8 bytes to a vector" <|
+            kshi.utf_8.should_equal kshi_utf_8
+
+        Test.specify "should convert an array of bytes to text" <|
+            Text.from_utf_8 kshi_utf_8 . should_equal kshi
+
+        Test.specify "should dump utf codepoints to a vector" <|
+            facepalm.codepoints.should_equal facepalm_codes
+
+        Test.specify "should convert an array of codepoints to text" <|
+            Text.from_codepoints facepalm_codes . should_equal facepalm
+
+        Test.specify "should convert any type to text automatically and using provided methods" <|
+            t = Auto (Manual 123) . to_text
+            t.should_equal "(Auto [[[MyREP 123]]])"
+
+        Test.specify "should escape special characters when debug-printing text" <|
+            text_1 = '''
+                foo
+                bar\r\tbaz
+            text_1.to_text.should_equal "'foo\nbar\r\tbaz'"
+            text_2 = '\n\t\a\b\f\r\v\e\''
+            text_2.to_text.should_equal "'\n\t\a\b\f\r\v\e\''"
+
+        Test.specify "should allow selecting substrings by characters" <|
+            txt = kshi + facepalm + accent_1 + accent_2
+            txt.take_first 2 . should_equal (kshi + facepalm)
+            txt.drop_first 2 . should_equal (accent_1 + accent_2)
+            txt.take_last  2 . should_equal (accent_1 + accent_2)
+            txt.drop_last  2 . should_equal (kshi + facepalm)
+
+        Test.specify "should correctly convert character case" <|
+            "FooBar Baz".to_lower_case.should_equal "foobar baz"
+            "FooBar Baz".to_upper_case.should_equal "FOOBAR BAZ"
+            "i".to_upper_case . should_equal "I"
+            "I".to_lower_case . should_equal "i"
+            "i".to_upper_case (Locale.new "tr") . should_equal "İ"
+            "I".to_lower_case (Locale.new "tr") . should_equal "ı"
+
+        Test.specify "should dump utf-16 characters to a vector" <|
+            kshi_chars = kshi.utf_16
+            kshi_chars . should_equal [2325, 2381, 2359, 2367]
+
+        Test.specify "should convert an array of utf-16 characters to text" <|
+            kshi_chars = [2325, 2381, 2359, 2367]
+            Text.from_utf_16 kshi_chars . should_equal kshi
+
+    Test.group "Regex matching" <|
+        Test.specify "should be possible on text" <|
+            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First
+            match . should_be_a Default_Engine.Match
+            match.group 1 . should_equal "Goes Here"
+
+        Test.specify "should be possible on unicode text" <|
+            match = "Korean: 건반".match "^Korean: (.+)$" mode=Regex_Mode.First
+            match . should_be_a Default_Engine.Match
+            match.group 1 . should_equal "건반"
+
+        Test.specify "should be possible in ascii mode" <|
+            match = "İ".match "\w" mode=Regex_Mode.First match_ascii=True
+            match . should_equal Nothing
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            match = "MY".match "my" mode=Regex_Mode.First case_insensitive=True
+            match . should_be_a Default_Engine.Match
+            match.group 0 . should_equal "MY"
+
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            match = 'Foo\n'.match "(....)" mode=Regex_Mode.First dot_matches_newline=True
+            match . should_be_a Default_Engine.Match
+            match.group 0 . should_equal 'Foo\n'
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            match = text.match "^(...)$" multiline=True
+            match.length . should_equal 2
+            match.at 0 . group 1 . should_equal "Foo"
+            match.at 1 . group 1 . should_equal "bar"
+
+        Test.specify "should be possible in comments mode" <|
+            match = "abcde".match "(..) # Match two of any character" comments=True mode=Regex_Mode.First
+            match . should_be_a Default_Engine.Match
+            match.group 0 . should_equal "ab"
+
+    Test.group "Regex matches" <|
+        Test.specify "should be possible on text" <|
+            "My Text: Goes Here".matches "^My Text: (.+)$" . should_be_true
+
+        Test.specify "should be possible on unicode text" <|
+            "Korean: 건반".matches "^Korean: (.+)$" . should_be_true
+
+        Test.specify "should be possible in ascii mode" <|
+            "İ".matches "\w" match_ascii=True . should_be_false
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            "MY".matches "my" case_insensitive=True . should_be_true
+
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            'Foo\n'.matches "(....)" dot_matches_newline=True . should_be_true
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            text.matches "^(...)$" multiline=True . should_be_true
+
+        Test.specify "should be possible in comments mode" <|
+            "abcde".matches "(..) # Match two of any character" comments=True . should_be_true
+
+    Test.group "Regex finding" <|
+        Test.specify "should be possible on text" <|
+            match = "My Text: Goes Here".find "^My Text: (.+)$" mode=Regex_Mode.First
+            match . should_be_a Text
+            match . should_equal "My Text: Goes Here"
+
+        Test.specify "should be possible on unicode text" <|
+            match = "Korean: 건반".find "^Korean: (.+)$" mode=Regex_Mode.First
+            match . should_be_a Text
+            match . should_equal "Korean: 건반"
+
+        Test.specify "should be possible in ascii mode" <|
+            match = "İ".find "\w" mode=Regex_Mode.First match_ascii=True
+            match . should_equal Nothing
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            match = "MY".find "my" mode=Regex_Mode.First case_insensitive=True
+            match . should_be_a Text
+            match . should_equal "MY"
+
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            match = 'Foo\n'.find "(....)" mode=Regex_Mode.First dot_matches_newline=True
+            match . should_be_a Text
+            match . should_equal 'Foo\n'
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            match = text.find "^(...)$" multiline=True
+            match.length . should_equal 2
+            match.at 0 . should_equal "Foo"
+            match.at 1 . should_equal "bar"
+
+        Test.specify "should be possible in comments mode" <|
+            match = "abcde".find "(..) # Match two of any character" comments=True mode=Regex_Mode.First
+            match . should_be_a Text
+            match . should_equal "ab"
+
+    Test.group "Regex splitting" <|
+        Test.specify "should be possible on text" <|
+            splits = "abcde".split "[bd]"
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "c"
+            splits.at 2 . should_equal "e"
+
+        Test.specify "should be possible on unicode text" <|
+            match = "Korean: 건반 (hangul)".split " "
+            match.length . should_equal 3
+            match.at 0 . should_equal "Korean:"
+            match.at 1 . should_equal "건반"
+            match.at 2 . should_equal "(hangul)"
+
+        Test.specify "should be possible in ascii mode" <|
+            splits = "İiİ".split "\w" match_ascii=True
+            splits.length . should_equal 2
+            splits.at 0 . should_equal "İ"
+            splits.at 1 . should_equal "İ"
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            splits = "abaBa".split "b" case_insensitive=True
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "a"
+            splits.at 2 . should_equal "a"
+
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            splits = 'ab\nabcd'.split "b." dot_matches_newline=True
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "a"
+            splits.at 2 . should_equal "d"
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            match = text.split "$" multiline=True
+            match.length . should_equal 2
+
+        Test.specify "should be possible in comments mode" <|
+            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" comments=True
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "c"
+            splits.at 2 . should_equal "e"
+
+    Test.group "Regex replacement" <|
+        Test.specify "should be possible on text" <|
+            result = "ababab".replace "b" "a"
+            result . should_equal "aaaaaa"
+
+        Test.specify "should be possible on unicode text" <|
+            match = "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
+
+        Test.specify "should be possible in ascii mode" <|
+            result = "İiİ".replace "\w" "a" match_ascii=True
+            result . should_equal "İaİ"
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            result = "abaBa".replace "b" "a" case_insensitive=True
+            result . should_equal "aaaaa"
+
+        Test.specify "should be possible in dot_matches_newline mode" <|
+            result = 'ab\na'.replace "b." "a" dot_matches_newline=True
+            result . should_equal "aaa"
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            result = text.replace '\n' "" multiline=True
+            result . should_equal "Foobar"
+
+        Test.specify "should be possible in comments mode" <|
+            result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" comments=True
+            result . should_equal "aaa"
+

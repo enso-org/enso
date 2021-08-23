@@ -1,0 +1,76 @@
+## A `Span` represents a range of characters in a piece of `Text`.
+
+   > Example
+     Creating a span over the first three characters of the text "hello!".
+
+         import Standard.Base.Data.Text.Span
+
+         example_span =
+             text = "Hello!"
+             Span.new 0 3 text
+
+from Standard.Base import all
+
+import Standard.Base.Data.Range
+
+## Construct a new `Span`.
+
+   Arguments:
+   - start: The index of the first character included in the span.
+   - end: The index of the first character after `start` that is _not_ included
+     in the span.
+   - text: The `Text` over which the span exists. This is _optional_.
+
+   > Example
+     Creating a span over the first three characters of the text "hello!".
+
+         import Standard.Base.Data.Text.Span
+
+         example_span =
+             text = "Hello!"
+             Span.new 0 3 text
+new : Integer -> Integer -> Text | Nothing -> Span
+new start end text=Nothing = Span (start.up_to end) text
+
+type Span
+
+    ## A representation of a span of characters in Enso's `Text` type.
+
+       Arguments:
+       - range: The range of characters over which the span exists.
+       - text: The text over which the span exists. This is _optional_.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         Creating a span over the first three characters of the text "hello!".
+
+             import Standard.Base.Data.Text.Span
+
+             example_span =
+                 text = "Hello!"
+                 range = 0.up_to 3
+                 Span.Span range text
+    type Span (range : Range.Range) (text : (Text | Nothing) = Nothing)
+
+    ## The index of the first character included in the span.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+    start : Integer
+    start = this.range.start
+
+    ## The index of the first character after `start` that is _not_ included in
+       the span.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+    end : Integer
+    end = this.range.end

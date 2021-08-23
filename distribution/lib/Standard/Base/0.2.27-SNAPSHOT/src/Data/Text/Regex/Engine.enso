@@ -1,0 +1,247 @@
+## An `Engine` is a configuration and behaviour specification object for a
+   particular regular expression engine.
+
+   An implementation of a regular expression engine must implement the below
+   interface, as well as conform to the following requirements:
+
+   - The engine must operate in a unicode mode by default, using canonical
+     form for equality and the unicode versions of the standard character
+     classes.
+   - It must support the standard options specified in
+     `Standard.Base.Data.Text.Regex.Option`. It may specify additional,
+     engine-specific options, but this is not required by the specification.
+   - In the defining module, the engine implementation must provide a full
+     specification of its syntax in the module documentation block.
+
+   This file is _not executable_. It instead describes the interface for the
+   customisable `Engine` and `Pattern` types.
+
+from Standard.Base import all
+
+import Standard.Base.Error.Extensions as Errors
+
+from Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine export Default
+
+## The `Data.Text.Regex.Engine.Engine` interface.
+type Engine
+
+    ## PRIVATE
+
+       A type to represent the regular expresion engine.
+
+       This type may have whichever fields are required to implement the engine.
+    type Engine
+
+    ## PRIVATE
+
+       Compile the provided `expression` into a regex pattern that can be used
+       for matching.
+
+       Arguments
+       - expression: The text representing the regular expression that you want
+         to compile.
+       - options: The options to configure the matching process with. These are
+         merged with the specific `engine_opts`.
+    compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
+    compile _ _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Escape the special characters in `expression` such that the result is a
+       valid literal pattern for the original string.
+
+       Arguments:
+       - expression: The expression to escape metacharacters in.
+    escape : Text -> Text
+    escape _ = Errors.unimplemented "This is an interface only."
+
+## The `Data.Text.Regex.Engine.Pattern` interface.
+type Pattern
+
+    ## PRIVATE
+
+       A type to represent the pattern that results from compilation.
+
+       The type may contain any fields necessary for its implementation.
+    type Pattern
+
+    ## PRIVATE
+
+       Tries to match the provided `input` against the pattern `this`.
+
+       Arguments:
+       - input: The text to match the pattern described by `this` against.
+       - mode: The matching mode to use. This must default to `Mode.All`.
+
+       This method will _always_ return `Nothing` if it fails to match.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+    match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
+    match _ _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Returns `True` if the input matches against the pattern described by
+       `this`, otherwise `False`.
+
+       Arguments:
+       - input: The text to check for matching.
+    matches : Text -> Boolean
+    matches _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Tries to find the text in the `input` that matches against the pattern
+       `this`.
+
+       Arguments:
+       - input: The text to find matches in.
+       - mode: The matching mode to use. This must default to `Mode.All`
+
+       This method will _always_ return `Nothing` if it fails to find any
+       matches.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+    find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
+    find _ _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Splits the `input` text based on the pattern described by `this`.
+
+       Arguments:
+       - input: The text to splut based on the pattern described by `this`.
+       - mode: The splitting mode to use. This must default to `Mode.All`.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element.
+    split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
+    split _ _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Replace all occurrences of the pattern described by `this` in the `input`
+       with the specified `replacement`.
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+       - mode: The matching mode to use for finding candidates to replace. This
+         must default to `Mode.All`.
+
+       If this method performs no replacements it will return the `input` text
+       unchanged.
+    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
+    replace _ _ _ = Errors.unimplemented "This is an interface only."
+
+## The `Data.Text.Regex.Engine.Match` interface.
+type Match
+
+    ## PRIVATE
+
+       A type to represent the match.
+
+       This type may contain any fields necessary.
+    type Match
+
+    ## PRIVATE
+
+       Gets the text matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match. If no such group
+       exists for the provided identifier, a `No_Such_Group_Error` is returned.
+
+       Arguments:
+       - id: The index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+    group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
+    group _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Gets a vector containing the results of _all_ of the capturing groups in
+       the pattern, replacing the value of groups that did not participate in
+       the match with `default`.
+
+       Arguments:
+       - default: The value to return for a given index when the group at that
+         index did not participate in the match. The default for this argument
+         should be `Nothing`.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+    groups : (a : Any) -> Vector.Vector (Text | a)
+    groups _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Gets a map containing the named capturing groups for the pattern,
+       replacing the value for groups that did not participate in the match with
+       `default`.
+
+       Arguments:
+       - default: The value to return for a given name when the group at that
+         index did not participate in the match. This should default to
+         `Nothing`.
+    named_groups : (a : Any) -> Map Text (Text | a)
+    named_groups _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Gets the index of the first character captured by the group with the
+       given identifier, or `Nothing` if the group did not participate in the
+       match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the start index for.
+    start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    start _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Gets the index of the first character after `start` that was not captured
+       by the group with the given identifier, or `Nothing` if the group did not
+       participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+    end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    end _ = Errors.unimplemented "This is an intercace only."
+
+    ## PRIVATE
+
+       Returns the span matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+    span : Integer | Text -> Span | Nothing ! Regex.No_Such_Group_Error
+    span _ = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+
+       Returns the start character index of the match's region.
+    start_position : Integer
+    start_position = Errors.unimplemented "This is an interface only."
+
+    ## Returns the end character index of the match's region.
+    end_position : Integer
+    end_position = Errors.unimplemented "This is an interface only."
+

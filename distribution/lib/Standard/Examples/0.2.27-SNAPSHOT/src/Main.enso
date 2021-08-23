@@ -11,6 +11,8 @@ import Standard.Table
 import Standard.Base.Data.Json as Enso_Json
 import Standard.Base.Data.List as Enso_List
 import Standard.Base.Data.Map as Enso_Map
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+import Standard.Base.Data.Text.Regex.Mode as Regex_Mode
 import Standard.Base.Data.Time.Duration as Enso_Duration
 import Standard.Base.Network.Uri as Enso_Uri
 import Standard.Image as Enso_Image
@@ -283,4 +285,11 @@ aggregate_table =
     item_names = here.inventory_table.at "item_name"
     with_names = transactions.join item_names on="item_id"
     with_names.group by="item_name"
+
+## An example regex match.
+match : Default_Engine.Match
+match =
+    engine = Default_Engine.new
+    pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+    pattern.match "aa ab abc a bc bcd" mode=Regex_Mode.First
 

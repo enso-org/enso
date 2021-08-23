@@ -240,6 +240,21 @@ Any.map_error _ = this
 Any.is_error : Boolean
 Any.is_error = False
 
+## Applies the provided function to `this` unless `this` is `Nothing`, which is
+   returned unchanged.
+
+   Arguments:
+   - f: The function to apply to `this` if `this` is not `Nothing`.
+
+   > Example
+     Applying a function over a value 10.
+
+         10.map_nothing *2
+Any.map_nothing : (a -> b) -> b | Nothing
+Any.map_nothing f = case this of
+    Nothing -> Nothing
+    a -> f a
+
 ## Applies the function `this` to the provided argument.
 
    Arguments:

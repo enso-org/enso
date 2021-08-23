@@ -1,0 +1,898 @@
+## Enso's default regular expression matching engine.
+
+   Enso's default regular expression engine uses Java's regular expression
+   syntax, extended with support for the unicode character classes and
+   properties. A detailed explanation of the syntax is below.
+
+   ! Raw Strings
+     Enso has support for raw strings using the `""` quotes. Within a raw
+     string, all characters are interpreted to mean themselves. This means that
+     you do not need to double-escape special characters in regular expressions.
+
+   ! Characters and Regex
+     When the default regex engine provdies a position with regards to
+     "characters", it is referring to positions in terms of the UTF-16
+     characters in the text. These indices must be used to index into the
+     vector of UTF-16 characters. It will otherwise be wrong.
+
+   ! Escaping
+     The backslash character `"\"` serves to introduce escaped constructs, as
+     defined in "Syntax Specification" below, as well as to quote characters
+     that would otherwise be interpreted as unescaped constructs. As a result,
+     the expression `"\\"` matches a single backslash, and `"\{"` matches an
+     opening brace.
+
+     It is a parse error for the regular expression to use a backslash prior to
+     any alphabetic character that does not denote an escaped construct. It is,
+     however, valid to put a backslash before any symbolic character.
+
+   ? Syntax Specification
+     The syntax supported by the default regular expression engine is described
+     here. The pattern described by the regular expression can then be used to
+     match against text.
+
+     TBC
+
+from Standard.Base import all
+
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Engine
+import Standard.Base.Data.Text.Regex.Option as Global_Option
+import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Polyglot.Java as Java_Ext
+import Standard.Base.Data.Text.Span
+
+from Standard.Builtins import Java
+
+import Standard.Base.Error.Extensions as Errors
+
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.IndexOutOfBoundsException
+polyglot java import java.lang.StringBuffer
+polyglot java import java.util.regex.Matcher as Java_Matcher
+polyglot java import java.util.regex.Pattern as Java_Pattern
+polyglot java import java.util.regex.PatternSyntaxException
+
+polyglot java import com.ibm.icu.impl.UnicodeRegex
+polyglot java import org.enso.base.Regex_Utils
+
+## Construct an instance of the default engine.
+
+   Arguments:
+   - opts: Any engine-specific options.
+
+   > Example
+     Build a new default engine specifying literal mode.
+
+         import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+
+         example_new =
+             engine_opts = [Default_Engine.Literal_Pattern]
+             Default_Engine.new engine_opts
+new : Vector.Vector Option -> Engine
+new opts=[] = Engine opts
+
+## The default implementation of the `Data.Text.Regex.Engine.Engine` interface.
+type Engine
+
+    ## PRIVATE
+
+       The default regex engine for Enso.
+
+       Arguments:
+       - engine_opts: Options for regex matching that are specific to this
+         engine.
+    type Engine (engine_opts : Vector.Vector Option)
+
+    ## ADVANCED
+
+       Compile the provided `expression` into a regex pattern that can be used
+       for matching.
+
+       Arguments
+       - expression: The text representing the regular expression that you want
+         to compile.
+       - options: The options to configure the matching process with. These are
+         merged with the specific `engine_opts`.
+
+       ? Why Compile?
+         While many regex engines are able to cache ad-hoc patterns, it is often
+         useful to be able to manually retain a pattern that you have computed.
+         This function exists so you can hold onto the resultant `Pattern`
+         object, instead of immediately proceeding to match using it.
+
+       > Example
+         Compile the regex `"^a$"` in multiline mode so it matches all lines
+         consisting of a single "a".
+
+             import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+             import Standard.Base.Data.Text.Regex.Option as Global_Option
+
+             example_compile =
+                 expression = "^a$"
+                 options = [Global_Option.Multiline]
+                 engine = Default_Engine.new
+                 engine.compile expression options
+    compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
+    compile expression options =
+        all_options = options + this.engine_opts
+        options_bitmask = here.from_enso_options all_options
+        unicode_regex = UnicodeRegex.new
+
+        maybe_java_pattern = Panic.recover <|
+            Java_Pattern.compile (unicode_regex.transform expression) options_bitmask
+
+        internal_pattern = maybe_java_pattern.map_error case _ of
+            Polyglot_Error err ->
+                if Java.is_instance err PatternSyntaxException . not then err else
+                    Regex.Syntax_Error err.getMessage
+            other -> other
+
+        Pattern internal_pattern all_options this
+
+    ## ADVANCED
+
+       Escape the special characters in `expression` such that the result is a
+       valid literal pattern for the original string.
+
+       Arguments:
+       - expression: The expression to escape metacharacters in.
+
+       > Example
+         Turn a literal string into a regex that matches that string exactly.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+             import Standard.Base.Data.Text.Regex.Option as Global_Option
+
+             example_escape =
+                 literal_string = "\!\.|abcde"
+                 engine = Default_Engine.new
+                 engine.escape literal_string
+    escape : Text -> Text
+    escape expression = Java_Pattern.quote expression
+
+## The default implementation of the `Data.Text.Regex.Engine.Pattern` interface.
+type Pattern
+
+    ## PRIVATE
+
+       The default pattern type for Enso, produced by the default regex engine.
+
+       Arguments:
+       - internal_pattern: The internal representation of the compiled pattern.
+       - options: The vector of options with which this pattern was built.
+       - engine: A handle to the engine that built this pattern.
+    type Pattern (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
+
+    ## PRIVATE
+
+       Constructs an internal matcher, settings the region as provided and
+       handling some additional options.
+
+       Arguments:
+       - input: The text on which it will be matching.
+       - start: The start of the matcher's region.
+       - end: The end of the matcher's region.
+    build_matcher : Text -> Integer -> Integer -> Java_Matcher
+    build_matcher input start end =
+        internal_matcher = this.internal_pattern.matcher input . region start end
+
+        if this.options.contains No_Anchoring_Bounds then
+            internal_matcher.useAnchoringBounds False
+        if this.options.contains Transparent_Bounds then
+            internal_matcher.useTransparentBounds True
+
+        internal_matcher
+
+    ## ADVANCED
+
+       Tries to match the provided `input` against the pattern `this`.
+
+       Arguments:
+       - input: The text to match the pattern described by `this` against.
+       - mode: The matching mode to use.
+
+       This method will _always_ return `Nothing` if it fails to match.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+
+       > Example
+         Match the first instance of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.match input mode=Mode.First
+
+       > Example
+         Match up to the first 3 instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.match input mode=3
+
+       > Example
+         Match all instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.match input
+
+       > Example
+         Check if the pattern `".*"` matches on the entire input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".*" []
+                 input = "abcdefghij"
+                 pattern.match input mode=Mode.Full
+    match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
+    match input mode=Mode.All =
+        do_match_mode mode start end = case mode of
+            Mode.First ->
+                internal_matcher = this.build_matcher input start end
+
+                if internal_matcher . find start . not then Nothing else
+                    Match internal_matcher start end
+            Integer ->
+                if mode < 0 then Panic.throw <|
+                    Mode_Error "Cannot match a negative number of times."
+
+                builder = Vector.new_builder
+
+                go : Integer -> Integer -> Nothing
+                go offset remaining_count =
+                    should_continue = remaining_count > 0
+                    if should_continue.not || (offset > end) then Nothing else
+                        internal_matcher = this.build_matcher input start end
+                        found = internal_matcher.find offset
+
+                        if found.not then Nothing else
+                            builder.append (Match internal_matcher start end)
+
+                            if internal_matcher.hitEnd then Nothing else
+                                @Tail_Call go (internal_matcher.end 0) remaining_count-1
+
+                go start mode
+                vector = builder.to_vector
+
+                if vector.is_empty then Nothing else vector
+            Mode.All ->
+                builder = Vector.new_builder
+
+                go : Integer -> Nothing
+                go offset =
+                    if offset >= end then Nothing else
+                        internal_matcher = this.build_matcher input start end
+                        found = internal_matcher.find offset
+
+                        if found.not then Nothing else
+                            builder.append (Match internal_matcher start end)
+
+                            if internal_matcher.hitEnd then Nothing else
+                                @Tail_Call go (internal_matcher.end 0)
+
+                go start
+                vector = builder.to_vector
+
+                if vector.is_empty then Nothing else vector
+            Mode.Full ->
+                internal_matcher = this.build_matcher input start end
+                if internal_matcher.matches.not then Nothing else
+                    Match internal_matcher start end
+            Mode.Bounded _ _ _ -> Panic.throw <|
+                Mode_Error "Modes cannot be recursive."
+
+        case mode of
+            Mode.Bounded start end sub_mode ->
+                if start < end then do_match_mode sub_mode start end else
+                    Panic.throw Invalid_Bounds_Error
+            _ -> do_match_mode mode 0 input.length
+
+    ## ADVANDED
+
+       Returns `True` if the input matches against the pattern described by
+       `this`, otherwise `False`.
+
+       Arguments:
+       - input: The text to check for matching.
+
+       > Example
+         Check if the input "aa" matches against the pattern `".."`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "aa"
+                 pattern.matches input
+    matches : Text -> Boolean
+    matches input = case this.match input mode=Mode.First of
+        Match _ _ _ -> True
+        Vector.Vector _ -> True
+        _ -> False
+
+    ## ADVANCED
+
+       Tries to find the text in the `input` that matches against the pattern
+       `this`.
+
+       Arguments:
+       - input: The text to find matches in.
+       - mode: The matching mode to use.
+
+       This method will _always_ return `Nothing` if it fails to find any
+       matches.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+
+       > Example
+         Find the first instance of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.find input mode=Mode.First
+
+       > Example
+         Find up to the first 3 instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.find input mode=3
+
+       > Example
+         Find all instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.find input
+
+       > Example
+         Find if the pattern `".*"` matches on the entire input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".*" []
+                 input = "abcdefghij"
+                 pattern.find input mode=Mode.Full
+    find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
+    find input mode=Mode.All =
+        matches = this.match input mode
+        case matches of
+            Match _ _ _ -> matches.group 0
+            Vector.Vector _ -> matches.map (_.group 0)
+            _ -> matches
+
+    ## ADVANCED
+
+       Splits the `input` text based on the pattern described by `this`.
+
+       Arguments:
+       - input: The text to splut based on the pattern described by `this`.
+       - mode: The splitting mode to use.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element.
+
+       > Example
+         Split the input on the first instance of the pattern `"aa"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "aa" []
+                 input = "abaaabbaabba"
+                 pattern.match input mode=Mode.First
+
+       > Example
+         Split on up to the first 3 instances of the pattern `"a"` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "a" []
+                 input = "bacadaeaf"
+                 pattern.match input mode=3
+
+       > Example
+         Split on all all instances of the pattern `"a"` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "a" []
+                 input = "bacadaeaf"
+                 pattern.match input
+    split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
+    split input mode=Mode.All =
+        # Java uses this to mean the max length of the resulting array, so we
+        # add 1.
+        limit = case mode of
+            Mode.First -> 2
+            Integer ->
+                if mode < 0 then Panic.throw <|
+                    Mode_Error "Cannot match a negative number of times."
+
+                mode + 1
+            Mode.All -> 0
+            Mode.Full -> Panic.throw <|
+                Mode_Error "Splitting on a full match yields an empty text."
+            Mode.Bounded _ _ _ -> Panic.throw <|
+                Mode_Error "Splitting on a bounded region is not well-defined."
+
+        splits = this.internal_pattern.split input limit
+        Vector.Vector splits
+
+    ## ADVANCED
+
+       Replace all occurrences of the pattern described by `this` in the `input`
+       with the specified `replacement`.
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+       - mode: The matching mode to use for finding candidates to replace.
+
+       If this method performs no replacements it will return the `input` text
+       unchanged.
+
+       > Example
+         Replace the first occurrence of the pattern `".."` in the input with
+         the text `"REPLACED"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.replace input "REPLACED" mode=Mode.First
+
+       > Example
+         Replace up to the first 3 instances of the pattern `"aa"` in the input
+         with the text `"REPLACED"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "aa" []
+                 input = "aabbaaaabb"
+                 pattern.replace input "REPLACED" mode=3
+
+       > Example
+         Replace all instances of the pattern `"aa"` in the input with the text
+         `"REPLACED"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "aa []
+                 input = "aabbaabbbbbaab"
+                 pattern.replace input "REPLACED"
+    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
+    replace input replacement mode=Mode.All =
+        do_replace_mode mode start end = case mode of
+            Mode.First ->
+                internal_matcher = this.build_matcher input start end
+                internal_matcher.replaceFirst replacement
+            Integer ->
+                if mode < 0 then Panic.throw <|
+                    Mode_Error "Cannot replace a negative number of times."
+
+                internal_matcher = this.build_matcher input start end
+                buffer = StringBuffer.new
+
+                go remaining_replacements =
+                    if (internal_matcher.find) && (remaining_replacements > 0) then
+                        internal_matcher.appendReplacement buffer replacement
+                        @Tail_Call go (remaining_replacements - 1)
+
+                go mode
+                internal_matcher.appendTail buffer
+                buffer.to_text
+            Mode.All ->
+                internal_matcher = this.build_matcher input start end
+                internal_matcher.replaceAll replacement
+            Mode.Full ->
+                case this.match input mode=Mode.Full of
+                    Match _ _ _ -> replacement
+                    Nothing -> input
+            Mode.Bounded _ _ _ -> Panic.throw <|
+                Mode_Error "Modes cannot be recursive."
+
+        case mode of
+            Mode.Bounded _ _ _ -> Panic.throw <|
+                Mode_Error "Bounded replacements are not well-formed."
+            _ -> do_replace_mode mode 0 input.length
+
+## The default implementation of the `Data.Text.Regex.Engine.Match` interface.
+type Match
+
+    ## PRIVATE
+
+       A representation of a regular expression match.
+
+       Arguments:
+       - internal_match: The internal representation of the regular expression
+         match.
+       - region_start: The start of the region over which the match was made.
+       - region_end: The end of the region over which the match was made.
+    type Match (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer)
+
+    ## Gets the text matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match. If no such group
+       exists for the provided identifier, a `No_Such_Group_Error` is returned.
+
+       Arguments:
+       - id: The index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         Get the text of the group with the index 0.
+
+             import Standard.Examples
+
+             example_group =
+                 match = Examples.match
+                 match.group 0
+
+       > Example
+         Get the text of the group with the name "letters".
+
+             import Standard.Examples
+
+             example_group =
+                 match = Examples.match
+                 match.group "letters"
+    group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
+    group id =
+        Panic.recover (this.internal_match.group id) . map_error (here.handle_error _ id)
+
+    ## Gets a vector containing the results of _all_ of the capturing groups in
+       the pattern, replacing the value of groups that did not participate in
+       the match with `default`.
+
+       Arguments:
+       - default: The value to return for a given index when the group at that
+         index did not participate in the match.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         Get a vector of the text matched by all of the groups in this match,
+         replacing the value for groups that didn't match with "UNMATCHED".
+
+             import Standard.Examples
+
+             example_groups =
+                 match = Examples.match
+                 match.groups default="UNMATCHED"
+    groups : (a : Any) -> Vector.Vector (Text | a)
+    groups default=Nothing =
+        group_numbers = 0.up_to this.internal_match.groupCount+1
+        group_numbers.map n->
+            case this.group n of
+                Nothing -> default
+                a -> a
+
+    ## Gets a map containing the named capturing groups for the pattern,
+       replacing the value for groups that did not participate in the match with
+       `default`.
+
+       Arguments:
+       - default: The value to return for a given name when the group at that
+         index did not participate in the match.
+
+       > Example
+         Get the map of all of the named groups in this match, replacing the
+         value for groups that didn't match with "UNMATCHED".
+
+             import Standard.Examples
+
+             example_groups =
+                 match = Examples.match
+                 matcg.named_groups default="UNMATCHED"
+    named_groups : (a : Any) -> Map Text (Text | a)
+    named_groups default=Nothing =
+        group_names = Vector.Vector <|
+            Regex_Utils.get_group_names this.internal_match.pattern
+        pairs = group_names.map name->
+            value = case this.group name of
+                Nothing -> default
+                a -> a
+            [name, value]
+        Map.from_vector pairs
+
+    ## Gets the index of the first character captured by the group with the
+       given identifier, or `Nothing` if the group did not participate in the
+       match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the start index for.
+
+       ! What is a Character?
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
+
+       > Example
+         Get the start index in the input where the full pattern matched for
+         this match.
+
+             import Standard.Examples
+
+             example_start =
+                 match = Examples.match
+                 match.start 0
+    start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    start id =
+        result = Panic.recover (this.internal_match.start id)
+        no_errors = result.map_error (here.handle_error _ id)
+        if no_errors == -1 then Nothing else no_errors
+
+    ## Gets the index of the first character after `start` that was not captured
+       by the group with the given identifier, or `Nothing` if the group did not
+       participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+
+       ! What is a Character?
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
+
+       > Example
+         Get the end index in the input where the full pattern matched for this
+         match.
+
+             import Standard.Examples
+
+             example_end =
+                 match = Examples.match
+                 match.end 0
+    end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    end id =
+        result = Panic.recover (this.internal_match.end id)
+        no_errors = result.map_error (here.handle_error _ id)
+        if no_errors == -1 then Nothing else no_errors
+
+    ## Returns the span matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+
+       ! What is a Character?
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
+
+       > Example
+         Get the span over the input that was matched by the full match.
+
+             import Standard.Examples
+
+             example_Span =
+                 match = Examples.match
+                 match.span 0
+    span : Integer | Text -> Span | Nothing ! Regex.No_Such_Group_Error
+    span id = case this.group id of
+        Nothing -> Nothing
+        _ -> Span.new (this.start id) (this.end id) (this.group 0)
+
+    ## Returns the start character index of the match's region.
+
+       ! What is a Character?
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
+
+       > Example
+         Get the start position in the input to which this match was limited.
+
+             import Standard.Examples
+
+             example_start_position =
+                 match = Examples.match
+                 match.start_position
+    start_position : Integer
+    start_position = this.region_start
+
+    ## Returns the end character index of the match's region.
+
+       ! What is a Character?
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
+
+       > Example
+         Get the end position in the input to which this match was limited.
+
+             import Standard.Examples
+
+             example_end_position =
+                 match = Examples.match
+                 match.end_position
+    end_position : Integer
+    end_position = this.region_end
+
+## PRIVATE
+
+   Handle errors when looking up group info.
+
+   Arguments:
+   - error: The error as a value.
+   - id: The group identifier with which the error is associated.
+handle_error : Any -> (Text | Integer) -> Any
+handle_error error id = case error of
+    Polyglot_Error err ->
+        is_ioob = Java.is_instance err IndexOutOfBoundsException
+        is_iae = Java.is_instance err IllegalArgumentException
+        maps_to_no_such_group = is_ioob || is_iae
+
+        if maps_to_no_such_group.not then err else
+            Regex.No_Such_Group_Error id
+    other -> other
+
+## Options specific to the `Default` regular expression engine.
+type Option
+
+    ## Specifies that the input expression to the pattern be treated as a
+       sequence of literal characters. Metacharacters and escape sequences have
+       no special meaning in this mode.
+    type Literal_Pattern
+
+    ## Disables anchoring to the region's boundaries.
+
+       By default, the regex engine will allow `^` and `$` to match the
+       boundaries of a restricted region. With this option specified, they will
+       only match the start and end of the input.
+    type No_Anchoring_Bounds
+
+    ## Enables transparent bounds.
+
+       Setting this option will allow the regex engine to look "through" the
+       boundaries of the engine's region for the purposes of lookahead,
+       lookbehind, and boundary matching.
+
+       Without this flag, the region boundaries are treated as opaque, meaning
+       that the above constructs will fail to match anything outside the region.
+    type Transparent_Bounds
+
+    ## Specifies that only the unix line ending `''\n'` be considered in the
+       behaviour of the `^` and `$` special characters.
+    type Unix_Lines
+
+## PRIVATE
+
+   Generates a Java bitmask representing the options used to configure the
+   regex.
+
+   Arguments:
+   - opts: The enso-side options to configure the regex.
+from_enso_options : Vector.Vector (Option | Global_Option.Option) -> Integer
+from_enso_options opts =
+    java_flags = Panic.recover <| opts.flat_map case _ of
+        Literal_Pattern -> [Java_Pattern.LITERAL]
+        Unix_Lines -> [Java_Pattern.UNIX_LINES]
+        Global_Option.Case_Insensitive -> [Java_Pattern.CASE_INSENSITIVE]
+        Global_Option.Dot_Matches_Newline -> [Java_Pattern.DOTALL]
+        Global_Option.Multiline -> [Java_Pattern.MULTILINE]
+        Global_Option.Comments -> [Java_Pattern.COMMENTS]
+        Global_Option.Ascii_Matching -> []
+        No_Anchoring_Bounds -> []
+        Transparent_Bounds -> []
+        other -> Panic.throw (Invalid_Option_Error other)
+
+    options_bitmask = java_flags.fold 0 .bit_or
+
+    if opts.contains Global_Option.Ascii_Matching then options_bitmask else
+        unicode = [Java_Pattern.CANON_EQ, Java_Pattern.UNICODE_CASE, Java_Pattern.UNICODE_CHARACTER_CLASS].fold 0 .bit_or
+        options_bitmask.bit_or unicode
+
+## PRIVATE
+
+   An error representing that the bounds for a match are invalid.
+type Invalid_Bounds_Error
+
+## PRIVATE
+
+   Provides a human-readable representation of the invalid bounds error.
+Invalid_Bounds_Error.to_display_text : Text
+Invalid_Bounds_Error.to_display_text =
+    "The start bound cannot be greater than the end bound."
+
+## PRIVATE
+
+   An error representing that there is something wrong with the mode for a regex
+   match.
+
+   Arguments:
+   - message: The text of the message to display to users.
+type Mode_Error (message : Text)
+
+## PRIVATE
+
+   Provides a human-readable representation of the invalid bounds error.
+Mode_Error.to_display_text : Text
+Mode_Error.to_display_text = this.message.to_text
+
+## PRIVATE
+
+   An error representing that one of the passed options was invalid.
+
+   Arguments:
+   - opt: The option that was not valid for this regex engine.
+type Invalid_Option_Error (opt : Any)
+
+## PRIVATE
+
+   Provides a human-readable representation of the invalid option error.
+Invalid_Option_Error.to_display_text : Text
+Invalid_Option_Error.to_display_text =
+    "The option " + this.opt.to_text + " is not valid for the default regex engine."
+

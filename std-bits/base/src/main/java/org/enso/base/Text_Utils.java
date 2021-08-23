@@ -46,6 +46,16 @@ public class Text_Utils {
   }
 
   /**
+   * Converts a string into an array of UTF-16 chars.
+   *
+   * @param str the string to convert
+   * @return the UTF-16 character representation of the string.
+   */
+  public static char[] get_chars(String str) {
+    return str.toCharArray();
+  }
+
+  /**
    * Converts a string into an array of Unicode codepoints.
    *
    * @param str the string to convert
@@ -152,6 +162,16 @@ public class Text_Utils {
   }
 
   /**
+   * Converts an array of UTF-16 characters into a string.
+   *
+   * @param chars the UTF-16 characters to convert
+   * @return the resulting string
+   */
+  public static String from_chars(char[] chars) {
+    return String.valueOf(chars);
+  }
+
+  /**
    * Checks whether {@code prefix} is a prefix of {@code str}.
    *
    * @param str the string to check
@@ -201,7 +221,8 @@ public class Text_Utils {
    * @param str the string to process
    * @param oldSequence the substring that is searched for and will be replaced
    * @param newSequence the string that will replace occurrences of {@code oldSequence}
-   * @return {@code str} with all occurrences of {@code oldSequence} replaced with {@code newSequence}
+   * @return {@code str} with all occurrences of {@code oldSequence} replaced with {@code
+   *     newSequence}
    */
   public static String replace(String str, String oldSequence, String newSequence) {
     return str.replace(oldSequence, newSequence);

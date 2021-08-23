@@ -1,5 +1,13 @@
 # Enso Next
 
+## Libraries
+
+- Added support for regular expressions
+  ([#1968](https://github.com/enso-org/enso/pull/1968)). They are available as
+  part of the `Text.match`, `Text.matches`, `Text.find`, `Text.split` and
+  `Text.replace` methods, and are provided by a lower-level API with more
+  control that can be found in the `Standard.Base.Data.Text.Regex` module.
+
 ## Tooling
 
 - Implement Language Server endpoints for getting and setting library metadata

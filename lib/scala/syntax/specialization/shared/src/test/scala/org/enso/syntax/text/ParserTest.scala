@@ -1,12 +1,11 @@
 package org.enso.syntax.text
 
-import org.enso.data.List1
-import org.enso.data.Shifted
-import org.enso.data.Tree
+import org.enso.data.{List1, Shifted, Tree}
 import org.enso.flexer.Reader
 import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST._
 import org.enso.syntax.text.AST.conversions._
+import org.enso.syntax.text.Shape.SegmentPlain
 import org.enso.syntax.text.ast.DSL._
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
@@ -242,10 +241,10 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "'\\cd'"   ?= Text(escape(Esc.Invalid('c')), "d")
   "'\\123d'" ?= Text(escape(Esc.Number(123)), "d")
 
-  "\"\\\\\"" ?= Text.Raw(escape(Esc.Slash))
-  "\"\\\"\"" ?= Text.Raw(escape(Esc.RawQuote))
-  "\"\\"     ?= Text.Unclosed.Raw(escape(Esc.Unfinished))
-  "\"\\cd\"" ?= Text.Raw(escape(Esc.Invalid('c')), "d")
+  "\"\\\\\"" ?= Text.Raw("\\\\")
+  "\"\\\""   ?= Text.Raw("\\")
+  "\"\\"     ?= Text.Unclosed.Raw(SegmentPlain("\\"))
+  "\"\\cd\"" ?= Text.Raw("\\cd")
 
   //// Interpolation ////
 
