@@ -60,7 +60,7 @@ class RuntimeConnector
     case MessageFromRuntime(msg: Runtime.Api.Request) =>
       context.system.eventStream.publish(msg)
     case MessageFromRuntime(
-          Runtime.Api.Response(None, msg: Runtime.ApiNotification)
+          Runtime.Api.Response(None, msg: Runtime.ApiResponse)
         ) =>
       context.system.eventStream.publish(msg)
     case MessageFromRuntime(
