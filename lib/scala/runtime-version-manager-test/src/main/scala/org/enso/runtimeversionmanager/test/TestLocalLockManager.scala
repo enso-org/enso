@@ -1,11 +1,6 @@
 package org.enso.runtimeversionmanager.test
 
-import org.enso.distribution.locking.{
-  Lock,
-  LockManager,
-  LockType,
-  ThreadSafeLockManager
-}
+import org.enso.distribution.locking.{Lock, LockType, ThreadSafeLockManager}
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.{
@@ -14,7 +9,7 @@ import java.util.concurrent.locks.{
   Lock => JLock
 }
 
-/** A [[LockManager]] that creates process-local locks.
+/** A [[ThreadSafeLockManager]] that creates process-local locks.
   *
   * The locks are not visible by other processes, so this manager is not useful
   * for synchronizing multiple processes. It can be used to test concurrency

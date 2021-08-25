@@ -1,7 +1,10 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
-import org.enso.distribution.locking.ThreadSafeFileLockManager
+import org.enso.distribution.locking.{
+  ResourceManager,
+  ThreadSafeFileLockManager
+}
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
@@ -16,6 +19,7 @@ import org.enso.languageserver.io._
 import org.enso.languageserver.libraries.{
   EditionReferenceResolver,
   LibraryConfig,
+  LibraryInstallerConfig,
   LocalLibraryManager,
   ProjectSettingsManager
 }
@@ -290,6 +294,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val lockManager = new ThreadSafeFileLockManager(
     distributionManager.paths.locks
   )
+  val resourceManager = new ResourceManager(lockManager)
 
   val lockManagerService = system.actorOf(
     LockManagerService.props(lockManager),
@@ -323,7 +328,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     editionManager           = editionManager,
     localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
     publishedLibraryCache =
-      PublishedLibraryCache.makeReadOnlyCache(libraryLocations)
+      PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
+    installerConfig = LibraryInstallerConfig(
+      distributionManager,
+      resourceManager,
+      Some(languageHome)
+    )
   )
 
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(

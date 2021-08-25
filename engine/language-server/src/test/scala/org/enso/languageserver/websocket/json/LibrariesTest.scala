@@ -6,6 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
+import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{
   EmptyRepository,
   ExampleRepository
@@ -15,18 +16,14 @@ import org.enso.pkg.{Contact, PackageManager}
 import java.nio.file.Files
 
 class LibrariesTest extends BaseServerTest {
+  private val libraryRepositoryPort: Int = 47308
+
+  private val exampleRepo   = new ExampleRepository
+  private val baseUrl       = s"http://localhost:$libraryRepositoryPort/"
+  private val repositoryUrl = baseUrl + "libraries"
+
   override protected def customEdition: Option[Editions.RawEdition] = Some(
-    Editions.Raw.Edition
-      .make(
-        parent = Some(buildinfo.Info.currentEdition),
-        libraries = Seq(
-          Editions.Raw.PublishedLibrary(
-            name       = LibraryName("Foo", "Bar"),
-            version    = SemVer(1, 2, 3),
-            repository = "main"
-          )
-        )
-      )
+    exampleRepo.createEdition(repositoryUrl)
   )
 
   "LocalLibraryManager" should {
@@ -201,8 +198,6 @@ class LibrariesTest extends BaseServerTest {
           """)
     }
 
-    def port: Int = 47308
-
     "create, publish a library and fetch its manifest from the server" in {
       val client = getInitialisedWsClient()
       client.send(json"""
@@ -256,10 +251,12 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      val baseUrl       = s"http://localhost:$port/"
-      val repositoryUrl = baseUrl + "libraries"
-      val repoRoot      = getTestDirectory.resolve("libraries_repo_root")
-      EmptyRepository.withServer(port, repoRoot, uploads = true) {
+      val repoRoot = getTestDirectory.resolve("libraries_repo_root")
+      EmptyRepository.withServer(
+        libraryRepositoryPort,
+        repoRoot,
+        uploads = true
+      ) {
         val uploadUrl       = baseUrl + "upload"
         val uploadRequestId = 2
         client.send(json"""
@@ -360,49 +357,85 @@ class LibrariesTest extends BaseServerTest {
     }
   }
 
-  "mocked library/preinstall" should {
-    "send progress notifications" in {
+  "library/preinstall" should {
+    "download the library sending progress notifications " +
+    "and correctly place it in cache" in {
       val client = getInitialisedWsClient()
-      client.send(json"""
+
+      val repositoryPath = getTestDirectory.resolve("repository_path")
+      exampleRepo.createRepository(repositoryPath)
+      exampleRepo.withServer(libraryRepositoryPort, repositoryPath) {
+        val requestId = 0
+        client.send(json"""
           { "jsonrpc": "2.0",
             "method": "library/preinstall",
-            "id": 0,
+            "id": $requestId,
             "params": {
               "namespace": "Foo",
-              "name": "Test"
+              "name": "Bar"
             }
           }
           """)
-      val messages =
-        for (_ <- 0 to 3) yield {
-          val msg    = client.expectSomeJson().asObject.value
-          val method = msg("method").map(_.asString.value).getOrElse("error")
-          val params =
-            msg("params").map(_.asObject.value).getOrElse(JsonObject())
-          (method, params)
+
+        val messages         = collection.mutable.ListBuffer[(String, JsonObject)]()
+        var waitingForTask   = true
+        var waitingForResult = true
+
+        while (waitingForTask || waitingForResult) {
+          val msg = client.expectSomeJson().asObject.value
+
+          msg("id") match {
+            case Some(json) =>
+              json.asNumber.value.toInt.value shouldEqual requestId
+              msg("result").value.asNull.value
+              waitingForResult = false
+            case None =>
+              val method =
+                msg("method").map(_.asString.value).getOrElse("error")
+              val params =
+                msg("params").map(_.asObject.value).getOrElse(JsonObject())
+              messages.addOne((method, params))
+
+              if (method == "task/finished") waitingForTask = false
+          }
         }
 
-      val taskStart = messages.find(_._1 == "task/started").value
-      val taskId    = taskStart._2("taskId").value.asString.value
-      taskStart
-        ._2("relatedOperation")
-        .value
-        .asString
-        .value shouldEqual "library/preinstall"
+        val taskStart = messages.find(_._1 == "task/started").value
+        val taskId    = taskStart._2("taskId").value.asString.value
+        taskStart
+          ._2("relatedOperation")
+          .value
+          .asString
+          .value shouldEqual "library/preinstall"
 
-      taskStart._2("unit").value.asString.value shouldEqual "Bytes"
+        taskStart._2("unit").value.asString.value shouldEqual "Bytes"
 
-      val updates = messages.filter { case (method, params) =>
-        method == "task/progress-update" &&
-        params("taskId").value.asString.value == taskId
+        val updates = messages.filter { case (method, params) =>
+          method == "task/progress-update" &&
+          params("taskId").value.asString.value == taskId
+        }
+
+        updates should not be empty
+        updates.head._2("message").value.asString.value should include(
+          "Downloading"
+        )
+
+        val cachePath     = getTestDirectory.resolve("test_data").resolve("lib")
+        val readOnlyCache = new LocalReadOnlyRepository(cachePath)
+        val cachedLibraryRoot = readOnlyCache
+          .findCachedLibrary(
+            LibraryName("Foo", "Bar"),
+            SemVer(1, 0, 0)
+          )
+          .value
+
+        val pkg =
+          PackageManager.Default.loadPackage(cachedLibraryRoot.toFile).get
+        pkg.name shouldEqual "Bar"
+        pkg.listSources.map(
+          _.file.getName
+        ) should contain theSameElementsAs Seq("Main.enso")
       }
-
-      updates should not be empty
-      updates.head
-        ._2("message")
-        .value
-        .asString
-        .value shouldEqual "Download Test"
     }
   }
 
