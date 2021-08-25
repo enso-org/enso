@@ -133,8 +133,6 @@ public class Context {
     return getEnvironment().getInternalTruffleFile(file.getAbsolutePath());
   }
 
-  // TODO [AA] Where should the logic for getting at the cache dir go?
-
   /**
    * Gets the compiler instance.
    *
