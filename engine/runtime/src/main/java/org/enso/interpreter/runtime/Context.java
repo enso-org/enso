@@ -133,6 +133,8 @@ public class Context {
     return getEnvironment().getInternalTruffleFile(file.getAbsolutePath());
   }
 
+  // TODO [AA] Where should the logic for getting at the cache dir go?
+
   /**
    * Gets the compiler instance.
    *
@@ -207,9 +209,20 @@ public class Context {
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
     TruffleFile p = getTruffleFile(path);
+    return getModuleNameForFile(p);
+  }
+
+  /**
+   * Fetches the module name associated with a given file, using the environment packages
+   * information.
+   *
+   * @param file the path to decode.
+   * @return a qualified name of the module corresponding to the file, if exists.
+   */
+  public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
     return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
-        .filter(pkg -> p.startsWith(pkg.sourceDir()))
-        .map(pkg -> pkg.moduleNameForFile(p))
+        .filter(pkg -> file.startsWith(pkg.sourceDir()))
+        .map(pkg -> pkg.moduleNameForFile(file))
         .findFirst();
   }
 
@@ -377,5 +390,19 @@ public class Context {
   /** @return the distribution manager for this language */
   public DistributionManager getDistributionManager() {
     return distributionManager;
+  }
+
+  /** @return The logger for this language */
+  public TruffleLogger getLogger() {
+    return logger;
+  }
+
+  /** Gets a logger for the specified class.
+   *
+   * @param klass the class to name log entries with
+   * @return a new logger for the specified {@code path}
+   */
+  public TruffleLogger getLogger(Class<?> klass) {
+    return TruffleLogger.getLogger(LanguageInfo.ID, klass);
   }
 }

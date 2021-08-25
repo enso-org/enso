@@ -14,8 +14,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
-
-import java.util.Map;
+import org.enso.compiler.ModuleCache;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.Language;
@@ -85,6 +84,7 @@ public class Module implements TruffleObject {
   private boolean isIndexed = false;
   private IR.Module ir;
   private QualifiedName name;
+  private final ModuleCache cache;
 
   /**
    * Creates a new module.
@@ -98,6 +98,7 @@ public class Module implements TruffleObject {
     this.sourceFile = sourceFile;
     this.pkg = pkg;
     this.name = name;
+    this.cache = new ModuleCache(this);
   }
 
   /**
@@ -112,6 +113,7 @@ public class Module implements TruffleObject {
     this.literalSource = Rope.apply(literalSource);
     this.pkg = pkg;
     this.name = name;
+    this.cache = new ModuleCache(this);
   }
 
   /**
@@ -126,6 +128,7 @@ public class Module implements TruffleObject {
     this.literalSource = literalSource;
     this.pkg = pkg;
     this.name = name;
+    this.cache = new ModuleCache(this);
   }
 
   /**
@@ -140,6 +143,7 @@ public class Module implements TruffleObject {
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
     this.compilationStage = CompilationStage.AFTER_CODEGEN;
+    this.cache = new ModuleCache(this);
   }
 
   /**
@@ -330,6 +334,11 @@ public class Module implements TruffleObject {
     return sourceFile;
   }
 
+  /** @return {@code true} if the module is interactive, {@code false} otherwise */
+  public boolean isInteractive() {
+    return literalSource != null;
+  }
+
   /**
    * Builds an IR stub for this module.
    *
@@ -338,6 +347,11 @@ public class Module implements TruffleObject {
   public void unsafeBuildIrStub() {
     ir = StubIrBuilder.build(this);
     compilationStage = CompilationStage.AFTER_CODEGEN;
+  }
+
+  /** @return the cache for this module */
+  public ModuleCache getCache() {
+    return cache;
   }
 
   /**
@@ -416,8 +430,7 @@ public class Module implements TruffleObject {
     }
 
     private static Object generateDocs(Module module, Context context) {
-      Module moduleAfterGeneration = context.getCompiler().generateDocs(module);
-      return moduleAfterGeneration;
+      return context.getCompiler().generateDocs(module);
     }
 
     @Specialization

@@ -4,9 +4,9 @@ import cats.Show
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
+
 import java.io.{File, InputStream, OutputStream}
 import java.net.URI
-
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try, Using}
 
@@ -32,10 +32,14 @@ case class Package[F](
 ) {
   import FileSystem.Syntax
 
-  val sourceDir   = root.getChild(Package.sourceDirName)
-  val configFile  = root.getChild(Package.configFileName)
-  val thumbFile   = root.getChild(Package.thumbFileName)
-  val polyglotDir = root.getChild(Package.polyglotExtensionsDirName)
+  val sourceDir: F         = root.getChild(Package.sourceDirName)
+  val configFile: F        = root.getChild(Package.configFileName)
+  val thumbFile: F         = root.getChild(Package.thumbFileName)
+  val polyglotDir: F       = root.getChild(Package.polyglotExtensionsDirName)
+  val internalDirectory: F = root.getChild(Package.internalDirName)
+  val irCacheDirectory: F = internalDirectory
+    .getChild(Package.cacheDirName)
+    .getChild(Package.irCacheDirName)
 
   /** Sets the package name.
     *
@@ -51,7 +55,7 @@ case class Package[F](
   def save(): Try[Unit] =
     for {
       _ <- Try {
-        if (!root.exists) createDirectories()
+        if (!root.exists) createDirectories(root)
         if (!sourceDir.exists) createSourceDir()
       }
       _ <- saveConfig()
@@ -59,10 +63,20 @@ case class Package[F](
 
   /** Creates the package directory structure.
     */
-  def createDirectories(): Unit = {
-    val created = Try(root.createDirectories()).map(_ => true).getOrElse(false)
+  def createDirectories(file: F): Unit = {
+    val created = Try(file.createDirectories()).map(_ => true).getOrElse(false)
     if (!created) throw CouldNotCreateDirectory
-    createSourceDir()
+  }
+
+  /** Gets the cache root location within this package for a given Enso version.
+    *
+    * This will create the location if it does not exist.
+    *
+    * @param ensoVersion the enso version to get the cache root for
+    * @return the cache root location
+    */
+  def getIrCacheRootForPackage(ensoVersion: String): F = {
+    irCacheDirectory.getChild(ensoVersion)
   }
 
   /** Changes the package name.
@@ -374,7 +388,6 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       toStream.close()
     }
   }
-
 }
 
 object PackageManager {
@@ -418,6 +431,9 @@ object Package {
   val configFileName            = "package.yaml"
   val sourceDirName             = "src"
   val polyglotExtensionsDirName = "polyglot"
+  val internalDirName           = ".enso"
   val mainFileName              = "Main.enso"
   val thumbFileName             = "thumb.png"
+  val cacheDirName              = "cache"
+  val irCacheDirName            = "ir"
 }

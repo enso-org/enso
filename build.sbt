@@ -1085,7 +1085,7 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / logBuffered := false,
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ Seq(
+    libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
       "com.chuusai"        %% "shapeless"             % shapelessVersion,
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,
@@ -1100,7 +1100,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion
+      "eu.timepit"         %% "refined"               % refinedVersion,
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,

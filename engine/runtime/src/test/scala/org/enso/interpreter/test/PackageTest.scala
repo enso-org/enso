@@ -1,12 +1,12 @@
 package org.enso.interpreter.test
 
-import java.io.{ByteArrayOutputStream, File}
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.Paths
 
 trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
