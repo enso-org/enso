@@ -1,13 +1,6 @@
 package org.enso.distribution.locking
 
 import org.enso.distribution.locking.LockType.Shared
-import org.enso.distribution.locking.{
-  FileLockManager,
-  LockType,
-  ThreadSafeFileLockManager
-}
-
-import java.nio.file.Path
 import org.enso.runtimeversionmanager.test.{
   NativeTestHelper,
   TestableThreadSafeFileLockManager

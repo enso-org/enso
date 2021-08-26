@@ -808,7 +808,7 @@ class ProjectManagementApiSpec
             }
           }
           """,
-        timeout = 15.seconds.dilated
+        timeout = 10.seconds.dilated
       )
       deleteProject(fooId)
       deleteProject(barId)
