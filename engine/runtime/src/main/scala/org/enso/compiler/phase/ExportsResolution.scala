@@ -3,12 +3,14 @@ package org.enso.compiler.phase
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
+  ModuleReference,
   ResolvedConstructor,
   ResolvedMethod,
   ResolvedModule,
   ResolvedPolyglotSymbol,
   SymbolRestriction
 }
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
@@ -53,7 +55,14 @@ class ExportsResolution {
       val node    = nodes(module)
       node.exports = exports.map {
         case ExportedModule(mod, rename, restriction) =>
-          Edge(node, restriction, rename, nodes(mod))
+          mod match {
+            case ModuleReference.Concrete(mod) =>
+              Edge(node, restriction, rename, nodes(mod))
+            case ModuleReference.Abstract(name) =>
+              throw new CompilerError(
+                s"Abstract reference to module $name found during ExportsResolution."
+              )
+          }
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
@@ -122,19 +131,30 @@ class ExportsResolution {
     nodes.foreach { node =>
       val explicitlyExported =
         node.exports.map(edge =>
-          ExportedModule(edge.exportee.module, edge.exportsAs, edge.symbols)
+          ExportedModule(
+            ModuleReference.Concrete(edge.exportee.module),
+            edge.exportsAs,
+            edge.symbols
+          )
         )
       val transitivelyExported: List[ExportedModule] =
         explicitlyExported.flatMap {
           case ExportedModule(module, _, restriction) =>
-            exports(module).map {
-              case ExportedModule(export, _, parentRestriction) =>
-                ExportedModule(
-                  export,
-                  None,
-                  SymbolRestriction.Intersect(
-                    List(restriction, parentRestriction)
-                  )
+            module match {
+              case ModuleReference.Concrete(module) =>
+                exports(module).map {
+                  case ExportedModule(export, _, parentRestriction) =>
+                    ExportedModule(
+                      export,
+                      None,
+                      SymbolRestriction.Intersect(
+                        List(restriction, parentRestriction)
+                      )
+                    )
+                }
+              case ModuleReference.Abstract(name) =>
+                throw new CompilerError(
+                  s"Abstract reference to module $name found during ExportsResolution."
                 )
             }
         }
@@ -161,25 +181,51 @@ class ExportsResolution {
     modules.foreach { module =>
       val bindings = getBindings(module)
       val ownMethods = bindings.moduleMethods.map(method =>
-        (method.name.toLowerCase, List(ResolvedMethod(module, method)))
+        (
+          method.name.toLowerCase,
+          List(ResolvedMethod(ModuleReference.Concrete(module), method))
+        )
       )
       val ownConstructors = bindings.types.map(tp =>
-        (tp.name.toLowerCase, List(ResolvedConstructor(module, tp)))
+        (
+          tp.name.toLowerCase,
+          List(ResolvedConstructor(ModuleReference.Concrete(module), tp))
+        )
       )
       val ownPolyglotBindings = bindings.polyglotSymbols.map(poly =>
-        (poly.name.toLowerCase, List(ResolvedPolyglotSymbol(module, poly)))
+        (
+          poly.name.toLowerCase,
+          List(ResolvedPolyglotSymbol(ModuleReference.Concrete(module), poly))
+        )
       )
       val exportedModules = bindings.resolvedExports.collect {
         case ExportedModule(mod, Some(name), _) =>
-          (name.toLowerCase, List(ResolvedModule(mod)))
+          mod match {
+            case ModuleReference.Concrete(mod) =>
+              (
+                name.toLowerCase,
+                List(ResolvedModule(ModuleReference.Concrete(mod)))
+              )
+            case ModuleReference.Abstract(name) =>
+              throw new CompilerError(
+                s"Abstract reference to module $name found during ExportsResolution."
+              )
+          }
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
-        getBindings(export.module).exportedSymbols.toList.flatMap {
-          case (sym, resolutions) =>
-            val allowedResolutions =
-              resolutions.filter(res => export.symbols.canAccess(sym, res))
-            if (allowedResolutions.isEmpty) None
-            else Some((sym, allowedResolutions))
+        export.module match {
+          case ModuleReference.Concrete(module) =>
+            getBindings(module).exportedSymbols.toList.flatMap {
+              case (sym, resolutions) =>
+                val allowedResolutions =
+                  resolutions.filter(res => export.symbols.canAccess(sym, res))
+                if (allowedResolutions.isEmpty) None
+                else Some((sym, allowedResolutions))
+            }
+          case ModuleReference.Abstract(name) =>
+            throw new CompilerError(
+              s"Abstract reference to module $name found during ExportsResolution."
+            )
         }
       }
       bindings.exportedSymbols = List(
