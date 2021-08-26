@@ -49,7 +49,11 @@ public class DefaultBooleanExports {
     }
 
     @Specialization(
-        guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
+        guards = {
+          "!context.isInlineCachingDisabled()",
+          "cachedSymbol == symbol",
+          "function != null"
+        },
         limit = "CACHE_SIZE")
     static Function resolveCached(
         Boolean _this,
@@ -62,7 +66,7 @@ public class DefaultBooleanExports {
 
     @Specialization(
         guards = {
-          "!context.isCachingDisabled()",
+          "!context.isInlineCachingDisabled()",
           "cachedSymbol == symbol",
           "unbox(_this)",
           "function != null"
@@ -80,7 +84,7 @@ public class DefaultBooleanExports {
 
     @Specialization(
         guards = {
-          "!context.isCachingDisabled()",
+          "!context.isInlineCachingDisabled()",
           "cachedSymbol == symbol",
           "!unbox(_this)",
           "function != null"

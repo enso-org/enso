@@ -63,7 +63,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
   }
 
   @Specialization(
-      guards = {"!context.isCachingDisabled()", "function.getSchema() == cachedSchema"},
+      guards = {"!context.isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   Stateful invokeCached(
       Function function,

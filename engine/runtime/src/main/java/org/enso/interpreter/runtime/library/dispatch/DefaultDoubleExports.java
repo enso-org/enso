@@ -31,7 +31,11 @@ public class DefaultDoubleExports {
     static final int CACHE_SIZE = 10;
 
     @Specialization(
-        guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
+        guards = {
+          "!context.isInlineCachingDisabled()",
+          "cachedSymbol == symbol",
+          "function != null"
+        },
         limit = "CACHE_SIZE")
     static Function resolveCached(
         Double _this,

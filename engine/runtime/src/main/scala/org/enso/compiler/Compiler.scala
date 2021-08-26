@@ -137,17 +137,26 @@ class Compiler(
   ): Unit = {
     module.ensureScopeExists()
     module.getScope.reset()
-    val moduleContext = ModuleContext(
-      module           = module,
-      freshNameSupply  = Some(freshNameSupply),
-      compilerConfig   = config,
-      isGeneratingDocs = isGenDocs
-    )
-    val parsedAST        = parse(module.getSource)
-    val expr             = generateIR(parsedAST)
-    val discoveredModule = recognizeBindings(expr, moduleContext)
-    module.unsafeSetIr(discoveredModule)
-    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+
+    module.getCache.load(context) match {
+      case Some(ModuleCache.CachedModule(ir, stage))
+          if !context.isIrCachingDisabled =>
+        module.unsafeSetIr(ir)
+        module.unsafeSetCompilationStage(stage)
+        throw new CompilerError("Should not happen yet!")
+      case _ =>
+        val moduleContext = ModuleContext(
+          module           = module,
+          freshNameSupply  = Some(freshNameSupply),
+          compilerConfig   = config,
+          isGeneratingDocs = isGenDocs
+        )
+        val parsedAST        = parse(module.getSource)
+        val expr             = generateIR(parsedAST)
+        val discoveredModule = recognizeBindings(expr, moduleContext)
+        module.unsafeSetIr(discoveredModule)
+        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    }
   }
 
   /** Gets a module definition by name.

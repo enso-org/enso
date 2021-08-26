@@ -398,6 +398,12 @@ class DistributionManager(val env: Environment) {
           }
         }
 
+    /** The cache directory in the distribution. */
+    def cacheDirectory: Path = this.dataDirectory / "cache"
+
+    /** The IR cache directory in the distribution. */
+    def irCacheDirectory: Path = this.cacheDirectory / "ir"
+
     private def executableName: String =
       OS.executableName("enso")
 

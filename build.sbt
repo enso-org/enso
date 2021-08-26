@@ -1085,7 +1085,7 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / logBuffered := false,
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ Seq(
+    libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
       "com.chuusai"        %% "shapeless"             % shapelessVersion,
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,
@@ -1100,7 +1100,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion
+      "eu.timepit"         %% "refined"               % refinedVersion,
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -1175,19 +1175,19 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .dependsOn(pkg)
+  .dependsOn(`docs-generator`)
+  .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
-  .dependsOn(syntax.jvm)
-  .dependsOn(graph)
+  .dependsOn(`library-manager`)
+  .dependsOn(`logging-truffle-connector`)
+  .dependsOn(`logging-utils`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
+  .dependsOn(graph)
+  .dependsOn(pkg)
   .dependsOn(searcher)
-  .dependsOn(`edition-updater`)
-  .dependsOn(`library-manager`)
+  .dependsOn(syntax.jvm)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-utils`)
-  .dependsOn(`logging-truffle-connector`)
-  .dependsOn(`docs-generator`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

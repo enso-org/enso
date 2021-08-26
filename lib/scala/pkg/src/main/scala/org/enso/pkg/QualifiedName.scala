@@ -1,5 +1,7 @@
 package org.enso.pkg
 
+import scala.jdk.CollectionConverters._;
+
 /** Represents a qualified name of a source item.
   *
   * @param path the names of the package and directories the item is
@@ -35,6 +37,13 @@ case class QualifiedName(path: List[String], item: String) {
     this.copy(path = namespace :: newName :: path.drop(2))
   }
 
+  /** Gets the path portion of the qualified name as a Java list.
+   *
+   * @return a Java list representation of the path portion of the qualified name.
+   */
+  def pathAsJava(): java.util.List[String] = {
+    path.asJava
+  }
 }
 
 object QualifiedName {
