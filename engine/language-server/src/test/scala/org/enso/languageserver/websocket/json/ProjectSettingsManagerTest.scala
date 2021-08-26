@@ -6,8 +6,8 @@ import org.enso.distribution.FileSystem
 import java.nio.file.Files
 
 class ProjectSettingsManagerTest extends BaseServerTest {
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override def beforeEach(): Unit = {
+    super.beforeEach()
 
     val editionsDir = getTestDirectory.resolve("test_data").resolve("editions")
     Files.createDirectories(editionsDir)
