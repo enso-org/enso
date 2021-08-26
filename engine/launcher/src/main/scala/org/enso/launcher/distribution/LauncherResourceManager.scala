@@ -2,6 +2,9 @@ package org.enso.launcher.distribution
 
 import org.enso.distribution.locking._
 
+/** Adds additional capabilities to the [[ResourceManager]], focused on
+  * synchronizing launcher instances.
+  */
 class LauncherResourceManager(lockManager: LockManager)
     extends ResourceManager(lockManager) {
   private var mainLock: Option[Lock] = None

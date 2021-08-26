@@ -24,6 +24,9 @@ class Endpoint(handler: Handler)
     extends MessageEndpoint
     with RuntimeServerConnectionEndpoint {
 
+  /** A helper endpoint that is used for handling requests sent to the Language
+    * Server.
+    */
   private val reverseRequestEndpoint = new RuntimeServerRequestHandler {
     override def sendToClient(request: Api.Request): Unit =
       client.sendBinary(Api.serialize(request))

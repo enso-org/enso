@@ -1466,22 +1466,58 @@ object Runtime {
       ) extends NotificationType
     }
 
+    /** A request sent from the runtime to acquire a lock.
+      *
+      * @param resourceName name of the resource identifying the lock
+      * @param exclusive whether the lock should be exclusive (if false, a
+      *                  shared lock is acquired, if supported)
+      * @param returnImmediately if set to true, will immediately return even if
+      *                          the lock cannot be acquired; if set to false,
+      *                          the response to the request will come only once
+      *                          the lock has been successfully acquired (which
+      *                          may take an arbitrarily large amount of time)
+      */
     final case class AcquireLockRequest(
       resourceName: String,
       exclusive: Boolean,
       returnImmediately: Boolean
     ) extends ApiRequest
 
-    final case class ReleaseLockRequest(lockId: UUID) extends ApiRequest
-
+    /** A response indicating that the lock has been successfully acquired.
+      *
+      * @param lockId a unique identifier of the lock that can be used to
+      *               release it
+      */
     final case class LockAcquired(lockId: UUID) extends ApiResponse
 
+    /** A response indicating that the lock could not be acquired immediately.
+      *
+      * It is only sent if the request had `returnImmediately` set to true.
+      */
     final case class CannotAcquireImmediately() extends ApiResponse
 
+    /** A response indicating a general failure to acquire the lock.
+      *
+      * @param errorMessage message associated with the exception that caused
+      *                     this failure
+      */
     final case class LockAcquireFailed(errorMessage: String) extends ApiResponse
 
+    /** A request sent from the runtime to release a lock.
+      *
+      * @param lockId the identifier of the lock to release, as specified in the
+      *               [[LockAcquired]] response
+      */
+    final case class ReleaseLockRequest(lockId: UUID) extends ApiRequest
+
+    /** A response indicating that the lock has been successfully released. */
     final case class LockReleased() extends ApiResponse
 
+    /** A response indicating a general failure to release the lock.
+      *
+      * @param errorMessage message associated with the exception that caused
+      *                     this failure
+      */
     final case class LockReleaseFailed(errorMessage: String) extends ApiResponse
 
     private lazy val mapper = {
@@ -1490,22 +1526,6 @@ object Runtime {
       mapper.registerModule(DefaultScalaModule)
     }
 
-//    /** Serializes a Request into a byte buffer.
-//      *
-//      * @param message the message to serialize.
-//      * @return the serialized version of the message.
-//      */
-//    def serialize(message: Request): ByteBuffer =
-//      ByteBuffer.wrap(mapper.writeValueAsBytes(message))
-//
-//    /** Serializes a Response into a byte buffer.
-//      *
-//      * @param message the message to serialize.
-//      * @return the serialized version of the message.
-//      */
-//    def serialize(message: Response): ByteBuffer =
-//      ByteBuffer.wrap(mapper.writeValueAsBytes(message))
-
     /** Serializes an ApiEnvelope into a byte buffer.
       *
       * @param message the message to serialize.
@@ -1513,22 +1533,6 @@ object Runtime {
       */
     def serialize(message: ApiEnvelope): ByteBuffer =
       ByteBuffer.wrap(mapper.writeValueAsBytes(message))
-
-    /** Deserializes a byte buffer into a Request message.
-      *
-      * @param bytes the buffer to deserialize
-      * @return the deserialized message, if the byte buffer can be deserialized.
-      */
-    def deserializeRequest(bytes: ByteBuffer): Option[Request] =
-      Try(mapper.readValue(bytes.array(), classOf[Request])).toOption
-
-    /** Deserializes a byte buffer into a Response message.
-      *
-      * @param bytes the buffer to deserialize
-      * @return the deserialized message, if the byte buffer can be deserialized.
-      */
-    def deserializeResponse(bytes: ByteBuffer): Option[Response] =
-      Try(mapper.readValue(bytes.array(), classOf[Response])).toOption
 
     /** Deserializes a byte buffer into an ApiEnvelope, which can be a Request
       * or a Response.

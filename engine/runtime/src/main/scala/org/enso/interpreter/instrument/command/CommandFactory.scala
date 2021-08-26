@@ -61,12 +61,7 @@ object CommandFactory {
           "ShutDownRuntimeServer request is not convertible to command object"
         )
 
-      case _: Api.AcquireLockRequest =>
-        throw new IllegalArgumentException(
-          "Lock-related requests are not meant to be handled by the runtime."
-        )
-
-      case _: Api.ReleaseLockRequest =>
+      case _: Api.AcquireLockRequest | _: Api.ReleaseLockRequest =>
         throw new IllegalArgumentException(
           "Lock-related requests are not meant to be handled by the runtime."
         )

@@ -8,11 +8,17 @@ import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
+/** Implements the [[LockManager]] interface by using a
+  * [[RuntimeServerConnectionEndpoint]] and delegating the locking requests to a
+  * lock manager service.
+  */
 class ConnectedLockManager extends LockManager {
   private var endpoint: Option[RuntimeServerConnectionEndpoint] = None
 
-  def isConnected: Boolean = endpoint.isDefined
-
+  /** Establishes the connection with the endpoint.
+    *
+    * The lock manager is not usable before this function is called.
+    */
   def connect(endpoint: RuntimeServerConnectionEndpoint): Unit = {
     this.endpoint = Some(endpoint)
   }
@@ -20,7 +26,8 @@ class ConnectedLockManager extends LockManager {
   private def getEndpoint: RuntimeServerConnectionEndpoint =
     endpoint.getOrElse {
       throw new IllegalStateException(
-        "LockManager is used before the Language Server connection has been established."
+        "LockManager is used before the Language Server connection has " +
+        "been established."
       )
     }
 
@@ -29,6 +36,7 @@ class ConnectedLockManager extends LockManager {
     case LockType.Shared    => false
   }
 
+  /** @inheritdoc */
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val response = sendRequestAndWaitForResponse(
       Api.AcquireLockRequest(
@@ -47,6 +55,7 @@ class ConnectedLockManager extends LockManager {
     }
   }
 
+  /** @inheritdoc */
   override def tryAcquireLock(
     resourceName: String,
     lockType: LockType
@@ -89,5 +98,7 @@ class ConnectedLockManager extends LockManager {
     }
   }
 
+  /** Indicates that the lock operation has failed due to some internal errors.
+    */
   class LockOperationFailed(message: String) extends RuntimeException(message)
 }

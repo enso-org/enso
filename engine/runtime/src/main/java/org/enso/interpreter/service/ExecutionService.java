@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.compiler.context.ChangesetBuilder;
-import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
@@ -40,6 +39,7 @@ import org.enso.interpreter.service.error.MethodNotFoundException;
 import org.enso.interpreter.service.error.ModuleNotFoundException;
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException;
 import org.enso.interpreter.service.error.SourceNotFoundException;
+import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -66,6 +66,9 @@ public class ExecutionService {
    * @param context the language context to use.
    * @param idExecutionInstrument an instance of the {@link IdExecutionInstrument} to use in the
    *     course of executions.
+   * @param notificationForwarder a forwarder of notifications, used to communicate with the user
+   * @param connectedLockManager a connected lock manager (if it is in use) that should be connected
+   *     to the language server, or null
    */
   public ExecutionService(
       Context context,
@@ -111,6 +114,10 @@ public class ExecutionService {
 
     if (connectedLockManager != null) {
       connectedLockManager.connect(endpoint);
+    } else {
+      logger.warning(
+          "ConnectedLockManager was not initialized, even though a Language Server connection has been established. "
+              + "This may result in synchronization errors.");
     }
   }
 
