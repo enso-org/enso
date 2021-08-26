@@ -126,8 +126,34 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
 
+  val environment         = new Environment {}
+  val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+  val distributionManager = new DistributionManager(environment)
+
+  val editionProvider =
+    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
+  val editionResolver = EditionResolver(editionProvider)
+  val editionReferenceResolver = new EditionReferenceResolver(
+    contentRoot.file,
+    editionProvider,
+    editionResolver
+  )
+  val editionManager = EditionManager(distributionManager, Some(languageHome))
+  val lockManager = new ThreadSafeFileLockManager(
+    distributionManager.paths.locks
+  )
+  val resourceManager = new ResourceManager(lockManager)
+
+  val lockManagerService = system.actorOf(
+    LockManagerService.props(lockManager),
+    "lock-manager-service"
+  )
+
   lazy val runtimeConnector =
-    system.actorOf(RuntimeConnector.props, "runtime-connector")
+    system.actorOf(
+      RuntimeConnector.props(lockManagerService),
+      "runtime-connector"
+    )
 
   lazy val contentRootManagerActor =
     system.actorOf(
@@ -277,37 +303,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     versionsRepo,
     context
   )(system.dispatcher)
-
-  val environment         = new Environment {}
-  val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
-  val distributionManager = new DistributionManager(environment)
-
-  val editionProvider =
-    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
-  val editionResolver = EditionResolver(editionProvider)
-  val editionReferenceResolver = new EditionReferenceResolver(
-    contentRoot.file,
-    editionProvider,
-    editionResolver
-  )
-  val editionManager = EditionManager(distributionManager, Some(languageHome))
-  val lockManager = new ThreadSafeFileLockManager(
-    distributionManager.paths.locks
-  )
-  val resourceManager = new ResourceManager(lockManager)
-
-  val lockManagerService = system.actorOf(
-    LockManagerService.props(lockManager),
-    "lock-manager-service"
-  )
-
-  system.actorOf(
-    RuntimeRequestHandler.props(
-      runtimeConnector   = runtimeConnector,
-      lockManagerService = lockManagerService
-    ),
-    "runtime-request-handler"
-  )
 
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver),

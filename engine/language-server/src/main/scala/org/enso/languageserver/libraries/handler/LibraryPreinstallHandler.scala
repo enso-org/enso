@@ -98,10 +98,7 @@ class LibraryPreinstallHandler(
         case Left(error) =>
           val errorMessage = error match {
             case InternalError(throwable) =>
-              FileSystemError(
-                s"Could not initialize library installer: " +
-                s"${throwable.getMessage}"
-              )
+              FileSystemError(s"Internal error: ${throwable.getMessage}")
             case InstallerError(Error.NotResolved(_)) =>
               LibraryNotResolved(libraryName)
             case InstallerError(Error.RequestedLocalLibraryDoesNotExist) =>
