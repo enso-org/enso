@@ -15,6 +15,8 @@ import java.util.UUID;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.distribution.DistributionManager;
+import org.enso.distribution.Environment;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.Language;
@@ -50,12 +52,14 @@ public class Context {
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ResourceManager resourceManager;
-  private final boolean isCachingDisabled;
+  private final boolean isInlineCachingDisabled;
+  private final boolean isIrCachingDisabled;
   private final Builtins builtins;
   private final String home;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
+  private @CompilationFinal DistributionManager distributionManager;
 
   /**
    * Creates a new Enso context.
@@ -75,7 +79,9 @@ public class Context {
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager();
     this.resourceManager = new ResourceManager(this);
-    this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
+    this.isInlineCachingDisabled =
+        environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
+    this.isIrCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
     this.builtins = new Builtins(this);
@@ -102,7 +108,8 @@ public class Context {
     var languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
 
-    var distributionManager = RuntimeDistributionManager$.MODULE$;
+    var environment = new Environment() {};
+    this.distributionManager = new DistributionManager(environment);
 
     // TODO [RW] Once #1890 is implemented, this will need to connect to the Language Server's
     //  LockManager.
@@ -203,9 +210,20 @@ public class Context {
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
     TruffleFile p = getTruffleFile(path);
+    return getModuleNameForFile(p);
+  }
+
+  /**
+   * Fetches the module name associated with a given file, using the environment packages
+   * information.
+   *
+   * @param file the path to decode.
+   * @return a qualified name of the module corresponding to the file, if exists.
+   */
+  public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
     return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
-        .filter(pkg -> p.startsWith(pkg.sourceDir()))
-        .map(pkg -> pkg.moduleNameForFile(p))
+        .filter(pkg -> file.startsWith(pkg.sourceDir()))
+        .map(pkg -> pkg.moduleNameForFile(file))
         .findFirst();
   }
 
@@ -266,7 +284,7 @@ public class Context {
   /**
    * Finds the package the provided module belongs to.
    *
-   * @param module the module to find the package of
+   * @param file the module to find the package of
    * @return {@code module}'s package, if exists
    */
   public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
@@ -361,12 +379,37 @@ public class Context {
   }
 
   /** @return whether inline caches should be disabled for this context. */
-  public boolean isCachingDisabled() {
-    return isCachingDisabled;
+  public boolean isInlineCachingDisabled() {
+    return isInlineCachingDisabled;
+  }
+
+  /** @return whether IR caching should be disabled for this context. */
+  public boolean isIrCachingDisabled() {
+    return isIrCachingDisabled;
   }
 
   /** @return the compiler configuration for this language */
   public CompilerConfig getCompilerConfig() {
     return compilerConfig;
+  }
+
+  /** @return the distribution manager for this language */
+  public DistributionManager getDistributionManager() {
+    return distributionManager;
+  }
+
+  /** @return The logger for this language */
+  public TruffleLogger getLogger() {
+    return logger;
+  }
+
+  /**
+   * Gets a logger for the specified class.
+   *
+   * @param klass the class to name log entries with
+   * @return a new logger for the specified {@code path}
+   */
+  public TruffleLogger getLogger(Class<?> klass) {
+    return TruffleLogger.getLogger(LanguageInfo.ID, klass);
   }
 }

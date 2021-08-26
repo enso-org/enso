@@ -215,7 +215,7 @@ public class Atom implements TruffleObject {
 
     @Specialization(
         guards = {
-          "!context.isCachingDisabled()",
+          "!context.isInlineCachingDisabled()",
           "cachedSymbol == symbol",
           "_this.constructor == cachedConstructor",
           "function != null"

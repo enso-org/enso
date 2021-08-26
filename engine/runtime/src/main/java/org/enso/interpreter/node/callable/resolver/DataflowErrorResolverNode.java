@@ -18,7 +18,7 @@ public abstract class DataflowErrorResolverNode extends BaseResolverNode {
   public abstract Function execute(UnresolvedSymbol symbol, DataflowError _this);
 
   @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol"},
+      guards = {"!context.isInlineCachingDisabled()", "cachedSymbol == symbol"},
       limit = "CACHE_SIZE")
   Function resolveCached(
       UnresolvedSymbol symbol,
@@ -31,7 +31,9 @@ public abstract class DataflowErrorResolverNode extends BaseResolverNode {
 
   @Specialization(replaces = "resolveCached")
   Function resolve(
-      UnresolvedSymbol symbol, DataflowError _this, @CachedContext(Language.class) Context context) {
+      UnresolvedSymbol symbol,
+      DataflowError _this,
+      @CachedContext(Language.class) Context context) {
     return resolveMethodOnError(context, symbol);
   }
 }
