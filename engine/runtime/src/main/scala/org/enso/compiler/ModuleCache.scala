@@ -19,6 +19,9 @@ import java.util.logging.Level
 import scala.jdk.OptionConverters._
 import scala.util.Using
 
+// TODO Once #1971 is fixed, the logging statements should go back to using our
+//  normal templating syntax.
+
 /** Responsible for the management of caches associated with a given module.
   *
   * @param module the module for which the caches are managed.
@@ -59,8 +62,7 @@ class ModuleCache(private val module: Module) {
 
     logger.log(
       Level.INFO,
-      "Unable to write cache data for module [{}].",
-      this.module.getName.toString
+      s"Unable to write cache data for module [${this.module.getName.toString}]."
     )
 
     None
@@ -84,8 +86,9 @@ class ModuleCache(private val module: Module) {
           case cache @ Some(_) =>
             logger.log(
               Level.INFO,
-              "Using cache for module [{}] at location [{}].",
-              Array(module.getName.toString, root.toMaskedPath)
+              s"Using cache for module " +
+              s"[${module.getName.toString}] at location " +
+              s"[${root.toMaskedPath.applyMasking()}]."
             )
             return cache
           case None =>
@@ -100,8 +103,9 @@ class ModuleCache(private val module: Module) {
           case cache @ Some(_) =>
             logger.log(
               Level.INFO,
-              "Using cache for module [{}] at location [{}].",
-              Array(module.getName.toString, root.toMaskedPath)
+              s"Using cache for module " +
+              s"[${module.getName.toString}] at location " +
+              s"[${root.toMaskedPath.applyMasking()}]."
             )
             return cache
           case None =>
@@ -111,8 +115,7 @@ class ModuleCache(private val module: Module) {
 
     logger.log(
       Level.INFO,
-      "Unable to load a cache for module [{}]",
-      module.getName.toString
+      s"Unable to load a cache for module [${module.getName.toString}]"
     )
 
     None
@@ -149,8 +152,9 @@ class ModuleCache(private val module: Module) {
       if (writeBytesTo(cacheDataFile, bytesToWrite)) {
         logger.log(
           Level.INFO,
-          "Written cache data for module to [{}].",
-          Array(this.module.getName.toString, cacheDataFile.toMaskedPath)
+          s"Written cache data for module " +
+          s"[${this.module.getName.toString}] " +
+          s"to [${cacheDataFile.toMaskedPath.applyMasking()}]."
         )
 
         if (writeBytesTo(metadataFile, metadataBytes)) {
@@ -219,8 +223,8 @@ class ModuleCache(private val module: Module) {
         } else {
           logger.log(
             Level.INFO,
-            "One or more digests did not match for the cache for module [{}].",
-            Array(module.getName.toString)
+            s"One or more digests did not match for the cache for " +
+            s"module [${module.getName.toString}]."
           )
           invalidateCache(cacheRoot)
           None
@@ -228,8 +232,8 @@ class ModuleCache(private val module: Module) {
       case None =>
         logger.log(
           Level.INFO,
-          "Could not load the cache metadata at [{}]",
-          metadataPath.toMaskedPath
+          s"Could not load the cache metadata " +
+          s"at [${metadataPath.toMaskedPath.applyMasking()}]"
         )
         invalidateCache(cacheRoot)
         None
@@ -277,14 +281,14 @@ class ModuleCache(private val module: Module) {
           file.delete()
           logger.log(
             Level.INFO,
-            "Invalidated the cache at [{]].",
-            Array(file.toMaskedPath)
+            s"Invalidated the cache at [${file.toMaskedPath.applyMasking()}]."
           )
         } else {
           logger.log(
             Level.INFO,
-            "Cannot invalidate the cache at [{}]. Cache location not writable.",
-            Array(file.toMaskedPath)
+            s"Cannot invalidate the cache at " +
+            s"[${file.toMaskedPath.applyMasking()}]. " +
+            s"Cache location not writable."
           )
         }
       } catch {
@@ -294,8 +298,8 @@ class ModuleCache(private val module: Module) {
             _: SecurityException =>
           logger.log(
             Level.SEVERE,
-            "Unable to delete the cache at [{}].",
-            Array(cacheRoot.toMaskedPath)
+            s"Unable to delete the cache at " +
+            s"[${cacheRoot.toMaskedPath.applyMasking()}]."
           )
       }
     }

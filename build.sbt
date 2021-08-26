@@ -1175,19 +1175,19 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .dependsOn(pkg)
+  .dependsOn(`docs-generator`)
+  .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
-  .dependsOn(syntax.jvm)
-  .dependsOn(graph)
+  .dependsOn(`library-manager`)
+  .dependsOn(`logging-truffle-connector`)
+  .dependsOn(`logging-utils`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
+  .dependsOn(graph)
+  .dependsOn(pkg)
   .dependsOn(searcher)
-  .dependsOn(`edition-updater`)
-  .dependsOn(`library-manager`)
+  .dependsOn(syntax.jvm)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-utils`)
-  .dependsOn(`logging-truffle-connector`)
-  .dependsOn(`docs-generator`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

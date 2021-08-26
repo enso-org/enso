@@ -28,6 +28,7 @@ import java.io.{
 }
 import java.nio.file.Paths
 import java.util.UUID
+
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
 
@@ -102,6 +103,7 @@ class InterpreterContext(
       .allowAllAccess(true)
       .out(output)
       .err(err)
+      .option(RuntimeOptions.LOG_LEVEL, "WARNING")
       .logHandler(System.err)
       .in(in)
       .option(

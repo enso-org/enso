@@ -30,6 +30,8 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .out(output)
       .in(System.in)
+      .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+      .logHandler(System.err)
       .build()
     context.initialize(LanguageInfo.ID)
     val executionContext = new PolyglotContext(context)
