@@ -5,10 +5,7 @@ import io.circe.literal._
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import org.apache.commons.io.FileUtils
-import org.enso.distribution.locking.{
-  ResourceManager,
-  ThreadSafeFileLockManager
-}
+import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
@@ -43,7 +40,10 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.runtimeversionmanager.test.FakeEnvironment
+import org.enso.runtimeversionmanager.test.{
+  FakeEnvironment,
+  TestableThreadSafeFileLockManager
+}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
@@ -138,6 +138,14 @@ class BaseServerTest
   val contentRootManagerActor =
     system.actorOf(ContentRootManagerActor.props(config))
 
+  var cleanupCallbacks: List[() => Unit] = Nil
+
+  override def afterEach(): Unit = {
+    cleanupCallbacks.foreach(_())
+    cleanupCallbacks = Nil
+    super.afterEach()
+  }
+
   override def clientControllerFactory: ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
@@ -221,9 +229,12 @@ class BaseServerTest
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
     val distributionManager = new DistributionManager(environment)
-    val lockManager = new ThreadSafeFileLockManager(
-      distributionManager.paths.locks
-    )
+    val lockManager: TestableThreadSafeFileLockManager =
+      new TestableThreadSafeFileLockManager(distributionManager.paths.locks)
+
+    // This is needed to be able to safely remove the temporary test directory on Windows.
+    cleanupCallbacks ::= { () => lockManager.releaseAllLocks() }
+
     val resourceManager = new ResourceManager(lockManager)
 
     val editionProvider =
