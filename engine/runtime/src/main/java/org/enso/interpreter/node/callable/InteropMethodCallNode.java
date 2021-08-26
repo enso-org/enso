@@ -65,7 +65,7 @@ public abstract class InteropMethodCallNode extends Node {
   }
 
   @Specialization(
-      guards = {"!context.isCachingDisabled()", "arguments.length == cachedArgsLength"},
+      guards = {"!context.isInlineCachingDisabled()", "arguments.length == cachedArgsLength"},
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       UnresolvedSymbol method,

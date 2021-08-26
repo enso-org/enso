@@ -52,7 +52,8 @@ public class Context {
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ResourceManager resourceManager;
-  private final boolean isCachingDisabled;
+  private final boolean isInlineCachingDisabled;
+  private final boolean isIrCachingDisabled;
   private final Builtins builtins;
   private final String home;
   private final CompilerConfig compilerConfig;
@@ -78,7 +79,9 @@ public class Context {
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager();
     this.resourceManager = new ResourceManager(this);
-    this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
+    this.isInlineCachingDisabled =
+        environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
+    this.isIrCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
     this.builtins = new Builtins(this);
@@ -376,8 +379,13 @@ public class Context {
   }
 
   /** @return whether inline caches should be disabled for this context. */
-  public boolean isCachingDisabled() {
-    return isCachingDisabled;
+  public boolean isInlineCachingDisabled() {
+    return isInlineCachingDisabled;
+  }
+
+  /** @return whether IR caching should be disabled for this context. */
+  public boolean isIrCachingDisabled() {
+    return isIrCachingDisabled;
   }
 
   /** @return the compiler configuration for this language */
@@ -395,7 +403,8 @@ public class Context {
     return logger;
   }
 
-  /** Gets a logger for the specified class.
+  /**
+   * Gets a logger for the specified class.
    *
    * @param klass the class to name log entries with
    * @return a new logger for the specified {@code path}

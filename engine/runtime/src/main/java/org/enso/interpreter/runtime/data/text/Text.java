@@ -93,6 +93,7 @@ public class Text implements TruffleObject {
 
   /**
    * Adds a string to this text.
+   *
    * @param other the string add.
    * @return the concatenation of this and the requested string.
    */
@@ -102,6 +103,7 @@ public class Text implements TruffleObject {
 
   /**
    * Adds a text to this text.
+   *
    * @param other the text add.
    * @return the concatenation of this and the requested text.
    */
@@ -192,7 +194,11 @@ public class Text implements TruffleObject {
     }
 
     @Specialization(
-        guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
+        guards = {
+          "!context.isInlineCachingDisabled()",
+          "cachedSymbol == symbol",
+          "function != null"
+        },
         limit = "CACHE_SIZE")
     static Function resolveCached(
         Text _this,

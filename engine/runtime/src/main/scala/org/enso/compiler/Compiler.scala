@@ -139,11 +139,12 @@ class Compiler(
     module.getScope.reset()
 
     module.getCache.load(context) match {
-      case Some(ModuleCache.CachedModule(ir, stage)) =>
+      case Some(ModuleCache.CachedModule(ir, stage))
+          if !context.isIrCachingDisabled =>
         module.unsafeSetIr(ir)
         module.unsafeSetCompilationStage(stage)
         throw new CompilerError("Should not happen yet!")
-      case None =>
+      case _ =>
         val moduleContext = ModuleContext(
           module           = module,
           freshNameSupply  = Some(freshNameSupply),

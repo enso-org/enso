@@ -14,7 +14,7 @@ public abstract class AnyResolverNode extends BaseResolverNode {
   public abstract Function execute(UnresolvedSymbol symbol, Object _this);
 
   @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
+      guards = {"!context.isInlineCachingDisabled()", "cachedSymbol == symbol", "function != null"},
       limit = "CACHE_SIZE")
   Function resolveCached(
       UnresolvedSymbol symbol,
