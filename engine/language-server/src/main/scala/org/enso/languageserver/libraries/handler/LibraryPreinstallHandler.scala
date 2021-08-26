@@ -1,6 +1,6 @@
 package org.enso.languageserver.libraries.handler
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.notifications.ActorProgressNotificationForwarder
@@ -12,10 +12,9 @@ import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult, Unused}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.handler.LibraryPreinstallHandler.{
-  InstallationError,
+  InstallationResult,
   InstallerError,
-  InternalError,
-  LibraryInstallationComplete
+  InternalError
 }
 import org.enso.languageserver.libraries.{
   EditionReference,
@@ -36,6 +35,11 @@ import scala.util.Try
 
 /** A request handler for the `library/preinstall` endpoint.
   *
+  * This request handler does not have any timeouts, because the download can
+  * take a very long time, highly depending on the library being downloaded
+  * (some libraries can be huge) and the network speed, so there is no good way
+  * to select a reasonable timeout.
+  *
   * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
   * @param installerConfig configuration for the library installer
   */
@@ -49,7 +53,9 @@ class LibraryPreinstallHandler(
   implicit private val ec: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
-  override def receive: Receive = {
+  override def receive: Receive = requestStage
+
+  private def requestStage: Receive = {
     case Request(
           LibraryPreinstall,
           id,
@@ -65,8 +71,8 @@ class LibraryPreinstallHandler(
             .translateProgressNotification(LibraryPreinstall.name, notification)
       }
 
-      val installation = Future {
-        val result: Either[InstallationError, ResolvedLibrary] = for {
+      val installation: Future[InstallationResult] = Future {
+        val result = for {
           libraryInstaller <- getLibraryProvider(
             notificationForwarder
           ).toEither.left.map(InternalError)
@@ -75,11 +81,19 @@ class LibraryPreinstallHandler(
             .left
             .map(InstallerError)
         } yield library
-        LibraryInstallationComplete(id, replyTo, libraryName, result)
+        InstallationResult(result)
       }
       installation pipeTo self
 
-    case LibraryInstallationComplete(requestId, replyTo, libraryName, result) =>
+      context.become(responseStage(id, replyTo, libraryName))
+  }
+
+  private def responseStage(
+    requestId: Id,
+    replyTo: ActorRef,
+    libraryName: LibraryName
+  ): Receive = {
+    case InstallationResult(result) =>
       result match {
         case Left(error) =>
           val errorMessage = error match {
@@ -102,6 +116,11 @@ class LibraryPreinstallHandler(
         case Right(_) =>
           replyTo ! ResponseResult(LibraryPreinstall, requestId, Unused)
       }
+
+      context.stop(self)
+
+    case Status.Failure(throwable) =>
+      self ! Left(InternalError(throwable))
   }
 
   private def getLibraryProvider(
@@ -137,14 +156,31 @@ object LibraryPreinstallHandler {
     new LibraryPreinstallHandler(editionReferenceResolver, installerConfig)
   )
 
-  case class LibraryInstallationComplete(
-    requestId: Id,
-    replyTo: ActorRef,
-    libraryName: LibraryName,
+  /** An internal message used to pass the installation result from the Future
+    * back to the Actor.
+    *
+    * It is used, because a pattern match directly on the [[Either]] would be
+    * unchecked due to type erasure.
+    */
+  case class InstallationResult(
     result: Either[InstallationError, ResolvedLibrary]
   )
 
+  /** Indicates any error that happened during the installation. */
   sealed trait InstallationError
+
+  /** Indicates an internal error which means that the installer could not even
+    * be instantiated.
+    *
+    * These may include things like not being able to load current project
+    * configuration to deduce the edition to use for resolving the requested
+    * library version.
+    */
   case class InternalError(throwable: Throwable) extends InstallationError
-  case class InstallerError(error: Error)        extends InstallationError
+
+  /** Indicates a more casual error that has happened during the installation -
+    * for example that the library was not found or that the network connection
+    * could not be established.
+    */
+  case class InstallerError(error: Error) extends InstallationError
 }

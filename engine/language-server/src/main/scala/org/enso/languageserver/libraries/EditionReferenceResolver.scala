@@ -30,6 +30,7 @@ class EditionReferenceResolver(
       })
   }
 
+  /** Returns the configuration of the current project. */
   def getCurrentProjectConfig: Try[Config] = Try { projectPackage.config }
 
   /** Resolves all edition dependencies of an edition identified by
