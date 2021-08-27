@@ -2,7 +2,7 @@
 
 - Implement `library/preinstall` endpoint, allowing the IDE to request a library
   to be installed asynchronously before importing it, so that adding the import
-  does not freeze the compiler
+  does not seem to freeze the compiler
   ([#1972](https://github.com/enso-org/enso/pull/1972)).
 
 # Enso 0.2.27 (2021-08-23)

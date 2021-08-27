@@ -85,11 +85,11 @@ public final class Language extends TruffleLanguage<Context> {
 
     if (isInteractiveMode) {
       logger.finest(
-          "Runtime Server Instrument detected, will try to connect to a lock manager managed by it.");
+          "Detected interactive mode, will try to connect to a lock manager managed by it.");
       connectedLockManager = new ConnectedLockManager();
       lockManager = connectedLockManager;
     } else {
-      logger.finest("No Runtime Server Instrument detected, using a standalone lock manager.");
+      logger.finest("Detected text mode, using a standalone lock manager.");
       lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     }
 
