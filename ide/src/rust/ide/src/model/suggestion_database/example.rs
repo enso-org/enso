@@ -88,7 +88,7 @@ lazy_static! {
     pub static ref EXAMPLES:Vec<Example> = vec!
     [ Example
       { name               : "Parse JSON".to_owned()
-      , code               : r#"Json.parse "{\"a\":10, \"b\": 20}""#.to_owned()
+      , code               : r#"Json.parse '{\"a\":10, \"b\": 20}'"#.to_owned()
       , imports            : default()
       , documentation_html : documentation_html_from("An example showing how to parse string to Json structure.")
       }
