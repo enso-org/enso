@@ -1,4 +1,4 @@
-# Next Release
+# Enso 2.0.0-alpha.13 (2021-08-27)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
 
