@@ -1,6 +1,7 @@
 package org.enso.languageserver.libraries.handler
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
+import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.notifications.ActorProgressNotificationForwarder
 import org.enso.editions.LibraryName
@@ -13,6 +14,7 @@ import org.enso.jsonrpc.{
   Unused
 }
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
+import org.enso.languageserver.libraries.BlockingOperation
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol.{
   FindLibrary,
@@ -102,30 +104,25 @@ class LibraryPublishHandler(
           replyTo
         )
 
-      val result = LibraryUploader.uploadLibrary(
-        libraryRoot,
-        uploadUrl,
-        token,
-        progressReporter
-      )
-
-      result match {
-        case Failure(exception) =>
-          replyTo ! ResponseError(
-            Some(id),
-            FileSystemError(s"Upload failed: $exception")
+      BlockingOperation.run {
+        LibraryUploader
+          .uploadLibrary(
+            libraryRoot,
+            uploadUrl,
+            token,
+            progressReporter
           )
-        case Success(_) =>
-          if (shouldBumpAfterPublishing) {
-            logger.warn(
-              "`bumpVersionAfterPublish` was set to true, but this feature " +
-              "is not currently implemented. Ignoring."
-            )
-          }
-          replyTo ! ResponseResult(LibraryPublish, id, Unused)
-      }
+          .get
+      } pipeTo self
 
-      stop(timeoutCancellable)
+      context.become(
+        waitingForResultStage(
+          replyTo,
+          timeoutCancellable,
+          id,
+          shouldBumpAfterPublishing
+        )
+      )
 
     case Success(FindLibraryResponse(None)) =>
       replyTo ! ResponseError(
@@ -146,6 +143,31 @@ class LibraryPublishHandler(
         )
       )
 
+      stop(timeoutCancellable)
+  }
+
+  private def waitingForResultStage(
+    replyTo: ActorRef,
+    timeoutCancellable: Cancellable,
+    id: Id,
+    shouldBumpAfterPublishing: Boolean
+  ): Receive = {
+    case _: Unit =>
+      if (shouldBumpAfterPublishing) {
+        logger.warn(
+          "`bumpVersionAfterPublish` was set to true, but this feature " +
+          "is not currently implemented. Ignoring."
+        )
+      }
+
+      replyTo ! ResponseResult(LibraryPublish, id, Unused)
+      stop(timeoutCancellable)
+
+    case Status.Failure(exception) =>
+      replyTo ! ResponseError(
+        Some(id),
+        FileSystemError(s"Upload failed: $exception")
+      )
       stop(timeoutCancellable)
   }
 }
