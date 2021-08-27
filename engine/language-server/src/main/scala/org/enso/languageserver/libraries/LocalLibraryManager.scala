@@ -1,6 +1,6 @@
 package org.enso.languageserver.libraries
 
-import akka.actor.{Actor, Props}
+import akka.actor.Props
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{DistributionManager, FileSystem}
@@ -11,8 +11,8 @@ import org.enso.librarymanager.local.{
   LocalLibraryProvider
 }
 import org.enso.librarymanager.published.repository.LibraryManifest
-import org.enso.pkg.{Contact, PackageManager}
 import org.enso.pkg.validation.NameValidation
+import org.enso.pkg.{Contact, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.io.File
@@ -23,28 +23,30 @@ import scala.util.{Success, Try}
 class LocalLibraryManager(
   currentProjectRoot: File,
   distributionManager: DistributionManager
-) extends Actor
+) extends BlockingSynchronizedRequestHandler
     with LazyLogging {
   val localLibraryProvider = new DefaultLocalLibraryProvider(
     distributionManager.paths.localLibrariesSearchPaths.toList
   )
 
-  override def receive: Receive = { case request: Request =>
+  override def requestStage: Receive = { case request: Request =>
     request match {
       case GetMetadata(libraryName) =>
-        sender() ! getMetadata(libraryName)
+        startRequest(getMetadata(libraryName))
       case request: SetMetadata =>
-        sender() ! setMetadata(
-          request.libraryName,
-          description = request.description,
-          tagLine     = request.tagLine
+        startRequest(
+          setMetadata(
+            request.libraryName,
+            description = request.description,
+            tagLine     = request.tagLine
+          )
         )
       case ListLocalLibraries =>
-        sender() ! listLocalLibraries()
+        startRequest(listLocalLibraries())
       case Create(libraryName, authors, maintainers, license) =>
-        sender() ! createLibrary(libraryName, authors, maintainers, license)
+        startRequest(createLibrary(libraryName, authors, maintainers, license))
       case FindLibrary(libraryName) =>
-        sender() ! findLibrary(libraryName)
+        startRequest(findLibrary(libraryName))
     }
   }
 

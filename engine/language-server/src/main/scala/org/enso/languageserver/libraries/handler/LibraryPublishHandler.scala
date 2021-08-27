@@ -5,14 +5,7 @@ import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.notifications.ActorProgressNotificationForwarder
 import org.enso.editions.LibraryName
-import org.enso.jsonrpc.{
-  Errors,
-  Id,
-  Request,
-  ResponseError,
-  ResponseResult,
-  Unused
-}
+import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.BlockingOperation
 import org.enso.languageserver.libraries.LibraryApi._
@@ -25,7 +18,6 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.libraryupload.{auth, LibraryUploader}
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Failure, Success}
 
 /** A request handler for the `library/publish` endpoint.
   *
@@ -97,7 +89,7 @@ class LibraryPublishHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case Success(FindLibraryResponse(Some(libraryRoot))) =>
+    case FindLibraryResponse(Some(libraryRoot)) =>
       val progressReporter =
         ActorProgressNotificationForwarder.translateAndForward(
           LibraryPublish.name,
@@ -124,7 +116,7 @@ class LibraryPublishHandler(
         )
       )
 
-    case Success(FindLibraryResponse(None)) =>
+    case FindLibraryResponse(None) =>
       replyTo ! ResponseError(
         Some(id),
         FileSystemError(
@@ -135,7 +127,7 @@ class LibraryPublishHandler(
 
       stop(timeoutCancellable)
 
-    case Failure(exception) =>
+    case Status.Failure(exception) =>
       replyTo ! ResponseError(
         Some(id),
         FileSystemError(

@@ -16,8 +16,6 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 
-import scala.util.{Failure, Success}
-
 /** A request handler for the `editions/listDefinedLibraries` endpoint.
   *
   * @param editionReferenceResolver an [[EditionReferenceResolver]] instance

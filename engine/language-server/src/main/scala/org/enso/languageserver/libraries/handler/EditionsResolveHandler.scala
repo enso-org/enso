@@ -1,19 +1,17 @@
 package org.enso.languageserver.libraries.handler
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import nl.gn0s1s.bump.SemVer
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
+import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.{
   BlockingOperation,
   EditionReferenceResolver
 }
-import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
-
-import scala.util.{Failure, Success}
 
 /** A request handler for the `editions/resolve` endpoint.
   *
@@ -45,7 +43,7 @@ class EditionsResolveHandler(editionReferenceResolver: EditionReferenceResolver)
         EditionsResolve.Result(engineVersion.toString)
       )
 
-    case Failure(exception) =>
+    case Status.Failure(exception) =>
       // TODO [RW] more detailed errors
       replyTo ! ResponseError(
         Some(id),

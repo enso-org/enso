@@ -1,6 +1,6 @@
 package org.enso.languageserver.libraries
 
-import akka.actor.{Actor, Props}
+import akka.actor.Props
 import org.enso.editions.{DefaultEdition, EditionResolver, Editions}
 import org.enso.pkg.PackageManager
 
@@ -11,17 +11,17 @@ import scala.util.Try
 class ProjectSettingsManager(
   projectRoot: File,
   editionResolver: EditionResolver
-) extends Actor {
+) extends BlockingSynchronizedRequestHandler {
   import ProjectSettingsManager._
 
-  override def receive: Receive = { case request: Request =>
+  def requestStage: Receive = { case request: Request =>
     request match {
       case GetSettings =>
-        sender() ! loadSettings()
+        startRequest(loadSettings())
       case SetParentEdition(editionName) =>
-        sender() ! setParentEdition(editionName)
+        startRequest(setParentEdition(editionName))
       case SetPreferLocalLibraries(preferLocalLibraries) =>
-        sender() ! setPreferLocalLibraries(preferLocalLibraries)
+        startRequest(setPreferLocalLibraries(preferLocalLibraries))
     }
   }
 

@@ -1,6 +1,7 @@
 package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, ActorRef, Props, Status}
+import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
@@ -8,8 +9,6 @@ import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.BlockingOperation
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
-
-import scala.util.{Failure, Success, Try}
 
 /** A request handler for the `editions/listAvailable` endpoint.
   *
@@ -33,7 +32,7 @@ class EditionsListAvailableHandler(editionManager: EditionManager)
         ) =>
       BlockingOperation
         .run(editionManager.findAllAvailableEditions(update))
-        .map(Result)
+        .map(Result) pipeTo self
 
       context.become(responseStage(id, sender()))
   }
