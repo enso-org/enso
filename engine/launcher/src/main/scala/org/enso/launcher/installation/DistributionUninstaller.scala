@@ -5,7 +5,6 @@ import org.apache.commons.io.FileUtils
 import org.enso.cli.{CLIOutput, OS}
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.config.GlobalConfigurationManager
-import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{
   DistributionManager,
   FileSystem,
@@ -18,7 +17,7 @@ import org.enso.launcher.cli.{
   LauncherLogging,
   Main
 }
-import org.enso.launcher.distribution.DefaultManagers
+import org.enso.launcher.distribution.{DefaultManagers, LauncherResourceManager}
 
 import java.nio.file.{Files, Path}
 import scala.util.control.NonFatal
@@ -30,7 +29,7 @@ import scala.util.control.NonFatal
   */
 class DistributionUninstaller(
   manager: PortableDistributionManager,
-  resourceManager: ResourceManager,
+  resourceManager: LauncherResourceManager,
   globalCLIOptions: GlobalCLIOptions
 ) {
   private val autoConfirm = globalCLIOptions.autoConfirm

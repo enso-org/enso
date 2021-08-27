@@ -39,6 +39,7 @@ import org.enso.interpreter.service.error.MethodNotFoundException;
 import org.enso.interpreter.service.error.ModuleNotFoundException;
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException;
 import org.enso.interpreter.service.error.SourceNotFoundException;
+import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -57,6 +58,7 @@ public class ExecutionService {
   private final NotificationHandler.Forwarder notificationForwarder;
   private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
+  private final ConnectedLockManager connectedLockManager;
 
   /**
    * Creates a new instance of this service.
@@ -64,14 +66,19 @@ public class ExecutionService {
    * @param context the language context to use.
    * @param idExecutionInstrument an instance of the {@link IdExecutionInstrument} to use in the
    *     course of executions.
+   * @param notificationForwarder a forwarder of notifications, used to communicate with the user
+   * @param connectedLockManager a connected lock manager (if it is in use) that should be connected
+   *     to the language server, or null
    */
   public ExecutionService(
       Context context,
       IdExecutionInstrument idExecutionInstrument,
-      NotificationHandler.Forwarder notificationForwarder) {
+      NotificationHandler.Forwarder notificationForwarder,
+      ConnectedLockManager connectedLockManager) {
     this.idExecutionInstrument = idExecutionInstrument;
     this.context = context;
     this.notificationForwarder = notificationForwarder;
+    this.connectedLockManager = connectedLockManager;
   }
 
   /** @return the language context. */
@@ -104,6 +111,14 @@ public class ExecutionService {
   public void initializeLanguageServerConnection(Endpoint endpoint) {
     var notificationHandler = new NotificationHandler.InteractiveMode(endpoint);
     notificationForwarder.addListener(notificationHandler);
+
+    if (connectedLockManager != null) {
+      connectedLockManager.connect(endpoint);
+    } else {
+      logger.warning(
+          "ConnectedLockManager was not initialized, even though a Language Server connection has been established. "
+              + "This may result in synchronization errors.");
+    }
   }
 
   /**

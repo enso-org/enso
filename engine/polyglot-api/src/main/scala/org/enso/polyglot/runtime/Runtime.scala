@@ -27,6 +27,14 @@ object Runtime {
   @JsonSubTypes(
     Array(
       new JsonSubTypes.Type(
+        value = classOf[Api.Request],
+        name  = "request"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.Response],
+        name  = "response"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.CreateContextRequest],
         name  = "createContextRequest"
       ),
@@ -213,6 +221,34 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.ProgressNotification],
         name  = "progressNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.AcquireLockRequest],
+        name  = "acquireLockRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ReleaseLockRequest],
+        name  = "releaseLockRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockAcquired],
+        name  = "lockAcquired"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CannotAcquireImmediately],
+        name  = "cannotAcquireImmediately"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockAcquireFailed],
+        name  = "lockAcquireFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockReleased],
+        name  = "lockReleased"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockReleaseFailed],
+        name  = "lockReleaseFailed"
       )
     )
   )
@@ -413,7 +449,7 @@ object Runtime {
       * @param contextId the context's id.
       * @param updates a list of updates.
       */
-    case class ExpressionUpdates(
+    final case class ExpressionUpdates(
       contextId: ContextId,
       updates: Set[ExpressionUpdate]
     ) extends ApiNotification
@@ -866,7 +902,7 @@ object Runtime {
       * @param contextId the context's id
       * @param diagnostics the list of diagnostic messages
       */
-    case class ExecutionUpdate(
+    final case class ExecutionUpdate(
       contextId: ContextId,
       diagnostics: Seq[ExecutionResult.Diagnostic]
     ) extends ApiNotification
@@ -885,7 +921,7 @@ object Runtime {
       * @param contextId the context's id
       * @param failure the error description
       */
-    case class ExecutionFailed(
+    final case class ExecutionFailed(
       contextId: ContextId,
       failure: ExecutionResult.Failure
     ) extends ApiNotification
@@ -904,7 +940,7 @@ object Runtime {
       * @param visualisationContext a visualisation context
       * @param data a visualisation data
       */
-    case class VisualisationUpdate(
+    final case class VisualisationUpdate(
       visualisationContext: VisualisationContext,
       data: Array[Byte]
     ) extends ApiNotification
@@ -923,7 +959,7 @@ object Runtime {
       * @param requestId the request identifier.
       * @param payload the request payload.
       */
-    case class Request(requestId: Option[RequestId], payload: ApiRequest)
+    final case class Request(requestId: Option[RequestId], payload: ApiRequest)
         extends ApiEnvelope
 
     object Request {
@@ -951,8 +987,10 @@ object Runtime {
       * @param correlationId request that initiated the response
       * @param payload response
       */
-    case class Response(correlationId: Option[RequestId], payload: ApiResponse)
-        extends ApiEnvelope
+    final case class Response(
+      correlationId: Option[RequestId],
+      payload: ApiResponse
+    ) extends ApiEnvelope
 
     object Response {
 
@@ -979,27 +1017,31 @@ object Runtime {
       *
       * @param contextId the newly created context's id.
       */
-    case class CreateContextRequest(contextId: ContextId) extends ApiRequest
+    final case class CreateContextRequest(contextId: ContextId)
+        extends ApiRequest
 
     /** A response sent from the server upon handling the [[CreateContextRequest]]
       *
       * @param contextId the newly created context's id.
       */
-    case class CreateContextResponse(contextId: ContextId) extends ApiResponse
+    final case class CreateContextResponse(contextId: ContextId)
+        extends ApiResponse
 
     /** A Request sent from the client to the runtime server, to destroy an
       * execution context with a given id.
       *
       * @param contextId the destroyed context's id.
       */
-    case class DestroyContextRequest(contextId: ContextId) extends ApiRequest
+    final case class DestroyContextRequest(contextId: ContextId)
+        extends ApiRequest
 
     /** A success response sent from the server upon handling the
       * [[DestroyContextRequest]]
       *
       * @param contextId the destroyed context's id
       */
-    case class DestroyContextResponse(contextId: ContextId) extends ApiResponse
+    final case class DestroyContextResponse(contextId: ContextId)
+        extends ApiResponse
 
     /** A Request sent from the client to the runtime server, to move
       * the execution context to a new location deeper down the stack.
@@ -1007,27 +1049,31 @@ object Runtime {
       * @param contextId the context's id.
       * @param stackItem an item that should be pushed on the stack.
       */
-    case class PushContextRequest(contextId: ContextId, stackItem: StackItem)
-        extends ApiRequest
+    final case class PushContextRequest(
+      contextId: ContextId,
+      stackItem: StackItem
+    ) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PushContextRequest]]
       *
       * @param contextId the context's id.
       */
-    case class PushContextResponse(contextId: ContextId) extends ApiResponse
+    final case class PushContextResponse(contextId: ContextId)
+        extends ApiResponse
 
     /** A Request sent from the client to the runtime server, to move
       * the execution context up the stack.
       *
       * @param contextId the context's id.
       */
-    case class PopContextRequest(contextId: ContextId) extends ApiRequest
+    final case class PopContextRequest(contextId: ContextId) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PopContextRequest]]
       *
       * @param contextId the context's id.
       */
-    case class PopContextResponse(contextId: ContextId) extends ApiResponse
+    final case class PopContextResponse(contextId: ContextId)
+        extends ApiResponse
 
     /** A Request sent from the client to the runtime server, to recompute
       * the execution context.
@@ -1036,7 +1082,7 @@ object Runtime {
       * @param expressions the selector specifying which expressions should be
       * recomputed.
       */
-    case class RecomputeContextRequest(
+    final case class RecomputeContextRequest(
       contextId: ContextId,
       expressions: Option[InvalidatedExpressions]
     ) extends ApiRequest
@@ -1046,26 +1092,27 @@ object Runtime {
       *
       * @param contextId the context's id.
       */
-    case class RecomputeContextResponse(contextId: ContextId)
+    final case class RecomputeContextResponse(contextId: ContextId)
         extends ApiResponse
 
     /** An error response signifying a non-existent context.
       *
       * @param contextId the context's id
       */
-    case class ContextNotExistError(contextId: ContextId) extends Error
+    final case class ContextNotExistError(contextId: ContextId) extends Error
 
     /** Signals that a module cannot be found.
       *
       * @param moduleName the module name
       */
-    case class ModuleNotFound(moduleName: String) extends Error
+    final case class ModuleNotFound(moduleName: String) extends Error
 
     /** Signals that execution of a context completed.
       *
       * @param contextId the context's id
       */
-    case class ExecutionComplete(contextId: ContextId) extends ApiNotification
+    final case class ExecutionComplete(contextId: ContextId)
+        extends ApiNotification
 
     /** Signals that an expression specified in a [[AttachVisualisation]] or
       * a [[ModifyVisualisation]] cannot be evaluated.
@@ -1073,7 +1120,7 @@ object Runtime {
       * @param message the reason of the failure
       * @param failure the detailed information about the failure
       */
-    case class VisualisationExpressionFailed(
+    final case class VisualisationExpressionFailed(
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
@@ -1096,7 +1143,7 @@ object Runtime {
       * @param message the reason of the failure
       * @param diagnostic the detailed information about the failure
       */
-    case class VisualisationEvaluationFailed(
+    final case class VisualisationEvaluationFailed(
       contextId: ContextId,
       visualisationId: VisualisationId,
       expressionId: ExpressionId,
@@ -1117,19 +1164,19 @@ object Runtime {
     }
 
     /** Signals that visualisation cannot be found. */
-    case class VisualisationNotFound() extends Error
+    final case class VisualisationNotFound() extends Error
 
     /** An error response signifying that stack is empty.
       *
       * @param contextId the context's id
       */
-    case class EmptyStackError(contextId: ContextId) extends Error
+    final case class EmptyStackError(contextId: ContextId) extends Error
 
     /** An error response signifying that stack item is invalid.
       *
       * @param contextId the context's id
       */
-    case class InvalidStackItemError(contextId: ContextId) extends Error
+    final case class InvalidStackItemError(contextId: ContextId) extends Error
 
     /** A notification sent to the server about switching a file to literal
       * contents.
@@ -1137,7 +1184,7 @@ object Runtime {
       * @param path the file being moved to memory.
       * @param contents the current file contents.
       */
-    case class OpenFileNotification(
+    final case class OpenFileNotification(
       path: File,
       contents: String
     ) extends ApiRequest
@@ -1157,7 +1204,7 @@ object Runtime {
       * @param path the file being edited.
       * @param edits the diffs to apply to the contents.
       */
-    case class EditFileNotification(path: File, edits: Seq[TextEdit])
+    final case class EditFileNotification(path: File, edits: Seq[TextEdit])
         extends ApiRequest
         with ToLogString {
 
@@ -1174,7 +1221,7 @@ object Runtime {
       *
       * @param path the file being closed.
       */
-    case class CloseFileNotification(path: File)
+    final case class CloseFileNotification(path: File)
         extends ApiRequest
         with ToLogString {
 
@@ -1187,7 +1234,7 @@ object Runtime {
       * initialization. Any messages sent to the server before receiving this
       * message will be dropped.
       */
-    case class InitializedNotification() extends ApiResponse
+    final case class InitializedNotification() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to create a new
       * visualisation for an expression identified by `expressionId`.
@@ -1197,7 +1244,7 @@ object Runtime {
       * @param visualisationConfig a configuration object for properties of the
       *                            visualisation
       */
-    case class AttachVisualisation(
+    final case class AttachVisualisation(
       visualisationId: VisualisationId,
       expressionId: ExpressionId,
       visualisationConfig: VisualisationConfiguration
@@ -1215,7 +1262,7 @@ object Runtime {
 
     /** Signals that attaching a visualisation has succeeded.
       */
-    case class VisualisationAttached() extends ApiResponse
+    final case class VisualisationAttached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to detach a
       * visualisation from an expression identified by `expressionId`.
@@ -1224,7 +1271,7 @@ object Runtime {
       * @param visualisationId an identifier of a visualisation
       * @param expressionId an identifier of an expression which is visualised
       */
-    case class DetachVisualisation(
+    final case class DetachVisualisation(
       contextId: ContextId,
       visualisationId: VisualisationId,
       expressionId: ExpressionId
@@ -1232,7 +1279,7 @@ object Runtime {
 
     /** Signals that detaching a visualisation has succeeded.
       */
-    case class VisualisationDetached() extends ApiResponse
+    final case class VisualisationDetached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to modify a
       * visualisation identified by `visualisationId`.
@@ -1241,7 +1288,7 @@ object Runtime {
       * @param visualisationConfig a configuration object for properties of the
       *                            visualisation
       */
-    case class ModifyVisualisation(
+    final case class ModifyVisualisation(
       visualisationId: VisualisationId,
       visualisationConfig: VisualisationConfiguration
     ) extends ToLogString
@@ -1257,15 +1304,15 @@ object Runtime {
 
     /** Signals that a visualisation modification has succeeded.
       */
-    case class VisualisationModified() extends ApiResponse
+    final case class VisualisationModified() extends ApiResponse
 
     /** A request to shut down the runtime server.
       */
-    case class ShutDownRuntimeServer() extends ApiRequest
+    final case class ShutDownRuntimeServer() extends ApiRequest
 
     /** Signals that the runtime server has been shut down.
       */
-    case class RuntimeServerShutDown() extends ApiResponse
+    final case class RuntimeServerShutDown() extends ApiResponse
 
     /** A request for project renaming.
       *
@@ -1273,7 +1320,7 @@ object Runtime {
       * @param oldName the old project name
       * @param newName the new project name
       */
-    case class RenameProject(
+    final case class RenameProject(
       namespace: String,
       oldName: String,
       newName: String
@@ -1284,7 +1331,7 @@ object Runtime {
       * @param namespace the namespace of the project
       * @param newName the new project name
       */
-    case class ProjectRenamed(namespace: String, newName: String)
+    final case class ProjectRenamed(namespace: String, newName: String)
         extends ApiResponse
 
     /** A notification about the changes in the suggestions database.
@@ -1295,7 +1342,7 @@ object Runtime {
       * @param exports the list of re-exported symbols
       * @param updates the list of suggestions extracted from module
       */
-    case class SuggestionsDatabaseModuleUpdateNotification(
+    final case class SuggestionsDatabaseModuleUpdateNotification(
       module: String,
       version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
@@ -1316,30 +1363,30 @@ object Runtime {
     }
 
     /** A request to invalidate the indexed flag of the modules. */
-    case class InvalidateModulesIndexRequest() extends ApiRequest
+    final case class InvalidateModulesIndexRequest() extends ApiRequest
 
     /** Signals that the module indexes has been invalidated. */
-    case class InvalidateModulesIndexResponse() extends ApiResponse
+    final case class InvalidateModulesIndexResponse() extends ApiResponse
 
     /** A request to verify the modules in the suggestions database.
       *
       * @param modules the list of modules
       */
-    case class VerifyModulesIndexRequest(modules: Seq[String])
+    final case class VerifyModulesIndexRequest(modules: Seq[String])
         extends ApiRequest
 
     /** A response to the module verification request.
       *
       * @param remove the list of modules to remove from suggestions database.
       */
-    case class VerifyModulesIndexResponse(remove: Seq[String])
+    final case class VerifyModulesIndexResponse(remove: Seq[String])
         extends ApiResponse
 
     /** A request to return info needed to import the suggestion.
       *
       * @param suggestion the suggestion to import
       */
-    case class ImportSuggestionRequest(suggestion: Suggestion)
+    final case class ImportSuggestionRequest(suggestion: Suggestion)
         extends ApiRequest
         with ToLogString {
 
@@ -1354,20 +1401,20 @@ object Runtime {
       * @param symbol the resolved symbol
       * @param exports the list of exports of the symbol
       */
-    case class ImportSuggestionResponse(
+    final case class ImportSuggestionResponse(
       module: String,
       symbol: String,
       exports: Seq[Export]
     ) extends ApiResponse
 
     /** A request for the type hierarchy graph. */
-    case class GetTypeGraphRequest() extends ApiRequest
+    final case class GetTypeGraphRequest() extends ApiRequest
 
     /** The result of the type graph request.
       *
       * @param graph the graph.
       */
-    case class GetTypeGraphResponse(graph: TypeGraph) extends ApiResponse
+    final case class GetTypeGraphResponse(graph: TypeGraph) extends ApiResponse
 
     /** Signals that a new library has been imported, which means its content
       * root should be registered.
@@ -1378,7 +1425,7 @@ object Runtime {
       * @param location location on disk of the project root belonging to the
       *                 loaded library
       */
-    case class LibraryLoaded(
+    final case class LibraryLoaded(
       namespace: String,
       name: String,
       version: String,
@@ -1389,7 +1436,7 @@ object Runtime {
       *
       * @param payload the actual update contained within this notification
       */
-    case class ProgressNotification(
+    final case class ProgressNotification(
       payload: ProgressNotification.NotificationType
     ) extends ApiNotification
 
@@ -1419,43 +1466,82 @@ object Runtime {
       ) extends NotificationType
     }
 
+    /** A request sent from the runtime to acquire a lock.
+      *
+      * @param resourceName name of the resource identifying the lock
+      * @param exclusive whether the lock should be exclusive (if false, a
+      *                  shared lock is acquired, if supported)
+      * @param returnImmediately if set to true, will immediately return even if
+      *                          the lock cannot be acquired; if set to false,
+      *                          the response to the request will come only once
+      *                          the lock has been successfully acquired (which
+      *                          may take an arbitrarily large amount of time)
+      */
+    final case class AcquireLockRequest(
+      resourceName: String,
+      exclusive: Boolean,
+      returnImmediately: Boolean
+    ) extends ApiRequest
+
+    /** A response indicating that the lock has been successfully acquired.
+      *
+      * @param lockId a unique identifier of the lock that can be used to
+      *               release it
+      */
+    final case class LockAcquired(lockId: UUID) extends ApiResponse
+
+    /** A response indicating that the lock could not be acquired immediately.
+      *
+      * It is only sent if the request had `returnImmediately` set to true.
+      */
+    final case class CannotAcquireImmediately() extends ApiResponse
+
+    /** A response indicating a general failure to acquire the lock.
+      *
+      * @param errorMessage message associated with the exception that caused
+      *                     this failure
+      */
+    final case class LockAcquireFailed(errorMessage: String) extends ApiResponse
+
+    /** A request sent from the runtime to release a lock.
+      *
+      * @param lockId the identifier of the lock to release, as specified in the
+      *               [[LockAcquired]] response
+      */
+    final case class ReleaseLockRequest(lockId: UUID) extends ApiRequest
+
+    /** A response indicating that the lock has been successfully released. */
+    final case class LockReleased() extends ApiResponse
+
+    /** A response indicating a general failure to release the lock.
+      *
+      * @param errorMessage message associated with the exception that caused
+      *                     this failure
+      */
+    final case class LockReleaseFailed(errorMessage: String) extends ApiResponse
+
     private lazy val mapper = {
       val factory = new CBORFactory()
       val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
       mapper.registerModule(DefaultScalaModule)
     }
 
-    /** Serializes a Request into a byte buffer.
+    /** Serializes an ApiEnvelope into a byte buffer.
       *
       * @param message the message to serialize.
       * @return the serialized version of the message.
       */
-    def serialize(message: Request): ByteBuffer =
+    def serialize(message: ApiEnvelope): ByteBuffer =
       ByteBuffer.wrap(mapper.writeValueAsBytes(message))
 
-    /** Serializes a Response into a byte buffer.
-      *
-      * @param message the message to serialize.
-      * @return the serialized version of the message.
-      */
-    def serialize(message: Response): ByteBuffer =
-      ByteBuffer.wrap(mapper.writeValueAsBytes(message))
-
-    /** Deserializes a byte buffer into a Request message.
+    /** Deserializes a byte buffer into an ApiEnvelope, which can be a Request
+      * or a Response.
       *
       * @param bytes the buffer to deserialize
       * @return the deserialized message, if the byte buffer can be deserialized.
       */
-    def deserializeRequest(bytes: ByteBuffer): Option[Request] =
-      Try(mapper.readValue(bytes.array(), classOf[Request])).toOption
-
-    /** Deserializes a byte buffer into a Response message.
-      *
-      * @param bytes the buffer to deserialize
-      * @return the deserialized message, if the byte buffer can be deserialized.
-      */
-    def deserializeResponse(bytes: ByteBuffer): Option[Response] =
-      Try(mapper.readValue(bytes.array(), classOf[Response])).toOption
+    def deserializeApiEnvelope(bytes: ByteBuffer): Option[ApiEnvelope] =
+      Try(mapper.readValue(bytes.array(), classOf[ApiEnvelope])).toOption
   }
 
 }

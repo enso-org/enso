@@ -1,6 +1,10 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
+import org.enso.distribution.locking.{
+  ResourceManager,
+  ThreadSafeFileLockManager
+}
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
@@ -15,6 +19,7 @@ import org.enso.languageserver.io._
 import org.enso.languageserver.libraries.{
   EditionReferenceResolver,
   LibraryConfig,
+  LibraryInstallerConfig,
   LocalLibraryManager,
   ProjectSettingsManager
 }
@@ -40,6 +45,7 @@ import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
+import org.enso.lockmanager.server.LockManagerService
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -120,8 +126,34 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
 
+  val environment         = new Environment {}
+  val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+  val distributionManager = new DistributionManager(environment)
+
+  val editionProvider =
+    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
+  val editionResolver = EditionResolver(editionProvider)
+  val editionReferenceResolver = new EditionReferenceResolver(
+    contentRoot.file,
+    editionProvider,
+    editionResolver
+  )
+  val editionManager = EditionManager(distributionManager, Some(languageHome))
+  val lockManager = new ThreadSafeFileLockManager(
+    distributionManager.paths.locks
+  )
+  val resourceManager = new ResourceManager(lockManager)
+
+  val lockManagerService = system.actorOf(
+    LockManagerService.props(lockManager),
+    "lock-manager-service"
+  )
+
   lazy val runtimeConnector =
-    system.actorOf(RuntimeConnector.props, "runtime-connector")
+    system.actorOf(
+      RuntimeConnector.props(lockManagerService),
+      "runtime-connector"
+    )
 
   lazy val contentRootManagerActor =
     system.actorOf(
@@ -272,20 +304,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     context
   )(system.dispatcher)
 
-  val environment         = new Environment {}
-  val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
-  val distributionManager = new DistributionManager(environment)
-
-  val editionProvider =
-    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
-  val editionResolver = EditionResolver(editionProvider)
-  val editionReferenceResolver = new EditionReferenceResolver(
-    contentRoot.file,
-    editionProvider,
-    editionResolver
-  )
-  val editionManager = EditionManager(distributionManager, Some(languageHome))
-
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver),
     "project-settings-manager"
@@ -305,7 +323,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     editionManager           = editionManager,
     localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
     publishedLibraryCache =
-      PublishedLibraryCache.makeReadOnlyCache(libraryLocations)
+      PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
+    installerConfig = LibraryInstallerConfig(
+      distributionManager,
+      resourceManager,
+      Some(languageHome)
+    )
   )
 
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(

@@ -1,15 +1,11 @@
 package org.enso.distribution.locking
 
 import org.enso.distribution.locking.LockType.Shared
-import org.enso.distribution.locking.{
-  FileLockManager,
-  LockType,
-  ThreadSafeFileLockManager
+import org.enso.runtimeversionmanager.test.{
+  NativeTestHelper,
+  TestableThreadSafeFileLockManager
 }
-
-import java.nio.file.Path
-import org.enso.runtimeversionmanager.test.{NativeTestHelper, TestSynchronizer}
-import org.enso.testkit.WithTemporaryDirectory
+import org.enso.testkit.{TestSynchronizer, WithTemporaryDirectory}
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers
@@ -25,29 +21,7 @@ class ThreadSafeFileLockManagerTest
     with OptionValues
     with NativeTestHelper {
 
-  val timeLimit: Span = 30.seconds
-
-  class TestableThreadSafeFileLockManager(locksRoot: Path)
-      extends ThreadSafeFileLockManager(locksRoot) {
-
-    /** A helper function that can be called by the test suite to release all file locks.
-      *
-      * It is only safe to call this function if it can be guaranteed that no
-      * locks created with this manager are still in scope.
-      *
-      * Normally all file locks are released automatically when the JVM exits,
-      * but as tests run within a single JVM,this is not the case and any
-      * dangling locks will cause problems when cleaning the temporary
-      * directory.
-      */
-    def releaseAllLocks(): Unit = {
-      localLocks.foreach { case (_, lock) =>
-        lock.fileLock.foreach(_.release())
-        lock.fileLock = None
-      }
-      localLocks.clear()
-    }
-  }
+  override val timeLimit: Span = 30.seconds
 
   private var testLocalLockManager: Option[TestableThreadSafeFileLockManager] =
     None

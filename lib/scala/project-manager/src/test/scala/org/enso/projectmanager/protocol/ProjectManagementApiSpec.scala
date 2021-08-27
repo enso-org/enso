@@ -1,15 +1,17 @@
 package org.enso.projectmanager.protocol
 
+import akka.testkit.TestDuration
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.editions.SemVerJson._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
+
 import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-
+import scala.concurrent.duration._
 import scala.io.Source
 
 class ProjectManagementApiSpec
@@ -761,7 +763,7 @@ class ProjectManagementApiSpec
       deleteProject(bazId)
     }
 
-    "return a list of projects even if editions of some of them cannot be resolved" in {
+    "return a list of projects even if editions of some of them cannot be resolved" taggedAs Retry in {
       implicit val client = new WsTestClient(address)
       //given
       val fooId = createProject("Foo")
@@ -781,7 +783,8 @@ class ProjectManagementApiSpec
             }
           """)
       //then
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {
             "jsonrpc":"2.0",
             "id":0,
@@ -804,7 +807,9 @@ class ProjectManagementApiSpec
               ]
             }
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
       deleteProject(fooId)
       deleteProject(barId)
     }

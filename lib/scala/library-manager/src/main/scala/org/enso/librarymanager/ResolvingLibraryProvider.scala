@@ -1,6 +1,6 @@
 package org.enso.librarymanager
 
-import org.enso.editions.LibraryName
+import org.enso.editions.{LibraryName, LibraryVersion}
 
 /** A helper class for resolving libraries. */
 trait ResolvingLibraryProvider {
@@ -37,6 +37,9 @@ object ResolvingLibraryProvider {
     /** Indicates that the library version was missing and had to be downloaded,
       * but the download has failed.
       */
-    case class DownloadFailed(reason: Throwable) extends Error
+    case class DownloadFailed(
+      version: LibraryVersion.Published,
+      reason: Throwable
+    ) extends Error
   }
 }

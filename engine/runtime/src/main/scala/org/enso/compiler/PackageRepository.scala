@@ -223,7 +223,7 @@ object PackageRepository {
               .map {
                 case ResolvingLibraryProvider.Error.NotResolved(details) =>
                   Error.PackageCouldNotBeResolved(details)
-                case ResolvingLibraryProvider.Error.DownloadFailed(reason) =>
+                case ResolvingLibraryProvider.Error.DownloadFailed(_, reason) =>
                   Error.PackageDownloadFailed(reason)
                 case ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist =>
                   Error.PackageLoadingError(

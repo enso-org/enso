@@ -17,8 +17,8 @@ trait WithTemporaryDirectory
   /** @inheritdoc
     */
   override def beforeEach(): Unit = {
-    super.beforeEach()
     prepareTemporaryDirectory()
+    super.beforeEach()
   }
 
   /** @inheritdoc

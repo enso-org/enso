@@ -5,9 +5,10 @@ import io.circe.literal._
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import org.apache.commons.io.FileUtils
+import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
-import org.enso.editions.{EditionResolver, Editions}
 import org.enso.editions.updater.EditionManager
+import org.enso.editions.{EditionResolver, Editions}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.TestClock
@@ -22,12 +23,7 @@ import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
-import org.enso.languageserver.libraries.{
-  EditionReferenceResolver,
-  LibraryConfig,
-  LocalLibraryManager,
-  ProjectSettingsManager
-}
+import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
@@ -44,13 +40,15 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.runtimeversionmanager.test.FakeEnvironment
+import org.enso.runtimeversionmanager.test.{
+  FakeEnvironment,
+  TestableThreadSafeFileLockManager
+}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.testkit.{EitherValue, HasTestDirectory}
+import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
 
-import java.nio.file
 import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.concurrent.Await
@@ -60,7 +58,7 @@ class BaseServerTest
     extends JsonRpcServerTestKit
     with EitherValue
     with OptionValues
-    with HasTestDirectory
+    with WithTemporaryDirectory
     with FakeEnvironment {
 
   import system.dispatcher
@@ -84,12 +82,7 @@ class BaseServerTest
     graph
   }
 
-  private val testDirectory =
-    Files.createTempDirectory("enso-test").toRealPath()
-  override def getTestDirectory: file.Path = testDirectory
-
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))
-  sys.addShutdownHook(FileUtils.deleteQuietly(testDirectory.toFile))
 
   def mkConfig: Config =
     Config(
@@ -144,6 +137,14 @@ class BaseServerTest
 
   val contentRootManagerActor =
     system.actorOf(ContentRootManagerActor.props(config))
+
+  var cleanupCallbacks: List[() => Unit] = Nil
+
+  override def afterEach(): Unit = {
+    cleanupCallbacks.foreach(_())
+    cleanupCallbacks = Nil
+    super.afterEach()
+  }
 
   override def clientControllerFactory: ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
@@ -228,6 +229,13 @@ class BaseServerTest
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
     val distributionManager = new DistributionManager(environment)
+    val lockManager: TestableThreadSafeFileLockManager =
+      new TestableThreadSafeFileLockManager(distributionManager.paths.locks)
+
+    // This is needed to be able to safely remove the temporary test directory on Windows.
+    cleanupCallbacks ::= { () => lockManager.releaseAllLocks() }
+
+    val resourceManager = new ResourceManager(lockManager)
 
     val editionProvider =
       EditionManager.makeEditionProvider(
@@ -265,7 +273,12 @@ class BaseServerTest
       editionManager           = editionManager,
       localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
       publishedLibraryCache =
-        PublishedLibraryCache.makeReadOnlyCache(libraryLocations)
+        PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
+      installerConfig = LibraryInstallerConfig(
+        distributionManager,
+        resourceManager,
+        Some(languageHome)
+      )
     )
 
     new JsonConnectionControllerFactory(

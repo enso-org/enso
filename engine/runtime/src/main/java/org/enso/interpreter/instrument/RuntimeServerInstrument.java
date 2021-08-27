@@ -5,18 +5,16 @@ import com.oracle.truffle.api.instrumentation.ContextsListener;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.LanguageInfo;
+import java.io.IOException;
+import java.net.URI;
+import java.util.Arrays;
 import org.enso.interpreter.service.ExecutionService;
-import org.enso.polyglot.*;
+import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.polyglot.io.MessageEndpoint;
 import org.graalvm.polyglot.io.MessageTransport;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * An instrument exposing a server for other services to connect to, in order to control the current
@@ -93,6 +91,11 @@ public class RuntimeServerInstrument extends TruffleInstrument {
           env.startServer(URI.create(RuntimeServerInfo.URI), handler.endpoint());
       if (client != null) {
         handler.endpoint().setClient(client);
+      } else {
+        env.getLogger(RuntimeServerInstrument.class)
+            .warning(
+                "The client endpoint has not been initialized. The Runtime "
+                    + "Server Instrument may very likely not function properly.");
       }
     } catch (MessageTransport.VetoException | IOException e) {
       throw new RuntimeException(e);
