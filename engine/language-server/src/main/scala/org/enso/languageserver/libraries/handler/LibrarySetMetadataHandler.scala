@@ -55,7 +55,7 @@ class LibrarySetMetadataHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case _: Unit =>
+    case LocalLibraryManagerProtocol.EmptyResponse() =>
       replyTo ! ResponseResult(
         LibrarySetMetadata,
         id,

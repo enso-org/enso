@@ -17,6 +17,7 @@ import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.libraryupload.{auth, LibraryUploader}
 
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for the `library/publish` endpoint.
@@ -96,7 +97,7 @@ class LibraryPublishHandler(
           replyTo
         )
 
-      BlockingOperation.run {
+      val future: Future[UploadSucceeded] = BlockingOperation.run {
         LibraryUploader
           .uploadLibrary(
             libraryRoot,
@@ -105,7 +106,11 @@ class LibraryPublishHandler(
             progressReporter
           )
           .get
-      } pipeTo self
+
+        UploadSucceeded()
+      }
+
+      future pipeTo self
 
       context.become(
         waitingForResultStage(
@@ -144,7 +149,7 @@ class LibraryPublishHandler(
     id: Id,
     shouldBumpAfterPublishing: Boolean
   ): Receive = {
-    case _: Unit =>
+    case UploadSucceeded() =>
       if (shouldBumpAfterPublishing) {
         logger.warn(
           "`bumpVersionAfterPublish` was set to true, but this feature " +
@@ -162,6 +167,8 @@ class LibraryPublishHandler(
       )
       stop(timeoutCancellable)
   }
+
+  private case class UploadSucceeded()
 }
 
 object LibraryPublishHandler {

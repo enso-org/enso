@@ -70,7 +70,7 @@ class LocalLibraryManager(
     authors: Seq[Contact],
     maintainers: Seq[Contact],
     license: String
-  ): Try[Unit] = Try {
+  ): Try[EmptyResponse] = Try {
     validateLibraryName(libraryName)
 
     // TODO [RW] make the exceptions more relevant
@@ -101,6 +101,8 @@ class LocalLibraryManager(
       maintainers = maintainers.toList,
       license     = license
     )
+
+    EmptyResponse()
   }
 
   /** Lists all local libraries. */
@@ -163,7 +165,7 @@ class LocalLibraryManager(
     libraryName: LibraryName,
     description: Option[String],
     tagLine: Option[String]
-  ): Try[Unit] = for {
+  ): Try[EmptyResponse] = for {
     libraryRootPath <- localLibraryProvider
       .findLibrary(libraryName)
       .toRight(LocalLibraryNotFoundError(libraryName))
@@ -185,7 +187,8 @@ class LocalLibraryManager(
       description = description,
       tagLine     = tagLine
     )
-  } yield saveManifest(manifestPath, updatedManifest)
+    _ = saveManifest(manifestPath, updatedManifest)
+  } yield EmptyResponse()
 
   /** Tries to load the manifest.
     *

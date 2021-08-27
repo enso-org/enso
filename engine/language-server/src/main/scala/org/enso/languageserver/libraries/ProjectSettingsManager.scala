@@ -30,28 +30,29 @@ class ProjectSettingsManager(
     edition = pkg.config.edition.getOrElse(DefaultEdition.getDefaultEdition)
   } yield SettingsResponse(edition.parent, pkg.config.preferLocalLibraries)
 
-  private def setParentEdition(editionName: String): Try[Unit] = for {
-    pkg <- PackageManager.Default.loadPackage(projectRoot)
-    newEdition = pkg.config.edition match {
-      case Some(edition) => edition.copy(parent = Some(editionName))
-      case None          => Editions.Raw.Edition(parent = Some(editionName))
-    }
-    _ <- editionResolver.resolve(newEdition).toTry
-    updated = pkg.updateConfig { config =>
-      config.copy(edition = Some(newEdition))
-    }
-    _ <- updated.save()
-  } yield ()
+  private def setParentEdition(editionName: String): Try[SettingsUpdated] =
+    for {
+      pkg <- PackageManager.Default.loadPackage(projectRoot)
+      newEdition = pkg.config.edition match {
+        case Some(edition) => edition.copy(parent = Some(editionName))
+        case None          => Editions.Raw.Edition(parent = Some(editionName))
+      }
+      _ <- editionResolver.resolve(newEdition).toTry
+      updated = pkg.updateConfig { config =>
+        config.copy(edition = Some(newEdition))
+      }
+      _ <- updated.save()
+    } yield SettingsUpdated()
 
   private def setPreferLocalLibraries(
     preferLocalLibraries: Boolean
-  ): Try[Unit] = for {
+  ): Try[SettingsUpdated] = for {
     pkg <- PackageManager.Default.loadPackage(projectRoot)
     updated = pkg.updateConfig { config =>
       config.copy(preferLocalLibraries = preferLocalLibraries)
     }
     _ <- updated.save()
-  } yield ()
+  } yield SettingsUpdated()
 }
 
 object ProjectSettingsManager {
@@ -77,4 +78,9 @@ object ProjectSettingsManager {
   /** A request to set the local libraries preference. */
   case class SetPreferLocalLibraries(preferLocalLibraries: Boolean)
       extends Request
+
+  /** A response to the requests that update project settings which indicates
+    * that the settings were successfully updated.
+    */
+  case class SettingsUpdated()
 }

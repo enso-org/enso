@@ -6,6 +6,7 @@ import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.ProjectSettingsManager
+import org.enso.languageserver.libraries.ProjectSettingsManager.SettingsUpdated
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 
@@ -51,7 +52,7 @@ class EditionsSetParentEditionHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case _: Unit =>
+    case SettingsUpdated() =>
       replyTo ! ResponseResult(
         EditionsSetParentEdition,
         id,

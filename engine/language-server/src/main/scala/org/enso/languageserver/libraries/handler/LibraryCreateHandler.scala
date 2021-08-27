@@ -54,7 +54,7 @@ class LibraryCreateHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case _: Unit =>
+    case LocalLibraryManagerProtocol.EmptyResponse() =>
       replyTo ! ResponseResult(LibraryCreate, id, Unused)
       cancellable.cancel()
       context.stop(self)
