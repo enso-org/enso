@@ -3,7 +3,7 @@ package org.enso.languageserver.libraries
 import org.enso.editions.provider.EditionProvider
 import org.enso.editions.{DefaultEdition, EditionResolver, Editions}
 import org.enso.languageserver.libraries.EditionReference.NamedEdition
-import org.enso.pkg.PackageManager
+import org.enso.pkg.{Config, PackageManager}
 
 import java.io.File
 import scala.util.Try
@@ -24,13 +24,14 @@ class EditionReferenceResolver(
     case EditionReference.NamedEdition(editionName) =>
       editionProvider.findEditionForName(editionName).toTry
     case EditionReference.CurrentProjectEdition =>
-      Try {
-        projectPackage.config.edition.getOrElse {
-          // TODO [RW] default edition from config (#1864)
-          DefaultEdition.getDefaultEdition
-        }
-      }
+      getCurrentProjectConfig.map(_.edition.getOrElse {
+        // TODO [RW] default edition from config (#1864)
+        DefaultEdition.getDefaultEdition
+      })
   }
+
+  /** Returns the configuration of the current project. */
+  def getCurrentProjectConfig: Try[Config] = Try { projectPackage.config }
 
   /** Resolves all edition dependencies of an edition identified by
     * [[EditionReference]].

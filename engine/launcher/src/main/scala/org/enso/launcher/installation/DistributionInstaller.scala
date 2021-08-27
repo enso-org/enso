@@ -4,7 +4,6 @@ import com.typesafe.scalalogging.Logger
 import org.enso.cli.{CLIOutput, OS}
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.config.GlobalConfigurationManager
-import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{
   DistributionManager,
   FileSystem,
@@ -12,7 +11,7 @@ import org.enso.distribution.{
 }
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
-import org.enso.launcher.distribution.DefaultManagers
+import org.enso.launcher.distribution.{DefaultManagers, LauncherResourceManager}
 import org.enso.launcher.installation.DistributionInstaller.{
   BundleAction,
   IgnoreBundles,
@@ -38,7 +37,7 @@ import scala.util.control.NonFatal
   */
 class DistributionInstaller(
   manager: PortableDistributionManager,
-  resourceManager: ResourceManager,
+  resourceManager: LauncherResourceManager,
   autoConfirm: Boolean,
   removeOldLauncher: Boolean,
   bundleActionOption: Option[DistributionInstaller.BundleAction]

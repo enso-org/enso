@@ -4,13 +4,17 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.InstrumentInfo;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.distribution.DistributionManager;
+import org.enso.distribution.Environment;
+import org.enso.distribution.locking.LockManager;
+import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -18,6 +22,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.util.FileDetector;
+import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
@@ -70,11 +75,33 @@ public final class Language extends TruffleLanguage<Context> {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
 
-    Context context = new Context(this, getLanguageHome(), env, notificationHandler);
+    TruffleLogger logger = env.getLogger(Language.class);
+
+    var environment = new Environment() {};
+    var distributionManager = new DistributionManager(environment);
+
+    LockManager lockManager;
+    ConnectedLockManager connectedLockManager = null;
+
+    if (isInteractiveMode) {
+      logger.finest(
+          "Detected interactive mode, will try to connect to a lock manager managed by it.");
+      connectedLockManager = new ConnectedLockManager();
+      lockManager = connectedLockManager;
+    } else {
+      logger.finest("Detected text mode, using a standalone lock manager.");
+      lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
+    }
+
+    Context context =
+        new Context(
+            this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
     idExecutionInstrument = env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
-    env.registerService(new ExecutionService(context, idExecutionInstrument, notificationHandler));
+    env.registerService(
+        new ExecutionService(
+            context, idExecutionInstrument, notificationHandler, connectedLockManager));
     return context;
   }
 

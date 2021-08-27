@@ -52,7 +52,7 @@ abstract class JsonRpcServerTestKit
   def clientControllerFactory: ClientControllerFactory
 
   override def beforeEach(): Unit = {
-
+    super.beforeEach()
     server  = new JsonRpcServer(protocol, clientControllerFactory)
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"
@@ -60,6 +60,7 @@ abstract class JsonRpcServerTestKit
 
   override def afterEach(): Unit = {
     val _ = binding.unbind()
+    super.afterEach()
   }
 
   class WsTestClient(address: String, debugMessages: Boolean = false) {

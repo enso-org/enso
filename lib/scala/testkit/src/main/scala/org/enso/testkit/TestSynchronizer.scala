@@ -1,9 +1,8 @@
-package org.enso.runtimeversionmanager.test
-
-import java.util.concurrent.{Semaphore, TimeUnit}
+package org.enso.testkit
 
 import org.scalatest.exceptions.TestFailedException
 
+import java.util.concurrent.{Semaphore, TimeUnit}
 import scala.jdk.CollectionConverters._
 
 /** A helper class that can be used to synchronize actions between multiple

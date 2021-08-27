@@ -16,8 +16,7 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
-import org.enso.distribution.Environment;
-import org.enso.distribution.locking.ThreadSafeFileLockManager;
+import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
@@ -59,7 +58,8 @@ public class Context {
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
-  private @CompilationFinal DistributionManager distributionManager;
+  private final DistributionManager distributionManager;
+  private final LockManager lockManager;
 
   /**
    * Creates a new Enso context.
@@ -68,9 +68,16 @@ public class Context {
    * @param home language home
    * @param environment the execution environment of the {@link TruffleLanguage}
    * @param notificationHandler a handler for notifications
+   * @param lockManager the lock manager instance
+   * @param distributionManager a distribution manager
    */
   public Context(
-      Language language, String home, Env environment, NotificationHandler notificationHandler) {
+      Language language,
+      String home,
+      Env environment,
+      NotificationHandler notificationHandler,
+      LockManager lockManager,
+      DistributionManager distributionManager) {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
@@ -86,6 +93,8 @@ public class Context {
     this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
+    this.lockManager = lockManager;
+    this.distributionManager = distributionManager;
   }
 
   /** Perform expensive initialization logic for the context. */
@@ -107,13 +116,6 @@ public class Context {
 
     var languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
-
-    var environment = new Environment() {};
-    this.distributionManager = new DistributionManager(environment);
-
-    // TODO [RW] Once #1890 is implemented, this will need to connect to the Language Server's
-    //  LockManager.
-    var lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
     packageRepository =

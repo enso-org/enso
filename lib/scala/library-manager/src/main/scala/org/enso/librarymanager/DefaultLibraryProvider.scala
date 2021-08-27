@@ -72,7 +72,7 @@ class DefaultLibraryProvider private (
           .map(ResolvedLibrary(libraryName, version, _))
           .toEither
           .left
-          .map(ResolvingLibraryProvider.Error.DownloadFailed)
+          .map(ResolvingLibraryProvider.Error.DownloadFailed(version, _))
     }
   }
 }

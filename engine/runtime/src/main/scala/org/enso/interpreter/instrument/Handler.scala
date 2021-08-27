@@ -7,15 +7,30 @@ import org.enso.interpreter.instrument.execution.{
   CommandProcessor
 }
 import org.enso.interpreter.service.ExecutionService
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.lockmanager.client.{
+  RuntimeServerConnectionEndpoint,
+  RuntimeServerRequestHandler
+}
+import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest, ApiResponse}
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
+import scala.concurrent.Future
 
 /** A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
   */
-class Endpoint(handler: Handler) extends MessageEndpoint {
+class Endpoint(handler: Handler)
+    extends MessageEndpoint
+    with RuntimeServerConnectionEndpoint {
+
+  /** A helper endpoint that is used for handling requests sent to the Language
+    * Server.
+    */
+  private val reverseRequestEndpoint = new RuntimeServerRequestHandler {
+    override def sendToClient(request: Api.Request): Unit =
+      client.sendBinary(Api.serialize(request))
+  }
 
   var client: MessageEndpoint = _
 
@@ -32,10 +47,19 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
   def sendToClient(msg: Api.Response): Unit =
     client.sendBinary(Api.serialize(msg))
 
+  /** Sends a request to the connected client and expects a reply. */
+  override def sendRequest(msg: ApiRequest): Future[ApiResponse] =
+    reverseRequestEndpoint.sendRequest(msg)
+
   override def sendText(text: String): Unit = {}
 
   override def sendBinary(data: ByteBuffer): Unit =
-    Api.deserializeRequest(data).foreach(handler.onMessage)
+    Api.deserializeApiEnvelope(data).foreach {
+      case request: Api.Request =>
+        handler.onMessage(request)
+      case response: Api.Response =>
+        reverseRequestEndpoint.onResponseReceived(response)
+    }
 
   override def sendPing(data: ByteBuffer): Unit = client.sendPong(data)
 
@@ -83,19 +107,15 @@ final class Handler {
     *
     * @param request the message to handle.
     */
-  def onMessage(request: Api.Request): Unit = {
-    request.payload match {
-      case Api.ShutDownRuntimeServer() =>
-        commandProcessor.stop()
-        endpoint.sendToClient(
-          Api.Response(request.requestId, Api.RuntimeServerShutDown())
-        )
+  def onMessage(request: Api.Request): Unit = request match {
+    case Api.Request(requestId, Api.ShutDownRuntimeServer()) =>
+      commandProcessor.stop()
+      endpoint.sendToClient(
+        Api.Response(requestId, Api.RuntimeServerShutDown())
+      )
 
-      case _ =>
-        val cmd = CommandFactory.createCommand(request)
-        commandProcessor.invoke(cmd)
-    }
-
+    case request: Api.Request =>
+      val cmd = CommandFactory.createCommand(request)
+      commandProcessor.invoke(cmd)
   }
-
 }

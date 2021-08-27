@@ -1,17 +1,21 @@
 package org.enso.languageserver.runtime
 
-import java.nio.ByteBuffer
-
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.languageserver.runtime.RuntimeConnector.{
+  Destroy,
+  MessageFromRuntime
+}
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.languageserver.runtime.RuntimeConnector.Destroy
+import org.enso.lockmanager.server.LockManagerService
 import org.enso.polyglot.runtime.Runtime
+import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
 import org.graalvm.polyglot.io.MessageEndpoint
 
-/** An actor managing a connection to Enso's runtime server.
-  */
-class RuntimeConnector
+import java.nio.ByteBuffer
+
+/** An actor managing a connection to Enso's runtime server. */
+class RuntimeConnector(handlers: Map[Class[_], ActorRef])
     extends Actor
     with LazyLogging
     with UnhandledLogging
@@ -33,10 +37,26 @@ class RuntimeConnector
   }
 
   /** Performs communication between runtime and language server.
-    * Requests are sent from language server to runtime,
-    * responses are forwarded from runtime to the sender.
     *
-    * @param engine endpoint of a runtime
+    * Requests and responses can be sent in both directions and this Actor's
+    * message queue is both receiving messages from the runtime's message
+    * endpoint that it needs to forward to proper recipients as well as messages
+    * sent from other Actors to itself that it needs to forward to the runtime.
+    *
+    * Since both sides of the connection can both send requests and responses,
+    * the messages sent from the runtime are wrapped in [[MessageFromRuntime]],
+    * so that the message queue can distinguish them.
+    *
+    * Messages from other Actors to the runtime are serialized and sent to the
+    * [[MessageEndpoint]].
+    *
+    * Messages from the runtime are handled depending on their type. Responses
+    * with a correlation id are sent to the Actor that sent the original request
+    * (based on a mapping kept in the state). Other responses (mostly
+    * notifications) are published to the system's event stream. Requests from
+    * the runtime are forwarded to one of the registered handlers.
+    *
+    * @param engine  endpoint of a runtime
     * @param senders request ids with corresponding senders
     */
   def initialized(
@@ -44,15 +64,43 @@ class RuntimeConnector
     senders: Map[Runtime.Api.RequestId, ActorRef]
   ): Receive = {
     case Destroy => context.stop(self)
-    case msg: Runtime.Api.Request =>
+
+    case msg: Runtime.ApiEnvelope =>
       engine.sendBinary(Runtime.Api.serialize(msg))
-      msg.requestId.foreach { id =>
-        context.become(initialized(engine, senders + (id -> sender())))
+
+      msg match {
+        case Api.Request(Some(id), _) =>
+          context.become(initialized(engine, senders + (id -> sender())))
+        case _ =>
       }
-    case Runtime.Api.Response(None, msg: Runtime.ApiNotification) =>
+
+    case MessageFromRuntime(request @ Runtime.Api.Request(_, payload)) =>
+      handlers.get(payload.getClass) match {
+        case Some(handler) =>
+          handler ! request
+        case None =>
+          logger.warn(
+            s"No registered handler found for request " +
+            s"[${payload.getClass.getCanonicalName}]."
+          )
+      }
+
+    case MessageFromRuntime(Runtime.Api.Response(None, msg)) =>
       context.system.eventStream.publish(msg)
-    case msg @ Runtime.Api.Response(Some(correlationId), _) =>
-      senders.get(correlationId).foreach(_ ! msg)
+
+    case MessageFromRuntime(
+          msg @ Runtime.Api.Response(Some(correlationId), payload)
+        ) =>
+      senders.get(correlationId) match {
+        case Some(sender) =>
+          sender ! msg
+        case None =>
+          logger.warn(
+            s"No sender has been found associated with request id " +
+            s"[$correlationId], the response " +
+            s"[${payload.getClass.getCanonicalName}] will be dropped."
+          )
+      }
       context.become(initialized(engine, senders - correlationId))
   }
 }
@@ -71,14 +119,19 @@ object RuntimeConnector {
 
   /** Helper for creating instances of the [[RuntimeConnector]] actor.
     *
+    * @param lockManagerService a reference to the lock manager service actor
     * @return a [[Props]] instance for the newly created actor.
     */
-  def props: Props =
-    Props(new RuntimeConnector)
+  def props(lockManagerService: ActorRef): Props = {
+    val lockRequests =
+      LockManagerService.handledRequestTypes.map(_ -> lockManagerService)
+    val handlers: Map[Class[_], ActorRef] = Map.from(lockRequests)
+    Props(new RuntimeConnector(handlers))
+  }
 
   /** Endpoint implementation used to handle connections with the runtime.
     *
-    * @param actor the actor ref to pass received messages to.
+    * @param actor        the actor ref to pass received messages to.
     * @param peerEndpoint the runtime server's connection end.
     */
   class Endpoint(actor: ActorRef, peerEndpoint: MessageEndpoint)
@@ -87,8 +140,8 @@ object RuntimeConnector {
 
     override def sendBinary(data: ByteBuffer): Unit =
       Runtime.Api
-        .deserializeResponse(data)
-        .foreach(actor ! _)
+        .deserializeApiEnvelope(data)
+        .foreach(actor ! MessageFromRuntime(_))
 
     override def sendPing(data: ByteBuffer): Unit = peerEndpoint.sendPong(data)
 
@@ -96,4 +149,9 @@ object RuntimeConnector {
 
     override def sendClose(): Unit = actor ! RuntimeConnector.Destroy
   }
+
+  /** Wraps messages received from the runtime, to distinguish them from
+    * messages received from other Actors.
+    */
+  case class MessageFromRuntime(message: ApiEnvelope)
 }
