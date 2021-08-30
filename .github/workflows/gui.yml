@@ -122,6 +122,8 @@ jobs:
         run: npm install --save-dev --save-exact prettier
       - name: Install Clippy
         run: rustup component add clippy
+      - name: Install Clippy
+        run: rustup component add rustfmt
       - name: Lint Markdown sources
         run: npx prettier --check '*.md'
       - name: Lint JavaScript sources
