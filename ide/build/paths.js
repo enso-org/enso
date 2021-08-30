@@ -28,6 +28,7 @@ paths.dist.bin            = path.join(paths.dist.root, 'bin')
 paths.dist.init           = path.join(paths.dist.root,'init')
 paths.dist.buildInit      = path.join(paths.dist.root,'build-init')
 paths.dist.buildInfo      = path.join(paths.dist.root,'build.json')
+paths.dist.tmp            = path.join(paths.dist.root,'tmp')
 
 paths.dist.wasm           = {}
 paths.dist.wasm.root      = path.join(paths.dist.root,'wasm')

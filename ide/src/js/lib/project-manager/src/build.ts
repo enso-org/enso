@@ -37,26 +37,22 @@ async function get_build_config() {
 // === Project Manager ===
 // =======================
 
-async function get_project_manager_url(): Promise<string> {
-    const config = await get_build_config()
-    const target_platform = config.target
-    console.log('webpack target ' + target_platform)
-    // This constant MUST be synchronized with `ENGINE` constant in src/js/lib/client/tasks/signArchives.js.
-    // Also it is usually a good idea to synchronize it with `ENGINE_VERSION_FOR_NEW_PROJECTS` in
-    // src/rust/ide/src/controller/project.rs. See also https://github.com/enso-org/ide/issues/1359
-    const version = '0.2.27'
+interface BuildInfo { version: string, target: string }
+
+function get_project_manager_url({ version, target }: BuildInfo): string {
+    console.log('webpack target ' + target)
     let base_url: string = 'https://github.com/enso-org/'
     base_url += 'enso/releases/download/'
     base_url += `enso-${version}/enso-project-manager-${version}`
     let postfix
-    if (target_platform === 'linux') {
+    if (target === 'linux') {
         postfix = `linux-amd64.tar.gz`
-    } else if (target_platform === 'macos') {
+    } else if (target === 'macos') {
         postfix = `macos-amd64.tar.gz`
-    } else if (target_platform === 'win') {
+    } else if (target === 'win') {
         postfix = `windows-amd64.zip`
     } else {
-        throw 'UnsupportedPlatform: ' + target_platform
+        throw 'UnsupportedPlatform: ' + target
     }
     return `${base_url}-${postfix}`
 }
@@ -72,7 +68,9 @@ function make_project_manager_binary_executable() {
     }
 }
 
-function decompress_project_manager(source_file_path: fss.PathLike, target_folder: string) {
+async function decompress_project_manager(source_file_path: fss.PathLike, target_folder: string) {
+    await fs.mkdir(target_folder, { recursive: true })
+    await fs.rm(path.join(target_folder, 'enso'), { recursive: true, force: true })
     let decompressor
     if (source_file_path.toString().endsWith('.zip')) {
         decompressor = unzipper.Extract({ path: target_folder })
@@ -124,36 +122,45 @@ async function download_project_manager(file_url: string, overwrite: boolean): P
     if (file_name === undefined || file_name === null) {
         throw `File URL does not contain path separator: ` + file_url
     }
-    const file_path = path.resolve(distPath, file_name)
+    const download_dir = path.resolve(paths.dist.tmp, 'project-manager/')
+    const file_path = path.resolve(download_dir, file_name)
 
     if (fss.existsSync(file_path) && !overwrite) {
         console.log(
-            `The ${file_path} file exists. Project manager executable will not be regenerated.`
+            `The file ${file_path} exists. ` +
+            'Project manager executable does not need to be downloaded.'
         )
-        return
+    } else {
+        await fs.mkdir(download_dir, { recursive: true })
+    
+        const parsed = url.parse(file_url)
+        const options = {
+            host: parsed.host,
+            port: 80,
+            path: parsed.pathname,
+        }
+    
+        const target_file = fss.createWriteStream(file_path)
+        const progress_indicator = new DownloadProgressIndicator()
+        await new Promise((resolve, reject) =>
+            http.get(options, (res: IncomingMessage) => {
+                res.on('data', (data: string) => {
+                    target_file.write(data)
+                    progress_indicator.add_progress_bytes(data.length)
+                }).on('end', () => {
+                    target_file.end()
+                    console.log(`${file_url} downloaded to "${file_path}".`)
+                    resolve(undefined)
+                })
+            }).on('error', async (e: http.ClientRequest) => {
+                target_file.end()
+                await fs.rm(file_path)
+                reject('Error: The download of the project manager was interrupted:\n' + e)
+            })
+        )
     }
 
-    await fs.mkdir(distPath, { recursive: true })
-
-    const parsed = url.parse(file_url)
-    const options = {
-        host: parsed.host,
-        port: 80,
-        path: parsed.pathname,
-    }
-
-    const target_file = fss.createWriteStream(file_path)
-    const progress_indicator = new DownloadProgressIndicator()
-    http.get(options, (res: IncomingMessage) => {
-        res.on('data', (data: string) => {
-            target_file.write(data)
-            progress_indicator.add_progress_bytes(data.length)
-        }).on('end', () => {
-            target_file.end()
-            console.log(`${file_url} downloaded to "${file_path}".`)
-            decompress_project_manager(file_path, distPath)
-        })
-    })
+    await decompress_project_manager(file_path, distPath)
 }
 
 // ============
@@ -161,8 +168,53 @@ async function download_project_manager(file_url: string, overwrite: boolean): P
 // ============
 
 async function main() {
-    let file_url = await get_project_manager_url()
-    await download_project_manager(file_url, false)
+    // `version` MUST be synchronized with `ENGINE` constant in src/js/lib/client/tasks/signArchives.js.
+    // Also it is usually a good idea to synchronize it with `ENGINE_VERSION_FOR_NEW_PROJECTS` in
+    // src/rust/ide/src/controller/project.rs. See also https://github.com/enso-org/ide/issues/1359
+    const buildInfo: BuildInfo = {
+        version: '0.2.27',
+        target: (await get_build_config()).target,
+    }
+    
+    // The file at path `buildInfoFile` should always contain the build info of the project manager
+    // that is currently installed in the dist directory. We read the file if it exists and compare
+    // it with the version and target platform that we need. If they already agree then the right
+    // project manager is already installed and there is nothing to do.
+    const build_info_file = path.join(distPath, 'installed-enso-version')
+    let existing_build_info: BuildInfo | null
+    try {
+        const build_info_file_content = await fs.readFile(build_info_file)
+        existing_build_info = JSON.parse(build_info_file_content.toString())
+    } catch (error) {
+        const file_does_not_exist = error.code === 'ENOENT'  // Standing for "Error NO ENTry"
+        if (file_does_not_exist) {
+            existing_build_info = null
+        } else {
+            console.error(error)
+            process.exit(1)
+        }
+    }
+    if (buildInfo.version !== existing_build_info?.version ||
+        buildInfo.target  !== existing_build_info?.target) {
+
+        // We remove the build info file to avoid misinformation if the build is interrupted during
+        // the call to `download_project_manager`.
+        // We use `force: true` because the file might not exist.
+        await fs.rm(build_info_file, { force: true })
+        let project_manager_url = get_project_manager_url(buildInfo)
+        try {
+            await download_project_manager(project_manager_url, false)
+        } catch (error) {
+            console.error(error)
+            process.exit(1)
+        }
+        await fs.writeFile(build_info_file, JSON.stringify(buildInfo))
+    } else {
+        console.log(
+            `The right version of the project manager is already installed, ` +
+            `according to ${build_info_file}.`
+        )
+    }
 }
 
 main()
