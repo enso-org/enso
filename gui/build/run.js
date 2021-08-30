@@ -282,6 +282,9 @@ commands.watch.common   = async function(argv) {
         return commands.build.rust(argv);
     })
     await cmd.with_cwd(paths.js.root, async () => {
+        // Among other things, this will call the build script of the project-manager package. But
+        // this is unnecessary because that script is already called by `build_project_manager`
+        // above. 
         return  commands.build.js(argv)
     })
 
