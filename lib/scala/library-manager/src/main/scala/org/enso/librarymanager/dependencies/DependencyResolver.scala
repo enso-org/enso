@@ -18,51 +18,62 @@ class DependencyResolver(
   preferLocalLibraries: Boolean,
   versionResolver: LibraryResolver
 ) {
+
+  /** Finds all transitive dependencies of the requested library. */
   def findDependencies(libraryName: LibraryName): Try[Set[Dependency]] =
     findDependencies(libraryName, Set.empty)
 
+  /** A helper function to discover all transitive dependencies, avoiding
+    * looping on cycles.
+    *
+    * It keeps track of libraries that already have been 'visited' and if a
+    * library that was already visited is queried again (which is caused by
+    * import cycles), it returns an empty set - that is because since this
+    * library was already visited, it and its dependencies must have already
+    * been accounted for in one of the parent calls, so we can return this empty
+    * set at this point, because later on these dependencies will be included.
+    * If we didn't quit early here, we would get an infinite loop due to the
+    * dependency cycle.
+    */
   private def findDependencies(
     libraryName: LibraryName,
     parents: Set[LibraryName]
   ): Try[Set[Dependency]] = Try {
     if (parents.contains(libraryName)) {
-      throw new IllegalStateException(
-        "An illegal dependency cycle has been detected."
-      )
-    }
+      Set.empty
+    } else {
+      val version = versionResolver
+        .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
+        .toTry
+        .get
 
-    val version = versionResolver
-      .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
-      .getOrElse {
-        throw new RuntimeException("TODO errors")
-      }
+      version match {
+        case LibraryVersion.Local =>
+          // TODO [RW] can we skip deps of local? we cannot effectively find
+          //  them without parsing the whole library which is costly
+          Set(
+            Dependency(
+              libraryName,
+              version,
+              localLibraryProvider.findLibrary(libraryName).isDefined
+            )
+          )
 
-    version match {
-      case LibraryVersion.Local =>
-        // TODO [RW] can we skip deps of local? we cannot effectively find them
-        //  without parsing the whole library which is costly
-        Set(
-          Dependency(
+        case publishedVersion @ LibraryVersion.Published(semver, _) =>
+          val itself = Dependency(
             libraryName,
             version,
-            localLibraryProvider.findLibrary(libraryName).isDefined
+            publishedLibraryProvider
+              .findCachedLibrary(libraryName, semver)
+              .isDefined
           )
-        )
 
-      case publishedVersion @ LibraryVersion.Published(semver, _) =>
-        val itself = Dependency(
-          libraryName,
-          version,
-          publishedLibraryProvider
-            .findCachedLibrary(libraryName, semver)
-            .isDefined
-        )
+          val manifest = getManifest(libraryName, publishedVersion)
 
-        val manifest = getManifest(libraryName, publishedVersion)
-
-        Set(itself) | manifest.dependencies.toSet.flatMap(
-          findDependencies(_, parents + libraryName).get
-        )
+          Set(itself) | manifest.dependencies.toSet.flatMap(
+            findDependencies(_, parents + libraryName).get
+          )
+      }
     }
   }
 
@@ -74,10 +85,9 @@ class DependencyResolver(
       .findCachedLibrary(libraryName, version.version)
       .flatMap { libraryPath =>
         val manifestPath = libraryPath.resolve(LibraryManifest.filename)
-        if (Files.exists(manifestPath)) Some(manifestPath) else None
-      }
-      .flatMap { manifestPath =>
-        YamlHelper.load[LibraryManifest](manifestPath).toOption
+        if (Files.exists(manifestPath))
+          YamlHelper.load[LibraryManifest](manifestPath).toOption
+        else None
       }
     cachedManifest.getOrElse {
       version.repository
