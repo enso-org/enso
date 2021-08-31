@@ -1,5 +1,6 @@
 package org.enso.interpreter.test.instrument
 
+import org.enso.compiler.pass.resolve.VectorLiterals
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.test.Metadata
@@ -204,7 +205,7 @@ class RuntimeStdlibTest
             )
           ) if module.contains("Vector") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
-        xs.toVector.head.suggestion.module shouldEqual "Standard.Base.Data.Vector"
+        xs.toVector.head.suggestion.module shouldEqual VectorLiterals.vectorModuleName
     }
     stdlibSuggestions.nonEmpty shouldBe true
 

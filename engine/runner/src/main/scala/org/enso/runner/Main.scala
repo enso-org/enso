@@ -649,7 +649,7 @@ object Main {
 
   /** Default log level to use if the LOG_LEVEL option is not provided.
     */
-  val defaultLogLevel: LogLevel = LogLevel.Info
+  val defaultLogLevel: LogLevel = LogLevel.Warning
 
   /** Main entry point for the CLI program.
     *
