@@ -4,12 +4,12 @@ import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
-import org.enso.editions.{DefaultEdition, LibraryName}
+import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
-import org.enso.pkg.{Contact, PackageManager, SourceFile, Template}
+import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
@@ -49,7 +49,6 @@ object Main {
   private val UPLOAD_OPTION               = "upload"
   private val HIDE_PROGRESS               = "hide-progress"
   private val AUTH_TOKEN                  = "auth-token"
-  private val GATHER_IMPORTS_OPTION       = "gather-imports"
 
   private lazy val logger = Logger[Main.type]
 
@@ -77,10 +76,6 @@ object Main {
     val docs = CliOption.builder
       .longOpt(DOCS_OPTION)
       .desc("Runs the Enso documentation generator.")
-      .build
-    val gatherImports = CliOption.builder
-      .longOpt(GATHER_IMPORTS_OPTION)
-      .desc("Gathers imports from the project and prints them to stdout.")
       .build
     val newOpt = CliOption.builder
       .hasArg(true)
@@ -241,7 +236,6 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(docs)
-      .addOption(gatherImports)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
       .addOption(newProjectTemplateOpt)
@@ -448,54 +442,6 @@ object Main {
       //   with their corresponding atoms/methods etc.
       // - Save those to files
     }
-  }
-
-  /** Handles the `--gather-imports` CLI option.
-    *
-    * Gathers import statements from the project.
-    *
-    * @param projectPath if specified, the docs is generated for a project
-    *                    at the given path
-    * @param logLevel log level to set for the engine runtime
-    */
-  private def genImports(
-    projectPath: Option[String],
-    logLevel: LogLevel
-  ): Unit = {
-    val projectRoot = new File(projectPath.getOrElse {
-      println("Project path has not been provided")
-      exitFail()
-    })
-
-    val pkg = PackageManager.Default.loadPackage(projectRoot).get
-    val context = new ContextFactory().create(
-      projectRoot.getCanonicalPath,
-      System.in,
-      System.out,
-      Repl(TerminalIO()),
-      logLevel = logLevel
-    )
-
-    def findImportedLibraries(file: SourceFile[File]): Set[LibraryName] = {
-      val module  = context.getTopScope.getModule(file.qualifiedName.toString)
-      val imports = module.gatherImportStatements()
-      println(imports)
-      val importedLibraries = imports.map { rawName =>
-        LibraryName.fromString(rawName) match {
-          case Left(error) =>
-            throw new IllegalStateException(error)
-          case Right(value) => value
-        }
-      }
-      importedLibraries.toSet
-    }
-
-    val sources      = pkg.listSources.toSet.flatMap(findImportedLibraries)
-    val itself       = pkg.libraryName
-    val dependencies = sources - itself
-    // TODO json
-    println(dependencies)
-    exitSuccess()
   }
 
   private def runPackage(
@@ -786,9 +732,6 @@ object Main {
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
-    }
-    if (line.hasOption(GATHER_IMPORTS_OPTION)) {
-      genImports(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)
