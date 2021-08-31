@@ -20,6 +20,7 @@ import java.util.UUID
 import scala.Console.err
 import scala.jdk.CollectionConverters._
 import scala.util.Try
+import scala.util.control.NonFatal
 
 /** The main CLI entry point class. */
 object Main {
@@ -462,12 +463,16 @@ object Main {
     logLevel: LogLevel
   ): Unit = projectPath match {
     case Some(path) =>
-      val pkg = PackageManager.Default.loadPackage(new File(path))
-      // TODO
-      val _ = (pkg, logLevel)
-      exitSuccess()
+      try {
+        DependencyPreinstaller.preinstallDependencies(new File(path), logLevel)
+        exitSuccess()
+      } catch {
+        case NonFatal(error) =>
+          logger.error("Dependency installation failed.", error)
+          exitFail()
+      }
     case None =>
-      println("Dependency analysis is only available for projects.")
+      println("Dependency installation is only available for projects.")
       exitFail()
   }
 

@@ -17,6 +17,7 @@ import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.cache.DownloadingLibraryCache
 import org.enso.librarymanager.published.{
   DefaultPublishedLibraryProvider,
+  PublishedLibraryCache,
   PublishedLibraryProvider
 }
 
@@ -28,7 +29,7 @@ import org.enso.librarymanager.published.{
   * @param preferLocalLibraries     project setting whether to use local
   *                                 libraries
   */
-class DefaultLibraryProvider private (
+class DefaultLibraryProvider(
   localLibraryProvider: LocalLibraryProvider,
   publishedLibraryProvider: PublishedLibraryProvider,
   edition: Editions.ResolvedEdition,
@@ -110,6 +111,32 @@ object DefaultLibraryProvider {
     edition: Editions.ResolvedEdition,
     preferLocalLibraries: Boolean
   ): ResolvingLibraryProvider = {
+    val (localLibraryProvider, publishedLibraryProvider) = makeProviders(
+      distributionManager,
+      resourceManager,
+      lockUserInterface,
+      progressReporter,
+      languageHome
+    )
+
+    new DefaultLibraryProvider(
+      localLibraryProvider,
+      publishedLibraryProvider,
+      edition,
+      preferLocalLibraries
+    )
+  }
+
+  def makeProviders(
+    distributionManager: DistributionManager,
+    resourceManager: ResourceManager,
+    lockUserInterface: LockUserInterface,
+    progressReporter: ProgressReporter,
+    languageHome: Option[LanguageHome]
+  ): (
+    LocalLibraryProvider,
+    PublishedLibraryProvider with PublishedLibraryCache
+  ) = {
     val locations = LibraryLocations.resolve(distributionManager, languageHome)
     val primaryCache = new DownloadingLibraryCache(
       locations.primaryCacheRoot,
@@ -125,12 +152,6 @@ object DefaultLibraryProvider {
       new DefaultLocalLibraryProvider(locations.localLibrarySearchPaths)
     val publishedLibraryProvider =
       new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
-
-    new DefaultLibraryProvider(
-      localLibraryProvider,
-      publishedLibraryProvider,
-      edition,
-      preferLocalLibraries
-    )
+    (localLibraryProvider, publishedLibraryProvider)
   }
 }
