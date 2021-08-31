@@ -5,7 +5,6 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference
-import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
@@ -71,28 +70,14 @@ case object VectorLiterals extends IRPass {
 
   private def vectorCons(bindings: BindingsMap): IR.Expression = {
     val modules: List[Module] = bindings.resolvedImports.flatMap { imp =>
-      imp.module match {
-        case ModuleReference.Concrete(module) =>
-          module :: module.getIr
-            .unsafeGetMetadata(
-              BindingAnalysis,
-              "no binding analysis on an imported module"
-            )
-            .resolvedExports
-            .map { export =>
-              export.module match {
-                case ModuleReference.Concrete(module) => module
-                case ModuleReference.Abstract(name) =>
-                  throw new CompilerError(
-                    s"Abstract reference to module $name found during VectorLiterals."
-                  )
-              }
-            }
-        case ModuleReference.Abstract(name) =>
-          throw new CompilerError(
-            s"Abstract reference to module $name found during VectorLiterals."
-          )
-      }
+      val module = imp.module.unsafeAsModule()
+      module :: module.getIr
+        .unsafeGetMetadata(
+          BindingAnalysis,
+          "no binding analysis on an imported module"
+        )
+        .resolvedExports
+        .map { export => export.module.unsafeAsModule() }
     }
     val module = modules.find(_.getName.toString == vectorModuleName)
     val name = IR.Name.Literal(
@@ -131,7 +116,7 @@ case object VectorLiterals extends IRPass {
           IR.CallArgument
             .Specified(None, trans.copy(location = None), None, None)
         ),
-        hasDefaultsSuspended = false,
+        false,
         trans.location
       )
     }

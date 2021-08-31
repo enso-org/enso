@@ -119,15 +119,9 @@ class ImportResolver(compiler: Compiler) {
           }
           // continue with updated stack
           go(
-            stack.pushAll(currentLocal.resolvedImports.map(x => {
-              x.module match {
-                case ModuleReference.Concrete(module) => module
-                case ModuleReference.Abstract(name) =>
-                  throw new CompilerError(
-                    s"Abstract reference to module $name found in ImportResolver."
-                  )
-              }
-            })),
+            stack.pushAll(
+              currentLocal.resolvedImports.map(_.module.unsafeAsModule())
+            ),
             seen += current
           )
         }

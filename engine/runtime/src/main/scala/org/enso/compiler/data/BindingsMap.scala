@@ -38,7 +38,7 @@ case class BindingsMap(
   var resolvedExports: List[ExportedModule] = List()
 
   /** Symbols exported by [[currentModule]].
-   */
+    */
   var exportedSymbols: Map[String, List[ResolvedName]] = Map()
 
   /** Convert this [[BindingsMap]] instance to use abstract module references.
@@ -749,6 +749,14 @@ object BindingsMap {
       * @return the abstract reference to the module represented by `this`
       */
     def toAbstract: ModuleReference.Abstract
+
+    /** Unsafely coerces the module reference to a concrete one.
+      *
+      * @param message the message for if the coercion fails
+      * @return the concrete version of this reference
+      */
+    @throws[CompilerError]
+    def unsafeAsModule(message: String = ""): Module
   }
   object ModuleReference {
 
@@ -772,6 +780,9 @@ object BindingsMap {
       /** @inheritdoc */
       override def toAbstract: Abstract =
         ModuleReference.Abstract(module.getName)
+
+      /** @inheritdoc */
+      override def unsafeAsModule(message: String = ""): Module = module
     }
 
     /** A module reference that refers to a module by qualified name, without an
@@ -795,6 +806,14 @@ object BindingsMap {
         * @return the abstract reference to the module represented by `this`
         */
       override def toAbstract: Abstract = this
+
+      /** @inheritdoc */
+      override def unsafeAsModule(message: String = ""): Module = {
+        val rest = if (message.isEmpty) "." else s": $message"
+        val errMsg = s"Could not get concrete module from abstract module $name$rest"
+
+        throw new CompilerError(errMsg)
+      }
     }
   }
 }
