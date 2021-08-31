@@ -298,7 +298,8 @@ type Table
     ## Sets the index of this table, using the column with the provided name.
 
        Arguments:
-       - index: The name of the column to use as the index in this table.
+       - index: The name of the column to use as the index in this table, or the
+         column itself to use.
 
        > Example
          Set the index of the inventory table to be the item name.
@@ -306,8 +307,10 @@ type Table
              import Standard.Examples
 
              example_set_index = Examples.inventory_table.set_index "item_name"
-    set_index : Text -> Table
-    set_index index = Table (this.java_table.indexFromColumn index)
+    set_index : Text | Column -> Table
+    set_index index = case index of
+        Text -> Table (this.java_table.indexFromColumn index)
+        Column.Column c -> Table (this.java_table.indexFromColumn c)
 
     ## Returns the index of this table, as a column that is indexed by itself.
 

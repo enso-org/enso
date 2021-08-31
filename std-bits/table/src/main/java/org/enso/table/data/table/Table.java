@@ -1,8 +1,12 @@
 package org.enso.table.data.table;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -157,12 +161,10 @@ public class Table {
   /**
    * Reindexes this table by using values from the column with the given name.
    *
-   * @param name the column name to use as index
+   * @param col the column to use as index
    * @return a table indexed by the proper column
    */
-  public Table indexFromColumn(String name) {
-    Column col = getColumnByName(name);
-    if (col == null) throw new NoSuchColumnException(name);
+  public Table indexFromColumn(Column col) {
     Storage storage = col.getStorage();
     Index ix = HashIndex.fromStorage(col.getName(), storage);
     List<Column> newColumns = new ArrayList<>();
@@ -171,11 +173,23 @@ public class Table {
       newColumns.add(indexCol.withIndex(ix));
     }
     for (Column column : columns) {
-      if (!column.getName().equals(name)) {
+      if (!column.getName().equals(col.getName())) {
         newColumns.add(column.withIndex(ix));
       }
     }
     return new Table(newColumns.toArray(new Column[0]), ix);
+  }
+
+  /**
+   * Reindexes this table by using values from the column with the given name.
+   *
+   * @param name the column name to use as index
+   * @return a table indexed by the proper column
+   */
+  public Table indexFromColumn(String name) {
+    Column col = getColumnByName(name);
+    if (col == null) throw new NoSuchColumnException(name);
+    return indexFromColumn(col);
   }
 
   /**
