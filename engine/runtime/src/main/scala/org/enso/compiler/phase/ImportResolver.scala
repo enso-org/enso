@@ -68,7 +68,7 @@ class ImportResolver(compiler: Compiler) {
                       LibraryName(namespace.name, name.name)
                     case _ =>
                       throw new CompilerError(
-                        "Imports should containt at least two segments after " +
+                        "Imports should contain at least two segments after " +
                         "desugaring."
                       )
                   }

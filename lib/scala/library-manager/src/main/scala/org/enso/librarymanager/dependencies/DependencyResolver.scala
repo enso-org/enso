@@ -70,9 +70,10 @@ class DependencyResolver(
 
           val manifest = getManifest(libraryName, publishedVersion)
 
-          Set(itself) | manifest.dependencies.toSet.flatMap(
-            findDependencies(_, parents + libraryName).get
-          )
+          Set(itself) | manifest.dependencies.toSet.flatMap {
+            name: LibraryName =>
+              findDependencies(name, parents + libraryName).get
+          }
       }
     }
   }

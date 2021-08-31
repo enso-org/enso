@@ -7,7 +7,10 @@ import org.enso.cli.task.notifications.ActorProgressNotificationForwarder
 import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
-import org.enso.languageserver.libraries.BlockingOperation
+import org.enso.languageserver.libraries.{
+  BlockingOperation,
+  CompilerBasedDependencyExtractor
+}
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol.{
   FindLibrary,
@@ -16,6 +19,7 @@ import org.enso.languageserver.libraries.LocalLibraryManagerProtocol.{
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.libraryupload.{auth, LibraryUploader}
+import org.enso.loggingservice.LogLevel
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -98,7 +102,10 @@ class LibraryPublishHandler(
         )
 
       val future: Future[UploadSucceeded] = BlockingOperation.run {
-        LibraryUploader
+        // TODO get the log level from somewhere
+        val dependencyExtractor =
+          new CompilerBasedDependencyExtractor(LogLevel.Warning)
+        LibraryUploader(dependencyExtractor)
           .uploadLibrary(
             libraryRoot,
             uploadUrl,

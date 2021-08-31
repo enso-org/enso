@@ -12,17 +12,19 @@ import org.enso.downloader.archive.TarGzWriter
 import org.enso.downloader.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.repository.LibraryManifest
+import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
+import java.io.File
 import java.nio.file.{Files, Path}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
 /** Gathers functions used for uploading libraries. */
-object LibraryUploader {
-  private lazy val logger = Logger[LibraryUploader.type]
+class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
+  private lazy val logger = Logger[LibraryUploader]
 
   /** Uploads a library to a repository.
     *
@@ -64,12 +66,15 @@ object LibraryUploader {
       )
       compressing.force()
 
+      val directDependencies = dependencyExtractor.findDependencies(pkg)
+
       val manifestPath = projectRoot / LibraryManifest.filename
       val loadedManifest =
         loadSavedManifest(manifestPath).getOrElse(LibraryManifest.empty)
-      val updatedManifest =
-        // TODO [RW] update dependencies in the manifest (#1773)
-        loadedManifest.copy(archives = Seq(mainArchiveName))
+      val updatedManifest = loadedManifest.copy(
+        archives     = Seq(mainArchiveName),
+        dependencies = directDependencies.toSeq
+      )
       FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
 
       logger.info(s"Uploading library package to the server at [$uploadUrl].")
@@ -91,10 +96,6 @@ object LibraryUploader {
       logger.info(s"Upload complete.")
     }
   }
-
-  /** Indicates that the library upload has failed. */
-  case class UploadFailedError(message: String)
-      extends RuntimeException(message)
 
   /** Creates an URL for the upload, including information identifying the
     * library version.
@@ -230,4 +231,14 @@ object LibraryUploader {
       }
     }
   }
+}
+
+object LibraryUploader {
+  def apply(dependencyExtractor: DependencyExtractor[File]): LibraryUploader =
+    new LibraryUploader(dependencyExtractor)
+
+  /** Indicates that the library upload has failed. */
+  case class UploadFailedError(message: String)
+      extends RuntimeException(message)
+
 }

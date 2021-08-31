@@ -57,6 +57,16 @@ class Module(private val value: Value) {
     value.invokeMember(GENERATE_DOCS)
   }
 
+  /** Triggers gathering of import statements from module sources.
+    *
+    * @return value with `GATHER_IMPORT_STATEMENTS` invoked on it.
+    */
+  def gatherImportStatements(): Seq[String] = {
+    val array = value.invokeMember(GATHER_IMPORT_STATEMENTS)
+    val size  = array.getArraySize
+    for (i <- 0L until size) yield array.getArrayElement(i).asString()
+  }
+
   /** Triggers reparsing of module sources. Used to notify the module that
     * sources have changed.
     */
