@@ -63,10 +63,11 @@ pub const COMMENT_MARGIN    : f32 = 10.0;
 const INFINITE                 : f32       = 99999.0;
 const ERROR_VISUALIZATION_SIZE : (f32,f32) = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y : f32 = -120.0;
+const VISUALIZATION_OFFSET_Y : f32  = -120.0;
 
-const VIS_PREVIEW_ONSET_MS   : f32 = 4000.0;
-const ERROR_PREVIEW_ONSET_MS : f32 = 0000.0;
+const ENABLE_VIS_PREVIEW     : bool = false;
+const VIS_PREVIEW_ONSET_MS   : f32  = 4000.0;
+const ERROR_PREVIEW_ONSET_MS : f32  = 0000.0;
 /// A type of unresolved methods. We filter them out, because we don't want to treat them as types
 /// for ports and edges coloring (due to bad UX otherwise).
 const UNRESOLVED_SYMBOL_TYPE : &str = "Builtins.Main.Unresolved_Symbol";
@@ -745,7 +746,9 @@ impl Node {
             preview_visible         <- preview_visible && has_expression;
             preview_visible         <- preview_visible.on_change();
 
-            visualization_visible            <- visualization_enabled || preview_visible;
+            visualization_visible <- all_with(&visualization_enabled,&preview_visible,
+                |&visualization_enabled,&preview_visible|
+                    visualization_enabled || (preview_visible && ENABLE_VIS_PREVIEW));
             visualization_visible            <- visualization_visible && no_error_set;
             visualization_visible_on_change  <- visualization_visible.on_change();
             frp.source.visualization_visible <+ visualization_visible_on_change;
