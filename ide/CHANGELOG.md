@@ -1,5 +1,15 @@
 # Next Release
 
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+- [Visualization previews are disabled.][1817] Previously, hovering over a
+  node's output port for more than four seconds would temporarily reveal the
+  node's visualization. This behavior is disabled now.
+
+[1817]: https://github.com/enso-org/ide/pull/1817
+
 # Enso 2.0.0-alpha.13 (2021-08-27)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
@@ -16,7 +26,7 @@
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
 
-#### Enso Compiler
+#### Visual Environment
 
 - [Improvements to visualization handling][1804]. These improvements are fixing
   possible performance issues around attaching and detaching visualizations.
