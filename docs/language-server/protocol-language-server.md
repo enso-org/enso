@@ -204,6 +204,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`LocalLibraryNotFound`](#locallibrarynotfound)
   - [`LibraryNotResolved`](#librarynotresolved)
   - [`InvalidLibraryName`](#invalidlibraryname)
+  - [`DependencyDiscoveryError`](#dependencydiscoveryerror)
 
 <!-- /MarkdownTOC -->
 
@@ -4550,6 +4551,8 @@ null;
 
 - [`LibraryNotResolved`](#librarynotresolved) to signal that the requested
   library or one of its dependencies could not be resolved.
+- [`DependencyDiscoveryError`](#dependencydiscoveryerror) to signal that
+  dependencies of the library could not be established.
 - [`LibraryDownloadError`](#librarydownloaderror) to signal that the download
   operation has failed, for network-related reasons, or because the library was
   missing in the repository. The error includes the name and version of the
@@ -5083,5 +5086,17 @@ For example for `FooBar` it will suggest `Foo_Bar`.
   "payload" : {
     "suggestedName" : "<fixed-name>"
   }
+}
+```
+
+### `DependencyDiscoveryError`
+
+Signals that the library preinstall endpoint could not properly find
+dependencies of the requested library.
+
+```typescript
+"error" : {
+  "code" : 8010,
+  "message" : "Error occurred while discovering dependencies: <reason>."
 }
 ```

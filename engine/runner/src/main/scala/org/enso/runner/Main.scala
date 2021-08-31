@@ -33,6 +33,7 @@ object Main {
   private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
   private val REPL_OPTION                 = "repl"
   private val DOCS_OPTION                 = "docs"
+  private val PREINSTALL_OPTION           = "preinstall-dependencies"
   private val LANGUAGE_SERVER_OPTION      = "server"
   private val DAEMONIZE_OPTION            = "daemon"
   private val INTERFACE_OPTION            = "interface"
@@ -76,6 +77,10 @@ object Main {
     val docs = CliOption.builder
       .longOpt(DOCS_OPTION)
       .desc("Runs the Enso documentation generator.")
+      .build
+    val preinstall = CliOption.builder
+      .longOpt(PREINSTALL_OPTION)
+      .desc("Installs dependencies of the project.")
       .build
     val newOpt = CliOption.builder
       .hasArg(true)
@@ -236,6 +241,7 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(docs)
+      .addOption(preinstall)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
       .addOption(newProjectTemplateOpt)
@@ -442,6 +448,27 @@ object Main {
       //   with their corresponding atoms/methods etc.
       // - Save those to files
     }
+  }
+
+  /** Handles the `--preinstall-dependencies` CLI option.
+    *
+    * Gathers imported dependencies and ensures that all of them are installed.
+    *
+    * @param projectPath path of the project
+    * @param logLevel log level to set for the engine runtime
+    */
+  private def preinstallDependencies(
+    projectPath: Option[String],
+    logLevel: LogLevel
+  ): Unit = projectPath match {
+    case Some(path) =>
+      val pkg = PackageManager.Default.loadPackage(new File(path))
+      // TODO
+      val _ = (pkg, logLevel)
+      exitSuccess()
+    case None =>
+      println("Dependency analysis is only available for projects.")
+      exitFail()
   }
 
   private def runPackage(
@@ -732,6 +759,12 @@ object Main {
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+    }
+    if (line.hasOption(PREINSTALL_OPTION)) {
+      preinstallDependencies(
+        Option(line.getOptionValue(IN_PROJECT_OPTION)),
+        logLevel
+      )
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)

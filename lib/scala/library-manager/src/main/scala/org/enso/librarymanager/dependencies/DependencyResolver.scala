@@ -3,25 +3,32 @@ package org.enso.librarymanager.dependencies
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.LibraryResolver
 import org.enso.librarymanager.local.LocalLibraryProvider
-import org.enso.librarymanager.published.PublishedLibraryProvider
+import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.published.repository.RepositoryHelper.RepositoryMethods
+import org.enso.libraryupload.DependencyExtractor
+import org.enso.pkg.PackageManager
 import org.enso.yaml.YamlHelper
 
+import java.io.File
 import java.nio.file.Files
 import scala.util.Try
 
 class DependencyResolver(
   localLibraryProvider: LocalLibraryProvider,
-  publishedLibraryProvider: PublishedLibraryProvider,
+  publishedLibraryProvider: PublishedLibraryCache,
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean,
-  versionResolver: LibraryResolver
+  versionResolver: LibraryResolver,
+  dependencyExtractor: DependencyExtractor[File]
 ) {
 
-  /** Finds all transitive dependencies of the requested library. */
+  /** Finds all transitive dependencies of the requested library.
+    *
+    * The resulting set of dependencies also includes the library itself.
+    */
   def findDependencies(libraryName: LibraryName): Try[Set[Dependency]] =
-    findDependencies(libraryName, Set.empty)
+    Try(findDependencies(libraryName, Set.empty))
 
   /** A helper function to discover all transitive dependencies, avoiding
     * looping on cycles.
@@ -38,7 +45,7 @@ class DependencyResolver(
   private def findDependencies(
     libraryName: LibraryName,
     parents: Set[LibraryName]
-  ): Try[Set[Dependency]] = Try {
+  ): Set[Dependency] = {
     if (parents.contains(libraryName)) {
       Set.empty
     } else {
@@ -49,31 +56,36 @@ class DependencyResolver(
 
       version match {
         case LibraryVersion.Local =>
-          // TODO [RW] can we skip deps of local? we cannot effectively find
-          //  them without parsing the whole library which is costly
-          Set(
-            Dependency(
-              libraryName,
-              version,
-              localLibraryProvider.findLibrary(libraryName).isDefined
-            )
+          val libraryPath = localLibraryProvider.findLibrary(libraryName)
+          val libraryPackage = libraryPath.map(path =>
+            PackageManager.Default.loadPackage(path.toFile).get
           )
+
+          val dependencies = libraryPackage match {
+            case Some(pkg) =>
+              dependencyExtractor.findDependencies(pkg)
+            case None =>
+              Set.empty
+          }
+
+          val itself = Dependency(libraryName, version, libraryPath.isDefined)
+
+          dependencies.flatMap(
+            findDependencies(_, parents + libraryName)
+          ) + itself
 
         case publishedVersion @ LibraryVersion.Published(semver, _) =>
           val itself = Dependency(
             libraryName,
             version,
-            publishedLibraryProvider
-              .findCachedLibrary(libraryName, semver)
-              .isDefined
+            publishedLibraryProvider.isLibraryCached(libraryName, semver)
           )
 
           val manifest = getManifest(libraryName, publishedVersion)
 
-          Set(itself) | manifest.dependencies.toSet.flatMap {
-            name: LibraryName =>
-              findDependencies(name, parents + libraryName).get
-          }
+          manifest.dependencies.toSet.flatMap { name: LibraryName =>
+            findDependencies(name, parents + libraryName)
+          } + itself
       }
     }
   }

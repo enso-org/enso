@@ -48,32 +48,42 @@ class DefaultLibraryProvider private (
     val resolvedVersion = resolver
       .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
     logger.trace(s"Resolved $libraryName to [$resolvedVersion].")
+
     resolvedVersion match {
       case Left(reason) =>
         Left(ResolvingLibraryProvider.Error.NotResolved(reason))
 
-      case Right(LibraryVersion.Local) =>
-        localLibraryProvider
-          .findLibrary(libraryName)
-          .map(ResolvedLibrary(libraryName, LibraryVersion.Local, _))
-          .toRight {
-            ResolvingLibraryProvider.Error.NotResolved(
-              LibraryResolutionError(
-                s"Edition configuration forces to use the local version, but " +
-                s"the `$libraryName` library is not present among local " +
-                s"libraries."
-              )
-            )
-          }
-
-      case Right(version @ LibraryVersion.Published(semver, repository)) =>
-        publishedLibraryProvider
-          .findLibrary(libraryName, semver, repository)
-          .map(ResolvedLibrary(libraryName, version, _))
-          .toEither
-          .left
-          .map(ResolvingLibraryProvider.Error.DownloadFailed(version, _))
+      case Right(version) =>
+        findSpecificLibraryVersion(libraryName, version)
     }
+  }
+
+  /** @inheritdoc */
+  override def findSpecificLibraryVersion(
+    libraryName: LibraryName,
+    version: LibraryVersion
+  ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary] = version match {
+    case LibraryVersion.Local =>
+      localLibraryProvider
+        .findLibrary(libraryName)
+        .map(ResolvedLibrary(libraryName, LibraryVersion.Local, _))
+        .toRight {
+          ResolvingLibraryProvider.Error.NotResolved(
+            LibraryResolutionError(
+              s"Edition configuration forces to use the local version, but " +
+              s"the `$libraryName` library is not present among local " +
+              s"libraries."
+            )
+          )
+        }
+
+    case version @ LibraryVersion.Published(semver, repository) =>
+      publishedLibraryProvider
+        .findLibrary(libraryName, semver, repository)
+        .map(ResolvedLibrary(libraryName, version, _))
+        .toEither
+        .left
+        .map(ResolvingLibraryProvider.Error.DownloadFailed(version, _))
   }
 }
 

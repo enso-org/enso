@@ -146,7 +146,6 @@ class Compiler(
     * @param module - the scope from which docs are generated.
     */
   def gatherImportStatements(module: Module): Array[String] = {
-    initializeBuiltinsIr()
     ensureParsed(module)
     val importedModules = module.getIr.imports.map {
       case imp: IR.Module.Scope.Import.Module =>

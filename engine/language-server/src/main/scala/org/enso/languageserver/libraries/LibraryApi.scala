@@ -250,4 +250,10 @@ object LibraryApi {
             } """
     )
   }
+
+  case class DependencyDiscoveryError(reason: String)
+      extends Error(
+        8010,
+        s"Error occurred while discovering dependencies: $reason."
+      )
 }
