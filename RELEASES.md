@@ -1,5 +1,6 @@
 # Enso Next
 
+- Added `documentationJSON` field to the suggestion database.
 - Implement `library/preinstall` endpoint, allowing the IDE to request a library
   to be installed asynchronously before importing it, so that adding the import
   does not seem to freeze the compiler

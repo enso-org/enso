@@ -448,8 +448,10 @@ interface SuggestionEntryModule {
   reexport?: string;
 
   /** The rendered HTMl of the documentation string. */
-
   documentationHtml?: string;
+
+  /** The rendered JSON of the documentation string. */
+  documentationJSON?: string;
 }
 
 interface SuggestionEntryAtom {
@@ -475,8 +477,10 @@ interface SuggestionEntryAtom {
   reexport?: string;
 
   /** The rendered HTMl of the documentation string. */
-
   documentationHtml?: string;
+
+  /** The rendered JSON of the documentation string. */
+  documentationJSON?: string;
 }
 
 interface SuggestionEntryMethod {
@@ -505,8 +509,10 @@ interface SuggestionEntryMethod {
   reexport?: string;
 
   /** The rendered HTMl of the documentation string. */
-
   documentationHtml?: string;
+
+  /** The rendered JSON of the documentation string. */
+  documentationJSON?: string;
 }
 
 interface SuggestionEntryFunction {
@@ -527,10 +533,6 @@ interface SuggestionEntryFunction {
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 
 interface SuggestionEntryLocal {
@@ -548,10 +550,6 @@ interface SuggestionEntryLocal {
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 ```
 
