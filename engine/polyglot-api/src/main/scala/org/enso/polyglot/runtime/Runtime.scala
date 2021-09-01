@@ -611,6 +611,7 @@ object Runtime {
         * @param returnType the return type to update
         * @param documentation the documentation string to update
         * @param documentationHtml the HTML documentation to update
+        * @param documentationJSON the JSON documentation to update
         * @param scope the scope to update
         * @param reexport the reexport field to update
         */
@@ -620,6 +621,7 @@ object Runtime {
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
         documentationHtml: Option[Option[String]]         = None,
+        documentationJSON: Option[Option[String]]         = None,
         scope: Option[Suggestion.Scope]                   = None,
         reexport: Option[Option[String]]                  = None
       ) extends SuggestionAction
@@ -629,7 +631,7 @@ object Runtime {
         override def toLogString(shouldMask: Boolean): String =
           "Modify(" +
           s"externalId=$externalId," +
-          s"artuments=${arguments.map(_.map(_.toLogString(shouldMask)))}," +
+          s"arguments=${arguments.map(_.map(_.toLogString(shouldMask)))}," +
           s"returnType=$returnType" +
           s"documentation=" +
           (if (shouldMask) documentation.map(_.map(_ => STUB))
@@ -637,6 +639,9 @@ object Runtime {
           s"documentationHtml=" +
           (if (shouldMask) documentationHtml.map(_.map(_ => STUB))
            else documentationHtml) +
+          s"documentationJSON=" +
+          (if (shouldMask) documentationJSON.map(_.map(_ => STUB))
+           else documentationJSON) +
           s",scope=$scope" +
           s"reexport=$reexport" +
           ")"

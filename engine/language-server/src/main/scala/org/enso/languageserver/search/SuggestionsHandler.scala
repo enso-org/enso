@@ -555,6 +555,8 @@ final class SuggestionsHandler(
                   documentation = m.documentation.map(fieldUpdateOption),
                   documentationHtml =
                     m.documentationHtml.map(fieldUpdateOption),
+                  documentationJSON =
+                    m.documentationJSON.map(fieldUpdateOption),
                   scope = m.scope.map(fieldUpdate)
                 )
               }
