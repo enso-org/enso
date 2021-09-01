@@ -3,15 +3,18 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import io.circe.{Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{
   EmptyRepository,
-  ExampleRepository
+  ExampleRepository,
+  LibraryManifest
 }
 import org.enso.pkg.{Contact, PackageManager}
+import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
 
@@ -232,6 +235,21 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
+      // Update Main.enso
+      val libraryRoot = getTestDirectory
+        .resolve("test_home")
+        .resolve("libraries")
+        .resolve("user")
+        .resolve("Publishable_Lib")
+      val mainSource = libraryRoot.resolve("src").resolve("Main.enso")
+      FileSystem.writeTextFile(
+        mainSource,
+        """import Some.Other_Library
+          |
+          |main = 42
+          |""".stripMargin
+      )
+
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "library/setMetadata",
@@ -308,6 +326,18 @@ class LibrariesTest extends BaseServerTest {
           Contact(name = Some("only-name"), email = None),
           Contact(name = None, email              = Some("foo@example.com"))
         )
+        val manifest = YamlHelper
+          .load[LibraryManifest](
+            libraryRoot.resolve(LibraryManifest.filename)
+          )
+          .get
+
+        manifest.archives shouldEqual Seq("main.tgz")
+        manifest.dependencies shouldEqual Seq(
+          LibraryName("Some", "Other_Library")
+        )
+        manifest.description shouldEqual Some("Description for publication.")
+        manifest.tagLine shouldEqual Some("published-lib")
 
         client.send(json"""
           { "jsonrpc": "2.0",
