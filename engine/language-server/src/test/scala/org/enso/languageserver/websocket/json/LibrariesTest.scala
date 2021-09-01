@@ -408,8 +408,6 @@ class LibrariesTest extends BaseServerTest {
           .asString
           .value shouldEqual "library/preinstall"
 
-        taskStart._2("unit").value.asString.value shouldEqual "Bytes"
-
         val updates = messages.filter { case (method, params) =>
           method == "task/progress-update" &&
           params("taskId").value.asString.value == taskId
@@ -417,7 +415,7 @@ class LibrariesTest extends BaseServerTest {
 
         updates should not be empty
         updates.head._2("message").value.asString.value should include(
-          "Downloading"
+          "Installing"
         )
 
         val cachePath     = getTestDirectory.resolve("test_data").resolve("lib")
