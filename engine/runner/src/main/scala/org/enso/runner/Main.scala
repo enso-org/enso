@@ -468,7 +468,10 @@ object Main {
         exitSuccess()
       } catch {
         case NonFatal(error) =>
-          logger.error("Dependency installation failed.", error)
+          logger.error(
+            s"Dependency installation failed: ${error.getMessage}",
+            error
+          )
           exitFail()
       }
     case None =>

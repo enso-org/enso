@@ -21,7 +21,21 @@ import java.nio.file.Files
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
 
-  private val exampleRepo   = new ExampleRepository
+  private val exampleRepo = new ExampleRepository {
+    override def libraries: Seq[DummyLibrary] = Seq(
+      DummyLibrary(
+        LibraryName("Foo", "Bar"),
+        SemVer(1, 0, 0),
+        """import Standard.Base
+          |
+          |baz = 42
+          |
+          |quux = "foobar"
+          |""".stripMargin,
+        dependencies = Seq(LibraryName("Standard", "Base"))
+      )
+    )
+  }
   private val baseUrl       = s"http://localhost:$libraryRepositoryPort/"
   private val repositoryUrl = baseUrl + "libraries"
 
@@ -417,6 +431,9 @@ class LibrariesTest extends BaseServerTest {
           msg("id") match {
             case Some(json) =>
               json.asNumber.value.toInt.value shouldEqual requestId
+              msg("error").foreach(err =>
+                println("Request ended with error: " + err)
+              )
               msg("result").value.asNull.value
               waitingForResult = false
             case None =>
@@ -463,6 +480,11 @@ class LibrariesTest extends BaseServerTest {
         pkg.listSources.map(
           _.file.getName
         ) should contain theSameElementsAs Seq("Main.enso")
+
+        assert(
+          Files.exists(cachedLibraryRoot.resolve(LibraryManifest.filename)),
+          "The manifest file of a downloaded library should be saved in the cache too."
+        )
       }
     }
   }

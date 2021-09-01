@@ -120,6 +120,8 @@ class LibraryPreinstallHandler(
     libraryInstaller: ResolvingLibraryProvider
   ): Either[InstallationError, Unit] = {
 
+    logger.trace(s"Dependencies to install: $dependencies.")
+
     val taskProgress = new TaskProgressImplementation[Unit]()
 
     val message =

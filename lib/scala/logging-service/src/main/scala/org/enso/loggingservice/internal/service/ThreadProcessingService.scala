@@ -4,6 +4,7 @@ import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
+  DefaultLogMessageRenderer,
   InternalLogger
 }
 
@@ -53,6 +54,10 @@ trait ThreadProcessingService extends Service {
     thread.start()
   }
 
+  private lazy val renderer = new DefaultLogMessageRenderer(
+    printExceptions = false
+  )
+
   /** The runner filters out internal messages that have disabled log levels,
     * but passes through all external messages (as their log level is set
     * independently and can be lower).
@@ -67,6 +72,9 @@ trait ThreadProcessingService extends Service {
           case NonFatal(e) =>
             InternalLogger.error(
               s"One of the printers failed to write a message: $e"
+            )
+            InternalLogger.error(
+              s"The dropped message was: ${renderer.render(message)}"
             )
         }
       }
