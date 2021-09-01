@@ -251,7 +251,9 @@ case object UppercaseNames extends IRPass {
   ): Option[BindingsMap.ResolvedConstructor] =
     thisResolution.target match {
       case BindingsMap.ResolvedModule(module) =>
-        val resolution = module.getIr
+        val resolution = module
+          .unsafeAsModule()
+          .getIr
           .unsafeGetMetadata(
             BindingAnalysis,
             "Imported module without bindings analysis results"
