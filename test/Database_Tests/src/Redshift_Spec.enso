@@ -54,6 +54,6 @@ spec =
                 Redshift connection is not set up. Please create a JSON file containing
                 the credentials in `data/redshift_credentials.json`
             connection = Error.throw msg
-            Common_Spec.spec "[Redshift]" connection msg
+            Common_Spec.spec "[Redshift] " connection msg
             here.redshift_specific_spec connection msg
 
