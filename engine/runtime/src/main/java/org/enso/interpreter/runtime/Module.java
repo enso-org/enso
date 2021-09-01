@@ -461,14 +461,16 @@ public class Module implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached LoopingCallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.compileScope(context);
+      ModuleScope scope;
       switch (member) {
         case MethodNames.Module.GET_NAME:
           return module.getName().toString();
         case MethodNames.Module.GET_METHOD:
+          scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
           return result == null ? context.getBuiltins().nothing().newInstance() : result;
         case MethodNames.Module.GET_CONSTRUCTOR:
+          scope = module.compileScope(context);
           return getConstructor(scope, arguments);
         case MethodNames.Module.REPARSE:
           return reparse(module, arguments, context);
@@ -481,8 +483,10 @@ public class Module implements TruffleObject {
         case MethodNames.Module.SET_SOURCE_FILE:
           return setSourceFile(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
+          scope = module.compileScope(context);
           return getAssociatedConstructor(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
+          scope = module.compileScope(context);
           return evalExpression(scope, arguments, context, callOptimiserNode);
         default:
           throw UnknownIdentifierException.create(member);
