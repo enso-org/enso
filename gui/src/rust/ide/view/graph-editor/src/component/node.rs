@@ -732,7 +732,7 @@ impl Node {
             preview_show_delay <- preview_show_delay.map(|(quick_preview,is_error)| {
                 match(is_error,quick_preview) {
                     (true,_)      => ERROR_PREVIEW_ONSET_MS,
-                    (false,false) => VIS_PREVIEW_ONSET_MS,
+                    (false,false) => if ENABLE_VIS_PREVIEW {VIS_PREVIEW_ONSET_MS} else {f32::MAX},
                     (false,true)  => 0.0
                 }
             });
@@ -746,9 +746,7 @@ impl Node {
             preview_visible         <- preview_visible && has_expression;
             preview_visible         <- preview_visible.on_change();
 
-            visualization_visible <- all_with(&visualization_enabled,&preview_visible,
-                |&visualization_enabled,&preview_visible|
-                    visualization_enabled || (preview_visible && ENABLE_VIS_PREVIEW));
+            visualization_visible            <- visualization_enabled || preview_visible;
             visualization_visible            <- visualization_visible && no_error_set;
             visualization_visible_on_change  <- visualization_visible.on_change();
             frp.source.visualization_visible <+ visualization_visible_on_change;
