@@ -1649,7 +1649,7 @@ lazy val `std-database` = project
           `database-polyglot-root`,
           Some("std-database.jar"),
           ignoreScalaLibrary = true,
-          unpackedDeps = Set("aws-java-sdk-core", "httpclient")
+          unpackedDeps       = Set("aws-java-sdk-core", "httpclient")
         )
         .value
       result
@@ -1791,7 +1791,13 @@ updateLibraryManifests := {
     )
 
     log.debug(s"Running [$command].")
-    val exitCode = sys.process.Process(command).!
+    val exitCode = sys.process
+      .Process(
+        command,
+        None,
+        "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
+      )
+      .!
     if (exitCode != 0) {
       val message = s"Command [$command] has failed with code $exitCode."
       log.error(message)

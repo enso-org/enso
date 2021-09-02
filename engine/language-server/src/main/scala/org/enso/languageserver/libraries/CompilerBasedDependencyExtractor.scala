@@ -10,6 +10,13 @@ import org.graalvm.polyglot.Context
 
 import java.io.File
 
+/** A dependency extractor that runs the compiler in a mode that only parses the
+  * source code and runs just the basic preprocessing phases to find out what
+  * libraries are imported by the project.
+  *
+  * @param logLevel the log level to use for the runtime context that will do
+  *                 the parsing
+  */
 class CompilerBasedDependencyExtractor(logLevel: LogLevel)
     extends DependencyExtractor[File] {
 
