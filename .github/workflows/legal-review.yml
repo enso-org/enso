@@ -98,11 +98,21 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Verify
-      - name: Prepare
+      - name: Bootstrap
         run: |
           sleep 1
           sbt bootstrap
+
+      - name: Just assembly
+        run: |
+          sleep 1
           sbt --no-colors engine-runner/assembly
+
+      - name: Just assembly
+        run: |
+          sleep 1
+          sbt --no-colors clean
+
       - name: Test Update Manifests
         run: |
           sleep 1
