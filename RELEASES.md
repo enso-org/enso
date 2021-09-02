@@ -1,5 +1,14 @@
 # Enso Next
 
+## Libraries
+
+- Added `Column.set_index` to allow you to explicitly change the index for a
+  column ([#1982](https://github.com/enso-org/enso/pull/1982)). Also expanded
+  `Table.set_index` to accept columns, rather than just names of columns in the
+  table.
+
+## Tooling
+
 - Implement `library/preinstall` endpoint, allowing the IDE to request a library
   to be installed asynchronously before importing it, so that adding the import
   does not seem to freeze the compiler
