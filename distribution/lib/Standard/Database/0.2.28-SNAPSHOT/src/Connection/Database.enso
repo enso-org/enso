@@ -15,7 +15,7 @@ from Standard.Database.Connection.Connection import all
      for authentication. Supported properties depend on the database engine that
      the connection is made to. Optional.
 
-   Currently SQLite and PostgreSQL databases are supported.
+   Currently SQLite, PostgreSQL and Amazon Redshift are supported.
 
    ? Finding the URL
      The exact URL depends on the database engine.  For SQLite the expected o
@@ -32,11 +32,13 @@ from Standard.Database.Connection.Connection import all
        are allowed;
      - `postgresql://host/` - which will connect to the same database as the
        username on a specified host, the `host`` is defined as above.
+     For Redshift, the URL can be found in the cluster management section in the
+     AWS admin console.
 connect : Text -> Nothing | Text -> Nothing | Text -> Vector -> Connection ! Sql_Error
 connect url user=Nothing password=Nothing custom_properties=[] =
     full_url = if url.starts_with "jdbc:" then url else "jdbc:"+url
     user_prop = if user.is_nothing then [] else [["user", user]]
-    pass_prop = if user.is_nothing then [] else [["password", password]]
+    pass_prop = if password.is_nothing then [] else [["password", password]]
     properties = user_prop + pass_prop + custom_properties
     Connection.create_jdbc_connection full_url properties
 

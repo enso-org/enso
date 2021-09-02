@@ -99,7 +99,14 @@ sqlite =
 
 ## PRIVATE
 
+   The dialect for Redshift connections.
+redshift : Dialect
+redshift = case here.postgresql of
+    Dialect _ builder -> Dialect "redshift" builder
+
+## PRIVATE
+
    A vector of SQL dialects supported by the Database library.
 supported_dialects : Vector Dialect
-supported_dialects = [here.postgresql, here.sqlite]
+supported_dialects = [here.postgresql, here.sqlite, here.redshift]
 
