@@ -147,14 +147,17 @@ class Compiler(
     */
   def gatherImportStatements(module: Module): Array[String] = {
     ensureParsed(module)
-    val importedModules = module.getIr.imports.map {
+    val importedModules = module.getIr.imports.flatMap {
       case imp: IR.Module.Scope.Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
-          case List(namespace, name) => LibraryName(namespace, name)
+          case List(namespace, name) => List(LibraryName(namespace, name))
           case _ =>
             throw new CompilerError(s"Invalid module name: [${imp.name}].")
         }
 
+      case _: IR.Module.Scope.Import.Polyglot =>
+        // Note [Polyglot Imports In Dependency Gathering]
+        Nil
       case other =>
         throw new CompilerError(
           s"Unexpected import type after processing: [$other]."
@@ -191,6 +194,19 @@ class Compiler(
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
     }
   }
+
+  /* Note [Polyglot Imports In Dependency Gathering]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * Currently we just ignore polyglot imports when gathering the dependencies -
+   * we assume that the project itself or one of its dependencies will contain
+   * in their `polyglot` directory any JARs that need to be included in the
+   * classpath for this import to be resolved.
+   *
+   * In the future we may want to extend the edition system with some settings
+   * for automatically resolving the Java dependencies using a system based on
+   * Maven, but currently the libraries just must include their binary
+   * dependencies.
+   */
 
   /** Gets a module definition by name.
     *
