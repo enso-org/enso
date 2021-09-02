@@ -1,11 +1,15 @@
 # Enso Next
 
+# Enso 0.2.28 (2021-09-02)
+
 ## Libraries
 
 - Added `Column.set_index` to allow you to explicitly change the index for a
   column ([#1982](https://github.com/enso-org/enso/pull/1982)). Also expanded
   `Table.set_index` to accept columns, rather than just names of columns in the
   table.
+- Added support for Amazon Redshift in the database library
+  ([#1985](https://github.com/enso-org/enso/pull/1985)).
 
 ## Tooling
 
@@ -14,10 +18,11 @@
   does not seem to freeze the compiler
   ([#1972](https://github.com/enso-org/enso/pull/1972)).
 
-## Libraries
+## Known Issues
 
-- Added support for Amazon Redshift in the database library
-  ([#1985](https://github.com/enso-org/enso/pull/1985)).
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-09-02)
+  for issues opened before the release date.
 
 # Enso 0.2.27 (2021-08-23)
 
