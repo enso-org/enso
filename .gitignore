@@ -122,5 +122,8 @@ distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions
 distribution/lib/Standard/Table/*/polyglot/
+distribution/lib/Standard/Database/*/polyglot/
 distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
+
+test/Database_Tests/data/redshift_credentials.json

@@ -269,6 +269,13 @@ create_jdbc_connection url properties = here.wrap_sql_errors <|
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
+    ## This is a workaround for the Redshift driver - it looks for an ini file
+       by looking at the jar file location, which is not available in the Graal
+       class loader. This block may be removed when migrated to a Graal version
+       with https://github.com/oracle/graal/issues/3744 fixed.
+    if url.starts_with 'jdbc:redshift:' && (java_props.getProperty 'IniFile' . is_nothing) then
+        path = Enso_Project.data/'empty.ini' . absolute . path
+        java_props.setProperty 'IniFile' path
     dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
     java_connection = JDBCProxy.getConnection url java_props
     resource = Managed_Resource.register java_connection here.close_connection
