@@ -47,7 +47,8 @@ type Spreadsheets_Service
 
    Arguments:
    - secret_file: a file containing Google Service Account credentials to use to
-     access Google services.
+     access Google services. The credentials file can be downloaded from the
+     Google Admin Console when generating a key.
 initialize : File.File -> Google_Api_Client
 initialize secret_file =
     credential = secret_file.with_input_stream [File.Option.Read] stream->
