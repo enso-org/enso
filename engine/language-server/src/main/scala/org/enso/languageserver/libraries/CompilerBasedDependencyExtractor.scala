@@ -33,7 +33,11 @@ class CompilerBasedDependencyExtractor(logLevel: LogLevel)
     val sourcesImports = pkg.listSources.toSet.flatMap(findImportedLibraries)
     val itself         = pkg.libraryName
 
-    sourcesImports - itself
+    // Builtins need to be removed from the set of the dependencies, because
+    // even if they are imported, they are not a typical library.
+    val builtins = LibraryName("Standard", "Builtins")
+
+    sourcesImports - itself - builtins
   }
 
   private def createContextWithProject(pkg: Package[File]): PolyglotContext = {
