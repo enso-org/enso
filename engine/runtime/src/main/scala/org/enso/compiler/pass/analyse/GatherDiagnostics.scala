@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
@@ -74,5 +75,14 @@ case object GatherDiagnostics extends IRPass {
 
     override def duplicate(): Option[IRPass.Metadata] =
       Some(this)
+
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): DiagnosticsMeta =
+      this
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[DiagnosticsMeta] = Some(this)
   }
 }

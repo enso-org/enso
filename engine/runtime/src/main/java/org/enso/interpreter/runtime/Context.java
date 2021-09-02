@@ -405,6 +405,11 @@ public class Context {
     return logger;
   }
 
+  /** @return the package repository */
+  public PackageRepository getPackageRepository() {
+    return packageRepository;
+  }
+
   /**
    * Gets a logger for the specified class.
    *

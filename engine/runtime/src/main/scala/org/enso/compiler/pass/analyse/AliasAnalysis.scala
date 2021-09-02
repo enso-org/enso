@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
@@ -641,6 +642,17 @@ case object AliasAnalysis extends IRPass {
       sealed case class Root(override val graph: Graph) extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
 
+        /** @inheritdoc */
+        override def prepareForSerialization(
+          compiler: Compiler
+        ): Root = this
+
+        /** @inheritdoc */
+        override def restoreFromSerialization(
+          compiler: Compiler
+        ): Option[Root] = Some(this)
+
+        /** @inheritdoc */
         override def duplicate(): Option[IRPass.Metadata] = None
       }
 
@@ -653,6 +665,17 @@ case object AliasAnalysis extends IRPass {
           extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
 
+        /** @inheritdoc */
+        override def prepareForSerialization(
+          compiler: Compiler
+        ): Child = this
+
+        /** @inheritdoc */
+        override def restoreFromSerialization(
+          compiler: Compiler
+        ): Option[Child] = Some(this)
+
+        /** @inheritdoc */
         override def duplicate(): Option[IRPass.Metadata] = None
       }
     }
@@ -667,6 +690,17 @@ case object AliasAnalysis extends IRPass {
         extends Info {
       override val metadataName: String = "AliasAnalysis.Info.Occurrence"
 
+      /** @inheritdoc */
+      override def prepareForSerialization(
+        compiler: Compiler
+      ): Occurrence = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Occurrence] = Some(this)
+
+      /** @inheritdoc */
       override def duplicate(): Option[IRPass.Metadata] = None
     }
   }

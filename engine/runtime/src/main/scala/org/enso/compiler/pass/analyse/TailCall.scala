@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
@@ -458,6 +459,14 @@ case object TailCall extends IRPass {
       override def isTail: Boolean      = true
 
       override def duplicate(): Option[IRPass.Metadata] = Some(Tail)
+
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): Tail.type = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Tail.type] = Some(this)
     }
 
     /** The expression is not in a tail position and cannot be tail call
@@ -468,6 +477,15 @@ case object TailCall extends IRPass {
       override def isTail: Boolean      = false
 
       override def duplicate(): Option[IRPass.Metadata] = Some(NotTail)
+
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): NotTail.type =
+        this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[NotTail.type] = Some(this)
     }
 
     /** Implicitly converts a boolean to a [[TailPosition]] value.

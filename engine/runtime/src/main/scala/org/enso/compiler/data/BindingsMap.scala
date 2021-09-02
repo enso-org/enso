@@ -1,5 +1,6 @@
 package org.enso.compiler.data
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.core.IR
@@ -40,6 +41,21 @@ case class BindingsMap(
   /** Symbols exported by [[currentModule]].
     */
   var exportedSymbols: Map[String, List[ResolvedName]] = Map()
+
+  /** @inheritdoc */
+  override def prepareForSerialization(
+    compiler: Compiler
+  ): BindingsMap = {
+    this.toAbstract
+  }
+
+  /** @inheritdoc */
+  override def restoreFromSerialization(
+    compiler: Compiler
+  ): Option[BindingsMap] = {
+    val packageRepository = compiler.context.getPackageRepository
+    this.toConcrete(packageRepository.getModuleMap)
+  }
 
   /** Convert this [[BindingsMap]] instance to use abstract module references.
     *
@@ -715,6 +731,18 @@ object BindingsMap {
     /** The name of the metadata as a string. */
     override val metadataName: String = "Resolution"
 
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): Resolution =
+      this.copy(target = this.target.toAbstract)
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[Resolution] = {
+      val moduleMap = compiler.context.getPackageRepository.getModuleMap
+      this.target.toConcrete(moduleMap).map(t => this.copy(target = t))
+    }
+
     /** Creates a duplicate of this metadata if applicable.
       *
       * This method should employ deep-copy semantics where appropriate. It may
@@ -810,7 +838,8 @@ object BindingsMap {
       /** @inheritdoc */
       override def unsafeAsModule(message: String = ""): Module = {
         val rest = if (message.isEmpty) "." else s": $message"
-        val errMsg = s"Could not get concrete module from abstract module $name$rest"
+        val errMsg =
+          s"Could not get concrete module from abstract module $name$rest"
 
         throw new CompilerError(errMsg)
       }
