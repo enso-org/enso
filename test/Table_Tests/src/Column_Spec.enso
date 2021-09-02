@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Table import all
 
+import Standard.Examples
 import Standard.Table.Data.Column
 import Standard.Test
 
@@ -58,4 +59,8 @@ spec = Test.group "Columns" <|
 
         c_2 = Column.from_vector "c_2" ["foo", "bar", "foo", "baz", "bar"]
         c_2.duplicate_count.to_vector.should_equal [0, 0, 1, 0, 1]
+
+    Test.specify "should allow setting their index" <|
+        col = Examples.decimal_column.set_index Examples.integer_column
+        col.index.to_vector . should_equal Examples.integer_column.to_vector
 

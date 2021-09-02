@@ -690,10 +690,29 @@ type Column
 
        > Example
          Get the index from a column.
+
+             import Standard.Examples
+
+             example_index = Examples.decimal_column.index
     index : Column ! Table.No_Index_Set_Error
     index = case this.java_column.getIndex.toColumn of
         Nothing -> Error.throw Table.No_Index_Set_Error
         i -> Column i
+
+    ## Sets the index of this column, using the provided column.
+
+       Arguments:
+       - index: The column to use as the index to this column.
+
+       > Example
+         Index the decimal column by the integer column.
+
+             import Standard.Examples
+
+             example_set_index =
+                Examples.decimal_column.set_index Examples.integer_column
+    set_index : Column -> Column
+    set_index index = Column (this.java_column.setIndex index.java_column)
 
     ## Returns the value contained in this column at the given index.
 
