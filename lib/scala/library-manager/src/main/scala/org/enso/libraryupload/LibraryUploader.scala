@@ -52,7 +52,6 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
       }
       val uri = buildUploadUri(uploadUrl, pkg.libraryName, version)
 
-      val mainArchiveName = "main.tgz"
       val filesToIgnoreInArchive = Seq(
         Package.configFileName,
         LibraryManifest.filename
@@ -66,16 +65,7 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
       )
       compressing.force()
 
-      val directDependencies = dependencyExtractor.findDependencies(pkg)
-
-      val manifestPath = projectRoot / LibraryManifest.filename
-      val loadedManifest =
-        loadSavedManifest(manifestPath).getOrElse(LibraryManifest.empty)
-      val updatedManifest = loadedManifest.copy(
-        archives     = Seq(mainArchiveName),
-        dependencies = directDependencies.toSeq
-      )
-      FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
+      updateManifest(pkg).get
 
       logger.info(s"Uploading library package to the server at [$uploadUrl].")
       val upload = uploadFiles(
@@ -96,6 +86,25 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
       logger.info(s"Upload complete.")
     }
   }
+
+  /** Updates the project's manifest by computing its dependencies.
+    *
+    * @param pkg package of the project that is to be updated
+    */
+  def updateManifest(pkg: Package[File]): Try[Unit] = Try {
+    val directDependencies = dependencyExtractor.findDependencies(pkg)
+
+    val manifestPath = pkg.root.toPath / LibraryManifest.filename
+    val loadedManifest =
+      loadSavedManifest(manifestPath).getOrElse(LibraryManifest.empty)
+    val updatedManifest = loadedManifest.copy(
+      archives     = Seq(mainArchiveName),
+      dependencies = directDependencies.toSeq
+    )
+    FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
+  }
+
+  private val mainArchiveName = "main.tgz"
 
   /** Creates an URL for the upload, including information identifying the
     * library version.

@@ -49,6 +49,7 @@ object Main {
   private val LOGGER_CONNECT              = "logger-connect"
   private val NO_LOG_MASKING              = "no-log-masking"
   private val UPLOAD_OPTION               = "upload"
+  private val UPDATE_MANIFEST_OPTION      = "update-manifest"
   private val HIDE_PROGRESS               = "hide-progress"
   private val AUTH_TOKEN                  = "auth-token"
 
@@ -224,6 +225,13 @@ object Main {
         "The url defines the repository to upload to."
       )
       .build()
+    val updateManifestOption = CliOption.builder
+      .longOpt(UPDATE_MANIFEST_OPTION)
+      .desc(
+        "Updates the library manifest with the updated list of direct " +
+        "dependencies."
+      )
+      .build()
     val hideProgressOption = CliOption.builder
       .longOpt(HIDE_PROGRESS)
       .desc("If specified, progress bars will not be displayed.")
@@ -262,6 +270,7 @@ object Main {
       .addOption(loggerConnectOption)
       .addOption(noLogMaskingOption)
       .addOption(uploadOption)
+      .addOption(updateManifestOption)
       .addOption(hideProgressOption)
       .addOption(authTokenOption)
 
@@ -753,6 +762,21 @@ object Main {
           // The error itself is already logged.
           exitFail()
       }
+    }
+
+    if (line.hasOption(UPDATE_MANIFEST_OPTION)) {
+      val projectRoot =
+        Option(line.getOptionValue(IN_PROJECT_OPTION))
+          .map(Path.of(_))
+          .getOrElse {
+            logger.error(
+              s"The $IN_PROJECT_OPTION is mandatory."
+            )
+            exitFail()
+          }
+
+      ProjectUploader.updateManifest(projectRoot, logLevel)
+      exitSuccess()
     }
 
     if (line.hasOption(RUN_OPTION)) {

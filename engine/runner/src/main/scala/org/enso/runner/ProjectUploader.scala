@@ -6,6 +6,7 @@ import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.languageserver.libraries.CompilerBasedDependencyExtractor
 import org.enso.libraryupload.{auth, LibraryUploader}
 import org.enso.loggingservice.LogLevel
+import org.enso.pkg.PackageManager
 
 import java.nio.file.Path
 
@@ -22,6 +23,8 @@ object ProjectUploader {
     *                  repository
     * @param showProgress specifies if CLI progress bars should be displayed
     *                     showing progress of compression and upload
+    * @param logLevel the log level to use for the context gathering
+    *                 dependencies
     */
   def uploadProject(
     projectRoot: Path,
@@ -58,5 +61,18 @@ object ProjectUploader {
         progressReporter
       )
       .get
+  }
+
+  /** Updates manifest of the project.
+    *
+    * @param projectRoot path to the root of the project
+    * @param logLevel the log level to use for the context gathering
+    *                 dependencies
+    */
+  def updateManifest(projectRoot: Path, logLevel: LogLevel): Unit = {
+    val pkg = PackageManager.Default.loadPackage(projectRoot.toFile).get
+
+    val dependencyExtractor = new CompilerBasedDependencyExtractor(logLevel)
+    LibraryUploader(dependencyExtractor).updateManifest(pkg).get
   }
 }

@@ -124,7 +124,7 @@ object LauncherApplication {
         "(error | warning | info | debug | trace)",
         "Sets logging verbosity for the engine. Defaults to info."
       )
-      .withDefault(LogLevel.Warning)
+      .withDefault(LogLevel.Info)
   }
 
   private def runCommand: Command[Config => Int] =

@@ -1761,3 +1761,41 @@ buildGraalDistribution := {
     DistributionPackage.Architecture.X64
   )
 }
+
+lazy val updateLibraryManifests =
+  taskKey[Unit](
+    "Recomputes dependencies to update manifests bundled with libraries."
+  )
+updateLibraryManifests := {
+  val _   = (`engine-runner` / assembly).value
+  val log = streams.value.log
+  for (lib <- Editions.standardLibraries) {
+    log.info(s"Updating dependencies of [$lib].")
+    val (namespace, name) = lib.split('.') match {
+      case Array(namespace, name) => (namespace, name)
+      case _ =>
+        throw new IllegalArgumentException(s"Invalid library name [$lib].")
+    }
+    val projectPath =
+      file("distribution/lib/") / namespace / name / stdLibVersion
+    val javaCommand =
+      ProcessHandle.current().info().command().orElseGet(() => "java")
+    val command = Seq(
+      javaCommand,
+      s"-Dtruffle.class.path.append=runtime.jar",
+      "-jar",
+      "runner.jar",
+      "--update-manifest",
+      "--in-project",
+      projectPath.getCanonicalPath
+    )
+
+    log.debug(s"Running [$command].")
+    val exitCode = sys.process.Process(command).!
+    if (exitCode != 0) {
+      val message = s"Command [$command] has failed with code $exitCode."
+      log.error(message)
+      throw new RuntimeException(message)
+    }
+  }
+}
