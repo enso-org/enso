@@ -245,6 +245,7 @@ jobs:
       - name: Prepare Engine Test Environment
         shell: bash
         run: |
+          mkdir -p test/Google_Api_Test/data
           echo "$GDOC_KEY" > test/Google_Api_Test/data/secret.json
           go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
           $(go env GOPATH)/bin/httpbin -host :8080 &
