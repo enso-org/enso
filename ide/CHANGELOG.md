@@ -10,6 +10,14 @@
 
 [1817]: https://github.com/enso-org/ide/pull/1817
 
+#### Enso Compiler
+
+- [Updated Enso engine to version 0.2.28][1829]. If you're interested in the
+  enhancements and fixes made to the Enso compiler, you can find their release
+  notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
+[1829]: https://github.com/enso-org/ide/pull/1829
+
 # Enso 2.0.0-alpha.13 (2021-08-27)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
