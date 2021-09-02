@@ -1,0 +1,4 @@
+
+from Standard.Builtins import IO
+
+print = IO.println "Foo!"

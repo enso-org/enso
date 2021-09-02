@@ -43,6 +43,9 @@ class Compiler(
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
+  private val irCachingEnabled = !context.isIrCachingDisabled
+  private val serializationManager: SerializationManager =
+    new SerializationManager(this)
 
   /** Lazy-initializes the IR for the builtins module.
     */
@@ -118,6 +121,11 @@ class Compiler(
       ) {
         truffleCodegen(module.getIr, module.getSource, module.getScope)
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+
+        val shouldStoreCache = irCachingEnabled && !module.wasLoadedFromCache()
+        if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
+          serializationManager.serialize(module)
+        }
       }
     }
   }
@@ -138,25 +146,25 @@ class Compiler(
     module.ensureScopeExists()
     module.getScope.reset()
 
-    module.getCache.load(context) match {
-      case Some(ModuleCache.CachedModule(ir, stage))
-          if !context.isIrCachingDisabled =>
-        module.unsafeSetIr(ir)
-        module.unsafeSetCompilationStage(stage)
-        throw new CompilerError("Should not happen yet!")
-      case _ =>
-        val moduleContext = ModuleContext(
-          module           = module,
-          freshNameSupply  = Some(freshNameSupply),
-          compilerConfig   = config,
-          isGeneratingDocs = isGenDocs
-        )
-        val parsedAST        = parse(module.getSource)
-        val expr             = generateIR(parsedAST)
-        val discoveredModule = recognizeBindings(expr, moduleContext)
-        module.unsafeSetIr(discoveredModule)
-        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
-    }
+//    module.getCache.load(context) match {
+//      case Some(ModuleCache.CachedModule(ir, stage))
+//          if !context.isIrCachingDisabled =>
+//        module.unsafeSetIr(ir)
+//        module.unsafeSetCompilationStage(stage)
+//        throw new CompilerError("Should not happen yet!")
+//      case _ =>
+    val moduleContext = ModuleContext(
+      module           = module,
+      freshNameSupply  = Some(freshNameSupply),
+      compilerConfig   = config,
+      isGeneratingDocs = isGenDocs
+    )
+    val parsedAST        = parse(module.getSource)
+    val expr             = generateIR(parsedAST)
+    val discoveredModule = recognizeBindings(expr, moduleContext)
+    module.unsafeSetIr(discoveredModule)
+    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+//    }
   }
 
   /** Gets a module definition by name.
@@ -353,16 +361,7 @@ class Compiler(
   ): Unit = {
     if (context.isStrictErrors) {
       val diagnostics = modules.map { module =>
-        val errors = GatherDiagnostics
-          .runModule(
-            module.getIr,
-            ModuleContext(module, compilerConfig = config)
-          )
-          .unsafeGetMetadata(
-            GatherDiagnostics,
-            "No diagnostics metadata right after the gathering pass."
-          )
-          .diagnostics
+        val errors = gatherDiagnostics(module)
         (module, errors)
       }
       if (reportDiagnostics(diagnostics)) {
@@ -370,6 +369,30 @@ class Compiler(
       }
     }
   }
+
+  /** Gathers diagnostics for a single module.
+    *
+    * @param module the module for which to gather diagnostics
+    * @return the diagnostics from the module
+    */
+  def gatherDiagnostics(module: Module): List[IR.Diagnostic] = {
+    GatherDiagnostics
+      .runModule(
+        module.getIr,
+        ModuleContext(module, compilerConfig = config)
+      )
+      .unsafeGetMetadata(
+        GatherDiagnostics,
+        "No diagnostics metadata right after the gathering pass."
+      )
+      .diagnostics
+  }
+
+  private def hasErrors(module: Module): Boolean =
+    gatherDiagnostics(module).exists {
+      case _: IR.Error => true
+      case _           => false
+    }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
     if (context.isStrictErrors) {
@@ -519,5 +542,14 @@ class Compiler(
       inlineContext.localScope.getOrElse(LocalScope.root),
       "<inline_source>"
     )
+  }
+
+  /** Performs shutdown actions for the compiler.
+    *
+    * @param waitForCompletion whether or not shutdown should wait for jobs to
+    *                          complete
+    */
+  def shutdown(waitForCompletion: Boolean): Unit = {
+    serializationManager.shutdown(waitForCompletion)
   }
 }

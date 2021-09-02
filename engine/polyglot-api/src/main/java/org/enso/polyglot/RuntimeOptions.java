@@ -62,7 +62,13 @@ public class RuntimeOptions {
 
   public static final String DISABLE_IR_CACHES = optionName("disableIrCaches");
   public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(false);
-  private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR = OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
+  private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR =
+      OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
+
+  public static final String WAIT_FOR_SHUTDOWN = optionName("waitForShutdown");
+  public static final OptionKey<Boolean> WAIT_FOR_SHUTDOWN_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor WAIT_FOR_SHUTDOWN_DESCRIPTOR =
+      OptionDescriptor.newBuilder(WAIT_FOR_SHUTDOWN_KEY, WAIT_FOR_SHUTDOWN).build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
@@ -76,7 +82,8 @@ public class RuntimeOptions {
               INTERACTIVE_MODE_DESCRIPTOR,
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
-              DISABLE_IR_CACHES_DESCRIPTOR));
+              DISABLE_IR_CACHES_DESCRIPTOR,
+              WAIT_FOR_SHUTDOWN_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

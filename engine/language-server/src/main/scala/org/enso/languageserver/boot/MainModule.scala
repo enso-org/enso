@@ -239,6 +239,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+    .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
     .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
     .option(
       RuntimeOptions.LOG_LEVEL,

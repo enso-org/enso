@@ -116,6 +116,16 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
+   * Finalize the context.
+   *
+   * @param context the language context
+   */
+  @Override
+  protected void finalizeContext(Context context) {
+    context.shutdown();
+  }
+
+  /**
    * Checks if this Enso execution environment is accessible in a multithreaded context.
    *
    * @param thread the thread to check access for

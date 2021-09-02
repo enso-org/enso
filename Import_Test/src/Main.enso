@@ -1,0 +1,6 @@
+
+from Standard.Base import all
+
+import project.Foo.Foo
+
+main = Foo.print

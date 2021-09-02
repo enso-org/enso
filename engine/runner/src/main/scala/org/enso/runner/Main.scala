@@ -380,6 +380,7 @@ object Main {
       val main = pkg.map(_.mainFile)
       if (!main.exists(_.exists())) {
         println("Main file does not exist.")
+        context.context.close()
         exitFail()
       }
       val mainFile       = main.get
@@ -388,6 +389,7 @@ object Main {
     } else {
       runSingleFile(context, file)
     }
+    context.context.close()
     exitSuccess()
   }
 

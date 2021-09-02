@@ -258,7 +258,7 @@ spec =
             result . should_equal "aaaaaa"
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
+            "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
 
         Test.specify "should be possible in ascii mode" <|
             result = "İiİ".replace "\w" "a" match_ascii=True
