@@ -5,6 +5,11 @@
   does not seem to freeze the compiler
   ([#1972](https://github.com/enso-org/enso/pull/1972)).
 
+## Libraries
+
+- Added support for Amazon Redshift in the database library
+  ([#1985](https://github.com/enso-org/enso/pull/1985)).
+
 # Enso 0.2.27 (2021-08-23)
 
 ## Libraries

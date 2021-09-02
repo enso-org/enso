@@ -20,7 +20,8 @@ public class JDBCProxy {
    *
    * @return an array of JDBC drivers that are currently registered
    */
-  public static Object[] getDrivers() {
+  public static Object[] getDrivers() throws SQLException {
+    initialize();
     return DriverManager.drivers().toArray();
   }
 
@@ -42,6 +43,9 @@ public class JDBCProxy {
   private static void initialize() throws SQLException {
     if (!org.postgresql.Driver.isRegistered()) {
       org.postgresql.Driver.register();
+    }
+    if (!com.amazon.redshift.jdbc.Driver.isRegistered()) {
+      com.amazon.redshift.jdbc.Driver.register();
     }
   }
 }
