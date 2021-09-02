@@ -83,6 +83,17 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Verify
+      - name: Test Update Manifests
+        run: |
+          sleep 1
+          sbt --no-colors updateLibraryManifests
+
+      - name: Print A manifest for debug
+        run: |
+          sleep 1
+          cat distribution/lib/Standard/Base/0.2.28-SNAPSHOT/manifest.yaml
+
+      # Verify
       - name: Verify Packages
         run: |
           sleep 1
