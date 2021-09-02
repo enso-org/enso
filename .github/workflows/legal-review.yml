@@ -83,6 +83,10 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Verify
+      - name: Precompile
+        run: |
+          sleep 1
+          sbt --no-colors engine-runner/assembly
       - name: Test Update Manifests
         run: |
           sleep 1
