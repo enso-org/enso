@@ -1,0 +1,59 @@
+from Standard.Base import all
+import Standard.Base.System.Environment
+
+from Standard.Database import all
+from Standard.Database.Connection.Connection import Sql_Error
+import Standard.Test
+import project.Common_Spec
+
+redshift_specific_spec connection pending =
+    Test.group "[Redshift] Info" pending=pending <|
+        connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+        t = connection.access_table "Tinfo"
+        t.insert ["a", Nothing, False, 1.2]
+        t.insert ["abc", Nothing, Nothing, 1.3]
+        t.insert ["def", 42, True, 1.4]
+        Test.specify "should return Table information" <|
+            i = t.info
+            i.index . to_vector . should_equal ["strs", "ints", "bools", "reals"]
+            i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
+            i.at "SQL Type" . to_vector . should_equal ["varchar", "int4", "bool", "float4"]
+        Test.specify "should infer standard types correctly" <|
+            t.at "strs" . sql_type . is_definitely_text . should_be_true
+            t.at "ints" . sql_type . is_definitely_integer . should_be_true
+            t.at "bools" . sql_type . is_definitely_boolean . should_be_true
+            t.at "reals" . sql_type . is_definitely_double . should_be_true
+        connection.execute_update 'DROP TABLE "Tinfo"'
+    Test.group "[Redshift] Materialization" pending=pending <|
+        Test.specify "should return DECIMAL columns as BigDecimal" <|
+            connection.execute_update 'CREATE TABLE "TBigDecimal" ("decimals" DECIMAL(10, 2))'
+            t = connection.access_table "TBigDecimal"
+            t.insert [1.0]
+            t.insert [0.25]
+            v = t.at "decimals" . to_vector
+            element = v.at 0
+            element.getClass.getSimpleName . should_equal "BigDecimal"
+            fp = t.at "decimals" . to_dataframe . map .doubleValue
+            fp . to_vector . should_equal [1.0, 0.25]
+        connection.execute_update 'DROP TABLE "TBigDecimal"'
+spec =
+    credentials = Enso_Project.data / 'redshift_credentials.json'
+    case credentials.exists of
+        True ->
+            creds = Json.parse credentials.read . unwrap
+            access_key = ['AccessKeyID', creds.get 'access_key_id']
+            secret_key = ['SecretAccessKey', creds.get 'secret_access_key']
+            uri = creds.get 'db_uri'
+            user = creds.get 'db_user'
+            props = [access_key, secret_key]
+            connection = Database.connect uri user=user custom_properties=props
+            Common_Spec.spec "[Redshift] " connection Nothing
+            here.redshift_specific_spec connection Nothing
+        False ->
+            msg = """
+                Redshift connection is not set up. Please create a JSON file containing
+                the credentials in `data/redshift_credentials.json`
+            connection = Error.throw msg
+            Common_Spec.spec "[Redshift] " connection msg
+            here.redshift_specific_spec connection msg
+

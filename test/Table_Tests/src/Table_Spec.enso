@@ -496,6 +496,7 @@ spec =
 
     Test.group "Index" <|
         t = Table.new [['ix', [1, 2, 3]], ['c1', [4, 5, 6]]] . set_index 'ix'
+        c = Column.from_vector "name" ["a", "b", "c"]
         Test.specify "should be accessible by `at` like other columns" <|
             c = t.at 'ix'
             i = t.index
@@ -503,6 +504,10 @@ spec =
 
         Test.specify "should be accessible by `select` like other columns" <|
             t.select ['ix'] . columns . first . to_vector . should_equal t.index.to_vector
+
+        Test.specify "should be able to be set by column" <|
+            with_index = t.set_index c
+            with_index.index.to_vector . should_equal c.to_vector
 
     Test.group "Slicing Tables" <|
         Test.specify 'should allow taking first n rows' <|

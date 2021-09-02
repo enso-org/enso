@@ -9,6 +9,7 @@ import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
+import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -131,6 +132,18 @@ public class Column {
    */
   public Column withIndex(Index ix) {
     return new Column(name, ix, storage);
+  }
+
+  /**
+   * Sets the index of this column to the provided column.
+   *
+   * @param col the column to use as the index.
+   * @return a column indexed by {@code col}
+   */
+  public Column setIndex(Column col) {
+    Storage storage = col.getStorage();
+    Index ix = HashIndex.fromStorage(col.getName(), storage);
+    return this.withIndex(ix);
   }
 
   /** @return the index of this column */

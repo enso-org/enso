@@ -3,6 +3,7 @@ package org.enso.compiler.phase
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
+  ModuleReference,
   ResolvedConstructor,
   ResolvedMethod,
   ResolvedModule,
@@ -53,7 +54,7 @@ class ExportsResolution {
       val node    = nodes(module)
       node.exports = exports.map {
         case ExportedModule(mod, rename, restriction) =>
-          Edge(node, restriction, rename, nodes(mod))
+          Edge(node, restriction, rename, nodes(mod.unsafeAsModule()))
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
@@ -122,12 +123,16 @@ class ExportsResolution {
     nodes.foreach { node =>
       val explicitlyExported =
         node.exports.map(edge =>
-          ExportedModule(edge.exportee.module, edge.exportsAs, edge.symbols)
+          ExportedModule(
+            ModuleReference.Concrete(edge.exportee.module),
+            edge.exportsAs,
+            edge.symbols
+          )
         )
       val transitivelyExported: List[ExportedModule] =
         explicitlyExported.flatMap {
           case ExportedModule(module, _, restriction) =>
-            exports(module).map {
+            exports(module.unsafeAsModule()).map {
               case ExportedModule(export, _, parentRestriction) =>
                 ExportedModule(
                   export,
@@ -160,27 +165,36 @@ class ExportsResolution {
   private def resolveExportedSymbols(modules: List[Module]): Unit = {
     modules.foreach { module =>
       val bindings = getBindings(module)
-      val ownMethods = bindings.moduleMethods.map(method =>
-        (method.name.toLowerCase, List(ResolvedMethod(module, method)))
-      )
-      val ownConstructors = bindings.types.map(tp =>
-        (tp.name.toLowerCase, List(ResolvedConstructor(module, tp)))
-      )
-      val ownPolyglotBindings = bindings.polyglotSymbols.map(poly =>
-        (poly.name.toLowerCase, List(ResolvedPolyglotSymbol(module, poly)))
-      )
+      val ownMethods = bindings.moduleMethods.map { method =>
+        val name = method.name.toLowerCase
+        val syms =
+          List(ResolvedMethod(ModuleReference.Concrete(module), method))
+        (name, syms)
+      }
+      val ownConstructors = bindings.types.map { tp =>
+        val name = tp.name.toLowerCase
+        val types =
+          List(ResolvedConstructor(ModuleReference.Concrete(module), tp))
+        (name, types)
+      }
+      val ownPolyglotBindings = bindings.polyglotSymbols.map { poly =>
+        val name = poly.name.toLowerCase
+        val syms =
+          List(ResolvedPolyglotSymbol(ModuleReference.Concrete(module), poly))
+        (name, syms)
+      }
       val exportedModules = bindings.resolvedExports.collect {
         case ExportedModule(mod, Some(name), _) =>
           (name.toLowerCase, List(ResolvedModule(mod)))
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
-        getBindings(export.module).exportedSymbols.toList.flatMap {
-          case (sym, resolutions) =>
+        getBindings(export.module.unsafeAsModule()).exportedSymbols.toList
+          .flatMap { case (sym, resolutions) =>
             val allowedResolutions =
               resolutions.filter(res => export.symbols.canAccess(sym, res))
             if (allowedResolutions.isEmpty) None
             else Some((sym, allowedResolutions))
-        }
+          }
       }
       bindings.exportedSymbols = List(
         ownMethods,

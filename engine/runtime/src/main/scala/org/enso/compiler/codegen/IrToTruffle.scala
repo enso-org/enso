@@ -150,7 +150,9 @@ class IrToTruffle(
         "No binding analysis at the point of codegen."
       )
       .resolvedExports
-      .foreach { exp => moduleScope.addExport(exp.module.getScope) }
+      .foreach { exp =>
+        moduleScope.addExport(exp.module.unsafeAsModule().getScope)
+      }
     val imports = module.imports
     val atomDefs = module.bindings.collect {
       case atom: IR.Module.Scope.Definition.Atom => atom
@@ -230,9 +232,13 @@ class IrToTruffle(
           .map { res =>
             res.target match {
               case BindingsMap.ResolvedModule(module) =>
-                module.getScope.getAssociatedType
+                module.unsafeAsModule().getScope.getAssociatedType
               case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                definitionModule.getScope.getConstructors.get(cons.name)
+                definitionModule
+                  .unsafeAsModule()
+                  .getScope
+                  .getConstructors
+                  .get(cons.name)
               case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
                 throw new CompilerError(
                   "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
@@ -379,11 +385,14 @@ class IrToTruffle(
     )
     bindingsMap.exportedSymbols.foreach {
       case (name, List(resolution)) =>
-        if (resolution.module != moduleScope.getModule) {
+        if (resolution.module.unsafeAsModule() != moduleScope.getModule) {
           resolution match {
             case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-              val runtimeCons =
-                definitionModule.getScope.getConstructors.get(cons.name)
+              val runtimeCons = definitionModule
+                .unsafeAsModule()
+                .getScope
+                .getConstructors
+                .get(cons.name)
               val fun = mkConsGetter(runtimeCons)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
@@ -392,7 +401,7 @@ class IrToTruffle(
               )
             case BindingsMap.ResolvedModule(module) =>
               val runtimeCons =
-                module.getScope.getAssociatedType
+                module.unsafeAsModule().getScope.getAssociatedType
               val fun = mkConsGetter(runtimeCons)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
@@ -400,8 +409,9 @@ class IrToTruffle(
                 fun
               )
             case BindingsMap.ResolvedMethod(module, method) =>
-              val fun = module.getScope.getMethods
-                .get(module.getScope.getAssociatedType)
+              val actualModule = module.unsafeAsModule()
+              val fun = actualModule.getScope.getMethods
+                .get(actualModule.getScope.getAssociatedType)
                 .get(method.name)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
@@ -667,13 +677,15 @@ class IrToTruffle(
                 case Some(
                       BindingsMap.Resolution(BindingsMap.ResolvedModule(mod))
                     ) =>
-                  Right(mod.getScope.getAssociatedType)
+                  Right(mod.unsafeAsModule().getScope.getAssociatedType)
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedConstructor(mod, cons)
                       )
                     ) =>
-                  Right(mod.getScope.getConstructors.get(cons.name))
+                  Right(
+                    mod.unsafeAsModule().getScope.getConstructors.get(cons.name)
+                  )
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedPolyglotSymbol(_, _)
@@ -867,13 +879,23 @@ class IrToTruffle(
             resolution match {
               case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
                 ConstructorNode.build(
-                  definitionModule.getScope.getConstructors.get(cons.name)
+                  definitionModule
+                    .unsafeAsModule()
+                    .getScope
+                    .getConstructors
+                    .get(cons.name)
                 )
               case BindingsMap.ResolvedModule(module) =>
-                ConstructorNode.build(module.getScope.getAssociatedType)
+                ConstructorNode.build(
+                  module.unsafeAsModule().getScope.getAssociatedType
+                )
               case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
                 ConstantObjectNode.build(
-                  module.getScope.getPolyglotSymbols.get(symbol.name)
+                  module
+                    .unsafeAsModule()
+                    .getScope
+                    .getPolyglotSymbols
+                    .get(symbol.name)
                 )
               case BindingsMap.ResolvedMethod(_, _) =>
                 throw new CompilerError(
