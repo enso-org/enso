@@ -18,6 +18,8 @@
 
 - Added support for Amazon Redshift in the database library
   ([#1985](https://github.com/enso-org/enso/pull/1985)).
+- Added support for fetching tables from Google Spreadsheets.
+  ([#1976](https://github.com/enso-org/enso/pull/1976)).
 
 # Enso 0.2.27 (2021-08-23)
 
