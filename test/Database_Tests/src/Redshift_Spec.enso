@@ -24,18 +24,7 @@ redshift_specific_spec connection pending =
             t.at "bools" . sql_type . is_definitely_boolean . should_be_true
             t.at "reals" . sql_type . is_definitely_double . should_be_true
         connection.execute_update 'DROP TABLE "Tinfo"'
-    Test.group "[Redshift] Materialization" pending=pending <|
-        Test.specify "should return DECIMAL columns as BigDecimal" <|
-            connection.execute_update 'CREATE TABLE "TBigDecimal" ("decimals" DECIMAL(10, 2))'
-            t = connection.access_table "TBigDecimal"
-            t.insert [1.0]
-            t.insert [0.25]
-            v = t.at "decimals" . to_vector
-            element = v.at 0
-            element.getClass.getSimpleName . should_equal "BigDecimal"
-            fp = t.at "decimals" . to_dataframe . map .doubleValue
-            fp . to_vector . should_equal [1.0, 0.25]
-        connection.execute_update 'DROP TABLE "TBigDecimal"'
+
 spec =
     credentials = Enso_Project.data / 'redshift_credentials.json'
     case credentials.exists of

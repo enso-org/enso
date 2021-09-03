@@ -126,4 +126,5 @@ distribution/lib/Standard/Database/*/polyglot/
 distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
 
+test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json
