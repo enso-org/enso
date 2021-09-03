@@ -14,6 +14,14 @@
 - Added support for certain statistical functions of table columns
   ([#1990](https://github.com/enso-org/enso/pull/1990)).
 
+## Tooling
+
+- Add `enso install dependencies` command to the launcher which installs any
+  project dependencies, ensuring that `enso run` will not need to download any
+  libraries ([#1981](https://github.com/enso-org/enso/pull/1981)). Additionally,
+  enable the `library/preinstall` endpoint to also install any transitive
+  dependencies of the library.
+
 # Enso 0.2.28 (2021-09-02)
 
 ## Libraries

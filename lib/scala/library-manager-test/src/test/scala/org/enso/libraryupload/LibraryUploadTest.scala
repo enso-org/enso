@@ -8,8 +8,7 @@ import org.enso.librarymanager.published.repository.{
   EmptyRepository
 }
 import org.enso.libraryupload.auth.SimpleHeaderToken
-import org.enso.pkg
-import org.enso.pkg.PackageManager
+import org.enso.pkg.{Package, PackageManager}
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -43,9 +42,8 @@ class LibraryUploadTest
         val uploadUrl = s"http://localhost:$port/upload"
         val token     = SimpleHeaderToken("TODO")
         val dependencyExtractor = new DependencyExtractor[File] {
-          override def findDependencies(
-            pkg: pkg.Package[File]
-          ): Set[LibraryName] = Set(LibraryName("Standard", "Base"))
+          override def findDependencies(pkg: Package[File]): Set[LibraryName] =
+            Set(LibraryName("Standard", "Base"))
         }
         import scala.concurrent.ExecutionContext.Implicits.global
         LibraryUploader(dependencyExtractor)
