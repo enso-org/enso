@@ -1,5 +1,10 @@
 # Enso Next
 
+## Libraries
+
+- Added support for fetching tables from Google Spreadsheets.
+  ([#1976](https://github.com/enso-org/enso/pull/1976)).
+
 # Enso 0.2.28 (2021-09-02)
 
 ## Libraries
