@@ -1,3 +1,4 @@
+import LibraryManifestGenerator.BundledLibrary
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
@@ -1026,6 +1027,9 @@ lazy val `language-server` = (project in file("engine/language-server"))
         s"-Duser.dir=${file(".").getCanonicalPath}"
       )
     },
+    Test / compile := (Test / compile)
+      .dependsOn(LocalProject("enso") / updateLibraryManifests)
+      .value,
     Test / envVars ++= Map(
       "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
     )
@@ -1701,7 +1705,8 @@ projectManagerDistributionRoot :=
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
-  val _            = (`engine-runner` / assembly).value
+  val _ = (`engine-runner` / assembly).value
+  updateLibraryManifests.value
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
@@ -1767,41 +1772,17 @@ lazy val updateLibraryManifests =
     "Recomputes dependencies to update manifests bundled with libraries."
   )
 updateLibraryManifests := {
-  val _   = (`engine-runner` / assembly).value
-  val log = streams.value.log
-  for (lib <- Editions.standardLibraries) {
-    log.info(s"Updating dependencies of [$lib].")
-    val (namespace, name) = lib.split('.') match {
-      case Array(namespace, name) => (namespace, name)
-      case _ =>
-        throw new IllegalArgumentException(s"Invalid library name [$lib].")
-    }
-    val projectPath =
-      file("distribution/lib/") / namespace / name / stdLibVersion
-    val javaCommand =
-      ProcessHandle.current().info().command().orElseGet(() => "java")
-    val command = Seq(
-      javaCommand,
-      s"-Dtruffle.class.path.append=runtime.jar",
-      "-jar",
-      "runner.jar",
-      "--update-manifest",
-      "--in-project",
-      projectPath.getCanonicalPath
-    )
+  val _            = (`engine-runner` / assembly).value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  val libraries = Editions.standardLibraries.map(libName =>
+    BundledLibrary(libName, stdLibVersion)
+  )
 
-    log.debug(s"Running [$command].")
-    val exitCode = sys.process
-      .Process(
-        command,
-        None,
-        "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
-      )
-      .!
-    if (exitCode != 0) {
-      val message = s"Command [$command] has failed with code $exitCode."
-      log.error(message)
-      throw new RuntimeException(message)
-    }
-  }
+  LibraryManifestGenerator.generateManifests(
+    libraries,
+    file("distribution"),
+    log,
+    cacheFactory
+  )
 }
