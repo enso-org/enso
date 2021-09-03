@@ -127,6 +127,7 @@ object DefaultLibraryProvider {
     )
   }
 
+  /** Creates a pair of local and published library providers. */
   def makeProviders(
     distributionManager: DistributionManager,
     resourceManager: ResourceManager,

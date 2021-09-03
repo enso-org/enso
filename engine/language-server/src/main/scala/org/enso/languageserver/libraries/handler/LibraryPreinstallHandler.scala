@@ -87,6 +87,12 @@ class LibraryPreinstallHandler(
       context.become(responseStage(id, replyTo, libraryName))
   }
 
+  /** Returns a future that will be completed once all dependencies of the
+    * library have been installed.
+    *
+    * @param libraryName name of the library to install
+    * @param notificationForwarder a notification handler for reporting progress
+    */
   private def installLibraryWithDependencies(
     libraryName: LibraryName,
     notificationForwarder: ProgressAndLockNotificationForwarder
@@ -99,8 +105,7 @@ class LibraryPreinstallHandler(
         .toEither
         .left
         .map(DependencyGatheringError)
-      dependenciesToInstall = dependencies
-        .filter(!_.isCached)
+      dependenciesToInstall = dependencies.filter(!_.isCached)
       _ <- installDependencies(
         dependenciesToInstall,
         notificationForwarder,
@@ -114,6 +119,7 @@ class LibraryPreinstallHandler(
     InstallationResult(result)
   }
 
+  /** Installs the provided dependencies and reports the overall progress. */
   private def installDependencies(
     dependencies: Set[Dependency],
     notificationForwarder: ProgressAndLockNotificationForwarder,
@@ -191,6 +197,9 @@ class LibraryPreinstallHandler(
     dependencyResolver: DependencyResolver
   )
 
+  /** A helper function that creates instances if the library installer and
+    * dependency resolver that report to the provided notification forwarder.
+    */
   private def instantiateTools(
     notificationReporter: ProgressReporter with LockUserInterface
   ): Try[Tools] =

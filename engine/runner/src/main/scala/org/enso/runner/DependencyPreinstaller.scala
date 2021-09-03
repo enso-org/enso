@@ -21,7 +21,13 @@ import org.enso.pkg.PackageManager
 
 import java.io.File
 
+/** A helper to preinstall all dependencies of a project. */
 object DependencyPreinstaller {
+
+  /** Parses the project to find out its direct dependencies, uses the resolver
+    * to find all transitive dependencies and ensures that all of them are
+    * installed.
+    */
   def preinstallDependencies(projectRoot: File, logLevel: LogLevel): Unit = {
     val logger = Logger[DependencyPreinstaller.type]
     val pkg    = PackageManager.Default.loadPackage(projectRoot).get

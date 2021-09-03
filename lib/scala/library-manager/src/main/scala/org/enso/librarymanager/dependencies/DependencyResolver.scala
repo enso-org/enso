@@ -14,6 +14,9 @@ import java.io.File
 import java.nio.file.Files
 import scala.util.Try
 
+/** A helper class that allows to find all transitive dependencies of a specific
+  * library.
+  */
 class DependencyResolver(
   localLibraryProvider: LocalLibraryProvider,
   publishedLibraryProvider: PublishedLibraryCache,

@@ -47,6 +47,9 @@ class CompilerBasedDependencyExtractor(logLevel: LogLevel)
     sourcesImports - itself - builtins
   }
 
+  /** Creates a simple runtime context with the given package loaded as its
+    * project root.
+    */
   private def createContextWithProject(pkg: Package[File]): PolyglotContext = {
     val context = Context
       .newBuilder()
