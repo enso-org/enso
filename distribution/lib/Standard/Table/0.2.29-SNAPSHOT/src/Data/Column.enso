@@ -920,6 +920,41 @@ type Column
             (Vector.Vector v).reduce (+) / v.length
         this.java_column.aggregate 'mean' vec_mean True
 
+    ## Computes the variance of the sample represented by this column.
+
+       Arguments:
+       - degrees_of_freedom_correction: a correction to account for the
+         missing degrees of freedom in the sample. The default value of `1`
+         computes a sample variance. Setting it to `0` will compute population
+         variance instead.
+    variance degrees_of_freedom_correction=1 =
+        mean = this.mean
+        shifted = this - mean
+        sq = shifted * shifted
+        sq.sum / (this.length - degrees_of_freedom_correction)
+
+    ## Computes the standard deviation of the sample represented by this column.
+
+       Arguments:
+       - degrees_of_freedom_correction: a correction to account for the
+         missing degrees of freedom in the sample. The default value of `1`
+         computes a sample standard deviation. Setting it to `0` will compute
+         population standard deviation instead.
+    standard_deviation degrees_of_freedom_correction=1 =
+        this.variance degrees_of_freedom_correction . sqrt
+
+    ## Computes the coefficient of determination of a given prediction column.
+
+       Arguments:
+       - predictions: the column predicting the values of this column.
+    r_squared predictions =
+        prediction_diff = this - predictions
+        ss_res = prediction_diff*prediction_diff . sum
+        ss_tot_lin = this - this.mean
+        ss_tot = ss_tot_lin*ss_tot_lin . sum
+        1 - ss_res / ss_tot
+
+
     ## UNSTABLE
 
        Sorts the column according to the specified rules.
