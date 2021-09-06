@@ -196,14 +196,10 @@ impl Fixture {
             assert_eq!(*segment,expected.into());
         });
 
-        let tricky_raw = r#""\\\"\n""#;
+        let tricky_raw = r#""\\\'\n""#;
         self.test_shape(tricky_raw,|shape:&TextLineRaw| {
-            let segments: (_,_,_) = (&shape.text).expect_tuple();
-            assert_eq!(*segments.0,Slash {}.into());
-            assert_eq!(*segments.1,RawQuote {}.into());
-            assert_eq!(*segments.2,Invalid {str: 'n'}.into());
-            // Quote (fmt one) cannot be escaped in raw string. So no test for
-            // it, even though it belongs to the same enum.
+            let segments: (_,) = (&shape.text).expect_tuple();
+            assert_eq!(*segments.0,SegmentPlain {value: r"\\\'\n".to_string()}.into());
         });
     }
 
@@ -314,7 +310,7 @@ impl Fixture {
             let line:&TextLineRaw = line.try_into().unwrap();
 
             let (segment,) = (&line.text).expect_tuple();
-            let expected   = Unfinished {};
+            let expected   = SegmentPlain {value : r"\".into()};
             assert_eq!(*segment,expected.into());
         });
     }
