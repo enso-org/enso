@@ -4,6 +4,8 @@
 
 - Added support for fetching tables from Google Spreadsheets.
   ([#1976](https://github.com/enso-org/enso/pull/1976)).
+- Added support for certain statistical functions of table columns
+  ([#1990](https://github.com/enso-org/enso/pull/1990)).
 
 # Enso 0.2.28 (2021-09-02)
 
