@@ -46,17 +46,25 @@ class AutomaticParallelismTest extends CompilerTest {
 
     @unused val code =
       """
-        |fn f g =
-        |    x = File.read "foo"
-        |    y = File.read "bar"
-        |    a = x.length
-        |    b = y.length
+        |foo : Integer -> Integer in Pure
+        |foo x = x + 1
         |
-        |    @Auto_Parallel a.n b
+        |@Parallelize
+        |bar : Int -> String in IO
+        |bar x = "abc"
+        |
+        |
+        |fn f g =
+        |    Maybe.frobnicate f g
+        |    x = Test_Module.foo f
+        |    y = here.foo g
+        |    z = here.bar x
+        |    w = here.bar y
+        |    Table.defrobnicate [z, w]
         |""".stripMargin.preprocessModule.analyse
 
     "determine the separated flows" in {
-      pending
+      println(code.showCode())
     }
 
     "inline the flows" in {

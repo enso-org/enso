@@ -867,6 +867,19 @@ class AstToIrTest extends CompilerTest with Inside {
       asc.typed shouldBe an[IR.Name.MethodReference]
     }
 
+    "work for complex module-method signatures" in {
+      val ir =
+        """
+          |foo : Table.Table -> Vector Text -> (Any -> Boolean) -> Integer in IO
+          |foo a b c = a
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Type.Ascription]
+      println(ir.pretty)
+      val asc = ir.asInstanceOf[IR.Type.Ascription]
+      asc.typed shouldBe an[IR.Name.MethodReference]
+    }
+
     "work with sugared syntax" in {
       val ir =
         """

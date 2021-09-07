@@ -46,9 +46,10 @@ public class Module implements TruffleObject {
     INITIAL(0),
     AFTER_PARSING(1),
     AFTER_IMPORT_RESOLUTION(2),
-    AFTER_STATIC_PASSES(3),
-    AFTER_RUNTIME_STUBS(4),
-    AFTER_CODEGEN(5);
+    AFTER_GLOBAL_TYPES(3),
+    AFTER_STATIC_PASSES(4),
+    AFTER_RUNTIME_STUBS(5),
+    AFTER_CODEGEN(6);
 
     private final int ordinal;
 

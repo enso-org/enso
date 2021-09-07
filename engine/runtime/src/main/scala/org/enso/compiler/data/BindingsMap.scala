@@ -7,6 +7,7 @@ import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 
@@ -808,6 +809,17 @@ object BindingsMap {
       moduleMap: ModuleMap
     ): Option[ResolvedMethod] = {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
+    }
+
+    def getIr: IR.Module.Scope.Definition = {
+      val moduleIr = module.unsafeAsModule().getIr
+      moduleIr.bindings.find {
+        case method: IR.Module.Scope.Definition.Method.Explicit =>
+          method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
+            .getMetadata(MethodDefinitions)
+            .contains(Resolution(ResolvedModule(module)))
+        case _ => false
+      }.get
     }
   }
 

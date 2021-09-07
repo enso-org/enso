@@ -51,8 +51,13 @@ object BuiltinsIrBuilder {
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
 
     new ExportsResolution().run(List(module))
-    val irAfterCompilation = passManager.runPassesOnModule(
+    val irAfterTypes = passManager.runPassesOnModule(
       irAfterModDiscovery,
+      moduleContext,
+      passes.globalTypingPasses
+    )
+    val irAfterCompilation = passManager.runPassesOnModule(
+      irAfterTypes,
       moduleContext,
       passes.functionBodyPasses
     )

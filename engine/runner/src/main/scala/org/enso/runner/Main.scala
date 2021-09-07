@@ -53,6 +53,7 @@ object Main {
   private val UPLOAD_OPTION               = "upload"
   private val HIDE_PROGRESS               = "hide-progress"
   private val AUTH_TOKEN                  = "auth-token"
+  private val AUTO_PARALLELISM_OPTION     = "with-auto-parallelism"
 
   private lazy val logger = Logger[Main.type]
 
@@ -265,6 +266,11 @@ object Main {
     cacheOptionsGroup.addOption(irCachesOption)
     cacheOptionsGroup.addOption(noIrCachesOption)
 
+    val autoParallelism = CliOption.builder
+      .longOpt(AUTO_PARALLELISM_OPTION)
+      .desc("Enables auto parallelism in the Enso interpreter.")
+      .build
+
     val options = new Options
     options
       .addOption(help)
@@ -294,6 +300,7 @@ object Main {
       .addOption(authTokenOption)
       .addOption(noReadIrCachesOption)
       .addOptionGroup(cacheOptionsGroup)
+      .addOption(autoParallelism)
 
     options
   }
@@ -389,7 +396,8 @@ object Main {
     logLevel: LogLevel,
     logMasking: Boolean,
     enableIrCaches: Boolean,
-    readIrCaches: Boolean
+    readIrCaches: Boolean,
+    enableAutoParallelism: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -420,7 +428,8 @@ object Main {
       logMasking,
       enableIrCaches,
       readIrCaches,
-      strictErrors = true
+      strictErrors = true,
+      enableAutoParallelism = enableAutoParallelism
     )
     if (projectMode) {
       val pkg  = PackageManager.Default.fromDirectory(file)
@@ -806,7 +815,8 @@ object Main {
         logLevel,
         logMasking,
         shouldEnableIrCaches(line),
-        shouldReadIrCaches(line)
+        shouldReadIrCaches(line),
+        line.hasOption(AUTO_PARALLELISM_OPTION),
       )
     }
     if (line.hasOption(REPL_OPTION)) {

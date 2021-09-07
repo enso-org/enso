@@ -38,7 +38,8 @@ class ContextFactory {
     logMasking: Boolean,
     enableIrCaches: Boolean,
     enableIrCacheReading: Boolean,
-    strictErrors: Boolean = false
+    strictErrors: Boolean          = false,
+    enableAutoParallelism: Boolean = false
   ): PolyglotContext = {
     val context = Context
       .newBuilder()
@@ -54,6 +55,10 @@ class ContextFactory {
       )
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
+      .option(
+        RuntimeOptions.ENABLE_AUTO_PARALLELISM,
+        enableAutoParallelism.toString
+      )
       .option("js.foreign-object-prototype", "true")
       .out(out)
       .in(in)
