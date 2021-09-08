@@ -9,7 +9,6 @@ import org.bouncycastle.jcajce.provider.digest.SHA3
 import org.bouncycastle.util.encoders.Hex
 import org.enso.compiler.ModuleCache.ToMaskedPath
 import org.enso.compiler.core.IR
-import org.enso.compiler.exception.CompilerError
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.logger.masking.MaskedPath
 
@@ -43,22 +42,23 @@ class ModuleCache(private val module: Module) {
     context: Context
   ): Option[TruffleFile] = this.synchronized {
     implicit val logger: TruffleLogger = context.getLogger(this.getClass)
-    val roots                          = getIrCacheRoots(context)
+    getIrCacheRoots(context) match {
+      case Some(roots) =>
+        if (saveCacheTo(roots.globalCacheRoot, module)) {
+          return Some(roots.globalCacheRoot)
+        }
 
-    if (saveCacheTo(roots.globalCacheRoot, module)) {
-      return Some(roots.globalCacheRoot)
+        if (saveCacheTo(roots.localCacheRoot, module)) {
+          return Some(roots.localCacheRoot)
+        }
+
+        logger.log(
+          ModuleCache.logLevel,
+          s"Unable to write cache data for module [${this.module.getName.toString}]."
+        )
+        None
+      case None => None
     }
-
-    if (saveCacheTo(roots.localCacheRoot, module)) {
-      return Some(roots.localCacheRoot)
-    }
-
-    logger.log(
-      ModuleCache.logLevel,
-      s"Unable to write cache data for module [${this.module.getName.toString}]."
-    )
-
-    None
   }
 
   /** Loads the cache for this module where possible.
@@ -71,40 +71,42 @@ class ModuleCache(private val module: Module) {
   def load(context: Context): Option[ModuleCache.CachedModule] =
     this.synchronized {
       implicit val logger: TruffleLogger = context.getLogger(this.getClass)
-      val roots                          = getIrCacheRoots(context)
+      getIrCacheRoots(context) match {
+        case Some(roots) =>
+          // Load from the global root as a priority.
+          loadCacheFrom(roots.globalCacheRoot) match {
+            case cache @ Some(_) =>
+              logger.log(
+                ModuleCache.logLevel,
+                s"Using cache for module " +
+                s"[${module.getName.toString}] at location " +
+                s"[${roots.globalCacheRoot.toMaskedPath.applyMasking()}]."
+              )
+              return cache
+            case None =>
+          }
 
-      // Load from the global root as a priority.
-      loadCacheFrom(roots.globalCacheRoot) match {
-        case cache @ Some(_) =>
+          // Load from the local root if the global root fails.
+          loadCacheFrom(roots.localCacheRoot) match {
+            case cache @ Some(_) =>
+              logger.log(
+                ModuleCache.logLevel,
+                s"Using cache for module " +
+                s"[${module.getName.toString}] at location " +
+                s"[${roots.localCacheRoot.toMaskedPath.applyMasking()}]."
+              )
+              return cache
+            case None =>
+          }
+
           logger.log(
             ModuleCache.logLevel,
-            s"Using cache for module " +
-            s"[${module.getName.toString}] at location " +
-            s"[${roots.globalCacheRoot.toMaskedPath.applyMasking()}]."
+            s"Unable to load a cache for module [${module.getName.toString}]"
           )
-          return cache
-        case None =>
+
+          None
+        case None => None
       }
-
-      // Load from the local root if the global root fails.
-      loadCacheFrom(roots.localCacheRoot) match {
-        case cache @ Some(_) =>
-          logger.log(
-            ModuleCache.logLevel,
-            s"Using cache for module " +
-            s"[${module.getName.toString}] at location " +
-            s"[${roots.localCacheRoot.toMaskedPath.applyMasking()}]."
-          )
-          return cache
-        case None =>
-      }
-
-      logger.log(
-        ModuleCache.logLevel,
-        s"Unable to load a cache for module [${module.getName.toString}]"
-      )
-
-      None
     }
 
   // === Internals ============================================================
@@ -308,28 +310,24 @@ class ModuleCache(private val module: Module) {
     * @return a representation of the local and global cache roots for this
     *         module
     */
-  private def getIrCacheRoots(context: Context): ModuleCache.Roots = {
-    context.getPackageOf(module.getSourceFile).toScala match {
-      case Some(pkg) =>
-        val irCacheRoot    = pkg.getIrCacheRootForPackage(Info.ensoVersion)
-        val qualName       = module.getName
-        val localCacheRoot = irCacheRoot.resolve(qualName.path.mkString("/"))
+  private def getIrCacheRoots(context: Context): Option[ModuleCache.Roots] = {
+    context.getPackageOf(module.getSourceFile).toScala.map { pkg =>
+      val irCacheRoot    = pkg.getIrCacheRootForPackage(Info.ensoVersion)
+      val qualName       = module.getName
+      val localCacheRoot = irCacheRoot.resolve(qualName.path.mkString("/"))
 
-        val distribution = context.getDistributionManager
-        val pathSegments = List(
-          pkg.namespace,
-          pkg.name,
-          pkg.config.version,
-          Info.ensoVersion
-        ) ++ qualName.path
-        val path = distribution.LocallyInstalledDirectories.irCacheDirectory
-          .resolve(pathSegments.mkString("/"))
-        val globalCacheRoot = context.getTruffleFile(path.toFile)
+      val distribution = context.getDistributionManager
+      val pathSegments = List(
+        pkg.namespace,
+        pkg.name,
+        pkg.config.version,
+        Info.ensoVersion
+      ) ++ qualName.path
+      val path = distribution.LocallyInstalledDirectories.irCacheDirectory
+        .resolve(pathSegments.mkString("/"))
+      val globalCacheRoot = context.getTruffleFile(path.toFile)
 
-        ModuleCache.Roots(localCacheRoot, globalCacheRoot)
-
-      case None =>
-        throw new CompilerError("Roots should always be able to be resolved.")
+      ModuleCache.Roots(localCacheRoot, globalCacheRoot)
     }
   }
 

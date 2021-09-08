@@ -2,7 +2,6 @@ package org.enso.polyglot;
 
 import java.util.Arrays;
 import java.util.logging.Level;
-import javax.swing.text.html.Option;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
@@ -61,14 +60,18 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(LANGUAGE_HOME_OVERRIDE_KEY, LANGUAGE_HOME_OVERRIDE).build();
 
   public static final String DISABLE_IR_CACHES = optionName("disableIrCaches");
-  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(false);
+  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(true);
   private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
 
-  public static final String WAIT_FOR_SHUTDOWN = optionName("waitForShutdown");
-  public static final OptionKey<Boolean> WAIT_FOR_SHUTDOWN_KEY = new OptionKey<>(false);
-  private static final OptionDescriptor WAIT_FOR_SHUTDOWN_DESCRIPTOR =
-      OptionDescriptor.newBuilder(WAIT_FOR_SHUTDOWN_KEY, WAIT_FOR_SHUTDOWN).build();
+  public static final String WAIT_FOR_PENDING_SERIALIZATION_JOBS =
+      optionName("waitForPendingSerializationJobs");
+  public static final OptionKey<Boolean> WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY =
+      new OptionKey<>(false);
+  private static final OptionDescriptor WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESRIPTOR =
+      OptionDescriptor.newBuilder(
+              WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY, WAIT_FOR_PENDING_SERIALIZATION_JOBS)
+          .build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
@@ -83,7 +86,7 @@ public class RuntimeOptions {
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
-              WAIT_FOR_SHUTDOWN_DESCRIPTOR));
+              WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

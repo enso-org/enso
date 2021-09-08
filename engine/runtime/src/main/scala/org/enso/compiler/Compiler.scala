@@ -146,25 +146,26 @@ class Compiler(
     module.ensureScopeExists()
     module.getScope.reset()
 
-//    module.getCache.load(context) match {
-//      case Some(ModuleCache.CachedModule(ir, stage))
-//          if !context.isIrCachingDisabled =>
-//        module.unsafeSetIr(ir)
-//        module.unsafeSetCompilationStage(stage)
-//        throw new CompilerError("Should not happen yet!")
-//      case _ =>
-    val moduleContext = ModuleContext(
-      module           = module,
-      freshNameSupply  = Some(freshNameSupply),
-      compilerConfig   = config,
-      isGeneratingDocs = isGenDocs
-    )
-    val parsedAST        = parse(module.getSource)
-    val expr             = generateIR(parsedAST)
-    val discoveredModule = recognizeBindings(expr, moduleContext)
-    module.unsafeSetIr(discoveredModule)
-    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
-//    }
+    module.getCache.load(context) match {
+      case Some(ModuleCache.CachedModule(ir, stage)) if irCachingEnabled =>
+        module.unsafeSetIr(ir)
+        module.unsafeSetCompilationStage(stage)
+        throw new CompilerError(
+          "Caching should not yet be enabled in production."
+        )
+      case _ =>
+        val moduleContext = ModuleContext(
+          module           = module,
+          freshNameSupply  = Some(freshNameSupply),
+          compilerConfig   = config,
+          isGeneratingDocs = isGenDocs
+        )
+        val parsedAST        = parse(module.getSource)
+        val expr             = generateIR(parsedAST)
+        val discoveredModule = recognizeBindings(expr, moduleContext)
+        module.unsafeSetIr(discoveredModule)
+        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    }
   }
 
   /** Gets a module definition by name.
@@ -546,10 +547,10 @@ class Compiler(
 
   /** Performs shutdown actions for the compiler.
     *
-    * @param waitForCompletion whether or not shutdown should wait for jobs to
-    *                          complete
+    * @param waitForPendingJobCompletion whether or not shutdown should wait for
+    *                                    jobs to complete
     */
-  def shutdown(waitForCompletion: Boolean): Unit = {
-    serializationManager.shutdown(waitForCompletion)
+  def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
+    serializationManager.shutdown(waitForPendingJobCompletion)
   }
 }

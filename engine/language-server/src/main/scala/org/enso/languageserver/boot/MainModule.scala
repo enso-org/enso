@@ -405,6 +405,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   def close(): Unit = {
     suggestionsRepo.close()
     versionsRepo.close()
+    context.close()
     log.info("Closed Language Server main module.")
   }
 }

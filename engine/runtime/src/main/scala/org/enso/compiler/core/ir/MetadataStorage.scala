@@ -13,7 +13,7 @@ import org.enso.compiler.pass.IRPass
 //noinspection DuplicatedCode
 class MetadataStorage(
   startingMeta: Seq[MetadataPair[_]] = Seq()
-) extends Serializable{
+) extends Serializable {
   private var metadata: Map[IRPass, Any] = Map(
     startingMeta.map(_.asPair.asInstanceOf[(IRPass, Any)]): _*
   )

@@ -77,14 +77,20 @@ class SerializationManager(compiler: Compiler) {
     )
     val duplicatedIr = module.getIr.duplicate()
     duplicatedIr.preorder.foreach(_.passData.prepareForSerialization(compiler))
+
     val task = doSerialize(
       module.getCache,
       duplicatedIr,
       module.getCompilationStage,
       module.getName
     )
-    isWaitingForSerialization.put(module.getName, task)
-    pool.execute(task)
+    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+      isWaitingForSerialization.put(module.getName, task)
+      pool.execute(task)
+    } else {
+      task.run()
+    }
+
     true
   }
 
@@ -127,12 +133,12 @@ class SerializationManager(compiler: Compiler) {
 
   /** Performs shutdown actions for the serialization manager.
     *
-    * @param waitForCompletion whether or not shutdown should wait for pending
-    *                          serialization jobs
+    * @param waitForPendingJobCompletion whether or not shutdown should wait for
+    *                                    pending serialization jobs
     */
-  def shutdown(waitForCompletion: Boolean = false): Unit = {
+  def shutdown(waitForPendingJobCompletion: Boolean = false): Unit = {
     if (!pool.isShutdown) {
-      if (waitForCompletion && this.hasJobsRemaining) {
+      if (waitForPendingJobCompletion && this.hasJobsRemaining) {
         val jobCount = isWaitingForSerialization.size + isSerializing.size
         logger.log(
           debugLogLevel,
@@ -140,7 +146,7 @@ class SerializationManager(compiler: Compiler) {
         )
 
         while (this.hasJobsRemaining) {
-          Thread.sleep(1 * 1000) // Sleep for a second
+          Thread.sleep(1 * 1000)
         }
       }
 

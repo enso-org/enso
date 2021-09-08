@@ -53,7 +53,7 @@ public class Context {
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
-  private final boolean shouldWaitForShutdown;
+  private final boolean shouldWaitForPendingSerializationJobs;
   private final Builtins builtins;
   private final String home;
   private final CompilerConfig compilerConfig;
@@ -90,7 +90,8 @@ public class Context {
     this.isInlineCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.isIrCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY);
-    this.shouldWaitForShutdown = environment.getOptions().get(RuntimeOptions.WAIT_FOR_SHUTDOWN_KEY);
+    this.shouldWaitForPendingSerializationJobs =
+        environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
     this.builtins = new Builtins(this);
@@ -140,7 +141,7 @@ public class Context {
   public void shutdown() {
     threadManager.shutdown();
     resourceManager.shutdown();
-    compiler.shutdown(shouldWaitForShutdown);
+    compiler.shutdown(shouldWaitForPendingSerializationJobs);
   }
 
   /**
