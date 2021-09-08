@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.optimise
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
@@ -207,22 +208,62 @@ case object ApplicationSaturation extends IRPass {
     sealed case class Over(additionalArgCount: Int) extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Over"
+
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): Over = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(compiler: Compiler): Option[Over] =
+        Some(this)
     }
     sealed case class Exact(helper: CodegenHelper) extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Exact"
+
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): Exact = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Exact] = Some(this)
     }
     sealed case class ExactButByName() extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.ExactButByName"
+
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): ExactButByName =
+        this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[ExactButByName] = Some(this)
     }
     sealed case class Partial(unappliedArgCount: Int) extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Partial"
+
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): Partial = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Partial] = Some(this)
     }
     sealed case class Unknown() extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Unknown"
+
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): Unknown = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Unknown] = Some(this)
     }
   }
 

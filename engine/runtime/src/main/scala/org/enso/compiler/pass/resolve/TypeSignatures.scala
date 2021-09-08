@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.resolve
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
@@ -27,7 +28,7 @@ case object TypeSignatures extends IRPass {
 
   override val precursorPasses: Seq[IRPass] = List(
     TypeFunctions,
-    ModuleAnnotations,
+    ModuleAnnotations
   )
   override val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
@@ -250,6 +251,25 @@ case object TypeSignatures extends IRPass {
   case class Signature(signature: IR.Expression) extends IRPass.Metadata {
     override val metadataName: String = "TypeSignatures.Signature"
 
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): Signature = {
+      signature.preorder.foreach(_.passData.prepareForSerialization(compiler))
+      this
+    }
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[Signature] = {
+      signature.preorder.foreach{node =>
+        if (!node.passData.restoreFromSerialization(compiler)) {
+          return None
+        }
+      }
+      Some(this)
+    }
+
+    /** @inheritdoc */
     override def duplicate(): Option[IRPass.Metadata] =
       Some(this.copy(signature = signature.duplicate()))
   }

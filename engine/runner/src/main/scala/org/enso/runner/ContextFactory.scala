@@ -40,6 +40,7 @@ class ContextFactory {
       .allowAllAccess(true)
       .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
+      .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option("js.foreign-object-prototype", "true")
       .out(out)

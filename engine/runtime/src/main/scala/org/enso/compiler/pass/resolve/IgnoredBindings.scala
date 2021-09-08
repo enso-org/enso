@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.resolve
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Case, Pattern}
@@ -350,6 +351,16 @@ case object IgnoredBindings extends IRPass {
       override val metadataName: String = "IgnoredBindings.State.Ignored"
       override val isIgnored: Boolean   = true
 
+      /** @inheritdoc */
+      override def prepareForSerialization(compiler: Compiler): Ignored.type =
+        this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Ignored.type] = Some(this)
+
+      /** @inheritdoc */
       override def duplicate(): Option[IRPass.Metadata] = Some(Ignored)
     }
 
@@ -358,6 +369,17 @@ case object IgnoredBindings extends IRPass {
       override val metadataName: String = "IgnoredBindings.State.NotIgnored"
       override val isIgnored: Boolean   = false
 
+      /** @inheritdoc */
+      override def prepareForSerialization(
+        compiler: Compiler
+      ): NotIgnored.type = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[NotIgnored.type] = Some(this)
+
+      /** @inheritdoc */
       override def duplicate(): Option[IRPass.Metadata] = Some(NotIgnored)
     }
   }

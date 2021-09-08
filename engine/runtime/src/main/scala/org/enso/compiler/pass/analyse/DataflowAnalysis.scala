@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
@@ -884,6 +885,15 @@ case object DataflowAnalysis extends IRPass {
     }
 
     override def duplicate(): Option[IRPass.Metadata] = None
+
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): DependencyInfo =
+      this
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[DependencyInfo] = Some(this)
   }
   object DependencyInfo {
 

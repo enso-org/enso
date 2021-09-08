@@ -239,6 +239,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+    .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
     .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
     .option(
       RuntimeOptions.LOG_LEVEL,
@@ -404,6 +405,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   def close(): Unit = {
     suggestionsRepo.close()
     versionsRepo.close()
+    context.close()
     log.info("Closed Language Server main module.")
   }
 }
