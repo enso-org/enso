@@ -38,7 +38,7 @@ ensogl::read_args! {
         wasm_glue_url        : String,
         node_labels          : bool,
         crash_report_host    : String,
-        no_data_gathering    : bool,
+        data_gathering       : bool,
         is_in_cloud          : bool,
         verbose              : bool,
     }

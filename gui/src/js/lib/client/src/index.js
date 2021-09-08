@@ -207,9 +207,9 @@ optParser.options('crash-report-host', {
     default     : cfg.defaultLogServerHost
 })
 
-optParser.options('no-data-gathering', {
-    describe    : 'Disable the sharing of any usage data',
-    default     : false
+optParser.options('data-gathering', {
+    describe    : 'Enable the sharing of any usage data',
+    default     : true
 })
 
 
@@ -540,7 +540,7 @@ function createWindow() {
         dark_theme        : Electron.nativeTheme.shouldUseDarkColors,
         high_contrast     : Electron.nativeTheme.shouldUseHighContrastColors,
         crash_report_host : args.crashReportHost,
-        no_data_gathering : args.noDataGathering,
+        data_gathering    : args.dataGathering,
         node_labels       : args.nodeLabels,
         verbose           : args.verbose,
     }

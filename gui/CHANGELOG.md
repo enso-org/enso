@@ -1,5 +1,17 @@
 # Next Release
 
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
+
+- [Fixed parsing of the `--no-data-gathering` command line option.][1831] Flag's
+  name has been changed to `--data-gathering`, so now `--data-gathering=false`
+  and `--data-gathering=true` are supported as well.
+
+[1831]: https://github.com/enso-org/ide/pull/1831
+
 # Enso 2.0.0-alpha.14 (2021-09-02)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
@@ -8,7 +20,7 @@
 
 - [Visualization previews are disabled.][1817] Previously, hovering over a
   node's output port for more than four seconds would temporarily reveal the
-  node's visualization. This behavior is disabled now.
+  node's visualization. This behavior is disabled now
 
 [1817]: https://github.com/enso-org/ide/pull/1817
 
