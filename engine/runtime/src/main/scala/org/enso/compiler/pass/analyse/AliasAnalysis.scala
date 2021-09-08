@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
@@ -11,6 +12,7 @@ import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.syntax.text.Debug
 
+import java.io.Serializable
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -641,6 +643,17 @@ case object AliasAnalysis extends IRPass {
       sealed case class Root(override val graph: Graph) extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
 
+        /** @inheritdoc */
+        override def prepareForSerialization(
+          compiler: Compiler
+        ): Root = this
+
+        /** @inheritdoc */
+        override def restoreFromSerialization(
+          compiler: Compiler
+        ): Option[Root] = Some(this)
+
+        /** @inheritdoc */
         override def duplicate(): Option[IRPass.Metadata] = None
       }
 
@@ -653,6 +666,17 @@ case object AliasAnalysis extends IRPass {
           extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
 
+        /** @inheritdoc */
+        override def prepareForSerialization(
+          compiler: Compiler
+        ): Child = this
+
+        /** @inheritdoc */
+        override def restoreFromSerialization(
+          compiler: Compiler
+        ): Option[Child] = Some(this)
+
+        /** @inheritdoc */
         override def duplicate(): Option[IRPass.Metadata] = None
       }
     }
@@ -667,12 +691,23 @@ case object AliasAnalysis extends IRPass {
         extends Info {
       override val metadataName: String = "AliasAnalysis.Info.Occurrence"
 
+      /** @inheritdoc */
+      override def prepareForSerialization(
+        compiler: Compiler
+      ): Occurrence = this
+
+      /** @inheritdoc */
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Occurrence] = Some(this)
+
+      /** @inheritdoc */
       override def duplicate(): Option[IRPass.Metadata] = None
     }
   }
 
   /** A graph containing aliasing information for a given root scope in Enso. */
-  sealed class Graph {
+  sealed class Graph extends Serializable {
     var rootScope: Graph.Scope = new Graph.Scope()
     var links: Set[Graph.Link] = Set()
 
@@ -972,7 +1007,7 @@ case object AliasAnalysis extends IRPass {
     sealed class Scope(
       var childScopes: List[Scope]     = List(),
       var occurrences: Set[Occurrence] = Set()
-    ) {
+    ) extends Serializable {
       var parent: Option[Scope] = None
 
       /** Counts the number of scopes from this scope to the root.
@@ -1257,9 +1292,10 @@ case object AliasAnalysis extends IRPass {
       * @param target the target ID of the link in the graph
       */
     sealed case class Link(source: Id, scopeCount: Int, target: Id)
+        extends Serializable
 
     /** An occurrence of a given symbol in the aliasing graph. */
-    sealed trait Occurrence {
+    sealed trait Occurrence extends Serializable {
       val id: Id
       val symbol: Graph.Symbol
     }

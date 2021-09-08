@@ -53,6 +53,7 @@ public class Context {
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
+  private final boolean shouldWaitForPendingSerializationJobs;
   private final Builtins builtins;
   private final String home;
   private final CompilerConfig compilerConfig;
@@ -89,6 +90,8 @@ public class Context {
     this.isInlineCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.isIrCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY);
+    this.shouldWaitForPendingSerializationJobs =
+        environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
     this.builtins = new Builtins(this);
@@ -134,6 +137,19 @@ public class Context {
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
   }
 
+  /** Performs eventual cleanup before the context is disposed of. */
+  public void shutdown() {
+    threadManager.shutdown();
+    resourceManager.shutdown();
+    compiler.shutdown(shouldWaitForPendingSerializationJobs);
+  }
+
+  /**
+   * Creates a truffle file for a given standard file.
+   *
+   * @param file the file to wrap
+   * @return the truffle wrapper for {@code file}
+   */
   public TruffleFile getTruffleFile(File file) {
     return getEnvironment().getInternalTruffleFile(file.getAbsolutePath());
   }
@@ -403,6 +419,11 @@ public class Context {
   /** @return The logger for this language */
   public TruffleLogger getLogger() {
     return logger;
+  }
+
+  /** @return the package repository */
+  public PackageRepository getPackageRepository() {
+    return packageRepository;
   }
 
   /**

@@ -85,6 +85,7 @@ public class Module implements TruffleObject {
   private IR.Module ir;
   private QualifiedName name;
   private final ModuleCache cache;
+  private boolean wasLoadedFromCache;
 
   /**
    * Creates a new module.
@@ -99,6 +100,7 @@ public class Module implements TruffleObject {
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
+    this.wasLoadedFromCache = false;
   }
 
   /**
@@ -114,6 +116,7 @@ public class Module implements TruffleObject {
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
+    this.wasLoadedFromCache = false;
   }
 
   /**
@@ -129,6 +132,7 @@ public class Module implements TruffleObject {
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
+    this.wasLoadedFromCache = false;
   }
 
   /**
@@ -144,6 +148,7 @@ public class Module implements TruffleObject {
     this.pkg = pkg;
     this.compilationStage = CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
+    this.wasLoadedFromCache = false;
   }
 
   /**
@@ -336,7 +341,7 @@ public class Module implements TruffleObject {
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
-    return literalSource != null;
+    return literalSource == null;
   }
 
   /**
@@ -352,6 +357,16 @@ public class Module implements TruffleObject {
   /** @return the cache for this module */
   public ModuleCache getCache() {
     return cache;
+  }
+
+  /** @return {@code true} if the module was loaded from the cache, {@code false} otherwise */
+  public boolean wasLoadedFromCache() {
+    return wasLoadedFromCache;
+  }
+
+  /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
+  public void setLoadedFromCache(Boolean wasLoadedFromCache) {
+    this.wasLoadedFromCache = wasLoadedFromCache;
   }
 
   /**

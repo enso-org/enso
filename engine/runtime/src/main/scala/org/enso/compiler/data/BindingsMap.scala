@@ -1,6 +1,6 @@
 package org.enso.compiler.data
 
-import org.enso.compiler.PackageRepository
+import org.enso.compiler.{Compiler, PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap.ModuleReference
@@ -9,6 +9,9 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
+
+import java.io.ObjectOutputStream
+import scala.annotation.unused
 
 /** A utility structure for resolving symbols in a given module.
   *
@@ -40,6 +43,21 @@ case class BindingsMap(
   /** Symbols exported by [[currentModule]].
     */
   var exportedSymbols: Map[String, List[ResolvedName]] = Map()
+
+  /** @inheritdoc */
+  override def prepareForSerialization(
+    compiler: Compiler
+  ): BindingsMap = {
+    this.toAbstract
+  }
+
+  /** @inheritdoc */
+  override def restoreFromSerialization(
+    compiler: Compiler
+  ): Option[BindingsMap] = {
+    val packageRepository = compiler.context.getPackageRepository
+    this.toConcrete(packageRepository.getModuleMap)
+  }
 
   /** Convert this [[BindingsMap]] instance to use abstract module references.
     *
@@ -344,9 +362,22 @@ object BindingsMap {
       *         the same set of names.
       */
     def optimize: SymbolRestriction
+
+    /** Convert any internal [[ModuleReference]]s to abstract references.
+      *
+      * @return `this` with any module references made abstract
+      */
+    def toAbstract: SymbolRestriction
+
+    /** Convert any internal [[ModuleReference]]s to concrete references.
+      *
+      * @param moduleMap the mapping from qualified names to modules
+      * @return `this` with its module reference made concrete
+      */
+    def toConcrete(moduleMap: ModuleMap): Option[SymbolRestriction]
   }
 
-  case object SymbolRestriction {
+  object SymbolRestriction {
 
     /** A representation of allowed symbol. An allowed symbol consists of
       * a name and an optional resolution refinement.
@@ -361,6 +392,7 @@ object BindingsMap {
 
       /** Checks if the `symbol` is visible under this restriction, with
         * a given resolution.
+        *
         * @param symbol the symbol
         * @param resolution `symbol`'s resolution
         * @return `true` if the symbol is visible, `false` otherwise
@@ -371,6 +403,25 @@ object BindingsMap {
           this.resolution.isEmpty || this.resolution.get == resolution
         symbolMatch && resolutionMatch
       }
+
+      /** Convert the internal resolution to abstract form.
+        *
+        * @return `this` with its resolution converted to abstract form
+        */
+      def toAbstract: AllowedResolution = {
+        this.copy(resolution = resolution.map(_.toAbstract))
+      }
+
+      /** Convert the internal resolution to concrete form.
+        *
+        * @param moduleMap the mapping from qualified names to modules
+        * @return `this` with its resolution made concrete
+        */
+      def toConcrete(moduleMap: ModuleMap): Option[AllowedResolution] = {
+        resolution.flatMap(res =>
+          res.toConcrete(moduleMap).map(r => this.copy(resolution = Some(r)))
+        )
+      }
     }
 
     /** A restriction representing a set of allowed symbols.
@@ -378,12 +429,29 @@ object BindingsMap {
       * @param symbols the allowed symbols.
       */
     case class Only(symbols: Set[AllowedResolution]) extends SymbolRestriction {
+
+      /** @inheritdoc */
       override def canAccess(
         symbol: String,
         resolution: ResolvedName
-      ): Boolean =
-        symbols.exists(_.allows(symbol, resolution))
+      ): Boolean = symbols.exists(_.allows(symbol, resolution))
+
+      /** @inheritdoc */
       override def optimize: SymbolRestriction = this
+
+      /** @inheritdoc */
+      override def toAbstract: Only = {
+        this.copy(symbols = symbols.map(_.toAbstract))
+      }
+
+      /** @inheritdoc */
+      //noinspection DuplicatedCode
+      override def toConcrete(moduleMap: ModuleMap): Option[Only] = {
+        val newSymbols = symbols.map(_.toConcrete(moduleMap))
+        if (!newSymbols.exists(_.isEmpty)) {
+          Some(this.copy(symbols = newSymbols.map(_.get)))
+        } else None
+      }
     }
 
     /** A restriction representing a set of excluded symbols.
@@ -391,33 +459,65 @@ object BindingsMap {
       * @param symbols the excluded symbols.
       */
     case class Hiding(symbols: Set[String]) extends SymbolRestriction {
+
+      /** @inheritdoc */
       override def canAccess(
         symbol: String,
         resolution: ResolvedName
-      ): Boolean = {
-        !symbols.contains(symbol.toLowerCase)
-      }
-      override def optimize: SymbolRestriction = this
+      ): Boolean = !symbols.contains(symbol.toLowerCase)
+
+      /** @inheritdoc */
+      override def optimize: Hiding = this
+
+      /** @inheritdoc */
+      override def toAbstract: Hiding = this
+
+      /** @inheritdoc */
+      override def toConcrete(moduleMap: ModuleMap): Option[Hiding] = Some(this)
     }
 
     /** A restriction meaning there's no restriction at all.
       */
     case object All extends SymbolRestriction {
+
+      /** @inheritdoc */
       override def canAccess(
         symbol: String,
         resolution: ResolvedName
-      ): Boolean                               = true
+      ): Boolean = true
+
+      /** @inheritdoc */
       override def optimize: SymbolRestriction = this
+
+      /** @inheritdoc */
+      override def toAbstract: All.type = this
+
+      /** @inheritdoc */
+      override def toConcrete(moduleMap: ModuleMap): Option[All.type] = Some(
+        this
+      )
     }
 
     /** A complete restriction – no symbols are permitted
       */
     case object Empty extends SymbolRestriction {
+
+      /** @inheritdoc */
       override def canAccess(
         symbol: String,
         resolution: ResolvedName
-      ): Boolean                               = false
+      ): Boolean = false
+
+      /** @inheritdoc */
       override def optimize: SymbolRestriction = this
+
+      /** @inheritdoc */
+      override def toAbstract: Empty.type = this
+
+      /** @inheritdoc */
+      override def toConcrete(moduleMap: ModuleMap): Option[Empty.type] = Some(
+        this
+      )
     }
 
     /** An intersection of restrictions – a symbol is allowed if all components
@@ -427,13 +527,15 @@ object BindingsMap {
       */
     case class Intersect(restrictions: List[SymbolRestriction])
         extends SymbolRestriction {
+
+      /** @inheritdoc */
       override def canAccess(
         symbol: String,
         resolution: ResolvedName
-      ): Boolean = {
-        restrictions.forall(_.canAccess(symbol, resolution))
-      }
+      ): Boolean = restrictions.forall(_.canAccess(symbol, resolution))
 
+      /** @inheritdoc */
+      //noinspection DuplicatedCode
       override def optimize: SymbolRestriction = {
         val optimizedTerms = restrictions.map(_.optimize)
         val (intersects, otherTerms) =
@@ -464,6 +566,20 @@ object BindingsMap {
           case items    => Intersect(items)
         }
       }
+
+      /** @inheritdoc */
+      override def toAbstract: Intersect = {
+        this.copy(restrictions = restrictions.map(_.toAbstract))
+      }
+
+      /** @inheritdoc */
+      //noinspection DuplicatedCode
+      override def toConcrete(moduleMap: ModuleMap): Option[Intersect] = {
+        val newRestrictions = restrictions.map(_.toConcrete(moduleMap))
+        if (!newRestrictions.exists(_.isEmpty)) {
+          Some(this.copy(restrictions = newRestrictions.map(_.get)))
+        } else None
+      }
     }
 
     /** A union of restrictions – a symbol is allowed if any component allows
@@ -473,12 +589,15 @@ object BindingsMap {
       */
     case class Union(restrictions: List[SymbolRestriction])
         extends SymbolRestriction {
+
+      /** @inheritdoc */
       override def canAccess(
         symbol: String,
         resolution: ResolvedName
-      ): Boolean =
-        restrictions.exists(_.canAccess(symbol, resolution))
+      ): Boolean = restrictions.exists(_.canAccess(symbol, resolution))
 
+      /** @inheritdoc */
+      //noinspection DuplicatedCode
       override def optimize: SymbolRestriction = {
         val optimizedTerms = restrictions.map(_.optimize)
         val (unions, otherTerms) =
@@ -510,6 +629,20 @@ object BindingsMap {
           case items    => Union(items)
         }
       }
+
+      /** @inheritdoc */
+      override def toAbstract: Union = {
+        this.copy(restrictions = restrictions.map(_.toAbstract))
+      }
+
+      /** @inheritdoc */
+      //noinspection DuplicatedCode
+      override def toConcrete(moduleMap: ModuleMap): Option[Union] = {
+        val newRestrictions = restrictions.map(_.toConcrete(moduleMap))
+        if (!newRestrictions.exists(_.isEmpty)) {
+          Some(this.copy(restrictions = newRestrictions.map(_.get)))
+        } else None
+      }
     }
   }
 
@@ -530,7 +663,7 @@ object BindingsMap {
       * @return `this` with its module reference made abstract
       */
     def toAbstract: ExportedModule = {
-      this.copy(module = module.toAbstract)
+      this.copy(module = module.toAbstract, symbols = symbols.toAbstract)
     }
 
     /** Convert the internal [[ModuleReference]] to a concrete reference.
@@ -539,7 +672,11 @@ object BindingsMap {
       * @return `this` with its module reference made concrete
       */
     def toConcrete(moduleMap: ModuleMap): Option[ExportedModule] = {
-      module.toConcrete(moduleMap).map(x => this.copy(module = x))
+      module.toConcrete(moduleMap).flatMap { x =>
+        symbols
+          .toConcrete(moduleMap)
+          .map(y => this.copy(module = x, symbols = y))
+      }
     }
   }
 
@@ -715,6 +852,18 @@ object BindingsMap {
     /** The name of the metadata as a string. */
     override val metadataName: String = "Resolution"
 
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): Resolution =
+      this.copy(target = this.target.toAbstract)
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[Resolution] = {
+      val moduleMap = compiler.context.getPackageRepository.getModuleMap
+      this.target.toConcrete(moduleMap).map(t => this.copy(target = t))
+    }
+
     /** Creates a duplicate of this metadata if applicable.
       *
       * This method should employ deep-copy semantics where appropriate. It may
@@ -783,6 +932,13 @@ object BindingsMap {
 
       /** @inheritdoc */
       override def unsafeAsModule(message: String = ""): Module = module
+
+      /** @inheritdoc */
+      private def writeObject(@unused stream: ObjectOutputStream): Unit = {
+        throw new CompilerError(
+          s"Attempting to serialize a concrete module reference to `$getName`."
+        )
+      }
     }
 
     /** A module reference that refers to a module by qualified name, without an
@@ -810,7 +966,8 @@ object BindingsMap {
       /** @inheritdoc */
       override def unsafeAsModule(message: String = ""): Module = {
         val rest = if (message.isEmpty) "." else s": $message"
-        val errMsg = s"Could not get concrete module from abstract module $name$rest"
+        val errMsg =
+          s"Could not get concrete module from abstract module $name$rest"
 
         throw new CompilerError(errMsg)
       }
