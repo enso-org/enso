@@ -156,6 +156,10 @@ object NativeImage {
         streams.value.log.info(
           s"$reason, forcing a rebuild."
         )
+        val artifact = artifactFile(artifactName)
+        if (artifact.exists()) {
+          artifact.delete()
+        }
         Def.task {
           actualBuild.value
         }
