@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.resolve
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
@@ -119,5 +120,28 @@ case object ModuleAnnotations extends IRPass {
       */
     def addAnnotation(annotation: IR.Name.Annotation): Annotations =
       this.copy(annotations = this.annotations :+ annotation)
+
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): Annotations = {
+      annotations.foreach(ir =>
+        ir.preorder.foreach(_.passData.prepareForSerialization(compiler))
+      )
+      this
+    }
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[IRPass.Metadata] = {
+      annotations.foreach{ ann =>
+        ann.preorder.foreach { ir =>
+          if (!ir.passData.restoreFromSerialization(compiler)) {
+            return None
+          }
+        }
+      }
+
+      Some(this)
+    }
   }
 }

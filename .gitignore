@@ -114,9 +114,9 @@ build-cache/
 
 *.build_artifacts.txt
 
-###################
-## Enso-Specific ##
-###################
+######################
+## Enso-Development ##
+######################
 
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
@@ -128,3 +128,11 @@ distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
 
 test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json
+
+#################
+## Enso-Caches ##
+#################
+
+*.ir
+*.meta
+

@@ -1,5 +1,7 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.Compiler
+
 import java.util
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.context.{InlineContext, ModuleContext}
@@ -192,6 +194,14 @@ case object CachePreferenceAnalysis extends IRPass {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "CachePreferenceAnalysis.Weights"
+
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): WeightInfo = this
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[WeightInfo] = Some(this)
 
     /** Assign the weight to an id.
       *

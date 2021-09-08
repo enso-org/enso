@@ -1,5 +1,6 @@
 package org.enso.compiler.core.ir
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -12,7 +13,7 @@ import org.enso.compiler.pass.IRPass
 //noinspection DuplicatedCode
 class MetadataStorage(
   startingMeta: Seq[MetadataPair[_]] = Seq()
-) {
+) extends Serializable {
   private var metadata: Map[IRPass, Any] = Map(
     startingMeta.map(_.asPair.asInstanceOf[(IRPass, Any)]): _*
   )
@@ -100,6 +101,50 @@ class MetadataStorage(
     */
   def map[K, V](f: (IRPass, IRPass.Metadata) => (K, V)): Map[K, V] = {
     metadata.asInstanceOf[Map[IRPass, IRPass.Metadata]].map(f.tupled)
+  }
+
+  /** Prepares the metadata for serialization.
+    *
+    * This operation takes place _in place_.
+    *
+    * Metadata prepared for serialization should not contain any links that
+    * span more than one module, or any other properties that are problematic
+    * when serialized.
+    *
+    * Due to the type safety properties of
+    * [[org.enso.compiler.core.ir.MetadataStorage]], to allow this conversion
+    * to work it must be type-refined to return `typeof this`. To that end,
+    * there is no default definition for this method.
+    *
+    * @param compiler the Enso compiler
+    */
+  def prepareForSerialization(compiler: Compiler): Unit = {
+    this.metadata = metadata.map { case (pass, value) =>
+      val newVal =
+        value.asInstanceOf[IRPass.Metadata].prepareForSerialization(compiler)
+      (pass, newVal)
+    }
+  }
+
+  /** Restores metadata after it has been deserialized.
+    *
+    * Due to the type safety properties of
+    * [[org.enso.compiler.core.ir.MetadataStorage]], to allow this conversion
+    * to work it must be type-refined to return `typeof this`. To that end,
+    * there is no default definition for this method.
+    *
+    * @param compiler the Enso compiler
+    * @return `true` if restoration was successful, `false` otherwise
+    */
+  def restoreFromSerialization(compiler: Compiler): Boolean = {
+    this.metadata = metadata.map { case (pass, value) =>
+      val meta = value
+        .asInstanceOf[IRPass.Metadata]
+        .restoreFromSerialization(compiler)
+        .getOrElse(return false)
+      (pass, meta)
+    }
+    true
   }
 
   /** Creates a copy of `this`.

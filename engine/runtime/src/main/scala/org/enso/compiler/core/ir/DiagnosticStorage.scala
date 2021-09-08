@@ -7,7 +7,8 @@ import org.enso.compiler.core.IR.Diagnostic
   *
   * @param initDiagnostics the initial diagnostics
   */
-sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq()) {
+sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
+    extends Serializable {
   private var diagnostics: List[Diagnostic] = initDiagnostics.toList
 
   /** Adds a new diagnostic to the storage

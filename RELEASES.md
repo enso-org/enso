@@ -1,5 +1,12 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Added support for serializing the compiler's intermediate representation to
+  disk ([#1991](https://github.com/enso-org/enso/pull/1991)). This is currently
+  disabled by default, but in the future will allow much faster startup of the
+  runtime.
+
 ## Libraries
 
 - Added support for fetching tables from Google Spreadsheets.

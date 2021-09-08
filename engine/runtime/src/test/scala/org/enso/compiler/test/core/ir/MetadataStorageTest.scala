@@ -1,5 +1,6 @@
 package org.enso.compiler.test.core.ir
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage
@@ -33,6 +34,14 @@ class MetadataStorageTest extends CompilerTest {
     sealed case class Metadata1() extends IRPass.Metadata {
       override val metadataName: String = "TestPass1.Metadata1"
 
+      override def prepareForSerialization(
+        compiler: Compiler
+      ): Metadata1 = this
+
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Metadata1] = Some(this)
+
       override def duplicate(): Option[IRPass.Metadata] = Some(Metadata1())
     }
   }
@@ -56,6 +65,14 @@ class MetadataStorageTest extends CompilerTest {
 
     sealed case class Metadata2() extends IRPass.Metadata {
       override val metadataName: String = "TestPass2.Metadata2"
+
+      override def prepareForSerialization(
+        compiler: Compiler
+      ): Metadata2 = this
+
+      override def restoreFromSerialization(
+        compiler: Compiler
+      ): Option[Metadata2] = Some(this)
 
       override def duplicate(): Option[IRPass.Metadata] = Some(Metadata2())
     }

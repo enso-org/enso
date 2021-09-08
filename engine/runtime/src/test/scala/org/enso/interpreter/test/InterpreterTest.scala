@@ -104,6 +104,7 @@ class InterpreterContext(
       .out(output)
       .err(err)
       .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+      .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .logHandler(System.err)
       .in(in)
       .option(

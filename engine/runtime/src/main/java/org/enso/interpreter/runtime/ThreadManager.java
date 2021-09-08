@@ -101,4 +101,17 @@ public class ThreadManager {
       lock.unlock();
     }
   }
+
+  /** Requests that all threads are shutdown. */
+  public void shutdown() {
+    var threads = interruptFlags.keySet();
+    threads.forEach(
+        t -> {
+          try {
+            t.join();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        });
+  }
 }
