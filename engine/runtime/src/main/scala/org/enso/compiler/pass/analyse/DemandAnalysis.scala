@@ -7,6 +7,8 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.OverloadsResolution
 
+import scala.annotation.unused
+
 /** This pass implements demand analysis for Enso.
   *
   * Demand analysis is the process of determining _when_ a suspended term needs
@@ -73,6 +75,12 @@ case object DemandAnalysis extends IRPass {
       expression,
       isInsideCallArgument = false
     )
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   /** Performs demand analysis on an arbitrary program expression.
     *

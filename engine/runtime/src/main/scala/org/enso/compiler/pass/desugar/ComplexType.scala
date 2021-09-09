@@ -93,6 +93,12 @@ case object ComplexType extends IRPass {
     @unused inlineContext: InlineContext
   ): IR.Expression = ir
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
   // === Pass Internals =======================================================
 
   /** Desugars a complex type definition into a series of top-level definitions.

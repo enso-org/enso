@@ -418,9 +418,11 @@ object BindingsMap {
         * @return `this` with its resolution made concrete
         */
       def toConcrete(moduleMap: ModuleMap): Option[AllowedResolution] = {
-        resolution.flatMap(res =>
-          res.toConcrete(moduleMap).map(r => this.copy(resolution = Some(r)))
-        )
+        resolution match {
+          case None => Some(this)
+          case Some(res) =>
+            res.toConcrete(moduleMap).map(r => this.copy(resolution = Some(r)))
+        }
       }
     }
 

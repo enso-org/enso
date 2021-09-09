@@ -5,6 +5,8 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 
+import scala.annotation.unused
+
 /** Reports errors for local variables that are not linked to a definition
   *  after Alias Analysis.
   */
@@ -49,6 +51,12 @@ case object UndefinedVariables extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = analyseExpression(ir)
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   private def analyseExpression(ir: IR.Expression): IR.Expression =
     ir.transformExpressions { case name: IR.Name.Literal =>

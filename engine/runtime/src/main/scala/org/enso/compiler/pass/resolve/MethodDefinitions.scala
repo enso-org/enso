@@ -13,6 +13,8 @@ import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies
 }
 
+import scala.annotation.unused
+
 /** Resolves the correct `this` argument type for method definitions and stores
   * the resolution in the method's metadata.
   */
@@ -154,4 +156,9 @@ case object MethodDefinitions extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression = ir
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 }

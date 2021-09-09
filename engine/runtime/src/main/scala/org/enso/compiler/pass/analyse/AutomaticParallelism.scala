@@ -4,7 +4,15 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
-import org.enso.compiler.core.IR.{Application, CallArgument, Case, DefinitionArgument, Error, Name, Type}
+import org.enso.compiler.core.IR.{
+  Application,
+  CallArgument,
+  Case,
+  DefinitionArgument,
+  Error,
+  Name,
+  Type
+}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
@@ -77,6 +85,12 @@ object AutomaticParallelism extends IRPass {
     ir: IR.Expression,
     @unused inlineContext: InlineContext
   ): IR.Expression = ir
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   // If I can do the limited form, then it is sufficient to have spawn/await on
   //  bindings combined with liberal inlining of the other parts of the
@@ -275,9 +289,10 @@ object AutomaticParallelism extends IRPass {
         )
         .newName()
     )
-    @unused val bindings = bindingNames.zip(app.arguments).map { case (bindName, arg) =>
-      makeInlinedBindingFor(bindName, arg, mutData, dataflow)
-    }
+    @unused val bindings =
+      bindingNames.zip(app.arguments).map { case (bindName, arg) =>
+        makeInlinedBindingFor(bindName, arg, mutData, dataflow)
+      }
 
     // Rewrite the application to use the bindings
     val newArgs = app.arguments.zip(bindingNames).map {
@@ -316,7 +331,7 @@ object AutomaticParallelism extends IRPass {
       case cse: IR.Case                         => cse
       case block: IR.Expression.Block           => block
       case binding: IR.Expression.Binding       => binding
-      case a => a
+      case a                                    => a
     }
   }
 

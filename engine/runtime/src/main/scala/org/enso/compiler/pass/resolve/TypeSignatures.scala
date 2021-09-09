@@ -65,6 +65,12 @@ case object TypeSignatures extends IRPass {
     @unused inlineContext: InlineContext
   ): IR.Expression = resolveExpression(ir)
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
   // === Pass Internals =======================================================
 
   /** Resolves type signatures in a module.
@@ -261,7 +267,7 @@ case object TypeSignatures extends IRPass {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[Signature] = {
-      signature.preorder.foreach{node =>
+      signature.preorder.foreach { node =>
         if (!node.passData.restoreFromSerialization(compiler)) {
           return None
         }

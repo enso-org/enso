@@ -6,6 +6,8 @@ import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.pass.IRPass
 import org.enso.docs.generator.DocParserWrapper
 
+import scala.annotation.unused
+
 /** Generates documentation on resolved IR.
   */
 case object GenerateDocumentation extends IRPass {
@@ -53,6 +55,12 @@ case object GenerateDocumentation extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

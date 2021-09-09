@@ -65,7 +65,7 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(LANGUAGE_HOME_OVERRIDE_KEY, LANGUAGE_HOME_OVERRIDE).build();
 
   public static final String DISABLE_IR_CACHES = optionName("disableIrCaches");
-  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(true);
+  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(false);
   private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
 

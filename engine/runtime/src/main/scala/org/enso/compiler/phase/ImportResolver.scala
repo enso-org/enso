@@ -52,7 +52,9 @@ class ImportResolver(compiler: Compiler) {
           // put the list of resolved imports in the module metadata
           if (
             current.getCompilationStage
-              .isBefore(Module.CompilationStage.AFTER_IMPORT_RESOLUTION)
+              .isBefore(
+                Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+              ) || !current.hasCrossModuleLinks
           ) {
             val importedModules: List[
               (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
@@ -68,7 +70,7 @@ class ImportResolver(compiler: Compiler) {
                       LibraryName(namespace.name, name.name)
                     case _ =>
                       throw new CompilerError(
-                        "Imports should containt at least two segments after " +
+                        "Imports should contain at least two segments after " +
                         "desugaring."
                       )
                   }
@@ -113,9 +115,11 @@ class ImportResolver(compiler: Compiler) {
             currentLocal.resolvedImports = importedModules.flatMap(_._2)
             val newIr = ir.copy(imports = importedModules.map(_._1))
             current.unsafeSetIr(newIr)
-            current.unsafeSetCompilationStage(
-              Module.CompilationStage.AFTER_IMPORT_RESOLUTION
-            )
+            if (!current.wasLoadedFromCache()) {
+              current.unsafeSetCompilationStage(
+                Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+              )
+            }
           }
           // continue with updated stack
           go(

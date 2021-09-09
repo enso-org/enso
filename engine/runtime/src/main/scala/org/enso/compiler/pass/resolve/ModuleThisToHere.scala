@@ -8,6 +8,8 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 
+import scala.annotation.unused
+
 /** Performs a substitution of `this` to `here` in methods defined on the
   * current module.
   *
@@ -89,4 +91,10 @@ case object ModuleThisToHere extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 }

@@ -88,6 +88,12 @@ case object SuspendedArguments extends IRPass {
     @unused inlineContext: InlineContext
   ): IR.Expression = resolveExpression(ir)
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
   // === Pass Internals =======================================================
 
   /** Resolves suspended arguments for a module binding.

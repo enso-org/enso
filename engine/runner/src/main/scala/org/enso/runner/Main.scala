@@ -1,6 +1,7 @@
 package org.enso.runner
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
+import buildinfo.Info
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
@@ -43,6 +44,7 @@ object Main {
   private val IN_PROJECT_OPTION           = "in-project"
   private val VERSION_OPTION              = "version"
   private val JSON_OPTION                 = "json"
+  private val ENABLE_DEV_CACHES           = "enable-dev-caches"
   private val LOG_LEVEL                   = "log-level"
   private val LOGGER_CONNECT              = "logger-connect"
   private val NO_LOG_MASKING              = "no-log-masking"
@@ -51,6 +53,10 @@ object Main {
   private val AUTH_TOKEN                  = "auth-token"
 
   private lazy val logger = Logger[Main.type]
+
+  private def isDevBuild: Boolean = {
+    Info.ensoVersion.contains("SNAPSHOT")
+  }
 
   /** Builds the [[Options]] object representing the CLI syntax.
     *
@@ -183,6 +189,10 @@ object Main {
       .longOpt(JSON_OPTION)
       .desc("Switches the --version option to JSON output.")
       .build
+    val enableDevCaches = CliOption.builder
+      .longOpt(ENABLE_DEV_CACHES)
+      .desc("Enables IR caches in SNAPSHOT builds.")
+      .build
     val logLevelOption = CliOption.builder
       .hasArg(true)
       .numberOfArgs(1)
@@ -258,6 +268,10 @@ object Main {
       .addOption(hideProgressOption)
       .addOption(authTokenOption)
 
+    if (isDevBuild) {
+      options.addOption(enableDevCaches)
+    }
+
     options
   }
 
@@ -286,11 +300,11 @@ object Main {
     * specifies the project name, otherwise the name is generated automatically.
     * The Enso version used in the project is set to the version of this runner.
     *
-    * @param path root path of the newly created project
-    * @param nameOption specifies the name of the created project
+    * @param path           root path of the newly created project
+    * @param nameOption     specifies the name of the created project
     * @param templateOption specifies the template of the created project
-    * @param authorName if set, sets the name of the author and maintainer
-    * @param authorEmail if set, sets the email of the author and maintainer
+    * @param authorName     if set, sets the name of the author and maintainer
+    * @param authorEmail    if set, sets the email of the author and maintainer
     */
   private def createNew(
     path: String,
@@ -337,17 +351,19 @@ object Main {
     * If `path` is a directory, so a project is run, a conflicting (pointing to
     * another project) `projectPath` should not be provided.
     *
-    * @param path path of the project or file to execute
-    * @param projectPath if specified, the script is run in context of a
-    *                    project located at that path
-    * @param logLevel log level to set for the engine runtime
-    * @param logMasking is the log masking enabled
+    * @param path           path of the project or file to execute
+    * @param projectPath    if specified, the script is run in context of a
+    *                       project located at that path
+    * @param logLevel       log level to set for the engine runtime
+    * @param logMasking     is the log masking enabled
+    * @param enableIrCaches are IR caches enabled
     */
   private def run(
     path: String,
     projectPath: Option[String],
     logLevel: LogLevel,
-    logMasking: Boolean
+    logMasking: Boolean,
+    enableIrCaches: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -376,6 +392,7 @@ object Main {
       Repl(TerminalIO()),
       logLevel,
       logMasking,
+      enableIrCaches,
       strictErrors = true
     )
     if (projectMode) {
@@ -402,29 +419,32 @@ object Main {
     *
     * @param projectPath if specified, the docs is generated for a project
     *                    at the given path
-    * @param logLevel log level to set for the engine runtime
-    * @param logMasking is the log masking enabled
+    * @param logLevel    log level to set for the engine runtime
+    * @param logMasking  is the log masking enabled
+    * @param enableIrCaches are the IR caches enabled
     */
   private def genDocs(
     projectPath: Option[String],
     logLevel: LogLevel,
-    logMasking: Boolean
+    logMasking: Boolean,
+    enableIrCaches: Boolean
   ): Unit = {
     if (projectPath.isEmpty) {
       println("Path hasn't been provided.")
       exitFail()
     }
-    generateDocsFrom(projectPath.get, logLevel, logMasking)
+    generateDocsFrom(projectPath.get, logLevel, logMasking, enableIrCaches)
     exitSuccess()
   }
 
   /** Subroutine of `genDocs` function.
     * Generates the documentation for given Enso project at given path.
     */
-  def generateDocsFrom(
+  private def generateDocsFrom(
     path: String,
     logLevel: LogLevel,
-    logMasking: Boolean
+    logMasking: Boolean,
+    enableIrCaches: Boolean
   ): Unit = {
     val executionContext = new ContextFactory().create(
       path,
@@ -432,7 +452,8 @@ object Main {
       System.out,
       Repl(TerminalIO()),
       logLevel,
-      logMasking
+      logMasking,
+      enableIrCaches
     )
 
     val file = new File(path)
@@ -548,13 +569,15 @@ object Main {
     *
     * @param projectPath if specified, the REPL is run in context of a project
     *                    at the given path
-    * @param logLevel log level to set for the engine runtime
-    * @param logMasking is the log masking enabled
+    * @param logLevel    log level to set for the engine runtime
+    * @param logMasking  is the log masking enabled
+    * @param enableIrCaches are IR caches enabled
     */
   private def runRepl(
     projectPath: Option[String],
     logLevel: LogLevel,
-    logMasking: Boolean
+    logMasking: Boolean,
+    enableIrCaches: Boolean
   ): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
@@ -571,7 +594,8 @@ object Main {
         System.out,
         Repl(TerminalIO()),
         logLevel,
-        logMasking
+        logMasking,
+        enableIrCaches
       )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -581,11 +605,11 @@ object Main {
 
   /** Handles `--server` CLI option
     *
-    * @param line a CLI line
+    * @param line     a CLI line
     * @param logLevel log level to set for the engine runtime
     */
   private def runLanguageServer(line: CommandLine, logLevel: LogLevel): Unit = {
-    val maybeConfig = parseSeverOptions(line)
+    val maybeConfig = parseServerOptions(line)
 
     maybeConfig match {
       case Left(errorMsg) =>
@@ -602,32 +626,32 @@ object Main {
     }
   }
 
-  private def parseSeverOptions(
+  private def parseServerOptions(
     line: CommandLine
   ): Either[String, LanguageServerConfig] =
     // format: off
     for {
-      rootId     <- Option(line.getOptionValue(ROOT_ID_OPTION))
-                      .toRight("Root id must be provided")
-                      .flatMap { id =>
-                        Either
-                          .catchNonFatal(UUID.fromString(id))
-                          .leftMap(_ => "Root must be UUID")
-                      }
-      rootPath   <- Option(line.getOptionValue(ROOT_PATH_OPTION))
-                      .toRight("Root path must be provided")
-      interface   = Option(line.getOptionValue(INTERFACE_OPTION))
-                      .getOrElse("127.0.0.1")
-      rpcPortStr  = Option(line.getOptionValue(RPC_PORT_OPTION)).getOrElse("8080")
-      rpcPort    <- Either
-                      .catchNonFatal(rpcPortStr.toInt)
-                      .leftMap(_ => "Port must be integer")
+      rootId <- Option(line.getOptionValue(ROOT_ID_OPTION))
+        .toRight("Root id must be provided")
+        .flatMap { id =>
+          Either
+            .catchNonFatal(UUID.fromString(id))
+            .leftMap(_ => "Root must be UUID")
+        }
+      rootPath <- Option(line.getOptionValue(ROOT_PATH_OPTION))
+        .toRight("Root path must be provided")
+      interface = Option(line.getOptionValue(INTERFACE_OPTION))
+        .getOrElse("127.0.0.1")
+      rpcPortStr = Option(line.getOptionValue(RPC_PORT_OPTION)).getOrElse("8080")
+      rpcPort <- Either
+        .catchNonFatal(rpcPortStr.toInt)
+        .leftMap(_ => "Port must be integer")
       dataPortStr = Option(line.getOptionValue(DATA_PORT_OPTION)).getOrElse("8081")
-      dataPort   <- Either
-                      .catchNonFatal(dataPortStr.toInt)
-                      .leftMap(_ => "Port must be integer")
+      dataPort <- Either
+        .catchNonFatal(dataPortStr.toInt)
+        .leftMap(_ => "Port must be integer")
     } yield boot.LanguageServerConfig(interface, rpcPort, dataPort, rootId, rootPath)
-    // format: on
+  // format: on
 
   /** Prints the version of the Enso executable.
     *
@@ -740,21 +764,24 @@ object Main {
         line.getOptionValue(RUN_OPTION),
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
-        logMasking
+        logMasking,
+        shouldEnableIrCaches(line)
       )
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
-        logMasking
+        logMasking,
+        shouldEnableIrCaches(line)
       )
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
-        logMasking
+        logMasking,
+        shouldEnableIrCaches(line)
       )
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
@@ -765,4 +792,11 @@ object Main {
       exitFail()
     }
   }
+
+  private def shouldEnableIrCaches(line: CommandLine): Boolean =
+    if (isDevBuild) {
+      line.hasOption(ENABLE_DEV_CACHES)
+    } else {
+      true
+    }
 }
