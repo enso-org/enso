@@ -23,7 +23,7 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
-import org.enso.logger.masking.Masking$;
+import org.enso.logger.masking.MaskingFactory;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
@@ -70,7 +70,7 @@ public final class Language extends TruffleLanguage<Context> {
   @Override
   protected Context createContext(Env env) {
     boolean logMasking = env.getOptions().get(RuntimeOptions.LOG_MASKING_KEY);
-    Masking$.MODULE$.setup(logMasking);
+    MaskingFactory.getInstance().setup(logMasking);
 
     var notificationHandler = new Forwarder();
     boolean isInteractiveMode = env.getOptions().get(RuntimeOptions.INTERACTIVE_MODE_KEY);
