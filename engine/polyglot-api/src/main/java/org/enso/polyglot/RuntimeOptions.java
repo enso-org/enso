@@ -28,6 +28,11 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
+  public static final String LOG_MASKING = optionName("log.masking");
+  public static final OptionKey<Boolean> LOG_MASKING_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor LOG_MASKING_DESCRIPTOR =
+      OptionDescriptor.newBuilder(LOG_MASKING_KEY, LOG_MASKING).build();
+
   public static final String INTERACTIVE_MODE = interpreterOptionName("interactive");
   public static final OptionKey<Boolean> INTERACTIVE_MODE_KEY = new OptionKey<>(false);
   public static final OptionDescriptor INTERACTIVE_MODE_DESCRIPTOR =
@@ -79,6 +84,7 @@ public class RuntimeOptions {
               PROJECT_ROOT_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
+              LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,

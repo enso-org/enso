@@ -341,11 +341,13 @@ object Main {
     * @param projectPath if specified, the script is run in context of a
     *                    project located at that path
     * @param logLevel log level to set for the engine runtime
+    * @param logMasking is the log masking enabled
     */
   private def run(
     path: String,
     projectPath: Option[String],
-    logLevel: LogLevel
+    logLevel: LogLevel,
+    logMasking: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -372,8 +374,9 @@ object Main {
       System.in,
       System.out,
       Repl(TerminalIO()),
-      strictErrors = true,
-      logLevel     = logLevel
+      logLevel,
+      logMasking,
+      strictErrors = true
     )
     if (projectMode) {
       val pkg  = PackageManager.Default.fromDirectory(file)
@@ -400,29 +403,36 @@ object Main {
     * @param projectPath if specified, the docs is generated for a project
     *                    at the given path
     * @param logLevel log level to set for the engine runtime
+    * @param logMasking is the log masking enabled
     */
   private def genDocs(
     projectPath: Option[String],
-    logLevel: LogLevel
+    logLevel: LogLevel,
+    logMasking: Boolean
   ): Unit = {
     if (projectPath.isEmpty) {
       println("Path hasn't been provided.")
       exitFail()
     }
-    generateDocsFrom(projectPath.get, logLevel)
+    generateDocsFrom(projectPath.get, logLevel, logMasking)
     exitSuccess()
   }
 
   /** Subroutine of `genDocs` function.
     * Generates the documentation for given Enso project at given path.
     */
-  def generateDocsFrom(path: String, logLevel: LogLevel): Unit = {
+  def generateDocsFrom(
+    path: String,
+    logLevel: LogLevel,
+    logMasking: Boolean
+  ): Unit = {
     val executionContext = new ContextFactory().create(
       path,
       System.in,
       System.out,
       Repl(TerminalIO()),
-      logLevel = logLevel
+      logLevel,
+      logMasking
     )
 
     val file = new File(path)
@@ -539,8 +549,13 @@ object Main {
     * @param projectPath if specified, the REPL is run in context of a project
     *                    at the given path
     * @param logLevel log level to set for the engine runtime
+    * @param logMasking is the log masking enabled
     */
-  private def runRepl(projectPath: Option[String], logLevel: LogLevel): Unit = {
+  private def runRepl(
+    projectPath: Option[String],
+    logLevel: LogLevel,
+    logMasking: Boolean
+  ): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
       s"""from Standard.Base import all
@@ -555,7 +570,8 @@ object Main {
         System.in,
         System.out,
         Repl(TerminalIO()),
-        logLevel = logLevel
+        logLevel,
+        logMasking
       )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -723,14 +739,23 @@ object Main {
       run(
         line.getOptionValue(RUN_OPTION),
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
-        logLevel
+        logLevel,
+        logMasking
       )
     }
     if (line.hasOption(REPL_OPTION)) {
-      runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+      runRepl(
+        Option(line.getOptionValue(IN_PROJECT_OPTION)),
+        logLevel,
+        logMasking
+      )
     }
     if (line.hasOption(DOCS_OPTION)) {
-      genDocs(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+      genDocs(
+        Option(line.getOptionValue(IN_PROJECT_OPTION)),
+        logLevel,
+        logMasking
+      )
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)

@@ -32,6 +32,7 @@ class ContextFactory {
     out: OutputStream,
     repl: Repl,
     logLevel: LogLevel,
+    logMasking: Boolean,
     strictErrors: Boolean = false
   ): PolyglotContext = {
     val context = Context
@@ -42,6 +43,7 @@ class ContextFactory {
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .option(DebugServerInfo.ENABLE_OPTION, "true")
+      .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
       .option("js.foreign-object-prototype", "true")
       .out(out)
       .in(in)
