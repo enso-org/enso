@@ -434,6 +434,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -459,6 +460,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           (v2, id2) <- repo.update(
             suggestion.function,
             Some(None),
+            None,
             None,
             None,
             None,
@@ -494,6 +496,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -522,6 +525,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           Some(Some(newDoc)),
+          None,
           None,
           None,
           None
@@ -554,6 +558,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             None,
             None,
             Some(Some(newDoc)),
+            None,
             None,
             None
           )
@@ -588,6 +593,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             Some(Some(newDoc)),
             None,
             None,
+            None,
             None
           )
           s <- repo.select(id1.get)
@@ -618,6 +624,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             None,
             None,
             Some(Some(newDoc)),
+            None,
             None,
             None
           )
@@ -651,6 +658,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             Some(None),
             None,
             None,
+            None,
             None
           )
           s <- repo.select(id1.get)
@@ -681,6 +689,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             None,
             Some(None),
             None,
+            None,
             None
           )
           s <- repo.select(id1.get)
@@ -708,6 +717,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
         (v2, id2) <- repo.update(
           suggestion.local,
+          None,
           None,
           None,
           None,
@@ -746,6 +756,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -777,6 +788,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           suggestion.atom,
           None,
           Some(newArgs),
+          None,
           None,
           None,
           None,
@@ -824,6 +836,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -852,6 +865,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
         (v2, id2) <- repo.update(
           suggestion.method,
+          None,
           None,
           None,
           None,
@@ -1588,6 +1602,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         module            = "Test.Main",
         documentation     = Some("This is a main module."),
         documentationHtml = Some("<p>This is a main module.</p>"),
+        documentationJson = None,
         reexport          = None
       )
 
@@ -1603,6 +1618,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         returnType        = "Pair",
         documentation     = Some("Awesome"),
         documentationHtml = Some("<p>Awesome</p>"),
+        documentationJson = None,
         reexport          = None
       )
 
@@ -1616,6 +1632,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         returnType        = "IO",
         documentation     = None,
         documentationHtml = None,
+        documentationJson = None,
         reexport          = None
       )
 

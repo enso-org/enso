@@ -126,6 +126,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     returnType: Option[String],
     documentation: Option[Option[String]],
     documentationHtml: Option[Option[String]],
+    documentationJson: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): Future[(Long, Option[Long])] =
@@ -137,6 +138,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         returnType,
         documentation,
         documentationHtml,
+        documentationJson,
         scope,
         reexport
       )
@@ -402,6 +404,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
                 returnType,
                 doc,
                 docHtml,
+                docJson,
                 scope,
                 reexport
               ) =>
@@ -412,6 +415,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
               returnType,
               doc,
               docHtml,
+              docJson,
               scope,
               reexport
             )
@@ -611,7 +615,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
-    * @param documentationHtml the Html documentation string to update
+    * @param documentationHtml the HTML documentation string to update
+    * @param documentationJson the JSON documentation string to update
     * @param scope the scope to update
     */
   private def updateQuery(
@@ -621,6 +626,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     returnType: Option[String],
     documentation: Option[Option[String]],
     documentationHtml: Option[Option[String]],
+    documentationJson: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): DBIO[(Long, Option[Long])] =
@@ -632,6 +638,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         returnType,
         documentation,
         documentationHtml,
+        documentationJson,
         scope,
         reexport
       )
@@ -645,7 +652,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
-    * @param documentationHtml the Html documentation string to update
+    * @param documentationHtml the HTML documentation string to update
+    * @param documentationJson the JSON documentation string to update
     * @param scope the scope to update
     */
   private def updateSuggestionQuery(
@@ -655,6 +663,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     returnType: Option[String],
     documentation: Option[Option[String]],
     documentationHtml: Option[Option[String]],
+    documentationJson: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): DBIO[Option[Long]] = {
@@ -990,7 +999,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
     suggestion match {
-      case Suggestion.Module(module, doc, docHtml, reexport) =>
+      case Suggestion.Module(module, doc, docHtml, docJson, reexport) =>
         val row = SuggestionRow(
           id                = None,
           externalIdLeast   = None,
@@ -1006,6 +1015,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset    = ScopeColumn.EMPTY,
           documentation     = doc,
           documentationHtml = docHtml,
+          documentationJson = docJson,
           reexport          = reexport
         )
         row -> Seq()
@@ -1017,6 +1027,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             doc,
             docHtml,
+            docJson,
             reexport
           ) =>
         val row = SuggestionRow(
@@ -1030,6 +1041,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType        = returnType,
           documentation     = doc,
           documentationHtml = docHtml,
+          documentationJson = docJson,
           scopeStartLine    = ScopeColumn.EMPTY,
           scopeStartOffset  = ScopeColumn.EMPTY,
           scopeEndLine      = ScopeColumn.EMPTY,
@@ -1046,6 +1058,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             doc,
             docHtml,
+            docJson,
             reexport
           ) =>
         val row = SuggestionRow(
@@ -1059,6 +1072,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType        = returnType,
           documentation     = doc,
           documentationHtml = docHtml,
+          documentationJson = docJson,
           scopeStartLine    = ScopeColumn.EMPTY,
           scopeStartOffset  = ScopeColumn.EMPTY,
           scopeEndLine      = ScopeColumn.EMPTY,
@@ -1078,6 +1092,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType        = returnType,
           documentation     = None,
           documentationHtml = None,
+          documentationJson = None,
           scopeStartLine    = scope.start.line,
           scopeStartOffset  = scope.start.character,
           scopeEndLine      = scope.end.line,
@@ -1097,6 +1112,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType        = returnType,
           documentation     = None,
           documentationHtml = None,
+          documentationJson = None,
           scopeStartLine    = scope.start.line,
           scopeStartOffset  = scope.start.character,
           scopeEndLine      = scope.end.line,
@@ -1141,6 +1157,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           module            = suggestion.module,
           documentation     = suggestion.documentation,
           documentationHtml = suggestion.documentationHtml,
+          documentationJson = suggestion.documentationJson,
           reexport          = suggestion.reexport
         )
       case SuggestionKind.ATOM =>
@@ -1153,6 +1170,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType        = suggestion.returnType,
           documentation     = suggestion.documentation,
           documentationHtml = suggestion.documentationHtml,
+          documentationJson = suggestion.documentationJson,
           reexport          = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
@@ -1166,6 +1184,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType        = suggestion.returnType,
           documentation     = suggestion.documentation,
           documentationHtml = suggestion.documentationHtml,
+          documentationJson = suggestion.documentationJson,
           reexport          = suggestion.reexport
         )
       case SuggestionKind.FUNCTION =>
