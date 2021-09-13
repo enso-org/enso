@@ -28,6 +28,7 @@ object SuggestionDiff {
                 None,
                 None,
                 None,
+                None,
                 None
               )
             ) =>
@@ -171,6 +172,9 @@ object SuggestionDiff {
     if (e1.documentationHtml != e2.documentationHtml) {
       op = op.copy(documentationHtml = Some(e2.documentationHtml))
     }
+    if (e1.documentationJson != e2.documentationJson) {
+      op = op.copy(documentationJSON = Some(e2.documentationJson))
+    }
     Api.SuggestionUpdate(e1, op)
   }
 
@@ -193,6 +197,9 @@ object SuggestionDiff {
     }
     if (e1.documentationHtml != e2.documentationHtml) {
       op = op.copy(documentationHtml = Some(e2.documentationHtml))
+    }
+    if (e1.documentationJson != e2.documentationJson) {
+      op = op.copy(documentationJSON = Some(e2.documentationJson))
     }
     Api.SuggestionUpdate(e1, op)
   }
