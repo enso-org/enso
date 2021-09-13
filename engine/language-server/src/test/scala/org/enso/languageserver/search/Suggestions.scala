@@ -10,7 +10,8 @@ object Suggestions {
   val module: Suggestion.Module = Suggestion.Module(
     module            = "Test.Main",
     documentation     = Some("Module doc"),
-    documentationHtml = Some("<html></html>")
+    documentationHtml = Some("<html></html>"),
+    documentationJson = None
   )
 
   val atom: Suggestion.Atom = Suggestion.Atom(
@@ -20,7 +21,8 @@ object Suggestions {
     arguments         = Vector(Suggestion.Argument("a", "Any", false, false, None)),
     returnType        = "MyAtom",
     documentation     = None,
-    documentationHtml = None
+    documentationHtml = None,
+    documentationJson = None
   )
 
   val method: Suggestion.Method = Suggestion.Method(
@@ -34,7 +36,8 @@ object Suggestions {
     selfType          = "MyType",
     returnType        = "Number",
     documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    documentationHtml = Some("<p>Lovely</p>"),
+    documentationJson = None
   )
 
   val function: Suggestion.Function = Suggestion.Function(
@@ -71,7 +74,8 @@ object Suggestions {
     selfType          = "Any",
     returnType        = "Any",
     documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    documentationHtml = Some("<p>Lovely</p>"),
+    documentationJson = None
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -84,7 +88,8 @@ object Suggestions {
     selfType          = "Number",
     returnType        = "Number",
     documentation     = None,
-    documentationHtml = None
+    documentationHtml = None,
+    documentationJson = None
   )
 
   val methodOnInteger: Suggestion.Method = Suggestion.Method(
@@ -97,7 +102,8 @@ object Suggestions {
     selfType          = "Integer",
     returnType        = "Number",
     documentation     = Some("Blah, blah"),
-    documentationHtml = Some("<p>Blah, blah</p>")
+    documentationHtml = Some("<p>Blah, blah</p>"),
+    documentationJson = None
   )
 
   val all = Seq(
