@@ -34,7 +34,8 @@ object SuggestionRandom {
     Suggestion.Module(
       module            = nextString(),
       documentation     = optional(nextString()),
-      documentationHtml = optional(nextString())
+      documentationHtml = optional(nextString()),
+      documentationJson = optional(nextString())
     )
 
   def nextSuggestionAtom(): Suggestion.Atom =
@@ -45,7 +46,8 @@ object SuggestionRandom {
       arguments         = Seq(),
       returnType        = nextString(),
       documentation     = optional(nextString()),
-      documentationHtml = optional(nextString())
+      documentationHtml = optional(nextString()),
+      documentationJson = optional(nextString())
     )
 
   def nextSuggestionMethod(): Suggestion.Method =
@@ -57,7 +59,8 @@ object SuggestionRandom {
       selfType          = nextString(),
       returnType        = nextString(),
       documentation     = optional(nextString()),
-      documentationHtml = optional(nextString())
+      documentationHtml = optional(nextString()),
+      documentationJson = optional(nextString())
     )
 
   def nextSuggestionFunction(): Suggestion.Function =
