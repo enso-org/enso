@@ -64,7 +64,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -97,7 +98,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = SuggestionBuilder.Any,
               documentation = Some(" The foo"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo"))
+                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo")),
+              documentationJson = None
             ),
             Vector()
           )
@@ -131,7 +133,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Number",
               documentation = Some(" The foo"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo"))
+                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo")),
+              documentationJson = None
             ),
             Vector()
           )
@@ -162,7 +165,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = "Foo.Bar",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -194,7 +198,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = "Number",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -232,7 +237,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = "Number",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -264,7 +270,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = "Foo.Bar Baz",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -301,7 +308,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -354,7 +362,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -383,7 +392,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.MyType",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -403,7 +413,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyType",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -444,7 +455,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.MyAtom",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -463,7 +475,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Number",
               documentation = Some(" My bar"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" My bar", "bar"))
+                Some(DocParserWrapper.runOnPureDoc(" My bar", "bar")),
+              documentationJson = None
             ),
             Vector()
           )
@@ -493,7 +506,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.MyAtom",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -510,7 +524,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyAtom",
               returnType        = "Number",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -540,7 +555,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.MyAtom",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -563,7 +579,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyAtom",
               returnType        = "Number",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -594,7 +611,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -623,7 +641,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.A",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -639,7 +658,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = "Unnamed.Test.A",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -670,7 +690,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -721,7 +742,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -785,7 +807,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -833,7 +856,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.A",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -848,7 +872,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -897,7 +922,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -944,7 +970,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -1004,7 +1031,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -1049,7 +1077,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.A",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1064,7 +1093,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -1108,7 +1138,8 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType        = "Unnamed.Test.MyType",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1124,7 +1155,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyType",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1140,7 +1172,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyType",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1175,7 +1208,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Unnamed.Test.MyType",
               documentation = Some(" My sweet type"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" My sweet type", "MyType"))
+                Some(DocParserWrapper.runOnPureDoc(" My sweet type", "MyType")),
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1191,7 +1225,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyType",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1207,7 +1242,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyType",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1235,7 +1271,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.Nothing",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1250,7 +1287,8 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType        = "Unnamed.Test.Just",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1266,7 +1304,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.Just",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1301,7 +1340,8 @@ class SuggestionBuilderTest extends CompilerTest {
               documentation = Some(" Nothing here"),
               documentationHtml = Some(
                 DocParserWrapper.runOnPureDoc(" Nothing here", "Nothing")
-              )
+              ),
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1318,7 +1358,8 @@ class SuggestionBuilderTest extends CompilerTest {
               documentation = Some(" Something there"),
               documentationHtml = Some(
                 DocParserWrapper.runOnPureDoc(" Something there", "Just")
-              )
+              ),
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1334,7 +1375,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.Just",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1369,7 +1411,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Unnamed.Test.Cons",
               documentation = Some(" And more"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" And more", "Cons"))
+                Some(DocParserWrapper.runOnPureDoc(" And more", "Cons")),
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1382,7 +1425,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Unnamed.Test.Nil",
               documentation = Some(" End"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" End", "Nil"))
+                Some(DocParserWrapper.runOnPureDoc(" End", "Nil")),
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1399,7 +1443,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "List",
               documentation = Some(" a method"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" a method", "empty"))
+                Some(DocParserWrapper.runOnPureDoc(" a method", "empty")),
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1416,7 +1461,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "List",
               documentation = Some(" a method"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" a method", "empty"))
+                Some(DocParserWrapper.runOnPureDoc(" a method", "empty")),
+              documentationJson = None
             ),
             Vector()
           )
@@ -1447,7 +1493,8 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments         = Seq(),
               returnType        = "Unnamed.Test.Nothing",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1462,7 +1509,8 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType        = "Unnamed.Test.Just",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1478,7 +1526,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.Just",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1496,7 +1545,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.Nothing",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1514,7 +1564,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.Just",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1546,7 +1597,8 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType        = "Unnamed.Test.MyType",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1562,7 +1614,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyType",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1578,7 +1631,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.MyType",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1593,7 +1647,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1623,7 +1678,8 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType        = "Unnamed.Test.Test",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1639,7 +1695,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1654,7 +1711,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1690,7 +1748,8 @@ class SuggestionBuilderTest extends CompilerTest {
                 arguments         = List(),
                 returnType        = "Unnamed.Test.A",
                 documentation     = None,
-                documentationHtml = None
+                documentationHtml = None,
+                documentationJson = None
               ),
             Vector()
           ),
@@ -1707,7 +1766,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test.A",
               returnType        = "Unnamed.Test.A",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1723,7 +1783,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = "Unnamed.Test.A",
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           ),
@@ -1738,7 +1799,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1773,7 +1835,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector()
           )
@@ -1809,7 +1872,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -1865,7 +1929,8 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType          = "Unnamed.Test",
               returnType        = SuggestionBuilder.Any,
               documentation     = None,
-              documentationHtml = None
+              documentationHtml = None,
+              documentationJson = None
             ),
             Vector(
               Tree.Node(
@@ -1924,7 +1989,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = SuggestionBuilder.Any,
               documentation = Some(" The foo"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo"))
+                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo")),
+              documentationJson = None
             ),
             Vector()
           )
