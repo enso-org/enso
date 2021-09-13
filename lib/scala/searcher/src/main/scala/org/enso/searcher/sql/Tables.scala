@@ -58,6 +58,7 @@ case class SuggestionRow(
   scopeEndOffset: Int,
   documentation: Option[String],
   documentationHtml: Option[String],
+  documentationJson: Option[String],
   reexport: Option[String]
 )
 
@@ -173,6 +174,7 @@ final class SuggestionsTable(tag: Tag)
     column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
   def documentation     = column[Option[String]]("documentation")
   def documentationHtml = column[Option[String]]("documentation_html")
+  def documentationJson = column[Option[String]]("documentation_json")
   def reexport          = column[Option[String]]("reexport")
 
   def * =
@@ -191,6 +193,7 @@ final class SuggestionsTable(tag: Tag)
       scopeEndOffset,
       documentation,
       documentationHtml,
+      documentationJson,
       reexport
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
@@ -264,5 +267,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 5
+  val CurrentVersion: Long = 6
 }
