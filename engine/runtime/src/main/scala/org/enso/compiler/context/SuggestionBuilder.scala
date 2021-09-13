@@ -155,16 +155,18 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
-      externalId        = externalId,
-      module            = module.toString,
-      name              = name.name,
-      arguments         = methodArgs,
-      selfType          = selfType.toString,
-      returnType        = buildReturnType(returnTypeDef),
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name.name)),
-      documentationJson = None, // TODO: JSON
-      reexport          = None
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name.name,
+      arguments     = methodArgs,
+      selfType      = selfType.toString,
+      returnType    = buildReturnType(returnTypeDef),
+      documentation = doc,
+      documentationHtml =
+        doc.map(DocParserWrapper.obtainHtmlFromDocString(_, name.name)),
+      documentationJson =
+        doc.map(DocParserWrapper.obtainJsonFromDocString(_, name.name)),
+      reexport = None
     )
   }
 
@@ -220,9 +222,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       module        = module.toString,
       documentation = doc,
       documentationHtml =
-        doc.map(DocParserWrapper.runOnPureDoc(_, module.toString)),
-      documentationJson = None,
-      reexport          = None
+        doc.map(DocParserWrapper.obtainHtmlFromDocString(_, module.toString)),
+      documentationJson =
+        doc.map(DocParserWrapper.obtainJsonFromDocString(_, name.name)),
+      reexport = None
     )
 
   /** Build suggestions for an atom definition. */
@@ -244,15 +247,17 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId        = None,
-      module            = module.toString,
-      name              = name,
-      arguments         = arguments.map(buildArgument),
-      returnType        = module.createChild(name).toString,
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name)),
-      documentationJson = None,
-      reexport          = None
+      externalId    = None,
+      module        = module.toString,
+      name          = name,
+      arguments     = arguments.map(buildArgument),
+      returnType    = module.createChild(name).toString,
+      documentation = doc,
+      documentationHtml =
+        doc.map(DocParserWrapper.obtainHtmlFromDocString(_, name)),
+      documentationJson =
+        doc.map(DocParserWrapper.obtainJsonFromDocString(_, name.name)),
+      reexport = None
     )
 
   /** Build getter methods from atom arguments. */

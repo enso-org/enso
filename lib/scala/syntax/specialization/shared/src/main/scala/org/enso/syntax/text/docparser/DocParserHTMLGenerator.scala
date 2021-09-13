@@ -78,6 +78,14 @@ object DocParserHTMLGenerator {
       )
       .toString()
 
+  /** Function to generate JSON from pure doc comment w/o connection to AST
+    *
+    * @param doc - Doc from Doc Parser
+    * @return - JSON Code from Doc
+    */
+  def generateJSONPureDoc(doc: Doc, title: String = ""): String =
+    doc.jsonWithTitle(title)
+
   //////////////////////////////////////////////////////////////////////////////
   //// HTML Rendering of Documentation /////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////

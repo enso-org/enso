@@ -35,8 +35,9 @@ class SuggestionBuilderTest extends CompilerTest {
     Suggestion.Module(
       module        = Module.toString,
       documentation = Some(" " + moduleDoc),
-      documentationHtml =
-        Some(DocParserWrapper.runOnPureDoc(moduleDoc, Module.toString)),
+      documentationHtml = Some(
+        DocParserWrapper.obtainHtmlFromDocString(moduleDoc, Module.toString)
+      ),
       reexport = None
     ),
     Vector()
@@ -97,8 +98,9 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = Some(" The foo"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo")),
+              documentationHtml = Some(
+                DocParserWrapper.obtainHtmlFromDocString(" The foo", "foo")
+              ),
               documentationJson = None
             ),
             Vector()
@@ -132,8 +134,9 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType      = "Unnamed.Test",
               returnType    = "Number",
               documentation = Some(" The foo"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo")),
+              documentationHtml = Some(
+                DocParserWrapper.obtainHtmlFromDocString(" The foo", "foo")
+              ),
               documentationJson = None
             ),
             Vector()
@@ -474,8 +477,9 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType      = "Unnamed.Test.MyAtom",
               returnType    = "Number",
               documentation = Some(" My bar"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" My bar", "bar")),
+              documentationHtml = Some(
+                DocParserWrapper.obtainHtmlFromDocString(" My bar", "bar")
+              ),
               documentationJson = None
             ),
             Vector()
@@ -1207,8 +1211,10 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType    = "Unnamed.Test.MyType",
               documentation = Some(" My sweet type"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" My sweet type", "MyType")),
+              documentationHtml = Some(
+                DocParserWrapper
+                  .obtainHtmlFromDocString(" My sweet type", "MyType")
+              ),
               documentationJson = None
             ),
             Vector()
@@ -1339,7 +1345,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Unnamed.Test.Nothing",
               documentation = Some(" Nothing here"),
               documentationHtml = Some(
-                DocParserWrapper.runOnPureDoc(" Nothing here", "Nothing")
+                DocParserWrapper
+                  .obtainHtmlFromDocString(" Nothing here", "Nothing")
               ),
               documentationJson = None
             ),
@@ -1357,7 +1364,8 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Unnamed.Test.Just",
               documentation = Some(" Something there"),
               documentationHtml = Some(
-                DocParserWrapper.runOnPureDoc(" Something there", "Just")
+                DocParserWrapper
+                  .obtainHtmlFromDocString(" Something there", "Just")
               ),
               documentationJson = None
             ),
@@ -1410,8 +1418,9 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments     = Seq(),
               returnType    = "Unnamed.Test.Cons",
               documentation = Some(" And more"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" And more", "Cons")),
+              documentationHtml = Some(
+                DocParserWrapper.obtainHtmlFromDocString(" And more", "Cons")
+              ),
               documentationJson = None
             ),
             Vector()
@@ -1425,7 +1434,7 @@ class SuggestionBuilderTest extends CompilerTest {
               returnType    = "Unnamed.Test.Nil",
               documentation = Some(" End"),
               documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" End", "Nil")),
+                Some(DocParserWrapper.obtainHtmlFromDocString(" End", "Nil")),
               documentationJson = None
             ),
             Vector()
@@ -1442,8 +1451,9 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType      = "Unnamed.Test.Cons",
               returnType    = "List",
               documentation = Some(" a method"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" a method", "empty")),
+              documentationHtml = Some(
+                DocParserWrapper.obtainHtmlFromDocString(" a method", "empty")
+              ),
               documentationJson = None
             ),
             Vector()
@@ -1460,8 +1470,9 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType      = "Unnamed.Test.Nil",
               returnType    = "List",
               documentation = Some(" a method"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" a method", "empty")),
+              documentationHtml = Some(
+                DocParserWrapper.obtainHtmlFromDocString(" a method", "empty")
+              ),
               documentationJson = None
             ),
             Vector()
@@ -1971,7 +1982,8 @@ class SuggestionBuilderTest extends CompilerTest {
               "Unnamed.Test",
               Some(" Module doc"),
               Some(
-                DocParserWrapper.runOnPureDoc(" Module doc", "Unnamed.Test")
+                DocParserWrapper
+                  .obtainHtmlFromDocString(" Module doc", "Unnamed.Test")
               ),
               None
             ),
@@ -1988,8 +2000,9 @@ class SuggestionBuilderTest extends CompilerTest {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = Some(" The foo"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo")),
+              documentationHtml = Some(
+                DocParserWrapper.obtainHtmlFromDocString(" The foo", "foo")
+              ),
               documentationJson = None
             ),
             Vector()

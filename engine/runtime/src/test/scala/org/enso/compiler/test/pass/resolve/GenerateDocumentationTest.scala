@@ -100,12 +100,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Atom]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
-      getDoc(ir.bindings(0)) shouldEqual DocParserWrapper.runOnPureDoc(
-        " This is doc for My_Atom"
-      )
-      getDoc(ir.bindings(1)) shouldEqual DocParserWrapper.runOnPureDoc(
-        " This is doc for my_method"
-      )
+      getDoc(ir.bindings(0)) shouldEqual DocParserWrapper
+        .obtainHtmlFromDocString(
+          " This is doc for My_Atom"
+        )
+      getDoc(ir.bindings(1)) shouldEqual DocParserWrapper
+        .obtainHtmlFromDocString(
+          " This is doc for my_method"
+        )
     }
   }
 
@@ -131,12 +133,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
 
       pprintln(body)
       body.expressions.length shouldEqual 1
-      getDoc(body.expressions(0)) shouldEqual DocParserWrapper.runOnPureDoc(
-        " Do thing"
-      )
-      getDoc(body.returnValue) shouldEqual DocParserWrapper.runOnPureDoc(
-        " Do another thing"
-      )
+      getDoc(body.expressions(0)) shouldEqual DocParserWrapper
+        .obtainHtmlFromDocString(
+          " Do thing"
+        )
+      getDoc(body.returnValue) shouldEqual DocParserWrapper
+        .obtainHtmlFromDocString(
+          " Do another thing"
+        )
     }
 
     "be associated with the type ascriptions" in {
@@ -161,12 +165,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
 
       body.expressions.length shouldEqual 2
       body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
-      getDoc(body.expressions(0)) shouldEqual DocParserWrapper.runOnPureDoc(
-        " Id"
-      )
-      getDoc(body.returnValue) shouldEqual DocParserWrapper.runOnPureDoc(
-        " Return thing"
-      )
+      getDoc(body.expressions(0)) shouldEqual DocParserWrapper
+        .obtainHtmlFromDocString(
+          " Id"
+        )
+      getDoc(body.returnValue) shouldEqual DocParserWrapper
+        .obtainHtmlFromDocString(
+          " Return thing"
+        )
     }
   }
 
@@ -192,30 +198,31 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |        0
           |""".stripMargin.preprocessModule.resolve
       val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.Type]
-      getDoc(tp) shouldEqual DocParserWrapper.runOnPureDoc(
+      getDoc(tp) shouldEqual DocParserWrapper.obtainHtmlFromDocString(
         " the type Foo"
       )
       val t1 = tp.body(0)
-      getDoc(t1) shouldEqual DocParserWrapper.runOnPureDoc(
+      getDoc(t1) shouldEqual DocParserWrapper.obtainHtmlFromDocString(
         " the constructor Bar"
       )
       val t2 = tp.body(1)
-      getDoc(t2) shouldEqual DocParserWrapper.runOnPureDoc(
+      getDoc(t2) shouldEqual DocParserWrapper.obtainHtmlFromDocString(
         " the included Unit"
       )
       val method = tp.body(2).asInstanceOf[IR.Function.Binding]
-      getDoc(method) shouldEqual DocParserWrapper.runOnPureDoc(
+      getDoc(method) shouldEqual DocParserWrapper.obtainHtmlFromDocString(
         " a method"
       )
       val block = method.body.asInstanceOf[IR.Expression.Block]
       getDoc(
         block.expressions(0)
-      ) shouldEqual DocParserWrapper.runOnPureDoc(
+      ) shouldEqual DocParserWrapper.obtainHtmlFromDocString(
         " a statement"
       )
-      getDoc(block.returnValue) shouldEqual DocParserWrapper.runOnPureDoc(
-        " the return"
-      )
+      getDoc(block.returnValue) shouldEqual DocParserWrapper
+        .obtainHtmlFromDocString(
+          " the return"
+        )
     }
   }
 }

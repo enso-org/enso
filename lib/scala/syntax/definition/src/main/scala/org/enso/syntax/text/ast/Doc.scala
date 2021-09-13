@@ -54,6 +54,14 @@ final case class Doc(
       Seq(HTML.div(tags.html)(synopsis.html)(body.html))
     }
   }
+
+  def jsonWithTitle(title: String): String = { // TODO : JSON
+    if (title != "") {
+      ""
+    } else {
+      ""
+    }
+  }
 }
 
 object Doc {

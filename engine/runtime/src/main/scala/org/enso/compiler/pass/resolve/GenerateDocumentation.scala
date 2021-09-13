@@ -66,7 +66,8 @@ case object GenerateDocumentation extends IRPass {
       val doc = x.getMetadata(DocumentationComments)
       doc match {
         case Some(value) =>
-          val genDoc = DocParserWrapper.runOnPureDoc(value.documentation)
+          val genDoc =
+            DocParserWrapper.obtainHtmlFromDocString(value.documentation)
           x.updateMetadata(this -->> DocumentationComments.Doc(genDoc))
         case None => x
       }

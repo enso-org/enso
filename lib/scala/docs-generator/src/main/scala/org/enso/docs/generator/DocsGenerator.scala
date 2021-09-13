@@ -1,6 +1,6 @@
 package org.enso.docs.generator
 
-import org.enso.docs.generator.DocParserWrapper.runOnPureDoc
+import org.enso.docs.generator.DocParserWrapper.obtainHtmlFromDocString
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.docparser.DocParserHTMLGenerator
 import scalatags.Text.{all => HTML}
@@ -19,7 +19,7 @@ object DocsGenerator {
   /** Generates list of HTML docs from given doc comments.
     */
   def generate(comments: List[String]): List[String] = {
-    comments.map(c => runOnPureDoc(c))
+    comments.map(c => obtainHtmlFromDocString(c))
   }
 
   /** Connects HTML documentation with it's AST element.

@@ -21,10 +21,18 @@ object DocParserWrapper {
 
   /** Generates HTML from Documentation string.
     */
-  def runOnPureDoc(comment: String, title: String = ""): String = {
+  def obtainHtmlFromDocString(comment: String, title: String = ""): String = {
     val doc  = DocParser.runMatched(comment)
     val html = DocParserHTMLGenerator.generateHTMLPureDoc(doc, title)
     html
+  }
+
+  /** Generates Json from Documentation string.
+    */
+  def obtainJsonFromDocString(comment: String, title: String = ""): String = {
+    val doc  = DocParser.runMatched(comment)
+    val json = DocParserHTMLGenerator.generateJSONPureDoc(doc, title)
+    json
   }
 
   /** Called if file doesn't contain docstrings, to let user know that they
@@ -35,7 +43,10 @@ object DocParserWrapper {
       val placeholder =
         "\n\n*Enso Reference Viewer.*\n\nNo documentation available for chosen source file."
       val generatedPlaceholderCode =
-        runOnPureDoc(placeholder).replace("style=\"font-size: 13px;\"", "")
+        obtainHtmlFromDocString(placeholder).replace(
+          "style=\"font-size: 13px;\"",
+          ""
+        )
       return generatedPlaceholderCode
     }
     doc
