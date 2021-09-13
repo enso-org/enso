@@ -131,12 +131,14 @@ object Suggestion {
     * @param module the fully qualified module name
     * @param documentation the documentation string
     * @param documentationHtml the documentation rendered as HTML
+    * @param documentationJson the documentation represented as JSON
     * @param reexport the module re-exporting this module
     */
   case class Module(
     module: String,
     documentation: Option[String],
     documentationHtml: Option[String],
+    documentationJson: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -166,6 +168,7 @@ object Suggestion {
     * @param returnType the type of an atom
     * @param documentation the documentation string
     * @param documentationHtml the documentation rendered as HTML
+    * @param documentationJson the documentation represented as JSON
     * @param reexport the module re-exporting this atom
     */
   case class Atom(
@@ -176,6 +179,7 @@ object Suggestion {
     returnType: String,
     documentation: Option[String],
     documentationHtml: Option[String],
+    documentationJson: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -205,6 +209,7 @@ object Suggestion {
     * @param returnType the return type of a method
     * @param documentation the documentation string
     * @param documentationHtml the documentation rendered as HTML
+    * @param documentationJson the documentation represented as JSON
     * @param reexport the module re-exporting this method
     */
   case class Method(
@@ -216,6 +221,7 @@ object Suggestion {
     returnType: String,
     documentation: Option[String],
     documentationHtml: Option[String],
+    documentationJson: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
