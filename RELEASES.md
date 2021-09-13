@@ -1,10 +1,43 @@
 # Enso Next
 
+## Interpreter/Runtime
+
 - Added `documentationJSON` field to the suggestion database.
+- Added support for serializing the compiler's intermediate representation to
+  disk ([#1991](https://github.com/enso-org/enso/pull/1991)). This is currently
+  disabled by default, but in the future will allow much faster startup of the
+  runtime.
+
+## Libraries
+
+- Added support for fetching tables from Google Spreadsheets.
+  ([#1976](https://github.com/enso-org/enso/pull/1976)).
+- Added support for certain statistical functions of table columns
+  ([#1990](https://github.com/enso-org/enso/pull/1990)).
+
+# Enso 0.2.28 (2021-09-02)
+
+## Libraries
+
+- Added `Column.set_index` to allow you to explicitly change the index for a
+  column ([#1982](https://github.com/enso-org/enso/pull/1982)). Also expanded
+  `Table.set_index` to accept columns, rather than just names of columns in the
+  table.
+- Added support for Amazon Redshift in the database library
+  ([#1985](https://github.com/enso-org/enso/pull/1985)).
+
+## Tooling
+
 - Implement `library/preinstall` endpoint, allowing the IDE to request a library
   to be installed asynchronously before importing it, so that adding the import
   does not seem to freeze the compiler
   ([#1972](https://github.com/enso-org/enso/pull/1972)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-09-02)
+  for issues opened before the release date.
 
 # Enso 0.2.27 (2021-08-23)
 

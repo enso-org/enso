@@ -18,8 +18,8 @@ val scalacVersion  = "2.13.6"
 val rustVersion    = "1.54.0-nightly"
 val graalVersion   = "21.1.0"
 val javaVersion    = "11"
-val ensoVersion    = "0.2.28-SNAPSHOT"  // Note [Engine And Launcher Version]
-val currentEdition = "2021.16-SNAPSHOT" // Note [Default Editions]
+val ensoVersion    = "0.2.29-SNAPSHOT"  // Note [Engine And Launcher Version]
+val currentEdition = "2021.17-SNAPSHOT" // Note [Default Editions]
 val stdLibVersion  = ensoVersion
 
 /* Note [Engine And Launcher Version]
@@ -96,6 +96,10 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(`project-manager`)
   ),
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
+  makeStdLibDistribution(
+    "Google_Api",
+    Distribution.sbtProjects(`std-google-api`)
+  ),
   makeStdLibDistribution("Table", Distribution.sbtProjects(`std-table`)),
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
   makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`))
@@ -1146,6 +1150,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
+      .dependsOn(`std-google-api` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
       .value
   )
@@ -1508,6 +1513,8 @@ def stdLibComponentRoot(name: String): File =
 val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
 val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
 val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
+val `google-api-polyglot-root` =
+  stdLibComponentRoot("Google_Api") / "polyglot" / "java"
 val `database-polyglot-root` =
   stdLibComponentRoot("Database") / "polyglot" / "java"
 
@@ -1581,6 +1588,29 @@ lazy val `std-image` = project
     }.value
   )
 
+lazy val `std-google-api` = project
+  .in(file("std-bits") / "google-api")
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `google-api-polyglot-root` / "std-image.jar",
+    libraryDependencies ++= Seq(
+      "com.google.api-client" % "google-api-client"          % "1.32.1",
+      "com.google.apis"       % "google-api-services-sheets" % "v4-rev612-1.25.0"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `google-api-polyglot-root`,
+          Some("std-google-api.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
 lazy val `std-database` = project
   .in(file("std-bits") / "database")
   .settings(
@@ -1588,8 +1618,11 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.xerial"     % "sqlite-jdbc" % "3.34.0",
-      "org.postgresql" % "postgresql"  % "42.2.19"
+      "org.xerial"          % "sqlite-jdbc"           % "3.34.0",
+      "org.postgresql"      % "postgresql"            % "42.2.19",
+      "com.amazon.redshift" % "redshift-jdbc42"       % "2.0.0.7",
+      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.58",
+      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.58"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1597,7 +1630,8 @@ lazy val `std-database` = project
         .copyDependencies(
           `database-polyglot-root`,
           Some("std-database.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          unpackedDeps = Set("aws-java-sdk-core", "httpclient")
         )
         .value
       result

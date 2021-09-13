@@ -4,8 +4,10 @@ import Standard.Test
 import project.Codegen_Spec
 import project.Sqlite_Spec
 import project.Postgresql_Spec
+import project.Redshift_Spec
 
 main = Test.Suite.run_main <|
     Codegen_Spec.spec
     Sqlite_Spec.spec
     Postgresql_Spec.spec
+    Redshift_Spec.spec

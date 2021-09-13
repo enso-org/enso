@@ -1,0 +1,354 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Dialect
+import Standard.Database.Data.Internal.IR
+import Standard.Database.Data.Sql
+import Standard.Database.Data.Table as Database_Table
+import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.Internal.Java_Exports
+
+from Standard.Database.Data.Sql import Sql_Type
+
+polyglot java import java.lang.UnsupportedOperationException
+polyglot java import java.util.ArrayList
+polyglot java import java.util.Properties
+polyglot java import java.sql.DriverManager
+polyglot java import java.sql.PreparedStatement
+polyglot java import java.sql.Types
+polyglot java import java.sql.SQLException
+polyglot java import java.sql.SQLTimeoutException
+polyglot java import org.enso.database.JDBCProxy
+
+type Connection
+
+    ## PRIVATE
+
+       A Database connection using a JDBC driver.
+
+       Arguments:
+       - java_connection: the resource managing the underlying JDBC connection.
+       - dialect: the dialect associated with the database we are connected to.
+
+       Allows accessing tables from a database.
+    type Connection connection_resource dialect
+
+    ## UNSTABLE
+
+       Accesses a table within the database, returning an object that can be
+       used to create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
+    access_table : Text -> Database_Table
+    access_table name = here.wrap_sql_errors <|
+        columns = this.fetch_columns name
+        Database_Table.make_table this name columns
+
+    ## Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+
+       The connection is not usable afterwards.
+    close : Nothing
+    close =
+        Managed_Resource.finalize this.connection_resource
+
+    ## ADVANCED
+
+       Executes a raw query and returns the result as an in-memory Table.
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of Sql.Statement
+         representing the query to execute.
+       - expected_types: an optional array of expected types of each column;
+         meant only for internal use.
+    execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
+    execute_query query expected_types=Nothing = here.wrap_sql_errors <|
+        Resource.bracket (this.prepare_statement query) .close stmt->
+            rs = stmt.executeQuery
+            metadata = rs.getMetaData
+            ncols = metadata.getColumnCount
+            column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
+            column_types = if expected_types.is_nothing.not then expected_types else
+                Vector.new ncols ix->
+                    typeid = metadata.getColumnType ix+1
+                    name = metadata.getColumnTypeName ix+1
+                    Sql_Type typeid name
+            column_builders = column_types.map typ->
+                here.create_builder typ
+            go has_next = if has_next.not then Nothing else
+                column_builders.map_with_index ix-> builder->
+                    builder.fetch_and_append rs ix+1
+                @Tail_Call go rs.next
+            go rs.next
+            columns = column_builders.zip column_names builder-> name->
+                builder.make_column name
+            Materialized_Table.from_columns columns
+
+    ## ADVANCED
+
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of Sql.Statement
+         representing the query to execute.
+    execute_update : Text | Sql.Statement -> Integer
+    execute_update query = here.wrap_sql_errors <|
+        Resource.bracket (this.prepare_statement query) .close stmt->
+            result = Panic.recover stmt.executeLargeUpdate
+            result.catch err-> case err of
+                Polyglot_Error exc ->
+                    case Java.is_instance exc UnsupportedOperationException of
+                        True ->
+                            stmt.executeUpdate
+                        False -> Error.throw err
+                _ -> Error.throw err
+
+    ## PRIVATE
+
+       Prepares the statement by ensuring that it is sanitised.
+
+       Arguments:
+       - query: The query to prepare the SQL statement in.
+    prepare_statement : Text | Sql.Statement -> PreparedStatement
+    prepare_statement query =
+        go template holes=[] = Managed_Resource.with this.connection_resource java_connection->
+            stmt = java_connection.prepareStatement template
+            setup_error = Panic.recover <|
+                holes.map_with_index ix-> obj->
+                    position = ix + 1
+                    case obj.first of
+                        Nothing -> stmt.setNull position obj.second.typeid
+                        _ -> stmt.setObject position obj.first
+            setup_error.catch error->
+                stmt.close
+                Panic.throw error
+            stmt
+        case query of
+            Text -> go query []
+            Sql.Statement _ ->
+                compiled = query.prepare
+                go compiled.first compiled.second
+
+    ## PRIVATE
+
+       A helper function that fetches column names and sql types associated with
+       them for a table in the database.
+
+       Arguments:
+       - table_name: The name of the table to fetch the column metadata for.
+    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    fetch_columns : Text -> Vector Any
+    fetch_columns table_name =
+        query = IR.Select_All (IR.make_ctx_from table_name)
+        compiled = this.dialect.generate_sql query
+        Resource.bracket (this.prepare_statement compiled) .close stmt->
+            rs = stmt.executeQuery
+            metadata = rs.getMetaData
+            ncols = metadata.getColumnCount
+            resolve_column ix =
+                name = metadata.getColumnName ix+1
+                typeid = metadata.getColumnType ix+1
+                typename = metadata.getColumnTypeName ix+1
+                [name, Sql_Type typeid typename]
+            Vector.new ncols resolve_column
+
+## PRIVATE
+
+   Creates a builder for a column based on a provided SQL type, trying to infer
+   the best type for the builder.
+
+   Arguments:
+   - sql_type: The SQL type of the column to create a builder for.
+create_builder : Sql_Type -> Builder
+create_builder sql_type =
+    initial_size = 10
+    if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
+        if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
+            if sql_type.is_definitely_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
+                Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
+
+type Builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Inferred java_builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Double java_builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Long java_builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Boolean java_builder
+
+    ## PRIVATE
+
+       Fetches the value of ith column from the current row of the result set
+       and appends it to the builder.
+
+       Arguments:
+       - rs: the Java ResultSet from which the value will be fetched.
+       - i: the index of the column to fetch from (starting from 1 as is the
+         ResultSet convention).
+    fetch_and_append : ResultSet -> Integer -> Nothing
+    fetch_and_append rs i = case this of
+        Builder_Inferred _ ->
+            obj = rs.getObject i
+            this.java_builder.append obj
+        Builder_Boolean _ ->
+            bool = rs.getBoolean i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendBoolean bool
+        Builder_Long _ ->
+            long = rs.getLong i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendLong long
+        Builder_Double _ ->
+            double = rs.getDouble i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendDouble double
+
+    ## PRIVATE
+
+       Seals the builder and returns a built Java-column.
+
+       Argument:
+       - name: The name of the column.
+    make_column : Text -> Java_Exports.Column
+    make_column name =
+        storage = this.java_builder.seal
+        Java_Exports.make_column name storage
+
+## An error indicating that a supported dialect could not be deduced for the
+   provided URL.
+
+   Argument:
+   - url: The URL for which the dialect could not be deduced.
+type Unsupported_Dialect url
+
+## Pretty print the error about unsupported SQL dialects.
+Unsupported_Dialect.to_display_text : Text
+Unsupported_Dialect.to_display_text =
+    "Could not infer the SQL dialect for the database at " + this.url + "."
+
+## PRIVATE
+
+   Creates a JDBC connection based on a URL and optionally username and
+   password.
+
+   Arguments:
+   - url: The URL to connect to.
+   - properties: A vector of properties for the connection.
+create_jdbc_connection : Text -> Vector -> Connection
+create_jdbc_connection url properties = here.wrap_sql_errors <|
+    java_props = Properties.new
+    properties.each pair->
+        java_props.setProperty pair.first pair.second
+    ## This is a workaround for the Redshift driver - it looks for an ini file
+       by looking at the jar file location, which is not available in the Graal
+       class loader. This block may be removed when migrated to a Graal version
+       with https://github.com/oracle/graal/issues/3744 fixed.
+    if url.starts_with 'jdbc:redshift:' && (java_props.getProperty 'IniFile' . is_nothing) then
+        path = Enso_Project.data/'empty.ini' . absolute . path
+        java_props.setProperty 'IniFile' path
+    dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
+    java_connection = JDBCProxy.getConnection url java_props
+    resource = Managed_Resource.register java_connection here.close_connection
+    Connection resource dialect
+
+## PRIVATE
+
+   This cannot be a closure due to limitations of Managed_Resource.
+
+   Arguments:
+   - connection: The connection to close.
+close_connection : Connection -> Nothing
+close_connection connection =
+    connection.close
+
+type Sql_Error
+
+    ## UNSTABLE
+
+       Indicates an error with executing a query, update or connecting to the
+       database.
+
+       Arguments:
+       - java_exception: The underlying exception.
+    type Sql_Error java_exception
+
+    ## UNSTABLE
+
+       Convert the SQL error to a textual representation.
+    to_text : Text
+    to_text = "There was an SQL error: " + this.java_exception.getMessage.to_text + "."
+
+    ## UNSTABLE
+
+       Pretty print the SQL error.
+    to_display_text : Text
+    to_display_text = this.to_text
+
+type Sql_Timeout_Error
+
+    ## UNSTABLE
+
+       Indicates that an operation has timed out.
+
+       Arguments:
+       - java_exception: The underlying exception.
+    type Sql_Timeout_Error java_exception
+
+    ## UNSTABLE
+
+       Convert the timeout error to a textual representation.
+    to_text : Text
+    to_text = "The SQL connection timed out: " + this.java_exception.getMessage + "."
+
+    ## UNSTABLE
+
+       Pretty print the timeout error.
+    to_display_text : Text
+    to_display_text = this.to_text
+
+## PRIVATE
+
+   Executes `action` and returns its result, catching any panics and if they are
+   coming from JDBC, wraps them with our own error types.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+wrap_sql_errors : Any -> Any ! Error
+wrap_sql_errors ~action =
+    result = Panic.recover action
+    result.catch err-> case err of
+        Polyglot_Error exc ->
+            transformed = if Java.is_instance exc SQLTimeoutException then Sql_Timeout_Error exc else
+                if Java.is_instance exc SQLException then Sql_Error exc else err
+            Error.throw transformed
+        _ -> Error.throw err

@@ -2,7 +2,6 @@ package org.enso.polyglot;
 
 import java.util.Arrays;
 import java.util.logging.Level;
-import javax.swing.text.html.Option;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
@@ -28,6 +27,11 @@ public class RuntimeOptions {
   public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
+
+  public static final String LOG_MASKING = optionName("log.masking");
+  public static final OptionKey<Boolean> LOG_MASKING_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor LOG_MASKING_DESCRIPTOR =
+      OptionDescriptor.newBuilder(LOG_MASKING_KEY, LOG_MASKING).build();
 
   public static final String INTERACTIVE_MODE = interpreterOptionName("interactive");
   public static final OptionKey<Boolean> INTERACTIVE_MODE_KEY = new OptionKey<>(false);
@@ -61,8 +65,18 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(LANGUAGE_HOME_OVERRIDE_KEY, LANGUAGE_HOME_OVERRIDE).build();
 
   public static final String DISABLE_IR_CACHES = optionName("disableIrCaches");
-  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(false);
-  private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR = OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
+  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR =
+      OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
+
+  public static final String WAIT_FOR_PENDING_SERIALIZATION_JOBS =
+      optionName("waitForPendingSerializationJobs");
+  public static final OptionKey<Boolean> WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY =
+      new OptionKey<>(false);
+  private static final OptionDescriptor WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESRIPTOR =
+      OptionDescriptor.newBuilder(
+              WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY, WAIT_FOR_PENDING_SERIALIZATION_JOBS)
+          .build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
@@ -70,13 +84,15 @@ public class RuntimeOptions {
               PROJECT_ROOT_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
+              LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
-              DISABLE_IR_CACHES_DESCRIPTOR));
+              DISABLE_IR_CACHES_DESCRIPTOR,
+              WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

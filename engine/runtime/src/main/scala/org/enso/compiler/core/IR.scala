@@ -31,7 +31,7 @@ import scala.annotation.unused
   *
   * See also: Note [IR Equality and hashing]
   */
-sealed trait IR {
+sealed trait IR extends Serializable {
 
   /** Storage for metadata that the node has been tagged with as the result of
     * various compiler passes.
@@ -5353,7 +5353,7 @@ object IR {
   // === Diagnostics ==========================================================
 
   /** A representation of various kinds of diagnostic in the IR. */
-  sealed trait Diagnostic {
+  sealed trait Diagnostic extends Serializable {
 
     /** @return a human-readable description of this error condition.
       */
