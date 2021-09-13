@@ -421,12 +421,14 @@ class SuggestionsHandlerSpec
           arguments         = Vector(),
           returnType        = moduleName,
           documentation     = None,
-          documentationHtml = None
+          documentationHtml = None,
+          documentationJson = None
         )
         val module = Suggestion.Module(
           module            = moduleName,
           documentation     = None,
-          documentationHtml = None
+          documentationHtml = None,
+          documentationJson = None
         )
 
         val tree = Tree.Root(
@@ -1226,7 +1228,8 @@ class SuggestionsHandlerSpec
         ),
         returnType        = "Pair",
         documentation     = Some("Awesome"),
-        documentationHtml = Some("")
+        documentationHtml = Some(""),
+        documentationJson = None
       )
 
     val method: Suggestion.Method =
@@ -1238,7 +1241,8 @@ class SuggestionsHandlerSpec
         selfType          = "Test.Main",
         returnType        = "IO",
         documentation     = None,
-        documentationHtml = None
+        documentationHtml = None,
+        documentationJson = None
       )
   }
 

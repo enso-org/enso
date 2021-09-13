@@ -130,7 +130,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "documentation" : "Lovely",
-                  "documentationHtml" : "<p>Lovely</p>"
+                  "documentationHtml" : "<p>Lovely</p>",
+                  "documentationJson" : ""
                 }
               }
             ],
@@ -400,7 +401,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "documentation" : "Lovely",
-                  "documentationHtml" : "<p>Lovely</p>"
+                  "documentationHtml" : "<p>Lovely</p>",
+                  "documentationJson" : ""
                 }
               },
               {

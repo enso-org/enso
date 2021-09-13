@@ -163,6 +163,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       returnType        = buildReturnType(returnTypeDef),
       documentation     = doc,
       documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name.name)),
+      documentationJson = None, // TODO: JSON
       reexport          = None
     )
   }
@@ -220,7 +221,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       documentation = doc,
       documentationHtml =
         doc.map(DocParserWrapper.runOnPureDoc(_, module.toString)),
-      reexport = None
+      documentationJson = None,
+      reexport          = None
     )
 
   /** Build suggestions for an atom definition. */
@@ -249,6 +251,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       returnType        = module.createChild(name).toString,
       documentation     = doc,
       documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name)),
+      documentationJson = None,
       reexport          = None
     )
 
