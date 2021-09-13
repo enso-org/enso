@@ -133,6 +133,8 @@ trait SuggestionsRepo[F[_]] {
     * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
+    * @param documentationHtml the HTML documentation string to update
+    * @param documentationJson the JSON documentation string to update
     * @param scope the scope to update
     */
   def update(
@@ -142,6 +144,7 @@ trait SuggestionsRepo[F[_]] {
     returnType: Option[String],
     documentation: Option[Option[String]],
     documentationHtml: Option[Option[String]],
+    documentationJson: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): F[(Long, Option[Long])]
