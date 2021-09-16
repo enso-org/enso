@@ -22,7 +22,7 @@ const resRoot = path.join(contentRoot, 'Resources')
 
 // TODO: Refactor this once we have a better wau to get the used engine version.
 //  See the tracking issue for more information https://github.com/enso-org/ide/issues/1359
-const ENGINE = '0.2.28'
+const ENGINE = '0.2.29'
 const ID = '"Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)"'
 // Placeholder name for temporary archives.
 const tmpArchive = 'temporary_archive.zip'
