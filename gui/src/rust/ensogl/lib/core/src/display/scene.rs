@@ -586,8 +586,10 @@ impl Renderer {
     /// Reload the composer after scene shape change.
     fn resize_composer(&self) {
         let shape  = self.dom.shape().device_pixels();
-        let width  = shape.width  as i32;
-        let height = shape.height as i32;
+        // The width and height in device pixels should be integers. If they are not then this is
+        // due to rounding errors. We round to the nearest integer to compensate for those errors.
+        let width  = shape.width.round()  as i32;
+        let height = shape.height.round() as i32;
         self.composer.borrow_mut().resize(width,height);
     }
 
@@ -899,10 +901,14 @@ impl SceneData {
     /// set the dirty flag.
     fn resize_canvas(&self, screen:Shape) {
         let canvas = screen.device_pixels();
+        // The width and height in device pixels should be integers. If they are not then this is
+        // due to rounding errors. We round to the nearest integer to compensate for those errors.
+        let width  = canvas.width.round() as i32;
+        let height = canvas.height.round() as i32;
         debug!(self.logger,"Resized to {screen.width}px x {screen.height}px.", || {
-            self.dom.layers.canvas.set_attribute("width",  &canvas.width.to_string()).unwrap();
-            self.dom.layers.canvas.set_attribute("height", &canvas.height.to_string()).unwrap();
-            self.context.viewport(0,0,canvas.width as i32, canvas.height as i32);
+            self.dom.layers.canvas.set_attribute("width",  &width.to_string()).unwrap();
+            self.dom.layers.canvas.set_attribute("height", &height.to_string()).unwrap();
+            self.context.viewport(0,0,width, height);
         });
     }
 
