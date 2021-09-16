@@ -348,7 +348,7 @@ public class Module implements TruffleObject {
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
-    return literalSource == null;
+    return literalSource != null;
   }
 
   /**

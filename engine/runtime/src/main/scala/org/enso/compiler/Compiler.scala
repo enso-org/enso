@@ -110,23 +110,23 @@ class Compiler(
 
     var hasInvalidModuleRelink = false
     if (irCachingEnabled && irCacheReadingEnabled) {
-      requiredModules.foreach { m =>
-        if (!m.hasCrossModuleLinks) {
+      requiredModules.foreach { module =>
+        if (!module.hasCrossModuleLinks) {
           val flags =
-            m.getIr.preorder.map(_.passData.restoreFromSerialization(this))
+            module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
 
           if (!flags.contains(false)) {
             logger.log(
               Compiler.defaultLogLevel,
-              s"Restored links (late phase) for module [${m.getName}]."
+              s"Restored links (late phase) for module [${module.getName}]."
             )
           } else {
             hasInvalidModuleRelink = true
             logger.log(
               Compiler.defaultLogLevel,
-              s"Failed to restore links (late phase) for module [${m.getName}]."
+              s"Failed to restore links (late phase) for module [${module.getName}]."
             )
-            uncachedParseModule(m, isGenDocs = false)
+            uncachedParseModule(module, isGenDocs = false)
           }
         }
       }

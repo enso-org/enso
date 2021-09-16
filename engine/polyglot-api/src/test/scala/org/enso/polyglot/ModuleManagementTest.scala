@@ -18,7 +18,6 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
         .option(
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           Paths.get("../../distribution/component").toFile.getAbsolutePath
