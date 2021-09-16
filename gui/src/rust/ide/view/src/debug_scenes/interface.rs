@@ -14,14 +14,15 @@ use crate::project;
 use crate::status_bar;
 
 use enso_frp as frp;
-use ensogl::display::navigation::navigator::Navigator;
-use ensogl::system::web;
 use ensogl::application::Application;
+use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
+use ensogl::display::shape::StyleWatch;
+use ensogl::system::web;
 use ensogl_text as text;
 use ensogl_theme as theme;
-use wasm_bindgen::prelude::*;
 use parser::Parser;
+use wasm_bindgen::prelude::*;
 
 
 
@@ -131,6 +132,21 @@ fn init(app:&Application) {
     let propagated = Immutable(false);
     let error      = graph_editor::component::node::Error {kind,message,propagated};
     graph_editor.frp.set_node_error_status.emit((node3_id,Some(error)));
+
+    let foo_node = graph_editor.add_node_below(node3_id);
+    graph_editor.set_node_expression.emit((foo_node,Expression::new_plain("foo")));
+
+    let baz_node = graph_editor.add_node_below(node3_id);
+    graph_editor.set_node_expression.emit((baz_node,Expression::new_plain("baz")));
+    let (_, baz_position) = graph_editor.node_position_set.value();
+    let styles = StyleWatch::new(&scene.style_sheet);
+    let min_spacing       = styles.get_number(theme::graph_editor::minimal_x_spacing_for_new_nodes);
+    let gap_between_nodes = styles.get_number(theme::graph_editor::default_x_gap_between_nodes);
+    let gap_for_bar_node  = min_spacing + gap_between_nodes + f32::EPSILON;
+    graph_editor.set_node_position((baz_node,baz_position+Vector2(gap_for_bar_node,0.0)));
+
+    let bar_node = graph_editor.add_node_below(node3_id);
+    graph_editor.set_node_expression.emit((bar_node,Expression::new_plain("bar")));
 
 
     // === Connections ===

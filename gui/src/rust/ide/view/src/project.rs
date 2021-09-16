@@ -67,7 +67,6 @@ ensogl::define_endpoints! {
         code_editor_shown                   (bool),
         style                               (Theme),
         fullscreen_visualization_shown      (bool),
-        default_gap_between_nodes           (f32),
         drop_files_enabled                  (bool),
     }
 }
@@ -217,15 +216,7 @@ impl Model {
     fn add_node_and_edit(&self) -> NodeId {
         let graph_editor_inputs = &self.graph_editor.frp.input;
         let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned() {
-            let selected_pos = self.graph_editor.model.get_node_position(selected).unwrap_or_default();
-            let styles       = StyleWatch::new(&self.app.display.scene().style_sheet);
-            let offset_y     = styles.get_number(ensogl_theme::project::default_gap_between_nodes);
-            let y            = selected_pos.y - offset_y;
-            let pos          = Vector2(selected_pos.x,y);
-            graph_editor_inputs.add_node.emit(());
-            let node_id = self.graph_editor.frp.output.node_added.value();
-            self.graph_editor.set_node_position((node_id,pos));
-            node_id
+            self.graph_editor.add_node_below(selected)
         } else {
             graph_editor_inputs.add_node_at_cursor.emit(());
             self.graph_editor.frp.output.node_added.value()
@@ -371,15 +362,8 @@ impl View {
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
 
-        let style_sheet                    = &scene.style_sheet;
-        let styles                         = StyleWatchFrp::new(style_sheet);
-        let default_gap_between_nodes_path = ensogl_theme::project::default_gap_between_nodes;
-
-        let default_gap_between_nodes = styles.get_number_or(default_gap_between_nodes_path, 0.0);
-        frp::extend! { network
-            frp.source.default_gap_between_nodes <+ default_gap_between_nodes;
-        }
-        frp.source.default_gap_between_nodes.emit(default_gap_between_nodes.value());
+        let style_sheet        = &scene.style_sheet;
+        let styles             = StyleWatchFrp::new(style_sheet);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
