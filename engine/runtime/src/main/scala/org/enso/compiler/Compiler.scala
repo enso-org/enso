@@ -25,7 +25,6 @@ import org.enso.syntax.text.{AST, Parser}
 
 import java.io.StringReader
 import java.util.logging.Level
-import scala.annotation.unused
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -46,7 +45,7 @@ class Compiler(
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
-  private val irCachingEnabled = !context.isIrCachingDisabled
+  private val irCachingEnabled      = !context.isIrCachingDisabled
   private val irCacheReadingEnabled = !context.isIrCacheReadingDisabled
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
@@ -58,7 +57,7 @@ class Compiler(
     if (!builtins.isIrInitialized) {
       logger.log(
         Compiler.defaultLogLevel,
-        "Initialising IR for [Standard.Builtins]."
+        s"Initialising IR for [${builtins.getModule.getName}]."
       )
 
       builtins.initializeBuiltinsSource()
@@ -66,6 +65,7 @@ class Compiler(
       if (irCachingEnabled && irCacheReadingEnabled) {
         serializationManager.deserialize(builtins.getModule) match {
           case Some(true) =>
+            // Ensure that builtins doesn't try and have codegen run on it.
             builtins.getModule.unsafeSetCompilationStage(
               Module.CompilationStage.AFTER_CODEGEN
             )
@@ -121,12 +121,11 @@ class Compiler(
               s"Restored links (late phase) for module [${m.getName}]."
             )
           } else {
+            hasInvalidModuleRelink = true
             logger.log(
               Compiler.defaultLogLevel,
               s"Failed to restore links (late phase) for module [${m.getName}]."
             )
-            hasInvalidModuleRelink = true
-
             uncachedParseModule(m, isGenDocs = false)
           }
         }
@@ -487,7 +486,7 @@ class Compiler(
       .diagnostics
   }
 
-  @unused private def hasErrors(module: Module): Boolean =
+  private def hasErrors(module: Module): Boolean =
     gatherDiagnostics(module).exists {
       case _: IR.Error => true
       case _           => false

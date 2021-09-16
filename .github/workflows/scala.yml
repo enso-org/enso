@@ -301,12 +301,12 @@ jobs:
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Database_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Geo_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Visualization_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Image_Tests
 
       - name: Test Engine Distribution With Caches (Windows)
         shell: bash

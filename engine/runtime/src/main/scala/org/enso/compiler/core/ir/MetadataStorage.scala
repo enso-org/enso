@@ -14,8 +14,7 @@ import org.enso.compiler.pass.IRPass
 class MetadataStorage(
   startingMeta: Seq[MetadataPair[_]] = Seq()
 ) extends Serializable {
-  // TODO [AA] Restore private
-  var metadata: Map[IRPass, Any] = Map(
+  private var metadata: Map[IRPass, Any] = Map(
     startingMeta.map(_.asPair.asInstanceOf[(IRPass, Any)]): _*
   )
 
