@@ -26,6 +26,7 @@ parser = { path = "../lib/parser" }
 span-tree = { path = "../lib/span-tree" }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+ordered-float = { version = "2.7.0" }
 serde_json = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }

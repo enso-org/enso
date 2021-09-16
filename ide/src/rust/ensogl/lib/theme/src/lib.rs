@@ -315,9 +315,6 @@ define_themes! { [light:0, dark:1]
             }
         }
     }
-    project {
-        default_gap_between_nodes = 60.0, 60.0;
-    }
     code {
         syntax {
             base      = Lcha(0.09,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
@@ -356,6 +353,9 @@ define_themes! { [light:0, dark:1]
         }
     }
     graph_editor {
+        default_x_gap_between_nodes     = 48.0  , 48.0;
+        default_y_gap_between_nodes     = 32.0  , 32.0;
+        minimal_x_spacing_for_new_nodes = 150.0 , 150.0;
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
