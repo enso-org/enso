@@ -1,5 +1,7 @@
 # Enso Next
 
+## Enso 0.2.29 (2021-09-16)
+
 ## Interpreter/Runtime
 
 - Added support for serializing the compiler's intermediate representation to
@@ -13,6 +15,12 @@
   ([#1976](https://github.com/enso-org/enso/pull/1976)).
 - Added support for certain statistical functions of table columns
   ([#1990](https://github.com/enso-org/enso/pull/1990)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-09-16)
+  for issues opened before the release date.
 
 # Enso 0.2.28 (2021-09-02)
 
