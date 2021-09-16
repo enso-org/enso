@@ -44,7 +44,9 @@ object Main {
   private val IN_PROJECT_OPTION           = "in-project"
   private val VERSION_OPTION              = "version"
   private val JSON_OPTION                 = "json"
-  private val ENABLE_DEV_CACHES           = "enable-dev-caches"
+  private val IR_CACHES_OPTION            = "ir-caches"
+  private val NO_IR_CACHES_OPTION         = "no-ir-caches"
+  private val NO_READ_IR_CACHES_OPTION    = "no-read-ir-caches"
   private val LOG_LEVEL                   = "log-level"
   private val LOGGER_CONNECT              = "logger-connect"
   private val NO_LOG_MASKING              = "no-log-masking"
@@ -189,10 +191,6 @@ object Main {
       .longOpt(JSON_OPTION)
       .desc("Switches the --version option to JSON output.")
       .build
-    val enableDevCaches = CliOption.builder
-      .longOpt(ENABLE_DEV_CACHES)
-      .desc("Enables IR caches in SNAPSHOT builds.")
-      .build
     val logLevelOption = CliOption.builder
       .hasArg(true)
       .numberOfArgs(1)
@@ -239,6 +237,33 @@ object Main {
       .longOpt(AUTH_TOKEN)
       .desc("Authentication token for the upload.")
       .build()
+    val noReadIrCachesOption = CliOption.builder
+      .longOpt(NO_READ_IR_CACHES_OPTION)
+      .desc(
+        "Disables the reading of IR caches in the runtime if IR caching is enabled."
+      )
+      .build()
+
+    val irCachesOption = CliOption.builder
+      .longOpt(IR_CACHES_OPTION)
+      .desc(
+        "Enables IR caches. These are on by default in production builds " +
+        "and off by default in developer builds. You may not specify this " +
+        "option with `--no-ir-caches`."
+      )
+      .build()
+    val noIrCachesOption = CliOption.builder
+      .longOpt(NO_IR_CACHES_OPTION)
+      .desc(
+        "Disables IR caches. These are on by default in production builds " +
+        "and off by default in developer builds. You may not specify this " +
+        "option with `--ir-caches`."
+      )
+      .build()
+
+    val cacheOptionsGroup = new OptionGroup
+    cacheOptionsGroup.addOption(irCachesOption)
+    cacheOptionsGroup.addOption(noIrCachesOption)
 
     val options = new Options
     options
@@ -267,10 +292,8 @@ object Main {
       .addOption(uploadOption)
       .addOption(hideProgressOption)
       .addOption(authTokenOption)
-
-    if (isDevBuild) {
-      options.addOption(enableDevCaches)
-    }
+      .addOption(noReadIrCachesOption)
+      .addOptionGroup(cacheOptionsGroup)
 
     options
   }
@@ -357,13 +380,16 @@ object Main {
     * @param logLevel       log level to set for the engine runtime
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
+    * @param readIrCaches whether IR caches should be read from if caching is
+    *                     enabled
     */
   private def run(
     path: String,
     projectPath: Option[String],
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean
+    enableIrCaches: Boolean,
+    readIrCaches: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -393,6 +419,7 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches,
+      readIrCaches,
       strictErrors = true
     )
     if (projectMode) {
@@ -422,18 +449,26 @@ object Main {
     * @param logLevel    log level to set for the engine runtime
     * @param logMasking  is the log masking enabled
     * @param enableIrCaches are the IR caches enabled
+    * @param readIrCaches should the IR caches be read from if enabled
     */
   private def genDocs(
     projectPath: Option[String],
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean
+    enableIrCaches: Boolean,
+    readIrCaches: Boolean
   ): Unit = {
     if (projectPath.isEmpty) {
       println("Path hasn't been provided.")
       exitFail()
     }
-    generateDocsFrom(projectPath.get, logLevel, logMasking, enableIrCaches)
+    generateDocsFrom(
+      projectPath.get,
+      logLevel,
+      logMasking,
+      enableIrCaches,
+      readIrCaches
+    )
     exitSuccess()
   }
 
@@ -444,7 +479,8 @@ object Main {
     path: String,
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean
+    enableIrCaches: Boolean,
+    readIrCaches: Boolean
   ): Unit = {
     val executionContext = new ContextFactory().create(
       path,
@@ -453,7 +489,8 @@ object Main {
       Repl(TerminalIO()),
       logLevel,
       logMasking,
-      enableIrCaches
+      enableIrCaches,
+      readIrCaches
     )
 
     val file = new File(path)
@@ -572,12 +609,14 @@ object Main {
     * @param logLevel    log level to set for the engine runtime
     * @param logMasking  is the log masking enabled
     * @param enableIrCaches are IR caches enabled
+    * @param readIrCaches should IR caches be read from if enabled
     */
   private def runRepl(
     projectPath: Option[String],
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean
+    enableIrCaches: Boolean,
+    readIrCaches: Boolean
   ): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
@@ -595,7 +634,8 @@ object Main {
         Repl(TerminalIO()),
         logLevel,
         logMasking,
-        enableIrCaches
+        enableIrCaches,
+        readIrCaches
       )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -765,7 +805,8 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line)
+        shouldEnableIrCaches(line),
+        shouldReadIrCaches(line)
       )
     }
     if (line.hasOption(REPL_OPTION)) {
@@ -773,7 +814,8 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line)
+        shouldEnableIrCaches(line),
+        shouldReadIrCaches(line)
       )
     }
     if (line.hasOption(DOCS_OPTION)) {
@@ -781,7 +823,8 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line)
+        shouldEnableIrCaches(line),
+        shouldReadIrCaches(line)
       )
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
@@ -793,10 +836,30 @@ object Main {
     }
   }
 
-  private def shouldEnableIrCaches(line: CommandLine): Boolean =
-    if (isDevBuild) {
-      line.hasOption(ENABLE_DEV_CACHES)
-    } else {
+  /** Checks whether IR caching should be enabled.o
+    *
+    * The (mutually exclusive) flags can control it explicitly, otherwise it
+    * defaults to off in development builds and on in production builds.
+    *
+    * @param line the command-line
+    * @return `true` if caching should be enabled, `false`, otherwise
+    */
+  private def shouldEnableIrCaches(line: CommandLine): Boolean = {
+    if (line.hasOption(IR_CACHES_OPTION)) {
       true
+    } else if (line.hasOption(NO_IR_CACHES_OPTION)) {
+      false
+    } else {
+      !isDevBuild
     }
+  }
+
+  /** Determines whether IR caches should be read from if caching is enabled.
+    *
+    * @param line the command line
+    * @return `true` if caches should be read from, `false` otherwise
+    */
+  private def shouldReadIrCaches(line: CommandLine): Boolean = {
+    !line.hasOption(NO_READ_IR_CACHES_OPTION)
+  }
 }

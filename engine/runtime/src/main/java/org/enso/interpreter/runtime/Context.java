@@ -53,6 +53,7 @@ public class Context {
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
+  private final boolean isIrCacheReadingDisabled;
   private final boolean shouldWaitForPendingSerializationJobs;
   private final Builtins builtins;
   private final String home;
@@ -90,6 +91,8 @@ public class Context {
     this.isInlineCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.isIrCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY);
+    this.isIrCacheReadingDisabled =
+        environment.getOptions().get(RuntimeOptions.NO_READ_IR_CACHES_KEY);
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
@@ -404,6 +407,11 @@ public class Context {
   /** @return whether IR caching should be disabled for this context. */
   public boolean isIrCachingDisabled() {
     return isIrCachingDisabled;
+  }
+
+  /** @return whether IR cache reading is disabled for this context */
+  public boolean isIrCacheReadingDisabled() {
+    return isIrCacheReadingDisabled;
   }
 
   /** @return the compiler configuration for this language */

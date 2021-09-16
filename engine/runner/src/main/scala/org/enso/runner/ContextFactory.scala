@@ -24,6 +24,8 @@ class ContextFactory {
     * @param repl the Repl manager to use for this context
     * @param logLevel the log level for this context
     * @param enableIrCaches whether or not IR caching should be enabled
+    * @param enableIrCacheReading whether or not IR cache reading should be
+    *                             enabled
     * @param strictErrors whether or not to use strict errors
     * @return configured Context instance
     */
@@ -35,6 +37,7 @@ class ContextFactory {
     logLevel: LogLevel,
     logMasking: Boolean,
     enableIrCaches: Boolean,
+    enableIrCacheReading: Boolean,
     strictErrors: Boolean = false
   ): PolyglotContext = {
     val context = Context
@@ -45,6 +48,10 @@ class ContextFactory {
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, (!enableIrCaches).toString)
+      .option(
+        RuntimeOptions.NO_READ_IR_CACHES,
+        (!enableIrCacheReading).toString
+      )
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
       .option("js.foreign-object-prototype", "true")

@@ -47,6 +47,7 @@ class Compiler(
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
   private val irCachingEnabled = !context.isIrCachingDisabled
+  private val irCacheReadingEnabled = !context.isIrCacheReadingDisabled
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
@@ -62,7 +63,7 @@ class Compiler(
 
       builtins.initializeBuiltinsSource()
 
-      if (irCachingEnabled) {
+      if (irCachingEnabled && irCacheReadingEnabled) {
         serializationManager.deserialize(builtins.getModule) match {
           case Some(true) =>
             builtins.getModule.unsafeSetCompilationStage(
@@ -108,7 +109,7 @@ class Compiler(
     var requiredModules = runImportsAndExportsResolution(module)
 
     var hasInvalidModuleRelink = false
-    if (irCachingEnabled) {
+    if (irCachingEnabled && irCacheReadingEnabled) {
       requiredModules.foreach { m =>
         if (!m.hasCrossModuleLinks) {
           val flags =
@@ -229,7 +230,7 @@ class Compiler(
     module.ensureScopeExists()
     module.getScope.reset()
 
-    if (irCachingEnabled) {
+    if (irCachingEnabled && irCacheReadingEnabled) {
       serializationManager.deserialize(module) match {
         case Some(_) => return
         case _       =>
