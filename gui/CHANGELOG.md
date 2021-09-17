@@ -1,3 +1,5 @@
+# Next Release
+
 # Enso 2.0.0-alpha.16 (2021-09-16)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
