@@ -45,44 +45,42 @@ import project.System.Process_Spec
 
 import project.Examples_Spec
 
-main = IO.println "DONE"
-
-# main = Test.Suite.run_main <|
-    # Any_Spec.spec
-    # Array_Spec.spec
-    # Case_Spec.spec
-    # Deep_Export_Spec.spec
-    # Error_Spec.spec
-    # Examples_Spec.spec
-    # File_Spec.spec
-    # Http_Header_Spec.spec
-    # Http_Request_Spec.spec
-    # Http_Spec.spec
-    # Import_Loop_Spec.spec
-    # Interval_Spec.spec
-    # Java_Interop_Spec.spec
-    # Js_Interop_Spec.spec
-    # Json_Spec.spec
-    # List_Spec.spec
-    # Locale_Spec.spec
-    # Map_Spec.spec
-    # Maybe_Spec.spec
-    # Meta_Spec.spec
-    # Names_Spec.spec
-    # Noise_Generator_Spec.spec
-    # Noise_Spec.spec
-    # Numbers_Spec.spec
-    # Ordering_Spec.spec
-    # Process_Spec.spec
-    # Python_Interop_Spec.spec
-    # R_Interop_Spec.spec
-    # Range_Spec.spec
-    # Default_Regex_Engine_Spec.spec
-    # Regex_Spec.spec
-    # Runtime_Spec.spec
-    # Span_Spec.spec
-    # Text_Spec.spec
-    # Time_Spec.spec
-    # Uri_Spec.spec
-    # Vector_Spec.spec
+Main = Test.Suite.run_main <|
+    Any_Spec.spec
+    Array_Spec.spec
+    Case_Spec.spec
+    Deep_Export_Spec.spec
+    Error_Spec.spec
+    Examples_Spec.spec
+    File_Spec.spec
+    Http_Header_Spec.spec
+    Http_Request_Spec.spec
+    Http_Spec.spec
+    Import_Loop_Spec.spec
+    Interval_Spec.spec
+    Java_Interop_Spec.spec
+    Js_Interop_Spec.spec
+    Json_Spec.spec
+    List_Spec.spec
+    Locale_Spec.spec
+    Map_Spec.spec
+    Maybe_Spec.spec
+    Meta_Spec.spec
+    Names_Spec.spec
+    Noise_Generator_Spec.spec
+    Noise_Spec.spec
+    Numbers_Spec.spec
+    Ordering_Spec.spec
+    Process_Spec.spec
+    Python_Interop_Spec.spec
+    R_Interop_Spec.spec
+    Range_Spec.spec
+    Default_Regex_Engine_Spec.spec
+    Regex_Spec.spec
+    Runtime_Spec.spec
+    Span_Spec.spec
+    Text_Spec.spec
+    Time_Spec.spec
+    Uri_Spec.spec
+    Vector_Spec.spec
 
