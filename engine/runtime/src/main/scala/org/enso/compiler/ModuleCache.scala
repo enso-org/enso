@@ -1,6 +1,7 @@
 package org.enso.compiler
 
 import buildinfo.Info
+import com.oracle.truffle.api.source.Source
 import com.oracle.truffle.api.{TruffleFile, TruffleLogger}
 import io.circe.generic.JsonCodec
 import io.circe.parser._
@@ -131,7 +132,7 @@ class ModuleCache(private val module: Module) {
       stream.close()
 
       val blobDigest       = computeDigest(bytesToWrite)
-      val sourceDigest     = computeSourceDigest()
+      val sourceDigest     = computeSourceDigest(module.source)
       val compilationStage = module.compilationStage.toString
       val metadata =
         ModuleCache.Metadata(sourceDigest, blobDigest, compilationStage)
@@ -205,9 +206,10 @@ class ModuleCache(private val module: Module) {
 
     loadCacheMetadata(metadataPath) match {
       case Some(meta) =>
-        val sourceDigestValid = computeSourceDigest() == meta.sourceHash
-        val blobBytes         = dataPath.readAllBytes()
-        val blobDigestValid   = computeDigest(blobBytes) == meta.blobHash
+        val sourceDigestValid =
+          computeSourceDigest(module.getSource) == meta.sourceHash
+        val blobBytes       = dataPath.readAllBytes()
+        val blobDigestValid = computeDigest(blobBytes) == meta.blobHash
         val compilationStage =
           Module.CompilationStage.valueOf(meta.compilationStage)
 
@@ -220,7 +222,13 @@ class ModuleCache(private val module: Module) {
 
           readObject match {
             case mod: IR.Module =>
-              Some(ModuleCache.CachedModule(mod, compilationStage))
+              Some(
+                ModuleCache.CachedModule(
+                  mod,
+                  compilationStage,
+                  module.getSource
+                )
+              )
             case _ =>
               logger.log(
                 ModuleCache.logLevel,
@@ -387,11 +395,11 @@ class ModuleCache(private val module: Module) {
     *
     * @return the hex string representing the digest
     */
-  private def computeSourceDigest(): String = {
-    val sourceBytes = if (module.getSource.hasBytes) {
-      module.getSource.getBytes.toByteArray
+  private def computeSourceDigest(source: Source): String = {
+    val sourceBytes = if (source.hasBytes) {
+      source.getBytes.toByteArray
     } else {
-      module.getSource.getCharacters.toString.getBytes(StandardCharsets.UTF_8)
+      source.getCharacters.toString.getBytes(StandardCharsets.UTF_8)
     }
 
     computeDigest(sourceBytes)
@@ -463,10 +471,12 @@ object ModuleCache {
     * @param module the module
     * @param compilationStage the compilation stage of the module at the point
     *                         at which it was provided for serialisation
+    * @param source the source of the module
     */
   case class CachedModule(
     module: IR.Module,
-    compilationStage: Module.CompilationStage
+    compilationStage: Module.CompilationStage,
+    source: Source
   )
 
   /** Internal storage for the cache metadata to enable easy serialisation and

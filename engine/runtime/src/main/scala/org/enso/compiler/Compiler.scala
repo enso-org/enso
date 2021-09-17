@@ -124,7 +124,8 @@ class Compiler(
             hasInvalidModuleRelink = true
             logger.log(
               Compiler.defaultLogLevel,
-              s"Failed to restore links (late phase) for module [${module.getName}]."
+              s"Failed to restore links (late phase) for module " +
+              s"[${module.getName}]."
             )
             uncachedParseModule(module, isGenDocs = false)
           }
@@ -229,7 +230,7 @@ class Compiler(
     module.ensureScopeExists()
     module.getScope.reset()
 
-    if (irCachingEnabled && irCacheReadingEnabled) {
+    if (irCachingEnabled && irCacheReadingEnabled && !module.isInteractive) {
       serializationManager.deserialize(module) match {
         case Some(_) => return
         case _       =>

@@ -89,6 +89,7 @@ public class Module implements TruffleObject {
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
+  private boolean isInteractive;
 
   /**
    * Creates a new module.
@@ -105,6 +106,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.isInteractive = false;
   }
 
   /**
@@ -122,6 +124,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.isInteractive = true;
   }
 
   /**
@@ -139,6 +142,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.isInteractive = true;
   }
 
   /**
@@ -156,6 +160,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.isInteractive = false;
   }
 
   /**
@@ -172,6 +177,7 @@ public class Module implements TruffleObject {
 
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
+    this.isInteractive = false;
     this.literalSource = null;
     this.cachedSource = null;
     this.compilationStage = CompilationStage.INITIAL;
@@ -200,6 +206,7 @@ public class Module implements TruffleObject {
     this.literalSource = source;
     this.compilationStage = CompilationStage.INITIAL;
     this.cachedSource = null;
+    this.isInteractive = true;
   }
 
   /**
@@ -212,6 +219,7 @@ public class Module implements TruffleObject {
     this.sourceFile = file;
     this.compilationStage = CompilationStage.INITIAL;
     this.cachedSource = null;
+    this.isInteractive = false;
   }
 
   /** @return the location of this module. */
@@ -348,7 +356,7 @@ public class Module implements TruffleObject {
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
-    return literalSource != null;
+    return isInteractive;
   }
 
   /**
@@ -429,6 +437,8 @@ public class Module implements TruffleObject {
       Types.extractArguments(args);
       module.cachedSource = null;
       module.literalSource = null;
+      module.isInteractive = false;
+      module.wasLoadedFromCache = false;
       try {
         module.compile(context);
       } catch (IOException ignored) {

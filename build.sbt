@@ -953,6 +953,7 @@ lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
     Test / javaOptions ++= {
       // Note [Classpath Separation]
