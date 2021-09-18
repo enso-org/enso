@@ -107,7 +107,8 @@ case object AliasAnalysis extends IRPass {
     inlineContext.localScope
       .map { localScope =>
         val scope =
-          if (shouldWriteState) localScope.scope else localScope.scope.copy
+          if (shouldWriteState) localScope.scope
+          else localScope.scope.deepCopy(mutable.Map())
         val graph =
           if (shouldWriteState) localScope.aliasingGraph
           else localScope.aliasingGraph.copy
@@ -120,6 +121,57 @@ case object AliasAnalysis extends IRPass {
           "Local scope must be provided for alias analysis."
         )
       )
+  }
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    sourceIr: T,
+    copyOfIr: T
+  ): T = {
+    (sourceIr, copyOfIr) match {
+      case (sourceIr: IR.Module, copyOfIr: IR.Module) =>
+        val sourceBindings = sourceIr.bindings
+        val copyBindings   = copyOfIr.bindings
+        val zippedBindings = sourceBindings.lazyZip(copyBindings)
+
+        zippedBindings.foreach { case (sourceBinding, copyBinding) =>
+          val sourceRootScopeGraph = sourceBinding
+            .unsafeGetMetadata(
+              this,
+              "Alias analysis must have run."
+            )
+            .asInstanceOf[Info.Scope.Root]
+            .graph
+          val scopeMapping       = mutable.Map[Scope, Scope]()
+          val copyRootScopeGraph = sourceRootScopeGraph.deepCopy(scopeMapping)
+
+          val sourceNodes = sourceBinding.preorder
+          val copyNodes   = copyBinding.preorder
+
+          val matchedNodes = sourceNodes.lazyZip(copyNodes)
+
+          matchedNodes.foreach { case (sourceNode, copyNode) =>
+            sourceNode.getMetadata(this) match {
+              case Some(meta) =>
+                val newMeta = meta match {
+                  case root: Info.Scope.Root =>
+                    root.copy(graph = copyRootScopeGraph)
+                  case child: Info.Scope.Child =>
+                    child.copy(
+                      graph = copyRootScopeGraph,
+                      scope = child.scope.deepCopy(scopeMapping)
+                    )
+                  case occ: Info.Occurrence =>
+                    occ.copy(graph = copyRootScopeGraph)
+                }
+                copyNode.updateMetadata(this -->> newMeta)
+              case None =>
+            }
+          }
+        }
+        copyOfIr.asInstanceOf[T]
+      case _ => copyOfIr
+    }
   }
 
   /** Performs alias analysis on the module-level definitions.
@@ -715,6 +767,18 @@ case object AliasAnalysis extends IRPass {
 
     private var nextIdCounter = 0
 
+    /** @return a deep structural copy of `this` */
+    def deepCopy(
+      scope_mapping: mutable.Map[Scope, Scope] = mutable.Map()
+    ): Graph = {
+      val copy = new Graph
+      copy.rootScope     = this.rootScope.deepCopy(scope_mapping)
+      copy.links         = this.links
+      copy.globalSymbols = this.globalSymbols
+      copy.nextIdCounter = this.nextIdCounter
+      copy
+    }
+
     /** Registers a requested global symbol in the aliasing scope.
       *
       * @param sym the symbol occurrence
@@ -732,7 +796,7 @@ case object AliasAnalysis extends IRPass {
     def copy: Graph = {
       val graph = new Graph
       graph.links         = links
-      graph.rootScope     = rootScope.copy
+      graph.rootScope     = rootScope.deepCopy(mutable.Map())
       graph.nextIdCounter = nextIdCounter
 
       graph
@@ -1020,15 +1084,25 @@ case object AliasAnalysis extends IRPass {
         parent.flatMap(scope => Some(scope.scopesToRoot + 1)).getOrElse(0)
       }
 
-      /** Creates a structural copy of this scope.
+      /** Creates a structural copy of this scope, ensuring that replicated
+        * scopes are memoised.
         *
         * @return a copy of `this`
         */
-      def copy: Scope = {
-        val childScopeCopies: mutable.ListBuffer[Scope] = ListBuffer()
-        this.childScopes.foreach(scope => childScopeCopies += scope.copy)
-
-        new Scope(childScopeCopies.toList, occurrences)
+      def deepCopy(
+        mapping: mutable.Map[Scope, Scope] = mutable.Map()
+      ): Scope = {
+        mapping.get(this) match {
+          case Some(newCorrespondingScope) => newCorrespondingScope
+          case None =>
+            val childScopeCopies: mutable.ListBuffer[Scope] = ListBuffer()
+            this.childScopes.foreach(scope =>
+              childScopeCopies += scope.deepCopy(mapping)
+            )
+            val newScope = new Scope(childScopeCopies.toList, occurrences)
+            mapping.put(this, newScope)
+            newScope
+        }
       }
 
       /** Checks whether `this` is equal to `obj`.

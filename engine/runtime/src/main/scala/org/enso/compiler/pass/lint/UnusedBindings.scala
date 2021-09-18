@@ -77,6 +77,12 @@ case object UnusedBindings extends IRPass {
     }
   } else ir
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
   // === Pass Internals =======================================================
 
   /** Lints a binding.
@@ -123,7 +129,7 @@ case object UnusedBindings extends IRPass {
     */
   def lintFunction(
     function: IR.Function,
-    @unused context: InlineContext
+    context: InlineContext
   ): IR.Function = {
     function match {
       case IR.Function.Lambda(_, _: IR.Foreign.Definition, _, _, _, _) =>

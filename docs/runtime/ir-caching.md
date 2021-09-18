@@ -31,6 +31,7 @@ startup performance.
   - [Integrity Checking](#integrity-checking)
   - [Error Handling](#error-handling)
 - [Testing the Serialisation](#testing-the-serialisation)
+- [Future Directions](#future-directions)
 
 <!-- /MarkdownTOC -->
 
@@ -212,3 +213,17 @@ There are two main elements that need to be tested as part of this feature.
   should be disabled for existing tests. This will require adding additional
   runtime options for debugging, but also constructing the `DistributionManager`
   on context creation (removing `RuntimeDistributionManager`).
+
+## Future Directions
+
+Due to the less than ideal platform situation we're in, we're limited to using
+Java's `Serializable`. It is not as performant as other options.
+
+- [FST](https://github.com/RuedigerMoeller/fast-serialization) is around 10x
+  faster than the JVM's serialization, and is a drop-in replacement.
+- However, the version that supports Java 11 utilises reflection that trips
+  warnings that will be disallowed with Java 17 (the next LTS version for
+  GraalVM).
+- The version that fixes this relies on the foreign memory API which is
+  available in Java 17. I recommend that once we're on Java 17 builds the
+  serialization is updated to work using FST.

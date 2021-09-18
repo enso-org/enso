@@ -1,6 +1,7 @@
 package org.enso.compiler
 
 import buildinfo.Info
+import com.oracle.truffle.api.source.Source
 import com.oracle.truffle.api.{TruffleFile, TruffleLogger}
 import io.circe.generic.JsonCodec
 import io.circe.parser._
@@ -9,10 +10,11 @@ import org.bouncycastle.jcajce.provider.digest.SHA3
 import org.bouncycastle.util.encoders.Hex
 import org.enso.compiler.ModuleCache.ToMaskedPath
 import org.enso.compiler.core.IR
+import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.logger.masking.MaskedPath
 
-import java.io.{ByteArrayOutputStream, IOException, ObjectOutputStream}
+import java.io._
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file._
 import java.util.logging.Level
@@ -130,7 +132,7 @@ class ModuleCache(private val module: Module) {
       stream.close()
 
       val blobDigest       = computeDigest(bytesToWrite)
-      val sourceDigest     = computeSourceDigest()
+      val sourceDigest     = computeSourceDigest(module.source)
       val compilationStage = module.compilationStage.toString
       val metadata =
         ModuleCache.Metadata(sourceDigest, blobDigest, compilationStage)
@@ -201,21 +203,39 @@ class ModuleCache(private val module: Module) {
   )(implicit logger: TruffleLogger): Option[ModuleCache.CachedModule] = {
     val metadataPath = getCacheMetadataPath(cacheRoot)
     val dataPath     = getCacheDataPath(cacheRoot)
+
     loadCacheMetadata(metadataPath) match {
       case Some(meta) =>
-        val sourceDigestValid = computeSourceDigest() == meta.sourceHash
-        val blobDigestValid   = computeBlobDigest(dataPath) == meta.blobHash
+        val sourceDigestValid =
+          computeSourceDigest(module.getSource) == meta.sourceHash
+        val blobBytes       = dataPath.readAllBytes()
+        val blobDigestValid = computeDigest(blobBytes) == meta.blobHash
         val compilationStage =
           Module.CompilationStage.valueOf(meta.compilationStage)
 
         if (sourceDigestValid && blobDigestValid) {
-          Some(
-            ModuleCache.CachedModule(
-              // TODO [AA] This is a dummy as we don't write the cache yet.
-              IR.Module(List(), List(), List(), None),
-              compilationStage
-            )
-          )
+          val bais: ByteArrayInputStream = new ByteArrayInputStream(blobBytes)
+          val ois: ObjectInputStream     = new ObjectInputStream(bais)
+
+          val readObject = ois.readObject()
+          ois.close()
+
+          readObject match {
+            case mod: IR.Module =>
+              Some(
+                ModuleCache.CachedModule(
+                  mod,
+                  compilationStage,
+                  module.getSource
+                )
+              )
+            case _ =>
+              logger.log(
+                ModuleCache.logLevel,
+                s"Module `${module.getName.toString}` was corrupt on disk."
+              )
+              None
+          }
         } else {
           logger.log(
             ModuleCache.logLevel,
@@ -273,19 +293,21 @@ class ModuleCache(private val module: Module) {
 
     def doDeleteAt(file: TruffleFile): Unit = {
       try {
-        if (file.isWritable) {
-          file.delete()
-          logger.log(
-            ModuleCache.logLevel,
-            s"Invalidated the cache at [${file.toMaskedPath.applyMasking()}]."
-          )
-        } else {
-          logger.log(
-            ModuleCache.logLevel,
-            s"Cannot invalidate the cache at " +
-            s"[${file.toMaskedPath.applyMasking()}]. " +
-            s"Cache location not writable."
-          )
+        if (file.exists()) {
+          if (file.isWritable) {
+            file.delete()
+            logger.log(
+              ModuleCache.logLevel,
+              s"Invalidated the cache at [${file.toMaskedPath.applyMasking()}]."
+            )
+          } else {
+            logger.log(
+              ModuleCache.logLevel,
+              s"Cannot invalidate the cache at " +
+              s"[${file.toMaskedPath.applyMasking()}]. " +
+              s"Cache location not writable."
+            )
+          }
         }
       } catch {
         case _: NoSuchFileException =>
@@ -311,23 +333,38 @@ class ModuleCache(private val module: Module) {
     *         module
     */
   private def getIrCacheRoots(context: Context): Option[ModuleCache.Roots] = {
-    context.getPackageOf(module.getSourceFile).toScala.map { pkg =>
-      val irCacheRoot    = pkg.getIrCacheRootForPackage(Info.ensoVersion)
-      val qualName       = module.getName
-      val localCacheRoot = irCacheRoot.resolve(qualName.path.mkString("/"))
+    if (module != context.getBuiltins.getModule) {
+      context.getPackageOf(module.getSourceFile).toScala.map { pkg =>
+        val irCacheRoot    = pkg.getIrCacheRootForPackage(Info.ensoVersion)
+        val qualName       = module.getName
+        val localCacheRoot = irCacheRoot.resolve(qualName.path.mkString("/"))
 
+        val distribution = context.getDistributionManager
+        val pathSegments = List(
+          pkg.namespace,
+          pkg.name,
+          pkg.config.version,
+          Info.ensoVersion
+        ) ++ qualName.path
+        val path = distribution.LocallyInstalledDirectories.irCacheDirectory
+          .resolve(pathSegments.mkString("/"))
+        val globalCacheRoot = context.getTruffleFile(path.toFile)
+
+        ModuleCache.Roots(localCacheRoot, globalCacheRoot)
+      }
+    } else {
       val distribution = context.getDistributionManager
       val pathSegments = List(
-        pkg.namespace,
-        pkg.name,
-        pkg.config.version,
+        Builtins.NAMESPACE,
+        Builtins.PACKAGE_NAME,
+        Info.ensoVersion,
         Info.ensoVersion
-      ) ++ qualName.path
+      ) ++ module.getName.path
       val path = distribution.LocallyInstalledDirectories.irCacheDirectory
         .resolve(pathSegments.mkString("/"))
       val globalCacheRoot = context.getTruffleFile(path.toFile)
 
-      ModuleCache.Roots(localCacheRoot, globalCacheRoot)
+      Some(ModuleCache.Roots(globalCacheRoot, globalCacheRoot))
     }
   }
 
@@ -358,19 +395,14 @@ class ModuleCache(private val module: Module) {
     *
     * @return the hex string representing the digest
     */
-  private def computeSourceDigest(): String = {
-    val sourceBytes = module.getSourceFile.readAllBytes()
-    computeDigest(sourceBytes)
-  }
+  private def computeSourceDigest(source: Source): String = {
+    val sourceBytes = if (source.hasBytes) {
+      source.getBytes.toByteArray
+    } else {
+      source.getCharacters.toString.getBytes(StandardCharsets.UTF_8)
+    }
 
-  /** Computes the SHA3-224 digest of the provided file.
-    *
-    * @param file the file to compute the digest of
-    * @return the hex string representing the digest of `file`
-    */
-  private def computeBlobDigest(file: TruffleFile): String = {
-    val blobBytes = file.readAllBytes()
-    computeDigest(blobBytes)
+    computeDigest(sourceBytes)
   }
 
   /** Computes the SHA3-224 digest of the provided byte array.
@@ -439,10 +471,12 @@ object ModuleCache {
     * @param module the module
     * @param compilationStage the compilation stage of the module at the point
     *                         at which it was provided for serialisation
+    * @param source the source of the module
     */
   case class CachedModule(
     module: IR.Module,
-    compilationStage: Module.CompilationStage
+    compilationStage: Module.CompilationStage,
+    source: Source
   )
 
   /** Internal storage for the cache metadata to enable easy serialisation and

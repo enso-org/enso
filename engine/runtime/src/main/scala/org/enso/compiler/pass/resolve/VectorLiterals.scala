@@ -9,6 +9,8 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
+import scala.annotation.unused
+
 case object VectorLiterals extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
@@ -67,6 +69,12 @@ case object VectorLiterals extends IRPass {
     val vec = vectorCons(bindings)
     doExpression(ir, vec)
   }
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   private def vectorCons(bindings: BindingsMap): IR.Expression = {
     val modules: List[Module] = bindings.resolvedImports.flatMap { imp =>

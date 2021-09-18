@@ -31,6 +31,11 @@ class MetadataStorageTest extends CompilerTest {
       inlineContext: InlineContext
     ): IR.Expression = ir
 
+    override def updateMetadataInDuplicate[T <: IR](
+      sourceIr: T,
+      copyOfIr: T
+    ): T = copyOfIr
+
     sealed case class Metadata1() extends IRPass.Metadata {
       override val metadataName: String = "TestPass1.Metadata1"
 
@@ -62,6 +67,11 @@ class MetadataStorageTest extends CompilerTest {
       ir: IR.Expression,
       inlineContext: InlineContext
     ): IR.Expression = ir
+
+    override def updateMetadataInDuplicate[T <: IR](
+      sourceIr: T,
+      copyOfIr: T
+    ): T = copyOfIr
 
     sealed case class Metadata2() extends IRPass.Metadata {
       override val metadataName: String = "TestPass2.Metadata2"

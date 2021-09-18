@@ -22,7 +22,7 @@ jobs:
   test_and_publish:
     name: Build and Test
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 100
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-18.04, windows-latest]
@@ -275,27 +275,49 @@ jobs:
           postgresql user: ${{ env.ENSO_DATABASE_TEST_DB_USER }}
           postgresql password: ${{ env.ENSO_DATABASE_TEST_DB_PASSWORD }}
 
-      - name: Test Engine Distribution (Unix)
+      - name: Test Engine Distribution Without Caches (Unix)
         shell: bash
         if: runner.os != 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso --run test/Tests
-          $ENGINE_DIST_DIR/bin/enso --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso --run test/Database_Tests
-          $ENGINE_DIST_DIR/bin/enso --run test/Geo_Tests
-          $ENGINE_DIST_DIR/bin/enso --run test/Visualization_Tests
-          $ENGINE_DIST_DIR/bin/enso --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Image_Tests
 
-      - name: Test Engine Distribution (Windows)
+      - name: Test Engine Distribution With Caches (Unix)
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Image_Tests
+
+      - name: Test Engine Distribution Without Caches (Windows)
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Database_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Geo_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Visualization_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Image_Tests
+
+      - name: Test Engine Distribution With Caches (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Image_Tests
 
       # Publish
       - name: Compress the built artifacts for upload

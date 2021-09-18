@@ -1,0 +1,5 @@
+import project.Foo
+
+# from Standard.Base import all
+
+main = Foo.do_print
