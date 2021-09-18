@@ -14,6 +14,8 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants
 
+import scala.annotation.unused
+
 /** Resolves and desugars referent name occurences in non-pattern contexts.
   *
   * 1. Attaches resolution metadata to encountered constructors, modules,
@@ -90,6 +92,12 @@ case object UppercaseNames extends IRPass {
     )
     processExpression(ir, scopeMap, freshNameSupply)
   }
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   private def processModuleDefinition(
     definition: IR.Module.Scope.Definition,

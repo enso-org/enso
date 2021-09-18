@@ -94,11 +94,11 @@ sealed trait IR extends Serializable {
   /** Storage for compiler diagnostics related to the IR node. */
   val diagnostics: DiagnosticStorage
 
-  /** Creates a deep structural copy of `this`, representing the same structure
-    * but with all new identifiers.
+  /** Creates a deep structural copy of `this`, representing the same structure.
     *
-    * The location, diagnostics and metadata will be empty in the duplicated
-    * node.
+    * You can choose to keep the location, metadata and diagnostic information
+    * in the duplicated copy, as well as whether or not you want to generate new
+    * node identifiers or not.
     *
     * @param keepLocations whether or not locations should be kept in the
     *                      duplicated IR
@@ -106,12 +106,15 @@ sealed trait IR extends Serializable {
     *                      duplicated IR
     * @param keepDiagnostics whether or not the diagnostics should be kept in
     *                        the duplicated IR
+    * @param keepIdentifiers whether or not the identifiers should be
+    *                        regenerated in the duplicated IR
     * @return a deep structural copy of `this`
     */
   def duplicate(
     keepLocations: Boolean   = true,
     keepMetadata: Boolean    = true,
-    keepDiagnostics: Boolean = true
+    keepDiagnostics: Boolean = true,
+    keepIdentifiers: Boolean = false
   ): IR
 
   /** Shows the IR as code.
@@ -233,24 +236,29 @@ object IR {
       res
     }
 
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Empty =
       copy(
         location = if (keepLocations) location else None,
         passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = randomId
+        id = if (keepIdentifiers) id else randomId
       )
 
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Empty =
       copy(location = location)
 
+    /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Empty = this
 
+    /** @inheritdoc */
     override def toString: String =
       s"""
       |IR.Empty(
@@ -261,11 +269,14 @@ object IR {
       |)
       |""".toSingleLine
 
+    /** @inheritdoc */
     override def children: List[IR] = List()
 
+    /** @inheritdoc */
     override def message: String =
       "Empty IR: Please report this as a compiler bug."
 
+    /** @inheritdoc */
     override def showCode(indent: Int): String = "IR.Empty"
   }
 
@@ -320,28 +331,42 @@ object IR {
       res
     }
 
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Module =
       copy(
         imports = imports.map(
-          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          _.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          )
         ),
         bindings = bindings.map(
-          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          _.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          )
         ),
         location = if (keepLocations) location else None,
         passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = randomId
+        id = if (keepIdentifiers) id else randomId
       )
 
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Module =
       copy(location = location)
 
+    /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Module = {
       copy(
         imports  = imports.map(_.mapExpressions(fn)),
@@ -350,8 +375,10 @@ object IR {
       )
     }
 
+    /** @inheritdoc */
     override def children: List[IR] = imports ++ exports ++ bindings
 
+    /** @inheritdoc */
     override def toString: String =
       s"""
       |IR.Module(
@@ -365,12 +392,11 @@ object IR {
       |)
       |""".toSingleLine
 
+    /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val importsString = imports.map(_.showCode(indent)).mkString("\n")
-
       val exportsString = exports.map(_.showCode(indent)).mkString("\n")
-
-      val defsString = bindings.map(_.showCode(indent)).mkString("\n\n")
+      val defsString    = bindings.map(_.showCode(indent)).mkString("\n\n")
 
       List(importsString, exportsString, defsString).mkString("\n\n")
     }
@@ -382,24 +408,38 @@ object IR {
       * module scope
       */
     sealed trait Scope extends IR {
-      override def mapExpressions(fn: Expression => Expression):      Scope
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Scope
+
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Scope
+
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Scope
     }
     object Scope {
 
       /** An export statement */
       sealed trait Export extends Scope {
-        override def mapExpressions(fn: Expression => Expression):      Export
+
+        /** @inheritdoc */
+        override def mapExpressions(fn: Expression => Expression): Export
+
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Export
+
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Export
       }
 
@@ -468,10 +508,12 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Module =
             copy(
               location = if (keepLocations) location else None,
@@ -479,18 +521,21 @@ object IR {
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Module =
             copy(location = location)
 
+          /** @inheritdoc */
           override def mapExpressions(
             fn: Expression => Expression
           ): Module = this
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
              |IR.Module.Scope.Export.Module(
@@ -506,6 +551,7 @@ object IR {
              |)
              |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] =
             name :: List(
               rename.toList,
@@ -513,6 +559,7 @@ object IR {
               hiddenNames.getOrElse(List())
             ).flatten
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String = {
             val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
             if (isAll) {
@@ -560,12 +607,19 @@ object IR {
 
       /** Module-level import statements. */
       sealed trait Import extends Scope {
-        override def mapExpressions(fn: Expression => Expression):      Import
+
+        /** @inheritdoc */
+        override def mapExpressions(fn: Expression => Expression): Import
+
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Import
+
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Import
       }
 
@@ -633,10 +687,12 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Module =
             copy(
               location = if (keepLocations) location else None,
@@ -644,18 +700,21 @@ object IR {
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Module =
             copy(location = location)
 
+          /** @inheritdoc */
           override def mapExpressions(
             fn: Expression => Expression
           ): Module = this
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
             |IR.Module.Scope.Import.Module(
@@ -667,6 +726,7 @@ object IR {
             |)
             |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] =
             name :: List(
               rename.toList,
@@ -674,6 +734,7 @@ object IR {
               hiddenNames.getOrElse(List())
             ).flatten
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String = {
             val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
             if (isAll) {
@@ -800,10 +861,12 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Polyglot =
             copy(
               location = if (keepLocations) location else None,
@@ -811,13 +874,15 @@ object IR {
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Polyglot = copy(location = location)
 
+          /** @inheritdoc */
           override def mapExpressions(fn: Expression => Expression): Polyglot =
             this
 
@@ -827,6 +892,7 @@ object IR {
             */
           def getVisibleName: String = rename.getOrElse(entity.getVisibleName)
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
             |IR.Module.Scope.Import.Polyglot(
@@ -839,8 +905,10 @@ object IR {
             |)
             |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] = List()
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String = {
             val renamePart = rename.map(name => s"as $name").getOrElse("")
             s"polyglot ${entity.langName} import ${entity.showCode(indent)} $renamePart"
@@ -850,14 +918,21 @@ object IR {
 
       /** A representation of top-level definitions. */
       sealed trait Definition extends Scope {
+
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Definition
+
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Definition
+
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Definition
       }
       object Definition {
@@ -903,28 +978,41 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Atom =
             copy(
-              name =
-                name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              name = name.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
               arguments = arguments.map(
-                _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+                _.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                )
               ),
               location = if (keepLocations) location else None,
               passData =
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def setLocation(location: Option[IdentifiedLocation]): Atom =
             copy(location = location)
 
+          /** @inheritdoc */
           override def mapExpressions(fn: Expression => Expression): Atom = {
             copy(
               name      = name.mapExpressions(fn),
@@ -932,6 +1020,7 @@ object IR {
             )
           }
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
             |IR.Module.Scope.Definition.Atom(
@@ -944,8 +1033,10 @@ object IR {
             |)
             |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] = name :: arguments
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String = {
             val fields = arguments.map(_.showCode(indent)).mkString(" ")
 
@@ -1006,35 +1097,54 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Type =
             copy(
-              name =
-                name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              name = name.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
               arguments = arguments.map(
-                _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+                _.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                )
               ),
               body = body.map(
-                _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+                _.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                )
               ),
               location = if (keepLocations) location else None,
               passData =
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def mapExpressions(fn: Expression => Expression): Type =
             copy(body = body.map(_.mapExpressions(fn)))
 
+          /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Type = copy(location = location)
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
             |IR.Module.Scope.Definition.Type(
@@ -1048,8 +1158,10 @@ object IR {
             |)
             |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] = (name :: arguments) ::: body
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String = {
             val headerArgs = arguments.map(_.showCode(indent)).mkString(" ")
             val header     = s"type ${name.name} $headerArgs"
@@ -1067,15 +1179,24 @@ object IR {
           val methodReference: IR.Name.MethodReference
           val body: Expression
 
+          /** @inheritdoc */
           override def setLocation(location: Option[IdentifiedLocation]): Method
-          override def mapExpressions(fn: Expression => Expression):      Method
+
+          /** @inheritdoc */
+          override def mapExpressions(fn: Expression => Expression): Method
+
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Method
 
-          def typeName: IR.Name   = methodReference.typePointer
+          /** Get the type name for the method. */
+          def typeName: IR.Name = methodReference.typePointer
+
+          /** Get the name of the method. */
           def methodName: IR.Name = methodReference.methodName
         }
         object Method {
@@ -1127,30 +1248,42 @@ object IR {
               res
             }
 
+            /** @inheritdoc */
             override def duplicate(
               keepLocations: Boolean   = true,
               keepMetadata: Boolean    = true,
-              keepDiagnostics: Boolean = true
+              keepDiagnostics: Boolean = true,
+              keepIdentifiers: Boolean = false
             ): Explicit =
               copy(
-                methodReference = methodReference
-                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-                body =
-                  body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                methodReference = methodReference.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
+                body = body.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
                 location = if (keepLocations) location else None,
                 passData =
                   if (keepMetadata) passData.duplicate else MetadataStorage(),
                 diagnostics =
                   if (keepDiagnostics) diagnostics.copy
                   else DiagnosticStorage(),
-                id = randomId
+                id = if (keepIdentifiers) id else randomId
               )
 
+            /** @inheritdoc */
             override def setLocation(
               location: Option[IdentifiedLocation]
             ): Explicit =
               copy(location = location)
 
+            /** @inheritdoc */
             override def mapExpressions(
               fn: Expression => Expression
             ): Explicit = {
@@ -1160,6 +1293,7 @@ object IR {
               )
             }
 
+            /** @inheritdoc */
             override def toString: String =
               s"""
               |IR.Module.Scope.Definition.Method.Explicit(
@@ -1172,8 +1306,10 @@ object IR {
               |)
               |""".toSingleLine
 
+            /** @inheritdoc */
             override def children: List[IR] = List(methodReference, body)
 
+            /** @inheritdoc */
             override def showCode(indent: Int): String = {
               val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
                 s"\n${body.showCode(indent)}"
@@ -1238,33 +1374,50 @@ object IR {
               res
             }
 
+            /** @inheritdoc */
             override def duplicate(
               keepLocations: Boolean   = true,
               keepMetadata: Boolean    = true,
-              keepDiagnostics: Boolean = true
+              keepDiagnostics: Boolean = true,
+              keepIdentifiers: Boolean = false
             ): Binding =
               copy(
-                methodReference = methodReference
-                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-                arguments = arguments.map(
-                  _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+                methodReference = methodReference.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
                 ),
-                body =
-                  body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                arguments = arguments.map(
+                  _.duplicate(
+                    keepLocations,
+                    keepMetadata,
+                    keepDiagnostics,
+                    keepIdentifiers
+                  )
+                ),
+                body = body.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
                 location = if (keepLocations) location else None,
                 passData =
                   if (keepMetadata) passData.duplicate else MetadataStorage(),
                 diagnostics =
                   if (keepDiagnostics) diagnostics.copy
                   else DiagnosticStorage(),
-                id = randomId
+                id = if (keepIdentifiers) id else randomId
               )
 
+            /** @inheritdoc */
             override def setLocation(
               location: Option[IdentifiedLocation]
             ): Binding =
               copy(location = location)
 
+            /** @inheritdoc */
             override def mapExpressions(
               fn: Expression => Expression
             ): Binding = {
@@ -1275,6 +1428,7 @@ object IR {
               )
             }
 
+            /** @inheritdoc */
             override def toString: String =
               s"""
               |IR.Module.Scope.Definition.Method.Binding(
@@ -1288,9 +1442,11 @@ object IR {
               |)
               |""".toSingleLine
 
+            /** @inheritdoc */
             override def children: List[IR] =
               (methodReference :: arguments) :+ body
 
+            /** @inheritdoc */
             override def showCode(indent: Int): String = {
               val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
                 s"\n${body.showCode(indent)}"
@@ -1360,32 +1516,48 @@ object IR {
               res
             }
 
+            /** @inheritdoc */
             override def duplicate(
               keepLocations: Boolean,
               keepMetadata: Boolean,
-              keepDiagnostics: Boolean
+              keepDiagnostics: Boolean = true,
+              keepIdentifiers: Boolean = false
             ): Conversion = {
               copy(
-                methodReference = methodReference
-                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-                sourceTypeName = sourceTypeName
-                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-                body =
-                  body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                methodReference = methodReference.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
+                sourceTypeName = sourceTypeName.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
+                body = body.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
                 location = if (keepLocations) location else None,
                 passData =
                   if (keepMetadata) passData.duplicate else MetadataStorage(),
                 diagnostics =
                   if (keepDiagnostics) diagnostics.copy
                   else DiagnosticStorage(),
-                id = randomId
+                id = if (keepIdentifiers) id else randomId
               )
             }
 
+            /** @inheritdoc */
             override def setLocation(
               location: Option[IdentifiedLocation]
             ): Conversion = copy(location = location)
 
+            /** @inheritdoc */
             override def mapExpressions(
               fn: Expression => Expression
             ): Conversion = {
@@ -1396,6 +1568,7 @@ object IR {
               )
             }
 
+            /** @inheritdoc */
             override def toString: String =
               s"""
                  |IR.Module.Scope.Definition.Method.Conversion(
@@ -1409,9 +1582,11 @@ object IR {
                  |)
                  |""".toSingleLine
 
+            /** @inheritdoc */
             override def children: List[IR] =
               List(methodReference, sourceTypeName, body)
 
+            /** @inheritdoc */
             override def showCode(indent: Int): String = {
               val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
                 s"\n${body.showCode(indent)}"
@@ -1445,17 +1620,23 @@ object IR {
       }
     }
 
-    override def mapExpressions(fn: Expression => Expression):      Expression
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Expression
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Expression
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Expression
   }
   object Expression {
 
-    // TODO [AA] Remove suspended blocks from Enso.
+    // TODO Remove suspended blocks from Enso.
     /** A block expression.
       *
       * @param expressions the expressions in the block
@@ -1508,28 +1689,41 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Block =
         copy(
           expressions = expressions.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
-          returnValue =
-            returnValue.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          returnValue = returnValue.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Block =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Block = {
         copy(
           expressions = expressions.map(fn),
@@ -1537,6 +1731,7 @@ object IR {
         )
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Expression.Block(
@@ -1550,8 +1745,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = expressions :+ returnValue
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val newIndent = indent + indentLevel
         val expressionsStr = expressions
@@ -1607,30 +1804,44 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Binding =
         copy(
-          name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          expression =
-            expression.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          name = name.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          expression = expression.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Binding =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Binding = {
         copy(name = name.mapExpressions(fn), expression = fn(expression))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Expression.Binding(
@@ -1643,8 +1854,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(name, expression)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String =
         s"${name.showCode(indent)} = ${expression.showCode(indent)}"
     }
@@ -1654,12 +1867,19 @@ object IR {
 
   /** Enso literals. */
   sealed trait Literal extends Expression with IRKind.Primitive {
-    override def mapExpressions(fn: Expression => Expression):      Literal
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Literal
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Literal
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Literal
   }
   object Literal {
@@ -1704,10 +1924,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Number =
         copy(
           location = if (keepLocations) location else None,
@@ -1715,14 +1937,17 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Number =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Number = this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""IR.Literal.Number(
         |base = $base,
@@ -1734,8 +1959,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = if (this.base.isDefined) {
         s"${base.get}_$value"
       } else value
@@ -1783,10 +2010,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Text =
         copy(
           location = if (keepLocations) location else None,
@@ -1794,14 +2023,17 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Text =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Text = this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Literal.String(
@@ -1813,9 +2045,11 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
-      override def showCode(indent: Int): String = text
+      /** @inheritdoc */
+      override def showCode(indent: Int): String = s"\"$text\""
     }
   }
 
@@ -1825,12 +2059,18 @@ object IR {
   sealed trait Name extends Expression with IRKind.Primitive {
     val name: String
 
-    override def mapExpressions(fn: Expression => Expression):      Name
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Name
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Name
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Name
 
     /** Checks whether a name is in referent form.
@@ -1906,26 +2146,38 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def isReferent: Boolean = true
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): MethodReference =
         copy(
-          typePointer =
-            typePointer.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          methodName =
-            methodName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          typePointer = typePointer.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          methodName = methodName.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def mapExpressions(
         fn: Expression => Expression
       ): MethodReference =
@@ -1934,12 +2186,14 @@ object IR {
           methodName  = methodName.mapExpressions(fn)
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): MethodReference = {
         copy(location = location)
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Name.MethodReference(
@@ -1952,8 +2206,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(typePointer, methodName)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val tPointer = typePointer.showCode(indent)
         s"$tPointer.${methodName.showCode(indent)}"
@@ -2048,27 +2304,37 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Qualified =
         copy(
           parts = parts.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def children: List[IR] = parts
 
+      /** @inheritdoc */
       override protected var id: Identifier = randomId
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = name
     }
 
@@ -2106,12 +2372,15 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def isReferent: Boolean = false
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Blank =
         copy(
           location = if (keepLocations) location else None,
@@ -2119,15 +2388,18 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Blank =
         this
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Blank =
         copy(location = location)
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
            |IR.Name.Blank(
@@ -2138,8 +2410,10 @@ object IR {
            |)
            |""".stripMargin
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = "_"
     }
 
@@ -2188,10 +2462,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Literal =
         copy(
           location = if (keepLocations) location else None,
@@ -2199,14 +2475,17 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Literal =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Literal = this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Name.Literal(
@@ -2220,8 +2499,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = name
     }
 
@@ -2263,10 +2544,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Annotation =
         copy(
           location = if (keepLocations) location else None,
@@ -2274,17 +2557,20 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Annotation =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Annotation =
         this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
            |IR.Name.Annotation(
@@ -2296,10 +2582,13 @@ object IR {
            |)
            |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def isReferent: Boolean = false
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = name
     }
 
@@ -2317,6 +2606,7 @@ object IR {
       override protected var id: Identifier = randomId
       override val name: String             = "this"
 
+      /** @inheritdoc */
       override def isReferent: Boolean = false
 
       /** Creates a copy of `this`.
@@ -2338,10 +2628,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): This =
         copy(
           location = if (keepLocations) location else None,
@@ -2349,14 +2641,17 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): This =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): This = this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Name.This(
@@ -2367,8 +2662,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = "this"
     }
 
@@ -2387,6 +2684,7 @@ object IR {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
 
+      /** @inheritdoc */
       override def isReferent: Boolean = true
 
       /** Creates a copy of `this`.
@@ -2408,10 +2706,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Here =
         copy(
           location = if (keepLocations) location else None,
@@ -2419,14 +2719,17 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Here =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Here = this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""IR.Name.Here(
         |location = $location,
@@ -2436,8 +2739,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = "here"
     }
   }
@@ -2446,12 +2751,19 @@ object IR {
 
   /** Constructs that operate on types. */
   sealed trait Type extends Expression {
-    override def mapExpressions(fn: Expression => Expression):      Type
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Type
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Type
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Type
   }
   object Type {
@@ -2503,31 +2815,45 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Ascription =
         copy(
-          typed = typed.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          signature =
-            signature.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          typed = typed.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          signature = signature.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Ascription = copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Ascription = {
         copy(typed = fn(typed), signature = fn(signature))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""IR.Type.Ascription(
         |typed = $typed,
@@ -2539,8 +2865,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(typed, signature)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String =
         s"${typed.showCode(indent)} : ${signature.showCode(indent)}"
     }
@@ -2590,30 +2918,44 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Context =
         copy(
-          typed = typed.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          context =
-            context.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          typed = typed.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          context = context.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Context =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Context = {
         copy(typed = fn(typed), context = fn(context))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""IR.Type.Context(
         |typed = $typed,
@@ -2625,8 +2967,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(typed, context)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String =
         s"${typed.showCode(indent)} in ${context.showCode(indent)}"
     }
@@ -2675,28 +3019,43 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Error =
         copy(
-          typed    = typed.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          error    = error.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          typed = typed.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepLocations
+          ),
+          error = error.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepLocations
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Error =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Error =
         copy(typed = fn(typed), error = fn(error))
 
+      /** @inheritdoc */
       override def toString: String =
         s"""IR.Type.Error(
         |typed = $typed,
@@ -2708,8 +3067,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(typed, error)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String =
         s"(${typed.showCode(indent)} ! ${error.showCode(indent)})"
     }
@@ -2719,12 +3080,19 @@ object IR {
 
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
-      override def mapExpressions(fn: Expression => Expression):      Set
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Set
+
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Set
+
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Set
     }
     object Set {
@@ -2775,29 +3143,46 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Member =
           copy(
-            label =
-              label.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            label = label.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             memberType = memberType
-              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            value =
-              value.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              .duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
+            value = value.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Member =
           copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Member = {
           copy(
             label      = label.mapExpressions(fn),
@@ -2806,6 +3191,7 @@ object IR {
           )
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Member(
@@ -2819,8 +3205,10 @@ object IR {
           |)
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(label, memberType, value)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String = {
           val typeString  = s" : ${memberType.showCode(indent)}"
           val valueString = s" = ${value.showCode(indent)}"
@@ -2872,33 +3260,47 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Subsumption =
           copy(
-            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            right =
-              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            left = left.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            right = right.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Subsumption = copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(
           fn: Expression => Expression
         ): Subsumption = {
           copy(left = fn(left), right = fn(right))
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Subsumption(
@@ -2910,8 +3312,10 @@ object IR {
           |id = $id
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(left, right)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(${left.showCode(indent)} <: ${right.showCode(indent)})"
       }
@@ -2960,31 +3364,45 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Equality =
           copy(
-            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            right =
-              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            left = left.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            right = right.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Equality = copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Equality = {
           copy(left = fn(left), right = fn(right))
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Equality(
@@ -2996,8 +3414,10 @@ object IR {
           |id = $id
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(left, right)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(${left.showCode(indent)} ~ ${right.showCode(indent)}"
       }
@@ -3046,30 +3466,44 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Concat =
           copy(
-            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            right =
-              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            left = left.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            right = right.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Concat =
           copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Concat = {
           copy(left = fn(left), right = fn(right))
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Concat(
@@ -3081,8 +3515,10 @@ object IR {
           |id = $id
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(left, right)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(${left.showCode(indent)}; ${right.showCode(indent)})"
       }
@@ -3131,30 +3567,44 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Union =
           copy(
-            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            right =
-              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            left = left.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            right = right.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Union =
           copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Union = {
           copy(left = fn(left), right = fn(right))
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Union(
@@ -3166,8 +3616,10 @@ object IR {
           |id = $id
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(left, right)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(${left.showCode(indent)} | ${right.showCode(indent)})"
       }
@@ -3216,33 +3668,47 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Intersection =
           copy(
-            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            right =
-              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            left = left.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            right = right.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Intersection = copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(
           fn: Expression => Expression
         ): Intersection = {
           copy(left = fn(left), right = fn(right))
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Intersection(
@@ -3254,8 +3720,10 @@ object IR {
           |id = $id
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(left, right)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(${left.showCode(indent)} & ${right.showCode(indent)})"
       }
@@ -3304,33 +3772,47 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Subtraction =
           copy(
-            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            right =
-              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            left = left.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            right = right.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Subtraction = copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(
           fn: Expression => Expression
         ): Subtraction = {
           copy(left = fn(left), right = fn(right))
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Subtraction(
@@ -3342,8 +3824,10 @@ object IR {
           |id = $id
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(left, right)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(${left.showCode(indent)} \\ ${right.showCode(indent)})"
       }
@@ -3375,12 +3859,18 @@ object IR {
       */
     val canBeTCO: Boolean
 
-    override def mapExpressions(fn: Expression => Expression):      Function
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Function
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Function
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Function
   }
   object Function {
@@ -3435,31 +3925,46 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Lambda =
         copy(
           arguments = arguments.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
-          body     = body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          body = body.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Lambda =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Lambda = {
         copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Function.Lambda(
@@ -3473,8 +3978,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = arguments :+ body
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val args = arguments.map(_.showCode(indent)).mkString(" ")
         val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
@@ -3545,28 +4052,47 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Binding =
         copy(
-          name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          arguments = arguments.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          name = name.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
           ),
-          body     = body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          arguments = arguments.map(
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
+          ),
+          body = body.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Binding =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Binding =
         copy(
           name      = name.mapExpressions(fn),
@@ -3574,6 +4100,7 @@ object IR {
           body      = fn(body)
         )
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Function.Sugar(
@@ -3588,8 +4115,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = (name :: arguments) :+ body
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
         val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
@@ -3620,18 +4149,22 @@ object IR {
     /** Whether or not the argument is suspended. */
     val suspended: Boolean
 
+    /** @inheritdoc */
     override def mapExpressions(
       fn: Expression => Expression
     ): DefinitionArgument
 
+    /** @inheritdoc */
     override def setLocation(
       location: Option[IdentifiedLocation]
     ): DefinitionArgument
 
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): DefinitionArgument
   }
   object DefinitionArgument {
@@ -3699,31 +4232,50 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Specified =
         copy(
-          name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          name = name.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           ascribedType = ascribedType.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
           defaultValue = defaultValue.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Specified = copy(location = location)
 
+      /** @inheritdoc */
       def mapExpressions(fn: Expression => Expression): Specified = {
         copy(
           name         = name.mapExpressions(fn),
@@ -3731,6 +4283,7 @@ object IR {
         )
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.DefinitionArgument.Specified(
@@ -3745,9 +4298,11 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] =
         name :: ascribedType.toList ++ defaultValue.toList
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val withoutLazy =
           if (defaultValue.isDefined && ascribedType.isDefined) {
@@ -3780,12 +4335,19 @@ object IR {
 
   /** All function applications in Enso. */
   sealed trait Application extends Expression {
-    override def mapExpressions(fn: Expression => Expression):      Application
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Application
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Application
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Application
   }
   object Application {
@@ -3845,32 +4407,46 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Prefix =
         copy(
-          function =
-            function.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          function = function.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           arguments = arguments.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Prefix =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Prefix = {
         copy(function = fn(function), arguments.map(_.mapExpressions(fn)))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Application.Prefix(
@@ -3884,8 +4460,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = function :: arguments
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val argStr = arguments.map(_.showCode(indent)).mkString(" ")
 
@@ -3930,29 +4508,38 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Force =
         copy(
-          target =
-            target.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          target = target.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Force =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Force = {
         copy(target = fn(target))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Application.Force(
@@ -3964,20 +4551,29 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(target)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String =
         s"(FORCE ${target.showCode(indent)})"
     }
 
     /** Literal applications in Enso. */
     sealed trait Literal extends Application {
-      override def mapExpressions(fn: Expression => Expression):      Literal
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Literal
+
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Literal
+
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Literal
     }
 
@@ -4025,27 +4621,36 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Typeset =
           copy(
             expression = expression.map(
-              _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+              _.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              )
             ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Typeset = copy(location = location)
 
+        /** @inheritdoc */
         override def toString: String =
           s"""IR.Application.Literal.Typeset(
           |expression = $expression,
@@ -4056,9 +4661,11 @@ object IR {
           |)
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] =
           expression.map(List(_)).getOrElse(List())
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String = {
           val exprString = if (expression.isDefined) {
             expression.get.showCode(indent)
@@ -4108,27 +4715,36 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Sequence =
           copy(
             items = items.map(
-              _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+              _.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              )
             ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Sequence = copy(location = location)
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Application.Literal.Vector(
@@ -4140,8 +4756,10 @@ object IR {
           |)
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = items
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String = {
           val itemsStr = items.map(_.showCode(indent)).mkString(", ")
           s"[$itemsStr]"
@@ -4151,12 +4769,19 @@ object IR {
 
     /** Operator applications in Enso. */
     sealed trait Operator extends Application {
-      override def mapExpressions(fn: Expression => Expression):      Operator
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Operator
+
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Operator
+
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Operator
     }
     object Operator {
@@ -4207,32 +4832,50 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Binary =
           copy(
-            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            operator =
-              operator.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-            right =
-              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            left = left.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            operator = operator.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            right = right.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Binary =
           copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Binary = {
           copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
         }
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Application.Operator.Binary(
@@ -4246,8 +4889,10 @@ object IR {
           |)
           |""".toSingleLine
 
+        /** @inheritdoc */
         override def children: List[IR] = List(left, operator, right)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String = {
           val opStr = operator.showCode(indent)
 
@@ -4257,12 +4902,19 @@ object IR {
 
       /** Operator sections. */
       sealed trait Section extends Operator {
-        override def mapExpressions(fn: Expression => Expression):      Section
+
+        /** @inheritdoc */
+        override def mapExpressions(fn: Expression => Expression): Section
+
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Section
+
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Section
       }
       object Section {
@@ -4308,32 +4960,47 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Left =
             copy(
-              arg = arg.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              arg = arg.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
               operator = operator
-                .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                .duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
               location = if (keepLocations) location else None,
               passData =
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def setLocation(location: Option[IdentifiedLocation]): Left =
             copy(location = location)
 
+          /** @inheritdoc */
           override def mapExpressions(fn: Expression => Expression): Section =
             copy(
               arg      = arg.mapExpressions(fn),
               operator = operator.mapExpressions(fn)
             )
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
             |IR.Application.Operator.Section.Left(
@@ -4346,8 +5013,10 @@ object IR {
             |)
             |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] = List(arg, operator)
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String =
             s"(${arg.showCode(indent)} ${operator.showCode(indent)})"
         }
@@ -4389,29 +5058,39 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Sides =
             copy(
               operator = operator
-                .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                .duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
               location = if (keepLocations) location else None,
               passData =
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Sides = copy(location = location)
 
+          /** @inheritdoc */
           override def mapExpressions(fn: Expression => Expression): Section =
             copy(operator = operator.mapExpressions(fn))
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
             |IR.Application.Operator.Section.Sides(
@@ -4423,8 +5102,10 @@ object IR {
             |)
             |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] = List(operator)
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String =
             s"(${operator.showCode(indent)})"
         }
@@ -4470,27 +5151,41 @@ object IR {
             res
           }
 
+          /** @inheritdoc */
           override def duplicate(
             keepLocations: Boolean   = true,
             keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
           ): Right =
             copy(
               operator = operator
-                .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-              arg      = arg.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                .duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                ),
+              arg = arg.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
               location = if (keepLocations) location else None,
               passData =
                 if (keepMetadata) passData.duplicate else MetadataStorage(),
               diagnostics =
                 if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = randomId
+              id = if (keepIdentifiers) id else randomId
             )
 
+          /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Right = copy(location = location)
 
+          /** @inheritdoc */
           override def mapExpressions(fn: Expression => Expression): Section = {
             copy(
               operator = operator.mapExpressions(fn),
@@ -4498,6 +5193,7 @@ object IR {
             )
           }
 
+          /** @inheritdoc */
           override def toString: String =
             s"""
             |IR.Application.Operator.Section.Right(
@@ -4510,8 +5206,10 @@ object IR {
             |)
             |""".toSingleLine
 
+          /** @inheritdoc */
           override def children: List[IR] = List(operator, arg)
 
+          /** @inheritdoc */
           override def showCode(indent: Int): String =
             s"(${operator.showCode(indent)} ${arg.showCode(indent)})"
         }
@@ -4539,12 +5237,18 @@ object IR {
       */
     val shouldBeSuspended: Option[Boolean]
 
-    override def mapExpressions(fn: Expression => Expression):      CallArgument
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): CallArgument
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): CallArgument
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): CallArgument
   }
   object CallArgument {
@@ -4606,31 +5310,47 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Specified =
         copy(
-          name =
-            name.map(_.duplicate(keepLocations, keepMetadata, keepDiagnostics)),
-          value    = value.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          name = name.map(
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
+          ),
+          value = value.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Specified = copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Specified = {
         copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.CallArgument.Specified(
@@ -4644,8 +5364,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = name.toList :+ value
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         if (name.isDefined) {
           s"(${name.get.showCode(indent)} = ${value.showCode(indent)})"
@@ -4660,12 +5382,19 @@ object IR {
 
   /** The Enso case expression. */
   sealed trait Case extends Expression {
-    override def mapExpressions(fn: Expression => Expression):      Case
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Case
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Case
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Case
   }
   object Case {
@@ -4712,28 +5441,41 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Expr =
         copy(
-          scrutinee =
-            scrutinee.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          scrutinee = scrutinee.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           branches = branches.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Expr =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Expr = {
         copy(
           scrutinee = fn(scrutinee),
@@ -4741,6 +5483,7 @@ object IR {
         )
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Case.Expr(
@@ -4753,8 +5496,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = scrutinee :: branches.toList
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val newIndent = indent + indentLevel
         val headerStr = s"case ${scrutinee.showCode(indent)} of"
@@ -4807,31 +5552,44 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Branch =
         copy(
-          pattern =
-            pattern.duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          expression =
-            expression.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          pattern = pattern.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          expression = expression.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Branch =
         copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Branch = {
         copy(pattern = pattern.mapExpressions(fn), expression = fn(expression))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Case.Branch(
@@ -4844,8 +5602,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(pattern, expression)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val newIndent = indent + indentLevel
         val bodyStr = if (expression.isInstanceOf[IR.Expression.Block]) {
@@ -4862,12 +5622,19 @@ object IR {
 
   /** The different types of patterns that can occur in a match. */
   sealed trait Pattern extends IR {
-    override def mapExpressions(fn: Expression => Expression):      Pattern
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Pattern
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Pattern
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Pattern
   }
   object Pattern {
@@ -4912,25 +5679,34 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Name =
         copy(
-          name     = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          name = name.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Name = {
         copy(name = name.mapExpressions(fn))
       }
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Case.Pattern.Name(
@@ -4942,11 +5718,14 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Name =
         copy(location = location)
 
+      /** @inheritdoc */
       override def children: List[IR] = List(name)
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = name.showCode(indent)
     }
 
@@ -4994,23 +5773,34 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Constructor =
         copy(
-          constructor =
-            constructor.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          constructor = constructor.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           fields = fields.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
       /** Checks if the constructor pattern has been desugared.
@@ -5052,12 +5842,14 @@ object IR {
         fieldsAsNamed.map(_.get)
       }
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Constructor =
         copy(
           constructor = constructor.mapExpressions(fn),
           fields      = fields.map(_.mapExpressions(fn))
         )
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Case.Pattern.Constructor(
@@ -5070,12 +5862,15 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Constructor = copy(location = location)
 
+      /** @inheritdoc */
       override def children: List[IR] = constructor :: fields
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val fieldsStr =
           fields.map(f => s"(${f.showCode(indent)})").mkString(" ")
@@ -5104,9 +5899,11 @@ object IR {
     ) extends Pattern {
       override protected var id: Identifier = randomId
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Documentation =
         this
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Documentation =
@@ -5133,10 +5930,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean,
         keepMetadata: Boolean,
-        keepDiagnostics: Boolean
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Documentation =
         copy(
           doc,
@@ -5145,11 +5944,13 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def children: List[IR] = Nil
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
            |IR.Case.Pattern.Doc(
@@ -5161,6 +5962,7 @@ object IR {
            |)
            |""".toSingleLine
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = s"## $doc"
     }
   }
@@ -5169,12 +5971,19 @@ object IR {
 
   /** Enso comment entities. */
   sealed trait Comment extends Expression with Module.Scope.Definition {
-    override def mapExpressions(fn: Expression => Expression):      Comment
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Comment
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Comment
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Comment
   }
   object Comment {
@@ -5216,10 +6025,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Documentation =
         copy(
           location = if (keepLocations) location else None,
@@ -5227,17 +6038,20 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Documentation = copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(
         fn: Expression => Expression
       ): Documentation = this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Comment.Documentation(
@@ -5249,8 +6063,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String =
         s"## $doc"
     }
@@ -5260,12 +6076,19 @@ object IR {
 
   /** Foreign code entities. */
   sealed trait Foreign extends Expression {
-    override def mapExpressions(fn: Expression => Expression):      Foreign
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Foreign
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Foreign
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Foreign
   }
   object Foreign {
@@ -5311,10 +6134,12 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Definition =
         copy(
           location = if (keepLocations) location else None,
@@ -5322,16 +6147,19 @@ object IR {
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Definition = copy(location = location)
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Definition =
         this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Foreign.Definition(
@@ -5344,8 +6172,10 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = "FOREIGN DEF"
     }
   }
@@ -5521,12 +6351,19 @@ object IR {
       extends Expression
       with IR.Module.Scope.Definition
       with Diagnostic {
-    override def mapExpressions(fn: Expression => Expression):      Error
+
+    /** @inheritdoc */
+    override def mapExpressions(fn: Expression => Expression): Error
+
+    /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Error
+
+    /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): Error
   }
   object Error {
@@ -5581,31 +6418,42 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean,
         keepMetadata: Boolean,
-        keepDiagnostics: Boolean
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Conversion = {
         copy(
-          storedIr =
-            storedIr.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          storedIr = storedIr.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
       }
 
+      /** @inheritdoc */
       override def children: List[IR] = List(storedIr)
 
+      /** @inheritdoc */
       override protected var id: Identifier = randomId
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String =
         s"(Error: ${storedIr.showCode(indent)})"
 
+      /** @inheritdoc */
       override def message: String = reason.explain
 
+      /** @inheritdoc */
       override val location: Option[IdentifiedLocation] = storedIr.location
     }
     object Conversion {
@@ -5692,14 +6540,21 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Resolution =
         copy(
           originalName = originalName
-            .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            .duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
@@ -5707,14 +6562,19 @@ object IR {
           id = randomId
         )
 
+      /** @inheritdoc */
       override def children: List[IR] = List(originalName)
 
+      /** @inheritdoc */
       override protected var id: Identifier = randomId
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = originalName.showCode(indent)
 
+      /** @inheritdoc */
       override def message: String = reason.explain(originalName)
 
+      /** @inheritdoc */
       override val location: Option[IdentifiedLocation] = originalName.location
     }
 
@@ -5857,19 +6717,26 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Pattern =
         copy(
           originalPattern = originalPattern
-            .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            .duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
       override def message: String = reason.explain
@@ -5951,27 +6818,33 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         @unused keepLocations: Boolean = true,
         keepMetadata: Boolean          = true,
-        keepDiagnostics: Boolean       = true
+        keepDiagnostics: Boolean       = true,
+        keepIdentifiers: Boolean       = false
       ): Syntax =
         copy(
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Syntax =
         this
 
+      /** @inheritdoc */
       override val location: Option[IdentifiedLocation] =
         ast.location.map(IdentifiedLocation(_, ast.id))
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Error.Syntax(
@@ -5984,10 +6857,13 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List()
 
+      /** @inheritdoc */
       override def message: String = reason.explanation
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = "Syntax_Error"
     }
     object Syntax {
@@ -6149,29 +7025,40 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): InvalidIR =
         copy(
-          ir = ir.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          ir = ir.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): InvalidIR = this
 
+      /** @inheritdoc */
       override val location: Option[IdentifiedLocation] = ir.location
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): InvalidIR =
         this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
         |IR.Error.InvalidIR(
@@ -6183,11 +7070,14 @@ object IR {
         |)
         |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(ir)
 
+      /** @inheritdoc */
       override def message: String =
         "InvalidIR: Please report this as a compiler bug."
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = "Invalid_Ir"
     }
 
@@ -6195,12 +7085,19 @@ object IR {
       * not allowed to be.
       */
     sealed trait Redefined extends Error {
-      override def mapExpressions(fn: Expression => Expression):      Redefined
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Redefined
+
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Redefined
+
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Redefined
     }
     object Redefined {
@@ -6240,10 +7137,12 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): ThisArg =
           copy(
             location = if (keepLocations) location else None,
@@ -6251,22 +7150,27 @@ object IR {
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): ThisArg = copy(location = location)
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): ThisArg =
           this
 
+        /** @inheritdoc */
         override def message: String =
           "Methods must have only one definition of the `this` argument, and " +
           "it must be the first."
 
+        /** @inheritdoc */
         override def children: List[IR] = List()
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String = "(Redefined This_Arg)"
       }
 
@@ -6306,12 +7210,12 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-                  targetType: IR.Name                    = targetType,
-                  sourceType: IR.Name                  = sourceType,
-                  location: Option[IdentifiedLocation] = location,
-                  passData: MetadataStorage            = passData,
-                  diagnostics: DiagnosticStorage       = diagnostics,
-                  id: Identifier                       = id
+          targetType: IR.Name                  = targetType,
+          sourceType: IR.Name                  = sourceType,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
         ): Conversion = {
           val res =
             Conversion(targetType, sourceType, location, passData, diagnostics)
@@ -6319,36 +7223,52 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Conversion =
           copy(
             targetType = targetType
-              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              .duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
             sourceType = sourceType
-              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              .duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Conversion =
           copy(location = location)
 
+        /** @inheritdoc */
         override def message: String =
           s"Method overloads are not supported: ${targetType.name}.from " +
           s"${sourceType.showCode()} is defined multiple times in this module."
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Conversion =
           this
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
              |IR.Error.Redefined.Method(
@@ -6361,8 +7281,10 @@ object IR {
              |)
              |""".stripMargin
 
+        /** @inheritdoc */
         override def children: List[IR] = List(targetType, sourceType)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(Redefined (Conversion $targetType.from $sourceType))"
       }
@@ -6414,33 +7336,48 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Method =
           copy(
-            atomName =
-              atomName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            atomName = atomName.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             methodName = methodName
-              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              .duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Method =
           copy(location = location)
 
+        /** @inheritdoc */
         override def message: String =
           s"Method overloads are not supported: ${atomName.name}." +
           s"${methodName.name} is defined multiple times in this module."
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Method = this
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
              |IR.Error.Redefined.Method(
@@ -6453,8 +7390,10 @@ object IR {
              |)
              |""".stripMargin
 
+        /** @inheritdoc */
         override def children: List[IR] = List(atomName, methodName)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(Redefined (Method $atomName.$methodName))"
       }
@@ -6502,31 +7441,41 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Atom =
           copy(
-            atomName =
-              atomName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            atomName = atomName.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             location = if (keepLocations) location else None,
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(location: Option[IdentifiedLocation]): Atom =
           copy(location = location)
 
+        /** @inheritdoc */
         override def message: String =
           s"Redefining atoms is not supported: ${atomName.name} is " +
           s"defined multiple times in this module."
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Atom = this
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
              |IR.Error.Redefined.Atom(
@@ -6538,8 +7487,10 @@ object IR {
              |)
              |""".stripMargin
 
+        /** @inheritdoc */
         override def children: List[IR] = List(atomName)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(Redefined (Atom $atomName))"
       }
@@ -6581,31 +7532,42 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): Binding =
           copy(
             invalidBinding = invalidBinding
-              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              .duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Binding = this
 
+        /** @inheritdoc */
         override val location: Option[IdentifiedLocation] =
           invalidBinding.location
 
+        /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Binding =
           this
 
+        /** @inheritdoc */
         override def toString: String =
           s"""
              |IR.Error.Redefined.Binding(
@@ -6617,11 +7579,14 @@ object IR {
              |)
              |""".stripMargin
 
+        /** @inheritdoc */
         override def children: List[IR] = List(invalidBinding)
 
+        /** @inheritdoc */
         override def message: String =
           s"Variable ${invalidBinding.name.name} is being redefined."
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(Redefined (Binding $invalidBinding))"
       }
@@ -6638,14 +7603,21 @@ object IR {
 
       override val location: Option[IdentifiedLocation] = ir.location
 
+      /** @inheritdoc */
       override def message: String = s"Unexpected $entity."
 
-      override def mapExpressions(fn: Expression => Expression):      Unexpected
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Unexpected
+
+      /** @inheritdoc */
       override def setLocation(location: Option[IdentifiedLocation]): Unexpected
+
+      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
       ): Unexpected
     }
     object Unexpected {
@@ -6687,30 +7659,41 @@ object IR {
           res
         }
 
+        /** @inheritdoc */
         override def mapExpressions(
           fn: Expression => Expression
         ): TypeSignature = this
 
+        /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): TypeSignature = this
 
+        /** @inheritdoc */
         override def duplicate(
           keepLocations: Boolean   = true,
           keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
         ): TypeSignature =
           copy(
-            ir = ir.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            ir = ir.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
             passData =
               if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+            id = if (keepIdentifiers) id else randomId
           )
 
+        /** @inheritdoc */
         override def children: List[IR] = List(ir)
 
+        /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(Unexpected.TypeSignature ${ir.showCode(indent)})"
       }
@@ -6797,29 +7780,35 @@ object IR {
         res
       }
 
+      /** @inheritdoc */
       override def duplicate(
         @unused keepLocations: Boolean = true,
         keepMetadata: Boolean          = true,
-        keepDiagnostics: Boolean       = true
+        keepDiagnostics: Boolean       = true,
+        keepIdentifiers: Boolean       = false
       ): ImportExport =
         copy(
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
             if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
+          id = if (keepIdentifiers) id else randomId
         )
 
+      /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): ImportExport =
         this
 
+      /** @inheritdoc */
       override val location: Option[IdentifiedLocation] = ir.location
 
+      /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): ImportExport =
         this
 
+      /** @inheritdoc */
       override def toString: String =
         s"""
            |IR.Error.ImportExport(
@@ -6832,10 +7821,13 @@ object IR {
            |)
            |""".toSingleLine
 
+      /** @inheritdoc */
       override def children: List[IR] = List(ir)
 
+      /** @inheritdoc */
       override def message: String = reason.message
 
+      /** @inheritdoc */
       override def showCode(indent: Int): String = "Import_Export_Error"
     }
   }
@@ -6996,15 +7988,25 @@ object IR {
       *                     the duplicated IR
       * @param keepDiagnostics whether or not the diagnostics should be kept in
       *                        the duplicated IR
+      * @param keepIdentifiers whether or not the identifiers should be
+      *                        regenerated in the duplicated IR
       * @return a duplicate of [[list]]
       */
     def duplicate(
       keepLocations: Boolean   = true,
       keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
     ): List[T] = {
       list
-        .map(_.duplicate(keepLocations, keepMetadata, keepDiagnostics))
+        .map(
+          _.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          )
+        )
         .asInstanceOf[List[T]]
     }
   }

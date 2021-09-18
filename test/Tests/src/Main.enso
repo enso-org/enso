@@ -45,7 +45,7 @@ import project.System.Process_Spec
 
 import project.Examples_Spec
 
-main = Test.Suite.run_main <|
+Main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
     Case_Spec.spec

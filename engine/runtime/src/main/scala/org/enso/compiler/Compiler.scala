@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -23,6 +24,7 @@ import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 import java.io.StringReader
+import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -43,15 +45,43 @@ class Compiler(
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
-  private val irCachingEnabled = !context.isIrCachingDisabled
+  private val irCachingEnabled      = !context.isIrCachingDisabled
+  private val irCacheReadingEnabled = !context.isIrCacheReadingDisabled
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
+  private val logger: TruffleLogger = context.getLogger(getClass)
 
   /** Lazy-initializes the IR for the builtins module.
     */
   def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
-      builtins.initializeBuiltinsIr(freshNameSupply, passes)
+      logger.log(
+        Compiler.defaultLogLevel,
+        s"Initialising IR for [${builtins.getModule.getName}]."
+      )
+
+      builtins.initializeBuiltinsSource()
+
+      if (irCachingEnabled && irCacheReadingEnabled) {
+        serializationManager.deserialize(builtins.getModule) match {
+          case Some(true) =>
+            // Ensure that builtins doesn't try and have codegen run on it.
+            builtins.getModule.unsafeSetCompilationStage(
+              Module.CompilationStage.AFTER_CODEGEN
+            )
+          case _ =>
+            builtins.initializeBuiltinsIr(freshNameSupply, passes)
+            builtins.getModule.setHasCrossModuleLinks(true)
+
+        }
+      } else {
+        builtins.initializeBuiltinsIr(freshNameSupply, passes)
+        builtins.getModule.setHasCrossModuleLinks(true)
+      }
+
+      if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
+        serializationManager.serialize(builtins.getModule)
+      }
     }
   }
 
@@ -75,10 +105,44 @@ class Compiler(
   def run(module: Module): Unit = {
     initializeBuiltinsIr()
     parseModule(module)
-    val importedModules = importResolver.mapImports(module)
-    val requiredModules =
-      try { new ExportsResolution().run(importedModules) }
-      catch { case e: ExportCycleException => reportCycle(e) }
+
+    var requiredModules = runImportsAndExportsResolution(module)
+
+    var hasInvalidModuleRelink = false
+    if (irCachingEnabled && irCacheReadingEnabled) {
+      requiredModules.foreach { module =>
+        if (!module.hasCrossModuleLinks) {
+          val flags =
+            module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
+
+          if (!flags.contains(false)) {
+            logger.log(
+              Compiler.defaultLogLevel,
+              s"Restored links (late phase) for module [${module.getName}]."
+            )
+          } else {
+            hasInvalidModuleRelink = true
+            logger.log(
+              Compiler.defaultLogLevel,
+              s"Failed to restore links (late phase) for module " +
+              s"[${module.getName}]."
+            )
+            uncachedParseModule(module, isGenDocs = false)
+          }
+        }
+      }
+    }
+
+    if (hasInvalidModuleRelink) {
+      logger.log(
+        Compiler.defaultLogLevel,
+        s"Some modules failed to relink. Re-running import and " +
+        s"export resolution."
+      )
+
+      requiredModules = runImportsAndExportsResolution(module)
+    }
+
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
@@ -119,6 +183,11 @@ class Compiler(
           Module.CompilationStage.AFTER_CODEGEN
         )
       ) {
+        logger.log(
+          Compiler.defaultLogLevel,
+          s"Generating code for module [${module.getName}]."
+        )
+
         truffleCodegen(module.getIr, module.getSource, module.getScope)
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
 
@@ -131,7 +200,8 @@ class Compiler(
   }
 
   /** Runs part of the compiler to generate docs from Enso code.
-    * @param module - the scope from which docs are generated.
+    *
+    * @param module the scope from which docs are generated
     */
   def generateDocs(module: Module): Module = {
     initializeBuiltinsIr()
@@ -139,33 +209,57 @@ class Compiler(
     module
   }
 
+  private def runImportsAndExportsResolution(module: Module): List[Module] = {
+    val importedModules = importResolver.mapImports(module)
+
+    val requiredModules =
+      try { new ExportsResolution().run(importedModules) }
+      catch { case e: ExportCycleException => reportCycle(e) }
+
+    requiredModules
+  }
+
   private def parseModule(
     module: Module,
     isGenDocs: Boolean = false
   ): Unit = {
+    logger.log(
+      Compiler.defaultLogLevel,
+      s"Parsing the module [${module.getName}]."
+    )
     module.ensureScopeExists()
     module.getScope.reset()
 
-    module.getCache.load(context) match {
-      case Some(ModuleCache.CachedModule(ir, stage)) if irCachingEnabled =>
-        module.unsafeSetIr(ir)
-        module.unsafeSetCompilationStage(stage)
-        throw new CompilerError(
-          "Caching should not yet be enabled in production."
-        )
-      case _ =>
-        val moduleContext = ModuleContext(
-          module           = module,
-          freshNameSupply  = Some(freshNameSupply),
-          compilerConfig   = config,
-          isGeneratingDocs = isGenDocs
-        )
-        val parsedAST        = parse(module.getSource)
-        val expr             = generateIR(parsedAST)
-        val discoveredModule = recognizeBindings(expr, moduleContext)
-        module.unsafeSetIr(discoveredModule)
-        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    if (irCachingEnabled && irCacheReadingEnabled && !module.isInteractive) {
+      serializationManager.deserialize(module) match {
+        case Some(_) => return
+        case _       =>
+      }
     }
+
+    uncachedParseModule(module, isGenDocs)
+  }
+
+  private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
+    logger.log(
+      Compiler.defaultLogLevel,
+      s"Loading module `${module.getName}` from source."
+    )
+    module.ensureScopeExists()
+    module.getScope.reset()
+
+    val moduleContext = ModuleContext(
+      module           = module,
+      freshNameSupply  = Some(freshNameSupply),
+      compilerConfig   = config,
+      isGeneratingDocs = isGenDocs
+    )
+    val parsedAST        = parse(module.getSource)
+    val expr             = generateIR(parsedAST)
+    val discoveredModule = recognizeBindings(expr, moduleContext)
+    module.unsafeSetIr(discoveredModule)
+    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.setHasCrossModuleLinks(true)
   }
 
   /** Gets a module definition by name.
@@ -361,9 +455,13 @@ class Compiler(
     modules: List[Module]
   ): Unit = {
     if (context.isStrictErrors) {
-      val diagnostics = modules.map { module =>
-        val errors = gatherDiagnostics(module)
-        (module, errors)
+      val diagnostics = modules.flatMap { module =>
+        if (module == builtins.getModule) {
+          List()
+        } else {
+          val errors = gatherDiagnostics(module)
+          List((module, errors))
+        }
       }
       if (reportDiagnostics(diagnostics)) {
         throw new CompilationAbortedException
@@ -553,4 +651,28 @@ class Compiler(
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
     serializationManager.shutdown(waitForPendingJobCompletion)
   }
+
+  /** Updates the metadata in a copy of the IR when updating that metadata
+    * requires global state.
+    *
+    * This is usually the case in the presence of structures that are shared
+    * throughout the IR, and need to maintain that sharing for correctness. This
+    * must be called with `copyOfIr` as the result of an `ir.duplicate` call.
+    *
+    * Additionally this method _must not_ alter the structure of the IR. It
+    * should only update its metadata.
+    *
+    * @param sourceIr the IR being copied
+    * @param copyOfIr a duplicate of `sourceIr`
+    * @return the result of updating metadata in `copyOfIr` globally using
+    *         information from `sourceIr`
+    */
+  def updateMetadata(sourceIr: IR.Module, copyOfIr: IR.Module): IR.Module = {
+    passManager.runMetadataUpdate(sourceIr, copyOfIr)
+  }
+}
+object Compiler {
+
+  /** The default logging level for the compiler. */
+  private val defaultLogLevel: Level = Level.FINE
 }

@@ -76,6 +76,12 @@ case object ShadowedPatternFields extends IRPass {
     }
   }
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
   // === Pass Internals =======================================================
 
   /** Lints for shadowed pattern variables on an arbitrary expression.

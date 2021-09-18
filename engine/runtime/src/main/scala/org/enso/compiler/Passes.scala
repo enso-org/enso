@@ -90,6 +90,9 @@ class Passes(
     List(moduleDiscoveryPasses, functionBodyPasses)
   )
 
+  /** The ordered representation of all passes run by the compiler. */
+  val allPassOrdering: List[IRPass] = passOrdering.flatMap(_.passes)
+
   /** Configuration for the passes. */
   private val passConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> ApplicationSaturation.Configuration(),

@@ -1,5 +1,13 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Added support for reading the compiler's intermediate representation from
+  disk, as well as round-tripping that IR
+  ([#1996](https://github.com/enso-org/enso/pull/1996)). The compiler will now
+  take advantage of cached IR where available to drastically reduce start-up
+  time, and will write these caches if they do not exist or are invalid.
+
 ## Enso 0.2.29 (2021-09-16)
 
 ## Interpreter/Runtime

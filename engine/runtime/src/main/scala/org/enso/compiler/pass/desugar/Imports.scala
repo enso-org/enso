@@ -4,6 +4,8 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
+import scala.annotation.unused
+
 /** Desugars shorthand syntaxes in import and export statements.
   */
 case object Imports extends IRPass {
@@ -103,6 +105,12 @@ case object Imports extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   private def computeRename(
     originalRename: Option[IR.Name.Literal],

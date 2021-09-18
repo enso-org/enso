@@ -13,6 +13,8 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 
+import scala.annotation.unused
+
 /** This pass is responsible for ensuring that method bodies are in the correct
   * format.
   *
@@ -175,6 +177,12 @@ case object GenerateMethodBodies extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   /** Collects the argument list of a chain of function definitions.
     *

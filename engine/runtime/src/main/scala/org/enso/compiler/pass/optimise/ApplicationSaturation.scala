@@ -12,6 +12,8 @@ import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
+import scala.annotation.unused
+
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
   * specific nodes at codegen time.
@@ -178,6 +180,12 @@ case object ApplicationSaturation extends IRPass {
         }
     }
   }
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   /** Configuration for this pass
     *

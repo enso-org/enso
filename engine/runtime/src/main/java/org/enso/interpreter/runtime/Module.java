@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -14,6 +15,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.phase.StubIrBuilder;
@@ -86,6 +88,8 @@ public class Module implements TruffleObject {
   private QualifiedName name;
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
+  private boolean hasCrossModuleLinks;
+  private boolean isInteractive;
 
   /**
    * Creates a new module.
@@ -101,6 +105,8 @@ public class Module implements TruffleObject {
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
+    this.hasCrossModuleLinks = false;
+    this.isInteractive = false;
   }
 
   /**
@@ -117,6 +123,8 @@ public class Module implements TruffleObject {
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
+    this.hasCrossModuleLinks = false;
+    this.isInteractive = true;
   }
 
   /**
@@ -133,6 +141,8 @@ public class Module implements TruffleObject {
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
+    this.hasCrossModuleLinks = false;
+    this.isInteractive = true;
   }
 
   /**
@@ -149,6 +159,8 @@ public class Module implements TruffleObject {
     this.compilationStage = CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
+    this.hasCrossModuleLinks = false;
+    this.isInteractive = false;
   }
 
   /**
@@ -165,6 +177,7 @@ public class Module implements TruffleObject {
 
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
+    this.isInteractive = false;
     this.literalSource = null;
     this.cachedSource = null;
     this.compilationStage = CompilationStage.INITIAL;
@@ -193,6 +206,7 @@ public class Module implements TruffleObject {
     this.literalSource = source;
     this.compilationStage = CompilationStage.INITIAL;
     this.cachedSource = null;
+    this.isInteractive = true;
   }
 
   /**
@@ -205,6 +219,7 @@ public class Module implements TruffleObject {
     this.sourceFile = file;
     this.compilationStage = CompilationStage.INITIAL;
     this.cachedSource = null;
+    this.isInteractive = false;
   }
 
   /** @return the location of this module. */
@@ -341,7 +356,7 @@ public class Module implements TruffleObject {
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
-    return literalSource == null;
+    return isInteractive;
   }
 
   /**
@@ -365,8 +380,21 @@ public class Module implements TruffleObject {
   }
 
   /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
-  public void setLoadedFromCache(Boolean wasLoadedFromCache) {
+  public void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
+  }
+
+  /**
+   * @return {@code true} if the module has had its cross-module links restored, otherwise {@code
+   *     false}
+   */
+  public boolean hasCrossModuleLinks() {
+    return hasCrossModuleLinks;
+  }
+
+  /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
+  public void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
+    this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
 
   /**
@@ -386,7 +414,16 @@ public class Module implements TruffleObject {
           Types.extractArguments(args, AtomConstructor.class, String.class);
       AtomConstructor cons = arguments.getFirst();
       String name = arguments.getSecond();
-      return scope.getMethods().get(cons).get(name.toLowerCase());
+
+      try {
+        return scope.getMethods().get(cons).get(name.toLowerCase());
+      } catch (NullPointerException npe) {
+        TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
+        logger.log(
+            Level.SEVERE,
+            "Failed to get the requested method. Try clearing your IR caches or disabling caching.");
+        throw npe;
+      }
     }
 
     private static AtomConstructor getConstructor(ModuleScope scope, Object[] args)
@@ -400,6 +437,8 @@ public class Module implements TruffleObject {
       Types.extractArguments(args);
       module.cachedSource = null;
       module.literalSource = null;
+      module.isInteractive = false;
+      module.wasLoadedFromCache = false;
       try {
         module.compile(context);
       } catch (IOException ignored) {
