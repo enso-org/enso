@@ -186,6 +186,12 @@ always trust the results you get.
 
 # Enso Source Code
 
+If you want to start _using_ Enso, please see the download links in the
+[getting started](#getting-started) section above. Alternatively you can get the
+IDE [here](https://github.com/enso-org/ide/releases) and the language itself
+[here](https://github.com/enso-org/enso-/releases). This section is intended for
+people interested in contributing to the development of Enso.
+
 Enso is a community-driven open source project which is, and will always be,
 open and free to use. Join us, help us to build it, and spread the word!
 
