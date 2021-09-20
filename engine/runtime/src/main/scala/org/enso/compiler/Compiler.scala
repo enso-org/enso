@@ -1,6 +1,7 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.TruffleLogger
+import org.enso.pkg.Package
+import com.oracle.truffle.api.{TruffleFile, TruffleLogger}
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -197,6 +198,26 @@ class Compiler(
         }
       }
     }
+  }
+
+  /** Precompiles the requested packages, writing the compiled IR to the
+    * library-local cache directories.
+    *
+    * @param libraries the libraries to precompile
+    */
+  def compile(libraries: List[Package[TruffleFile]]): Unit = {
+    // TODO [AA] Find a way to request packages and load them.
+    // TODO [AA] Handle missing packages gracefully
+    // TODO [AA] Provide a way to request use of local caches only.
+    // TODO [AA] Provide a means to check if a cache exists at a given location
+    //  for a module.
+    // TODO [AA] Enumerate all modules in the requested packages.
+    // TODO [AA] Compile and write the caches (without codegen) for the
+    //  libraries.
+    // TODO [AA] Factor out common code where possible.
+    // TODO [AA] Remove the option to disable cache reading.
+    // TODO [AA] Do this on CI prior to running the tests with enabled caches.
+    ???
   }
 
   /** Runs part of the compiler to generate docs from Enso code.

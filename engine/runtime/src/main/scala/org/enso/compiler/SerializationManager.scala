@@ -266,7 +266,8 @@ class SerializationManager(compiler: Compiler) {
         } else stage
       cache.save(
         ModuleCache.CachedModule(ir, fixedStage, source),
-        compiler.context
+        compiler.context,
+        localOnly = false
       )
     } catch {
       case e: NotSerializableException =>

@@ -11,7 +11,7 @@ import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
-import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
+import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext, RuntimeOptions}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
@@ -47,6 +47,7 @@ object Main {
   private val IR_CACHES_OPTION            = "ir-caches"
   private val NO_IR_CACHES_OPTION         = "no-ir-caches"
   private val NO_READ_IR_CACHES_OPTION    = "no-read-ir-caches"
+  private val COMPILE_OPTION              = "compile"
   private val LOG_LEVEL                   = "log-level"
   private val LOGGER_CONNECT              = "logger-connect"
   private val NO_LOG_MASKING              = "no-log-masking"
@@ -243,6 +244,11 @@ object Main {
         "Disables the reading of IR caches in the runtime if IR caching is enabled."
       )
       .build()
+    val compileOption = CliOption.builder.hasArgs
+      .argName("package...")
+      .longOpt(COMPILE_OPTION)
+      .desc("Compile the provided package(s) without executing them.")
+      .build()
 
     val irCachesOption = CliOption.builder
       .longOpt(IR_CACHES_OPTION)
@@ -293,6 +299,7 @@ object Main {
       .addOption(hideProgressOption)
       .addOption(authTokenOption)
       .addOption(noReadIrCachesOption)
+      .addOption(compileOption)
       .addOptionGroup(cacheOptionsGroup)
 
     options
@@ -366,6 +373,27 @@ object Main {
       maintainers = authors,
       template    = template.getOrElse(Template.Default)
     )
+    exitSuccess()
+  }
+
+  private def compile(
+    packagePaths: Array[String],
+    logLevel: LogLevel,
+    logMasking: Boolean
+  ): Unit = {
+    val pathFiles  = packagePaths.map(p => new File(p)).toList
+    val validPaths = pathFiles.filter(_.exists()).map(_.getPath)
+    pathFiles
+      .filter(!_.exists())
+      .foreach(p => println(s"No file exists at ${p.getPath}."))
+
+    if (validPaths.length < 1) {
+      exitFail()
+    }
+
+    println(s"Valid Paths: $validPaths")
+    println(s"LogLevel: $logLevel")
+    println(s"LogMasking: $logMasking")
     exitSuccess()
   }
 
@@ -797,6 +825,11 @@ object Main {
           // The error itself is already logged.
           exitFail()
       }
+    }
+
+    if (line.hasOption(COMPILE_OPTION)) {
+      val packagePaths = line.getOptionValues(COMPILE_OPTION)
+      compile(packagePaths, logLevel, logMasking)
     }
 
     if (line.hasOption(RUN_OPTION)) {

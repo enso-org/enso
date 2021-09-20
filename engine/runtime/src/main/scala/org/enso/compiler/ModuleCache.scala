@@ -36,17 +36,20 @@ class ModuleCache(private val module: Module) {
     *
     * @param module the module representation to be saved
     * @param context the language context in which saving is taking place
+    * @param localOnly specifies that only the local, in-library cache
+    *                  directories should be usEd
     * @return returns the location of the cache if successful, and [[None]] if
     *         it was unable to save
     */
   def save(
     module: ModuleCache.CachedModule,
-    context: Context
+    context: Context,
+    localOnly: Boolean
   ): Option[TruffleFile] = this.synchronized {
     implicit val logger: TruffleLogger = context.getLogger(this.getClass)
     getIrCacheRoots(context) match {
       case Some(roots) =>
-        if (saveCacheTo(roots.globalCacheRoot, module)) {
+        if (!localOnly && saveCacheTo(roots.globalCacheRoot, module)) {
           return Some(roots.globalCacheRoot)
         }
 
