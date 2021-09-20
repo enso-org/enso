@@ -1,4 +1,0 @@
-from Standard.Builtins import IO
-
-do_print = IO.println "COMPLETED EXECUTION"
-

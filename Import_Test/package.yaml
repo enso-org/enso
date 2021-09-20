@@ -1,8 +1,0 @@
-name: Import_Test
-namespace: local
-version: 0.0.1
-license: ""
-authors: []
-maintainers: []
-edition: 2021.17-SNAPSHOT
-prefer-local-libraries: true
