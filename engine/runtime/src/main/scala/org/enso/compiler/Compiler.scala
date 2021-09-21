@@ -217,6 +217,7 @@ class Compiler(
     // TODO [AA] Factor out common code where possible.
     // TODO [AA] Remove the option to disable cache reading.
     // TODO [AA] Do this on CI prior to running the tests with enabled caches.
+    // TODO [AA] Only write things from requested packages.
     ???
   }
 

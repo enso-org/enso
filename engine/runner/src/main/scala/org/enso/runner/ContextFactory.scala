@@ -1,8 +1,5 @@
 package org.enso.runner
 
-import java.io.InputStream
-import java.io.OutputStream
-
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
@@ -10,6 +7,8 @@ import org.enso.polyglot.debugger.{
 }
 import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
+
+import java.io.{InputStream, OutputStream}
 
 /** Utility class for creating Graal polyglot contexts.
   */

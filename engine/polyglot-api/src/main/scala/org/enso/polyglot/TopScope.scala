@@ -33,4 +33,8 @@ class TopScope(private val value: Value) {
   def unregisterModule(qualifiedName: String): Unit = {
     value.invokeMember(UNREGISTER_MODULE, qualifiedName): Unit
   }
+
+  def compile(packageRoots: List[String]): Unit = {
+    value.invokeMember(COMPILE_PACKAGES, packageRoots.toArray)
+  }
 }

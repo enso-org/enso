@@ -88,48 +88,6 @@ public class RuntimeOptions {
   private static final OptionDescriptor NO_READ_IR_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(NO_READ_IR_CACHES_KEY, NO_READ_IR_CACHES).build();
 
-  // TODO [AA] compile (takes a list) (use an OptionType here, and have a buildOptionString
-  //  function)
-  public static final String COMPILE = optionName("compile");
-  public static final OptionType<ArrayList<String>> COMPILE_TYPE =
-      new OptionType<>("Paths", Compile::fromOptionsString);
-  public static final OptionKey<ArrayList<String>> COMPILE_KEY =
-      new OptionKey<>(new ArrayList<>(), COMPILE_TYPE);
-  public static final OptionDescriptor COMPILE_DESCRIPTOR =
-      OptionDescriptor.newBuilder(COMPILE_KEY, COMPILE).build();
-
-  public static class Compile {
-    private static final String pathSeparator = File.pathSeparator;
-
-    /**
-     * Converts the options string to an {@link ArrayList} of paths.
-     *
-     * @param optionsString the string of the option
-     * @return the paths
-     */
-    public static ArrayList<String> fromOptionsString(String optionsString) {
-      var items = new ArrayList<>(Arrays.asList(optionsString.split(pathSeparator)));
-      return items.stream().filter(s -> !s.isEmpty())
-          .collect(Collectors.toCollection(ArrayList::new));
-    }
-
-    /**
-     * Convert an {@link ArrayList} of paths to an options string.
-     *
-     * @param paths the paths to consolidate
-     * @return the options string representing {@code paths}
-     */
-    public static String toOptionsString(List<String> paths) {
-      StringBuilder builder = new StringBuilder();
-      paths.forEach(
-          path -> {
-            builder.append(path);
-            builder.append(pathSeparator);
-          });
-      return builder.toString();
-    }
-  }
-
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
@@ -145,8 +103,7 @@ public class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
-              NO_READ_IR_CACHES_DESCRIPTOR,
-              COMPILE_DESCRIPTOR));
+              NO_READ_IR_CACHES_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

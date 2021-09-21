@@ -11,7 +11,7 @@ import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
-import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext, RuntimeOptions}
+import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
@@ -376,6 +376,12 @@ object Main {
     exitSuccess()
   }
 
+  /** Handles the `--compile` CLI option.
+    *
+    * @param packagePaths the paths to the package roots to be compiled
+    * @param logLevel the logging level
+    * @param logMasking whether log masking is enabled or disabled
+    */
   private def compile(
     packagePaths: Array[String],
     logLevel: LogLevel,
@@ -391,9 +397,20 @@ object Main {
       exitFail()
     }
 
-    println(s"Valid Paths: $validPaths")
-    println(s"LogLevel: $logLevel")
-    println(s"LogMasking: $logMasking")
+    val context = new ContextFactory().create(
+      "",
+      System.in,
+      System.out,
+      Repl(TerminalIO()),
+      logLevel,
+      logMasking,
+      enableIrCaches       = true,
+      enableIrCacheReading = false
+    )
+    val topScope = context.getTopScope
+    topScope.compile(validPaths)
+
+    context.context.close()
     exitSuccess()
   }
 
