@@ -1,15 +1,10 @@
 package org.enso.polyglot;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
-import org.graalvm.options.OptionType;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {

@@ -113,6 +113,9 @@ class Compiler(
 
   /** Compiles the requested packages, writing the compiled IR to the library
     * cache directories.
+    *
+    * @param shouldCompileDependencies whether compilation should also compile
+    *                                  the dependencies of the requested package
     */
   def compile(shouldCompileDependencies: Boolean): Unit = {
     val packageRepository = context.getPackageRepository
