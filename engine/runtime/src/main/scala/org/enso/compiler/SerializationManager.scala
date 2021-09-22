@@ -76,7 +76,7 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` has been scheduled for serialization, `false`
     *         otherwise
     */
-  def serialize(module: Module): Boolean = {
+  def serialize(module: Module, useGlobalCacheLocations: Boolean): Boolean = {
     logger.log(
       debugLogLevel,
       s"Requesting serialization for module [${module.getName}]."
@@ -92,7 +92,8 @@ class SerializationManager(compiler: Compiler) {
       duplicatedIr,
       module.getCompilationStage,
       module.getName,
-      module.getSource
+      module.getSource,
+      useGlobalCacheLocations
     )
     if (compiler.context.getEnvironment.isCreateThreadAllowed) {
       isWaitingForSerialization.put(module.getName, task)
@@ -252,7 +253,8 @@ class SerializationManager(compiler: Compiler) {
     ir: IR.Module,
     stage: Module.CompilationStage,
     name: QualifiedName,
-    source: Source
+    source: Source,
+    useGlobalCaches: Boolean
   ): Runnable = { () =>
     startSerializing(name)
     logger.log(
@@ -267,7 +269,7 @@ class SerializationManager(compiler: Compiler) {
       cache.save(
         ModuleCache.CachedModule(ir, fixedStage, source),
         compiler.context,
-        localOnly = false
+        useGlobalCaches
       )
     } catch {
       case e: NotSerializableException =>

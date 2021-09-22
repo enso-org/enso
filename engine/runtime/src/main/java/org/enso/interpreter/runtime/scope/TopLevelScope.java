@@ -13,11 +13,8 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
-import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
@@ -109,7 +106,7 @@ public class TopLevelScope implements TruffleObject {
         MethodNames.TopScope.CREATE_MODULE,
         MethodNames.TopScope.REGISTER_MODULE,
         MethodNames.TopScope.UNREGISTER_MODULE,
-        MethodNames.TopScope.COMPILE_PACKAGES);
+        MethodNames.TopScope.COMPILE);
   }
 
   /** Handles member invocation through the polyglot API. */
@@ -158,14 +155,12 @@ public class TopLevelScope implements TruffleObject {
       return context.getEnvironment().asGuestValue(context);
     }
 
-    private static Object compilePackages(Object[] arguments, Context context)
+    private static Object compile(Object[] arguments, Context context)
         throws UnsupportedTypeException, ArityException {
+      boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
+      context.getCompiler().compile(shouldCompileDependencies);
 
-      String[] packageRoots = Types.extractHostArguments(arguments, String[].class, context);
-
-
-
-      return Boolean.TRUE;
+      return true;
     }
 
     @Specialization
@@ -186,8 +181,8 @@ public class TopLevelScope implements TruffleObject {
           return unregisterModule(scope, arguments, contextRef.get());
         case MethodNames.TopScope.LEAK_CONTEXT:
           return leakContext(contextRef.get());
-        case MethodNames.TopScope.COMPILE_PACKAGES:
-          return compilePackages(arguments, contextRef.get());
+        case MethodNames.TopScope.COMPILE:
+          return compile(arguments, contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -206,7 +201,7 @@ public class TopLevelScope implements TruffleObject {
         || member.equals(MethodNames.TopScope.CREATE_MODULE)
         || member.equals(MethodNames.TopScope.REGISTER_MODULE)
         || member.equals(MethodNames.TopScope.UNREGISTER_MODULE)
-        || member.equals(MethodNames.TopScope.COMPILE_PACKAGES);
+        || member.equals(MethodNames.TopScope.COMPILE);
   }
 
   /**

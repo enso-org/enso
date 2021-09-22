@@ -26,6 +26,8 @@ class ContextFactory {
     * @param enableIrCacheReading whether or not IR cache reading should be
     *                             enabled
     * @param strictErrors whether or not to use strict errors
+    * @param useGlobalIrCacheLocation whether or not to use the global IR cache
+    *                                 location
     * @return configured Context instance
     */
   def create(
@@ -37,7 +39,8 @@ class ContextFactory {
     logMasking: Boolean,
     enableIrCaches: Boolean,
     enableIrCacheReading: Boolean,
-    strictErrors: Boolean = false
+    strictErrors: Boolean             = false,
+    useGlobalIrCacheLocation: Boolean = true
   ): PolyglotContext = {
     val context = Context
       .newBuilder()
@@ -46,6 +49,10 @@ class ContextFactory {
       .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
+      .option(
+        RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION,
+        useGlobalIrCacheLocation.toString
+      )
       .option(RuntimeOptions.DISABLE_IR_CACHES, (!enableIrCaches).toString)
       .option(
         RuntimeOptions.NO_READ_IR_CACHES,

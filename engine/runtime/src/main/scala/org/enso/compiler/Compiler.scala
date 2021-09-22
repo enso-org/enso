@@ -1,7 +1,6 @@
 package org.enso.compiler
 
-import org.enso.pkg.Package
-import com.oracle.truffle.api.{TruffleFile, TruffleLogger}
+import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -20,7 +19,7 @@ import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{Context, Module}
-import org.enso.polyglot.LanguageInfo
+import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
@@ -48,6 +47,9 @@ class Compiler(
     new RuntimeStubsGenerator()
   private val irCachingEnabled      = !context.isIrCachingDisabled
   private val irCacheReadingEnabled = !context.isIrCacheReadingDisabled
+  private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
+    RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
+  )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
@@ -81,7 +83,10 @@ class Compiler(
       }
 
       if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
-        serializationManager.serialize(builtins.getModule)
+        serializationManager.serialize(
+          builtins.getModule,
+          useGlobalCacheLocations = true // Builtins can't have a local cache.
+        )
       }
     }
   }
@@ -104,6 +109,62 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(module: Module): Unit = {
+    runInternal(module, generateCode = true, shouldCompileDependencies = false)
+  }
+
+  /** Compiles the requested packages, writing the compiled IR to the library
+    * cache directories.
+    */
+  def compile(shouldCompileDependencies: Boolean): Unit = {
+    val packageRepository = context.getPackageRepository
+
+    packageRepository.getMainProjectPackage match {
+      case None =>
+        logger.log(
+          Level.SEVERE,
+          s"No package found in the compiler environment. Aborting."
+        )
+      case Some(pkg) =>
+        val packageModule = packageRepository.getModuleMap.get(
+          s"${pkg.namespace}.${pkg.name}.Main"
+        )
+        packageModule match {
+          case None =>
+            logger.log(
+              Level.SEVERE,
+              s"Could not find entry point for compilation in package " +
+              s"[${pkg.namespace}.${pkg.name}]."
+            )
+          case Some(m) =>
+            logger.log(
+              Compiler.defaultLogLevel,
+              s"Compiling the package [${pkg.namespace}.${pkg.name}] " +
+              s"starting at the root [${m.getName}]."
+            )
+
+            runInternal(m, generateCode = false, shouldCompileDependencies)
+        }
+    }
+
+    // TODO [AA] Remove the option to disable cache reading.
+    // TODO [AA] Do this on CI prior to running the tests with enabled caches.
+  }
+
+  /** Runs part of the compiler to generate docs from Enso code.
+    *
+    * @param module the scope from which docs are generated
+    */
+  def generateDocs(module: Module): Module = {
+    initializeBuiltinsIr()
+    parseModule(module, isGenDocs = true)
+    module
+  }
+
+  private def runInternal(
+    module: Module,
+    generateCode: Boolean,
+    shouldCompileDependencies: Boolean
+  ): Unit = {
     initializeBuiltinsIr()
     parseModule(module)
 
@@ -184,51 +245,33 @@ class Compiler(
           Module.CompilationStage.AFTER_CODEGEN
         )
       ) {
-        logger.log(
-          Compiler.defaultLogLevel,
-          s"Generating code for module [${module.getName}]."
-        )
 
-        truffleCodegen(module.getIr, module.getSource, module.getScope)
+        if (generateCode) {
+          logger.log(
+            Compiler.defaultLogLevel,
+            s"Generating code for module [${module.getName}]."
+          )
+
+          truffleCodegen(module.getIr, module.getSource, module.getScope)
+        }
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
 
-        val shouldStoreCache = irCachingEnabled && !module.wasLoadedFromCache()
-        if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-          serializationManager.serialize(module)
+        if (shouldCompileDependencies || isModuleInRootPackage(module)) {
+          val shouldStoreCache =
+            irCachingEnabled && !module.wasLoadedFromCache()
+          if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
+            serializationManager.serialize(module, useGlobalCacheLocations)
+          }
         }
       }
     }
   }
 
-  /** Precompiles the requested packages, writing the compiled IR to the
-    * library-local cache directories.
-    *
-    * @param libraries the libraries to precompile
-    */
-  def compile(libraries: List[Package[TruffleFile]]): Unit = {
-    // TODO [AA] Find a way to request packages and load them.
-    // TODO [AA] Handle missing packages gracefully
-    // TODO [AA] Provide a way to request use of local caches only.
-    // TODO [AA] Provide a means to check if a cache exists at a given location
-    //  for a module.
-    // TODO [AA] Enumerate all modules in the requested packages.
-    // TODO [AA] Compile and write the caches (without codegen) for the
-    //  libraries.
-    // TODO [AA] Factor out common code where possible.
-    // TODO [AA] Remove the option to disable cache reading.
-    // TODO [AA] Do this on CI prior to running the tests with enabled caches.
-    // TODO [AA] Only write things from requested packages.
-    ???
-  }
-
-  /** Runs part of the compiler to generate docs from Enso code.
-    *
-    * @param module the scope from which docs are generated
-    */
-  def generateDocs(module: Module): Module = {
-    initializeBuiltinsIr()
-    parseModule(module, isGenDocs = true)
-    module
+  private def isModuleInRootPackage(module: Module): Boolean = {
+    if (!module.isInteractive) {
+      val pkg = context.getPackageOf(module.getSourceFile).toScala
+      pkg.contains(context.getPackageRepository.getMainProjectPackage.get)
+    } else false
   }
 
   private def runImportsAndExportsResolution(module: Module): List[Module] = {
