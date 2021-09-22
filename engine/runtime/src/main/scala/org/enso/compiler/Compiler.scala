@@ -108,7 +108,7 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(module: Module): Unit = {
-    runInternal(module, generateCode = true, shouldCompileDependencies = false)
+    runInternal(module, generateCode = true, shouldCompileDependencies = true)
   }
 
   /** Compiles the requested packages, writing the compiled IR to the library
@@ -144,8 +144,6 @@ class Compiler(
             runInternal(m, generateCode = false, shouldCompileDependencies)
         }
     }
-
-    // TODO [AA] Do this on CI prior to running the tests with enabled caches.
   }
 
   /** Runs part of the compiler to generate docs from Enso code.
@@ -260,6 +258,11 @@ class Compiler(
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
             serializationManager.serialize(module, useGlobalCacheLocations)
           }
+        } else {
+          logger.log(
+            Compiler.defaultLogLevel,
+            s"Skipping serialization for [${module.getName}]."
+          )
         }
       }
     }
