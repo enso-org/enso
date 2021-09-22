@@ -23,8 +23,6 @@ class ContextFactory {
     * @param repl the Repl manager to use for this context
     * @param logLevel the log level for this context
     * @param enableIrCaches whether or not IR caching should be enabled
-    * @param enableIrCacheReading whether or not IR cache reading should be
-    *                             enabled
     * @param strictErrors whether or not to use strict errors
     * @param useGlobalIrCacheLocation whether or not to use the global IR cache
     *                                 location
@@ -38,7 +36,6 @@ class ContextFactory {
     logLevel: LogLevel,
     logMasking: Boolean,
     enableIrCaches: Boolean,
-    enableIrCacheReading: Boolean,
     strictErrors: Boolean             = false,
     useGlobalIrCacheLocation: Boolean = true
   ): PolyglotContext = {
@@ -54,10 +51,6 @@ class ContextFactory {
         useGlobalIrCacheLocation.toString
       )
       .option(RuntimeOptions.DISABLE_IR_CACHES, (!enableIrCaches).toString)
-      .option(
-        RuntimeOptions.NO_READ_IR_CACHES,
-        (!enableIrCacheReading).toString
-      )
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
       .option("js.foreign-object-prototype", "true")

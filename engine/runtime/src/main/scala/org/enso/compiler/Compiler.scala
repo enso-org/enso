@@ -45,8 +45,7 @@ class Compiler(
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
-  private val irCachingEnabled      = !context.isIrCachingDisabled
-  private val irCacheReadingEnabled = !context.isIrCacheReadingDisabled
+  private val irCachingEnabled = !context.isIrCachingDisabled
   private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
     RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
   )
@@ -65,7 +64,7 @@ class Compiler(
 
       builtins.initializeBuiltinsSource()
 
-      if (irCachingEnabled && irCacheReadingEnabled) {
+      if (irCachingEnabled) {
         serializationManager.deserialize(builtins.getModule) match {
           case Some(true) =>
             // Ensure that builtins doesn't try and have codegen run on it.
@@ -146,7 +145,6 @@ class Compiler(
         }
     }
 
-    // TODO [AA] Remove the option to disable cache reading.
     // TODO [AA] Do this on CI prior to running the tests with enabled caches.
   }
 
@@ -171,7 +169,7 @@ class Compiler(
     var requiredModules = runImportsAndExportsResolution(module)
 
     var hasInvalidModuleRelink = false
-    if (irCachingEnabled && irCacheReadingEnabled) {
+    if (irCachingEnabled) {
       requiredModules.foreach { module =>
         if (!module.hasCrossModuleLinks) {
           val flags =
@@ -295,7 +293,7 @@ class Compiler(
     module.ensureScopeExists()
     module.getScope.reset()
 
-    if (irCachingEnabled && irCacheReadingEnabled && !module.isInteractive) {
+    if (irCachingEnabled && !module.isInteractive) {
       serializationManager.deserialize(module) match {
         case Some(_) => return
         case _       =>

@@ -396,7 +396,13 @@ object Main {
 
   /** Handles the `--compile` CLI option.
     *
-    * TODO [AA]
+    * @param packagePath the path to the package being compiled
+    * @param shouldCompileDependencies whether the dependencies of that package
+    *                                  should also be compiled
+    * @param shouldUseGlobalCache whether or not the compilation result should
+    *                             be written to the global cache
+    * @param logLevel the logging level
+    * @param logMasking whether or not log masking is enabled
     */
   private def compile(
     packagePath: String,
@@ -419,7 +425,6 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches           = true,
-      enableIrCacheReading     = true,
       useGlobalIrCacheLocation = shouldUseGlobalCache
     )
     val topScope = context.getTopScope
@@ -440,16 +445,13 @@ object Main {
     * @param logLevel       log level to set for the engine runtime
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
-    * @param readIrCaches whether IR caches should be read from if caching is
-    *                     enabled
     */
   private def run(
     path: String,
     projectPath: Option[String],
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean,
-    readIrCaches: Boolean
+    enableIrCaches: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -479,7 +481,6 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches,
-      readIrCaches,
       strictErrors = true
     )
     if (projectMode) {
@@ -509,14 +510,12 @@ object Main {
     * @param logLevel    log level to set for the engine runtime
     * @param logMasking  is the log masking enabled
     * @param enableIrCaches are the IR caches enabled
-    * @param readIrCaches should the IR caches be read from if enabled
     */
   private def genDocs(
     projectPath: Option[String],
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean,
-    readIrCaches: Boolean
+    enableIrCaches: Boolean
   ): Unit = {
     if (projectPath.isEmpty) {
       println("Path hasn't been provided.")
@@ -526,8 +525,7 @@ object Main {
       projectPath.get,
       logLevel,
       logMasking,
-      enableIrCaches,
-      readIrCaches
+      enableIrCaches
     )
     exitSuccess()
   }
@@ -539,8 +537,7 @@ object Main {
     path: String,
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean,
-    readIrCaches: Boolean
+    enableIrCaches: Boolean
   ): Unit = {
     val executionContext = new ContextFactory().create(
       path,
@@ -549,8 +546,7 @@ object Main {
       Repl(TerminalIO()),
       logLevel,
       logMasking,
-      enableIrCaches,
-      readIrCaches
+      enableIrCaches
     )
 
     val file = new File(path)
@@ -669,14 +665,12 @@ object Main {
     * @param logLevel    log level to set for the engine runtime
     * @param logMasking  is the log masking enabled
     * @param enableIrCaches are IR caches enabled
-    * @param readIrCaches should IR caches be read from if enabled
     */
   private def runRepl(
     projectPath: Option[String],
     logLevel: LogLevel,
     logMasking: Boolean,
-    enableIrCaches: Boolean,
-    readIrCaches: Boolean
+    enableIrCaches: Boolean
   ): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
@@ -694,8 +688,7 @@ object Main {
         Repl(TerminalIO()),
         logLevel,
         logMasking,
-        enableIrCaches,
-        readIrCaches
+        enableIrCaches
       )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -859,14 +852,19 @@ object Main {
       }
     }
 
-    // TODO [AA] Add option to control _where_ compilation goes to
     if (line.hasOption(COMPILE_OPTION)) {
       val packagePaths = line.getOptionValue(COMPILE_OPTION)
       val shouldCompileDependencies =
         !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       val shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION)
 
-      compile(packagePaths, shouldCompileDependencies, shouldUseGlobalCache, logLevel, logMasking)
+      compile(
+        packagePaths,
+        shouldCompileDependencies,
+        shouldUseGlobalCache,
+        logLevel,
+        logMasking
+      )
     }
 
     if (line.hasOption(RUN_OPTION)) {
@@ -875,8 +873,7 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line),
-        shouldReadIrCaches(line)
+        shouldEnableIrCaches(line)
       )
     }
     if (line.hasOption(REPL_OPTION)) {
@@ -884,8 +881,7 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line),
-        shouldReadIrCaches(line)
+        shouldEnableIrCaches(line)
       )
     }
     if (line.hasOption(DOCS_OPTION)) {
@@ -893,8 +889,7 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line),
-        shouldReadIrCaches(line)
+        shouldEnableIrCaches(line)
       )
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
@@ -922,14 +917,5 @@ object Main {
     } else {
       !isDevBuild
     }
-  }
-
-  /** Determines whether IR caches should be read from if caching is enabled.
-    *
-    * @param line the command line
-    * @return `true` if caches should be read from, `false` otherwise
-    */
-  private def shouldReadIrCaches(line: CommandLine): Boolean = {
-    !line.hasOption(NO_READ_IR_CACHES_OPTION)
   }
 }
