@@ -243,6 +243,7 @@ jobs:
           sbt buildEngineDistribution
 
       - name: Compile the Standard Libraries (Unix)
+        working-directory: repo
         shell: bash
         if: runner.os != 'Windows'
         run: |
@@ -258,6 +259,7 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
 
       - name: Compile the Standard Libraries (Windows)
+        working-directory: repo
         shell: bash
         if: runner.os == 'Windows'
         run: |
