@@ -172,7 +172,7 @@ async function main() {
     // Also it is usually a good idea to synchronize it with `ENGINE_VERSION_FOR_NEW_PROJECTS` in
     // src/rust/ide/src/controller/project.rs. See also https://github.com/enso-org/ide/issues/1359
     const buildInfo: BuildInfo = {
-        version: '0.2.29',
+        version: '0.2.30',
         target: (await get_build_config()).target,
     }
     
