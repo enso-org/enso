@@ -24,14 +24,14 @@ pub const COMPILING_STDLIB_LABEL:&str = "Compiling standard library. It can take
 
 /// The requirements for Engine's version, in format understandable by
 /// [`semver::VersionReq::parse`].
-pub const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.29";
+pub const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.30";
 
 /// The Engine version used in projects created in IDE.
 // Usually it is a good idea to synchronize this version with the bundled Engine version in
 // src/js/lib/project-manager/src/build.ts. See also https://github.com/enso-org/ide/issues/1359
-pub const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.29";
+pub const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.30";
 /// The minimum edition that is guaranteed to work with the IDE.
-pub const MINIMUM_EDITION_SUPPORTED : &str = "2021.17";
+pub const MINIMUM_EDITION_SUPPORTED : &str = "2021.18";
 
 /// The name of the module initially opened in the project view.
 ///
