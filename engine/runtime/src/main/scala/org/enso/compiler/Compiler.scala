@@ -108,7 +108,11 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(module: Module): Unit = {
-    runInternal(module, generateCode = true, shouldCompileDependencies = true)
+    runInternal(
+      List(module),
+      generateCode              = true,
+      shouldCompileDependencies = true
+    )
   }
 
   /** Compiles the requested packages, writing the compiled IR to the library
@@ -144,7 +148,17 @@ class Compiler(
               s"starting at the root [${m.getName}]."
             )
 
-            runInternal(m, generateCode = false, shouldCompileDependencies)
+            val packageModules = packageRepository.freezeModuleMap.collect {
+              case (name, mod)
+                  if name.startsWith(s"${pkg.namespace}.${pkg.name}") =>
+                mod
+            }.toList
+
+            runInternal(
+              packageModules,
+              generateCode = false,
+              shouldCompileDependencies
+            )
         }
     }
   }
@@ -160,14 +174,14 @@ class Compiler(
   }
 
   private def runInternal(
-    module: Module,
+    modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
   ): Unit = {
     initializeBuiltinsIr()
-    parseModule(module)
+    modules.foreach(m => parseModule(m))
 
-    var requiredModules = runImportsAndExportsResolution(module)
+    var requiredModules = modules.flatMap(runImportsAndExportsResolution)
 
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
@@ -201,7 +215,7 @@ class Compiler(
         s"export resolution."
       )
 
-      requiredModules = runImportsAndExportsResolution(module)
+      requiredModules = modules.flatMap(runImportsAndExportsResolution)
     }
 
     requiredModules.foreach { module =>
