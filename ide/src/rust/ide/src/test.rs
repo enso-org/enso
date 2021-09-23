@@ -217,7 +217,7 @@ pub mod mock {
             crate::controller::Graph::new(logger,module,db,parser,definition).expect("Graph could not be created")
         }
 
-        pub fn execution_context(&self) -> model::ExecutionContext {
+        pub fn execution_context(&self) -> Rc<model::execution_context::Plain> {
             let logger = Logger::new_sub(&self.logger,"Mocked Execution Context");
             Rc::new(model::execution_context::Plain::new(logger,self.method_pointer()))
         }
@@ -234,6 +234,7 @@ pub mod mock {
             let mut project = model::project::MockAPI::new();
             model::project::test::expect_name(&mut project,&self.project_name.project);
             model::project::test::expect_qualified_name(&mut project,&self.project_name);
+            model::project::test::expect_qualified_module_name(&mut project);
             model::project::test::expect_parser(&mut project,&self.parser);
             model::project::test::expect_module(&mut project,module);
             model::project::test::expect_execution_ctx(&mut project,execution_context);
@@ -313,18 +314,26 @@ pub mod mock {
         }
     }
 
-    #[derive(Debug)]
+    impl Default for Unified {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    #[derive(Debug,Shrinkwrap)]
+    #[shrinkwrap(mutable)]
     pub struct Fixture {
         pub logger         : Logger,
         pub data           : Unified,
         pub module         : model::Module,
         pub graph          : controller::Graph,
-        pub execution      : model::ExecutionContext,
+        pub execution      : Rc<model::execution_context::Plain>,
         pub executed_graph : controller::ExecutedGraph,
         pub suggestion_db  : Rc<model::SuggestionDatabase>,
         pub project        : model::Project,
         pub ide            : controller::Ide,
         pub searcher       : controller::Searcher,
+        #[shrinkwrap(main_field)]
         pub executor       : TestWithLocalPoolExecutor, // Last to drop the executor as last.
     }
 
@@ -366,6 +375,10 @@ pub mod mock {
                 logger          : Logger::new_sub(&self.data.logger,"MockModuleController"),
             };
             (model,controller)
+        }
+
+        pub fn module_name(&self) -> model::module::QualifiedName {
+            self.module.path().qualified_module_name(self.project.qualified_name())
         }
     }
 

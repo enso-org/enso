@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::controller::graph::executed::Notification as GraphNotification;
 use crate::controller::ide::StatusNotificationPublisher;
 use crate::double_representation::project;
 use crate::model::module::QualifiedName;
@@ -154,7 +153,7 @@ impl Project {
         let main_module_text = controller::Text::new(&self.logger,&project,file_path).await?;
         let main_graph       = controller::ExecutedGraph::new(&self.logger,project,method).await?;
 
-        self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
+        self.init_call_stack_from_metadata(&main_module_model,&main_graph).await;
         self.notify_about_compiling_process(&main_graph);
         self.display_warning_on_unsupported_engine_version()?;
 
@@ -213,15 +212,16 @@ impl Project {
     }
 
     fn notify_about_compiling_process(&self, graph:&controller::ExecutedGraph) {
-        let status_notif             = self.status_notifications.clone_ref();
-        let compiling_process        = status_notif.publish_background_task(COMPILING_STDLIB_LABEL);
-        let notifications            = graph.subscribe();
-        let mut computed_value_notif = notifications.filter(|notification|
-            futures::future::ready(matches!(notification, GraphNotification::ComputedValueInfo(_)))
-        );
+        let status_notifier   = self.status_notifications.clone_ref();
+        let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);
+        let execution_ready   = graph.when_ready();
+        let logger            = self.logger.clone_ref();
         executor::global::spawn(async move {
-            computed_value_notif.next().await;
-            status_notif.published_background_task_finished(compiling_process);
+            if execution_ready.await.is_some() {
+                status_notifier.published_background_task_finished(compiling_process);
+            } else {
+                warning!(logger, "Executed graph dropped before first successful execution!")
+            }
         });
     }
 

@@ -325,7 +325,7 @@ async fn binary_visualization_updates_test_hlp() {
     let project = ide.current_project();
     info!(logger,"Got project: {project:?}");
 
-    let expression = "x -> x.json_serialize";
+    let expression = "x -> x.json_serialize".to_owned();
 
     use ensogl::system::web::sleep;
     use controller::project::MAIN_DEFINITION_NAME;

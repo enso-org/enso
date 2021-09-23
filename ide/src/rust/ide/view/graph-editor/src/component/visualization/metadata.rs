@@ -18,7 +18,7 @@ impl Metadata {
     pub fn new
     (preprocessor:&visualization::instance::PreprocessorConfiguration) -> Self {
         Self {
-            preprocessor     : preprocessor.clone_ref(),
+            preprocessor:preprocessor.clone_ref(),
         }
     }
 }

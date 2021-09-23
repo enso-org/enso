@@ -414,7 +414,7 @@ impl<'a> RootCategoryBuilder<'a> {
         let name        = name.into();
         let parent      = self.root_category_id;
         let category_id = self.list_builder.built_list.subcategories.len();
-        self.list_builder.built_list.subcategories.push(Subcategory {name,parent,icon});
+        self.list_builder.built_list.subcategories.push(Subcategory {name,icon,parent});
         CategoryBuilder { list_builder:self.list_builder, category_id}
     }
 }

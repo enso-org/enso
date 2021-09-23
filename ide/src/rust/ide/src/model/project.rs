@@ -239,10 +239,17 @@ pub mod test {
         project.expect_name().returning_st(move || name.clone());
     }
 
-    /// Sets up name expectation on the mock project, returning a given name.
     pub fn expect_qualified_name
     (project:&mut MockAPI, name:&QualifiedName) {
         let name = name.clone();
         project.expect_qualified_name().returning_st(move || name.clone());
+    }
+
+    pub fn expect_qualified_module_name
+    (project:&mut MockAPI) {
+        let name = project.qualified_name();
+        project.expect_qualified_module_name()
+            .returning_st(move |path:&model::module::Path|
+                path.qualified_module_name(name.clone()));
     }
 }

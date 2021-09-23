@@ -33,6 +33,16 @@ pub trait StreamTestExt<S:?Sized + Stream> {
         }
     }
 
+    /// Asserts that stream has exactly one value ready and returns it.
+    ///
+    /// Same caveats apply as for `test_poll_next`.
+    fn expect_one(&mut self) -> S::Item
+    where S::Item:Debug {
+        let ret = self.expect_next();
+        self.expect_pending();
+        ret
+    }
+
     /// Asserts that stream has terminated.
     ///
     /// Same caveats apply as for `test_poll_next`.

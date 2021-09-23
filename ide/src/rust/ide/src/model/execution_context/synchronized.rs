@@ -10,7 +10,30 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::module;
 
 use enso_protocol::language_server;
-use enso_protocol::language_server::ExpressionUpdates;
+
+
+
+// ====================
+// === Notification ===
+// ====================
+
+/// Notification received by the synchronized execution context.
+///
+/// They are based on the relevant language server notifications.
+#[derive(Clone,Debug)]
+pub enum Notification {
+    /// Evaluation of this execution context has completed successfully.
+    ///
+    /// It does not mean that there are no errors or panics, "successful" refers to the interpreter
+    /// run itself. This notification is expected basically on each computation that does not crash
+    /// the compiler.
+    Completed,
+    /// Visualization update data.
+    ///
+    /// Execution context is responsible for routing them into the computed value registry.
+    ExpressionUpdates(Vec<language_server::ExpressionUpdate>),
+}
+
 
 
 // ==========================
@@ -50,7 +73,7 @@ impl ExecutionContext {
             let logger = Logger::new_sub(&parent,iformat!{"ExecutionContext {id}"});
             let model  = model::execution_context::Plain::new(&logger,root_definition);
             info!(logger, "Created. Id: {id}.");
-            let this = Self {id,model,language_server,logger };
+            let this = Self {id,model,language_server,logger};
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
             Ok(this)
@@ -77,7 +100,7 @@ impl ExecutionContext {
     (&self, vis:Visualization) -> FallibleResult<Visualization> {
         let vis_id = vis.id;
         let exe_id = self.id;
-        let ast_id = vis.ast_id;
+        let ast_id = vis.expression_id;
         let ls     = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
         info!(logger,"About to detach visualization by id: {vis_id}.");
@@ -89,14 +112,27 @@ impl ExecutionContext {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_expression_updates
-    (&self, notification:ExpressionUpdates) -> FallibleResult {
-        self.model.computed_value_info_registry.apply_updates(notification.updates);
+    pub fn handle_notification
+    (&self, notification: Notification) -> FallibleResult {
+        match notification {
+            Notification::Completed => {
+                if !self.model.is_ready.replace(true) {
+                    WARNING!("Context {self.id} Became ready");
+                }
+            }
+            Notification::ExpressionUpdates(updates) => {
+                self.model.computed_value_info_registry.apply_updates(updates);
+            }
+        }
         Ok(())
     }
 }
 
 impl model::execution_context::API for ExecutionContext {
+    fn when_ready(&self) -> StaticBoxFuture<Option<()>> {
+        self.model.when_ready()
+    }
+
     fn current_method(&self) -> language_server::MethodPointer {
         self.model.current_method()
     }
@@ -157,8 +193,9 @@ impl model::execution_context::API for ExecutionContext {
         //  has been successfully attached.
         let config = vis.config(self.id);
         let stream = self.model.attach_visualization(vis.clone());
+
         async move {
-            let result = self.language_server.attach_visualisation(&vis.id,&vis.ast_id,&config).await;
+            let result = self.language_server.attach_visualisation(&vis.id, &vis.expression_id, &config).await;
             if let Err(e) = result {
                 self.model.detach_visualization(vis.id)?;
                 Err(e.into())
@@ -225,6 +262,7 @@ pub mod test {
     use crate::model::traits::*;
 
     use enso_protocol::language_server::CapabilityRegistration;
+    use enso_protocol::language_server::ExpressionUpdates;
     use enso_protocol::language_server::response::CreateExecutionContext;
     use json_rpc::expect_call;
     use utils::test::ExpectTuple;
@@ -254,7 +292,7 @@ pub mod test {
             let method     = data.main_method_pointer();
             let context    = ExecutionContext::create(logger,connection,method);
             let context    = test.expect_completion(context).unwrap();
-            Fixture {test,data,context}
+            Fixture {data,context,test}
         }
 
         /// What is expected server's response to a successful creation of this context.
@@ -346,15 +384,15 @@ pub mod test {
     #[test]
     fn attaching_visualizations_and_notifying() {
         let vis = Visualization {
-            id                   : model::execution_context::VisualizationId::new_v4(),
-            ast_id               : model::execution_context::ExpressionId::new_v4(),
-            expression           : "".to_string(),
-            visualisation_module : MockData::new().module_qualified_name(),
+            id                : model::execution_context::VisualizationId::new_v4(),
+            expression_id     : model::execution_context::ExpressionId::new_v4(),
+            preprocessor_code : "".to_string(),
+            context_module    : MockData::new().module_qualified_name(),
         };
         let Fixture{mut test,context,..} = Fixture::new_customized(|ls,data| {
             let exe_id = data.context_id;
             let vis_id = vis.id;
-            let ast_id = vis.ast_id;
+            let ast_id = vis.expression_id;
             let config = vis.config(exe_id);
 
             expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
@@ -391,9 +429,9 @@ pub mod test {
     fn detaching_all_visualizations() {
         let vis = Visualization {
             id                   : model::execution_context::VisualizationId::new_v4(),
-            ast_id               : model::execution_context::ExpressionId::new_v4(),
-            expression           : "".to_string(),
-            visualisation_module : MockData::new().module_qualified_name(),
+            expression_id     : model::execution_context::ExpressionId::new_v4(),
+            preprocessor_code : "".to_string(),
+            context_module    : MockData::new().module_qualified_name(),
         };
         let vis2 = Visualization{
             id : VisualizationId::new_v4(),
@@ -404,7 +442,7 @@ pub mod test {
             let exe_id  = data.context_id;
             let vis_id  = vis.id;
             let vis2_id = vis2.id;
-            let ast_id  = vis.ast_id;
+            let ast_id  = vis.expression_id;
             let config  = vis.config(exe_id);
             let config2 = vis2.config(exe_id);
 
@@ -425,17 +463,17 @@ pub mod test {
     #[test]
     fn modifying_visualizations() {
         let vis = Visualization {
-            id                   : model::execution_context::VisualizationId::new_v4(),
-            ast_id               : model::execution_context::ExpressionId::new_v4(),
-            expression           : "x -> x.to_json.to_string".to_string(),
-            visualisation_module : MockData::new().module_qualified_name(),
+            id                : model::execution_context::VisualizationId::new_v4(),
+            expression_id     : model::execution_context::ExpressionId::new_v4(),
+            preprocessor_code : "x -> x.to_json.to_string".to_string(),
+            context_module    : MockData::new().module_qualified_name(),
         };
         let vis_id         = vis.id;
         let new_expression = "x -> x";
         let new_module     = "Test.Test_Module";
         let Fixture{mut test,context,..} = Fixture::new_customized(|ls,data| {
             let exe_id = data.context_id;
-            let ast_id = vis.ast_id;
+            let ast_id = vis.expression_id;
             let config = vis.config(exe_id);
 
             let expected_config = language_server::types::VisualisationConfiguration {

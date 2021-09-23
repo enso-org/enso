@@ -15,6 +15,7 @@ use enso_protocol::language_server::MethodPointer;
 use enso_protocol::language_server::SuggestionId;
 use enso_protocol::language_server::VisualisationConfiguration;
 use flo_stream::Subscriber;
+use mockall::automock;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -209,34 +210,33 @@ pub struct LocalCall {
 pub type VisualizationId = Uuid;
 
 /// Description of the visualization setup.
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Visualization {
     /// Unique identifier of this visualization.
     pub id: VisualizationId,
-    /// Node that is to be visualized.
-    pub ast_id: ExpressionId,
+    /// Expression that is to be visualized.
+    pub expression_id: ExpressionId,
     /// An enso lambda that will transform the data into expected format, e.g. `a -> a.json`.
-    pub expression: String,
-    /// Visualization module - the module in which context the expression should be evaluated.
-    pub visualisation_module:ModuleQualifiedName
+    pub preprocessor_code: String,
+    /// Visualization module -- the module in which context the preprocessor code is evaluated.
+    pub context_module:ModuleQualifiedName
 }
 
 impl Visualization {
     /// Creates a new visualization description. The visualization will get a randomly assigned
     /// identifier.
     pub fn new
-    (ast_id:ExpressionId, expression:impl Into<String>, visualisation_module:ModuleQualifiedName)
+    (expression_id:ExpressionId, preprocessor_code:String, context_module:ModuleQualifiedName)
     -> Visualization {
-        let id         = VisualizationId::new_v4();
-        let expression = expression.into();
-        Visualization {id,ast_id,expression,visualisation_module}
+        let id = VisualizationId::new_v4();
+        Visualization {id,expression_id,preprocessor_code,context_module}
     }
 
     /// Creates a `VisualisationConfiguration` that is used in communication with language server.
     pub fn config
     (&self, execution_context_id:Uuid) -> VisualisationConfiguration {
-        let expression           = self.expression.clone();
-        let visualisation_module = self.visualisation_module.to_string();
+        let expression           = self.preprocessor_code.clone();
+        let visualisation_module = self.context_module.to_string();
         VisualisationConfiguration {execution_context_id,visualisation_module,expression}
     }
 }
@@ -265,7 +265,14 @@ pub struct AttachedVisualization {
 // =============
 
 /// Execution Context Model API.
+#[automock]
 pub trait API : Debug {
+    /// Future that gets ready when execution context becomes ready (i.e. completed first
+    /// evaluation).
+    ///
+    /// If execution context was already ready, returned future will be ready from the beginning.
+    fn when_ready(&self) -> StaticBoxFuture<Option<()>>;
+
     /// Obtain the method pointer to the method of the call stack's top frame.
     fn current_method(&self) -> MethodPointer;
 
@@ -286,27 +293,33 @@ pub trait API : Debug {
     fn stack_items<'a>(&'a self) -> Box<dyn Iterator<Item=LocalCall> + 'a>;
 
     /// Push a new stack item to execution context.
-    fn push(&self, stack_item:LocalCall) -> BoxFuture<FallibleResult>;
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn push<'a>(&'a self, stack_item:LocalCall) -> BoxFuture<'a, FallibleResult>;
 
     /// Pop the last stack item from this context. It returns error when only root call remains.
-    fn pop(&self) -> BoxFuture<FallibleResult<LocalCall>>;
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn pop<'a>(&'a self) -> BoxFuture<'a, FallibleResult<LocalCall>>;
 
     /// Attach a new visualization for current execution context.
     ///
     /// Returns a stream of visualization update data received from the server.
-    fn attach_visualization
-    (&self, visualization:Visualization)
-    -> BoxFuture<FallibleResult<futures::channel::mpsc::UnboundedReceiver<VisualizationUpdateData>>>;
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn attach_visualization<'a>
+    (&'a self, visualization:Visualization)
+    -> BoxFuture<'a, FallibleResult<futures::channel::mpsc::UnboundedReceiver<VisualizationUpdateData>>>;
+
 
     /// Detach the visualization from this execution context.
-    fn detach_visualization
-    (&self, id:VisualizationId) -> BoxFuture<FallibleResult<Visualization>>;
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn detach_visualization<'a>
+    (&'a self, id:VisualizationId) -> BoxFuture<'a, FallibleResult<Visualization>>;
 
     /// Modify visualization properties. See fields in [`Visualization`] structure. Passing `None`
     /// retains the old value.
-    fn modify_visualization
-    (&self, id:VisualizationId, expression:Option<String>, module:Option<ModuleQualifiedName>)
-    -> BoxFuture<FallibleResult>;
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn modify_visualization<'a>
+    (&'a self, id:VisualizationId, expression:Option<String>, module:Option<ModuleQualifiedName>)
+    -> BoxFuture<'a, FallibleResult>;
 
     /// Dispatches the visualization update data (typically received from as LS binary notification)
     /// to the respective's visualization update channel.
@@ -317,12 +330,23 @@ pub trait API : Debug {
     ///
     /// The requests are made in parallel (not one by one). Any number of them might fail.
     /// Results for each visualization that was attempted to be removed are returned.
-    fn detach_all_visualizations(&self) -> BoxFuture<Vec<FallibleResult<Visualization>>> {
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn detach_all_visualizations<'a>(&'a self) -> BoxFuture<'a, Vec<FallibleResult<Visualization>>> {
         let visualizations = self.active_visualizations();
         let detach_actions = visualizations.into_iter().map(move |v| {
             self.detach_visualization(v)
         });
         futures::future::join_all(detach_actions).boxed_local()
+    }
+}
+
+// Note: Needless lifetimes
+// ~~~~~~~~~~~~~~~~~~~~~~~~
+// See Note: [Needless lifetimes] is `model/project.rs`.
+
+impl Debug for MockAPI {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"Mock Execution Context")
     }
 }
 

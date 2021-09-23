@@ -357,7 +357,7 @@ pub struct NodeMetadata {
     /// Was node selected in the view.
     #[serde(default)]
     pub selected:bool,
-    /// Was node selected in the view.
+    /// Information about enabled visualization. Exact format is defined by the integration layer.
     #[serde(default)]
     pub visualization:serde_json::Value,
 }

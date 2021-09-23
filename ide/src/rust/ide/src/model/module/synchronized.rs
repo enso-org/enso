@@ -615,7 +615,7 @@ pub mod test {
             let module = fixture.synchronized_module();
 
             let new_content = "main =\n    println \"Test\"".to_string();
-            let new_ast     = parser.parse_module(new_content.clone(), default()).unwrap();
+            let new_ast     = parser.parse_module(new_content,default()).unwrap();
             module.update_ast(new_ast).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
             let change = TextChange {
