@@ -116,11 +116,23 @@ impl Handle {
         Handle {logger,graph,execution_ctx,project,notifier}
     }
 
+    /// See [`model::ExecutionContext::when_ready`].
+    pub fn when_ready(&self) -> StaticBoxFuture<Option<()>> {
+        self.execution_ctx.when_ready()
+    }
+
     /// See [`model::ExecutionContext::attach_visualization`].
     pub async fn attach_visualization
     (&self, visualization:Visualization)
     -> FallibleResult<impl Stream<Item=VisualizationUpdateData>> {
         self.execution_ctx.attach_visualization(visualization).await
+    }
+
+    /// See [`model::ExecutionContext::modify_visualization`].
+    pub fn modify_visualization
+    (&self, id:VisualizationId, expression:Option<String>, module:Option<model::module::QualifiedName>)
+     -> BoxFuture<FallibleResult> {
+        self.execution_ctx.modify_visualization(id,expression,module)
     }
 
     /// See [`model::ExecutionContext::detach_visualization`].

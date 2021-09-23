@@ -2,6 +2,7 @@
 
 pub mod project;
 pub mod file_system;
+pub mod visualization;
 
 use crate::prelude::*;
 

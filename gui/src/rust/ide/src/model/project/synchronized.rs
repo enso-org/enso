@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::double_representation::identifier::ReferentName;
 use crate::double_representation::project::QualifiedName;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
 use crate::model::execution_context;
 use crate::model::module;
 use crate::model::SuggestionDatabase;
@@ -15,7 +16,9 @@ use crate::transport::web::WebSocket;
 use enso_protocol::binary;
 use enso_protocol::binary::message::VisualisationContext;
 use enso_protocol::language_server;
-use enso_protocol::language_server::{CapabilityRegistration, ContentRoot};
+use enso_protocol::language_server::CapabilityRegistration;
+use enso_protocol::language_server::ContentRoot;
+use enso_protocol::language_server::ExpressionUpdates;
 use enso_protocol::language_server::MethodPointer;
 use enso_protocol::project_manager;
 use enso_protocol::project_manager::MissingComponentAction;
@@ -74,10 +77,10 @@ impl ExecutionContextsRegistry {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_expression_updates
-    (&self, update:language_server::ExpressionUpdates) -> FallibleResult {
-        self.with_context(update.context_id, |ctx| {
-            ctx.handle_expression_updates(update)
+    pub fn handle_update
+    (&self, id:execution_context::Id, update:ExecutionUpdate) -> FallibleResult {
+        self.with_context(id, |ctx| {
+            ctx.handle_notification(update)
         })
     }
 
@@ -366,6 +369,25 @@ impl Project {
         }
     }
 
+    /// Handler that routes execution updates to their respective contexts.
+    ///
+    /// The function has a weak handle to the execution context registry, will stop working once
+    /// the registry is dropped.
+    pub fn execution_update_handler(&self) -> impl Fn(execution_context::Id, ExecutionUpdate) + Clone {
+        let logger   = self.logger.clone_ref();
+        let registry = Rc::downgrade(&self.execution_contexts);
+        move |id,update| {
+            if let Some(registry) = registry.upgrade() {
+                if let Err(error) = registry.handle_update(id, update) {
+                    error!(logger,"Failed to handle the execution context update: {error}");
+                }
+            } else {
+                warning!(logger,"Received an execution context notification despite execution \
+                            context being already dropped.");
+            }
+        }
+    }
+
     /// Returns a handling function capable of processing updates from the json-rpc protocol.
     /// Such function will be then typically used to process events stream from the json-rpc
     /// connection handler.
@@ -377,26 +399,25 @@ impl Project {
         //  underlying RPC handlers and their types are separate.
         //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
         //  See: https://github.com/enso-org/ide/issues/587
-        let logger                  = self.logger.clone_ref();
-        let publisher               = self.notifications.clone_ref();
-        let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
-        let weak_suggestion_db      = Rc::downgrade(&self.suggestion_db);
-        let weak_content_roots      = Rc::downgrade(&self.content_roots);
+        let logger                   = self.logger.clone_ref();
+        let publisher                = self.notifications.clone_ref();
+        let weak_suggestion_db       = Rc::downgrade(&self.suggestion_db);
+        let weak_content_roots       = Rc::downgrade(&self.content_roots);
+        let execution_update_handler = self.execution_update_handler();
         move |event| {
             debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
             use enso_protocol::language_server::Event;
             use enso_protocol::language_server::Notification;
             match event {
+                Event::Notification(Notification::FileEvent(_)) => {}
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
-                    if let Some(execution_contexts) = weak_execution_contexts.upgrade() {
-                        let result = execution_contexts.handle_expression_updates(updates);
-                        if let Err(error) = result {
-                            error!(logger,"Failed to handle the expression update: {error}");
-                        }
-                    } else {
-                        error!(logger,"Received a `ExpressionUpdates` update despite execution \
-                            context being already dropped.");
-                    }
+                    let ExpressionUpdates{context_id,updates} = updates;
+                    let execution_update = ExecutionUpdate::ExpressionUpdates(updates);
+                    execution_update_handler(context_id,execution_update);
+                }
+                Event::Notification(Notification::ExecutionStatus(_)) => {}
+                Event::Notification(Notification::ExecutionComplete {context_id}) => {
+                    execution_update_handler(context_id,ExecutionUpdate::Completed);
                 }
                 Event::Notification(Notification::ExpressionValuesComputed(_)) => {
                     // the notification is superseded by `ExpressionUpdates`.
@@ -432,7 +453,6 @@ impl Project {
                 Event::Error(error) => {
                     error!(logger,"Error emitted by the JSON-RPC data connection: {error}.");
                 }
-                _ => {}
             }
             futures::future::ready(())
         }

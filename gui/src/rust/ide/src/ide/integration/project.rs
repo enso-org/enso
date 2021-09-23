@@ -13,15 +13,16 @@ use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::Actions;
 use crate::controller::upload;
 use crate::controller::upload::NodeFromDroppedFileHandler;
+use crate::executor::global::spawn;
+use crate::executor::global::spawn_stream_handler;
 use crate::ide::integration::file_system::FileProvider;
 use crate::ide::integration::file_system::create_node_from_file;
 use crate::ide::integration::file_system::FileOperation;
 use crate::ide::integration::file_system::do_file_operation;
+use crate::ide::integration::visualization::Manager as VisualizationManager;
 use crate::model::execution_context::ComputedValueInfo;
 use crate::model::execution_context::ExpressionId;
 use crate::model::execution_context::LocalCall;
-use crate::model::execution_context::Visualization;
-use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module::ProjectMetadata;
 use crate::model::suggestion_database;
@@ -36,6 +37,7 @@ use ensogl::display::traits::*;
 use ensogl_gui_components::file_browser::model::AnyFolderContent;
 use ensogl_gui_components::list_view;
 use ensogl_web::drop;
+use futures::future::LocalBoxFuture;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node;
 use ide_view::graph_editor::component::visualization;
@@ -43,21 +45,10 @@ use ide_view::graph_editor::EdgeEndpoint;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
 use ide_view::searcher::entry::AnyModelProvider;
+use ide_view::searcher::entry::GlyphHighlightedLabel;
 use ide_view::searcher::new::Icon;
 use ide_view::open_dialog;
 use utils::iter::split_by_predicate;
-use futures::future::LocalBoxFuture;
-use ide_view::searcher::entry::GlyphHighlightedLabel;
-
-
-
-// ========================
-// === VisualizationMap ===
-// ========================
-
-/// Map that keeps information about enabled visualization.
-pub type VisualizationMap = SharedHashMap<graph_editor::NodeId,Visualization>;
-
 
 
 
@@ -75,8 +66,6 @@ enum MissingMappingFor {
     ControllerNode(ast::Id),
     #[fail(display="Displayed connection {:?} is not bound to any controller connection.", _0)]
     DisplayedConnection(graph_editor::EdgeId),
-    #[fail(display="Displayed visualization {:?} is not bound to any attached by controller.",_0)]
-    DisplayedVisualization(graph_editor::NodeId)
 }
 
 /// Error raised when reached some fatal inconsistency in data provided by GraphEditor.
@@ -96,7 +85,14 @@ struct VisualizationAlreadyAttached(graph_editor::NodeId);
 #[fail(display="The Graph Integration hsd no SearcherController.")]
 struct MissingSearcherController;
 
-
+/// Denotes visualizations set in the graph editor.
+#[derive(Clone,Copy,Debug,Display)]
+pub enum WhichVisualization {
+    /// Usual visualization, triggered by the user.
+    Normal,
+    /// Special visualization, attached automatically when there is an error on the node.
+    Error,
+}
 
 // ====================
 // === FencedAction ===
@@ -209,8 +205,8 @@ struct Model {
     expression_types        : SharedHashMap<ExpressionId,Option<graph_editor::Type>>,
     connection_views        : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
     code_view               : CloneRefCell<ensogl_text::Text>,
-    visualizations          : VisualizationMap,
-    error_visualizations    : VisualizationMap,
+    visualizations          : Rc<VisualizationManager>,
+    error_visualizations    : Rc<VisualizationManager>,
     prompt_was_shown        : Cell<bool>,
     displayed_project_list  : CloneRefCell<ProjectsToOpen>,
 }
@@ -230,7 +226,6 @@ impl Integration {
     ) -> Self {
         let logger       = Logger::new("ViewIntegration");
         let model        = Model::new(logger,view,graph,text,ide,project,main_module);
-        let model        = Rc::new(model);
         let editor_outs  = &model.view.graph().frp.output;
         let code_editor  = &model.view.code_editor().text_area();
         let searcher_frp = &model.view.searcher().frp;
@@ -274,7 +269,7 @@ impl Integration {
 
         frp::extend! { network
             eval editor_outs.visualization_preprocessor_changed ([model]((node_id,preprocessor)) {
-                if let Err(err) = model.visualization_preprocessor_changed(*node_id,preprocessor) {
+                if let Err(err) = model.visualization_preprocessor_changed(*node_id,preprocessor.clone_ref()) {
                     error!(model.logger, "Error when handling request for setting new \
                         visualization's preprocessor code: {err}");
                 }
@@ -342,7 +337,7 @@ impl Integration {
                 let dest      = dest.clone();
                 let operation = *op;
                 let model     = model.clone_ref();
-                executor::global::spawn(async move {
+                spawn(async move {
                     if let Err(err) = do_file_operation(&project,&source,&dest,operation).await {
                         error!(logger, "Failed to {operation.verb()} file: {err}");
                     } else {
@@ -475,7 +470,7 @@ impl Integration {
     where Stream   : StreamExt + Unpin + 'static,
           Function : Fn(Stream::Item,Rc<Model>) + 'static {
         let model = Rc::downgrade(&self.model);
-        executor::global::spawn_stream_handler(model,stream,move |item,model| {
+        spawn_stream_handler(model,stream,move |item,model| {
             handler(item,model);
             futures::future::ready(())
         })
@@ -568,24 +563,29 @@ impl Model {
     , text          : controller::Text
     , ide           : controller::Ide
     , project       : model::Project
-    , main_module   : model::Module) -> Self {
+    , main_module   : model::Module) -> Rc<Self> {
         let node_views              = default();
         let node_view_by_expression = default();
         let connection_views        = default();
         let expression_views        = default();
         let expression_types        = default();
         let code_view               = default();
-        let visualizations          = default();
-        let error_visualizations    = default();
         let searcher                = default();
         let prompt_was_shown        = default();
         let displayed_project_list  = default();
+        let (visualizations, visualizations_notifications)             = crate::integration::visualization::Manager::new(logger.sub("visualizations"), graph.clone_ref(),project.clone_ref());
+        let (error_visualizations, error_visualizations_notifications) = crate::integration::visualization::Manager::new(logger.sub("error_visualizations"), graph.clone_ref(),project.clone_ref());
         let this                    = Model
             {logger,view,graph,text,ide,searcher,project,main_module,node_views
             ,node_view_by_expression,expression_views,expression_types,connection_views,code_view
             ,visualizations,error_visualizations,prompt_was_shown,displayed_project_list};
+        let this = Rc::new(this);
 
-        this.view.graph().frp.remove_all_nodes();
+        this.spawn_visualization_handler(visualizations_notifications, WhichVisualization::Normal);
+        this.spawn_visualization_handler(error_visualizations_notifications, WhichVisualization::Error);
+
+        let graph_frp = this.view.graph().frp.clone_ref();
+        graph_frp.remove_all_nodes();
         this.view.status_bar().clear_all();
         this.init_project_name();
         this.init_crumbs();
@@ -599,11 +599,23 @@ impl Model {
         this
     }
 
+    fn spawn_visualization_handler
+    ( self                : &Rc<Self>
+    , notifier            : impl Stream<Item=crate::integration::visualization::Notification> + Unpin + 'static
+    , visualizations_kind : WhichVisualization
+    ) {
+        let weak      = Rc::downgrade(self);
+        let processor = async move |notification, this:Rc<Self>| {
+            this.handle_visualization_update(visualizations_kind,notification);
+        };
+        spawn_stream_handler(weak,notifier,processor);
+    }
+
     fn load_visualizations(&self) {
         let logger       = self.logger.clone_ref();
         let controller   = self.project.visualization().clone_ref();
         let graph_editor = self.view.graph().clone_ref();
-        executor::global::spawn(async move {
+        spawn(async move {
             let identifiers  = controller.list_visualizations().await;
             let identifiers  = identifiers.unwrap_or_default();
             for identifier in identifiers {
@@ -636,7 +648,7 @@ impl Model {
             let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
             let logger      = self.logger.clone_ref();
             let name        = name.into();
-            executor::global::spawn(async move {
+            spawn(async move {
                 if let Err(e) = project.rename_project(name).await {
                     info!(logger, "The project couldn't be renamed: {e}");
                     breadcrumbs.cancel_project_name_editing.emit(());
@@ -971,23 +983,87 @@ impl Model {
         self.view.graph().frp.input.set_method_pointer.emit(&event);
     }
 
+    fn visualization_manager(&self, which:WhichVisualization) -> &Rc<VisualizationManager> {
+        match which {
+            WhichVisualization::Normal => &self.visualizations,
+            WhichVisualization::Error  => &self.error_visualizations,
+        }
+    }
+
+    fn handle_visualization_update
+    ( &self
+    , which        : WhichVisualization
+    , notification : crate::integration::visualization::Notification
+    ) {
+        use crate::integration::visualization::Notification;
+        warning!(self.logger, "Received update for {which} visualization: {notification:?}");
+        match notification {
+            Notification::ValueUpdate {target,data,..} => {
+                if let Ok(view_id) = self.get_displayed_node_id(target) {
+                    let endpoint = &self.view.graph().frp.input.set_visualization_data;
+                    match Self::deserialize_visualization_data(data) {
+                        Ok(data)   => endpoint.emit((view_id, data)),
+                        Err(error) =>
+                        // TODO [mwu]
+                        //  We should consider having the visualization also accept error input.
+                            error!(self.logger, "Failed to deserialize visualization update: {error}"),
+                    }
+                }
+            }
+            Notification::FailedToAttach {visualization,error} => {
+                error!(self.logger, "Visualization {visualization.id} failed to attach: {error}.");
+                if let Ok(node_view_id) = self.get_displayed_node_id(visualization.expression_id) {
+                    self.view.graph().disable_visualization(node_view_id);
+                }
+            }
+            Notification::FailedToDetach {visualization,error} => {
+                error!(self.logger, "Visualization {visualization.id} failed to detach: {error}.");
+                // Here we cannot really do much. Failing to detach might mean that visualization
+                // was already detached, that we detached it but failed to observe this (e.g. due to
+                // a connectivity issue) or that we did something really wrong.
+                // For now, we will just forget about this visualization. Better to unlikely "leak"
+                // it rather than likely break visualizations on the node altogether.
+                let manager = self.visualization_manager(which);
+                let forgotten = manager.forget_visualization(visualization.expression_id);
+                if let Some(forgotten) = forgotten {
+                    error!(self.logger, "The visualization will be forgotten: {forgotten:?}")
+                }
+            }
+            Notification::FailedToModify {desired,error} => {
+                error!(self.logger, "Visualization {desired.id} failed to be modified: {error} \
+                Will hide it in GUI.");
+                // Actually it would likely have more sense if we had just restored the previous
+                // visualization, as its LS state should be preserved. However, we already scrapped
+                // it on the GUI side and we don't even know its path anymore.
+                if let Ok(node_view_id) = self.get_displayed_node_id(desired.expression_id) {
+                    self.view.graph().disable_visualization(node_view_id);
+                }
+            }
+        }
+    }
+
+    /// Route the metadata description as a desired visualization state to the Manager.
+    fn update_visualization
+    ( &self
+    , node_id  : graph_editor::NodeId
+    , which    : WhichVisualization
+    , metadata : Option<visualization::Metadata>
+    ) -> FallibleResult {
+        let target_id = self.get_controller_node_id(node_id)?;
+        let manager   = self.visualization_manager(which);
+        manager.set_visualization(target_id,metadata);
+        Ok(())
+    }
+
     /// Mark node as erroneous if given payload contains an error.
     fn set_error
     (&self, node_id:graph_editor::NodeId, error:Option<&ExpressionUpdatePayload>)
     -> FallibleResult {
-        let error = self.convert_payload_to_error_view(error,node_id);
-        self.view.graph().set_node_error_status(node_id,error.clone());
-        let error_visualizations    = self.error_visualizations.clone_ref();
-        let has_error_visualization = self.error_visualizations.contains_key(&node_id);
-        if error.is_some() && !has_error_visualization {
-            use graph_editor::builtin::visualization::native::error;
-            let endpoint = self.view.graph().frp.set_error_visualization_data.clone_ref();
-            let metadata = error::metadata();
-            self.attach_visualization(node_id,&metadata,endpoint,error_visualizations)?;
-        } else if error.is_none() && has_error_visualization {
-            self.detach_visualization(node_id,error_visualizations)?;
-        }
-        Ok(())
+        let error     = self.convert_payload_to_error_view(error,node_id);
+        let has_error = error.is_some();
+        self.view.graph().set_node_error_status(node_id,error);
+        let metadata = has_error.then(graph_editor::builtin::visualization::native::error::metadata);
+        self.update_visualization(node_id,WhichVisualization::Error,metadata)
     }
 
     fn convert_payload_to_error_view
@@ -1135,7 +1211,6 @@ impl Model {
         analytics::remote_log_event("integration::node_entered");
         self.view.graph().frp.deselect_all_nodes.emit(&());
         self.push_crumb(local_call);
-        self.request_detaching_all_visualizations();
         self.refresh_graph_view()
     }
 
@@ -1143,7 +1218,6 @@ impl Model {
     pub fn on_node_exited(&self, id:double_representation::node::Id) -> FallibleResult {
         analytics::remote_log_event("integration::node_exited");
         self.view.graph().frp.deselect_all_nodes.emit(&());
-        self.request_detaching_all_visualizations();
         self.refresh_graph_view()?;
         self.pop_crumb();
         let id = self.get_displayed_node_id(id)?;
@@ -1158,20 +1232,6 @@ impl Model {
             self.prompt_was_shown.set(true);
         }
         self.refresh_computed_infos(expressions)
-    }
-
-    /// Request controller to detach all attached visualizations.
-    pub fn request_detaching_all_visualizations(&self) {
-        let controller = self.graph.clone_ref();
-        let logger     = self.logger.clone_ref();
-        let action     = async move {
-            for result in controller.detach_all_visualizations().await {
-                if let Err(err) = result {
-                    error!(logger,"Failed to detach one of the visualizations: {err:?}.");
-                }
-            }
-        };
-        executor::global::spawn(action);
     }
 
     /// Handle notification received from Graph Controller.
@@ -1464,14 +1524,13 @@ impl Model {
     fn visualization_shown_in_ui
     (&self, (node_id,vis_metadata):&(graph_editor::NodeId,visualization::Metadata))
     -> FallibleResult {
-        debug!(self.logger, "Visualization enabled on {node_id}: {vis_metadata:?}.");
-        let endpoint = self.view.graph().frp.input.set_visualization_data.clone_ref();
-        self.attach_visualization(*node_id,vis_metadata,endpoint,self.visualizations.clone_ref())?;
-        Ok(())
+        debug!(self.logger, "Visualization shown on {node_id}: {vis_metadata:?}.");
+        self.update_visualization(*node_id,WhichVisualization::Normal,Some(vis_metadata.clone()))
     }
 
     fn visualization_hidden_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult {
-        self.detach_visualization(*node_id,self.visualizations.clone_ref())
+        debug!(self.logger, "Visualization hidden on {node_id}.");
+        self.update_visualization(*node_id,WhichVisualization::Normal,None)
     }
 
     fn store_updated_stack_task(&self) -> impl FnOnce() -> FallibleResult + 'static {
@@ -1508,7 +1567,7 @@ impl Model {
                     }
                 }
             };
-            executor::global::spawn(enter_action);
+            spawn(enter_action);
         }
         Ok(())
     }
@@ -1542,7 +1601,7 @@ impl Model {
                 let _ = update_metadata().ok();
             }
         };
-        executor::global::spawn(exit_node_action);
+        spawn(exit_node_action);
     }
 
     fn code_changed_in_ui(&self, changes:&Vec<ensogl_text::Change>) -> FallibleResult {
@@ -1559,7 +1618,7 @@ impl Model {
         let logger     = self.logger.clone_ref();
         let controller = self.text.clone_ref();
         let content    = self.code_view.get().to_string();
-        executor::global::spawn(async move {
+        spawn(async move {
             if let Err(err) = controller.store_content(content).await {
                 error!(logger, "Error while saving file: {err:?}");
             }
@@ -1580,44 +1639,20 @@ impl Model {
         }
     }
 
-    fn resolve_visualization_context
-    (&self, context:&visualization::instance::ContextModule)
-    -> FallibleResult<model::module::QualifiedName> {
-        use visualization::instance::ContextModule::*;
-        match context {
-            ProjectMain           => Ok(self.project.main_module()),
-            Specific(module_name) => model::module::QualifiedName::from_text(module_name),
-        }
-    }
-
     fn visualization_preprocessor_changed
     ( &self
     , node_id      : graph_editor::NodeId
-    , preprocessor : &visualization::instance::PreprocessorConfiguration
+    , preprocessor : visualization::instance::PreprocessorConfiguration
     ) -> FallibleResult {
-        if let Some(visualization) = self.visualizations.get_cloned(&node_id) {
-            let logger      = self.logger.clone_ref();
-            let controller  = self.graph.clone_ref();
-            let code        = preprocessor.code.deref().into();
-            let module      = self.resolve_visualization_context(&preprocessor.module)?;
-            let id          = visualization.id;
-            executor::global::spawn(async move {
-                let result = controller.set_visualization_preprocessor(id,code,module);
-                if let Err(err) = result.await {
-                    error!(logger, "Error when setting visualization preprocessor: {err}");
-                }
-            });
-            Ok(())
-        } else {
-            Err(MissingMappingFor::DisplayedVisualization(node_id).into())
-        }
+        let metadata = visualization::Metadata {preprocessor};
+        self.update_visualization(node_id,WhichVisualization::Normal,Some(metadata))
     }
 
     fn open_dialog_opened_in_ui(self:&Rc<Self>) {
         debug!(self.logger, "Opened file dialog in ui. Providing content root list");
         self.reload_files_in_file_browser();
         let model = Rc::downgrade(self);
-        executor::global::spawn(async move {
+        spawn(async move {
             if let Some(this) = model.upgrade() {
                 if let Ok(manage_projects) = this.ide.manage_projects() {
                     match manage_projects.list_projects().await {
@@ -1644,7 +1679,7 @@ impl Model {
         if let Some(id) = self.displayed_project_list.get().get_project_id_by_index(*entry_id) {
             let logger = self.logger.clone_ref();
             let ide    = self.ide.clone_ref();
-            executor::global::spawn(async move {
+            spawn(async move {
                 if let Ok(manage_projects) = ide.manage_projects() {
                     if let Err(err) = manage_projects.open_project(id).await {
                         error!(logger, "Error while opening project: {err}");
@@ -1711,181 +1746,6 @@ impl Model {
         registry.get(id)
     }
 
-    fn attach_visualization
-    ( &self
-    , node_id               : graph_editor::NodeId
-    , vis_metadata          : &visualization::Metadata
-    , receive_data_endpoint : frp::Any<(graph_editor::NodeId,visualization::Data)>
-    , visualizations_map    : VisualizationMap
-    ) -> FallibleResult<VisualizationId> {
-        // Do nothing if there is already a visualization attached.
-        let err = || VisualizationAlreadyAttached(node_id);
-        (!visualizations_map.contains_key(&node_id)).ok_or_else(err)?;
-
-        debug!(self.logger, "Attaching visualization on node {node_id}.");
-        let visualization  = self.prepare_visualization(node_id,vis_metadata)?;
-        let id             = visualization.id;
-        let update_handler = self.visualization_update_handler(receive_data_endpoint,node_id);
-
-        // We cannot do this in the async task, as the user may decide to detach before server
-        // confirms that we actually have attached the visualization.
-        visualizations_map.insert(node_id,visualization);
-
-        let task = self.attaching_visualization_task(node_id, visualizations_map, update_handler);
-        executor::global::spawn(task);
-        Ok(id)
-    }
-    
-    /// Try attaching visualization to the node.
-    /// 
-    /// In case of timeout failure, retries up to total `attempts` count will be made. 
-    /// For other kind of errors no further attempts will be made.
-    fn try_attaching_visualization_task
-    (&self, node_id:graph_editor::NodeId, visualizations_map:VisualizationMap, attempts:usize)
-    -> impl Future<Output=AttachingResult<impl Stream<Item=VisualizationUpdateData>>> {
-        let logger     = self.logger.clone_ref();
-        let controller = self.graph.clone_ref();
-        async move {
-            let mut last_error = None;
-            for i in 1 ..= attempts {
-                // We need to re-get this info in each iteration. It might change in the meantime.
-                let visualization_info = visualizations_map.get_cloned(&node_id);
-                if let Some(visualization_info) = visualization_info {
-                    let id = visualization_info.id;
-                    match controller.attach_visualization(visualization_info).await {
-                        Ok(stream) => {
-                            debug!(logger, "Successfully attached visualization {id} for node \
-                            {node_id}.");
-                            return AttachingResult::Attached(stream);
-                        }
-                        Err(e) if enso_protocol::language_server::is_timeout_error(&e) => {
-                            warning!(logger, "Failed to attach visualization {id} for node \
-                            {node_id} (attempt {i}). Will retry, as it is a timeout error.");
-                            last_error = Some(e);
-                        }
-                        Err(e) => {
-                            warning!(logger, "Failed to attach visualization {id} for node \
-                            {node_id}: {e}");
-                            return AttachingResult::Failed(e)
-                        }
-                    }
-                } else {
-                    // If visualization is not present in the map, it means that UI detached it
-                    // before we were able to attach it to the backend. Thus, it is fine to do
-                    // nothing here and finish this task.
-                    return AttachingResult::Aborted;
-                }
-            }
-
-            let error = last_error.unwrap_or_else(|| failure::format_err!("No attempts were made."));
-            error!(logger, "Failed to attach visualization for node {node_id}: {error}\nWill abort.");
-            AttachingResult::Failed(error)
-        }
-    }
-
-    /// Request attaching the visualization in the controller and handle result.
-    ///
-    /// Updates the given `[VisualizationMap]` with the results. If the visualization failed to
-    /// attach, it will be disable in the graph view. On success, the visualization updates handler
-    /// will be spawned.
-    fn attaching_visualization_task
-    ( &self
-    , node_id            : graph_editor::NodeId
-    , visualizations_map : VisualizationMap
-    , update_handler     : impl FnMut(VisualizationUpdateData) -> futures::future::Ready<()> + 'static
-    ) -> impl Future<Output=()> {
-        let graph_frp  = self.view.graph().frp.clone_ref();
-        let map        = visualizations_map.clone();
-        let attempts   = crate::constants::ATTACHING_TIMEOUT_RETRIES;
-        let stream_fut = self.try_attaching_visualization_task(node_id,map,attempts);
-        async move {
-            // No need to log anything here, as `try_attaching_visualization_task` does this.
-            match stream_fut.await {
-                AttachingResult::Attached(stream) => {
-                    let updates_handler = stream.for_each(update_handler);
-                    executor::global::spawn(updates_handler);
-                }
-                AttachingResult::Aborted => {
-                    // Do nothing and be silent.
-                }
-                AttachingResult::Failed(_) => {
-                    // If attaching is impossible, we should close the visualization.
-                    visualizations_map.remove(&node_id);
-                    graph_frp.disable_visualization.emit(&node_id);
-                }
-            }
-        }
-    }
-
-
-    /// Return an asynchronous event processor that routes visualization update to the given's
-    /// visualization respective FRP endpoint.
-    fn visualization_update_handler
-    ( &self
-    , endpoint : frp::Any<(graph_editor::NodeId,visualization::Data)>
-    , node_id  : graph_editor::NodeId
-    ) -> impl FnMut(VisualizationUpdateData) -> futures::future::Ready<()> {
-        // TODO [mwu]
-        //  For now only JSON visualizations are supported, so we can just assume JSON data in the
-        //  binary package.
-        let logger = self.logger.clone_ref();
-        move |update| {
-            match Self::deserialize_visualization_data(update) {
-                Ok (data)  => endpoint.emit((node_id,data)),
-                Err(error) =>
-                // TODO [mwu]
-                //  We should consider having the visualization also accept error input.
-                    error!(logger, "Failed to deserialize visualization update. {error}"),
-            }
-            futures::future::ready(())
-        }
-    }
-
-    /// Create a controller-compatible description of the visualization based on the input received
-    /// from the graph editor endpoints.
-    fn prepare_visualization
-    (&self, node_id:graph_editor::NodeId, metadata:&visualization::Metadata)
-     -> FallibleResult<Visualization> {
-        let module_designation   = &metadata.preprocessor.module;
-        let visualisation_module = self.resolve_visualization_context(module_designation)?;
-        let id                   = VisualizationId::new_v4();
-        let expression           = metadata.preprocessor.code.to_string();
-        let ast_id               = self.get_controller_node_id(node_id)?;
-        Ok(Visualization{id,ast_id,expression,visualisation_module})
-    }
-
-    fn detach_visualization
-    ( &self
-    , node_id            : graph_editor::NodeId
-    , visualizations_map : VisualizationMap
-    ) -> FallibleResult {
-        debug!(self.logger,"Node editor wants to detach visualization on {node_id}.");
-        let err        = || NoSuchVisualization(node_id);
-        let id         = visualizations_map.get_cloned(&node_id).ok_or_else(err)?.id;
-        let logger     = self.logger.clone_ref();
-        let controller = self.graph.clone_ref();
-
-        // We first detach to allow re-attaching even before the server confirms the operation.
-        visualizations_map.remove(&node_id);
-
-        executor::global::spawn(async move {
-            if controller.detach_visualization(id).await.is_ok() {
-                debug!(logger,"Successfully detached visualization {id} from node {node_id}.");
-            } else {
-                error!(logger,"Failed to detach visualization {id} from node {node_id}.");
-                // TODO [mwu]
-                //   We should somehow deal with this, but we have really no information, how to.
-                //   If this failed because e.g. the visualization was already removed (or another
-                //   reason to that effect), we should just do nothing.
-                //   However, if it is issue like connectivity problem, then we should retry.
-                //   However, even if had better error recognition, we won't always know.
-                //   So we should also handle errors like unexpected visualization updates and use
-                //   them to drive cleanups on such discrepancies.
-            }
-        });
-        Ok(())
-    }
-
     fn setup_searcher_controller
     (&self, weak_self:&Weak<Self>, mode:controller::searcher::Mode) -> FallibleResult {
         let selected_nodes = self.view.graph().model.nodes.all_selected().iter().filter_map(|id| {
@@ -1895,7 +1755,7 @@ impl Model {
         let ide        = self.ide.clone_ref();
         let searcher   = controller::Searcher::new_from_graph_controller
             (&self.logger,ide,&self.project,controller,mode,selected_nodes)?;
-        executor::global::spawn(searcher.subscribe().for_each(f!([weak_self](notification) {
+        spawn(searcher.subscribe().for_each(f!([weak_self](notification) {
             if let Some(this) = weak_self.upgrade() {
                 this.handle_searcher_notification(notification);
             }

@@ -130,12 +130,18 @@ pub enum Notification {
     /// execution context.
     #[serde(rename = "executionContext/executionFailed")]
     ExecutionFailed(ExecutionFailed),
+    
+    /// Sent from the server to the client to inform about the successful execution of a context.
+    #[serde(rename = "executionContext/executionComplete")]
+    #[serde(rename_all="camelCase")]
+    #[allow(missing_docs)]
+    ExecutionComplete{context_id:ContextId},
 
     /// Sent from the server to the client to inform about a status of execution.
     #[serde(rename = "executionContext/executionStatus")]
     ExecutionStatus(ExecutionStatus),
 
-    /// Sent from server to the client to inform abouth the change in the suggestions database.
+    /// Sent from server to the client to inform about the change in the suggestions database.
     #[serde(rename = "search/suggestionsDatabaseUpdates")]
     SuggestionDatabaseUpdates(SuggestionDatabaseUpdatesEvent),
 
@@ -1089,5 +1095,21 @@ pub mod test {
             from_cache     : false,
             payload        : ExpressionUpdatePayload::Panic {trace,message}
         }
+    }
+    
+    #[test]
+    fn deserialize_execution_complete() {
+        use std::str::FromStr;
+        let text = r#"{
+            "jsonrpc" : "2.0",
+            "method"  : "executionContext/executionComplete",
+            "params"  : {"contextId":"5a85125a-2dc5-45c8-84fc-679bc9fc4b00"}
+        }"#;
+        
+        let notification = serde_json::from_str::<Notification>(text).unwrap();
+        let expected     = Notification::ExecutionComplete {
+            context_id : ContextId::from_str("5a85125a-2dc5-45c8-84fc-679bc9fc4b00").unwrap()
+        };
+        assert_eq!(notification,expected);
     }
 }

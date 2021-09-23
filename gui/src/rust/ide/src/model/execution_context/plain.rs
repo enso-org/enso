@@ -56,6 +56,8 @@ pub struct ExecutionContext {
     visualizations: RefCell<HashMap<VisualizationId,AttachedVisualization>>,
     /// Storage for information about computed values (like their types).
     pub computed_value_info_registry:Rc<ComputedValueInfoRegistry>,
+    /// Execution context is considered ready once it completes it first execution after creation.
+    pub is_ready : crate::sync::Synchronized<bool>
 }
 
 impl ExecutionContext {
@@ -65,7 +67,8 @@ impl ExecutionContext {
         let stack                        = default();
         let visualizations               = default();
         let computed_value_info_registry = default();
-        Self {logger,entry_point,stack,visualizations, computed_value_info_registry }
+        let is_ready                     = default();
+        Self {logger,entry_point,stack,visualizations,computed_value_info_registry,is_ready }
     }
 
     /// Creates a `VisualisationConfiguration` for the visualization with given id. It may be used
@@ -118,8 +121,8 @@ impl ExecutionContext {
         let err                = || InvalidVisualizationId(id);
         let mut visualizations = self.visualizations.borrow_mut();
         let visualization      = &mut visualizations.get_mut(&id).ok_or_else(err)?.visualization;
-        if let Some(expression) = expression { visualization.expression           = expression; }
-        if let Some(module)     = module     { visualization.visualisation_module = module;     }
+        if let Some(expression) = expression { visualization.preprocessor_code = expression; }
+        if let Some(module)     = module     { visualization.context_module    = module;     }
         Ok(())
     }
 
@@ -136,6 +139,10 @@ impl ExecutionContext {
 }
 
 impl model::execution_context::API for ExecutionContext {
+    fn when_ready(&self) -> StaticBoxFuture<Option<()>> {
+        self.is_ready.when_eq(&true).boxed_local()
+    }
+
     fn current_method(&self) -> MethodPointer {
         if let Some(top_frame) = self.stack.borrow().last() {
             top_frame.definition.clone()
