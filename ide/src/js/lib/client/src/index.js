@@ -103,21 +103,25 @@ optParser.options('project', {
 optParser.options('server', {
     group    : configOptionsGroup,
     describe : 'Run the server [true]',
+    type     : 'boolean',
 })
 
 optParser.options('window', {
     group    : configOptionsGroup,
     describe : 'Show the window [true]',
+    type     : 'boolean',
 })
 
 optParser.options('background-throttling', {
     group    : configOptionsGroup,
     describe : 'Throttle animations when run in background [false]',
+    type     : 'boolean',
 })
 
 optParser.options('backend', {
     group    : configOptionsGroup,
     describe : 'Start the backend process automatically [true]',
+    type     : 'boolean',
 })
 
 optParser.options('backend-path', {
@@ -209,6 +213,7 @@ optParser.options('crash-report-host', {
 
 optParser.options('data-gathering', {
     describe    : 'Enable the sharing of any usage data',
+    type        : 'boolean',
     default     : true
 })
 
