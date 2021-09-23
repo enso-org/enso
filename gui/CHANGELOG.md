@@ -4,10 +4,17 @@
 
 #### Visual Environment
 
+- [Correct handling of command-line flags.][1815] Command line arguments of the
+  form `--backend=false` or `--backend false` are now handled as expected and
+  turn off the "backend" option. The same fix has been applied to all other
+  boolean command-line options as well.
 - [Visualizations will be attached after project is ready.][1825] This addresses
   a rare issue when initially opened visualizations were automatically closed
   rather than filled with data.
 
+<br/>
+
+[1815]: https://github.com/enso-org/ide/pull/1815
 [1825]: https://github.com/enso-org/ide/pull/1825
 
 # Enso 2.0.0-alpha.16 (2021-09-16)
