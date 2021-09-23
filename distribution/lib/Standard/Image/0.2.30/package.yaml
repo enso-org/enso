@@ -1,6 +1,6 @@
-name: Geo
+name: Image
 namespace: Standard
-version: 0.2.30-SNAPSHOT
+version: 0.2.30
 license: APLv2
 authors:
   - name: Enso Team

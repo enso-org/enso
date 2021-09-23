@@ -1,5 +1,7 @@
 # Enso Next
 
+## Enso 0.2.30 (2021-09-23)
+
 ## Interpreter/Runtime
 
 - Added support for reading the compiler's intermediate representation from
@@ -7,6 +9,12 @@
   ([#1996](https://github.com/enso-org/enso/pull/1996)). The compiler will now
   take advantage of cached IR where available to drastically reduce start-up
   time, and will write these caches if they do not exist or are invalid.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-09-16)
+  for issues opened before the release date.
 
 ## Enso 0.2.29 (2021-09-16)
 
