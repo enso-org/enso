@@ -1,6 +1,6 @@
-name: Table
+name: Visualization
 namespace: Standard
-version: 0.2.30
+version: 0.2.31-SNAPSHOT
 license: APLv2
 authors:
   - name: Enso Team
