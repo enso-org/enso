@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.special;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -10,7 +9,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
 import org.enso.interpreter.runtime.Context;
 
@@ -28,9 +26,15 @@ public abstract class RunThreadNode extends Node {
     Thread thread =
         ctx.getEnvironment()
             .createThread(
-                () ->
+                () -> {
+                  Object p = ctx.getThreadManager().enter();
+                  try {
                     ThunkExecutorNodeGen.getUncached()
-                        .executeThunk(th, state, BaseNode.TailStatus.NOT_TAIL));
+                        .executeThunk(th, state, BaseNode.TailStatus.NOT_TAIL);
+                  } finally {
+                    ctx.getThreadManager().leave(p);
+                  }
+                });
     thread.start();
     return thread;
   }
