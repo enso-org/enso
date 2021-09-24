@@ -44,10 +44,29 @@ object AutomaticParallelism extends IRPass {
   override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
     copyOfIr
 
+  /** An assignment of a line to a given thread.
+    */
   sealed private trait BlockAssignment
-  private case object Top                extends BlockAssignment
+
+  /** Line should run in the current thread.
+    */
+  private case object Top extends BlockAssignment
+
+  /** Line should run in a spawned thread with given ID.
+    * @param line the thread ID.
+    */
   private case class ThreadOf(line: Int) extends BlockAssignment
 
+  /** Represents a parallelizable statement in a block.
+    *
+    * @param ir the original IR
+    * @param parallelismStatus the status of threading for this line
+    * @param id the 0-based number of the line in its sub-block
+    * @param assignment Alias Analysis id of this binding (if the line is
+    *                   a binding)
+    * @param dependencies the ids of all lines this one depends on
+    * @param blockAssignment the thread in which this line should run
+    */
   private case class Line(
     ir: IR.Expression,
     parallelismStatus: ParallelismStatus,
@@ -57,11 +76,22 @@ object AutomaticParallelism extends IRPass {
     blockAssignment: Option[BlockAssignment]
   )
 
+  /**
+    * A single sub-block, containing a series of parallelizable lines,
+    * followed by a series of pinnedd lines.
+    * @param parallelizable the parallelizable lines
+    * @param pinned the pinned lines
+    */
   private case class ParallelizationSegment(
     parallelizable: List[Line],
     pinned: List[IR.Expression]
   )
 
+  /**
+    * Computes the transitive closure of the dependency info.
+    * @param segment the segment containing only immediate dependency info.
+    * @return the same segment, with transitive closure of dependency graph.
+    */
   private def assignDependencyClosure(
     segment: ParallelizationSegment
   ): ParallelizationSegment = {
@@ -80,11 +110,22 @@ object AutomaticParallelism extends IRPass {
     segment.copy(parallelizable = newLines)
   }
 
+  /**
+    * Uses the dependency info and parallelism statuses to finally assign each
+    * parallelizable line to a block.
+    * @param segment the segment for which assignment should be done.
+    * @return a segment with threads assigned.
+    */
   private def assignBlocks(
     segment: ParallelizationSegment
   ): ParallelizationSegment = {
     val assignments =
       Array.fill[Option[BlockAssignment]](segment.parallelizable.length)(None)
+
+    // A helper to move a line to a new thread. If the line is unassigned, or
+    // already assigned to the desired block, it will be assigned to the block.
+    // Otherwise, it will be promoted to the current (main) thread. I.e. this
+    // ensures that this line is visible in the required thread block.
     def moveTo(lineId: Int, block: BlockAssignment): Unit = {
       assignments(lineId) match {
         case None => assignments.update(lineId, Some(block))
@@ -93,6 +134,10 @@ object AutomaticParallelism extends IRPass {
       }
     }
 
+    // Going backwards through the lines (i.e. post-order of the dependency
+    // graph), assign each not-yet-assigned parallelized line to a new thread.
+    // Also move all its dependencies to the new thread (or promote to current
+    // thread, see #moveTo.
     segment.parallelizable.reverse.foreach { line =>
       (line.parallelismStatus, assignments(line.id)) match {
         case (Parallelize, None) =>
@@ -102,6 +147,10 @@ object AutomaticParallelism extends IRPass {
       }
     }
 
+    // Assigns all remaining pure lines to blocks. If all the deps of this line
+    // are in the main thread and _exactly one_ parallel thread, move this line
+    // and all the dependencies to the parallel thread. Otherwise move it to
+    // `Top`.
     segment.parallelizable.reverse.foreach { line =>
       assignments(line.id) match {
         case None =>
@@ -123,6 +172,12 @@ object AutomaticParallelism extends IRPass {
     )
   }
 
+  /**
+    * Splits a block into sub-blocks based on the parallelism status.
+    * @param exprs the exprs to split, together with their status.
+    * @param acc TCO accumulator
+    * @return a list of sub-blocks. See [[ParallelizationSegment]].
+    */
   @tailrec
   private def splitParallelBlocks(
     exprs: List[(IR.Expression, ParallelismStatus)],
@@ -182,6 +237,31 @@ object AutomaticParallelism extends IRPass {
     segment.copy(parallelizable = linesWithDeps)
   }
 
+  /**
+    * Generates the final code for a given sub-block, based on the computed
+    * thread assignments.
+    *
+    * All the expressions assigned to the main thread are floated to the
+    * top.
+    *
+    * Then, every variable assignment moved to a parallel thread gets a mutable
+    * reference created in the current thread.
+    *
+    * Then, every assigned parallel thread gets spawned. Every variable
+    * assignment is followed by a write to its mutable variable.
+    *
+    * Then, all the threads are joined.
+    *
+    * Finally, all the mutable references are read into their corresponding
+    * variables.
+    *
+    * After such transformation, all the pinned statements can be appended,
+    * and their semantics will remain unchanged.
+    *
+    * @param segment the segment to generate code for.
+    * @param freshNameSupply a fresh name generator.
+    * @return the generated code for a sub-block.
+    */
   private def codeGen(
     segment: ParallelizationSegment,
     freshNameSupply: FreshNameSupply
@@ -311,38 +391,10 @@ object AutomaticParallelism extends IRPass {
           val withDeps =
             withAssignments.map(gatherDeps).map(assignDependencyClosure)
           val withBlocks = withDeps.map(assignBlocks)
-//          if (method.methodName.name == "main") {
-//            withBlocks.foreach { block =>
-//              println("BLOCK START")
-//              println("\tPARALLEL")
-//              block.parallelizable.foreach { line =>
-//                println(
-//                  s"\t\t${line.id}\t${line.blockAssignment.get.toString
-//                    .padTo(20, ' ')}${line.assignment.toString
-//                    .padTo(10, ' ')}${line.parallelismStatus.toString
-//                    .padTo(15, ' ')}${line.ir
-//                    .showCode()
-//                    .padTo(30, ' ')}${line.dependencies}"
-//                )
-//              }
-//              println("\tPINNED")
-//              block.pinned.foreach { line =>
-//                println(s"\t\t${line.showCode()}")
-//              }
-//              println("END BLOCK")
-//            }
-//          }
-
           val newExprs =
             withBlocks.flatMap(codeGen(_, moduleContext.freshNameSupply.get))
-//          println(
-//            IR.Expression.Block(newExprs.init, newExprs.last, None).showCode()
-//          )
           val r =
             block.copy(expressions = newExprs.init, returnValue = newExprs.last)
-//          if (method.methodName.name == "main") {
-//            println(r.showCode())
-//          }
           r
         }
         method.copy(body = newBody)
@@ -351,15 +403,37 @@ object AutomaticParallelism extends IRPass {
     ir.copy(bindings = newBindings)
   }
 
+  /**
+    * A parallelization status for a given line.
+    */
   sealed private trait ParallelismStatus {
+    /**
+      * Computes the result of sequencing sub-expressions with two (possibly
+      * different) parallelism statuses. The rules for this are:
+      * 1. If either expression is pinned, the result is pinned.
+      * 2. If both expressions are not pinned, and either forces parallelism,
+      *    the result also forces parallelism.
+      * 3. Otherwise, the result is Pure.
+      *
+      * @param other the status of the second expression.
+      * @return the combined status.
+      */
     def sequencedWith(other: => ParallelismStatus): ParallelismStatus
   }
 
+  /**
+    * Can safely be moved to a different thread, but does
+    * not merit creating a thread on its own.
+    */
   private case object Pure extends ParallelismStatus {
     override def sequencedWith(other: => ParallelismStatus): ParallelismStatus =
       other
   }
 
+  /**
+    * Can safely be moved to a different thread, and preferably should be run in
+    * a thread of its own.
+    */
   private case object Parallelize extends ParallelismStatus {
     override def sequencedWith(other: => ParallelismStatus): ParallelismStatus =
       other match {
@@ -369,6 +443,9 @@ object AutomaticParallelism extends IRPass {
       }
   }
 
+  /**
+    * Cannot be moved to a different thread.
+    */
   private case object Pinned extends ParallelismStatus {
     override def sequencedWith(other: => ParallelismStatus): ParallelismStatus =
       Pinned
@@ -389,9 +466,18 @@ object AutomaticParallelism extends IRPass {
       case _ => None
     }
 
+  /**
+    * Computes the parallelism status of an expression.
+    *
+    * @param expr the expression to compute status for.
+    * @return the status of `expr`.
+    */
   private def getParallelismStatus(expr: IR.Expression): ParallelismStatus =
     expr match {
       case app: IR.Application.Prefix =>
+        // The base status of an application is computed based on the type of
+        // the called function. It is then sequenced with statuses of the
+        // arguments.
         app.function.getMetadata(MethodCalls) match {
           case Some(Resolution(method: ResolvedMethod)) =>
             val methodIr = method.getIr
@@ -405,9 +491,6 @@ object AutomaticParallelism extends IRPass {
               if (isParallelize) Parallelize
               else if (monad.contains("Pure")) Pure
               else Pinned
-//            if (method.method.name == "count_where") {
-//              println("FOUND A COUNT WHERE " + monad + " " + baseStatus)
-//            }
             app.arguments
               .map(_.value)
               .foldLeft(baseStatus)((status, ir) =>
