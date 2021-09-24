@@ -8,7 +8,8 @@ import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
-/** Resolves constructors in pattern matches and validates their arity.
+/** Resolves calls to methods defined on modules, called on direct (resolved)
+  * module references.
   */
 object MethodCalls extends IRPass {
 

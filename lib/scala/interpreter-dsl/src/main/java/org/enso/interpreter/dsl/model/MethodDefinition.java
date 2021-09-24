@@ -111,17 +111,6 @@ public class MethodDefinition {
    * @return whether the definition is fully valid.
    */
   public boolean validate(ProcessingEnvironment processingEnvironment) {
-//    boolean definesThis =
-//        arguments.stream().anyMatch(arg -> arg.getName().equals("this") && arg.isPositional());
-//    if (!definesThis) {
-//      processingEnvironment
-//          .getMessager()
-//          .printMessage(
-//              Diagnostic.Kind.ERROR,
-//              "The execute method does not take `this` argument. At least one positional argument must be named `_this`.",
-//              element);
-//    }
-
     boolean argsValid = arguments.stream().allMatch(arg -> arg.validate(processingEnvironment));
 
     return argsValid;
