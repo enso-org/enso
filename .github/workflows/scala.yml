@@ -22,7 +22,7 @@ jobs:
   test_and_publish:
     name: Build and Test
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 100
+    timeout-minutes: 120
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-18.04, windows-latest]
@@ -279,12 +279,27 @@ jobs:
         shell: bash
         if: runner.os != 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Tests
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Database_Tests
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Geo_Tests
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Visualization_Tests
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-read-ir-caches --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Image_Tests
+
+      - name: Compile the Standard Libraries (Unix)
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
 
       - name: Test Engine Distribution With Caches (Unix)
         shell: bash
@@ -301,12 +316,27 @@ jobs:
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Database_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Geo_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Visualization_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-read-ir-caches --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Image_Tests
+
+      - name: Compile the Standard Libraries (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
 
       - name: Test Engine Distribution With Caches (Windows)
         shell: bash

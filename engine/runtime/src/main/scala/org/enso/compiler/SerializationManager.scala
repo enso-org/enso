@@ -55,6 +55,12 @@ class SerializationManager(compiler: Compiler) {
     }
   )
 
+  // Make sure it is started to avoid races with language shutdown with low job
+  // count.
+  if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+    pool.prestartAllCoreThreads()
+  }
+
   // === Interface ============================================================
 
   /** Requests that `module` be serialized.
@@ -76,7 +82,7 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` has been scheduled for serialization, `false`
     *         otherwise
     */
-  def serialize(module: Module): Boolean = {
+  def serialize(module: Module, useGlobalCacheLocations: Boolean): Boolean = {
     logger.log(
       debugLogLevel,
       s"Requesting serialization for module [${module.getName}]."
@@ -92,7 +98,8 @@ class SerializationManager(compiler: Compiler) {
       duplicatedIr,
       module.getCompilationStage,
       module.getName,
-      module.getSource
+      module.getSource,
+      useGlobalCacheLocations
     )
     if (compiler.context.getEnvironment.isCreateThreadAllowed) {
       isWaitingForSerialization.put(module.getName, task)
@@ -213,15 +220,23 @@ class SerializationManager(compiler: Compiler) {
           s"Waiting for $jobCount serialization jobs to complete."
         )
 
-        while (this.hasJobsRemaining) {
+        // Bound the waiting loop
+        val maxCount = 60
+        var counter  = 0
+        while (this.hasJobsRemaining && counter < maxCount) {
+          counter += 1
           Thread.sleep(1 * 1000)
         }
       }
 
       pool.shutdown()
 
-      while (!pool.isTerminated) {
+      // Bound the waiting loop
+      val maxCount = 10
+      var counter  = 0
+      while (!pool.isTerminated && counter < maxCount) {
         pool.awaitTermination(500, TimeUnit.MILLISECONDS)
+        counter += 1
       }
 
       pool.shutdownNow()
@@ -252,13 +267,14 @@ class SerializationManager(compiler: Compiler) {
     ir: IR.Module,
     stage: Module.CompilationStage,
     name: QualifiedName,
-    source: Source
+    source: Source,
+    useGlobalCaches: Boolean
   ): Runnable = { () =>
-    startSerializing(name)
     logger.log(
       debugLogLevel,
       s"Running serialization for module [$name]."
     )
+    startSerializing(name)
     try {
       val fixedStage =
         if (stage.isAtLeast(Module.CompilationStage.AFTER_STATIC_PASSES)) {
@@ -266,7 +282,8 @@ class SerializationManager(compiler: Compiler) {
         } else stage
       cache.save(
         ModuleCache.CachedModule(ir, fixedStage, source),
-        compiler.context
+        compiler.context,
+        useGlobalCaches
       )
     } catch {
       case e: NotSerializableException =>

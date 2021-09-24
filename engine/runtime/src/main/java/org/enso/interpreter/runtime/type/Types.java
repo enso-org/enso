@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -164,6 +165,7 @@ public class Types {
     if (arguments.length != 1) {
       throw ArityException.create(1, arguments.length);
     }
+
     if (!(cls.isInstance(arguments[0]))) {
       throw UnsupportedTypeException.create(
           arguments, "The argument must be a " + cls.getSimpleName() + ".");
