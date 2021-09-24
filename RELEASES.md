@@ -5,6 +5,10 @@
 - Added support for automatic parallelization of computations
   ([#2000](https://github.com/enso-org/enso/pull/2000)). The functionality is
   hidden behind the `--with-auto-parellelism` flag to the interpreter.
+- Added support for compiling Enso packages without execution
+  ([#1998](https://github.com/enso-org/enso/pull/1998)). This allows the
+  distribution of precompiled libraries which greatly improves language start-up
+  time.
 
 ## Enso 0.2.30 (2021-09-23)
 

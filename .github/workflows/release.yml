@@ -195,6 +195,39 @@ jobs:
         run: |
           sleep 1
           sbt buildEngineDistribution
+
+      - name: Compile the Standard Libraries (Unix)
+        working-directory: repo
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+
+      - name: Compile the Standard Libraries (Windows)
+        working-directory: repo
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+
       - name: Prepare Project Manager Distribution
         working-directory: repo
         shell: bash

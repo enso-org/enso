@@ -60,6 +60,10 @@ trait PackageRepository {
     pkg: Package[TruffleFile]
   ): Unit
 
+  /** @return the main project package, if it exists
+    */
+  def getMainProjectPackage: Option[Package[TruffleFile]]
+
   /** Register a single module, outside of any packages or part of an already
     * loaded package, that has been created manually during runtime.
     */
@@ -127,8 +131,9 @@ object PackageRepository {
 
     private val logger = Logger[Default]
 
-    implicit private val fs: TruffleFileSystem = new TruffleFileSystem
-    private val packageManager                 = new PackageManager[TruffleFile]
+    implicit private val fs: TruffleFileSystem               = new TruffleFileSystem
+    private val packageManager                               = new PackageManager[TruffleFile]
+    private var projectPackage: Option[Package[TruffleFile]] = None
 
     /** The mapping containing all loaded packages.
       *
@@ -165,12 +170,20 @@ object PackageRepository {
     override def registerMainProjectPackage(
       libraryName: LibraryName,
       pkg: Package[TruffleFile]
-    ): Unit = registerPackageInternal(
-      libraryName    = libraryName,
-      pkg            = pkg,
-      libraryVersion = LibraryVersion.Local,
-      isLibrary      = false
-    )
+    ): Unit = {
+      projectPackage = Some(pkg)
+      registerPackageInternal(
+        libraryName    = libraryName,
+        pkg            = pkg,
+        libraryVersion = LibraryVersion.Local,
+        isLibrary      = false
+      )
+    }
+
+    /** @inheritdoc */
+    override def getMainProjectPackage: Option[Package[TruffleFile]] = {
+      projectPackage
+    }
 
     private def registerPackageInternal(
       libraryName: LibraryName,
