@@ -1,5 +1,11 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Added support for automatic parallelization of computations
+  ([#2000](https://github.com/enso-org/enso/pull/2000)). The functionality is
+  hidden behind the `--with-auto-parellelism` flag to the interpreter.
+
 ## Enso 0.2.30 (2021-09-23)
 
 ## Interpreter/Runtime
