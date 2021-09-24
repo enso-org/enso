@@ -19,7 +19,7 @@ import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{Context, Module}
-import org.enso.polyglot.LanguageInfo
+import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
@@ -45,8 +45,10 @@ class Compiler(
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
-  private val irCachingEnabled      = !context.isIrCachingDisabled
-  private val irCacheReadingEnabled = !context.isIrCacheReadingDisabled
+  private val irCachingEnabled = !context.isIrCachingDisabled
+  private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
+    RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
+  )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
@@ -62,7 +64,7 @@ class Compiler(
 
       builtins.initializeBuiltinsSource()
 
-      if (irCachingEnabled && irCacheReadingEnabled) {
+      if (irCachingEnabled) {
         serializationManager.deserialize(builtins.getModule) match {
           case Some(true) =>
             // Ensure that builtins doesn't try and have codegen run on it.
@@ -80,7 +82,10 @@ class Compiler(
       }
 
       if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
-        serializationManager.serialize(builtins.getModule)
+        serializationManager.serialize(
+          builtins.getModule,
+          useGlobalCacheLocations = true // Builtins can't have a local cache.
+        )
       }
     }
   }
@@ -103,13 +108,83 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(module: Module): Unit = {
-    initializeBuiltinsIr()
-    parseModule(module)
+    runInternal(
+      List(module),
+      generateCode              = true,
+      shouldCompileDependencies = true
+    )
+  }
 
-    var requiredModules = runImportsAndExportsResolution(module)
+  /** Compiles the requested packages, writing the compiled IR to the library
+    * cache directories.
+    *
+    * @param shouldCompileDependencies whether compilation should also compile
+    *                                  the dependencies of the requested package
+    */
+  def compile(shouldCompileDependencies: Boolean): Unit = {
+    val packageRepository = context.getPackageRepository
+
+    packageRepository.getMainProjectPackage match {
+      case None =>
+        logger.log(
+          Level.SEVERE,
+          s"No package found in the compiler environment. Aborting."
+        )
+      case Some(pkg) =>
+        val packageModule = packageRepository.getModuleMap.get(
+          s"${pkg.namespace}.${pkg.name}.Main"
+        )
+        packageModule match {
+          case None =>
+            logger.log(
+              Level.SEVERE,
+              s"Could not find entry point for compilation in package " +
+              s"[${pkg.namespace}.${pkg.name}]."
+            )
+          case Some(m) =>
+            logger.log(
+              Compiler.defaultLogLevel,
+              s"Compiling the package [${pkg.namespace}.${pkg.name}] " +
+              s"starting at the root [${m.getName}]."
+            )
+
+            val packageModules = packageRepository.freezeModuleMap.collect {
+              case (name, mod)
+                  if name.startsWith(s"${pkg.namespace}.${pkg.name}") =>
+                mod
+            }.toList
+
+            runInternal(
+              packageModules,
+              generateCode = false,
+              shouldCompileDependencies
+            )
+        }
+    }
+  }
+
+  /** Runs part of the compiler to generate docs from Enso code.
+    *
+    * @param module the scope from which docs are generated
+    */
+  def generateDocs(module: Module): Module = {
+    initializeBuiltinsIr()
+    parseModule(module, isGenDocs = true)
+    module
+  }
+
+  private def runInternal(
+    modules: List[Module],
+    generateCode: Boolean,
+    shouldCompileDependencies: Boolean
+  ): Unit = {
+    initializeBuiltinsIr()
+    modules.foreach(m => parseModule(m))
+
+    var requiredModules = modules.flatMap(runImportsAndExportsResolution)
 
     var hasInvalidModuleRelink = false
-    if (irCachingEnabled && irCacheReadingEnabled) {
+    if (irCachingEnabled) {
       requiredModules.foreach { module =>
         if (!module.hasCrossModuleLinks) {
           val flags =
@@ -140,7 +215,7 @@ class Compiler(
         s"export resolution."
       )
 
-      requiredModules = runImportsAndExportsResolution(module)
+      requiredModules = modules.flatMap(runImportsAndExportsResolution)
     }
 
     requiredModules.foreach { module =>
@@ -183,30 +258,38 @@ class Compiler(
           Module.CompilationStage.AFTER_CODEGEN
         )
       ) {
-        logger.log(
-          Compiler.defaultLogLevel,
-          s"Generating code for module [${module.getName}]."
-        )
 
-        truffleCodegen(module.getIr, module.getSource, module.getScope)
+        if (generateCode) {
+          logger.log(
+            Compiler.defaultLogLevel,
+            s"Generating code for module [${module.getName}]."
+          )
+
+          truffleCodegen(module.getIr, module.getSource, module.getScope)
+        }
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
 
-        val shouldStoreCache = irCachingEnabled && !module.wasLoadedFromCache()
-        if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-          serializationManager.serialize(module)
+        if (shouldCompileDependencies || isModuleInRootPackage(module)) {
+          val shouldStoreCache =
+            irCachingEnabled && !module.wasLoadedFromCache()
+          if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
+            serializationManager.serialize(module, useGlobalCacheLocations)
+          }
+        } else {
+          logger.log(
+            Compiler.defaultLogLevel,
+            s"Skipping serialization for [${module.getName}]."
+          )
         }
       }
     }
   }
 
-  /** Runs part of the compiler to generate docs from Enso code.
-    *
-    * @param module the scope from which docs are generated
-    */
-  def generateDocs(module: Module): Module = {
-    initializeBuiltinsIr()
-    parseModule(module, isGenDocs = true)
-    module
+  private def isModuleInRootPackage(module: Module): Boolean = {
+    if (!module.isInteractive) {
+      val pkg = context.getPackageOf(module.getSourceFile).toScala
+      pkg.contains(context.getPackageRepository.getMainProjectPackage.get)
+    } else false
   }
 
   private def runImportsAndExportsResolution(module: Module): List[Module] = {
@@ -230,7 +313,7 @@ class Compiler(
     module.ensureScopeExists()
     module.getScope.reset()
 
-    if (irCachingEnabled && irCacheReadingEnabled && !module.isInteractive) {
+    if (irCachingEnabled && !module.isInteractive) {
       serializationManager.deserialize(module) match {
         case Some(_) => return
         case _       =>

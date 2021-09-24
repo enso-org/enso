@@ -78,10 +78,11 @@ public class RuntimeOptions {
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY, WAIT_FOR_PENDING_SERIALIZATION_JOBS)
           .build();
 
-  public static final String NO_READ_IR_CACHES = optionName("onlyGenerateIrCaches");
-  public static final OptionKey<Boolean> NO_READ_IR_CACHES_KEY = new OptionKey<>(false);
-  private static final OptionDescriptor NO_READ_IR_CACHES_DESCRIPTOR =
-      OptionDescriptor.newBuilder(NO_READ_IR_CACHES_KEY, NO_READ_IR_CACHES).build();
+  public static final String USE_GLOBAL_IR_CACHE_LOCATION = optionName("useGlobalIrCacheLocation");
+  public static final OptionKey<Boolean> USE_GLOBAL_IR_CACHE_LOCATION_KEY = new OptionKey<>(true);
+  public static final OptionDescriptor USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR =
+      OptionDescriptor.newBuilder(USE_GLOBAL_IR_CACHE_LOCATION_KEY, USE_GLOBAL_IR_CACHE_LOCATION)
+          .build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
@@ -98,7 +99,7 @@ public class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
-              NO_READ_IR_CACHES_DESCRIPTOR));
+              USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

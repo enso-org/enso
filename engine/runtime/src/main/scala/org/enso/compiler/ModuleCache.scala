@@ -8,7 +8,7 @@ import io.circe.parser._
 import io.circe.syntax._
 import org.bouncycastle.jcajce.provider.digest.SHA3
 import org.bouncycastle.util.encoders.Hex
-import org.enso.compiler.ModuleCache.ToMaskedPath
+import org.enso.compiler.ModuleCache.{logLevel, ToMaskedPath}
 import org.enso.compiler.core.IR
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.{Context, Module}
@@ -36,18 +36,28 @@ class ModuleCache(private val module: Module) {
     *
     * @param module the module representation to be saved
     * @param context the language context in which saving is taking place
+    * @param useGlobalCacheLocations
     * @return returns the location of the cache if successful, and [[None]] if
     *         it was unable to save
     */
   def save(
     module: ModuleCache.CachedModule,
-    context: Context
+    context: Context,
+    useGlobalCacheLocations: Boolean
   ): Option[TruffleFile] = this.synchronized {
     implicit val logger: TruffleLogger = context.getLogger(this.getClass)
     getIrCacheRoots(context) match {
       case Some(roots) =>
-        if (saveCacheTo(roots.globalCacheRoot, module)) {
-          return Some(roots.globalCacheRoot)
+        if (useGlobalCacheLocations) {
+          if (saveCacheTo(roots.globalCacheRoot, module)) {
+            return Some(roots.globalCacheRoot)
+          }
+        } else {
+          logger.log(
+            logLevel,
+            s"Skipping use of global cache locations for module " +
+            s"${this.module.getName}."
+          )
         }
 
         if (saveCacheTo(roots.localCacheRoot, module)) {
