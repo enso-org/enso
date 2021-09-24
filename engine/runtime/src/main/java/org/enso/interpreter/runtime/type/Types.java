@@ -202,36 +202,6 @@ public class Types {
     return new Pair<>((A) arguments[0], (B) arguments[1]);
   }
 
-  /**
-   * Asserts that the arguments array has exactly one element of a given type and extracts it.
-   *
-   * @param arguments the arguments array
-   * @param cls the class of the only element
-   * @param context the language context
-   * @param <A> the type of the only element
-   * @return the only element of the array
-   * @throws ArityException if the array does not have exactly one element
-   * @throws UnsupportedTypeException if the only element is not an instance of {@code cls}
-   */
-  @SuppressWarnings("unchecked")
-  public static <A> A extractHostArguments(Object[] arguments, Class<A> cls, Context context)
-      throws ArityException, UnsupportedTypeException {
-    if (arguments.length != 1) {
-      throw ArityException.create(1, arguments.length);
-    }
-
-    Object hostObject = arguments[0];
-    if (context.getEnvironment().isHostObject(hostObject)) {
-      hostObject = context.getEnvironment().asHostObject(hostObject);
-    }
-
-    if (!(cls.isInstance(hostObject))) {
-      throw UnsupportedTypeException.create(
-          arguments, "The argument must be a " + cls.getSimpleName() + ".");
-    }
-    return (A) hostObject;
-  }
-
   /** @return the language type hierarchy */
   public static TypeGraph getTypeHierarchy() {
     return typeHierarchy;
