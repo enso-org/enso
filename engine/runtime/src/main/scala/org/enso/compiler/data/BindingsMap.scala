@@ -811,16 +811,22 @@ object BindingsMap {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
-    def getIr: IR.Module.Scope.Definition = {
-      val moduleIr = module.unsafeAsModule().getIr
-      moduleIr.bindings.find {
+    def getIr: Option[IR.Module.Scope.Definition] = {
+      val moduleIr = module match {
+        case ModuleReference.Concrete(module) => Some(module.getIr)
+        case ModuleReference.Abstract(_)      => None
+      }
+      moduleIr.flatMap(_.bindings.find {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
             .getMetadata(MethodDefinitions)
             .contains(Resolution(ResolvedModule(module)))
         case _ => false
-      }.get
+      })
     }
+
+    def unsafeGetIr(missingMessage: String): IR.Module.Scope.Definition =
+      getIr.getOrElse(throw new CompilerError(missingMessage))
   }
 
   /** A representation of a name being resolved to a polyglot symbol.

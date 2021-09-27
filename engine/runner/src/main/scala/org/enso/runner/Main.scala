@@ -56,7 +56,7 @@ object Main {
   private val UPLOAD_OPTION                  = "upload"
   private val HIDE_PROGRESS                  = "hide-progress"
   private val AUTH_TOKEN                     = "auth-token"
-  private val AUTO_PARALLELISM_OPTION     = "with-auto-parallelism"
+  private val AUTO_PARALLELISM_OPTION        = "with-auto-parallelism"
 
   private lazy val logger = Logger[Main.type]
 
@@ -489,7 +489,7 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches,
-      strictErrors = true,
+      strictErrors          = true,
       enableAutoParallelism = enableAutoParallelism
     )
     if (projectMode) {

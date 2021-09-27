@@ -2,7 +2,7 @@
 
 ## Interpreter/Runtime
 
-- Added support for automatic parallelization of computations
+- Added experimental support for automatic parallelization of computations
   ([#2000](https://github.com/enso-org/enso/pull/2000)). The functionality is
   hidden behind the `--with-auto-parellelism` flag to the interpreter.
 - Added support for compiling Enso packages without execution

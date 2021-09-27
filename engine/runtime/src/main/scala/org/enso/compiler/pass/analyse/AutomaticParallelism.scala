@@ -76,9 +76,9 @@ object AutomaticParallelism extends IRPass {
     blockAssignment: Option[BlockAssignment]
   )
 
-  /**
-    * A single sub-block, containing a series of parallelizable lines,
+  /** A single sub-block, containing a series of parallelizable lines,
     * followed by a series of pinnedd lines.
+    *
     * @param parallelizable the parallelizable lines
     * @param pinned the pinned lines
     */
@@ -87,8 +87,8 @@ object AutomaticParallelism extends IRPass {
     pinned: List[IR.Expression]
   )
 
-  /**
-    * Computes the transitive closure of the dependency info.
+  /** Computes the transitive closure of the dependency info.
+    *
     * @param segment the segment containing only immediate dependency info.
     * @return the same segment, with transitive closure of dependency graph.
     */
@@ -110,9 +110,9 @@ object AutomaticParallelism extends IRPass {
     segment.copy(parallelizable = newLines)
   }
 
-  /**
-    * Uses the dependency info and parallelism statuses to finally assign each
+  /** Uses the dependency info and parallelism statuses to finally assign each
     * parallelizable line to a block.
+    *
     * @param segment the segment for which assignment should be done.
     * @return a segment with threads assigned.
     */
@@ -137,7 +137,7 @@ object AutomaticParallelism extends IRPass {
     // Going backwards through the lines (i.e. post-order of the dependency
     // graph), assign each not-yet-assigned parallelized line to a new thread.
     // Also move all its dependencies to the new thread (or promote to current
-    // thread, see #moveTo.
+    // thread, see #moveTo).
     segment.parallelizable.reverse.foreach { line =>
       (line.parallelismStatus, assignments(line.id)) match {
         case (Parallelize, None) =>
@@ -172,8 +172,8 @@ object AutomaticParallelism extends IRPass {
     )
   }
 
-  /**
-    * Splits a block into sub-blocks based on the parallelism status.
+  /** Splits a block into sub-blocks based on the parallelism status.
+    *
     * @param exprs the exprs to split, together with their status.
     * @param acc TCO accumulator
     * @return a list of sub-blocks. See [[ParallelizationSegment]].
@@ -237,8 +237,7 @@ object AutomaticParallelism extends IRPass {
     segment.copy(parallelizable = linesWithDeps)
   }
 
-  /**
-    * Generates the final code for a given sub-block, based on the computed
+  /** Generates the final code for a given sub-block, based on the computed
     * thread assignments.
     *
     * All the expressions assigned to the main thread are floated to the
@@ -403,12 +402,11 @@ object AutomaticParallelism extends IRPass {
     ir.copy(bindings = newBindings)
   }
 
-  /**
-    * A parallelization status for a given line.
+  /** A parallelization status for a given line.
     */
   sealed private trait ParallelismStatus {
-    /**
-      * Computes the result of sequencing sub-expressions with two (possibly
+
+    /** Computes the result of sequencing sub-expressions with two (possibly
       * different) parallelism statuses. The rules for this are:
       * 1. If either expression is pinned, the result is pinned.
       * 2. If both expressions are not pinned, and either forces parallelism,
@@ -421,8 +419,7 @@ object AutomaticParallelism extends IRPass {
     def sequencedWith(other: => ParallelismStatus): ParallelismStatus
   }
 
-  /**
-    * Can safely be moved to a different thread, but does
+  /** Can safely be moved to a different thread, but does
     * not merit creating a thread on its own.
     */
   private case object Pure extends ParallelismStatus {
@@ -430,8 +427,7 @@ object AutomaticParallelism extends IRPass {
       other
   }
 
-  /**
-    * Can safely be moved to a different thread, and preferably should be run in
+  /** Can safely be moved to a different thread, and preferably should be run in
     * a thread of its own.
     */
   private case object Parallelize extends ParallelismStatus {
@@ -443,8 +439,7 @@ object AutomaticParallelism extends IRPass {
       }
   }
 
-  /**
-    * Cannot be moved to a different thread.
+  /** Cannot be moved to a different thread.
     */
   private case object Pinned extends ParallelismStatus {
     override def sequencedWith(other: => ParallelismStatus): ParallelismStatus =
@@ -466,8 +461,7 @@ object AutomaticParallelism extends IRPass {
       case _ => None
     }
 
-  /**
-    * Computes the parallelism status of an expression.
+  /** Computes the parallelism status of an expression.
     *
     * @param expr the expression to compute status for.
     * @return the status of `expr`.
@@ -480,7 +474,7 @@ object AutomaticParallelism extends IRPass {
         // arguments.
         app.function.getMetadata(MethodCalls) match {
           case Some(Resolution(method: ResolvedMethod)) =>
-            val methodIr = method.getIr
+            val methodIr = method.unsafeGetIr("Invalid method call resolution.")
             val isParallelize = methodIr
               .getMetadata(ModuleAnnotations)
               .exists(_.annotations.exists(_.name == "@Parallelize"))
