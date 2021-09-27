@@ -221,6 +221,25 @@ class Compiler(
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_GLOBAL_TYPES
+        )
+      ) {
+
+        val moduleContext = ModuleContext(
+          module          = module,
+          freshNameSupply = Some(freshNameSupply),
+          compilerConfig  = config
+        )
+        val compilerOutput = runGlobalTypingPasses(module.getIr, moduleContext)
+        module.unsafeSetIr(compilerOutput)
+        module.unsafeSetCompilationStage(
+          Module.CompilationStage.AFTER_GLOBAL_TYPES
+        )
+      }
+    }
+    requiredModules.foreach { module =>
+      if (
+        !module.getCompilationStage.isAtLeast(
           Module.CompilationStage.AFTER_STATIC_PASSES
         )
       ) {
@@ -230,7 +249,7 @@ class Compiler(
           freshNameSupply = Some(freshNameSupply),
           compilerConfig  = config
         )
-        val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
+        val compilerOutput = runMethodBodyPasses(module.getIr, moduleContext)
         module.unsafeSetIr(compilerOutput)
         module.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_STATIC_PASSES
@@ -483,11 +502,18 @@ class Compiler(
     * @param ir the compiler intermediate representation to transform
     * @return the output result of the
     */
-  def runCompilerPhases(
+  private def runMethodBodyPasses(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
+  }
+
+  private def runGlobalTypingPasses(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
+    passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
   }
 
   /** Runs the various compiler passes in an inline context.

@@ -320,6 +320,7 @@ case object LambdaConsolidate extends IRPass {
           )
         case ths: IR.Name.This              => ths
         case here: IR.Name.Here             => here
+        case special: IR.Name.Special       => special
         case blank: IR.Name.Blank           => blank
         case ref: IR.Name.MethodReference   => ref
         case qual: IR.Name.Qualified        => qual

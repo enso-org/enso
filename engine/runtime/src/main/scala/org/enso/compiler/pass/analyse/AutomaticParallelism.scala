@@ -1,55 +1,39 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
-import org.enso.compiler.core.IR.{
-  Application,
-  CallArgument,
-  Case,
-  DefinitionArgument,
-  Error,
-  Name,
-  Type
-}
+import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.desugar.ComplexType
-import org.enso.compiler.pass.resolve.ExpressionAnnotations
+import org.enso.compiler.pass.resolve.{
+  IgnoredBindings,
+  MethodCalls,
+  ModuleAnnotations,
+  TypeSignatures
+}
 
-import scala.annotation.unused
-import scala.collection.mutable
+import scala.annotation.{tailrec, unused}
 
 /** This pass is responsible for discovering occurrences of automatically
-  * parallelizable computations. If it finds a join point, annotated with the
-  * &#96;@Auto_Parallel&#96; annotation, it will discover the incoming
-  * computations that can safely be parallelized.
+  * parallelizable computations.
   *
-  * This is a limited process, and operates under the following core
-  * assumptions:
+  * It uses type signatures and annotations to drive the system. Each method
+  * is split into blocks, where the first lines in the block are only performing
+  * operations annotated with `@Parallelize` or typed as returning values
+  * `in Pure`. The the parallelizable sub-blocks are analyzed separately,
+  * possibly splitting their execution into separate threads, if allowed by the
+  * dataflow dependencies.
   *
-  * - The incoming edges are _entirely_ separate (this pass will not act on
-  *   diamond patterns).
-  * - The incoming edges perform no side-effecting computations that would be
-  *   observable from the other edges.
-  * - This functionality does not have to operate in the IDE.
-  *
-  * Additionally, it will only trigger when the following conditions hold:
-  *
-  * - The annotated call takes more than one argument.
-  * - All dependent names are defined in the same method.
-  * - The dependencies of the `@Auto_Parallel` computation may only be used
-  *   once.
-  * - The dependencies must be able to be inlined.
+  * See inline documentation in the different methods of this pass for in-depth
+  * explanations.
   */
 object AutomaticParallelism extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
-  override type Config   = Configuration
+  override type Config   = IRPass.Configuration.Default
   override val precursorPasses: Seq[IRPass] = Seq(
     AliasAnalysis,
-    DataflowAnalysis,
     ComplexType
   )
   override val invalidatedPasses: Seq[IRPass] = Seq(
@@ -57,8 +41,330 @@ object AutomaticParallelism extends IRPass {
     DataflowAnalysis
   )
 
-  /** The specific dependency information. */
-  type DepInfoType = DataflowAnalysis.DependencyInfo.Type
+  override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
+    copyOfIr
+
+  /** An assignment of a line to a given thread.
+    */
+  sealed private trait BlockAssignment
+
+  /** Line should run in the current thread.
+    */
+  private case object Top extends BlockAssignment
+
+  /** Line should run in a spawned thread with given ID.
+    * @param line the thread ID.
+    */
+  private case class ThreadOf(line: Int) extends BlockAssignment
+
+  /** Represents a parallelizable statement in a block.
+    *
+    * @param ir the original IR
+    * @param parallelismStatus the status of threading for this line
+    * @param id the 0-based number of the line in its sub-block
+    * @param assignment Alias Analysis id of this binding (if the line is
+    *                   a binding)
+    * @param dependencies the ids of all lines this one depends on
+    * @param blockAssignment the thread in which this line should run
+    */
+  private case class Line(
+    ir: IR.Expression,
+    parallelismStatus: ParallelismStatus,
+    id: Int,
+    assignment: Option[AliasAnalysis.Graph.Id],
+    dependencies: Set[Int],
+    blockAssignment: Option[BlockAssignment]
+  )
+
+  /** A single sub-block, containing a series of parallelizable lines,
+    * followed by a series of pinnedd lines.
+    *
+    * @param parallelizable the parallelizable lines
+    * @param pinned the pinned lines
+    */
+  private case class ParallelizationSegment(
+    parallelizable: List[Line],
+    pinned: List[IR.Expression]
+  )
+
+  /** Computes the transitive closure of the dependency info.
+    *
+    * @param segment the segment containing only immediate dependency info.
+    * @return the same segment, with transitive closure of dependency graph.
+    */
+  private def assignDependencyClosure(
+    segment: ParallelizationSegment
+  ): ParallelizationSegment = {
+    val withClosure = new Array[Line](segment.parallelizable.length)
+    val newLines = segment.parallelizable.map { line =>
+      withClosure.update(
+        line.id,
+        line.copy(dependencies =
+          line.dependencies
+            .flatMap(withClosure(_).dependencies)
+            .union(line.dependencies)
+        )
+      )
+      withClosure(line.id)
+    }
+    segment.copy(parallelizable = newLines)
+  }
+
+  /** Uses the dependency info and parallelism statuses to finally assign each
+    * parallelizable line to a block.
+    *
+    * @param segment the segment for which assignment should be done.
+    * @return a segment with threads assigned.
+    */
+  private def assignBlocks(
+    segment: ParallelizationSegment
+  ): ParallelizationSegment = {
+    val assignments =
+      Array.fill[Option[BlockAssignment]](segment.parallelizable.length)(None)
+
+    // A helper to move a line to a new thread. If the line is unassigned, or
+    // already assigned to the desired block, it will be assigned to the block.
+    // Otherwise, it will be promoted to the current (main) thread. I.e. this
+    // ensures that this line is visible in the required thread block.
+    def moveTo(lineId: Int, block: BlockAssignment): Unit = {
+      assignments(lineId) match {
+        case None => assignments.update(lineId, Some(block))
+        case Some(assignment) =>
+          if (assignment != block) assignments.update(lineId, Some(Top))
+      }
+    }
+
+    // Going backwards through the lines (i.e. post-order of the dependency
+    // graph), assign each not-yet-assigned parallelized line to a new thread.
+    // Also move all its dependencies to the new thread (or promote to current
+    // thread, see #moveTo).
+    segment.parallelizable.reverse.foreach { line =>
+      (line.parallelismStatus, assignments(line.id)) match {
+        case (Parallelize, None) =>
+          (Set(line.id) ++ line.dependencies)
+            .foreach(moveTo(_, ThreadOf(line.id)))
+        case _ =>
+      }
+    }
+
+    // Assigns all remaining pure lines to blocks. If all the deps of this line
+    // are in the main thread and _exactly one_ parallel thread, move this line
+    // and all the dependencies to the parallel thread. Otherwise move it to
+    // `Top`.
+    segment.parallelizable.reverse.foreach { line =>
+      assignments(line.id) match {
+        case None =>
+          val depAssignments: Set[BlockAssignment] =
+            line.dependencies.flatMap(assignments).filter(_ != Top)
+          val allMoved = Set(line.id) ++ line.dependencies
+          depAssignments.toList match {
+            case List(assignment) => allMoved.foreach(moveTo(_, assignment))
+            case _                => allMoved.foreach(moveTo(_, Top))
+          }
+        case _ =>
+      }
+    }
+
+    segment.copy(parallelizable =
+      segment.parallelizable.zip(assignments).map { case (line, block) =>
+        line.copy(blockAssignment = block)
+      }
+    )
+  }
+
+  /** Splits a block into sub-blocks based on the parallelism status.
+    *
+    * @param exprs the exprs to split, together with their status.
+    * @param acc TCO accumulator
+    * @return a list of sub-blocks. See [[ParallelizationSegment]].
+    */
+  @tailrec
+  private def splitParallelBlocks(
+    exprs: List[(IR.Expression, ParallelismStatus)],
+    acc: List[ParallelizationSegment] = List()
+  ): List[ParallelizationSegment] = exprs match {
+    case Nil => acc.reverse
+    case _ =>
+      val (parallel, rest1) = exprs.span(_._2 != Pinned)
+      val (pinned, rest)    = rest1.span(_._2 == Pinned)
+      val parallelLines = parallel.zipWithIndex.map {
+        case ((expr, status), ix) => Line(expr, status, ix, None, Set(), None)
+      }
+      val pinnedLines = pinned.map(_._1)
+      splitParallelBlocks(
+        rest,
+        ParallelizationSegment(parallelLines, pinnedLines) :: acc
+      )
+  }
+
+  private def fillAssignmentInfo(
+    segment: ParallelizationSegment
+  ): ParallelizationSegment =
+    segment.copy(parallelizable = segment.parallelizable.map { line =>
+      line.ir match {
+        case bind: IR.Expression.Binding =>
+          val aaInfo = bind
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "Alias analysis left a binding behind"
+            )
+            .asInstanceOf[AliasAnalysis.Info.Occurrence]
+          line.copy(assignment = Some(aaInfo.id))
+        case _ => line
+      }
+    })
+
+  private def gatherDeps(
+    segment: ParallelizationSegment
+  ): ParallelizationSegment = {
+    val depMap = Map(segment.parallelizable.flatMap { line =>
+      line.assignment.map { _ -> line.id }
+    }: _*)
+    val linesWithDeps = segment.parallelizable.map { line =>
+      val deps = line.ir.preorder
+        .collect { case n: IR.Name.Literal =>
+          n
+        }
+        .flatMap(_.getMetadata(AliasAnalysis))
+        .collect { case occ: AliasAnalysis.Info.Occurrence =>
+          occ
+        }
+        .flatMap(occ => occ.graph.defLinkFor(occ.id))
+        .flatMap(link => depMap.get(link.target))
+        .filter(_ != line.id)
+      line.copy(dependencies = Set(deps: _*))
+    }
+    segment.copy(parallelizable = linesWithDeps)
+  }
+
+  /** Generates the final code for a given sub-block, based on the computed
+    * thread assignments.
+    *
+    * All the expressions assigned to the main thread are floated to the
+    * top.
+    *
+    * Then, every variable assignment moved to a parallel thread gets a mutable
+    * reference created in the current thread.
+    *
+    * Then, every assigned parallel thread gets spawned. Every variable
+    * assignment is followed by a write to its mutable variable.
+    *
+    * Then, all the threads are joined.
+    *
+    * Finally, all the mutable references are read into their corresponding
+    * variables.
+    *
+    * After such transformation, all the pinned statements can be appended,
+    * and their semantics will remain unchanged.
+    *
+    * @param segment the segment to generate code for.
+    * @param freshNameSupply a fresh name generator.
+    * @return the generated code for a sub-block.
+    */
+  private def codeGen(
+    segment: ParallelizationSegment,
+    freshNameSupply: FreshNameSupply
+  ): List[IR.Expression] = {
+    val spawnedThreads = segment.parallelizable.groupBy(
+      _.blockAssignment.getOrElse(
+        throw new CompilerError("unassigned block in auto parallelism")
+      )
+    )
+    val topExprs     = spawnedThreads.getOrElse(Top, List()).map(_.ir)
+    val threadBlocks = spawnedThreads.removed(Top)
+    if (threadBlocks.size < 2) {
+      return segment.parallelizable.map(_.ir) ++ segment.pinned
+    }
+
+    val refVars = threadBlocks.values.flatten
+      .map(_.ir)
+      .collect { case bind: IR.Expression.Binding =>
+        bind.name -> freshNameSupply.newName()
+      }
+      .toMap
+
+    val refAllocations = refVars.values.map(
+      IR.Expression
+        .Binding(
+          _,
+          IR.Application.Prefix(
+            IR.Name.Special(IR.Name.Special.NewRef, None),
+            List(),
+            false,
+            None
+          ),
+          None
+        )
+        .updateMetadata(IgnoredBindings -->> IgnoredBindings.State.Ignored)
+    )
+
+    val threadSpawns = threadBlocks.values.map { exprs =>
+      val blockBody =
+        exprs.map(_.ir).flatMap {
+          case bind: IR.Expression.Binding =>
+            val refWrite = IR.Application.Prefix(
+              IR.Name.Special(IR.Name.Special.WriteRef, None),
+              List(
+                IR.CallArgument
+                  .Specified(None, refVars(bind.name).duplicate(), None),
+                IR.CallArgument.Specified(None, bind.name.duplicate(), None)
+              ),
+              false,
+              None
+            )
+            List(bind, refWrite)
+          case other => List(other)
+        }
+      val spawn = IR.Application.Prefix(
+        IR.Name.Special(IR.Name.Special.RunThread, None),
+        List(
+          IR.CallArgument.Specified(
+            None,
+            IR.Expression.Block(blockBody.init, blockBody.last, None),
+            None
+          )
+        ),
+        false,
+        None
+      )
+      IR.Expression
+        .Binding(freshNameSupply.newName(), spawn, None)
+        .updateMetadata(IgnoredBindings -->> IgnoredBindings.State.Ignored)
+    }
+
+    val threadJoins = threadSpawns.map { bind =>
+      IR.Application.Prefix(
+        IR.Name.Special(IR.Name.Special.JoinThread, None),
+        List(IR.CallArgument.Specified(None, bind.name.duplicate(), None)),
+        false,
+        None
+      )
+    }
+
+    val varReads = refVars.map { case (name, ref) =>
+      IR.Expression
+        .Binding(
+          name.duplicate(),
+          IR.Application.Prefix(
+            IR.Name.Special(IR.Name.Special.ReadRef, None),
+            List(IR.CallArgument.Specified(None, ref.duplicate(), None)),
+            false,
+            None
+          ),
+          None
+        )
+        .updateMetadata(IgnoredBindings -->> IgnoredBindings.State.Ignored)
+    }
+
+    List(
+      topExprs,
+      refAllocations,
+      threadSpawns,
+      threadJoins,
+      varReads,
+      segment.pinned
+    ).flatten
+  }
 
   /** Executes the pass on a module.
     *
@@ -71,7 +377,140 @@ object AutomaticParallelism extends IRPass {
   override def runModule(
     ir: IR.Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = ir
+  ): IR.Module = {
+    val newBindings = ir.bindings.map {
+      case method: IR.Module.Scope.Definition.Method.Explicit =>
+        val newBody = withBodyBlock(method.body) { block =>
+          val allExprs = block.expressions :+ block.returnValue
+          val withParallelismStatus = allExprs.map { expr =>
+            (expr, getParallelismStatus(expr))
+          }
+          val blocks          = splitParallelBlocks(withParallelismStatus)
+          val withAssignments = blocks.map(fillAssignmentInfo)
+          val withDeps =
+            withAssignments.map(gatherDeps).map(assignDependencyClosure)
+          val withBlocks = withDeps.map(assignBlocks)
+          val newExprs =
+            withBlocks.flatMap(codeGen(_, moduleContext.freshNameSupply.get))
+          val r =
+            block.copy(expressions = newExprs.init, returnValue = newExprs.last)
+          r
+        }
+        method.copy(body = newBody)
+      case other => other
+    }
+    ir.copy(bindings = newBindings)
+  }
+
+  /** A parallelization status for a given line.
+    */
+  sealed private trait ParallelismStatus {
+
+    /** Computes the result of sequencing sub-expressions with two (possibly
+      * different) parallelism statuses. The rules for this are:
+      * 1. If either expression is pinned, the result is pinned.
+      * 2. If both expressions are not pinned, and either forces parallelism,
+      *    the result also forces parallelism.
+      * 3. Otherwise, the result is Pure.
+      *
+      * @param other the status of the second expression.
+      * @return the combined status.
+      */
+    def sequencedWith(other: => ParallelismStatus): ParallelismStatus
+  }
+
+  /** Can safely be moved to a different thread, but does
+    * not merit creating a thread on its own.
+    */
+  private case object Pure extends ParallelismStatus {
+    override def sequencedWith(other: => ParallelismStatus): ParallelismStatus =
+      other
+  }
+
+  /** Can safely be moved to a different thread, and preferably should be run in
+    * a thread of its own.
+    */
+  private case object Parallelize extends ParallelismStatus {
+    override def sequencedWith(other: => ParallelismStatus): ParallelismStatus =
+      other match {
+        case Parallelize => Parallelize
+        case Pure        => Parallelize
+        case Pinned      => Pinned
+      }
+  }
+
+  /** Cannot be moved to a different thread.
+    */
+  private case object Pinned extends ParallelismStatus {
+    override def sequencedWith(other: => ParallelismStatus): ParallelismStatus =
+      Pinned
+  }
+
+  @tailrec
+  private def getMonad(signature: IR.Expression): Option[String] =
+    signature match {
+      case lam: IR.Function.Lambda => getMonad(lam.body)
+      case app: IR.Application.Operator.Binary =>
+        if (app.operator.name == "in") {
+          app.right.value match {
+            case lit: IR.Name.Literal => Some(lit.name)
+            case _                    => None
+          }
+        } else if (app.operator.name == "->") { getMonad(app.right.value) }
+        else None
+      case _ => None
+    }
+
+  /** Computes the parallelism status of an expression.
+    *
+    * @param expr the expression to compute status for.
+    * @return the status of `expr`.
+    */
+  private def getParallelismStatus(expr: IR.Expression): ParallelismStatus =
+    expr match {
+      case app: IR.Application.Prefix =>
+        // The base status of an application is computed based on the type of
+        // the called function. It is then sequenced with statuses of the
+        // arguments.
+        app.function.getMetadata(MethodCalls) match {
+          case Some(Resolution(method: ResolvedMethod)) =>
+            val methodIr = method.unsafeGetIr("Invalid method call resolution.")
+            val isParallelize = methodIr
+              .getMetadata(ModuleAnnotations)
+              .exists(_.annotations.exists(_.name == "@Parallelize"))
+            val monad = methodIr
+              .getMetadata(TypeSignatures)
+              .flatMap(sig => getMonad(sig.signature))
+            val baseStatus: ParallelismStatus =
+              if (isParallelize) Parallelize
+              else if (monad.contains("Pure")) Pure
+              else Pinned
+            app.arguments
+              .map(_.value)
+              .foldLeft(baseStatus)((status, ir) =>
+                status.sequencedWith(getParallelismStatus(ir))
+              )
+          case _ => Pinned
+        }
+      case bind: IR.Expression.Binding => getParallelismStatus(bind.expression)
+      case _: IR.Name                  => Pure
+      case _: IR.Literal               => Pure
+      case _: IR.Function.Lambda       => Pure
+      case _                           => Pinned
+    }
+
+  private def withBodyBlock(
+    expr: IR.Expression
+  )(fn: IR.Expression.Block => IR.Expression.Block): IR.Expression =
+    expr match {
+      case fun: IR.Function.Binding =>
+        fun.copy(body = withBodyBlock(fun.body)(fn))
+      case fun: IR.Function.Lambda =>
+        fun.copy(body = withBodyBlock(fun.body)(fn))
+      case block: IR.Expression.Block if block.expressions.nonEmpty =>
+        fn(block)
+      case _ => expr
+    }
 
   /** Executes the pass on an expression.
     *
@@ -86,493 +525,4 @@ object AutomaticParallelism extends IRPass {
     @unused inlineContext: InlineContext
   ): IR.Expression = ir
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
-
-  // If I can do the limited form, then it is sufficient to have spawn/await on
-  //  bindings combined with liberal inlining of the other parts of the
-  //  computation.
-  //  - At the binding, spawn a thread and store an identifier into the cell.
-  //  - At the read emit a special ReadVariableNode that joins on that thread.
-  //  This becomes even easier if I can make assumptions about where the
-  //  annotated expression is, but that isn't necessary for this approach.
-
-  // === Pass Implementation ==================================================
-
-  @unused private def processModuleDefinition(
-    binding: Definition,
-    inlineContext: InlineContext
-  ): Definition = {
-    binding match {
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
-      case method: Definition.Method.Explicit =>
-        processMethod(method, inlineContext)
-      case atom: Definition.Atom => atom
-      case _: Definition.Type =>
-        throw new CompilerError(
-          "Complex type definitions should not be present at the point of " +
-          "parallelism analysis."
-        )
-      case _: Definition.Method.Binding =>
-        throw new CompilerError(
-          "Binding-style methods should be desugared by the point of " +
-          "parallelism analysis."
-        )
-      case _: Name.Annotation =>
-        throw new CompilerError(
-          "Annotations should be desugared by the point of parallelism " +
-          "analysis."
-        )
-      case _: Type.Ascription =>
-        throw new CompilerError(
-          "Type ascriptions should be desugared by the point of parallelism " +
-          "analysis."
-        )
-      case _: IR.Comment =>
-        throw new CompilerError(
-          "Type ascriptions should be desugared by the point of parallelism " +
-          "analysis."
-        )
-      case err: Error => err
-    }
-  }
-
-  private def processMethod(
-    method: Definition.Method.Explicit,
-    context: InlineContext
-  ): Definition.Method.Explicit = {
-    val body = method.body match {
-      case lam: IR.Function.Lambda => runExpression(lam, context)
-      case _ =>
-        throw new CompilerError("Explicit methods should only contain lambdas.")
-    }
-    method.copy(body = body)
-  }
-
-  private def processExpression(
-    expr: IR.Expression,
-    mutData: MutablePassData,
-    scopedData: ScopedPassData
-  ): IR.Expression = {
-    val result = expr match {
-      case func: IR.Function   => processFunction(func, mutData, scopedData)
-      case app: IR.Application => processApplication(app, mutData, scopedData)
-      case cse: IR.Case        => processCase(cse, mutData, scopedData)
-      case block: IR.Expression.Block =>
-        try {
-          val newScopedData = scopedData.addEnclosingBlock(block)
-          val newExpressions =
-            block.expressions.map(processExpression(_, mutData, newScopedData))
-          val newRet =
-            processExpression(block.returnValue, mutData, newScopedData)
-          block.copy(expressions = newExpressions, returnValue = newRet)
-        } catch {
-          case _: RewriteException =>
-            block // TODO [AA] Do this properly
-        }
-      case binding: IR.Expression.Binding =>
-        val newExpr =
-          processExpression(binding.expression, mutData, scopedData)
-        binding.copy(expression = newExpr)
-      case name: IR.Name       => name
-      case lit: IR.Literal     => lit
-      case comm: IR.Comment    => comm
-      case foreign: IR.Foreign => foreign
-      case empty: IR.Empty     => empty
-      case error: IR.Error     => error
-      case typ: Type           => typ
-    }
-    mutData.putExpr(result)
-    result
-  }
-
-  private def checkParallelCall(
-    app: Application.Prefix,
-    mutData: MutablePassData,
-    scopedData: ScopedPassData
-  ): IR.Expression = {
-    // Check that there are enough arguments.
-    if (app.arguments.length <= 1) {
-      val warning = IR.Warning.FailedParallelism(
-        app,
-        s"Cannot parallelize an application with ${app.arguments.length} " +
-        s"arguments."
-      )
-      app.diagnostics.add(warning)
-      return app
-    }
-
-    // Check that the incoming flows are distinct.
-    val dataflow = app
-      .getMetadata(DataflowAnalysis)
-      .getOrElse(
-        throw new CompilerError(
-          "Dataflow analysis metadata is required for parallelism analysis."
-        )
-      )
-    val args = app.arguments.collect { case a: CallArgument.Specified => a }
-    val argDepSets = args.map(a => {
-      val dep = mkStaticDep(a)
-      dataflow.dependencies
-        .get(dep)
-        .getOrElse(
-          throw new CompilerError(
-            s"Unable to find dataflow analysis data for $a."
-          )
-        )
-    })
-    if (!flowsDistinct(argDepSets)) {
-      val warning = IR.Warning.FailedParallelism(
-        app,
-        "Arguments to the parallel call are not distinct computations."
-      )
-      app.diagnostics.add(warning)
-      return app
-    }
-
-    // Check that the incoming flows do not depend on input arguments
-    if (dependsOnInputArguments(argDepSets, mutData)) {
-      val warning = IR.Warning.FailedParallelism(
-        app,
-        "Auto-parallel calls cannot depend on input arguments as these are " +
-        "not statically known."
-      )
-      app.diagnostics.add(warning)
-      return app
-    }
-
-    // Check if it is safe to inline the dependencies into the flows.
-    if (!canInline(argDepSets, dataflow)) {
-      val warning = IR.Warning.FailedParallelism(
-        app,
-        "Cannot inline the dependencies of the incoming flows. They are used " +
-        "in more than one place."
-      )
-      app.diagnostics.add(warning)
-      return app
-    }
-
-    // Preconditions are satisfied, so perform the rewrite.
-    throw rewriteParallelCall(app, mutData, scopedData, dataflow)
-  }
-
-  // TODO [AA] The steps are as follows:
-  //   3. Perform inlining.
-  //   4. Annotate the block with the parallel streams (structure TBC)
-  //   6. Docs and cleanup
-  //  How do I get the inlined blocks to the right place? ====>>>> Throw exn
-
-  private def rewriteParallelCall(
-    app: Application.Prefix,
-    mutData: MutablePassData,
-    @unused scopedData: ScopedPassData,
-    dataflow: DataflowAnalysis.Metadata
-  ): RewriteException = {
-    // TODO [AA] Create a new binding to hold the intermediary. Use fresh name.
-    // TODO [AA] Inline the expressions into the binding for each arg.
-    // TODO [AA] Annotate these bindings with a ParallelExecute metadata.
-    // TODO [AA] Rewrite the app to use the bindings
-    // TODO [AA] Rewrite the expressions to the top of the tree to remove the
-    //  dependencies.
-
-    // Generate inlined and annotated bindings
-    val bindingNames = app.arguments.map(_ =>
-      mutData.context.freshNameSupply
-        .getOrElse(
-          throw new CompilerError(
-            "A fresh name supply is required for parallelism analysis."
-          )
-        )
-        .newName()
-    )
-    @unused val bindings =
-      bindingNames.zip(app.arguments).map { case (bindName, arg) =>
-        makeInlinedBindingFor(bindName, arg, mutData, dataflow)
-      }
-
-    // Rewrite the application to use the bindings
-    val newArgs = app.arguments.zip(bindingNames).map {
-      case (arg: CallArgument.Specified, bindingName) =>
-        arg.copy(value = bindingName.duplicate())
-    }
-    @unused val newApp = app.copy(arguments = newArgs)
-
-    RewriteException()
-  }
-
-  private def makeInlinedBindingFor(
-    bindingName: IR.Name,
-    arg: CallArgument,
-    mutData: MutablePassData,
-    dataflow: DataflowAnalysis.Metadata
-  ): IR.Expression.Binding = arg match {
-    case spec: CallArgument.Specified =>
-      val flattened = flattenExpr(spec.value, mutData, dataflow)
-      val binding   = IR.Expression.Binding(bindingName, flattened, None)
-      binding
-  }
-
-  // TODO [AA] Write the actual flattening.
-  private def flattenExpr(
-    expr: IR.Expression,
-    @unused mutData: MutablePassData,
-    @unused dataflow: DataflowAnalysis.Metadata
-  ): IR.Expression = {
-    expr match {
-      case lam: IR.Function.Lambda              => lam
-      case pre: IR.Application.Prefix           => pre
-      case force: IR.Application.Force          => force
-      case seq: IR.Application.Literal.Sequence => seq
-      case caseBranch: IR.Case.Branch           => caseBranch
-      case cse: IR.Case                         => cse
-      case block: IR.Expression.Block           => block
-      case binding: IR.Expression.Binding       => binding
-      case a                                    => a
-    }
-  }
-
-  private def canInline(
-    dependenciesOfArgs: Seq[Set[DepInfoType]],
-    dataflow: DataflowAnalysis.Metadata
-  ): Boolean = {
-    val flatDeps = dependenciesOfArgs.flatten
-    flatDeps.forall {
-      case d: DependencyInfo.Type.Static =>
-        dataflow.dependents.getDirect(d) match {
-          case Some(s) => s.size == 1
-          case _       => false
-        }
-      case _: DependencyInfo.Type.Dynamic => true
-    }
-  }
-
-  private def dependsOnInputArguments(
-    args: Seq[Set[DepInfoType]],
-    passData: MutablePassData
-  ): Boolean = {
-    val identifiers: Seq[IR.Identifier] = args.flatMap(_.collect {
-      case s: DependencyInfo.Type.Static => s.id
-    })
-    identifiers.exists(id => passData.getDefinitionArg(id).isDefined)
-  }
-
-  private def flowsDistinct(args: Seq[Set[DepInfoType]]): Boolean = {
-    val noDynDeps = args.map(s => {
-      s.collect { case s: DependencyInfo.Type.Static => s }
-    })
-    val depsCount = noDynDeps.map(_.size).sum
-    noDynDeps.reduceLeft((l, r) => l union r).size == depsCount
-  }
-
-  private def mkStaticDep(ir: IR): DependencyInfo.Type.Static = {
-    DependencyInfo.Type.Static(ir.getId, ir.getExternalId)
-  }
-
-  // TODO [AA] Error case for annotation inside call (illegal)
-  private def processApplication(
-    app: IR.Application,
-    mutData: MutablePassData,
-    scopedData: ScopedPassData
-  ): IR.Expression = {
-    val result: IR.Expression = app match {
-      case app @ Application.Prefix(function, arguments, _, _, _, _) =>
-        val isParAnnotated = app
-          .getMetadata(ExpressionAnnotations)
-          .exists(m =>
-            m.annotations.exists(ann =>
-              ann.name == ExpressionAnnotations.autoParallelName
-            )
-          )
-        if (isParAnnotated) {
-          checkParallelCall(app, mutData, scopedData)
-        } else {
-          val newFn = processExpression(function, mutData, scopedData)
-          val newArgs = arguments.map {
-            case spec @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
-              val newExpr = processExpression(value, mutData, scopedData)
-              val result  = spec.copy(value = newExpr)
-              mutData.putCallArgument(result)
-              result
-          }
-          app.copy(function = newFn, arguments = newArgs)
-        }
-      case force @ Application.Force(target, _, _, _) =>
-        force.copy(target = processExpression(target, mutData, scopedData))
-      case sequence: Application.Literal.Sequence =>
-        val newItems =
-          sequence.items.map(processExpression(_, mutData, scopedData))
-        sequence.copy(items = newItems)
-      case lit: Application.Literal.Typeset => lit
-      case _: Application.Operator =>
-        throw new CompilerError(
-          "Operators should be desugared to functions by the point of " +
-          "parallelism analysis."
-        )
-    }
-    mutData.putExpr(result)
-    result
-  }
-
-  private def processFunction(
-    function: IR.Function,
-    passData: MutablePassData,
-    scopedData: ScopedPassData
-  ): IR.Expression = function match {
-    case fn @ IR.Function.Lambda(arguments, body, _, _, _, _) => {
-      val processedArguments = arguments.map {
-        case arg @ DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
-          val newDefault =
-            default.map(processExpression(_, passData, scopedData))
-          val result = arg.copy(defaultValue = newDefault)
-          passData.putDefinitionArg(result)
-          result
-      }
-      val processedBody = processExpression(body, passData, scopedData)
-      fn.copy(arguments = processedArguments, body = processedBody)
-    }
-    case _: IR.Function.Binding =>
-      throw new CompilerError(
-        "Binding-style functions should be desugared by the point of " +
-        "parallelism analysis."
-      )
-  }
-
-  private def processCase(
-    cse: IR.Case,
-    mutData: MutablePassData,
-    scopedData: ScopedPassData
-  ): IR.Expression = cse match {
-    case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
-      val newScrut    = processExpression(scrutinee, mutData, scopedData)
-      val newBranches = branches.map(processCaseBranch(_, mutData, scopedData))
-      expr.copy(scrutinee = newScrut, branches = newBranches)
-    case _: Case.Branch =>
-      throw new CompilerError("Unexpected case branch in processCase.")
-  }
-
-  private def processCaseBranch(
-    branch: IR.Case.Branch,
-    mutData: MutablePassData,
-    scopedData: ScopedPassData
-  ): IR.Case.Branch = {
-    val result =
-      branch.copy(expression =
-        processExpression(branch.expression, mutData, scopedData)
-      )
-    mutData.putExpr(result)
-    result
-  }
-
-  // === Internal Data ========================================================
-
-  private case class RewriteException() extends Exception
-
-  /** Pass data that is immutable for the pass.
-    *
-    * @param enclosingBlocks the block that encloses the current expression
-    */
-  private case class ScopedPassData(
-    enclosingBlocks: Seq[IR.Expression.Block] = Seq()
-  ) {
-
-    /** Adds an enclosing block onto the stack.
-      *
-      * @param block the new enclosing block
-      * @return a new instance of the pass data
-      */
-    def addEnclosingBlock(block: IR.Expression.Block): ScopedPassData = {
-      this.copy(enclosingBlocks = enclosingBlocks :+ block)
-    }
-  }
-
-  /** Mutable used to perform the analysis in this pass.
-    *
-    * @param context the compiler context for the pass
-    */
-  // TODO [AA] Make private
-  class MutablePassData(val context: InlineContext) {
-    private[this] val callArgs: mutable.Map[IR.Identifier, IR.CallArgument] =
-      mutable.Map()
-    private[this] val definitionArgs
-      : mutable.Map[IR.Identifier, IR.DefinitionArgument] =
-      mutable.Map()
-    private[this] val expressions: mutable.Map[IR.Identifier, IR.Expression] =
-      mutable.Map()
-
-    /** Stores a call argument in the pass data.
-      *
-      * @param arg the argument to store
-      */
-    def putCallArgument(arg: IR.CallArgument): Unit = {
-      callArgs += arg.getId -> arg
-    }
-
-    /** Gets a call argument from the pass data.
-      *
-      * @param id the identifier to get an argument for
-      * @return the argument associated with `id`, if it exists
-      */
-    def getCallArg(id: IR.Identifier): Option[IR.CallArgument] = {
-      callArgs.get(id)
-    }
-
-    /** Stores a definition argument in the pass data.
-      *
-      * @param arg the argument to store
-      */
-    def putDefinitionArg(arg: IR.DefinitionArgument): Unit = {
-      definitionArgs += arg.getId -> arg
-    }
-
-    /** Gets a definition argument from the pass data.
-      *
-      * @param id the identifier to get an argument for
-      * @return the argument associated with `id`, if it exists
-      */
-    def getDefinitionArg(id: IR.Identifier): Option[IR.DefinitionArgument] = {
-      definitionArgs.get(id)
-    }
-
-    /** Store the expression in the pass data.
-      *
-      * @param ir the IR to store
-      */
-    def putExpr(ir: IR.Expression): Unit = {
-      expressions += ir.getId -> ir
-    }
-
-    /** Get the expression by the specified `id`, if it exists.
-      *
-      * @param id the identifier to get the IR for
-      * @return the expression associated with `id`, if it exists
-      */
-    def getExpr(id: IR.Identifier): Option[IR.Expression] = {
-      expressions.get(id)
-    }
-
-    /** Get the IR by the specified `id`, if it exists.
-      *
-      * @param id the identifier to get the IR for
-      * @return the IR associated with `id`, if it exists
-      */
-    def getIr(id: IR.Identifier): Option[IR] = {
-      getDefinitionArg(id).orElse(getCallArg(id).orElse(getExpr(id)))
-    }
-  }
-
-  // === Pass Configuration ===================================================
-
-  /** The configuration for this pass.
-    *
-    * @param shouldWriteParallelScopes Whether or not the pass should write
-    *                                  parallel scopes into the IR
-    */
-  case class Configuration(shouldWriteParallelScopes: Boolean)
-      extends IRPass.Configuration {
-    override var shouldWriteToContext: Boolean = false
-  }
 }

@@ -23,6 +23,11 @@ public class RuntimeOptions {
   private static final OptionDescriptor DISABLE_INLINE_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_INLINE_CACHES_KEY, DISABLE_INLINE_CACHES).build();
 
+  public static final String ENABLE_AUTO_PARALLELISM = optionName("withAutoParallelism");
+  public static final OptionKey<Boolean> ENABLE_AUTO_PARALLELISM_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor ENABLE_AUTO_PARALLELISM_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_AUTO_PARALLELISM_KEY, ENABLE_AUTO_PARALLELISM).build();
+
   public static final String LOG_LEVEL = "log.level";
   public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
@@ -92,6 +97,7 @@ public class RuntimeOptions {
               LOG_LEVEL_DESCRIPTOR,
               LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
+              ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,

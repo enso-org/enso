@@ -28,6 +28,7 @@ class UppercaseNamesTest extends CompilerTest {
 
   val group1 = passes.moduleDiscoveryPasses
   val group2 = new PassGroup(
+    passes.globalTypingPasses.passes ++
     passes.functionBodyPasses.passes.takeWhile(_ != UppercaseNames)
   )
 
@@ -76,6 +77,7 @@ class UppercaseNamesTest extends CompilerTest {
     val parsed       = code.toIrModule
     val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
     ctx.module.unsafeSetIr(moduleMapped)
+
     new ExportsResolution().run(List(ctx.module))
     val allPrecursors = passManager.runPassesOnModule(moduleMapped, ctx, group2)
     val ir            = allPrecursors.analyse

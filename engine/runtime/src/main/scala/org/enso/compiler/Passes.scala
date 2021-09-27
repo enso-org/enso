@@ -36,7 +36,7 @@ class Passes(
     )
   )
 
-  val functionBodyPasses = new PassGroup(
+  val globalTypingPasses = new PassGroup(
     List(
       MethodDefinitions,
       ModuleThisToHere,
@@ -48,12 +48,25 @@ class Passes(
       NestedPatternMatch,
       IgnoredBindings,
       TypeFunctions,
-      TypeSignatures,
+      TypeSignatures
+    )
+  )
+
+  val functionBodyPasses = new PassGroup(
+    List(
       ExpressionAnnotations,
       AliasAnalysis,
       UppercaseNames,
+      MethodCalls,
       VectorLiterals,
-      AliasAnalysis,
+      AliasAnalysis
+    ) ++
+    (if (config.autoParallelismEnabled) {
+       List(
+         AutomaticParallelism,
+         AliasAnalysis
+       )
+     } else List()) ++ List(
       LambdaConsolidate,
       AliasAnalysis,
       SuspendedArguments,
@@ -65,16 +78,7 @@ class Passes(
       Patterns,
       AliasAnalysis,
       UndefinedVariables,
-      DataflowAnalysis
-    ) ++
-    (if (config.autoParallelismEnabled) {
-       List(
-         AutomaticParallelism,
-         AliasAnalysis,
-         DataflowAnalysis
-       )
-     } else List()) ++
-    List(
+      DataflowAnalysis,
       CachePreferenceAnalysis,
       UnusedBindings
     )
@@ -87,7 +91,7 @@ class Passes(
     * these dependencies.
     */
   val passOrdering: List[PassGroup] = passes.getOrElse(
-    List(moduleDiscoveryPasses, functionBodyPasses)
+    List(moduleDiscoveryPasses, globalTypingPasses, functionBodyPasses)
   )
 
   /** The ordered representation of all passes run by the compiler. */
@@ -96,10 +100,7 @@ class Passes(
   /** Configuration for the passes. */
   private val passConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration(),
-    AutomaticParallelism -->> AutomaticParallelism.Configuration(
-      config.autoParallelismEnabled
-    )
+    AliasAnalysis         -->> AliasAnalysis.Configuration()
   )
 
   /** The pass manager for running compiler passes. */

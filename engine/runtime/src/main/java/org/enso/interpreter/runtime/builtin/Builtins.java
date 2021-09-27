@@ -76,6 +76,7 @@ public class Builtins {
   private final Resource resource;
   private final System system;
   private final Text text;
+  private final Special special;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -109,6 +110,7 @@ public class Builtins {
     resource = new Resource(language, scope);
     system = new System(language, scope);
     text = new Text(language, scope);
+    special = new Special(language);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -311,6 +313,10 @@ public class Builtins {
   /** @return the container for the dataflow error-related builtins */
   public DataflowError dataflowError() {
     return dataflowError;
+  }
+
+  public Special special() {
+    return special;
   }
 
   /**
