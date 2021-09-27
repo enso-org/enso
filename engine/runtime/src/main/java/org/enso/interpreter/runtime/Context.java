@@ -89,10 +89,14 @@ public class Context {
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
-    this.isIrCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY);
+    var isParallelismEnabled =
+        environment.getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
+    this.isIrCachingDisabled =
+        environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
+
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    this.compilerConfig = new CompilerConfig(false, true);
+    this.compilerConfig = new CompilerConfig(isParallelismEnabled, true);
     this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;

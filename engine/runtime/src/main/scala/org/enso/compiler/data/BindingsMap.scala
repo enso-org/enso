@@ -7,6 +7,7 @@ import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 
@@ -809,6 +810,23 @@ object BindingsMap {
     ): Option[ResolvedMethod] = {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
+
+    def getIr: Option[IR.Module.Scope.Definition] = {
+      val moduleIr = module match {
+        case ModuleReference.Concrete(module) => Some(module.getIr)
+        case ModuleReference.Abstract(_)      => None
+      }
+      moduleIr.flatMap(_.bindings.find {
+        case method: IR.Module.Scope.Definition.Method.Explicit =>
+          method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
+            .getMetadata(MethodDefinitions)
+            .contains(Resolution(ResolvedModule(module)))
+        case _ => false
+      })
+    }
+
+    def unsafeGetIr(missingMessage: String): IR.Module.Scope.Definition =
+      getIr.getOrElse(throw new CompilerError(missingMessage))
   }
 
   /** A representation of a name being resolved to a polyglot symbol.

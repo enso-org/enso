@@ -1756,7 +1756,7 @@ object IR {
           .mkString("\n")
         val returnStr = mkIndent(newIndent) + returnValue.showCode(newIndent)
 
-        s"$expressionsStr\n$returnStr"
+        s"\n$expressionsStr\n$returnStr"
       }
     }
 
@@ -2415,6 +2415,84 @@ object IR {
 
       /** @inheritdoc */
       override def showCode(indent: Int): String = "_"
+    }
+
+    sealed case class Special(
+      specialName: Special.Ident,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name
+        with IRKind.Sugar {
+      override val name: String             = s"<special::${specialName}>"
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param location the source location that the node corresponds to.
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        specialName: Special.Ident           = specialName,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Special = {
+        val res = Special(specialName, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def isReferent: Boolean = false
+
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
+      ): Special =
+        copy(
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = if (keepIdentifiers) id else randomId
+        )
+
+      override def mapExpressions(fn: Expression => Expression): Special =
+        this
+
+      override def setLocation(location: Option[IdentifiedLocation]): Special =
+        copy(location = location)
+
+      override def toString: String =
+        s"""
+           |IR.Name.Special(
+           |specialName = $specialName,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".stripMargin
+
+      override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = name
+    }
+
+    object Special {
+      sealed trait Ident
+      case object NewRef     extends Ident
+      case object ReadRef    extends Ident
+      case object WriteRef   extends Ident
+      case object RunThread  extends Ident
+      case object JoinThread extends Ident
     }
 
     /** The representation of a literal name.
