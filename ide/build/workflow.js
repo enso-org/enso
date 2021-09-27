@@ -222,6 +222,17 @@ let buildWASM = {
     run: "node ./run build --no-js --skip-version-validation",
 }
 
+
+let uploadContentLinux = {
+    name: `Upload Content Artifacts`,
+    uses: "actions/upload-artifact@v2",
+    with: {
+        name: 'content',
+        path: `dist/content`
+    },
+    if: `runner.os == 'Linux'`
+}
+
 let uploadWASM = {
     name: `Upload IDE WASM artifacts`,
     uses: "actions/upload-artifact@v2",
@@ -510,6 +521,7 @@ let workflow = {
 
                 downloadWASM,
                 buildPackage,
+                uploadContentLinux,
                 uploadBinArtifactsForMacOS,
                 uploadBinArtifactsForWindows,
                 uploadBinArtifactsForLinux,
