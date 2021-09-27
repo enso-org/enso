@@ -368,6 +368,12 @@ jobs:
           FIREBASE_API_KEY: ${{secrets.FIREBASE_API_KEY}}
           WIN_CSC_LINK: ${{secrets.MICROSOFT_CODE_SIGNING_CERT}}
           WIN_CSC_KEY_PASSWORD: ${{secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD}}
+      - name: Upload Content Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: content
+          path: dist/content
+        if: runner.os == 'Linux'
       - name: Upload Artifacts (macOS, dmg)
         uses: actions/upload-artifact@v1
         with:
