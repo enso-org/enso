@@ -61,7 +61,7 @@ object Main {
   private lazy val logger = Logger[Main.type]
 
   private def isDevBuild: Boolean = {
-    Info.ensoVersion.contains("SNAPSHOT")
+    Info.ensoVersion.matches(".+-SNAPSHOT$")
   }
 
   /** Builds the [[Options]] object representing the CLI syntax.
