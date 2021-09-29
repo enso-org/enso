@@ -88,13 +88,16 @@ impl Statuses {
             frp.source.max_duration <+ min_and_max._1().on_change();
         }
 
+        frp.source.min_duration.emit(Self::min_and_max(durations.borrow().deref()).0);
+        frp.source.max_duration.emit(Self::min_and_max(durations.borrow().deref()).1);
+
         Self {frp,durations}
     }
 
     fn min_and_max(durations:&BiBTreeMap<NodeId,OrderedFloat<f32>>) -> (f32,f32) {
         let mut durations = durations.right_values().copied();
 
-        let min = durations.next().map(OrderedFloat::into_inner).unwrap_or(std::f32::INFINITY);
+        let min = durations.next().map(OrderedFloat::into_inner).unwrap_or(f32::INFINITY);
         let max = durations.last().map(OrderedFloat::into_inner).unwrap_or(0.0);
         (min, max)
     }

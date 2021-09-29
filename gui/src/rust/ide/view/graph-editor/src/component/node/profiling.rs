@@ -133,7 +133,7 @@ impl Status {
         };
         let duration_delta    = max_global_duration - min_global_duration;
         let hue_delta         = theme.max_time_hue - theme.min_time_hue;
-        let relative_duration = if duration_delta != 0.0 {
+        let relative_duration = if duration_delta != 0.0 && !duration_delta.is_nan() {
             (duration - min_global_duration) / duration_delta
         } else {
             0.0

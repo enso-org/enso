@@ -220,14 +220,30 @@ impl Thresholds {
 /// ```
 #[derive(Clone,Copy,Debug,Default)]
 pub struct SimulationData<T> {
-    value        : T,
-    target_value : T,
-    velocity     : T,
-    mass         : Mass,
-    spring       : Spring,
-    drag         : Drag,
-    thresholds   : Thresholds,
-    active       : bool,
+    // We store the current value as an offset from the target rather than an absolute value. This
+    // reduces numerical errors when animating floating point numbers: The offset will become very
+    // small towards the end of the animation. Small floating point numbers offer higher precision
+    // than large ones, because more digits can be used behind the point, for the fractional part of
+    // the number. This higher precision helps us to avoid non-termination that could otherwise
+    // happen due to rounding errors in our `step` function.
+    //
+    // For example: The precision of `f32` values is so low that we can only represent every second
+    // integer above 16 777 216. If we simulate values that large and represented the simulation's
+    // state by its current total value then this internal state would have to jump over those gaps.
+    // The animation would either become to fast (if we rounded the steps up) or slow down too early
+    // (if we rounded the steps down). Generally, it would be difficult to handle the rounding
+    // errors gracefully. By representing the state as an offset, we achieve the highest possible
+    // precision as the animation approaches its target. Large rounding errors might only happen
+    // when the simulation is still far away from the target. But in those situations, high
+    // precision is not as important.
+    offset_from_target : T,
+    target_value       : T,
+    velocity           : T,
+    mass               : Mass,
+    spring             : Spring,
+    drag               : Drag,
+    thresholds         : Thresholds,
+    active             : bool,
 }
 
 impl<T:Value> SimulationData<T> {
@@ -240,29 +256,26 @@ impl<T:Value> SimulationData<T> {
     fn step(&mut self, delta_seconds:f32) {
         if self.active {
             let velocity      = self.velocity.magnitude();
-            let distance      = (self.value + self.target_value * -1.0).magnitude();
+            let distance      = self.offset_from_target.magnitude();
             let snap_velocity = velocity < self.thresholds.speed;
             let snap_distance = distance < self.thresholds.distance;
             let should_snap   = snap_velocity && snap_distance;
-            if should_snap {
-                self.value    = self.target_value;
-                self.velocity = default();
-                self.active   = false;
+            if should_snap || distance.is_nan() {
+                self.offset_from_target = default();
+                self.velocity           = default();
+                self.active             = false;
             } else {
-                let force        = self.spring_force() + self.drag_force();
-                let acceleration = force * (1.0 / self.mass.value);
-                self.velocity    = self.velocity + acceleration * delta_seconds;
-                self.value       = self.value + self.velocity * delta_seconds;
+                let force               = self.spring_force() + self.drag_force();
+                let acceleration        = force * (1.0 / self.mass.value);
+                self.velocity           = self.velocity + acceleration * delta_seconds;
+                self.offset_from_target = self.offset_from_target + self.velocity * delta_seconds;
             }
         }
     }
 
     /// Compute spring force.
     fn spring_force(&self) -> T {
-        let value_delta    = self.target_value + self.value * -1.0;
-        let spring_stretch = value_delta.magnitude();
-        let coefficient    = spring_stretch * self.spring.value;
-        value_delta.normalize() * coefficient
+        self.offset_from_target * -self.spring.value
     }
 
     /// Compute air drag force. Please note that this is physically incorrect. Read the docs of
@@ -287,7 +300,7 @@ impl<T:Value> SimulationData<T> {
 
 #[allow(missing_docs)]
 impl<T:Value> SimulationData<T> {
-    pub fn value        (&self) -> T          { self.value }
+    pub fn value        (&self) -> T          { self.target_value + self.offset_from_target }
     pub fn target_value (&self) -> T          { self.target_value }
     pub fn velocity     (&self) -> T          { self.velocity }
     pub fn mass         (&self) -> Mass       { self.mass }
@@ -310,12 +323,14 @@ impl<T:Value> SimulationData<T> {
 
     pub fn set_value(&mut self, value:T) {
         self.active = true;
-        self.value = value;
+        self.offset_from_target = value + self.target_value * -1.0;
     }
 
     pub fn set_target_value(&mut self, target_value:T) {
         self.active = true;
+        let old_target_value = self.target_value;
         self.target_value = target_value;
+        self.offset_from_target = old_target_value + self.offset_from_target + target_value * -1.0;
     }
 
     pub fn update_value<F:FnOnce(T)->T>(&mut self, f:F) {
@@ -350,9 +365,9 @@ impl<T:Value> SimulationData<T> {
 
     /// Stop the animator and set it to the target value.
     pub fn skip(&mut self) {
-        self.active   = false;
-        self.value    = self.target_value;
-        self.velocity = default();
+        self.active             = false;
+        self.offset_from_target = default();
+        self.velocity           = default();
     }
 }
 
@@ -721,5 +736,33 @@ impl EndStatus {
 impl Default for EndStatus {
     fn default() -> Self {
         Self::Normal
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// We test that simulations with target value `f32::NaN` terminate and that their final value
+    /// is in fact NaN.
+    #[test]
+    fn animation_to_nan() {
+        let mut data = SimulationData::<f32>::new();
+        data.set_value(0.0);
+        data.set_target_value(f32::NAN);
+        data.step(1.0);
+        assert!(data.value().is_nan());
+        assert!(!data.active);
+    }
+
+    /// We test that simulations with start value `f32::NaN` terminate and reach their target.
+    #[test]
+    fn animation_from_nan() {
+        let mut data = SimulationData::<f32>::new();
+        data.set_value(f32::NAN);
+        data.set_target_value(0.0);
+        data.step(1.0);
+        assert_eq!(data.value(),0.0);
+        assert!(!data.active);
     }
 }
