@@ -10,6 +10,11 @@
   distribution of precompiled libraries which greatly improves language start-up
   time.
 
+## Libraries
+
+- Added support for computing least-squares linear regression on tables
+  ([#2003](https://github.com/enso-org/enso/pull/2003)).
+
 ## Enso 0.2.30 (2021-09-23)
 
 ## Interpreter/Runtime
