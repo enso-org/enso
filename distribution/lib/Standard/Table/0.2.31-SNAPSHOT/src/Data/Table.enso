@@ -29,10 +29,12 @@ polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
              first_column = ["count", [1, 2, 3]]
              second_column = ["is_valid", [True, False, True]]
              Table.new [first_column, second_column]
-new : Vector -> Table
+new : Vector (Vector | Column) -> Table
 new columns =
     cols = columns.map c->
-        Column.from_vector (c.at 0) (c.at 1) . java_column
+        case c of
+            Vector.Vector _ -> Column.from_vector (c.at 0) (c.at 1) . java_column
+            Column.Column java_col -> java_col
     here.from_columns cols
 
 ## Creates a new table from a vector of column names and a vector of vectors

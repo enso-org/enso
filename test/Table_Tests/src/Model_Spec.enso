@@ -11,6 +11,8 @@ spec =
         column_y = Column.from_vector "y" [4, 5, 7, 10, 15]
         column_y_2 = Column.from_vector "y" [4, 5, 7, 10]
 
+        table = Table.new [column_x, column_y]
+
         Test.specify "return an error if the column lengths do not match" <|
             result = Model.linear_regression column_x column_y_2
             result . should_fail_with Fit_Error
@@ -20,4 +22,8 @@ spec =
             result.length . should_equal 2
             result.at 0 . should_equal epsilon=0.001 1.518
             result.at 1 . should_equal epsilon=0.001 0.304
+
+        Test.specify "compute based on columns in a table" <|
+            result = table.linear_regression "x" "y"
+            result . should_equal (Model.linear_regression column_x column_y)
 

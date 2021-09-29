@@ -1,6 +1,31 @@
 from Standard.Base import all
 
-from Standard.Table import Column
+from Standard.Table import Column, Table
+
+## Compute the linear regression between the x and y coordinates, returning a
+   vector containing the slope in the first position and the bias in the second.
+
+   Arguments:
+   - x_column: The name of the column in `this` containing the x values.
+   - y_column: The name of the column in `this` containing the y values.
+
+   If the columns don't match in length, it throws a `Fit_Error`.
+
+   > Example
+     Compute the linear regression between two columns in a table.
+
+         from Standard.Table import all
+
+         example_linear_regression =
+             column_x = Column.from_vector "x" [1, 2, 3, 4, 5]
+             column_y = Column.from_vector "y" [2, 4, 6, 8, 10]
+             table = Table.new [column_x, column_y]
+             table.linear_regression "x" "y"
+Table.Table.linear_regression : Text -> Text -> Vector Number ! Fit_Error
+Table.Table.linear_regression x_column y_column =
+    x_values = this.at x_column
+    y_values = this.at y_column
+    here.linear_regression x_values y_values
 
 ## Compute the linear regression between the x and y coordinates, returning a
    vector containing the slope in the first position and the bias in the second.
@@ -9,10 +34,17 @@ from Standard.Table import Column
    - x_values: The column of x coordinate values for each coordinate pair.
    - y_values: The column of y coordinate values for each coordinate pair.
 
+   If the columns don't match in length, it throws a `Fit_Error`.
+
    > Example
      Compute the linear regression between two columns.
 
-         TODO
+         from Standard.Table import all
+
+         example_linear_regression =
+             column_x = Column.from_vector "x" [1, 2, 3, 4, 5]
+             column_y = Column.from_vector "y" [2, 4, 6, 8, 10]
+             Model.linear_regression column_x column_y
 linear_regression : Column -> Column -> Vector Number ! Fit_Error
 linear_regression x_values y_values =
     if x_values.length != y_values.length then Error.throw (Fit_Error "Columns have different lengths.") else
