@@ -83,14 +83,18 @@ Cutting a release for Enso proceeds as follows:
 2.  Create a branch called `wip/<initials/release-bump`. On this branch, ensure
     that the release notes are up to date in `RELEASES.md` (follow the existing
     format), and that the new version number and edition name have been set in
-    `build.sbt`. This version and edition name should _not_ contain `SNAPSHOT`.
+    `build.sbt`. These new versions usually involve removing `-SNAPSHOT` from
+    the versions. This version and edition name should _not_ contain `SNAPSHOT`.
 3.  Run `sbt "stdlib-version-updater/run update"` to update the standard library
-    versions.
+    versions. This tool can be a touch fussy when it comes to additional
+    directories. You will need to remove all but the latest of them before
+    running the tool.
 4.  Open a PR for this branch into `main`.
 5.  Once the changes have been reviewed, merge the PR into main (getting commit
-    hash `xxxxxxx`). The message should be `Prepare for the $version release`.
-    Just before merging, remember to notify the team on Discord to suppress any
-    other merges to the `main` branch until the next step (bumping versions) is
+    hash `xxxxxxx`). The message should be `Prepare for the $version release` as
+    this message has semantic meaning (it's used in the nightly tooling). Just
+    before merging, remember to notify the team on Discord to suppress any other
+    merges to the `main` branch until the next step (bumping versions) is
     completed.
 6.  Immediately push a commit to `main` that updates the version and edition in
     `build.sbt` to the new snapshot version. If unclear, bump the patch version
@@ -133,7 +137,8 @@ git merge --ff-only release-update
 git tag --sign enso-0.2.11
 ```
 
-12. Push the tag to the remote. This will start the release build.
+12. Push the tag to the remote (using `git push --follow-tags`). This will start
+    the release build automatically.
 13. CI will create a draft release for this tag, as well as build and upload the
     appropriate artefacts. **Do not** create a release for this tag manually.
 14. The release notes for the version being released should be copied from the
@@ -141,9 +146,7 @@ git tag --sign enso-0.2.11
     line breaks removed.
 15. The title of the release should be `Enso Engine <version>` (e.g.
     `Enso Engine 0.2.11`).
-16. The release must be verified by at least one member of the engine team and
-    the QA team.
-17. Once verification has been performed, the release can be published. It
+16. Once verification has been performed, the release can be published. It
     should _not_ be a pre-releases as we reserve these for nightly builds.
 
 ### Breaking Release Workflow
