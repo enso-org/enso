@@ -1,8 +1,8 @@
 # Catch All
-* @iamrecursion @kustosz @radeusgd @4e6
+* @radeusgd @4e6
 
 # Rust Libraries
-/lib/rust/ @iamrecursion @wdanilo @radeusgd @4e6
+/lib/rust/ @wdanilo @radeusgd @4e6
 
 # Repo Configuration
-/.github/settings.yml @iamrecursion
+/.github/settings.yml @4e6 @radeusgd

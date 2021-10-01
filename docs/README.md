@@ -26,6 +26,10 @@ Enso project:
   project, including supported versions and our vulnerability reporting process.
 - [**Getting Enso:**](./getting-enso.md) Instructions for how to get and run a
   copy of Enso.
+- [**Runtime Roadmap:**](./runtime-roadmap.md) An analysis of the pressing
+  changes that should be made to the runtime.
+- [**Runtime Guide:**](./runtime-guide.md) A tour of the runtime, and some
+  pointers as to useful resources.
 
 It is broken up into categories as follows:
 
