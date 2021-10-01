@@ -1,6 +1,6 @@
-name: Test
+name: Base
 namespace: Standard
-version: 0.2.31-SNAPSHOT
+version: 0.2.31
 license: APLv2
 authors:
   - name: Enso Team
