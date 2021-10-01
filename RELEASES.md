@@ -1,5 +1,7 @@
 # Enso Next
 
+## Enso 0.2.31 (2021-10-01)
+
 ## Interpreter/Runtime
 
 - Added experimental support for automatic parallelization of computations
@@ -14,6 +16,12 @@
 
 - Added support for computing least-squares linear regression on tables
   ([#2003](https://github.com/enso-org/enso/pull/2003)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-10-01)
+  for issues opened before the release date.
 
 ## Enso 0.2.30 (2021-09-23)
 
