@@ -1,6 +1,6 @@
-name: Image
+name: Examples
 namespace: Standard
-version: 0.2.31
+version: 0.2.32-SNAPSHOT
 license: APLv2
 authors:
   - name: Enso Team
