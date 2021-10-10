@@ -4,12 +4,12 @@ use crate::prelude::*;
 
 use crate::double_representation::identifier::ReferentName;
 use crate::double_representation::project::QualifiedName;
-use crate::model::execution_context::VisualizationUpdateData;
-use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
 use crate::model::execution_context;
+use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
+use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
-use crate::model::SuggestionDatabase;
 use crate::model::traits::*;
+use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;
 
@@ -174,9 +174,9 @@ impl UnsupportedEngineVersion {
         let engine_version = properties.engine_version.clone();
         let project_name   = properties.name.project.as_str().to_owned();
         move |root_cause| {
-            let requirements = semver::VersionReq::parse(controller::project::ENGINE_VERSION_SUPPORTED);
+            let requirements = controller::project::CONFIG.engine_version_supported();
             match requirements {
-                Ok(requirements) if !requirements.matches(&engine_version) => {
+                requirements if !requirements.matches(&engine_version) => {
                     let project_name = project_name.clone();
                     UnsupportedEngineVersion {project_name,root_cause}.into()
                 }
@@ -189,7 +189,7 @@ impl UnsupportedEngineVersion {
 impl Display for UnsupportedEngineVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let package_yaml_path = controller::project::package_yaml_path(&self.project_name);
-        let version_supported = controller::project::ENGINE_VERSION_FOR_NEW_PROJECTS;
+        let version_supported = &controller::project::CONFIG.engine_version;
         write!(f, "Failed to open project: unsupported engine version. Please update \
             engine_version in {} to {}.",package_yaml_path,version_supported)
     }

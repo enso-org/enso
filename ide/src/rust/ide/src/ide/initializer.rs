@@ -3,15 +3,15 @@
 use crate::prelude::*;
 
 use crate::config;
-use crate::controller::project::ENGINE_VERSION_FOR_NEW_PROJECTS;
+use crate::controller::project::CONFIG;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
 
 use enso_protocol::project_manager;
 use enso_protocol::project_manager::ProjectName;
-use uuid::Uuid;
 use ensogl::application::Application;
 use ensogl::system::web;
+use uuid::Uuid;
 
 
 
@@ -123,7 +123,7 @@ impl Initializer {
                 let project_name    = self.config.project_name.clone();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
-                let version    = semver::Version::parse(ENGINE_VERSION_FOR_NEW_PROJECTS)?;
+                let version    = CONFIG.engine_version.clone();
                 let controller = controller::ide::Plain::from_ls_endpoints
                     (namespace,project_name,version,json_endpoint,binary_endpoint).await?;
                 Ok(Rc::new(controller))
@@ -187,7 +187,7 @@ impl WithProjectManager {
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
         info!(self.logger,"Creating a new project named '{self.project_name}'.");
-        let version           = Some(ENGINE_VERSION_FOR_NEW_PROJECTS.to_owned());
+        let version           = Some(CONFIG.engine_version.to_string());
         let ProjectName(name) = &self.project_name;
         let response          = self.project_manager.create_project(name,&version,&Install);
         Ok(response.await?.project_id)

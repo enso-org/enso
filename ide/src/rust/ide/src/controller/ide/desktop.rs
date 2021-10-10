@@ -4,18 +4,18 @@
 
 use crate::prelude::*;
 
-use crate::controller::ide::API;
 use crate::controller::ide::ManagingProjectAPI;
-use crate::controller::ide::StatusNotificationPublisher;
 use crate::controller::ide::Notification;
-use crate::controller::project::ENGINE_VERSION_FOR_NEW_PROJECTS;
+use crate::controller::ide::StatusNotificationPublisher;
+use crate::controller::ide::API;
+use crate::controller::project::CONFIG;
 use crate::ide::initializer;
 use crate::notification;
 
 use enso_protocol::project_manager;
 use enso_protocol::project_manager::MissingComponentAction;
-use enso_protocol::project_manager::ProjectName;
 use enso_protocol::project_manager::ProjectMetadata;
+use enso_protocol::project_manager::ProjectName;
 use parser::Parser;
 
 
@@ -99,7 +99,7 @@ impl ManagingProjectAPI for Handle {
             let mut candidates        = std::iter::once(without_suffix).chain(with_suffix);
             // The iterator have no end, so we can safely unwrap.
             let name    = candidates.find(|c| !names.contains(c)).unwrap();
-            let version = Some(ENGINE_VERSION_FOR_NEW_PROJECTS.to_owned());
+            let version = Some(CONFIG.engine_version.to_string());
             let action  = MissingComponentAction::Install;
 
             let create_result  = self.project_manager.create_project(&name,&version,&action).await?;
