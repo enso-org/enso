@@ -16,13 +16,11 @@
 const path = require('path')
 const child_process = require('child_process')
 const { dist } = require('../../../../../build/paths')
+const { ENGINE_VERSION } = require('../../../../../build/release')
 
 const contentRoot = path.join(dist.root, 'client', 'mac', 'Enso.app', 'Contents')
 const resRoot = path.join(contentRoot, 'Resources')
 
-// TODO: Refactor this once we have a better wau to get the used engine version.
-//  See the tracking issue for more information https://github.com/enso-org/ide/issues/1359
-const ENGINE = '0.2.30'
 const ID = '"Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)"'
 // Placeholder name for temporary archives.
 const tmpArchive = 'temporary_archive.zip'
@@ -110,7 +108,7 @@ function signArchive(archivePath, archiveName, binPaths) {
 const toSign = [
     {
         jarDir:
-            `enso/dist/${ENGINE}/lib/Standard/Database/${ENGINE}/polyglot/java`,
+            `enso/dist/${ENGINE_VERSION}/lib/Standard/Database/${ENGINE_VERSION}/polyglot/java`,
         jarName: 'sqlite-jdbc-3.34.0.jar',
         jarContent: [
             'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
@@ -119,7 +117,7 @@ const toSign = [
     },
     {
         jarDir:
-            `enso/dist/${ENGINE}/component`,
+            `enso/dist/${ENGINE_VERSION}/component`,
         jarName: 'runner.jar',
         jarContent: [
             'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',

@@ -12,26 +12,44 @@ use enso_frp::web::platform::Platform;
 use enso_protocol::language_server::MethodPointer;
 use enso_protocol::language_server::Path;
 use parser::Parser;
+use semver::{Version, VersionReq};
+use serde::{Deserialize, Serialize};
 
 
+
+/// Application config.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalConfig {
+    /// The minimum edition that is guaranteed to work with the IDE.
+    pub minimum_supported_edition: String,
+
+    /// The engine version used in projects created in IDE.
+    pub engine_version: Version,
+}
+
+impl GlobalConfig {
+    /// The requirements for Engine's version, in format understandable by
+    /// [`semver::VersionReq::parse`].
+    pub fn engine_version_supported(&self) -> VersionReq {
+        VersionReq::parse(format!("^{}", self.engine_version.to_string()).as_str()).unwrap()
+    }
+}
 
 // =================
 // === Constants ===
 // =================
 
+lazy_static! {
+    /// The config instance.
+    pub static ref CONFIG: GlobalConfig = {
+        let global_config = include_str!("../../../../../config.json");
+        serde_json::from_str(global_config).unwrap()
+    };
+}
+
 /// The label of compiling stdlib message process.
 pub const COMPILING_STDLIB_LABEL:&str = "Compiling standard library. It can take up to 1 minute.";
-
-/// The requirements for Engine's version, in format understandable by
-/// [`semver::VersionReq::parse`].
-pub const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.30";
-
-/// The Engine version used in projects created in IDE.
-// Usually it is a good idea to synchronize this version with the bundled Engine version in
-// src/js/lib/project-manager/src/build.ts. See also https://github.com/enso-org/ide/issues/1359
-pub const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.30";
-/// The minimum edition that is guaranteed to work with the IDE.
-pub const MINIMUM_EDITION_SUPPORTED : &str = "2021.18";
 
 /// The name of the module initially opened in the project view.
 ///
@@ -155,7 +173,7 @@ impl Project {
 
         self.init_call_stack_from_metadata(&main_module_model,&main_graph).await;
         self.notify_about_compiling_process(&main_graph);
-        self.display_warning_on_unsupported_engine_version()?;
+        self.display_warning_on_unsupported_engine_version();
 
 
 
@@ -225,15 +243,14 @@ impl Project {
         });
     }
 
-    fn display_warning_on_unsupported_engine_version(&self) -> FallibleResult {
-        let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED)?;
+    fn display_warning_on_unsupported_engine_version(&self) {
+        let requirements = CONFIG.engine_version_supported();
         let version      = self.model.engine_version();
         if !requirements.matches(&version) {
             let message = format!("Unsupported Engine version. Please update edition in {} \
-                to {}.",package_yaml_path(&self.model.name()),MINIMUM_EDITION_SUPPORTED);
+                to {}.",package_yaml_path(&self.model.name()),CONFIG.minimum_supported_edition);
             self.status_notifications.publish_event(message);
         }
-        Ok(())
     }
 }
 
@@ -249,6 +266,11 @@ mod tests {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
+    #[test]
+    fn parse_supported_engine_version() {
+        // Should not panic.
+        CONFIG.engine_version_supported();
+    }
 
     #[test]
     fn main_module_id_test() {
@@ -258,9 +280,9 @@ mod tests {
 
     #[test]
     fn new_project_engine_version_fills_requirements() {
-        let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED).unwrap();
-        let version      = semver::Version::parse(ENGINE_VERSION_FOR_NEW_PROJECTS).unwrap();
-        assert!(requirements.matches(&version))
+        let requirements = CONFIG.engine_version_supported();
+        let version      = &CONFIG.engine_version;
+        assert!(requirements.matches(version))
     }
 
     #[wasm_bindgen_test]

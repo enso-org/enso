@@ -5,6 +5,7 @@ const fss    = require('fs')
 const path   = require('path')
 const paths  = require('./paths')
 const semver = require('semver')
+const config = require('../config')
 
 
 
@@ -14,6 +15,7 @@ const semver = require('semver')
 
 const CHANGELOG_FILE_NAME = 'CHANGELOG.md'
 const CHANGELOG_FILE      = path.join(paths.root,CHANGELOG_FILE_NAME)
+const ENGINE_VERSION      = config.engineVersion
 
 
 
@@ -190,4 +192,4 @@ function currentVersion() {
 // === Exports ===
 // ===============
 
-module.exports = {Version,NextReleaseVersion,changelog,currentVersion}
+module.exports = {ENGINE_VERSION,Version,NextReleaseVersion,changelog,currentVersion}
