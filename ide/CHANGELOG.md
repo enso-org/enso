@@ -1,5 +1,13 @@
 # Next Release
 
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Enso Compiler
+
+- [Updated Enso engine to version 0.2.30][engine-0.2.31]. If you're interested
+  in the enhancements and fixes made to the Enso compiler, you can find their
+  release notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
 #### Visual Environment
