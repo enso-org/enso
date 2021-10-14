@@ -15,6 +15,9 @@ pub const PROJECT_MANAGER_ENDPOINT:&str = "ws://127.0.0.1:30535";
 /// Default project name used by IDE on startup.
 pub const DEFAULT_PROJECT_NAME:&str = "Unnamed";
 
+/// The default namespace used when opening a project.
+pub const DEFAULT_PROJECT_NAMESPACE:&str = "local";
+
 /// The name of the main module in each project. The main module is explicitly imported when the
 /// import statement has the project name only.
 pub const PROJECTS_MAIN_MODULE:&str = "Main";
