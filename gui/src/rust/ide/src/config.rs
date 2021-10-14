@@ -63,17 +63,17 @@ impl BackendService {
                 Ok(Self::ProjectManager {endpoint})
             }
         } else {
-            match (&args.language_server_rpc,&args.language_server_data,&args.namespace) {
-                (Some(json_endpoint),Some(binary_endpoint),Some(namespace)) => {
+            match (&args.language_server_rpc,&args.language_server_data) {
+                (Some(json_endpoint),Some(binary_endpoint)) => {
                     let json_endpoint   = json_endpoint.clone();
                     let binary_endpoint = binary_endpoint.clone();
-                    let namespace       = namespace.clone();
+                    let namespace       = args.namespace.clone()
+                        .unwrap_or_else(|| constants::DEFAULT_PROJECT_NAMESPACE.to_owned());
                     Ok(Self::LanguageServer {json_endpoint,binary_endpoint,namespace})
                 }
-                (None,None,None) => Ok(default()),
-                (None,_,_)       => Err(MissingOption(args.names().language_server_rpc()).into()),
-                (_,None,_)       => Err(MissingOption(args.names().language_server_data()).into()),
-                (_,_,None)       => Err(MissingOption(args.names().namespace()).into()),
+                (None,None) => Ok(default()),
+                (None,_)    => Err(MissingOption(args.names().language_server_rpc()).into()),
+                (_,None)    => Err(MissingOption(args.names().language_server_data()).into()),
             }
         }
     }
