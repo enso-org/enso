@@ -14,7 +14,7 @@ env:
 defaults:
   run:
     working-directory: enso
-    
+
 jobs:
   check:
     name: Rust Check
@@ -54,6 +54,7 @@ jobs:
         uses: actions-rs/cargo@v1.0.1
         with:
           command: check
+          args: --manifest-path enso/Cargo.toml
 
   lint:
     name: Rust Lint
@@ -94,6 +95,7 @@ jobs:
         uses: actions-rs/cargo@v1.0.1
         with:
           command: clippy
+          args: --manifest-path enso/Cargo.toml
 
   test-native:
     name: Rust Test Native
@@ -134,6 +136,7 @@ jobs:
         uses: actions-rs/cargo@v1.0.1
         with:
           command: test
+          args: --manifest-path enso/Cargo.toml
 
   test-wasm:
     name: Rust Test WASM
