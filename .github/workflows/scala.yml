@@ -18,6 +18,10 @@ env:
   # Some moderately recent version of Node.JS is needed to run the library download tests.
   nodeVersion: 14.17.2
 
+defaults:
+  run:
+    working-directory: enso
+
 jobs:
   test_and_publish:
     name: Build and Test
@@ -88,7 +92,7 @@ jobs:
           node-version: ${{ env.nodeVersion }}
       - name: Install Dependencies of the Simple Library Server
         shell: bash
-        working-directory: tools/simple-library-server
+        working-directory: enso/tools/simple-library-server
         run: |
           npm install
       - name: Download Project Template Files

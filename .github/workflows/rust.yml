@@ -11,6 +11,10 @@ env:
   nodeVersion: 14.16.1
   rustToolchain: nightly-2021-05-12
 
+defaults:
+  run:
+    working-directory: enso
+    
 jobs:
   check:
     name: Rust Check

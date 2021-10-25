@@ -9,6 +9,10 @@ on:
 env:
   nodeVersion: 12.18.4
 
+defaults:
+  run:
+    working-directory: enso
+    
 jobs:
   check:
     name: Docs Check
@@ -44,7 +48,7 @@ jobs:
           node-version: ${{ env.nodeVersion }}
       - name: Install Dependencies
         shell: bash
-        working-directory: tools/ci/nightly
+        working-directory: enso/tools/ci/nightly
         run: |
           npm install
       - name: Check If Changelog Was Modified
