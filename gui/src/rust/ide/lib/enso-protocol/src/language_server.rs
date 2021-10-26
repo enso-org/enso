@@ -173,11 +173,12 @@ trait API {
 /// Check if the given `Error` value corresponds to an RPC call timeout.
 /// 
 /// Recognizes both client- and server-side timeouts.
-pub fn is_timeout_error(error:&failure::Error) -> bool {
+#[rustfmt::skip]
+pub fn is_timeout_error(error: &failure::Error) -> bool {
     use json_rpc::messages;
     use json_rpc::RpcError;
     use json_rpc::RpcError::*;
-    const  TIMEOUT:i64 = constants::ErrorCodes::Timeout as i64;
+    const TIMEOUT: i64 = constants::ErrorCodes::Timeout as i64;
     matches!(error.downcast_ref::<RpcError>()
       , Some(TimeoutError{..})
       | Some(RemoteError(messages::Error{code:TIMEOUT,..})))
