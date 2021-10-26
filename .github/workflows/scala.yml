@@ -360,6 +360,14 @@ jobs:
         shell: bash
         working-directory: ${{ env.ENGINE_DIST_ROOT }}
         run: 7z a -r ${{ env.ENGINE_DIST_NAME }}.zip *
+      - name: Debug1
+        shell: bash
+        working-directory: ${{ env.ENGINE_DIST_ROOT }}
+        run: pwd
+      - name: Debug2
+        shell: bash
+        working-directory: ${{ env.ENGINE_DIST_ROOT }}
+        run: ls -la
       - name: Publish the Engine Distribution Artifact
         uses: actions/upload-artifact@v2
         with:
