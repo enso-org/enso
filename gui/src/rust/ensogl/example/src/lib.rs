@@ -9,7 +9,7 @@
 #![feature(fn_traits)]
 #![feature(specialization)]
 #![feature(trait_alias)]
-#![feature(min_type_alias_impl_trait)]
+#![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
