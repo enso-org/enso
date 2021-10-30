@@ -470,7 +470,7 @@ let workflow = {
     },
     defaults: {
         run: {
-            "working-directory": "ide"
+            "working-directory": "gui"
         }
     },
     jobs: {
