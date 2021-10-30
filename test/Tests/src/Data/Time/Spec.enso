@@ -1,0 +1,14 @@
+from Standard.Base import all
+
+import project.Data.Time.Duration_Spec
+import project.Data.Time.Time_Of_Day_Spec
+import project.Data.Time.Date_Spec
+import project.Data.Time.Time_Spec
+import project.Data.Time.Zone_Spec
+
+spec =
+    Date_Spec.spec
+    Duration_Spec.spec
+    Time_Of_Day_Spec.spec
+    Time_Spec.spec
+    Zone_Spec.spec

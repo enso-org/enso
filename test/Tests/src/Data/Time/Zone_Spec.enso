@@ -1,0 +1,30 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Time.Zone
+import Standard.Test
+
+spec =
+    Test.group "Zone" <|
+        Test.specify "should get system zone id" <|
+            Zone.system
+        Test.specify "should parse UTC zone" <|
+            zone = "UTC"
+            id = Zone.parse zone
+            id . zone_id . should_equal zone
+        Test.specify "should parse id-based zone" <|
+            zone = "Europe/Warsaw"
+            id = Zone.parse zone
+            id . zone_id . should_equal zone
+        Test.specify "should parse offset-based zone" <|
+            zone = "+01:02:03"
+            id = Zone.parse zone
+            id . zone_id . should_equal zone
+        Test.specify "should get utc zone id" <|
+            id = Zone.utc
+            id . zone_id . should_equal "UTC"
+        Test.specify "should convert to Json" <|
+            zone = Zone.new 1 2 3
+            zone.to_json.should_equal <|
+                Json.from_pairs [["type", "Zone"], ["id", "+01:02:03"]]
+            Zone.utc.to_json.should_equal <|
+                Json.from_pairs [["type", "Zone"], ["id", "UTC"]]

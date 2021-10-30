@@ -1,0 +1,4 @@
+
+[build]
+target-dir = "target/rust/"
+rustflags = []

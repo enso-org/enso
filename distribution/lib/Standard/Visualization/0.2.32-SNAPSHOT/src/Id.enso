@@ -1,0 +1,102 @@
+from Standard.Base import all
+
+## An ID used by the visualization system to identify different ways of
+   displaying data.
+type Id
+    ## A builtin visulization, implemented in the graphical interface and not
+       imported from any library.
+    type Builtin name
+    ## A visualization implemented in a library.
+    type Library project name
+
+    ## Serializes this ID to a JSON format understandable by the graphical
+       interface.
+    to_json =
+        project = case this of
+            Builtin _ -> Nothing
+            Library project _ ->
+                full_name = project.namespace + "." + project.name
+                Base.Json.from_pairs [["name", full_name]]
+        Base.Json.from_pairs [["library", project], ["name", this.name]]
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin JSON visualization
+json : Id
+json = Builtin "JSON"
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin Scatter Plot visualization
+scatter_plot : Id
+scatter_plot = Builtin "Scatter Plot"
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin Histogram visualization
+histogram : Id
+histogram = Builtin "Histogram"
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin Heatmap visualization
+heatmap : Id
+heatmap = Builtin "Heatmap"
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin Table visualization
+table : Id
+table = Builtin "Table"
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin SQL Query visualization
+sql_query : Id
+sql_query = Builtin "SQL Query"
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin Geo Map visualization
+geo_map : Id
+geo_map = Builtin "Geo Map"
+
+## UNSTABLE
+   ADVANCED
+
+   An identifier for the builtin Image visualization
+image : Id
+image = Builtin "Image"
+
+## UNSTABLE
+   ADVANCED
+
+   Creates an ID for a library-defined visualization
+
+   Arguments:
+   - module: the module defining this visualization
+   - visualization_name: the name of the visualization
+
+   > Example
+     Identify the `"My Visualization"` visualization defined in `Standard.Base`.
+
+            import Standard.Base
+            import Standard.Visualization
+
+            example_id = Visualization.Id.from_module Base "My Visualization"
+from_module module visualization_name =
+    Library module.enso_project visualization_name
+
+## UNSTABLE
+   ADVANCED
+
+   Specifies that the builtin JSON visualization should be used for any type,
+   unless specified otherwise.
+Any.default_visualization = here.json

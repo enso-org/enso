@@ -1,0 +1,54 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Json
+import Standard.Base.System.File
+
+type Body
+
+    ## Response body
+
+       Arguments:
+       - bytes: The body of the response as binary data.
+    type Body bytes
+
+    ## Convert response body to Text.
+
+       > Example
+         Convert a response to text. NOTE: This example makes a network request.
+
+             import Standard.Examples
+
+             example_to_text = Examples.get_geo_data.to_text
+    to_text : Text
+    to_text = Text.from_utf_8 this.bytes
+
+    ## Convert response body to Json.
+
+       > Example
+         Convert a response to JSON. NOTE: This example makes a network request.
+
+             import Standard.Examples
+
+             example_to_text = Examples.get_geo_data.to_json
+    to_json : Json
+    to_json = Json.parse this.to_text
+
+    ## Write response body to a File.
+
+       Arguments:
+       - file: The file to write the bytes to.
+
+       > Examples
+         Write the contents of the request body to a scratch file on disk. The
+         file will be created if it does not exist, and will be overwritten if
+         it does.
+
+             import Standard.Examples
+
+             example_to_file =
+                Examples.get_geo_data.to_file Examples.scratch_file
+    to_file : File -> File
+    to_file file =
+        file.write_bytes this.bytes
+        file
+

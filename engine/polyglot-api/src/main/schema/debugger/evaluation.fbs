@@ -1,0 +1,24 @@
+include "common.fbs";
+include "exception.fbs";
+namespace org.enso.polyglot.debugger.protocol;
+
+// Request to evaluate an expression.
+table EvaluationRequest {
+
+  // Expression to evaluate.
+  expression: string (required);
+}
+
+// Response sent in case of successfull evaluation.
+table EvaluationSuccess {
+
+  // Representation of evaluation result.
+  result: ObjectRepresentation (required);
+}
+
+// Response sent in case of evaluation failure.
+table EvaluationFailure {
+
+  // Representation of the exception that caused the failure.
+  exception: ExceptionRepresentation (required);
+}

@@ -1,0 +1,8 @@
+from Standard.Builtins import all
+import local.TestNonImportedOwnMethods.Util
+
+type X a
+
+X.method = 10
+
+main = Nothing.util (X 1)

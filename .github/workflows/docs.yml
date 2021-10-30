@@ -1,0 +1,57 @@
+name: Docs CI
+
+on:
+  push:
+    branches: [main, "release/*"]
+  pull_request:
+    branches: ["*"]
+
+env:
+  nodeVersion: 12.18.4
+
+jobs:
+  check:
+    name: Docs Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Library Sources
+        uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.nodeVersion }}
+      - name: Install Prettier
+        run: npm install
+      - name: Check Docs
+        run: npx prettier --check .
+
+  changelog-check:
+    name: Changelog Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.nodeVersion }}
+      - name: Install Dependencies
+        shell: bash
+        working-directory: tools/ci/nightly
+        run: |
+          npm install
+      - name: Check If Changelog Was Modified
+        shell: bash
+        run: |
+          node tools/ci/check-changelog.js RELEASES.md ${{ github.event.pull_request.base.sha }}
+      - name: Verify That Changelog Format Is Correct
+        shell: bash
+        run: |
+          node tools/ci/nightly/extract-release-notes.js RELEASES.md release_notes.md

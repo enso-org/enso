@@ -1,0 +1,5 @@
+from Standard.Builtins import all
+
+type X a
+
+Nothing.util = x -> x.method

@@ -1,0 +1,125 @@
+from Standard.Base import all
+
+from Standard.Database import all
+import Standard.Database.Data.Table as Database_Table
+import Standard.Table.Data.Table as Dataframe_Table
+import Standard.Visualization.Table.Visualization as Visualization
+import Standard.Test
+
+type Foo
+    type Foo x
+    to_json : Json
+    to_json = Json.from_pairs [["x", this.x]]
+
+visualization_spec connection =
+    connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
+    t = connection.access_table "T"
+    t.insert ['a', 2, 3]
+    t.insert ['a', 2, 5]
+    t.insert ['a', 3, 6]
+
+    make_json header data all_rows ixes_header ixes =
+        p_header      = ["header", header]
+        p_data        = ["data",   data]
+        p_all_rows    = ["all_rows_count", all_rows]
+        p_ixes        = ["indices", ixes]
+        p_ixes_header = ["indices_header", ixes_header]
+        pairs    = [p_header, p_data, p_all_rows, p_ixes, p_ixes_header]
+        Json.from_pairs pairs . to_text
+
+    Test.group "Table Visualization" <|
+        Test.specify "should wrap internal errors" <|
+            bad_table = Database_Table.Table Nothing Nothing Nothing Nothing
+            vis = Visualization.prepare_visualization bad_table 2
+            json = Json.from_pairs [["error", "Method `meta_index` of Nothing could not be found."]]
+            vis . should_equal json.to_text
+
+        Test.specify "should visualize database tables" <|
+            vis = Visualization.prepare_visualization t 1
+            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 ixes_header=[] ixes=[]
+            vis . should_equal json
+
+            t2 = t.set_index "A"
+            vis2 = Visualization.prepare_visualization t2 1
+            json2 = make_json header=["B", "C"] data=[[2], [3]] all_rows=3 ixes_header=["A"] ixes=[['a']]
+            vis2 . should_equal json2
+
+        Test.specify "should visualize database columns" <|
+            vis = Visualization.prepare_visualization (t.at "A") 2
+            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 ixes_header=[] ixes=[]
+            vis . should_equal json
+
+            g = t.group by=["A", "B"] . at "C" . mean
+            vis2 = Visualization.prepare_visualization g 1
+            json2 = make_json header=["C_mean"] data=[[4]] all_rows=2 ixes_header=["A", "B"] ixes=[['a'], [2]]
+            vis2 . should_equal json2
+
+        Test.specify "should visualize database aggregates" <|
+            agg = t.group by="A"
+            vis = Visualization.prepare_visualization agg 1
+            json = make_json header=["B", "C"] data=[[2], [3]] all_rows=3 ixes_header=["A"] ixes=[['a']]
+            vis . should_equal json
+
+            vis2 = Visualization.prepare_visualization (agg.at "C") 1
+            json2 = make_json header=["C"] data=[[3]] all_rows=3 ixes_header=["A"] ixes=[['a']]
+            vis2 . should_equal json2
+
+        t2 = Dataframe_Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
+        Test.specify "should visualize dataframe tables" <|
+            vis = Visualization.prepare_visualization t2 1
+            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 ixes_header=[""] ixes=[[0]]
+            vis . should_equal json
+
+            t3 = t2.set_index "A"
+            vis2 = Visualization.prepare_visualization t3 1
+            json2 = make_json header=["B", "C"] data=[[4], [7]] all_rows=3 ixes_header=["A"] ixes=[[1]]
+            vis2 . should_equal json2
+
+        Test.specify "should visualize dataframe columns" <|
+            vis = Visualization.prepare_visualization (t2.at "A") 2
+            json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=[""] ixes=[[0, 1]]
+            vis . should_equal json
+
+            g = t2.group by="A" . at "C" . mean
+            vis2 = Visualization.prepare_visualization g 1
+            json2 = make_json header=["C_mean"] data=[[7.0]] all_rows=3 ixes_header=["A"] ixes=[[1]]
+            vis2 . should_equal json2
+
+        Test.specify "should visualize dataframe aggregates" <|
+            agg = t2.group by="A"
+            vis = Visualization.prepare_visualization agg 1
+            json = make_json header=["B", "C"] data=[[4], [7]] all_rows=3 ixes_header=["A"] ixes=[[1]]
+            vis . should_equal json
+
+            vis2 = Visualization.prepare_visualization (agg.at "C") 1
+            json2 = make_json header=["C"] data=[[7]] all_rows=3 ixes_header=["A"] ixes=[[1]]
+            vis2 . should_equal json2
+
+
+        Test.specify "should handle Vectors" <|
+            vis = Visualization.prepare_visualization [1, 2, 3] 2
+            json = Json.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
+            vis . should_equal json.to_text
+
+            vis2 = Visualization.prepare_visualization [[1, 2], [3, 4]] 2
+            json2 = Json.from_pairs [["json", [[1, 2], [3, 4]]], ["all_rows_count", 2]]
+            vis2 . should_equal json2.to_text
+
+        Test.specify "should handle Arrays" <|
+            vis = Visualization.prepare_visualization ([1, 2, 3] . to_array) 2
+            json = Json.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
+            vis . should_equal json.to_text
+
+        Test.specify "should handle other datatypes" <|
+            vis = Visualization.prepare_visualization (Foo 42) 2
+            json = Json.from_pairs [["json", (Foo 42)]]
+            vis . should_equal json.to_text
+
+spec =
+    Enso_Project.data.create_directory
+    file = Enso_Project.data / "sqlite_test.db"
+    file.delete_if_exists
+    connection = Database.open_sqlite_file file
+    here.visualization_spec connection
+    connection.close
+    file.delete

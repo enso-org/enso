@@ -1,0 +1,34 @@
+[package]
+name    = "enso-macro-utils"
+version = "0.2.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "Utilities for writing macros."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/rust-lib/src/macro-utils"
+repository   = "https://github.com/enso-org/rust-lib"
+license-file = "../../LICENSE"
+
+keywords = ["macro", "utility"]
+categories = ["development-tools::procedural-macro-helpers"]
+
+publish = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+proc-macro2    = "1.0"
+quote          = "1.0"
+
+[dependencies.syn]
+version = "1.0"
+features = [
+  'extra-traits',
+  'full', # for syn::ItemStruct
+  'visit'
+]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"

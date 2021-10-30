@@ -1,0 +1,2034 @@
+# NOTE TO DEVELOPERS
+# ==================
+# When adding a new builtin it is very important that you also define the stub
+# for that builtin in this file. If that is not done, it will fail to resolve
+# properly at runtime.
+
+## Booleans.
+type Boolean
+
+    ## A type with only two possible values.
+
+       The boolean type represents the two truth values of boolean logic. It is
+       primarily used for control-flow.
+    @Builtin_Type
+    type Boolean
+
+    ## Compares two booleans for equality.
+
+       Arguments:
+       - that: The boolean to compare this with.
+
+       > Example
+         Comparing True to False to get False.
+
+             True == False
+    == : Boolean -> Boolean
+    == that = @Builtin_Method "Boolean.=="
+
+    ## Computes the logical and (conjunction) of two booleans.
+
+       Arguments:
+       - that: The boolean to compute the conjunction of this with.
+
+       ! Short Circuiting
+         This method is not implemented in a short-circuiting manner. This means
+         that even if this is False, it will also evaluate that. This is
+         for performance.
+
+       > Example
+         Computing the conjunction of False and True (to get False).
+
+             False && True
+    && : Boolean -> Boolean
+    && that = @Builtin_Method "Boolean.&&"
+
+    ## Computes the logical or (disjunction) of two booleans.
+
+       Arguments:
+       - that: The boolean to compute the disjunction of this with.
+
+       ! Short Circuiting
+         This methid is not implemented in a short-circuiting manner. This means
+         that even if this is True, it will also evaluate that. This is
+         for performance.
+
+       > Example
+         Computing the disjunction of True and False (to get True).
+
+             True || False
+    || : Boolean -> Boolean
+    || that = @Builtin_Method "Boolean.||"
+
+    ## Computes the logical negation of this.
+
+       > Example
+         Negating True to get False.
+
+             True.not
+    not : Boolean
+    not = @Builtin_Method "Boolean.not"
+
+    ## Generates a human-readable text representation of the boolean.
+
+       > Example
+         Converting the value True to text.
+
+             True.to_text
+    to_text : Text
+    to_text = @Builtin_Method "Boolean.to_text"
+
+    ## The if-then-else control flow operator that executes one of two branches
+       based on a conditional.
+
+       Arguments:
+       - on_true: The computation to evaluate if this evaluates to True.
+       - on_false: The computation to evaluate if this evaluates to False.
+
+       Both of the arguments to this method are _lazy_, meaning that they will
+       only be evaluated if they are needed (based on the condition).
+
+       > Example
+         Telling the user if a number 27 is divisible by three.
+
+             if (27 % 3) == 0 then IO.println "Yes" else IO.println "No"
+    if_then_else : Any -> Any -> Any
+    if_then_else ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+
+    ## The if-then control flow operator that executes a branch if the condition
+       is true, and otherwise returns Nothing.
+
+       Arguments:
+       - on_true: The computation to evaluate if this evaluates to True.
+
+       The argument to this method is _lazy_, meaning that it will only be
+       evaluated if the this evaluates to True.
+
+       > Example
+         Printing a message to the user only if a number is divisible by three.
+
+             if (27 % 3) == 0 then IO.println "Fizz"
+    if_then : Any -> Any | Nothing
+    if_then ~on_true = @Builtin_Method "Boolean.if_then"
+
+## The constructor for the value True.
+@Builtin_Type
+type True
+
+## The constructor for the value False.
+@Builtin_Type
+type False
+
+## Debug utilities.
+type Debug
+
+    ## A type on which debugging functionality is exposed.
+    @Builtin_Type
+    type Debug
+
+    ## TEXT_ONLY
+
+       Places a breakpoint in the program's execution, dropping the user into an
+       interactive debugging REPL.
+
+       From the REPL, the user is able to manipulate both the program state and
+       its execution in an interactive fashion.
+
+       > Example
+         Dropping into a debugging REPL during execution.
+
+            Debug.breakpoint
+    breakpoint : Nothing
+    breakpoint = @Builtin_Method "Debug.breakpoint"
+
+    ## Evaluates the provided Enso code in the caller frame.
+
+       Arguments:
+       - expression: The enso code to evaluate.
+
+       ? Scoping
+         The fact that expression is evaluated in the caller frame means that
+         it has access to variables in the scope enclosing the call to
+         Debug.eval.
+
+       > Example
+         Evaluating the expression 1 + 1 and assigning it to a value.
+
+             result = Debug.eval "1 + 1"
+    eval : Text -> Any
+    eval expression = @Builtin_Method "Debug.eval"
+
+# The type that subsumes all types.
+type Any
+
+    ## Any is the universal top-type, with all other types being subsumed by it.
+
+       If a value of type Any is expected in a given location, _any value_ can
+       be used in that position.
+    @Builtin_Type
+    type Any
+
+    ## PRIVATE
+
+       Executes the provided handler on a dataflow error, or executes as
+       identity on a non-error value.
+
+       Arguments:
+       - handler: The function to call on this if it is an error value.
+    catch_primitive : (Error -> Any) -> Any
+    catch_primitive handler = @Builtin_Method "Any.catch"
+
+    ## Generic conversion of an arbitrary Enso value to a corresponding textual
+       representation.
+
+       > Example
+         Getting a textual representation of the number 7.
+
+             7.to_text
+    to_text : Text
+    to_text = @Builtin_Method "Any.to_text"
+
+## Dataflow errors.
+type Error
+
+    ## A type representing dataflow errors.
+
+       A dataflow error in Enso is one that behaves like a standard value, and
+       hence represents erroneous states in a way that exists _within_ standard
+       control flow.
+
+       ? Dataflow Errors or Panics
+         Whilst a Panic is useful for unrecoverable situations, most Enso APIs
+         are designed to use dataflow errors instead. As they exist within the
+         normal program control flow, they are able to be represented on the
+         Enso graph.
+    @Builtin_Type
+    type Error
+
+    ## Creates a new dataflow error containing the provided payload.
+
+       Arguments:
+       - payload: The contents of the dataflow error to be created.
+
+       > Example
+         Throw a dataflow error containing the text "Oops".
+
+             Error.throw "Oops"
+    throw : Any -> Error
+    throw payload = @Builtin_Method "Error.throw"
+
+    ## PRIVATE
+
+       Executes the provided handler on a dataflow error, or executes as
+       identity on a non-error value.
+
+       Arguments:
+       - handler: The function to call on this if it is an error value.
+    catch_primitive : (Error -> Any) -> Any
+    catch_primitive handler = @Builtin_Method "Any.catch"
+
+    ## PRIVATE
+       UNSTABLE
+
+       Returns a textual representation of the stack trace attached to an error.
+    get_stack_trace_text : Text
+    get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
+
+    ## Converts an error to a corresponding textual representation.
+
+       > Example
+         Converting a thrown error to text.
+
+             Error.throw "foo" . to_text
+    to_text : Text
+    to_text = @Builtin_Method "Error.to_text"
+
+## The runtime representation of a syntax error.
+
+   Arguments:
+   - message: A description of the erroneous syntax.
+@Builtin_Type
+type Syntax_Error message
+
+## The runtime representation of a type error.
+
+   Arguments:
+   - expected: The expected type at the error location.
+   - actual: The actual type at the error location.
+@Builtin_Type
+type Type_Error expected actual
+
+## The runtime representation of a compilation error.
+
+   Arguments:
+   - message: A description of the erroneous state.
+@Builtin_Type
+type Compile_Error message
+
+## The error thrown when a there is no pattern to match on the scrutinee.
+
+   Arguments:
+   - scrutinee: The scrutinee that failed to match.
+@Builtin_Type
+type Inexhaustive_Pattern_Match_Error scrutinee
+
+## The error thrown when the number of arguments provided to an operation
+   does not match the expected number of arguments.
+
+   Arguments:
+     - expected: the expected number of arguments.
+     - actual: the actual number of arguments passed.
+@Builtin_Type
+type Arity_Error expected actual
+
+## The error thrown when the program attempts to read from a state slot that has
+   not yet been initialized.
+
+   Arguments:
+   - key: The key for the state slot that was not initialized.
+@Builtin_Type
+type Uninitialized_State key
+
+## The error thrown when the specified symbol does not exist as a method on
+   the target.
+
+   Arguments:
+   - target: The target on which the attempted method call was performed.
+   - symbol: The symbol that was attempted to be called on target.
+@Builtin_Type
+type No_Such_Method_Error target symbol
+
+## An error that occurred across a polyglot boundary.
+
+   Arguments:
+   - cause: A polyglot object corresponding to the original error.
+@Builtin_Type
+type Polyglot_Error cause
+
+## An error that occurs when the enso_project function is called in a file
+   that is not part of a project.
+@Builtin_Type
+type Module_Not_In_Package_Error
+
+## An error for when an erroneous arithmetic computation takes place.
+
+   Arguments:
+   - message: A description of the error condition.
+@Builtin_Type
+type Arithmetic_Error message
+
+## An error that occurs when a program requests a read from an array index
+   that is out of bounds in the array.
+
+   Arguments:
+   - array: The array in which the index was requested.
+   - index: The index that was out of bounds.
+@Builtin_Type
+type Invalid_Array_Index_Error array index
+
+## An error that occurs when an object is used as a function in a function
+   call, but it cannot be called.
+
+   Arguments:
+     - target: The called object.
+@Builtin_Type
+type Not_Invokable_Error target
+
+## Panics.
+type Panic
+
+    ## A panic is an error condition that is based _outside_ of the normal
+       program control flow.
+
+       Panics "bubble up" through the program until they reach either an
+       invocation of Panic.catch or the program's main method. An unhandled
+       panic in main will terminate the program.
+
+       ? Dataflow Errors or Panics
+         Panics are designed to be used for unrecoverable situations that need
+         to be handled through non-linear control flow mechanisms.
+    @Builtin_Type
+    type Panic
+
+    ## Throws a new panic with the provided payload.
+
+       Arguments:
+       - payload: The contents of the panic to be thrown.
+
+       > Example
+         Throwing a panic containing the text "Oh no!".
+
+             Panic.throw "Oh no!"
+    throw : Any -> Panic
+    throw payload = @Builtin_Method "Panic.throw"
+
+    ## Executes the provided action and converts any panic thrown by it into
+       an Error.
+
+       If action executes successfully, the result of Panic.catch is the
+       result of that action. Otherwise, it is the panic that was thrown after
+       conversion to a dataflow error.
+
+       Arguments:
+       - action: The code to execute that potentially panics.
+
+       > Example
+         Handling a panic for a panicking action.
+
+             Panic.recover (Panic.throw "Oh no!")
+    recover : Any -> Any
+    recover ~action = @Builtin_Method "Panic.catch"
+
+# Function types.
+type Function
+
+    ## A function is any type that represents a not-yet evaluated computation.
+
+       Methods are represented as functions with dynamic dispatch semantics on
+       the this argument.
+    @Builtin_Type
+    type Function
+
+    ## Forces evaluation of a fully-applied but not evaluated function.
+
+       This is particularly useful when you want to call a function that is
+       fully applied with default arguments.
+
+       This is usually _not_ the correct solution to a problem, and so should be
+       used sparingly.
+
+       > Example
+         Evaluate a fully applied function to get 4.
+
+            example_call =
+                f (a = 2) = a * a
+                f.call
+    call : Any
+    call = @Builtin_Method "Function.call"
+
+## Generic utilities for interacting with other languages.
+type Polyglot
+
+    ## A type representing interactions with polyglot languages.
+
+       Polyglot is a term that refers to other languages (such as Java) that are
+       running on the same JVM.
+    @Builtin_Type
+    type Polyglot
+
+    ## Reads the number of elements in a given polyglot array object.
+
+       Arguments:
+       - array: a polyglot array object, originating in any supported language.
+    get_array_size : Any -> Integer
+    get_array_size array = @Builtin_Method "Polyglot.get_array_size"
+
+    ## Executes a polyglot function object (e.g. a lambda).
+
+       Arguments:
+       - callable: The polyglot function object to execute.
+       - arguments: A vector of arguments to callable.
+    execute : Any -> Vector -> Any
+    execute callable arguments = @Builtin_Method "Polyglot.execute"
+
+    ## Performs a by-name lookup for a member in a polyglot object.
+
+       Arguments:
+       - object: The polyglot object on which to perform the member lookup.
+       - member_name: The textual name of the member to lookup.
+
+       > Example
+         Look up the field a on an object o.
+             Polyglot.get_member o "a"
+    get_member : Any -> Text
+    get_member object member_name = @Builtin_Method "Polyglot.get_member"
+
+    ## Returns a polyglot array of all of the members of the provided object.
+
+       Arguments:
+       - object: The object from which to get a list of member names.
+
+       > Example
+         Get a list of the fields for an object o.
+
+             Polyglot.get_members o
+    get_members : Any -> Array
+    get_members object = @Builtin_Method "Polyglot.get_members"
+
+    ## Instantiates a polyglot object using the provided constructor.
+
+       Arguments:
+       - constructor: The constructor with which to instantiate the object.
+       - arguments: A vector of the arguments to pass to the polyglot
+         constructor.
+
+       > Example
+         Instantiate a new Java Integer with the value 1.
+
+             Polyglot.new Integer [1]
+    new : Any -> Vector -> Any
+    new constructor arguments = @Builtin_Method "Polglot.new"
+
+    ## Invokes a method on a polyglot object by name.
+
+       Arguments:
+       - target: The polyglot object on which to call the method.
+       - name: The name of the method.
+       - arguments: The arguments to pass to the method given by name.
+    invoke : Any -> Text -> Vector -> Any
+    invoke target name arguments = @Builtin_Method "Polyglot.invoke"
+
+## Utilities for working with Java polyglot objects.
+type Java
+
+    ## A type for operations specific to Java polyglot objects.
+    type Java
+
+    ## Adds the provided entry to the host class path.
+
+       Arguments:
+       - path: The java classpath entry to add.
+
+       Use of the actual polyglot imports system should be preferred to use of
+       this method.
+
+       > Example
+         Adding Random to the classpath.
+
+            Java.add_to_class_path "java.util.Random"
+    add_to_class_path : Text -> Nothing
+    add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+
+    ## Looks up a java symbol on the classpath by name.
+
+       Arguments:
+       - name: The name of the java symbol to look up.
+
+       Use of the actual polyglot imports system should be preferred to use of
+       this method.
+
+       > Example
+         Look up java's Random class.
+
+             Java.lookup_class "java.util.Random"
+    lookup_class : Text -> Any
+    lookup_class name = @Builtin_Method "Java.lookup_class"
+
+## Primitive IO operations internal to the runtime.
+type Prim_Io
+
+    ## PRIVATE
+
+       A type for primitive IO operations.
+    type Prim_Io
+
+    ## PRIVATE
+
+       Gets a file corresponding to the current working directory of the
+       program.
+    get_cwd : File
+    get_cwd = @Builtin_Method "Prim_Io.get_cwd"
+
+    ## PRIVATE
+
+       Gets a file corresponding to the provided path.
+
+       Arguments:
+       - path: The path to obtain a file at.
+    get_file : Text -> File
+    get_file path = @Builtin_Method "Prim_Io.get_file"
+
+    ## PRIVATE
+
+       Gets the textual path to the user's system-defined home directory.
+    user_home : Text
+    user_home = @Builtin_Method "Prim_Io.user_home"
+
+## Built in IO operations.
+type IO
+
+    ## A type containing basic operations for performing input and output.
+    type IO
+
+    ## Prints the provided message to standard error.
+
+       Arguments:
+       - message: The message to print. It will have to_text called on it to
+         generate a textual representation that is then printed.
+
+       > Example
+         Print the message "Oh no!" to standard error.
+
+             IO.print_err "Oh no!"
+    print_err : Any -> Nothing
+    print_err message = @Builtin_Method "IO.print_err"
+
+    ## Prints the provided message to standard output.
+
+       Arguments:
+       - message: The message to print. It will have to_text called on it to
+         generate a textual representation that is then printed.
+
+       > Example
+         Print the message "Oh yes!" to standard output.
+
+             IO.println "Oh yes!"
+    println : Any -> Nothing
+    println message = @Builtin_Method "IO.println"
+
+    ## Reads a line from standard input.
+
+       > Example
+         Read a line from standard input.
+
+             IO.readln
+    readln : Text
+    readln = @Builtin_Method "IO.readln"
+
+## Primitive reflective operations.
+type Meta
+
+    ## PRIVATE
+
+       A container type for the primitive meta operations.
+
+       These operations are wrapped in a much nicer form in Meta.enso.
+    @Builtin_Type
+    type Meta
+
+    ## PRIVATE
+
+       Creates an unresolved symbol for the name name in the scope.
+
+       Arguments:
+       - name: The name of the unresolved symbol.
+       - scope: The scope in which the symbol name is unresolved.
+    create_unresolved_symbol : Text -> Module_Sope -> Unresolved_Symbol
+    create_unresolved_symbol name scope =
+        @Builtin_Method "Meta.create_unresolved_symbol"
+
+    ## PRIVATE
+
+       Gets the atom constructor instance for the provided atom.
+
+       Arguments:
+       - atom: The atom to obtain the constructor for.
+    get_atom_constructor : Atom -> Atom_Constructor
+    get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
+
+    ## PRIVATE
+
+       Get the fields for the provided atom.
+
+       Arguments:
+       - atom: The atom to obtain the fields for.
+    get_atom_fields : Atom -> Array
+    get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
+
+    ## PRIVATE
+
+       Get the fields of an atom constructor.
+
+       Arguments:
+       - atom_constructor: The constructor from which to get the fields.
+    get_constructor_fields : Atom_Constructor -> Array
+    get_constructor_fields atom_constructor =
+        @Builtin_Method "Meta.get_constructor_fields"
+
+    ## PRIVATE
+
+       Get the name of an atom constructor.
+
+       Arguments:
+       - atom_constructor: The atom constructor from which to obtain the name.
+    get_constructor_name : Atom_Constructor -> Text
+    get_constructor_name atom_constructor =
+        @Builtin_Method "Meta.get_constructor_name"
+
+    ## PRIVATE
+
+       Get a textual representation of the language from which an object comes.
+
+       Arguments:
+       - value: The value to obtain the source language for.
+    get_polyglot_language : Any -> Text
+    get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
+
+    ## PRIVATE
+
+       Obtains the name of the provided unresolved symbol.
+
+       Arguments:
+       - symbol: The unresolved symbol from which to get the name.
+    get_unresolved_symbol_name : Unresolved_Symbol -> Text
+    get_unresolved_symbol_name symbol =
+        @Builtin_Method "Meta.get_unresolved_symbol_name"
+
+    ## PRIVATE
+
+       Obtains the scope in which the provided unresolved symbol was created.
+
+       Arguments:
+       - symbol: The unresolved symbol from which to get the scope.
+    get_unresolved_symbol_scope : Unresolved_Symbol -> Module_Scope
+    get_unresolved_symbol_scope symbol =
+        @Builtin_Method "Meta.get_unresolved_symbol_scope"
+
+    ## PRIVATE
+
+       Checks if the provided value is an atom constructor.
+
+       Arguments:
+       - value: The value to check.
+    is_constructor : Any -> Boolean
+    is_constructor value = @Builtin_Method "Meta.is_atom_constructor"
+
+    ## PRIVATE
+
+       Checks if the provided value is an atom.
+
+       Arguments:
+       - value: The value to check.
+    is_atom : Any -> Boolean
+    is_atom value = @Builtin_Method "Meta.is_atom"
+
+    ## PRIVATE
+
+       Checks if the provided value is a runtime error.
+
+       Arguments:
+       - value: The value to check.
+    is_error : Any -> Boolean
+    is_error value = @Builtin_Method "Meta.is_error"
+
+    ## PRIVATE
+
+       Checks if the provided value is a polyglot value.
+
+       Arguments:
+       - value: The value to check.
+    is_polyglot : Any -> Boolean
+    is_polyglot value = @Builtin_Method "Meta.is_polyglot"
+
+    ## PRIVATE
+
+       Checks if the provided values share the same underlying reference.
+
+       Arguments:
+       - value_1: The first value.
+       - value_2: The second value.
+    is_same_object : Any -> Any -> Boolean
+    is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
+
+    ## PRIVATE
+
+       Checks if the provided value is an unresolved symbol.
+
+       Arguments:
+       - value: The value to check.
+    is_unresolved_symbol : Any -> Boolean
+    is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
+
+    ## PRIVATE
+
+       Constructs a new atom using the provided constructor and fields.
+
+       Arguments:
+       - constructor: The constructor for the atom to create.
+       - fields: The arguments to pass to constructor.
+    new_atom : Atom_Constructor -> Array -> Atom
+    new_atom constructor fields = @Builtin_Method "Meta.new_atom"
+
+    ## PRIVATE
+
+       Returns a Text representing the source location of a stack frame above
+       the call.
+
+       Arguments:
+       - frames_to_skip: how many frames on the stack to skip. Called with 0
+         will return exact location of the call.
+    get_source_location : Integer -> Text
+    get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
+
+    ## PRIVATE
+
+       Pretty-prints the type of the provided value using the interpreter's
+       internal logic for printing types.
+
+       Arguments:
+       - value: The value whose type should be printed.
+    get_simple_type_name : Any -> Text
+    get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
+
+    ## PRIVATE
+
+       Returns the fully qualified type name of the given value.
+
+       Arguments:
+       - value: the value to get the type of.
+   get_qualified_type_name : Any -> Text
+   get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
+
+## Utilities for working with primitive arrays.
+type Array
+
+    ## The type of primitive mutable arrays.
+    @Builtin_Type
+    type Array
+
+    ## Creates an array with length 0.
+
+       > Example
+         Create an empty array.
+
+             Array.empty
+    empty : Array
+    empty = @Builtin_Method "Array.empty"
+
+    ## Creates a new array of length size, with all elements uninitialized.
+
+       Arguments:
+       - size: The size of the array to create.
+
+       > Example
+         Create a new array of size 10.
+
+             Array.new 10
+    new : Integer -> Array
+    new size = @Builtin_Method "Array.new"
+
+    ## PRIVATE
+
+       Create an array with one element provided.
+
+       Arguments:
+       - item_1: The one element in the array.
+    new_1 : Any -> Array
+    new_1 item_1 = @Builtin_Method "Array.new_1"
+
+    ## PRIVATE
+
+       Create an array with two elements provided.
+
+       Arguments:
+       - item_1: The first element.
+       - item_2: The second element.
+    new_2 : Any -> Any -> Array
+    new_2 item_1 item_2 = @Builtin_Method "Array.new_2"
+
+    ## PRIVATE
+
+       Create an array with three elements provided.
+
+       Arguments:
+       - item_1: The first element.
+       - item_2: The second element.
+       - item_3: The third element.
+    new_3 : Any -> Any -> Any -> Array
+    new_3 item_1 item_2 item_3 = @Builtin_Method "Array.new_3"
+
+    ## PRIVATE
+
+       Create an array with four elements provided.
+
+       Arguments:
+       - item_1: The first element.
+       - item_2: The second element.
+       - item_3: The third element.
+       - item_4: The fourth element.
+    new_4 : Any -> Any -> Any -> Any -> Array
+    new_4 item_1 item_2 item_3 item_4 = @Builtin_Method "Array.new_4"
+
+    ## Copies from the source array, beginning at the specified position, to the
+       specified position in the destination array.
+
+       Arguments:
+       - src: The source array.
+       - source_index: The start position in the src array.
+       - dest: The desination array.
+       - dest_index: The start position in the that array.
+
+       A subsequence of array elements are copied from the src array to the
+       dest array. The number of components copied is equal to count. The
+       components at positions source_index through source_index + count - 1
+       in the strc array are copied into positions dest_index through
+       dest_index + count - 1, respectively, of the destination array.
+
+       If the src and dest arguments refer to the same array, then the copy
+       is performed as if the components at positions source_index through
+       source_index + count - 1 are first copied to a temporary array with
+       length count, and then the contents of the temporary array are copied
+       into positions dest_index through dest_index + count - 1 of the
+       destination array.
+
+       > Example
+         Copying elements from one array to another.
+
+             Array.copy [1,2,3].to_array 0 (Vector.fill 3 0).to_array 0 3
+    copy : Array -> Integer -> Array -> Integer -> Integer -> Nothing
+    copy src source_index dest dest_index count =
+        @Builtin_Method "Array.copy"
+
+    ## Gets the element at index in the array this.
+
+       Arguments:
+       - index: The index to get the element from.
+
+       > Example
+         Get the element at index 1.
+
+             [1,2,3].to_array.at 1
+    at : Integer -> Any
+    at index = @Builtin_Method "Array.at"
+
+    ## Set the cell at the specified index to the provided value, returning
+       the array.
+
+       Arguments:
+       - index: The position in the array to set.
+       - value: The value to set at position index.
+
+       The array is mutated in place, and only returned to facilitate a natural
+       programming style in Enso.
+
+       ? Safety
+         If index >= this.length, then this operation will result in an
+         Invalid_Array_Index_Error exception.
+    set_at : Integer -> Any -> Array
+    set_at index value = @Builtin_Method "Array.set_at"
+
+    ## Gets the length of the array this.
+
+       > Example
+         Getting the length of an array.
+
+             [1,2,3].to_array.length
+    length : Integer
+    length = @Builtin_Method "Array.length"
+
+    ## Sorts the this array in place.
+
+       Arguments:
+       - comparator: A comparison function that takes two elements and returns
+         an Ordering that describes how the first element is ordered with
+         respect to the second.
+
+      > Example
+        Sorting an array of numbers.
+
+            [1,2,3].to_array.sort
+    sort : (Any -> Any -> Ordering) -> Nothing
+    sort comparator = @Builtin_Method "Array.sort"
+
+    ## Identity.
+
+       This method is implemented purely for completeness with the runtime's
+       primitive array protocol.
+    to_array : Array
+    to_array = @Builtin_Method "Array.to_array"
+
+## Utilities for working with mutable references.
+type Ref
+
+    ## A mutable reference type.
+    @Builtin_Type
+    type Ref
+
+    ## Creates a new reference containing the provided value.
+
+       Arguments:
+       - value: The value to be contained in the ref.
+
+       > Example
+         Creating a new reference containing the value 7.
+
+             Ref.new 7
+    new : Any -> Ref
+    new value = @Builtin_Method "Ref.new"
+
+    ## Gets the contents of the mutable reference ref.
+
+       Arguments:
+       - ref: The reference to get the contents of.
+
+       > Example
+         Getting the contents of a reference.
+
+             Ref.get (Ref.new 0)
+    get : Ref -> Any
+    get ref = @Builtin_Method "Ref.get"
+
+    ## Puts a new value into the reference, returning the old value.
+
+       Arguments:
+       - ref: The reference in which to store the value.
+       - new_value: The new value to store in ref.
+
+       > Example
+         Storing the value 10 in a reference.
+
+             Ref.put (Ref.new 0) 7
+    put : Ref -> Any -> Any
+    put ref new_value = @Builtin_Method "Ref.put"
+
+## The root type of the Enso numeric hierarchy.
+
+   If a Number is expected, then the program can provide either a Decimal or
+   an Integer in its place.
+type Number
+
+    ## The root type of the Enso numeric hierarchy.
+
+       If a Number is expected, then the program can provide either a Decimal or
+       an Integer in its place.
+    @Builtin_Type
+    type Number
+
+    ## ALIAS Add
+
+       Adds two arbitrary numbers.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Adding 10 and 15.
+
+             10 + 15
+    + : Number -> Number
+    + that = @Builtin_Method "Integer.+"
+
+    ## ALIAS Subtract
+
+       Subtract an arbitrary number from this.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       > Example
+         Subtract 5 from 2.
+
+             2 - 5
+    - : Number -> Number
+    - that = @Builtin_Method "Integer.-"
+
+    ## ALIAS Multiply
+
+       Multiply two arbitrary numbers.
+
+       Arguments:
+       - that: The number to multiply this by.
+
+       Multiplication in Enso will undergo automatic conversions such that you
+       need not convert between Integer and Decimal manually.
+
+       > Example
+         Multiplying 3 by 5.
+
+             3 * 5
+    * : Number -> Number
+    * that = @Builtin_Method "Integer.*"
+
+    ## ALIAS Divide
+
+       Divides an this by an arbitrary number.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Dividing 10 by 4 to get 2.5.
+
+             10 / 4
+    / : Number -> Number
+    / that = @Builtin_Method "Integer./"
+
+    ## ALIAS Power
+
+       Compute the result of raising this to the power that.
+
+       Arguments:
+       - that: The exponent.
+
+       > Example
+         Computing 2 cubed.
+
+             2^3
+    ^ : Number -> Number
+    ^ that = @Builtin_Method "Integer.^"
+
+## Integral numbers.
+type Integer
+
+    ## Integer is the type of integral numbers in Enso. They are of unbounded
+       size and can grow as large as necessary.
+
+       ? Representation
+         For certain operations (such as bitwise logic), the underlying
+         representation of the number matters. Enso Integers are represented as
+         signed 2's complement numbers.
+
+       ? Performance
+         Integers that fit into 64 bits are represented in memory as 64 bits.
+         This means that operations on them achieve excellent performance. Once
+         the integer grows beyond being able to fit in 64 bits, performance will
+         degrade.
+    @Builtin_Type
+    type Integer
+
+    ## Adds an integer and an arbitrary number.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Adding 10 and 15.
+
+             10 + 15
+    + : Number -> Number
+    + that = @Builtin_Method "Integer.+"
+
+    ## Subtract an arbitrary number from this.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       > Example
+         Subtract 5 from 2.
+
+             2 - 5
+    - : Number -> Number
+    - that = @Builtin_Method "Integer.-"
+
+    ## Multiply an integer by an arbitrary number.
+
+       Arguments:
+       - that: The number to multiply this by.
+
+       Multiplication in Enso will undergo automatic conversions such that you
+       need not convert between Integer and Decimal manually.
+
+       > Example
+         Multiplying 3 by 5.
+
+             3 * 5
+    * : Number -> Number
+    * that = @Builtin_Method "Integer.*"
+
+    ## Divides an integer by an arbitrary number.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Dividing 10 by 4 to get 2.5.
+
+             10 / 4
+    / : Number -> Number
+    / that = @Builtin_Method "Integer./"
+
+    ## Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Modulus in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             10 % 3
+    % : Number -> Number ! Arithmetic_Error
+    % that = @Builtin_Method "Integer.%"
+
+    ## Compute the result of raising this to the power that.
+
+       Arguments:
+       - that: The exponent.
+
+       > Example
+         Computing 2 cubed.
+
+             2^3
+    ^ : Number -> Number
+    ^ that = @Builtin_Method "Integer.^"
+
+    ## Compares this and that for equality.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Comparing 7 and 2 for equality.
+
+             7 == 2
+    == : Number -> Boolean
+    == that = @Builtin_Method "Integer.=="
+
+    ## Checks if this is greater than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than 7.
+
+             10 > 7
+    > : Number -> Boolean
+    > that = @Builtin_Method "Integer.>"
+
+    ## Checks if this is greater than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than or equal to 7.
+
+             10 >= 7
+    >= : Number -> Boolean
+    >= that = @Builtin_Method "Integer.>="
+
+    ## Checks if this is less than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than 7.
+
+             10 < 7
+    < : Number -> Boolean
+    < that = @Builtin_Method "Integer.<"
+
+    ## Checks if this is less than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than or equal to 7.
+
+             10 <= 7
+    <= : Number -> Boolean
+    <= that = @Builtin_Method "Integer.<="
+
+    ## Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Computing the absolute value of -10.
+
+            -10.abs
+    abs : Integer
+    abs = @Builtin_Method "Integer.abs"
+
+    ## Computes the nearest integer above this integer.
+
+       This is a no-op on integers but is provided for completeness of the Enso
+       number API.
+
+       > Example
+         Computing the ceiling of 4.
+
+             4.ceil
+    ceil : Integer
+    ceil = @Builtin_Method "Integer.ceil"
+
+    ## Compares the two operands to determine the ordering of this with
+       respect to that.
+
+       Arguments:
+       - that: The operand to order this with respect to.
+
+       > Example
+         Computing the ordering of 1 and 4 (Less).
+
+             1.compare_to 4
+    compare_to : Number -> Ordering
+    compare_to that = @Builtin_Method "Integer.compare_to"
+
+    ## Computes the integer division of this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Integer division rounds down to the nearest integer.
+
+       Returns an error if `that` is zero.
+
+       > Example
+         Dividing 10 by 3 to get 3.
+
+             10.div 3
+    div : Integer -> Number ! Arithmetic_Error
+    div that = @Builtin_Method "Integer.div"
+
+    ## Computes the nearest integer below this integer.
+
+       This is a no-op on integers but is provided for completeness of the Enso
+       number API.
+
+       > Example
+         Computing the floor of 4.
+
+             4.floor
+    floor : Integer
+    floor = @Builtin_Method "Integer.floor"
+
+    ## Compute the negation of this.
+
+       > Example
+         Negate 5 to get -5.
+
+             5.negate
+    negate : Integer
+    negate = @Builtin_Method "Integer.negate"
+
+    ## Convert this to a decimal.
+
+       > Example
+         Convert 5 to a decimal to get 5.0.
+
+             5.to_decimal
+    to_decimal : Decimal
+    to_decimal = @Builtin_Method "Integer.to_decimal"
+
+    ## Computes the bitwise and (conjunction) operation between this and
+       that.
+
+       Arguments:
+       - that: The number to compute the bitwise conjunction with.
+
+       Bitwise and computes the logical conjunction of the corresponding pairs
+       of bits in the operands.
+
+       ? Example
+         Computing the bitwise conjunction of 2_01101101 and 2_11110000.
+
+             2_01101101.bit_and 2_11110000
+    bit_and : Integer -> Integer
+    bit_and that = @Builtin_Method "Integer.bit_and"
+
+    ## Computes the bitewise compliment of this.
+
+       The bitwise compliment negates the value of each bit in the operand.
+
+       ? Example
+         Bitwise negation of 2_0110.
+
+             2_0110.bit_not
+    bit_not : Integer
+    bit_not = @Builtin_Method "Integer.bit_not"
+
+    ## Computes the bitwise or (disjunction) operation between this and
+       that.
+
+       Arguments:
+       - that: The number to compute the bitwise disjunction with.
+
+       Bitwise or computes the logical disjunction of the pairs of corresponding
+       bits in the operands.
+
+       > Example
+         Computing the bitwise disjunction of 2_01101101 and 2_11110000.
+
+             2_01101101.bit_or 2_11110000
+    bit_or : Integer -> Integer
+    bit_or that = @Builtin_Method "Integer.bit_or"
+
+    ## Computes the bitwise exclusive or between this and that.
+
+       Arguments:
+       - that: The number to compute the bitwise exclusive or with.
+
+       Bitwise exclusive or computes the exclusive or of the pairs of
+       corresponding bits in the operands.
+
+       > Example
+         Computing the bitwise exclusive or of 2_01101101 and 2_11110000.
+
+             2_01101101.bit_xor 2_11110000
+    bit_xor : Integer -> Integer
+    bit_xor that = @Builtin_Method "Integer.bit_xor"
+
+    ## Shifts the bits of this by the amount that.
+
+       Arguments:
+       - that: The number of bits by which the shift should be performed.
+         Positive numbers perform a left shift, while negative numbers perform a
+         right shift.
+
+       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
+       shifts perform sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Shift the bits of the number 1 left by four bits.
+
+             1.bit_shift 4
+    bit_shift : Integer -> Integer ! Arithmetic_Error
+    bit_shift that = @Builtin_Method "Integer.bit_shift"
+
+    ## Performs a left-wise bit shift on the bits of this.
+
+       Arguments:
+       - that: The number of bits by which the shift should be performed.
+         Positive numbers perform a left shift, while negative numbers perform a
+         right shift.
+
+       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
+       shifts perform sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Shift the bits of the number 1 left by four bits.
+
+             1.bit_shift_l 4
+    bit_shift_l : Integer -> Integer ! Arithmetic_Error
+    bit_shift_l that = @Builtin_Method "Integer.bit_shift_l"
+
+    ## Performs a right-wise bit shift on the bits of this.
+
+       Arguments:
+       - that: The number of bits by which the shift should be performed.
+         Positive numbers perform a right shift, while negative numbers perform
+         a left shift.
+
+       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
+       shifts perform sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Shift the bits of the number 1 right by four bits.
+
+             1.bit_shift_r 4
+    bit_shift_r : Integer -> Integer ! Arithmetic_Error
+    bit_shift_r that = @Builtin_Method "Integer.bpit_shift_r"
+
+## Decimal numbers.
+type Decimal
+
+    ## Decimal is the type of decimal numbers in Enso.
+
+       ? Representation
+         Enso's decimal numbers are represented as IEEE754 double-precision
+         floating point numbers.
+    @Builtin_Type
+    type Decimal
+
+    ## Adds a deceimal and an arbitrary number.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Adding 10.1 and 15.
+
+             10.1 + 15
+    + : Number -> Number
+    + that = @Builtin_Method "Decimal.+"
+
+    ## Subtract an arbitrary number from this.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       > Example
+         Subtract 5 from 2.78.
+
+             2.78 - 5
+    - : Number -> Number
+    - that = @Builtin_Method "Decimal.-"
+
+    ## Multiply a decimal by an arbitrary number.
+
+       Arguments:
+       - that: The number to multiply this by.
+
+       Multiplication in Enso will undergo automatic conversions such that you
+       need not convert between Integer and Decimal manually.
+
+       > Example
+         Multiplying 3 by 5.27.
+
+             5.27 * 3
+    * : Number -> Number
+    * that = @Builtin_Method "Decimal.*"
+
+    ## Divides a decimal by an arbitrary number.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Dividing 10 by 4.5.
+
+             10 / 4.5
+    / : Number -> Number
+    / that = @Builtin_Method "Decimal./"
+
+    ## Compute the result of raising this to the power that.
+
+       Arguments:
+       - that: The exponent.
+
+       > Example
+         Computing 2.2 cubed.
+
+             2.2^3
+    ^ : Number -> Number
+    ^ that = @Builtin_Method "Decimal.^"
+
+    ## Compares this and that for equality.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Comparing 7 and 2.1 for equality.
+
+             7 == 2.1
+    == : Number -> Boolean
+    == that = @Builtin_Method "Decimal.=="
+
+    ## Checks if this is greater than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than 7.3.
+
+             10 > 7.3
+    > : Number -> Boolean
+    > that = @Builtin_Method "Decimal.>"
+
+    ## Checks if this is greater than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than or equal to 7.3.
+
+             10 >= 7.3
+    >= : Number -> Boolean
+    >= that = @Builtin_Method "Decimal.>="
+
+    ## Checks if this is less than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than 7.3.
+
+             10 < 7.3
+    < : Number -> Boolean
+    < that = @Builtin_Method "Decimal.<"
+
+    ## Checks if this is less than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10.4 is less than or equal to 7.
+
+             10.4 <= 7
+    <= : Number -> Boolean
+    <= that = @Builtin_Method "Decimal.<="
+
+    ## Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Computing the absolute value of -10.63.
+
+            -10.63.abs
+    abs : Decimal
+    abs = @Builtin_Method "Decimal.abs"
+
+    ## Computes the nearest integer above this number.
+
+       This method provides a means of converting a Decimal to an Integer.
+
+       > Example
+         Computing the ceiling of 4.736 (which is 5).
+
+             4.736.ceil
+    ceil : Integer
+    ceil = @Builtin_Method "Integer.ceil"
+
+    ## Compares the two operands to determine the ordering of this with
+       respect to that.
+
+       Arguments:
+       - that: The operand to order this with respect to.
+
+       > Example
+         Computing the ordering of 1.732 and 4 (Less).
+
+             1.732.compare_to 4
+    compare_to : Number -> Ordering
+    compare_to that = @Builtin_Method "Decimal.compare_to"
+
+    ## Computes the nearest integer below this decimal.
+
+       This method provides a means of converting a Decimal to an Integer.
+
+       > Example
+         Computing the floor of 4.323 (which is 4).
+
+             4.323.floor
+    floor : Integer
+    floor = @Builtin_Method "Decimal.floor"
+
+    ## Compute the negation of this.
+
+       > Example
+         Negate 5.1 to get -5.1.
+
+             5.1.negate
+    negate : Decimal
+    negate = @Builtin_Method "Decimal.negate"
+
+    ## Convert this to a decimal.
+
+       This is a no-op on decimals, but is provided for completeness of the Enso
+       Number API.
+
+       > Example
+         Convert 5.0 to a decimal to get 5.0.
+
+             5.0.to_decimal
+    to_decimal : Decimal
+    to_decimal = @Builtin_Method "Decimal.to_decimal"
+
+## An API for manual resource management.
+type Resource
+
+    ## Resource provides an API for manual management of computation resources.
+
+       These include things like file handles, network sockets, and so on. This
+       API is intended for use by library developers to provide higher-level and
+       easier to use abstractions.
+    @Builtin_Type
+    type Resource
+
+    ## ADVANCED
+
+       Acquires a resource, performs an action on it, and destroys it safely,
+       even in the presence of panics.
+
+       Arguments:
+       - constructor: The computation responsible for acquiring the resource.
+       - destructor: The computation responsible for destroying the resource
+         once it is done being used.
+       - action: The computation to perform on the acquired resource.
+    bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
+    bracket ~constructor ~destructor ~action =
+        @Builtin_Method "Resource.bracket"
+
+## An API for automatic resource management.
+type Managed_Resource
+
+    ## A managed resource is a special type of resource that is subject to
+       automated cleanup when it is no longer in use.
+
+       This API is intended for use by developers to provide easy-to-use
+       abstractions, and is not expected to be used by end-users.
+    @Builtin_Type
+    type Managed_Resource
+
+    ## ADVANCED
+
+       Registers a resource with the resource manager to be cleaned up using
+       function once it is no longer in use.
+
+       Arguments:
+       - resource: The resource to be managed automatically.
+       - function: The action to be executed on resource to clean it up when
+         it is no longer in use.
+    register : Any -> (Any -> Nothing) -> Managed_Resource
+    register resource function = @Builtin_Method "Managed_Resource.register"
+
+    ## ADVANCED
+
+       Forces finalization of a managed resource using the registered finalizer,
+       even if the resource is still reachable.
+
+       Arguments:
+       - resource: The resource that should be finalized.
+    finalize : Managed_Resource -> Nothing
+    finalize resource = @Builtin_Method "Managed_Resource.finalize"
+
+    ## ADVANCED
+
+       Executes the provided action on the resource managed by the managed
+       resource object.
+
+       Arguments:
+       - resource: The managed resource on which to run the action.
+       - action: The action that will be applied to the resource managed by
+         resource.
+    with : Managed_Resource -> (Any -> Any) -> Any
+    with resource ~action = @Builtin_Method "Managed_Resource.with"
+
+    ## ADVANCED
+
+       Takes the value held by the managed resource and unregisters the
+       finalization step for this resource, effectively removing it from the
+       managed resources system.
+
+       Arguments:
+       - resource: The managed resource from which to acquire the underlying
+         resource.
+    take : Managed_Resource -> Any
+    take resource = @Builtin_Method "Managed_Resource.take"
+
+## Utilities for interacting with the runtime.
+type Runtime
+
+    ## A container type for utility methods that allow interacting with the Enso
+       runtime.
+    @Builtin_Type
+    type Runtime
+
+    ## ADVANCED
+
+       Suggests that the runtime perform garbage collection.
+
+       It is not _guaranteed_ to perform garbage collection, but in practice
+       will _usually_ begin a garbage collection cycle.
+
+       > Example
+         Ask for the runtime to collect garbage.
+
+             Runtime.gc
+    gc : Nothing
+    gc = @Builtin_Method "Runtime.gc"
+
+    ## ADVANCED
+
+       Executes the provided action without allowing it to inline.
+
+       Arguments:
+       - action: The computation to be executed.
+
+       This is particularly useful when writing benchmarks and
+       performance-critical code where you need to prevent inlining from
+       occurring.
+
+       > Example
+         Print something to the console without it being inlined.
+
+             Runtime.no_inline <| IO.println "Hi!"
+    no_inline : Any -> Any
+    no_inline ~action = @Builtin_Method "Runtime.no_inline"
+
+    ## ADVANCED
+       UNSTABLE
+
+       Applies the following function to the given argument, without allowing
+       them to inline.
+
+       Arguments:
+       - function: The one-argument function to call.
+       - arg: The single argument for the function.
+
+       This is particularly useful to avoid constant folding in benchmarks.
+
+       > Example
+         Print something to the console without it being inlined.
+
+             Runtime.no_inline_with_arg IO.println "Hi!"
+    no_inline_with_arg : Any -> Any
+    no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
+
+## The runtime's integrated monadic state management.
+type State
+
+    ## A container type for functionality for working with the runtime's
+       integrated state functionality.
+    @Builtin_Type
+    type State
+
+    ## Executes a stateful computation in a local state environment.
+
+       Arguments:
+       - key: The key to associate your local_state with in the environment.
+         It is recommended that types be used as keys.
+       - local_state: The value to associate with key.
+       - computation: The computation to execute in the local state
+         environment.
+
+       > Example
+         Print a value from the state.
+
+             State.run Integer 0 <| IO.println (State.get Integer)
+    run : Any -> Any -> Any -> Any
+    run key local_state ~computation = @Builtin_Method "State.run"
+
+    ## Returns the current value for the provided key contained in the monadic
+       state.
+
+       Arguments:
+       - key: The key into the state to get the associated value for.
+
+       Returns an uninitialized state error if the user tries to read from an
+       uninitialized slot.
+
+       > Example
+         Get the value of state for a key.
+
+             State.get Decimal
+    get : Any -> Any ! Uninitialized_State
+    get key = @Builtin_Method "State.get"
+
+    ## Associates a new_state with the provided key in the runtime's monadic
+       state, returning the provided state.
+
+       Arguments:
+       - key: The key with which to associate the new state.
+       - new_state: The new state to store.
+
+       Returns an uninitialized state error if the user tries to read from an
+       uninitialized slot.
+
+       > Example
+         Store a new value in the state for a given key.
+
+             State.put Text 2821
+    put : Any -> Any -> Any ! Uninitialized_State
+    put key new_state = @Builtin_Method "State.put"
+
+## Functionality for interacting with the host system.
+type System
+
+    ## A container type for functionality that allows the runtime to talk to
+       the host system.
+    @Builtin_Type
+    type System
+
+    ## PRIVATE
+
+       Create a system process, returning the exit code, and the outputs to both
+       standard out and standard error.
+
+       Arguments:
+       - command: The name of the system process.
+       - arguments: An array of arguments to the system process.
+       - input: The input to pass to the process via standard input.
+    create_process : Text -> Array -> Text -> System_Process_Result
+    create_process command arguments input =
+        @Builtin_Method "System.create_process"
+
+    ## Exits the Enso program, returning the provided code to the parent
+       process.
+
+       Arguments:
+       - code: The numerical exit code for the Enso program.
+
+       > Example
+         Exit the enso program with a failure.
+
+             System.exit 42
+    exit : Integer -> Nothing
+    exit code = @Builtin_Method "System.exit"
+
+    ## Gets the nanosecond resolution system time at the moment of the call.
+
+       > Example
+         Getting the current value of the nanosecond timer.
+
+             System.nano_time
+    nano_time : Integer
+    nano_time = @Builtin_Method "System.nano_time"
+
+    ## PRIVATE
+
+       Get the name of the current platform upon which the program is running.
+    os : Text
+    os = @Builtin_Method "System.os"
+
+## PRIVATE
+
+   The type representing the result of a subprocess exiting.
+
+   Arguments:
+   - exit_code: The exit code of the child process.
+   - stdout: Any values printed to standard out by the child process.
+   - stderr: Any values printed to standard error by the child process.
+@Builtin_Type
+type System_Process_Result exit_code stdout stderr
+
+## Enso's text type.
+type Text
+
+    ## Enso's text type.
+
+       Enso's text type is natively unicode aware, and will handle arbitrary
+       textual data.
+
+       ? Concatenation
+         Enso's text type uses a rope-based structure under the hood to provide
+         users with efficient concatenation operations.
+    @Builtin_Type
+    type Text
+
+    ## Concatenates the text that to the right side of this.
+
+       Arguments:
+       - that: The text to concatenate to this.
+
+       > Example
+         Concatenating two texts.
+
+             "Hello" + ", world!"
+    + : Text -> Text
+    + that = @Builtin_Method "Text.+"
+
+## Internal text utilities for inspecting text primitives.
+type Prim_Text_Helper
+
+    ## PRIVATE
+
+       A container for primitive text operations.
+    @Builtin_Type
+    type Prim_Text_Helper
+
+    ## PRIVATE
+
+       Forces flattening of a text value.
+    optimize : Text
+    optimize = @Builtin_Method "Prim_Text_Helpers.optimize"
+
+## Utilities for working with threads.
+type Thread
+
+    ## Internal threading utilities used for working with threads.
+    @Builtin_Type
+    type Thread
+
+    ## ADVANCED
+
+       Executes an action with a handler for the executing thread being
+       interrupted.
+
+       Arguments:
+       - action: The action to execute.
+       - interrupt_handler: The code to be executed if the thread is
+         interrupted.
+
+       > Example
+         Die on thread interrupts.
+
+             Thread.with_interrupt_handler (1 + 1) <| IO.println "I died!"
+    with_interrupt_handler : Any -> Any -> Any
+    with_interrupt_handler ~action ~interrupt_handler =
+        @Builtin_Method "Thread.with_interrupt_handler"
+
+## Unsafe operations.
+type Unsafe
+
+    ## PRIVATE
+
+       A container for unsafe operations that operate based on implementation
+       details of the language.
+    @Builtin_Method
+    type Unsafe
+
+    ## PRIVATE
+
+       Sets the atom field at the provided index to have the provided value.
+
+       Arguments:
+       - atom: The atom to set the field in.
+       - index: The index of the field to set (zero-based).
+       - value: The value to set the field at index to.
+    set_atom_field : Atom -> Integer -> Any -> Atom
+    set_atom_field atom index value = @Builtin_Method "Unsafe.set_atom_field"
+
+## Functionality for inspecting the current project.
+type Project_Description
+
+    ## A representation of an Enso project.
+
+       Arguments:
+       - prim_root_file: The primitive root file of the project.
+    @Builtin_Type
+    type Project_Description prim_root_file
+
+## The type that has only a singleton value.
+
+   It is often used alongside a value of type a to provide a Maybe or
+   Option abstraction. The type a | Nothing is semantically equivalent to
+   Maybe a.
+@Builtin_Type
+type Nothing
+
+## Cons lists.
+type List
+
+    ## The type that indicates the end of a cons list.
+    @Builtin_Type
+    type Nil
+
+    ## A cons cell for a cons list.
+
+       Arguments:
+       - head: The element at this position in the list.
+       - tail: The rest of the list.
+    @Builtin_Type
+    type Cons head tail
+
+## A representation of the relative ordering between two values.
+type Ordering
+
+    ## A representation of the relative ordering between two values.
+
+       These values must be able to be ordered with respect to each other.
+    @Builtin_Type
+    type Ordering
+
+    ## A representation that the first value orders as less than the second.
+    @Builtin_Type
+    type Less
+
+    ## A representation that the first value orders as equal to the second.
+    @Builtin_Type
+    type Equal
+
+    ## A representation that the first value orders as greater than the second.
+    @Builtin_Type
+    type Greater

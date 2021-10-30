@@ -1,0 +1,13 @@
+minimum-launcher-version: 0.0.1
+minimum-project-manager-version: 999.0.0
+graal-vm-version: 2.0.0
+graal-java-version: 11
+jvm-options:
+  - value: "-Dpolyglot.engine.IterativePartialEscape=true"
+  - value: "-Dtruffle.class.path.append=$enginePackagePath\\component\\runtime.jar"
+    os: "windows"
+  - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
+    os: "linux"
+  - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
+    os: "macos"
+  - value: "-Denso.version.override=0.1.0"

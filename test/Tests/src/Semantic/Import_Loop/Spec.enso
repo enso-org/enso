@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+import Standard.Test
+import project.Semantic.Import_Loop.B
+
+spec = Test.group "Looping Imports" <|
+    Test.specify "should behave correctly and not loop the compiler" <|
+        B.My_Type.baz . should_equal 11

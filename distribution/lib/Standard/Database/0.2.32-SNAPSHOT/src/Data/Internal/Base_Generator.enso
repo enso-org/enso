@@ -1,0 +1,272 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Sql
+import Standard.Database.Data.Internal.IR
+
+from Standard.Database.Data.Sql import Sql_Type
+
+type Internal_Dialect
+
+    ## PRIVATE
+
+       An internal representation of a SQL dialect.
+
+       Arguments:
+       - operation_map: The mapping which maps operation names to their
+         implementations; each implementation is a function which takes SQL
+         builders for the arguments and should return a builder yielding the
+         whole operation.
+       - wrap_identifier: A function that converts an arbitrary supported
+         identifier name in such a way that it can be used in the query; that
+         usually consists of wrapping the name in quotes and escaping any quotes
+         within it.
+
+       # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
+       #                       (identifier_wrapper : Text -> Sql.Builder)
+    type Internal_Dialect operation_map wrap_identifier
+
+    ## PRIVATE
+
+       Creates a copy of the dialect that supports additional operations or
+       overrides existing ones.
+
+       # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
+    extend_with : Vector Any -> Internal_Dialect
+    extend_with mappings =
+        new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
+        Internal_Dialect new_map this.wrap_identifier
+
+## PRIVATE
+
+   A helper function to create a binary operator.
+
+   Arguments:
+   - name: The name of the binary operator.
+make_binary_op : Text -> Vector Sql.Builder -> Sql.Builder
+make_binary_op name =
+    arguments ->
+        case arguments.length == 2 of
+            True ->
+                op = Sql.code " "+name+" "
+                (arguments.at 0)++op++(arguments.at 1) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+## PRIVATE
+
+   A helper function to create a unary operator.
+
+   Arguments:
+   - name: The name of the unary operator.
+make_unary_op : Text -> Vector Sql.Builder -> Sql.Builder
+make_unary_op name =
+    arguments ->
+        case arguments.length == 1 of
+            True ->
+                (Sql.code name+" ")++(arguments.at 0) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+## PRIVATE
+
+   A helper function to create a unary operator which is added to the right of
+   the expression.
+
+   Arguments:
+   - name: The name of the unary operator.
+make_right_unary_op : Text -> Vector Sql.Builder -> Sql.Builder
+make_right_unary_op name =
+    arguments ->
+        case arguments.length == 1 of
+            True ->
+                (arguments.at 0)++(Sql.code " "+name) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+## PRIVATE
+
+   A helper function to create a functional operation.
+
+   Arguments:
+   - name: The name of the function.
+make_function : Text -> Vector Sql.Builder -> Sql.Builder
+make_function name =
+    arguments ->
+        (Sql.code name) ++ (Sql.join ", " arguments . paren)
+
+## PRIVATE
+
+   A helper function to create an operation that takes no arguments.
+
+   Arguments:
+   - code: The code for the constant.
+make_constant : Text -> Vector Sql.Builder -> Sql.Builder
+make_constant code =
+    arguments ->
+        if arguments.not_empty then Error.throw <| Illegal_State_Error "No arguments were expected" else
+            Sql.code code
+
+## PRIVATE
+
+   Wraps the identifier name in quotes and escapes any quotes within the name
+   with double-quote.
+
+   Arguments:
+   - identifier: The identifier to wrap and escape.
+
+   This is the simplest way of escaping identifiers that should work across most
+   dialects.
+wrap_in_quotes : Text -> Sql.Builder
+wrap_in_quotes identifier =
+    escaped = identifier.replace '"' '""'
+    Sql.code '"'+escaped+'"'
+
+## PRIVATE
+
+   The base SQL dialect that is shared between most SQL implementations.
+
+   It is a base to help creating concrete dialects. It can be extended or
+   completely overridden.
+base_dialect =
+    bin = here.make_binary_op
+    unary = here.make_unary_op
+    fun = here.make_function
+    arith = [["+", bin "+"], ["-", bin "-"], ["*", bin "*"], ["/", bin "/"]]
+    logic = [["AND", bin "AND"], ["OR", bin "OR"], ["NOT", unary "NOT"]]
+    compare = [["=", bin "="], ["!=", bin "!="], ["<", bin "<"], [">", bin ">"], ["<=", bin "<="], [">=", bin ">="]]
+    agg = [["COUNT", fun "COUNT"], ["MAX", fun "MAX"], ["MIN", fun "MIN"], ["AVG", fun "AVG"], ["SUM", fun "SUM"], ["COUNT_ROWS", here.make_constant "COUNT(*)"]]
+    nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", fun "COALESCE"]]
+    base_map = Map.from_vector (arith + logic + compare + agg + nulls)
+    Internal_Dialect base_map here.wrap_in_quotes
+
+## PRIVATE
+
+   Builds code for an expression.
+
+   Arguments:
+   - dialect: The SQL dialect in which the expression is being generated.
+   - expr: The expression to generate SQL code for.
+generate_expression : Internal_Dialect -> IR.Expression -> Sql.Builder
+generate_expression dialect expr = case expr of
+    IR.Column origin name ->
+        dot = Sql.code '.'
+        dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
+    IR.Constant sql_type value -> Sql.interpolation sql_type value
+    IR.Operation kind arguments ->
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+op+" is not supported.")
+        parsed_args = arguments.map (here.generate_expression dialect)
+        op parsed_args
+
+## PRIVATE
+
+   Adds an alias for the expression, applicable for expressions that represent
+   columns or sub-queries.
+
+   Arguments:
+   - dialect: The dialect for which to add the alias.
+   - name: The name of the alias.
+alias : Internal_Dialect -> Text -> Sql.Builder
+alias dialect name =
+    wrapped = dialect.wrap_identifier name
+    Sql.code " AS " ++ wrapped
+
+## PRIVATE
+
+   Builds code for the FROM clause.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is generated.
+   - from_spec: A description of the FROM clause.
+generate_from_part : Internal_Dialect -> From_Spec -> Sql.Builder
+generate_from_part dialect from_spec = case from_spec of
+    IR.From_Table name as_name ->
+        dialect.wrap_identifier name ++ here.alias dialect as_name
+    IR.Join kind left_spec right_spec on ->
+        left = here.generate_from_part dialect left_spec
+        right = here.generate_from_part dialect right_spec
+        prefix = case kind of
+            IR.Join_Inner -> "INNER JOIN"
+            IR.Join_Left -> "LEFT JOIN"
+            IR.Join_Right -> "RIGHT JOIN"
+            IR.Join_Cross -> "CROSS JOIN"
+        ons = Sql.join " AND " (on.map (here.generate_expression dialect)) . prefix_if_present " ON "
+        left ++ (Sql.code " "+prefix+" ") ++ right ++ ons
+    IR.Sub_Query columns context as_name ->
+        sub = here.generate_query dialect (IR.Select columns context)
+        sub.paren ++ here.alias dialect as_name
+
+## PRIVATE
+
+   Builds code for an ordering.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is generated.
+   - order_description: A description of the ORDER clause.
+
+   # generate_order : Internal_Dialect -> [Expression, IR.Order_Direction, IR.Nulls_Order] -> Sql.Builder
+generate_order : Internal_Dialect -> Vector Any -> Sql.Builder
+generate_order dialect order_description =
+    order_suffix = case order_description.second of
+        IR.Ascending -> Sql.code " ASC"
+        IR.Descending -> Sql.code " DESC"
+    nulls_suffix = case order_description.at 2 of
+        IR.Nulls_First -> Sql.code " NULLS FIRST"
+        IR.Nulls_Last -> Sql.code " NULLS LAST"
+    (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
+
+## PRIVATE
+
+   Generates SQL code corresponding to a SELECT statement.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is being generated.
+   - ctx: A description of the SELECT clause.
+generate_select_context : Internal_Dialect -> IR.Context -> Sql.Builder
+generate_select_context dialect ctx =
+    gen_exprs exprs = exprs.map (here.generate_expression dialect)
+    from_part = here.generate_from_part dialect ctx.from_spec
+    where_part = (Sql.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
+    group_part = (Sql.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+    limit_part = case ctx.limit of
+        Nothing -> Sql.empty
+        Integer -> Sql.code " LIMIT "+ctx.limit.to_text
+
+    orders = ctx.orders.map (here.generate_order dialect)
+    order_part = (Sql.join ", " orders) . prefix_if_present " ORDER BY "
+    (Sql.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
+
+## PRIVATE
+
+   Generates the SQL code corresponding to an INSERT query.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is being generated.
+   - table_name: The name of the table into which the values are being inserted.
+   - pairs: The values to insert into the table, consisting of pairs of key, and
+     expression returning a value.
+generate_insert_query : Internal_Dialect -> Text -> Vector Any -> Sql.Builder
+generate_insert_query dialect table_name pairs =
+    names = Sql.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
+    values = Sql.join ", " <| pairs.map (.second >> here.generate_expression dialect)
+    into = dialect.wrap_identifier table_name
+
+    Sql.code "INSERT INTO " ++ into ++ Sql.code " (" ++ names ++ Sql.code ") VALUES (" ++ values ++ Sql.code ")"
+
+## PRIVATE
+
+   Builds code for a whole query.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is being generated.
+   - query: An IR describing the query.
+generate_query : Internal_Dialect -> IR.Query -> Sql.Builder
+generate_query dialect query = case query of
+    IR.Select columns ctx ->
+        gen_column pair = (here.generate_expression dialect pair.second) ++ here.alias dialect pair.first
+        cols = Sql.join ", " (columns.map gen_column)
+        (Sql.code "SELECT ") ++ cols ++ here.generate_select_context dialect ctx
+    IR.Select_All ctx ->
+        (Sql.code "SELECT * ") ++ here.generate_select_context dialect ctx
+    IR.Insert table_name pairs ->
+        here.generate_insert_query dialect table_name pairs
+    _ -> Error.throw <| Illegal_State_Error "Unsupported query type."

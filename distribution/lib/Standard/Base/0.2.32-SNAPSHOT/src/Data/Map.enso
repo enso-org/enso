@@ -1,0 +1,457 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Map.Internal
+
+## Returns an empty map.
+
+   > Example
+     Create an empty map.
+
+         import Standard.Base.Data.Map.Internal
+
+         example_empty = Map.empty
+empty : Map
+empty = Tip
+
+## Returns a single-element map with the given key and value present.
+
+   Arguments:
+   - key: The key to update in the map.
+   - value: The value to store against 'key' in the map.
+
+   > Example
+     Create a single element map storing the key 1 and the value 2.
+
+         import Standard.Base.Data.Map.Internal
+
+         example_singleton = Map.singleton 1 2
+singleton : Any -> Any -> Map
+singleton key value = Bin 1 key value Tip Tip
+
+## Builds a map from a vector of key-value pairs.
+
+   Arguments:
+   - vec: A vector of key-value pairs.
+
+   > Example
+     Building a map containing two key-value pairs.
+
+         import Standard.Base.Data.Map.Internal
+
+         example_from_vector = Map.from_vector [[1, 2], [3, 4]]
+from_vector : Vector.Vector Any -> Map
+from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
+
+## A key-value store. This type assumes all keys are pairwise comparable,
+   using the `<`, `>` and `==` operators.
+type Map
+
+    ## PRIVATE
+       A key-value store. This type assumes all keys are pairwise comparable,
+       using the `<`, `>` and `==` operators.
+    type Tip
+
+    ## PRIVATE
+       A key-value store. This type assumes all keys are pairwise comparable,
+       using the `<`, `>` and `==` operators.
+
+       Arguments:
+       - s: The size of the tree at this node.
+       - key: The key stored at this node.
+       - value: The value stored at this node.
+       - left: The left subtree.
+       - right: The right subtree.
+    type Bin s key value left right
+
+    ## Checks if the map is empty.
+
+       > Example
+         Check if a map is empty.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_is_empty = Examples.map.is_empty
+    is_empty : Boolean
+    is_empty = case this of
+        Bin _ _ _ _ _ -> False
+        Tip -> True
+
+    ## Checks if the map is not empty.
+
+       > Example
+         Check if a map is not empty.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_not_empty = Examples.map.not_empty
+    not_empty : Boolean
+    not_empty = this.is_empty.not
+
+    ## Returns the number of entries in this map.
+
+       > Example
+         Get the size of a map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_size = Examples.map.size
+    size : Integer
+    size = case this of
+        Bin s _ _ _ _ -> s
+        Tip -> 0
+
+    ## Converts the map into a vector of `[key, value]` pairs.
+
+       The returned vector is sorted in the increasing order of keys.
+
+       > Example
+         Convert a map to a vector.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_to_vector = Examples.map.to_vector
+    to_vector : Vector.Vector Any
+    to_vector =
+        builder = Vector.new_builder
+        to_vector_with_builder m = case m of
+            Bin _ k v l r ->
+                to_vector_with_builder l
+                builder.append [k, v]
+                to_vector_with_builder r
+                Nothing
+            Tip -> Nothing
+        to_vector_with_builder this
+        result = builder.to_vector
+        result
+
+    ## Returns a text representation of this map.
+
+       > Example
+         Convert a map to text.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_to_text = Examples.map.to_text
+    to_text : Text
+    to_text = this.to_vector.to_text
+
+    ## Checks if this map is equal to another map.
+
+       Arguments:
+       - that: The map to compare `this` to.
+
+       Maps are equal when they contained the same keys and the values
+       associated with each key are pairwise equal.
+
+       > Example
+         Checking two maps for equality.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_equals =
+                other = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
+                Examples.map == other
+    == : Map -> Boolean
+    == that = this.to_vector == that.to_vector
+
+    ## Inserts a key-value mapping into this map, overriding any existing
+       instance of `key` with the new `value`.
+
+       Arguments:
+       - key: The key to insert the value for.
+       - value: The value to associate with `key`.
+
+       > Example
+         Insert the value "seven" into the map for the key 7.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_insert = Examples.map.insert 7 "seven"
+    insert : Any -> Any -> Map
+    insert key value = Internal.insert this key value
+
+    ## Gets the value associated with `key` in this map, or throws a
+       `No_Value_For_Key_Error` if `key` is not present.
+
+       Arguments:
+       - key: The key to look up in the map.
+
+       > Example
+         Get the value for the key 1 in a map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_get = Examples.map.get 1
+    get : Any -> Any ! No_Value_For_Key_Error
+    get key =
+        go map = case map of
+            Tip -> Error.throw (No_Value_For_Key_Error key)
+            Bin _ k v l r ->
+                if k == key then v else
+                    if k > key then @Tail_Call go l else @Tail_Call go r
+        result = go this
+        result
+
+    ## Gets the value associated with `key` in this map, or returns `other` if
+       it isn't present.
+
+       Arguments:
+       - key: The key to look up in the map.
+       - other: The value to use if the key isn't present.
+
+       > Example
+         Get the value for the key 2 in a map or instead return "zero" if it
+         isn't present.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_get_or_else = Examples.map.get_or_else 2 "zero"
+    get_or_else : Any -> Any -> Any
+    get_or_else key ~other =
+        this.get key . catch (_ -> other)
+
+    ## Transforms the map's keys and values to create a new map.
+
+       Arguments:
+       - function: The function used to transform the map, taking a key and a
+         value and returning a pair of `[key, value]`.
+
+       > Example
+         Turn all keys into `Text` and append "_word" to the values in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_transform =
+                Examples.map.transform (k -> v -> [k.to_text, v + "_word"])
+    transform : (Any -> Any -> [Any, Any]) -> Map
+    transform function =
+        func_pairs = p -> function (p.at 0) (p.at 1)
+        vec_transformed = this.to_vector.map func_pairs
+        here.from_vector vec_transformed
+
+    ## Maps a function over each value in this map.
+
+       Arguments:
+       - function: The function to apply to each value in the map, taking a
+         value and returning a value.
+
+       > Example
+         Append "_word" to all values in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_map = Examples.map.map (+ "_word")
+    map : (Any -> Any) -> Map
+    map function =
+        kv_func = _ -> function
+        this.map_with_key kv_func
+
+    ## Maps a function over each key-value pair in the map, transforming the
+       value.
+
+       Arguments:
+       - function: The function to apply to each key and value in the map,
+         taking a key and a value and returning a value.
+
+       > Example
+         Prepend the keys to the values in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_map_with_key =
+                Examples.map.map_with_key (k -> v -> k.to_text + "-" + v)
+    map_with_key : (Any -> Any -> Any) -> Map
+    map_with_key function =
+        go map = case map of
+            Bin s k v l r ->
+                Bin s k (function k v) (go l) (go r)
+            Tip -> Tip
+        go this
+
+    ## Maps a function over each key in this map.
+
+       Arguments:
+       - function: The function to apply to each key in the map, taking a key
+         and returning a key.
+
+       > Example
+         Doubling all keys in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_map_keys = Examples.map.map_keys *2
+    map_keys : (Any -> Any) -> Map
+    map_keys function =
+        trans_function = k -> v -> [function k, v]
+        this.transform trans_function
+
+    ## Applies a function to each value in the map.
+
+       Arguments:
+       - function: The function to apply to each value in the map, taking a
+         value and returning anything.
+
+       This method does not return the results, so is only useful for performing
+       computations with side-effects.
+
+       > Example
+         Printing each value in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_each = Examples.map.each IO.println
+    each : (Any -> Any) -> Nothing
+    each function =
+        kv_func = _ -> function
+        this.each_with_key kv_func
+
+    ## Applies a function to each key-value pair in the map.
+
+       Arguments:
+       - function: The function to apply to each key-value pair in the map,
+         taking a key and a value and returning anything.
+
+       This method does not return the results, so is only useful for performing
+       computations with side-effects.
+
+       > Example
+         Printing each key and value in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_each_with_key = Examples.map.each_with_key k->v->
+                IO.println k
+                IO.println v
+    each_with_key : (Any -> Any -> Any) -> Nothing
+    each_with_key function =
+        go map = case map of
+            Bin _ k v l r ->
+                go l
+                function k v
+                go r
+                Nothing
+            Tip -> Nothing
+        go this
+
+    ## Combines the values in the map.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A binary function to apply to pairs of values in the map.
+
+       > Example
+         Find the length of the longest word in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_fold = Examples.map.fold 0 (l -> r -> Math.max l r.length)
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold init function =
+        go map init = case map of
+            Bin _ _ v l r ->
+                y = go l init
+                z = function y v
+                go r z
+            Tip -> init
+        go this init
+
+    ## Combines the key-value pairs in the map.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking the left value, the current key, and the
+         current value, and combining them to yield a single value.
+
+       > Example
+         Glue the values in the map together with the keys.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_fold_with_key =
+                Examples.map.fold_with_key "" (l -> k -> v -> l + k.to_text + v)
+    fold_with_key : Any -> (Any -> Any -> Any -> Any) -> Any
+    fold_with_key init function =
+        go map init = case map of
+            Bin _ k v l r ->
+                y = go l init
+                z = function y k v
+                go r z
+            Tip -> init
+        go this init
+
+    ## Get a vector containing the keys in the map.
+
+       > Example
+         Get the keys from the map `m`.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_keys = Examples.map.keys
+    keys : Vector
+    keys =
+        builder = Vector.new_builder
+        to_vector_with_builder m = case m of
+            Bin _ k _ l r ->
+                to_vector_with_builder l
+                builder.append k
+                to_vector_with_builder r
+                Nothing
+            Tip -> Nothing
+        to_vector_with_builder this
+        builder.to_vector
+
+    ## Get a vector containing the values in the map.
+
+       > Example
+         Get the values from the map `m`.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_values = Examples.map.values
+    values : Vector
+    values =
+        builder = Vector.new_builder
+        to_vector_with_builder m = case m of
+            Bin _ _ v l r ->
+                to_vector_with_builder l
+                builder.append v
+                to_vector_with_builder r
+                Nothing
+            Tip -> Nothing
+        to_vector_with_builder this
+        builder.to_vector
+
+## UNSTABLE
+
+   An error for getting a missing value from a map.
+
+   Arguments:
+   - key: The key that was asked for.
+type No_Value_For_Key_Error key
+
+## UNSTABLE
+
+   Converts the error into a human-readable representation.
+No_Value_For_Key_Error.to_display_text : Text
+No_Value_For_Key_Error.to_display_text =
+    "The map contained no value for the key " + this.key.to_text + "."
+

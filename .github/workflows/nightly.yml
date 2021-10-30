@@ -1,0 +1,653 @@
+# TODO we may consider merging this with `release.yml` as there is quite an overlap
+name: Nightly Release CI
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 4 * * 2-6" # 4am (UTC) from Tuesday to Saturday (i.e. after every workday)
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 21.1.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.5.2
+  # Please ensure that this is in sync with rustVersion in build.sbt
+  rustToolchain: nightly-2021-05-12
+  # Please ensure that this is in sync with nodeVersion in scala.yml
+  nodeVersion: 14.17.2
+  # Specifies how many nightly releases should be kept. Any older releases are removed.
+  NIGHTLIES_TO_KEEP: 20
+
+concurrency: "releases"
+
+jobs:
+  preflight-check:
+    name: Nightly Preflight Check
+    runs-on: ubuntu-18.04
+    timeout-minutes: 10
+    if:
+      "${{ github.event_name == 'schedule' ||
+      contains(github.event.head_commit.message,'[release: nightly]') }}"
+    outputs:
+      proceed: ${{ steps.preparations.outputs.proceed }}
+      nightly-version: ${{ steps.preparations.outputs.nightly-version }}
+      nightly-edition: ${{ steps.preparations.outputs.nightly-edition }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - id: preparations
+        name: Check If The Build Should Proceed And Prepare Version String
+        shell: bash
+        working-directory: tools/ci/nightly
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # The script below sets an output 'proceed' to true or false depending on whether the nightly build should proceed.
+        # Nightly builds are skipped if no new changes are present since the last one.
+        run: |
+          npm install
+          node preflight-check.js ${{ github.sha }}
+
+  # This job should be kept up-to-date with release.yml#build (but keep the relevant changes)
+  # The difference is the version bump which modifies the version in build.sbt to the output of the preflight check.
+  # It should be done before any actual SBT builds steps.
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-18.04, windows-latest]
+      fail-fast: true
+    needs:
+      - preflight-check
+    if: ${{ needs.preflight-check.outputs.proceed == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: repo
+      - name: Configure Pagefile (Windows)
+        if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.9.0
+      - name: Disable TCP/UDP Offloading (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+      - name: Disable TCP/UDP Offloading (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo ethtool -K eth0 tx off rx off
+      - name: Disable TCP/UDP Offloading (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >
+          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
+          -UdpIPv6
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: true
+          conda-channels: anaconda, conda-forge
+      - name: Setup Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: |
+          conda create --name enso
+          conda init powershell
+      - name: Activate Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: conda activate enso
+      - name: Install FlatBuffers Compiler
+        run: conda install flatbuffers=1.12.0
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
+      - name: Download Project Template Files
+        working-directory: repo
+        shell: bash
+        run: |
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/data/store_data.xlsx https://github.com/enso-org/project-templates/raw/main/Orders/data/store_data.xlsx
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Orders/src/Main.enso
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/la_districts.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/la_districts.csv
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/restaurants.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/restaurants.csv
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Restaurants/src/Main.enso
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/stargazers/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Stargazers/src/Main.enso
+      - name: Set Up SBT
+        shell: bash
+        run: |
+          curl -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      # Bootstrap
+      - name: Prepare Environment
+        shell: bash
+        run: |
+          echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
+          echo "ENSO_VERSION=${{ needs.preflight-check.outputs.nightly-version }}" >> $GITHUB_ENV
+          echo "ENSO_EDITION=${{ needs.preflight-check.outputs.nightly-edition }}" >> $GITHUB_ENV
+
+      - name: Update the Version Number to the Nightly
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/bump-version.js $ENSO_VERSION $ENSO_EDITION
+
+      - name: Bootstrap the Project
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors bootstrap
+
+      - name: Update the Stdlib Version
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors "stdlib-version-updater/run update --no-format"
+
+      # Verify Legal Review
+      - name: Verify Packages
+        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors verifyLicensePackages
+
+      # Prepare distributions
+      - name: Build the Launcher Native Image
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors "launcher/assembly"
+          sbt --no-colors --mem 1536 "launcher/buildNativeImage"
+
+      - name: Build the PM Native Image
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors "project-manager/assembly"
+          sbt --no-colors --mem 1536 "project-manager/buildNativeImage"
+
+      - name: Prepare Distribution Version (Unix)
+        working-directory: repo
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          chmod +x enso
+          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      - name: Prepare Distribution Version (Windows)
+        working-directory: repo
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      # Currently the only architecture supported by Github runners is amd64
+      - name: Prepare Distribution Environment
+        working-directory: repo
+        shell: bash
+        run: >
+          GRAAL_VERSION=$(echo ${{ env.graalVersion }}) DIST_OS=$(echo
+          ${{runner.os }} | awk '{print tolower($0)}') bash
+          tools/ci/prepare-distribution-env.sh
+
+      - name: Prepare Launcher Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildLauncherDistribution
+      - name: Prepare Engine Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildEngineDistribution
+
+      - name: Compile the Standard Libraries (Unix)
+        working-directory: repo
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+
+      - name: Compile the Standard Libraries (Windows)
+        working-directory: repo
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+
+      - name: Prepare Project Manager Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildProjectManagerDistribution
+      - name: Prepare GraalVM Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildGraalDistribution
+
+      # Ensure that the versions encoded in the binary and in the release match
+      - name: Check Versions (Unix)
+        working-directory: repo
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          refversion=${{ env.ENSO_VERSION }}
+          binversion=${{ env.DIST_VERSION }}
+          engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
+          test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
+          test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
+      - name: Check Versions (Windows)
+        working-directory: repo
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          refversion=${{ env.ENSO_VERSION }}
+          binversion=${{ env.DIST_VERSION }}
+          engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso.bat --version --json | jq -r '.version')
+          test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
+          test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
+
+      # Verify License Packages in Distributions
+      - name: Verify Distributed Licenses Package
+        working-directory: repo
+        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
+        shell: bash
+        run: |
+          sleep 1
+          sbt "enso/verifyGeneratedPackage engine ${{ env.ENGINE_DIST_DIR }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage launcher ${{ env.LAUNCHER_DIST_DIR }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Base ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Base/${{ env.DIST_VERSION }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Table ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Table/${{ env.DIST_VERSION }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Image ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Image/${{ env.DIST_VERSION }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Database/${{ env.DIST_VERSION }}/THIRD-PARTY"
+
+      # Publish
+      - name: Compress the built artifacts for upload
+        # The artifacts are compressed before upload to work around an error with long path handling in the upload-artifact action on Windows.
+        shell: bash
+        working-directory: repo/built-distribution
+        run:
+          7z a -r built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}.zip
+          *
+      - name: Upload the Built Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}
+          path:
+            repo/built-distribution/built-distribution-${{ env.DIST_OS }}-${{
+            env.DIST_ARCH }}.zip
+      - name: Upload the Manifest Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: repo/${{ env.ENGINE_DIST_DIR }}/manifest.yaml
+      - name: Upload the Launcher Manifest Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: launcher-manifest
+          path: repo/distribution/launcher-manifest.yaml
+
+  create-release:
+    name: Prepare Release
+    runs-on: ubuntu-18.04
+    needs: [build, preflight-check]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          path: repo
+      # Without specifying options, it downloads all artifacts
+      - uses: actions/download-artifact@v2
+        with:
+          path: repo/built-distribution
+      - name: Display Structure of Downloaded Files
+        run: ls
+        working-directory: repo/built-distribution
+      - name: Unpack Artifacts
+        shell: bash
+        working-directory: repo/built-distribution
+        run: for f in built-distribution-*; do unzip -n "$f/$f.zip"; done
+
+      - name: Prepare Nodejs
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: npm install
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
+      - name: Set Up SBT
+        shell: bash
+        run: |
+          curl -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      - name: Save Version to Environment
+        shell: bash
+        run: |
+          DIST_VERSION=${{ needs.preflight-check.outputs.nightly-version }}
+          ENSO_EDITION=${{ needs.preflight-check.outputs.nightly-edition }}
+          echo "Preparing release for $DIST_VERSION, edition $ENSO_EDITION"
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+          echo "ENSO_EDITION=$ENSO_EDITION" >> $GITHUB_ENV
+      - name: Update the Version Number to the Nightly
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/bump-version.js $DIST_VERSION $ENSO_EDITION
+
+      - name: Prepare Packages
+        shell: bash
+        working-directory: repo
+        run: |
+          sleep 1
+          sbt makePackages
+
+      - name: Prepare Bundles
+        shell: bash
+        working-directory: repo
+        run: |
+          sleep 1
+          sbt makeBundles
+
+      - name: Prepare Release Notes
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/extract-release-notes.js RELEASES.md release_notes.md
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: enso-${{ env.DIST_VERSION }}
+          release_name: Enso Nightly ${{ env.DIST_VERSION }}
+          body_path: repo/release_notes.md
+          draft: true
+          prerelease: true
+
+      # Upload the assets to the created release
+      - name: Publish the Engine (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+            }}-linux-amd64.tar.gz
+          asset_name: enso-engine-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Engine (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+            }}-macos-amd64.tar.gz
+          asset_name: enso-engine-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Engine (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+            }}-windows-amd64.zip
+          asset_name: enso-engine-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Launcher (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+            }}-linux-amd64.tar.gz
+          asset_name: enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Launcher (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+            }}-macos-amd64.tar.gz
+          asset_name: enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Launcher (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+            }}-windows-amd64.zip
+          asset_name: enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Project Manager (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
+            }}-linux-amd64.tar.gz
+          asset_name:
+            enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Project Manager (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
+            }}-macos-amd64.tar.gz
+          asset_name:
+            enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Project Manager (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
+            }}-windows-amd64.zip
+          asset_name:
+            enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Bundle (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+            }}-linux-amd64.tar.gz
+          asset_name: enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Bundle (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+            }}-macos-amd64.tar.gz
+          asset_name: enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Bundle (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+            }}-windows-amd64.zip
+          asset_name: enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Manifest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: repo/built-distribution/manifest/manifest.yaml
+          asset_name: manifest.yaml
+          asset_content_type: application/yaml
+      - name: Publish the Launcher Manifest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: repo/built-distribution/launcher-manifest/launcher-manifest.yaml
+          asset_name: launcher-manifest.yaml
+          asset_content_type: application/yaml
+      - name: Publish Release
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: node publish-release.js ${{ steps.create_release.outputs.id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # This is done regardless of the release-publish-edition workflow, because this workflow seems to not be triggered by Actions automatically.
+      - name: Prepare AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+
+      - name: Update the Editions Bucket
+        shell: bash
+        working-directory: repo
+        run: sbt edition-uploader/run
+
+      - name: Teardown AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF
+
+      # TODO enable this once IDE supports triggers
+      #      - name: Trigger IDE Build
+      #        shell: bash
+      #        working-directory: repo/tools/ci/nightly
+      #        run: node trigger-workflow.js ide gui-ci develop
+      #        env:
+      #          GITHUB_TOKEN: ${{ github.token }}
+      - uses: dev-drprasad/delete-older-releases@v0.2.0
+        name: Remove Old Releases
+        with:
+          keep_latest: ${{ env.NIGHTLIES_TO_KEEP }}
+          delete_tag_pattern: SNAPSHOT
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

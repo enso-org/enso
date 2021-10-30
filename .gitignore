@@ -1,0 +1,138 @@
+
+#############
+## GraalVM ##
+#############
+
+graal_dumps
+
+#########
+## JVM ##
+#########
+
+graal_dumps/
+target/
+*.class
+*.log
+.java-version
+
+##########
+## Rust ##
+##########
+
+**/*.rs.bk
+wasm-pack.log
+generated/
+
+#############
+## Haskell ##
+#############
+
+dist
+cabal-dev
+.stack-work/
+
+############
+## NodeJS ##
+############
+
+node_modules/
+package-lock.json
+
+############
+## System ##
+############
+
+.DS_Store
+
+############
+## Images ##
+############
+
+*.jpg
+*.jpeg
+*.bmp
+*.psd
+
+######################
+## Tooling Specific ##
+######################
+
+.idea/
+.vscode/
+*.swp
+.projections.json
+.nvmrc
+*.iml
+
+############################
+## Rendered Documentation ##
+############################
+
+javadoc/
+scaladoc/
+distribution/docs
+distribution/docs-js
+
+#######################
+## Benchmark Reports ##
+#######################
+
+bench-report*.xml
+
+##############
+## Binaries ##
+##############
+
+/enso
+/project-manager
+*.exe
+/enso.exp
+/enso.lib
+*.pdb
+*.jar
+/built-distribution/
+
+
+#########
+## IDE ##
+#########
+
+.editorconfig
+.bloop/
+.bsp/
+project/metals.sbt
+
+#################
+## Build Cache ##
+#################
+
+build-cache/
+
+##################
+## Native Image ##
+##################
+
+*.build_artifacts.txt
+
+######################
+## Enso-Development ##
+######################
+
+distribution/lib/Standard/Examples/*/data/scratch_file
+distribution/lib/Standard/Examples/*/data/image.png
+distribution/editions
+distribution/lib/Standard/Table/*/polyglot/
+distribution/lib/Standard/Database/*/polyglot/
+distribution/lib/Standard/Examples/*/data/spreadsheet.xls
+distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
+
+test/Google_Api_Test/data/secret.json
+test/Database_Tests/data/redshift_credentials.json
+
+#################
+## Enso-Caches ##
+#################
+
+*.ir
+*.meta
+

@@ -1,0 +1,14 @@
+# Build Artefacts
+target/
+.github/PULL_REQUEST_TEMPLATE.md
+.github/ISSUE_TEMPLATE
+distribution/launcher/THIRD-PARTY
+distribution/engine/THIRD-PARTY
+distribution/project-manager/THIRD-PARTY
+tools/legal-review
+distribution/lib/Standard/Base/*/THIRD-PARTY
+distribution/lib/Standard/Table/*/THIRD-PARTY
+distribution/lib/Standard/Image/*/THIRD-PARTY
+distribution/lib/Standard/Database/*/THIRD-PARTY
+built-distribution/
+THIRD-PARTY

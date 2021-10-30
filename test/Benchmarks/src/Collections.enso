@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+import Standard.Builtins
+import Standard.Test.Bench
+
+polyglot java import java.util.Random
+
+gen_list len = 0.up_to len . fold Nil (l -> i -> Cons i+1 l)
+
+sum_list_meta list =
+    nil_cons = Meta.meta Nil . constructor
+    folder acc list =
+        meta_list = Meta.meta list
+        if meta_list.constructor == nil_cons then acc else
+            fs = meta_list.fields
+            @Tail_Call folder (acc + fs.at 0) (fs.at 1)
+    res = folder 0 list
+    res
+
+sum_recur n = if n == 0 then 0 else 1 + here.sum_recur n-1
+
+build_map size =
+    rand = Random.new
+    0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
+
+main =
+    mil = 1000000
+    list = here.gen_list mil
+    vec = Vector.new mil (ix -> ix + 1)
+    vec_decimal = Vector.new mil (ix -> ix + 0.0)
+    Bench.measure (here.sum_list_meta list) "list meta-fold" 1000 10
+    Bench.measure (list.fold 0 (+)) "list fold" 1000 10
+    Bench.measure (vec.fold 0 (+)) "vector fold" 1000 10
+    Bench.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
+    Bench.measure (here.build_map 10000) "build a map" 100 10

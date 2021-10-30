@@ -1,0 +1,70 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Vector
+import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Response.Body as Response_Body
+import Standard.Base.Network.Http.Status_Code
+
+polyglot java import org.enso.base.Http_Utils
+
+type Response
+
+    ## PRIVATE
+
+       A type representing an HTTP response.
+
+       Arguments:
+       - internal_http_response: The internal represnetation of the HTTP
+         response.
+    type Response internal_http_response
+
+    ## Get the response headers.
+
+       > Example
+         Getting the headers from a response. NOTE that this example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_headers = Examples.get_response.headers
+    headers : Vector.Vector
+    headers =
+        header_entries = Vector.vector (Http_Utils.get_headers this.internal_http_response.headers)
+        header_entries.map e-> Header.new e.getKey e.getValue
+
+    ## Get the response body.
+
+       > Example
+         Getting the body from a response. NOTE that this example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_body = Examples.get_response.body
+    body : Response_Body
+    body = Response_Body.body (Vector.vector this.internal_http_response.body)
+
+    ## Get the response status code.
+
+       > Example
+         Getting the code from a response. NOTE that this example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_code = Examples.get_response.code
+    code : Status_Code
+    code = Status_Code.status_code this.internal_http_response.statusCode
+
+    ## Convert the response to JSON.
+
+       > Example
+         Convert a response to JSON. NOTE that this example will make a network
+         request.
+
+             import Standard.Examples
+
+             example_to_json = Examples.get_response.to_json
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Response"], ["headers", this.headers], ["body", this.body], ["code", this.code]]
+

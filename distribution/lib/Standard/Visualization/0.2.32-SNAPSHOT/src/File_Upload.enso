@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+import Standard.Base.System.File as Base_File
+
+## UNSTABLE
+
+   A function that throws an error to indicate that a file is being uploaded to
+   `path`.
+
+   Arguments:
+   - `path`: The path to which the file is being uploaded.
+file_uploading : (Base_File.File | Text) -> Base_File.File ! File_Being_Uploaded
+file_uploading path =
+    err = File_Being_Uploaded <| case path of
+        Text -> path
+        Base_File.File _ -> path.path
+        _ -> ""
+    Error.throw err
+
+## UNSTABLE
+
+   Represents that a file is being uploaded to the given `file_path`.
+
+   Arguments:
+   - file_path: The path at which the file is being uploaded.
+type File_Being_Uploaded file_path

@@ -1,0 +1,95 @@
+#!/usr/bin/env node
+
+const fss       = require('fs')
+const spawnSync = require('child_process').spawnSync
+const spawn     = require('child_process').spawn
+const path      = require('path')
+
+// Versions
+const nodeJsVersion = "v14.16.1"
+const rustcVersion  = "1.54.0-nightly"
+
+// Configuration
+const libImplDirName = 'impl'
+
+let args = process.argv.slice(2)
+function runRead(cmd, args) {
+    let out = ''
+    return new Promise((resolve, reject) => {
+        let proc = spawn(cmd,args,{shell:true})
+        proc.stderr.pipe(process.stderr)
+        proc.stdout.on('data', (data) => { out += data })
+        proc.on('exit', (code) => {
+            if (code) process.exit(code);
+            resolve(out)
+        })
+    })
+}
+
+async function checkVersion(name, required, cfg) {
+    if (!cfg) { cfg = {} }
+    let version = await runRead(name,['--version'])
+    version     = version.trim()
+    if (cfg.preprocess) { version = cfg.preprocess(version) } if (cfg.silent !== true) {
+        console.log(`Checking '${name}' version.`)
+    }
+    if (version != required) {
+        throw `[ERROR] The '${name}' version '${version}' does not match the required one '${required}'.`
+    }
+}
+
+function runSync(cmd, args) {
+    console.log(`Executing '${cmd} ${args.join(' ')}'`)
+    let proc = spawnSync(cmd, args, {stdio: 'inherit', shell: true})
+    if (proc.status != 0) {
+        process.exit(proc.code)
+    }
+}
+
+function testLibrary() {
+    cwd = process.cwd()
+    console.log(`In directory ${cwd}`)
+
+    if (cwd.endsWith('macros')) {
+        containedDirs = fss.readdirSync(path.join(cwd, '..'), {withFileTypes: true})
+            .filter(f => f.isDirectory())
+            .map(d => d.name)
+
+        if (containedDirs.includes(libImplDirName)) return
+    }
+
+    runSync('wasm-pack', ['test', '--node'])
+}
+
+async function withCwd(dir, fn) {
+    let cwd = path.dirname(__filename)
+    process.chdir(dir)
+    let out = await fn()
+    process.chdir(cwd)
+    return out
+}
+
+function testWasm() {
+    let rootDir = path.join(path.dirname(__filename), '..')
+
+    content = fss.readFileSync(path.join(rootDir, 'Cargo.toml'), {encoding: 'utf-8'})
+    content = content.replace(/\s+|"/g, '')
+    members = content.split('members')[1].split('[')[1].split(']')[0]
+    dirs    = members.split(',').filter(d => d != '').map(d => path.join(rootDir, d))
+
+    dirs.forEach(d => withCwd(d, testLibrary))
+}
+
+async function main() {
+    await checkVersion("node", nodeJsVersion, { silent: true })
+    await checkVersion('rustc', rustcVersion, {
+        preprocess:(v) => v.substring(6,20), silent:true
+    })
+
+    if (args.includes('--test-wasm')) {
+        testWasm()
+    }
+}
+
+main()
+

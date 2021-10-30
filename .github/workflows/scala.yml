@@ -1,0 +1,448 @@
+name: Engine CI
+
+on:
+  push:
+    branches: [main, "release/*"]
+  pull_request:
+    branches: ["*"]
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 21.1.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.5.2
+  # Please ensure that this is in sync with rustVersion in build.sbt
+  rustToolchain: nightly-2021-05-12
+  # Some moderately recent version of Node.JS is needed to run the library download tests.
+  nodeVersion: 14.17.2
+
+jobs:
+  test_and_publish:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-18.04, windows-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Configure Pagefile (Windows)
+        if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.9.0
+      - name: Setup Go
+        uses: actions/setup-go@v2
+      - name: Disable TCP/UDP Offloading (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+      - name: Disable TCP/UDP Offloading (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo ethtool -K eth0 tx off rx off
+      - name: Disable TCP/UDP Offloading (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >
+          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
+          -UdpIPv6
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - name: Setup Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: |
+          conda create --name enso
+          conda init powershell
+      - name: Activate Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: conda activate enso
+      - name: Install FlatBuffers Compiler
+        run: conda install --freeze-installed flatbuffers=1.12.0
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.nodeVersion }}
+      - name: Install Dependencies of the Simple Library Server
+        shell: bash
+        working-directory: tools/simple-library-server
+        run: |
+          npm install
+      - name: Download Project Template Files
+        shell: bash
+        run: |
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/data/store_data.xlsx https://github.com/enso-org/project-templates/raw/main/Orders/data/store_data.xlsx
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Orders/src/Main.enso
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/la_districts.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/la_districts.csv
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/restaurants.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/restaurants.csv
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Restaurants/src/Main.enso
+          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/stargazers/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Stargazers/src/Main.enso
+      - name: Set Up SBT
+        shell: bash
+        run: |
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      - name: Bootstrap Enso project
+        run: |
+          sleep 1
+          sbt --no-colors bootstrap
+
+      - name: Verify the Stdlib Version
+        run: |
+          sleep 1
+          sbt --no-colors "stdlib-version-updater/run check"
+
+      # Compile
+      - name: Build Enso
+        run: |
+          sleep 1
+          sbt --no-colors compile
+
+      # Tests
+      - name: Setup Tests on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "CI_TEST_TIMEFACTOR=2" >> $GITHUB_ENV
+          echo "CI_TEST_FLAKY_ENABLE=true" >> $GITHUB_ENV
+
+      - name: Build the Launcher Native Image
+        run: |
+          sbt --no-colors "launcher/assembly"
+          sbt --no-colors --mem 1536 "launcher/buildNativeImage"
+      - name: Build the PM Native Image
+        run: |
+          sbt --no-colors "project-manager/assembly"
+          sbt --no-colors --mem 1536 "project-manager/buildNativeImage"
+
+      - name: Build the Runner & Runtime Uberjars
+        run: |
+          sleep 1
+          sbt --no-colors "runtime/clean; engine-runner/assembly"
+
+      - name: Test Enso
+        run: |
+          sleep 1
+          sbt --no-colors "set Global / parallelExecution := false; runtime/clean; compile; test"
+      - name: Check Runtime Benchmark Compilation
+        run: |
+          sleep 1
+          sbt --no-colors "runtime/clean; runtime/Benchmark/compile"
+      - name: Check Language Server Benchmark Compilation
+        run: |
+          sleep 1
+          sbt --no-colors language-server/Benchmark/compile
+      - name: Check Searcher Benchmark Compilation
+        run: |
+          sleep 1
+          sbt --no-colors searcher/Benchmark/compile
+
+      # Build Distribution
+      - name: Build the Project Manager Native Image
+        run: |
+          sleep 1
+          sbt --no-colors project-manager/assembly
+          sbt --no-colors --mem 1536 "launcher/buildNativeImage"
+      - name: Build the Parser JS Bundle
+        # The builds are run on 3 platforms, but
+        # Flatbuffer schemas are platform agnostic, so they just need to be
+        # uploaded from one of the runners.
+        if: runner.os == 'Linux'
+        run: sbt --no-colors syntaxJS/fullOptJS
+      - name: Build the docs from standard library sources.
+        if: runner.os == 'Linux'
+        run: sbt --no-colors docs-generator/run
+
+      # Prepare distributions
+      # The version used in filenames is based on the version of the launcher.
+      # Currently launcher and engine versions are tied to each other so they
+      # can be used interchangeably like this. If in the future the versions
+      # become independent, this may require updating to use proper versions
+      # for each component.
+      - name: Prepare Distribution Version (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      - name: Prepare Distribution Version (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      # Currently the only architecture supported by Github runners is amd64
+      - name: Prepare Distribution Environment
+        shell: bash
+        run: >
+          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}') bash
+          tools/ci/prepare-distribution-env.sh
+
+      - name: Prepare Launcher Distribution
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildLauncherDistribution
+
+      # The way artifacts are uploaded currently does not preserve the
+      # executable bits for Unix. However putting artifacts into a ZIP would
+      # create a twice nested ZIP file. For now, users downloading artifacts
+      # from the CI builds have to set the bit themselves.
+      # So the following line has been removed from this step, as it does
+      # nothing useful:
+      #  chmod +x $ENGINE_DIST_DIR/bin/enso
+      - name: Prepare Engine Distribution
+        shell: bash
+        run: |
+          sleep 1
+          sbt "runtime/clean; buildEngineDistribution"
+
+      - name: Prepare Project Manager Distribution
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildProjectManagerDistribution
+
+      # Test Distribution
+      - name: Prepare Engine Test Environment
+        shell: bash
+        run: |
+          mkdir -p test/Google_Api_Test/data
+          echo "$GDOC_KEY" > test/Google_Api_Test/data/secret.json
+          go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
+          $(go env GOPATH)/bin/httpbin -host :8080 &
+        env:
+          GDOC_KEY: ${{secrets.GDOC_TEST_CREDENTIAL}}
+
+      - name: Install Graalpython & FastR
+        if: runner.os != 'Windows'
+        run: |
+          gu install python
+          gu install r
+
+      - name: Prepare configuration for the Database tests
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          echo "ENSO_DATABASE_TEST_HOST=127.0.0.1" >> $GITHUB_ENV
+          echo "ENSO_DATABASE_TEST_DB_NAME=enso_test_db" >> $GITHUB_ENV
+          echo "ENSO_DATABASE_TEST_DB_USER=enso_test_user" >> $GITHUB_ENV
+          echo "ENSO_DATABASE_TEST_DB_PASSWORD=enso_test_password" >> $GITHUB_ENV
+      - name: Configure PostgreSQL for the Database tests
+        uses: harmon758/postgresql-action@v1
+        if: runner.os == 'Linux'
+        with:
+          postgresql version: "latest"
+          postgresql db: ${{ env.ENSO_DATABASE_TEST_DB_NAME }}
+          postgresql user: ${{ env.ENSO_DATABASE_TEST_DB_USER }}
+          postgresql password: ${{ env.ENSO_DATABASE_TEST_DB_PASSWORD }}
+
+      - name: Test Engine Distribution Without Caches (Unix)
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Image_Tests
+
+      - name: Compile the Standard Libraries (Unix)
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+
+      - name: Test Engine Distribution With Caches (Unix)
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Image_Tests
+
+      - name: Test Engine Distribution Without Caches (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Image_Tests
+
+      - name: Compile the Standard Libraries (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+
+      - name: Test Engine Distribution With Caches (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Database_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Geo_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Image_Tests
+
+      # Publish
+      - name: Compress the built artifacts for upload
+        # The artifacts are compressed before upload to work around an error with long path handling in the upload-artifact action on Windows.
+        # See: https://github.com/actions/upload-artifact/issues/240
+        shell: bash
+        working-directory: ${{ env.ENGINE_DIST_ROOT }}
+        run: 7z a -r ${{ env.ENGINE_DIST_NAME }}.zip *
+      - name: Publish the Engine Distribution Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ENGINE_DIST_NAME }}
+          path: ${{ env.ENGINE_DIST_ROOT }}/${{ env.ENGINE_DIST_NAME }}.zip
+      - name: Publish the Launcher
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.LAUNCHER_DIST_NAME }}
+          path: ${{ env.LAUNCHER_DIST_ROOT }}
+      - name: Publish the Project Manager
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PROJECTMANAGER_DIST_NAME }}
+          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+
+      - name: Prepare the FlatBuffers Schemas for Upload
+        # The builds are run on 3 platforms, but Flatbuffer schemas are platform
+        # agnostic, so they just need to be uploaded from one of the runners.
+        if: runner.os == 'Linux'
+        run: |
+          mkdir fbs-upload
+          cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
+          zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
+      - name: Publish the FlatBuffers Schemas
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Engine Protocol FlatBuffers Schemas
+          path: ./fbs-upload/fbs-schema.zip
+      - name: Prepare Parser JS Bundle for Upload
+        if: runner.os == 'Linux'
+        run: |
+          mkdir parser-upload
+          cp ./target/scala-parser.js parser-upload
+      - name: Publish the Parser JS Bundle
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Parser JS Bundle
+          path: ./target/scala-parser.js
+      #      - name: Publish the standard library docs
+      #        if: runner.os == 'Linux'
+      #        uses: andstor/copycat-action@v3
+      #        with:
+      #          personal_token: ${{ secrets.CI_PAT }}
+      #          src_path: ./distribution/docs-js/
+      #          dst_path: /docs/reference/.
+      #          dst_branch: stdlib-update
+      #          dst_owner: enso-org
+      #          dst_repo_name: website
+      #          clean: true
+      - name: Publish the Manifest
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
+
+      # Publish FlatBuffer Schemas and Parser Bundle to S3
+      - name: Prepare AWS Session
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          us-west-2
+          text
+          EOF
+      - name: Upload Parser JS Bundle to S3
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+      - name: Upload FlatBuffers Schemas to S3
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+      - name: Teardown AWS Session
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF

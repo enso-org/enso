@@ -1,0 +1,187 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [main, "release/*"]
+  pull_request:
+    branches: ["*"]
+
+env:
+  wasmpackVersion: 0.8.1
+  nodeVersion: 14.16.1
+  rustToolchain: nightly-2021-10-29
+
+jobs:
+  check:
+    name: Rust Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Library Sources
+        uses: actions/checkout@v2
+
+      # Install Tooling
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+
+      # TODO [AA] at some point when the caching bug is fixed we will want to
+      # re-enable the caches
+      #      # Caches
+      #      - name: Cache Cargo Registry
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ~/.cargo/registry
+      #          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-registry
+      #      - name: Cache Cargo Test
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ./target/rust
+      #          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-build
+
+      # Lint
+      - name: Check Code
+        uses: actions-rs/cargo@v1.0.1
+        with:
+          command: check
+          args: --all-targets
+
+  lint:
+    name: Rust Lint
+    runs-on: ubuntu-latest
+    needs: check
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Library Sources
+        uses: actions/checkout@v2
+
+      # Install Tooling
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+      - name: Install Clippy
+        run: rustup component add clippy
+
+      #      # Caches
+      #      - name: Cache Cargo Registry
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ~/.cargo/registry
+      #          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-registry
+      #      - name: Cache Cargo Test
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ./target/rust
+      #          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-build
+
+      # Lint
+      - name: Lint Code
+        uses: actions-rs/cargo@v1.0.1
+        with:
+          command: clippy
+
+  test-native:
+    name: Rust Test Native
+    runs-on: ${{ matrix.os }}
+    needs: check
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - name: Checkout Library Sources
+        uses: actions/checkout@v2
+
+      # Install Tooling
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+
+      #      # Caches
+      #      - name: Cache Cargo Registry
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ~/.cargo/registry
+      #          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-registry
+      #      - name: Cache Cargo Test
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ./target/rust
+      #          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-build
+
+      # Tests
+      - name: Test Native
+        uses: actions-rs/cargo@v1.0.1
+        with:
+          command: test
+
+  test-wasm:
+    name: Rust Test WASM
+    runs-on: ubuntu-latest
+    needs: check
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Library Sources
+        uses: actions/checkout@v2
+
+      # Install Tooling
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.nodeVersion }}
+      - name: Install wasm-pack
+        # We could use cargo install wasm-pack, but that takes 3.5 minutes
+        # compared to a few seconds.
+        env:
+          WASMPACKURL:
+            https://github.com/rustwasm/wasm-pack/releases/download/v${{
+            env.wasmpackVersion }}
+          WASMPACKDIR:
+            wasm-pack-v${{ env.wasmpackVersion }}-x86_64-unknown-linux-musl
+        shell: bash
+        run: |
+          curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+          mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+          rm -r $WASMPACKDIR
+
+      #      # Caches
+      #      - name: Cache Cargo Registry
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ~/.cargo/registry
+      #          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-registry
+      #      - name: Cache Cargo Test
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: ./target/rust
+      #          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+      #          restore-keys: ${{ runner.os }}-cargo-build
+
+      # Tests
+      - name: Test WASM
+        run: ./tools/run --test-wasm

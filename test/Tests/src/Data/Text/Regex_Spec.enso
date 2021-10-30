@@ -1,0 +1,28 @@
+
+from Standard.Base import all
+import Standard.Test
+
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Option
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+
+spec =
+    Test.group "Regex options handling" <|
+        Test.specify "should work properly with flag options" <|
+            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False comments=True extra_opts=[]
+            flags . should_equal [Option.Ascii_Matching, Option.Dot_Matches_Newline, Option.Comments]
+
+        Test.specify "should properly override vector options" <|
+            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False comments=True extra_opts=[Option.Multiline, Option.Case_Insensitive]
+            flags . should_equal [Option.Ascii_Matching, Option.Case_Insensitive, Option.Dot_Matches_Newline, Option.Comments]
+
+    Test.group "Regexes" <|
+        Test.specify "should be able to be compiled" <|
+            pattern = Regex.compile "(?<dots>..)" case_insensitive=True
+            pattern . should_be_a Default_Engine.Pattern
+            pattern.options . should_equal [Option.Case_Insensitive]
+
+        Test.specify "should be able to be escaped" <|
+            pattern = "http://example.com"
+            Regex.escape pattern . should_equal "\Qhttp://example.com\E"
+

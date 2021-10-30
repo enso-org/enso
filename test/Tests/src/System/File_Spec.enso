@@ -1,0 +1,111 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec =
+    sample_file = Enso_Project.data / "sample.txt"
+    non_existent_file = File.new "does_not_exist.txt"
+    Test.group "File Operations" <|
+
+        Test.specify "should allow creating a new file" <|
+            path = sample_file.path
+            File.new path
+
+        Test.specify "should have `new` be a no-op on a file" <|
+            file = File.new sample_file
+            file . should_equal sample_file
+
+        Test.specify "should allow reading a file" <|
+            contents = sample_file.read
+            contents.should .start_with "Cupcake ipsum dolor sit amet."
+
+        Test.specify "should allow reading a file to byte vector" <|
+            contents = sample_file.read_bytes
+            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+
+        Test.specify "should handle exceptions when reading a non-existent file" <|
+            file = File.new "does_not_exist.txt"
+            successfully_failed = Panic.recover file.read . catch e-> case e of
+                File.No_Such_File_Error _ -> True
+                _ -> False
+            successfully_failed . should_be_true
+
+        Test.specify "should check if file exists" <|
+            non_existent_file.exists.should_be_false
+            sample_file.exists.should_be_true
+
+        Test.specify "should check if file is a directory" <|
+            sample_file.is_directory.should_be_false
+            Enso_Project.root.is_directory.should_be_true
+
+        Test.specify "should get file name" <|
+            sample_file.name.should_equal "sample.txt"
+
+        Test.specify "should convert a file to absolute" <|
+            abs = File.new "foo.txt" . absolute
+            through_cwd = (File.current_directory / "foo.txt")
+            abs.should_equal through_cwd
+
+        Test.specify "should normalize file" <|
+            f_1 = File.new "foo"
+            f_2 = File.new "bar/../baz/../foo"
+            f_2.normalize.should_equal f_1
+
+        Test.specify "should allow reading a file byte by byte" <|
+            f = Enso_Project.data / "short.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            f.write "Cup"
+            f.with_input_stream stream->
+                stream.read_byte.should_equal 67
+                stream.read_byte.should_equal 117
+                stream.read_byte.should_equal 112
+                stream.read_byte.should_equal -1
+            f.delete
+            f.exists.should_be_false
+
+        Test.specify "should write and append to files" <|
+            f = Enso_Project.data / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            f.write "line 1!"
+            f.exists.should_be_true
+            f.read.should_equal "line 1!"
+            f.append '\nline 2!'
+            f.read.should_equal 'line 1!\nline 2!'
+            f.delete
+            f.exists.should_be_false
+
+        Test.specify "should open and read the file in one shot" <|
+            path_name = sample_file.path
+            contents = File.read path_name
+            contents.should .start_with "Cupcake ipsum dolor sit amet."
+            file = sample_file
+            contents_2 = File.read file
+            contents_2.should .start_with "Cupcake ipsum dolor sit amet."
+
+        resolve files =
+            base = Enso_Project.data
+            files.map str->
+                (base / str) . to_text
+
+        Test.specify "should list files in a directory" <|
+            immediate = Enso_Project.data.list . map .to_text
+            immediate.sort.should_equal (resolve ["books.json", "sample.txt", "subdirectory"])
+
+            filtered1 = Enso_Project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
+            filtered1.should_equal (resolve ["sample.txt"])
+
+            filtered2 = File.list Enso_Project.data name_filter="*dir*" . map .to_text
+            filtered2.should_equal (resolve ["subdirectory"])
+
+        Test.specify "should list files in a directory recursively" <|
+            all = Enso_Project.data.list recursive=True . map .to_text
+            all.sort.should_equal (resolve ["", "books.json", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt"])
+
+            filtered1 = Enso_Project.data.list name_filter="**.txt" recursive=True . map .to_text
+            filtered1.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+
+            filtered2 = Enso_Project.data.list name_filter="*/*/*" recursive=True . map .to_text
+            filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
+

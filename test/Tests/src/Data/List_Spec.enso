@@ -1,0 +1,81 @@
+from Standard.Base import all
+
+import Standard.Base.Data.List
+
+import Standard.Test
+
+spec = Test.group "List" <|
+    l = Cons 1 <| Cons 2 <| Cons 3 <| Nil
+    empty = Nil
+    Test.specify "should have properly defined length" <|
+        l.length.should_equal 3
+    Test.specify "should have well defined length when empty" <|
+        Nil.length.should_equal 0
+    Test.specify "should allow folding the list with an arbitrary operation with .fold" <|
+        sum = l.fold 0 (+)
+        prod = l.fold 1 (*)
+        sum.should_equal 6
+        prod.should_equal 6
+    Test.specify "should allow checking if an element satisfies a predicate with .exists" <|
+        any_even = l.exists (x -> x % 2 == 0)
+        any_eq_five = l.exists (== 5)
+        any_even.should_be_true
+        any_eq_five.should_be_false
+    Test.specify "should allow checking if an element satisfies a predicate with .any" <|
+        any_even = l.any (x -> x % 2 == 0)
+        any_eq_five = l.any (== 5)
+        any_even.should_be_true
+        any_eq_five.should_be_false
+    Test.specify "should allow checking if all elements satisfy a predicate with `.all`" <|
+        all_even = l.all(x -> x % 2 == 0)
+        all_less_than_four = l.all (< 4)
+        all_even . should_be_false
+        all_less_than_four . should_be_true
+    Test.specify "should allow checking if an element is in the list with `.contains`" <|
+        l.contains 4 . should_be_false
+        l.contains 3 . should_be_true
+        empty.contains 10 . should_be_false
+    Test.specify "should allow checking if the list is empty with `.is_empty`" <|
+        l.is_empty . should_be_false
+        empty.is_empty . should_be_true
+    Test.specify "should allow checking if the list is not empty `.not_empty`" <|
+        l.not_empty . should_be_true
+        empty.not_empty . should_be_false
+    Test.specify "should allow filtering of the list using `.filter`" <|
+        l.filter (> 2) . should_equal (Cons 3 Nil)
+    Test.specify "should allow mapping a function over its elements with .map" <|
+        l.map +1 . head . should_equal 2
+    Test.specify "should allow executing an action for each element with .each" <|
+        sum = State.run Number 0 <|
+            l.each el->
+                s = State.get Number
+                State.put Number s+el
+            State.get Number
+        sum.should_equal 6
+    Test.specify "should allow reversing with .reverse" <|
+        l.reverse.head.should_equal 3
+    Test.specify "should allow dropping elements from the left with `.drop`" <|
+        l.drop_start 1 . should_equal (Cons 2 (Cons 3 Nil))
+        empty.drop_start 1 . should_equal Nil
+    Test.specify "should allow taking elements from the left with `.take_start`" <|
+        l.take_start 2 . should_equal (Cons 1 (Cons 2 Nil))
+        empty.take_start 2 . should_equal Nil
+    Test.specify "should allow getting the head of the list with `.head`" <|
+        l.head . should_equal 1
+        empty.head.should_fail_with List.Empty_Error
+    Test.specify "should allow getting the tail of the list with `.tail`" <|
+        l.tail . should_equal (Cons 2 (Cons 3 Nil))
+        empty.tail.should_fail_with List.Empty_Error
+    Test.specify "should allow getting the init of the list with `.init`" <|
+        l.init . should_equal (Cons 1 (Cons 2 Nil))
+        empty.init.should_fail_with List.Empty_Error
+    Test.specify "should allow getting the last element of the list with `.last`" <|
+        l.last . should_equal 3
+        empty.last.should_fail_with List.Empty_Error
+    Test.specify "should allow getting the head of the list with `.first`" <|
+        l.first . should_equal 1
+        empty.first.should_fail_with List.Empty_Error
+    Test.specify "should allow getting the tail of the list with `.rest`" <|
+        l.rest . should_equal (Cons 2 (Cons 3 Nil))
+        empty.rest.should_fail_with List.Empty_Error
+

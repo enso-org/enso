@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec = Test.group "Inlining Helpers" <|
+    Test.specify "should allow to run an action" <|
+        x = Runtime.no_inline (2 + 3)
+        x . should_equal 5
+    Test.specify "should allow to call a function" <|
+        x = Runtime.no_inline_with_arg (x -> x + 4) 3
+        x . should_equal 7

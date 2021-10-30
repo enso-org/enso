@@ -1,0 +1,60 @@
+from Standard.Base import all
+
+polyglot java import java.nio.file.StandardOpenOption
+
+## Represents different options for opening file streams.
+
+   This is intended for more advanced users, wishing to obtain lower-level
+   file access. For most use cases, the default values used in the methods of
+   the `File` type should be preferred.
+type Option
+
+    ## If the file is opened for `Write` access then bytes will be written to
+       the end of the file rather than the beginning.
+    type Append
+
+    ## Create a new file if it does not exist.
+    type Create
+
+    ## Create a new file, failing if the file already exists.
+    type Create_New
+
+    ## Delete the underlying file on closing the stream.
+    type Delete_On_Close
+
+    ## Requires that every update to the file's content be written
+       synchronously to the underlying storage device.
+    type Dsync
+
+    ## Open for read access.
+    type Read
+
+    ## Sparse file.
+    type Sparse
+
+    ## Requires that every update to the file's content or metadata be written
+       synchronously to the underlying storage device.
+    type Sync
+
+    ## If the file already exists and is opened for `Write` access,
+       the original contents will be removed.
+    type Truncate_Existing
+
+    ## Open file for write access.
+    type Write
+
+    ## PRIVATE
+
+       Convert this object into a representation understandable by the JVM.
+    to_java : StandardOpenOption
+    to_java = case this of
+        Append            -> StandardOpenOption.APPEND
+        Create            -> StandardOpenOption.CREATE
+        Create_New        -> StandardOpenOption.CREATE_NEW
+        Delete_On_Close   -> StandardOpenOption.DELETE_ON_CLOSE
+        Dsync             -> StandardOpenOption.DSYNC
+        Read              -> StandardOpenOption.READ
+        Sparse            -> StandardOpenOption.SPARSE
+        Sync              -> StandardOpenOption.SYNC
+        Truncate_Existing -> StandardOpenOption.TRUNCATE_EXISTING
+        Write             -> StandardOpenOption.WRITE

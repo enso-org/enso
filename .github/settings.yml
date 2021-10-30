@@ -1,0 +1,256 @@
+# See https://github.com/probot/settings for all available settings.
+
+# General Repository Configuration
+repository:
+  name: enso
+  description: Hybrid visual and textual functional programming.
+  homepage: https://enso.org
+  topics:
+    enso, visual, textual, hybrid, functional, language, compiler, interpreter,
+    graalvm, rts, jit, polyglot
+
+  private: false
+
+  has_issues: true
+  has_wiki: true
+  has_projects: true
+  has_downloads: true
+
+  default_branch: main
+
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: false
+
+# The repository labels configuration
+labels:
+  - name: "Category: Backend"
+    color: "#d1f0fd"
+    description: The backend services for the IDE
+  - name: "Category: Codegen"
+    color: "#d1f0fd"
+    description: The code generation stages
+  - name: "Category: Compiler"
+    color: "#d1f0fd"
+    description: The compiler
+  - name: "Category: Core"
+    color: "#d1f0fd"
+    description: The core language
+  - name: "Category: Documentation"
+    color: "#d1f0fd"
+    description: Language, codebase, and library docs
+  - name: "Category: External"
+    color: "#d1f0fd"
+    description: External issues
+  - name: "Category: Build"
+    color: "#d1f0fd"
+    description: The project build and CI/CD
+  - name: "Category: Distribution"
+    color: "#d1f0fd"
+    description: Packaging and distribution of Enso
+  - name: "Category: Interpreter"
+    color: "#d1f0fd"
+    description: The interpreter
+  - name: "Category: Libraries"
+    color: "#d1f0fd"
+    description: Libraries (Enso and others) in this repo
+  - name: "Category: Performance"
+    color: "#d1f0fd"
+    description: Performance of Enso
+  - name: "Category: RTS"
+    color: "#d1f0fd"
+    description: The runtime system
+  - name: "Category: Semantics"
+    color: "#d1f0fd"
+    description: Language semantics
+  - name: "Category: Stdlib"
+    color: "#d1f0fd"
+    description: The Enso standard library
+  - name: "Category: Syntax"
+    color: "#d1f0fd"
+    description: Language syntax
+  - name: "Category: Tooling"
+    color: "#d1f0fd"
+    description: Enso language tooling
+  - name: "Category: Types"
+    color: "#d1f0fd"
+    description: The type-system, and type inference and checking engines
+
+  - name: "Change: Breaking"
+    color: "#ffdce5"
+    description: A change that will break a public API or user-facing behaviour
+  - name: "Change: Non-Breaking"
+    color: "#ffdce5"
+    description:
+      A change that will not break a public API or user-facing behaviour
+
+  - name: "Difficulty: Beginner"
+    color: "#d1e9c4"
+    description: Little prior knowledge required
+  - name: "Difficulty: Core Contributor"
+    color: "#d1e9c4"
+    description: Should only be attempted by a core contributor
+  - name: "Difficulty: Hard"
+    color: "#d1e9c4"
+    description: Significant prior knowledge required
+  - name: "Difficulty: Intermediate"
+    color: "#d1e9c4"
+    description: Some prior knowledge required
+  - name: "Difficulty: Unknown"
+    color: "#d1e9c4"
+    description: Unable to estimate difficulty
+
+  - name: "Epic"
+    color: "#3E4B9E"
+    description: An epic (should never be assigned manually)
+
+  - name: "Priority: High"
+    color: "#fff1c1"
+    description: Should be completed in the next sprint
+  - name: "Priority: Highest"
+    color: "#fff1c1"
+    description: Should be completed ASAP
+  - name: "Priority: Low"
+    color: "#fff1c1"
+    description: Should be completed in the next three months
+  - name: "Priority: Lowest"
+    color: "#fff1c1"
+    description: Should be completed at some point
+  - name: "Priority: Medium"
+    color: "#fff1c1"
+    description: Should be completed in the next few sprints
+
+  - name: "Size: Small"
+    color: "#ffdfd3"
+    description: Requires a small time commitment
+  - name: "Size: Medium"
+    color: "#ffdfd3"
+    description: Requires a medium time commitment
+  - name: "Size: Large"
+    color: "#ffdfd3"
+    description: Requires a large time commitment
+  - name: "Size: Unknown"
+    color: "#ffdfd3"
+    description: Requires an unknown time commitment
+
+  - name: "Status: Cannot Reproduce"
+    color: "#eeeeee"
+    description: Can't reproduce the issue
+  - name: "Status: Duplicate"
+    color: "#eeeeee"
+    description: A duplicate issue
+  - name: "Status: Good First Issue"
+    color: "#eeeeee"
+    description: A good issue for new contributors
+  - name: "Status: Help Wanted"
+    color: "#eeeeee"
+    description: Help wanted with the task
+  - name: "Status: Info Needed"
+    color: "#eeeeee"
+    description: More information needed from submitter
+  - name: "Status: Invalid"
+    color: "#eeeeee"
+    description: Not valid for some reason
+  - name: "Status: Research Needed"
+    color: "#eeeeee"
+    description: The task will require heavy research to complete
+  - name: "Status: Wontfix"
+    color: "#eeeeee"
+    description: Will not be fixed / not a bug
+
+  - name: "Type: Bug"
+    color: "#ede2fe"
+    description: A bug in Enso
+  - name: "Type: Enhancement"
+    color: "#ede2fe"
+    description: An enhancement to Enso
+  - name: "Type: RFC"
+    color: "#ede2fe"
+    description: An RFC proposing a change to Enso
+  - name: "Type: Release"
+    color: "#ede2fe"
+    description: Preparation for an Enso release
+
+  - name: "RFC: Active"
+    color: "#e4decb"
+    description: An RFC being actively implemented
+  - name: "RFC: Discussion"
+    color: "#e4decb"
+    description: An RFC preliminarily complete
+  - name: "RFC: FCP"
+    color: "#e4decb"
+    description: An RFC in the final comment period
+  - name: "RFC: Accepted"
+    color: "#e4decb"
+    description: An RFC accepted into Enso
+  - name: "RFC: Rejected"
+    color: "#e4decb"
+    description: An RFC rejected for inclusion in Enso
+  - name: "RFC: Postponed"
+    color: "#e4decb"
+    description: An RFC that has been postponed
+
+# Teams configuration
+teams:
+  - name: developers
+    permission: push
+  - name: moderators
+    permission: maintain
+
+# Branch protection
+branches:
+  - name: main
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: false
+        require_code_owner_reviews: true
+        dismissal_restrictions: {}
+
+      required_status_checks:
+        # Require branches to be up to date before merging.
+        strict: true
+        contexts:
+          - "Build and Test (macOS-latest)"
+          - "Build and Test (ubuntu-18.04)"
+          - "Build and Test (windows-latest)"
+          - "Docs Check"
+          - "Changelog Check"
+          - "Rust Check"
+          - "Rust Lint"
+          - "Rust Test Native (macOS-latest)"
+          - "Rust Test Native (ubuntu-latest)"
+          - "Rust Test Native (windows-latest)"
+          - "Rust Test WASM"
+          - "Verify Notice Package"
+          - "license/cla"
+      enforce_admins: null
+      restrictions: null
+  - name: "release/*.x"
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: false
+        require_code_owner_reviews: true
+        dismissal_restrictions: {}
+
+      required_status_checks:
+        # Require branches to be up to date before merging.
+        strict: true
+        contexts:
+          - "Build and Test (macOS-latest)"
+          - "Build and Test (ubuntu-18.04)"
+          - "Build and Test (windows-latest)"
+          - "Docs Check"
+          - "Build Engine"
+          - "Rust Check"
+          - "Rust Lint"
+          - "Rust Test Native (macOS-latest)"
+          - "Rust Test Native (ubuntu-latest)"
+          - "Rust Test Native (windows-latest)"
+          - "Rust Test WASM"
+          - "Verify Notice Package"
+          - "license/cla"
+      #          - "Vulnerability Scan" # CodeQL is temporarily disabled due to incompatibility
+      enforce_admins: null
+      restrictions: null

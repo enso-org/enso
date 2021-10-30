@@ -1,0 +1,19 @@
+include "common.fbs";
+namespace org.enso.polyglot.debugger.protocol;
+
+// Represents a single pair from the mapping of bindings which maps names to
+// representations of their values.
+table Binding {
+  name: string (key);
+  value: ObjectRepresentation;
+}
+
+// Request to list bindings.
+table ListBindingsRequest {}
+
+// Response containing the requested list of bindings.
+table ListBindingsResult {
+
+  // Currently available bindings.
+  bindings: [Binding];
+}

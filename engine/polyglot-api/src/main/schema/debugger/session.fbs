@@ -1,0 +1,7 @@
+namespace org.enso.polyglot.debugger.protocol;
+
+// Notification sent from the debugger to indicate that a session has started.
+table SessionStartNotification {}
+
+// Request to terminate the current session.
+table SessionExitRequest {}

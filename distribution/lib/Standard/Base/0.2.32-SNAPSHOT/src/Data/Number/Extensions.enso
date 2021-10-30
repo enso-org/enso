@@ -1,0 +1,283 @@
+from Standard.Base import all hiding Parse_Error
+
+polyglot java import java.lang.Double
+polyglot java import java.lang.Math
+polyglot java import java.lang.String
+
+## ALIAS Inverse Sine
+
+   Computes the inverse of the sine function
+
+   Selects a value in the -pi/2 through pi/2 range.
+
+   > Example
+     Calculate the inverse sine of 1.
+
+         1.asin
+Number.asin : Decimal
+Number.asin = Math.asin this.to_decimal
+
+## ALIAS Inverse Cosine
+
+   Computes the inverse of the cosine function.
+
+   Selects a value in the -pi/2 through pi/2 range.
+
+   > Example
+     Calculate the inverse cosine of 1.
+
+         1.acos
+Number.acos : Decimal
+Number.acos = Math.acos this.to_decimal
+
+## ALIAS Inverse Tangent
+
+   Computes the inverse of the tangent function.
+
+   Selects a value in the -pi/2 through pi/2 range.
+
+   > Example
+     Calculate the inverse tangent of 1.
+
+         1.atan
+Number.atan : Decimal
+Number.atan = Math.atan this.to_decimal
+
+## Computes the argument (angle) in the conversion from cartesian
+   to polar coordinates, taking `this` as the x coordinate.
+
+   Arguments:
+   - y: The y coordinate.
+
+   The returned angle is in the -pi through pi range.
+
+   > Example
+     Convert the coordinates 1 and 2 to polar form.
+
+         1.atan_2 2
+Number.atan_2 : Number -> Decimal
+Number.atan_2 y = Math.atan2 this.to_decimal y.to_decimal
+
+## ALIAS Sine
+
+   Computes the sine function.
+
+   > Example
+     Calculate the sine of 2.
+
+         2.sin
+Number.sin : Decimal
+Number.sin = Math.sin this.to_decimal
+
+## ALIAS Cosine
+
+   Computes the cosine function.
+
+   > Example
+     Calculate the cosine of 2.
+
+         2.cos
+Number.cos : Decimal
+Number.cos = Math.cos this.to_decimal
+
+## ALIAS Tangent
+
+   Computes the tangent function.
+
+   > Example
+     Calculate the tangent of 2.
+
+         2.tan
+Number.tan : Decimal
+Number.tan = Math.tan this.to_decimal
+
+## Computes the hyperbolic sine function.
+
+   > Example
+     Calculate the hyperbolic sine of 1.
+
+         1.sinh
+Number.sinh : Decimal
+Number.sinh = Math.sinh this.to_decimal
+
+## Computes the hyperbolic cosine function.
+
+   > Example
+     Calcualte the hyperbolic cosine of 1.
+
+         1.cosh
+Number.cosh : Decimal
+Number.cosh = Math.cosh this.to_decimal
+
+## Computes the hyperbolic tangent function.
+
+   > Example
+     Calculate the hyperbolic tangent of 1.
+
+         1.tanh
+Number.tanh : Decimal
+Number.tanh = Math.tanh this.to_decimal
+
+## ALIAS Exponential
+
+   Computes the exponential function, raising Euler's number `r` to the power of
+   `this`.
+
+   > Example
+     Calculate e to the 4th power.
+
+         4.exp
+Number.exp : Decimal
+Number.exp = Math.exp this.to_decimal
+
+## ALIAS Natural Logarithm
+
+   Computes the natural logarithm function.
+
+   > Example
+     Calculate the natural logarithm of 2.
+
+         2.ln
+Number.ln : Decimal
+Number.ln = Math.log this.to_decimal
+
+## ALIAS Square Root
+
+   Computes the square root of `this`.
+
+   > Example
+     Calculate the square root of 8.
+
+         8.sqrt
+Number.sqrt : Decimal
+Number.sqrt = Math.sqrt this.to_decimal
+
+## ALIAS Logarithm
+
+   Computes the `base`-log of `this`.
+
+   Arguments:
+   - base: The base for the logarithm.
+
+   > Example
+     Calculate log 2 of 4.
+
+         4.log 2
+Number.log : Number -> Decimal
+Number.log base = this.ln / base.ln
+
+## UNSTABLE This API is not user-friendly and will be improved in the future.
+
+   Converts a numeric value to a string, using the Java string formatting
+   syntax.
+
+   Arguments:
+   - fmt: The java-style formatting specifier.
+
+   > Example
+     Convert the value 5 to a string.
+
+         5.format "%x"
+Number.format : Text -> Text
+Number.format fmt = String.format fmt this
+
+## ALIAS Range
+
+   Creates a new right-exclusive range of integers from `this` to `n`.
+
+   Arguments:
+   - n: The end of the range.
+
+   > Example
+     Create a range containing the numbers 0, 1, 2, 3, 4.
+
+         0.up_to 5
+Integer.up_to : Integer -> Range
+Integer.up_to n = Range this n
+
+## Checks equality of numbers, using an `epsilon` value.
+
+   Arguments:
+   - that: The number to check equality against.
+   - epsilon: The value by which `this` and `that` can be separated by before
+     counting as not equal.
+
+   > Example
+     Check if 1 is equal to 1.0000001 within 0.001.
+
+         1.equals 1.0000001 epsilon=0.001
+Number.equals : Number -> Number -> Boolean
+Number.equals that epsilon=0.0 = (this - that).abs <= epsilon
+
+## Returns the smaller value of `this` and `that`.
+
+   Arguments:
+   - that: The number to compare `this` against.
+
+   ? Math.min or Number.min
+     While we provide the min method on `Number`, we find it more intuitive to
+     write `Math.min a b` rather than `a.min b`. To that end, we recommend using
+     the first style.
+
+   > Example
+     Find the minimum of 2 and 5.
+
+         2.min 5
+Number.min : Number -> Number
+Number.min that = if this < that then this else that
+
+## Returns the larger value of `this` and `that`.
+
+   Arguments:
+   - that: The number to compare `this` against.
+
+   ? Math.max or Number.max
+     While we provide the max method on `Number`, we find it more intuitive to
+     write `Math.max a b` rather than `a.max b`. To that end, we recommend using
+     the first style.
+
+   > Example
+     Find the maximum of 2 and 5.
+
+         2.max 5
+Number.max : Number -> Number
+Number.max that = if this > that then this else that
+
+## Number to JSON conversion.
+
+   > Example
+     Convert the number 8 to JSON.
+
+         8.to_json
+Number.to_json : Json.Number
+Number.to_json = Json.Number this
+
+## ALIAS From Text
+
+   Parses a textual representation of a decimal into a decimal number, returning
+   a `Parse_Error` if the text does not represent a valid decimal.
+
+   Arguments:
+   - text: The text to parse into a decimal.
+
+   > Example
+     Parse the text "7.6" into a decimal number.
+
+         Decimal.parse 7.6
+Decimal.parse : Text -> Decimal ! Parse_Error
+Decimal.parse text =
+    Panic.recover (Double.parseDouble text) . catch _->
+        Error.throw (Parse_Error text)
+
+## UNSTABLE
+
+   A syntax error when parsing a double.
+type Parse_Error text
+
+## UNSTABLE
+
+   Pretty print the syntax error.
+Parse_Error.to_display_text : Text
+Parse_Error.to_display_text =
+    "Could not parse " + this.text.to_text + " as a double."
+

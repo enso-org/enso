@@ -1,0 +1,47 @@
+[workspace]
+
+members = [
+    "lib/rust/ast",
+    "lib/rust/launcher-shims",
+    "lib/rust/lexer/definition",
+    "lib/rust/lexer/generation",
+    "lib/rust/parser",
+    "lib/rust/parser-jni",
+    "lib/rust/automata",
+    "lib/rust/data",
+    "lib/rust/flexer",
+    "lib/rust/flexer-testing/definition",
+    "lib/rust/flexer-testing/generation",
+    "lib/rust/generics",
+    "lib/rust/lazy-reader",
+    "lib/rust/logger",
+    "lib/rust/macro-utils",
+    "lib/rust/optics",
+    "lib/rust/prelude",
+    "lib/rust/shapely/impl",
+    "lib/rust/shapely/macros",
+]
+
+[profile.dev]
+opt-level        = 0
+lto              = false
+debug            = true
+debug-assertions = true
+
+[profile.release]
+opt-level        = 3
+lto              = true
+debug            = false
+debug-assertions = false
+
+[profile.bench]
+opt-level        = 3
+lto              = true
+debug            = false
+debug-assertions = false
+
+[profile.test]
+opt-level        = 0
+lto              = false
+debug            = true
+debug-assertions = true

@@ -1,0 +1,34 @@
+[package]
+name    = "enso-data"
+version = "0.2.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+description  = "A collection of useful data structures."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/rust-lib/src/data"
+repository   = "https://github.com/enso-org/rust-lib"
+license-file = "../../LICENSE"
+
+keywords = []
+categories = ["data-structures"]
+
+publish = true
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+enso-prelude = { version = "^0.2.1", path = "../prelude" }
+serde        = { version = "1.0"  , features = ["derive"] }
+typenum      = { version = "1.11.2" }
+rustversion  = { version = "1.0"                        }
+
+
+[dev-dependencies]
+itertools = "0.9.0"
+criterion = "0.3"
+
+[[bench]]
+name = "bench_tree_query"
+harness = false

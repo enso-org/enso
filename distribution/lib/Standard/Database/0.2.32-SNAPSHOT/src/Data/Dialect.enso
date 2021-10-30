@@ -1,0 +1,112 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Sql
+import Standard.Database.Data.Internal.Base_Generator
+
+## PRIVATE
+
+   Represents a specific SQL dialect.
+
+   It encapsulates dialect-specific code generation details allowing us to
+   support differing SQL dialects.
+type Dialect
+
+    ## PRIVATE
+
+       Represents a specific SQL dialect.
+
+       Arguments:
+       - name: name of the dialect.
+       - generate_sql: a function which generates SQL code from the internal
+         representation according to the specific dialect.
+
+       It encapsulates dialect-specific code generation details allowing us to
+       support differing SQL dialects.
+    # type Dialect (name : Text) (generate_sql : Query -> Sql.Statement)
+    type Dialect name generate_sql
+
+## PRIVATE
+
+   The dialect of PostgreSQL databases.
+postgresql : Dialect
+postgresql =
+    starts_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE CONCAT(") ++ sub ++ (Sql.code ", '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation starts_with")
+    ends_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ")")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation ends_with")
+    contains arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ", '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation contains")
+    my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    dialect = Base_Generator.base_dialect . extend_with my_mappings
+    Dialect "postgresql" (query -> Base_Generator.generate_query dialect query . build)
+
+## PRIVATE
+
+   The dialect of SQLite databases.
+sqlite : Dialect
+sqlite =
+    starts_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation starts_with")
+    ends_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation ends_with")
+    contains arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code " || '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation contains")
+    my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    dialect = Base_Generator.base_dialect . extend_with my_mappings
+    Dialect "sqlite" (query -> Base_Generator.generate_query dialect query . build)
+
+## PRIVATE
+
+   The dialect for Redshift connections.
+redshift : Dialect
+redshift = case here.postgresql of
+    Dialect _ builder -> Dialect "redshift" builder
+
+## PRIVATE
+
+   A vector of SQL dialects supported by the Database library.
+supported_dialects : Vector Dialect
+supported_dialects = [here.postgresql, here.sqlite, here.redshift]
+

@@ -1,0 +1,3 @@
+from local.TestSimpleImports.Atom import all
+
+main = (X 1).method

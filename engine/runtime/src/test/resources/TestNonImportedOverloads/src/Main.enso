@@ -1,0 +1,6 @@
+from Standard.Builtins import all
+from local.TestNonImportedOverloads.Util import all
+
+X.method = 10
+
+main = Nothing.util (X 1)

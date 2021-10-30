@@ -1,0 +1,4 @@
+This program only distributes portions of the module contained in one of the checker-qual*.jar files,
+so as described in the attached LICENSE.txt, only the MIT license applies.
+The LGPL license is included for completeness, but it does not apply in our usecase,
+as we only distribute the MIT-licensed components.

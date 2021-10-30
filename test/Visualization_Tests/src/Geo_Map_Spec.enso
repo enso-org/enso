@@ -1,0 +1,36 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Table
+import Standard.Test
+import Standard.Visualization.Geo_Map
+import project.Helpers
+
+spec = 
+    expect value expected_json_text = 
+        result = Geo_Map.process_to_json_text value
+        Json.parse result . should_equal <| Json.parse expected_json_text
+
+    Test.group "Geo_Map" <|
+        Test.specify "works with empty table" <|
+            table  = Table.from_rows [] []
+            expect table '{}'
+
+        Test.specify "skips unrecognized columns" <|
+            header = ['α' , 'β' , 'ω']
+            row_1  = [11  , 10  , 09 ]
+            row_2  = [21  , 20  , 19 ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table '{}'
+
+        Test.specify "recognizes relevant columns" <|
+            header = ['latitude' , 'longitude' , 'color' , 'label' , 'radius']
+            row_1  = [11         , 10          , 'red'   , 'name'  , 195     ]
+            table  = Table.from_rows header [row_1]
+            expect table '{"df_color":["red"],"df_label":["name"],"df_latitude":[11],"df_longitude":[10],"df_radius":[195]}'
+
+        Test.specify "is case insensitive" <|
+            header = ['latitude' , 'LONGITUDE' , 'LaBeL']
+            row_1  = [11         , 10          , 09     ]
+            row_2  = [21         , 20          , 19     ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table '{"df_label":[9,19],"df_latitude":[11,21],"df_longitude":[10,20]}'

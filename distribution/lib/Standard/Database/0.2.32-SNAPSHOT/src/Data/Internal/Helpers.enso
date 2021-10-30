@@ -1,0 +1,76 @@
+from Standard.Base import all
+
+from Standard.Database.Data.Table as Table_Module import Table
+from Standard.Database.Data.Column as Column_Module import Column
+
+polyglot java import java.util.regex.Pattern
+
+## PRIVATE
+
+   Checks if the two tables or columns have the same context and use the same
+   connection.
+
+   Arguments:
+   - entity1: The entity to check against the second.
+   - entity2: The entity to check against the first.
+
+   To combine different objects they need to satisfy this requirement, otherwise
+   the combination would be ill-formed.
+check_integrity : (Table | Column) -> (Table | Column) -> Boolean
+check_integrity entity1 entity2 =
+    con = entity1.connection == entity2.connection
+    ctx = entity1.context == entity2.context
+    con && ctx
+
+## PRIVATE
+
+   A helper function simplifying argument handling.
+
+   Arguments:
+   - x: A value that may or may not be a vector.
+
+   It always returns a vector, if the argument was already a vector, it is kept
+   as-is, otherwise it is wrapped in a singleton vector.
+unify_vector_singleton : (Any | Vector.Vector Any) -> Vector.Vector Any
+unify_vector_singleton x = case x of
+    Vector.Vector _ -> x
+    _ -> [x]
+
+## UNSTABLE
+
+   Signals that a name for a column or table is not supported.
+
+   Arguments:
+   - text: The name that is not supported.
+
+   Currently the names can only include ASCII letters, numbers and the
+   underscore. This is a temporary limitation simplifying name handling. It will
+   be removed in a future version.
+type Unsupported_Name_Error text
+
+## UNSTABLE
+
+   Creates a human-readable representation of the unsupported name error.
+Unsupported_Name_Error.to_display_text : Text
+Unsupported_Name_Error.to_display_text =
+    "The name " + this.text + " is not currently supported by the Database library."
+
+## PRIVATE
+
+   This is used to check if the new name is safe for use in Sql queries.
+
+   Arguments:
+   - name: The name to check for safety.
+
+   In a future version we will decouple the internal Sql-safe names from the
+   external names shown to the user, but as a temporary solution we only allow
+   Sql-safe names for columns.
+
+   # TODO [RW] better name handling in Tables (#1513)
+ensure_name_is_sane : Text -> Boolean ! Unsupported_Name_Error
+ensure_name_is_sane name =
+    is_safe =
+        Pattern.matches "[A-Za-z_0-9]+" name
+    if is_safe then True else
+        Error.throw <| Unsupported_Name_Error (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
+

@@ -1,0 +1,95 @@
+name: "CodeQL"
+
+# CodeQL is temporarily disabled because it seems that it is unable to discover
+# code compiled with SBT.
+on:
+  push:
+    branches-ignore:
+      - "**"
+  #    branches:
+  #      - main
+  #      - "release/*"
+  pull_request:
+    branches-ignore:
+      - "**"
+#    branches:
+#      - "*"
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 21.1.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.5.2
+  # Please ensure that this is in sync with rustVersion in build.sbt
+  rustToolchain: nightly-2021-05-12
+
+jobs:
+  vuln-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          # We must fetch at least the immediate parents so that if this is
+          # a pull request then we can checkout the head.
+          fetch-depth: 2
+
+      # If this run was triggered by a pull request event, then checkout
+      # the head of the pull request instead of the merge commit.
+      - run: git checkout HEAD^2
+        if: ${{ github.event_name == 'pull_request' }}
+
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: java
+
+      # Set Up Environment
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - name: Install FlatBuffers Compiler
+        run: conda install --freeze-installed flatbuffers=1.12.0
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+      - name: Set Up SBT
+        run: |
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      # Build
+      - name: Bootstrap Enso project
+        run: sbt --no-colors bootstrap
+      - name: Build Enso
+        run: sbt --no-colors compile
+
+      # Analyse the Code
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1

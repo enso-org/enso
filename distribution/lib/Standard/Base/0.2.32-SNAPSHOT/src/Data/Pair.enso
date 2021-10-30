@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+## A pair of elements.
+type Pair
+
+    ## UNSTABLE
+
+       A simple pair of elements.
+
+       Arguments:
+       - first: The first element.
+       - second: The second element.
+    type Pair first second

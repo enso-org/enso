@@ -1,0 +1,14 @@
+from Standard.Base import all
+
+type Illegal_State_Error
+
+    ## UNSTABLE
+
+       A generic error that indicates that a given operation cannot be performed
+       in some specific conditions.
+
+       Arguments:
+       - message: the error message explaining why the operation cannot be
+         performed.
+       - cause: (optional) another error that is the cause of this one.
+    type Illegal_State_Error message cause=Nothing

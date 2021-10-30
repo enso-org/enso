@@ -1,0 +1,39 @@
+from Standard.Base import all
+
+import Standard.Builtins
+
+## Returns the root directory of the project.
+
+   > Example
+     Get the root directory of the project.
+
+         Enso_Project.root
+Builtins.Project_Description.root : File.File
+Builtins.Project_Description.root = File.File this.prim_root_file
+
+## Returns the root data directory of the project.
+
+   > Example
+     Get the data directory of the project.
+
+         Enso_Project.data
+Builtins.Project_Description.data : File.File
+Builtins.Project_Description.data = this.root / "data"
+
+## Returns the name of the project.
+
+   > Example
+     Get the name of the project.
+
+         Enso_Project.name
+Builtins.Project_Description.name : Text
+Builtins.Project_Description.name = this.prim_config.name
+
+## Returns the namespace of the project.
+
+   > Example
+     Get the namespace of the project.
+
+         Enso_Project.namespace
+Builtins.Project_Description.namespace : Text
+Builtins.Project_Description.namespace = this.prim_config.namespace

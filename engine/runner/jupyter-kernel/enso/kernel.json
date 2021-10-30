@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "java",
+    "-Dgraalvm.locatorDisabled=true",
+    "-jar",
+    "<ABSOLUTE_PATH_TO_RUNNER_JAR>",
+    "--jupyter-kernel",
+    "{connection_file}"
+  ],
+  "display_name": "Enso",
+  "language": "Enso",
+  "env": {
+    "JAVA_HOME": "<GRAAL_VM_JAVA_HOME>"
+  }
+}

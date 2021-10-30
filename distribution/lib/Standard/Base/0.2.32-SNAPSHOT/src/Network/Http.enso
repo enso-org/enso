@@ -1,0 +1,667 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Json
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time
+import Standard.Base.Network.Http.Form
+import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Method
+import Standard.Base.Network.Http.Request
+import Standard.Base.Network.Http.Request.Body as Request_Body
+import Standard.Base.Network.Http.Response
+import Standard.Base.Network.Http.Version
+import Standard.Base.Network.Internal
+import Standard.Base.Network.Proxy
+import Standard.Base.Network.Uri
+import Standard.Base.System.File
+
+polyglot java import java.net.http.HttpClient
+polyglot java import java.net.http.HttpRequest
+polyglot java import java.net.http.HttpResponse
+polyglot java import java.net.InetSocketAddress
+polyglot java import java.net.ProxySelector
+polyglot java import java.net.URI
+polyglot java import java.time.Duration as Java_Duration
+polyglot java import org.enso.base.Http_Utils
+
+## Create a new instance of the HTTP client.
+
+   Arguments:
+   - timeout: The length of time the client will wait for responses.
+   - follow_redirects: Whether or not the client should follow redirects.
+   - proxy: The proxy that the client should use, if any.
+   - version: The HTTP version supported by the client.
+
+   > Example
+     Create an HTTP client with default settings.
+         Http.new
+
+   > Example
+     Create an HTTP client with extended timeout.
+         Http.new timeout=30.seconds
+
+   > Example
+     Create an HTTP client with extended timeout and proxy settings.
+
+         import Standard.Base.Data.Time.Duration
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Proxy
+
+         example_new =
+            Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
+new : Duration -> Boolean -> Proxy -> Http
+new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+    Http timeout follow_redirects proxy version
+
+## Send an Options request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send an Options request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_options = Http.options "http://httpbin.org"
+options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+options uri (headers = []) = here.new.options uri headers
+
+## ALIAS GET Request
+
+   Send a Get request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Get request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_get = Http.get "http://httpbin.org/get"
+
+   > Example
+     Send authenticated Get request (note the use of TLS). NOTE: This example
+     will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+
+         example_get =
+            headers = [Header.authorization_basic "user" "pass"]
+            Http.get "https://httpbin.org/basic-auth/user/pass" headers
+
+   > Example
+        Download a file. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Examples
+
+         example_get =
+             out_file = Examples.scratch_file
+             res = Http.get "http://httpbin.org/bytes/1024"
+             res.body.to_file out_file
+get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+get uri (headers = []) = here.new.get uri headers
+
+## ALIAS Fetch Data
+
+   Send the Get request and return the body.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Get request and return the body. NOTE: This example will make a
+     network request.
+
+         import Standard.Base.Network.Http
+
+         example_fetch = Http.fetch "http://httpbin.org/get"
+
+   > Example
+     Send authenticated Get request (note the use of TLS) and return the body.
+     NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+
+         example_fetch =
+            headers = [Header.authorization_basic "user" "pass"]
+            Http.fetch "https://httpbin.org/basic-auth/user/pass" headers
+
+   > Example
+     Download a file. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Examples
+
+         example_fetch =
+             out_file = Examples.scratch_file
+             res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
+fetch : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+fetch uri (headers = []) =
+    here.new.get uri headers . body
+
+## Send a Head request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Head request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_head = Http.head "http://httpbin.org"
+head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+head uri (headers = []) = here.new.options uri headers
+
+## ALIAS POST Request
+
+   Send a Post request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - body: The contents of the post request.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Post request with binary data. NOTE: This example will make a
+     network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+         import Standard.Base.Network.Http.Request.Body
+
+         example_post =
+             body = Body.Bytes "Hello".utf_8
+             header_binary = Header.content_type "application/octet-stream"
+             Http.post "http://httpbin.org/post" body [header_binary]
+post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+post uri body (headers = []) = here.new.post uri body headers
+
+## Send a Post request with the form. By default it will be encoded as
+   "application/x-www-form-urlencoded". To encode the form as
+   "multipart/form-data" add the appropriate header.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - parts: A form, or a vector of parts for creating a form.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Post request with form. NOTE: This example will make a network
+     request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Form
+
+         example_post_form =
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             Http.post_form "http://httpbin.org/post" form
+
+   > Example
+     Send a Post request with form encoded as "multipart/form-data". NOTE: This
+     example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Form
+         import Standard.Base.Network.Http.Header
+
+         example_post_form =
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
+post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
+post_form uri parts (headers = []) = here.new.post_form uri parts headers
+
+## Send a Post request with body with content-type "application/json".
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - body_json: The json for the body.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Post request with json data. NOTE: This example will make a network
+     request.
+
+         import Standard.Base.Network.Http
+
+         example_post_json =
+             json = Json.parse '{"key":"val"}'
+             Http.post_json "http://httpbin.org/post" json
+post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
+post_json uri body_json (headers = []) = here.new.post_json uri body_json headers
+
+type Http
+
+    ## PRIVATE
+
+       An HTTP client.
+
+       Arguments:
+       - timeout: The length of time the client will wait for responses.
+       - follow_redirects: Whether or not the client should follow redirects.
+       - proxy: The proxy that the client should use, if any.
+       - version: The HTTP version supported by the client.
+    type Http timeout follow_redirects proxy version
+
+    ## Send an Options request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
+
+       > Example
+         Send an Options request. NOTE: This example will make a network
+         request.
+
+             import Standard.Examples
+
+             example_options = Examples.http_client.options "http://httpbin.org"
+    options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+    options uri (headers = []) =
+        req = Request.options uri headers
+        this.request req
+
+    ## Send a Get request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
+
+       > Example
+         Send a Get request. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_get = Examples.http_client.get "http://httpbin.org/get"
+
+       > Example
+         Send authenticated Get request (note the use of TLS). NOTE: This
+         example will make a network request.
+
+             import Standard.Base.Network.Http.Header
+             import Standard.Examples
+
+             example_get =
+                headers = [Header.authorization_basic "user" "pass"]
+                Examples.http_client.get "https://httpbin.org/basic-auth/user/pass" headers
+
+       > Example
+            Download a file. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_get =
+                 out_file = Examples.scratch_file
+                 res = Examples.http_client.get "http://httpbin.org/bytes/1024"
+                 res.body.to_file out_file
+    get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+    get uri (headers = []) =
+        req = Request.get uri headers
+        this.request req
+
+    ## Send a Head request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
+
+
+       > Example
+         Send a Head request. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_head = Examples.http_client.head "http://httpbin.org"
+    head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+    head uri (headers = []) =
+        req = Request.head uri headers
+        this.request req
+
+    ## Send a Post request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body: The body of the post request.
+       - headers: Any headers for the options request.
+
+
+       > Example
+         Send a Post request with binary data. NOTE: This example will make a
+         network request.
+
+             import Standard.Base.Network.Http.Header
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_post =
+                 body = Body.Bytes "Hello".utf_8
+                 Examples.http_client.post "http://httpbin.org/post" body [header_binary]
+    post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+    post uri body (headers = []) =
+        req = Request.post uri body headers
+        this.request req
+
+    ## Send a Post request with the form. By default it will be encoded as
+       "application/x-www-form-urlencoded". To encode the form as
+       "multipart/form-data" add the appropriate header.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - parts: A form, or the parts for creating a form.
+       - headers: Any headers for the options request.
+
+
+       > Example
+         Send a Post request with form. NOTE: This example will make a network
+         request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Examples
+
+             example_post_form =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 Examples.http_client.post_form "http://httpbin.org/post" form
+
+       > Example
+         Send a Post request with form encoded as "multipart/form-data". NOTE: This
+         example will make a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Header
+             import Standard.Examples
+
+             example_post_form =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 Examples.http_client.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
+    post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
+    post_form uri parts (headers = []) =
+        new_headers = [Header.application_x_www_form_urlencoded]
+        req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
+        this.request req
+
+    ## Send a Post request with body with content-type "application/json".
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body_json: The JSON body for the post request.
+       - headers: Any headers for the options request.
+
+
+       > Example
+         Send a Post request with json data. NOTE: This example will make a network
+         request.
+
+             import Standard.Examples
+
+             example_post_json =
+                 json = Json.parse '{"key":"val"}'
+                 Examples.http_client.post_json "http://httpbin.org/post" json
+    post_json : (Text | Uri) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
+    post_json uri body_json (headers = []) =
+        new_headers = [Header.application_json]
+        req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
+        this.request req
+
+    ## Send a Put request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body: The body for the put request.
+       - headers: Any headers for the options request.
+
+       > Example
+         Send a Put request with binary data.
+
+             import Standard.Base.Network.Http.Header
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_put =
+                 body = Body.Bytes "contents".utf_8
+                 Examples.http_client.put "http://httpbin.org/post" body [header_binary]
+    put : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+    put uri body (headers = []) =
+        req = Request.put uri body headers
+        this.request req
+
+    ## Send a Put request with body with content-type "application/json".
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body_json: The JSON for the body of the put request.
+       - headers: Any headers for the options request.
+
+       > Example
+         Send a Put request with json data. NOTE: This example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_post_json =
+                 json = Json.parse '{"key":"val"}'
+                 Examples.http_client.put_json "http://httpbin.org/post" json
+    put_json : (Text | Uri) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
+    put_json uri body_json (headers = []) =
+        new_headers = [Header.application_json]
+        req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
+        this.request req
+
+    ## Create a Delete request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
+
+       > Example
+         Send a Delete request. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_delete = Examples.http_client.delete "http://httpbin.org/delete"
+    delete : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+    delete uri (headers = []) =
+        req = Request.delete uri headers
+        this.request req
+
+    ## Create a request
+
+       Arguments:
+       - req: The HTTP request to send using `this` HTTP client.
+
+       > Example
+         Send a Get request with headers. NOTE: This example will send a network
+         request.
+
+             import Standard.Base.Network.Http
+             import Standard.Base.Network.Http.Method
+             import Standard.Base.Network.Http.Request
+
+             example_request =
+                 req = Request.new Method.Get "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
+                 res = Examples.http_client.request req
+                 res.body
+
+       > Example
+         Open a connection and send a Post request with form. NOTE: This example
+         will send a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_request =
+                 req = Request.post "http://httpbin.org/post" Body.Empty
+                 with_form = req.with_form [Form.text_field "key" "value"]
+                 with_header = with_form.with_header "X-Trace-Id" "123456789"
+                 res = Examples.http_client.request with_header
+                 res.code
+
+       > Example
+         Send a Post request with urlencoded form data. NOTE: This example will
+         send a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_request =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 req = Request.post "http://httpbin.org/post" Body.Empty . with_form form
+                 Examples.http_client.request req
+
+       > Example
+         Send a Post request with form encoded as "multipart/form-data". NOTE:
+         This example will send a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Header
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_request =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 req = Request.post "http://httpbin.org/post" Body.Empty
+                 with_form = req.with_form form
+                 with_headers = with_form.with_headers [Header.multipart_form_data]
+                 Examples.http_client.request with_headers
+
+       > Example
+         Configure HTTP client and send a Post request with form. NOTE: This
+         example will send a network request.
+
+             import Standard.Base.Data.Time.Duration
+             import Standard.Base.Network.Http
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Method
+             import Standard.Base.Network.Http.Request
+
+             example_request =
+                 form = [Form.text_field "name" "John Doe"]
+                 req = Request.new Method.Post "http://httpbin.org/post" . with_form form
+                 http = Http.new (timeout = 30.seconds)
+                 http.request req
+    request : Request -> Response ! Request_Error
+    request req =
+        response = Panic.recover <|
+            body_publishers = HttpRequest.BodyPublishers
+            builder = HttpRequest.newBuilder
+            # set uri
+            builder.uri (Internal.panic_on_error req.uri.internal_uri)
+            # prepare headers and body
+            req_with_body = case req.body of
+                Request_Body.Empty ->
+                    Pair req body_publishers.noBody
+                Request_Body.Text text ->
+                    builder.header Header.text_plain.name Header.text_plain.value
+                    Pair req (body_publishers.ofString text)
+                Request_Body.Json json ->
+                    builder.header Header.application_json.name Header.application_json.value
+                    json_body = if json.is_a Text then json else json.to_text
+                    Pair req (body_publishers.ofString json_body)
+                Request_Body.Form form ->
+                    add_multipart form =
+                        body_builder = Http_Utils.multipart_body_builder
+                        form.parts.map part-> case part.value of
+                            Form.Part_Text text -> body_builder.add_part_text part.key text
+                            Form.Part_File file -> body_builder.add_part_file part.key file.path
+                        boundary = body_builder.get_boundary
+                        Pair (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
+                    add_urlencoded form =
+                        body_builder = Http_Utils.urlencoded_body_builder
+                        form.parts.map part-> case part.value of
+                            Form.Part_Text text -> body_builder.add_part_text part.key text
+                            Form.Part_File file -> body_builder.add_part_file part.key file.path
+                        Pair req body_builder.build
+                    if req.headers.contains Header.multipart_form_data then add_multipart form else
+                        add_urlencoded form
+                Request_Body.Bytes bytes ->
+                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                    Pair req (body_publishers.ofByteArray bytes.to_array)
+            # method
+            req_http_method = case req.method of
+                Method.Options -> "OPTIONS"
+                Method.Get -> "GET"
+                Method.Head -> "HEAD"
+                Method.Post -> "POST"
+                Method.Put -> "PUT"
+                Method.Delete -> "DELETE"
+                Method.Trace -> "TRACE"
+                Method.Connect -> "CONNECT"
+            case req_with_body of
+                Pair req body ->
+                    # set method and body
+                    builder.method req_http_method body
+                    # set headers
+                    req.headers.map h-> builder.header h.name h.value
+            http_request = builder.build
+            body_handler = HttpResponse.BodyHandlers . ofByteArray
+            Response.response (this.internal_http_client.send http_request body_handler)
+        response.catch e-> case e of
+            Polyglot_Error err ->
+                Error.throw (Request_Error err.getClass.getSimpleName err.getMessage)
+            _ ->
+                Error.throw e
+
+    ## PRIVATE
+
+       Build an HTTP client.
+    internal_http_client : HttpClient
+    internal_http_client =
+        builder = HttpClient.newBuilder
+        # timeout
+        if this.timeout.is_date then Panic.throw (Time.time_error "Connection timeout does not support date intervals") else
+            builder.connectTimeout this.timeout.internal_duration
+        # redirect
+        redirect = HttpClient.Redirect
+        redirect_policy = case this.follow_redirects of
+            True -> redirect.ALWAYS
+            False -> redirect.NEVER
+        builder.followRedirects redirect_policy
+        # proxy
+        case this.proxy of
+            Proxy.Proxy_Addr proxy_host proxy_port ->
+                proxy_selector = ProxySelector.of (InetSocketAddress.new proxy_host proxy_port)
+                builder.proxy proxy_selector
+            Proxy.System ->
+                proxy_selector = ProxySelector.getDefault
+                builder.proxy proxy_selector
+            Proxy.None ->
+                Nothing
+        # version
+        case this.version of
+            Version.Http_1_1 ->
+                builder.version HttpClient.Version.HTTP_1_1
+            Version.Http_2 ->
+                builder.version HttpClient.Version.HTTP_2
+        # build http client
+        builder.build
+
+## UNSTABLE
+
+   An error when sending an Http request.
+
+   Arguments:
+   - error_type: The type of the error.
+   - message: The message for the error.
+type Request_Error error_type message
+
+## UNSTABLE
+
+   Convert a request error to a human-readable form.
+Request_Error.to_display_text =
+    description_text = case this.message of
+        Nothing -> ""
+        _ -> " " + this.message
+    this.error_type + " error when sending request." + description_text

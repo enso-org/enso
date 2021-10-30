@@ -1,0 +1,22 @@
+[package]
+name    = "enso-generics"
+version = "0.2.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+description  = "A library for supporting generic programming."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/rust-lib/src/generics"
+repository   = "https://github.com/enso-org/rust-lib"
+license-file = "../../LICENSE"
+
+keywords = ["generic"]
+categories = ["algorithms"]
+
+publish = true
+
+[lib]
+
+[dependencies]
+serde    = { version = "1.0.0"  , features = ["derive"]          }
+nalgebra = { version = "0.21.1" , features = ["serde-serialize"] }

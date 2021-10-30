@@ -1,0 +1,255 @@
+from Standard.Base import all
+
+import Standard.Test
+
+type T a b
+
+T.== that = this.a == that.a
+T.compare_to that = if this == that then Ordering.Equal else
+    if this.a > that.a then Ordering.Greater else Ordering.Less
+
+type My_Error a
+
+foreign js generate_js_array = """
+    return [1, 2, 3, 4, 5]
+
+spec = Test.group "Vectors" <|
+
+    Test.specify "should allow vector creation with a programmatic constructor" <|
+        Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
+
+    Test.specify "should allow vector creation with a constant constructor" <|
+        Vector.fill 100 1 . fold (0) (+) . should_equal 100
+
+    Test.specify "should allow creation from arrays without mutability" <|
+        built = Vector.from_array here.generate_js_array
+        built . should_equal [1, 2, 3, 4, 5]
+
+    Test.specify "should allow accessing elements" <|
+        [1,2,3].at 2 . should_equal 3
+
+    Test.specify "should have a well-defined length" <|
+        [1,2,3].length . should_equal 3
+
+    Test.specify "should allow folding an operator over its elements" <|
+        [1,2,3].fold 0 (+) . should_equal 6
+
+    Test.specify "should allow to reduce elements if it is non-empty" <|
+        [1,2,3].reduce (+) . should_equal 6
+        [].reduce (+) . should_fail_with Vector.Empty_Error
+
+    Test.specify "should allow summing elements if they define +" <|
+        [1,2,3].sum . should_equal 6
+        [].sum . should_fail_with Vector.Empty_Error
+        [T 1 2, T 3 4].sum . should_fail_with No_Such_Method_Error
+
+    Test.specify "should check exists" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.exists (ix -> ix > 3) . should_be_true
+        vec.exists (ix -> ix < 0) . should_be_false
+
+    Test.specify "should check any" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.any (ix -> ix > 3) . should_be_true
+        vec.any (ix -> ix < 0) . should_be_false
+
+    Test.specify "should check all" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.all (ix -> ix > 0) . should_be_true
+        vec.all (ix -> ix < 5) . should_be_false
+
+    Test.specify "should check contains" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.contains 1 . should_be_true
+        vec.contains 0 . should_be_false
+
+    Test.specify "should check for emptiness" <|
+        non_empty = [1]
+        empty = []
+        non_empty.is_empty . should_be_false
+        empty.is_empty . should_be_true
+
+    Test.specify "should check for non-emptiness" <|
+        non_empty = [1]
+        empty = []
+        non_empty.not_empty . should_be_true
+        empty.not_empty . should_be_false
+
+    Test.specify "should filter elements" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.filter (ix -> ix > 3) . should_equal [4, 5]
+        vec.filter (ix -> ix == 1) . should_equal [1]
+        vec.filter (ix -> ix < 0) . should_equal []
+
+    Test.specify "should allow mapping an operation, returning a new vector" <|
+        vec = [1, 2, 3, 4]
+        mapped = vec.map x-> x * x
+        vec.to_text.should_equal "[1, 2, 3, 4]"
+        mapped.to_text.should_equal "[1, 4, 9, 16]"
+
+    Test.specify "should allow flat_mapping an operation, returning a new vector" <|
+        vec = [1, 2, 0, 3]
+        mapped = vec.flat_map n-> Vector.fill n n
+        mapped.should_equal [1, 2, 2, 3, 3, 3]
+
+    Test.specify "should allow applying a function to each element" <|
+        vec = [1, 2, 3, 4]
+        vec_mut = Vector.new_builder
+        vec.each vec_mut.append
+        vec_mut.to_vector . should_equal vec
+
+    Test.specify "should allow reversing" <|
+        [1, 2, 3].reverse . should_equal [3, 2, 1]
+
+    Test.specify "should have a well-defined text conversion" <|
+        [].to_text.should_equal "[]"
+        [1,2,3].to_text.should_equal "[1, 2, 3]"
+        [Nothing].to_text.should_equal "[Nothing]"
+
+    Test.specify "should define equality" <|
+        [1,2,3]==[1,2] . should_be_false
+        [1,2,3]==[1,2,3] . should_be_true
+        [1,2,3]==[3,4,5] . should_be_false
+
+    Test.specify "should define concatenation" <|
+        concat = [1, 2, 3] + [4, 5, 6]
+        concat.should_equal [1, 2, 3, 4, 5, 6]
+
+    Test.specify "should define take and drop family of operations" <|
+        vec = [1, 2, 3, 4, 5, 6]
+        first_four = [1, 2, 3, 4]
+        last_four = [3, 4, 5, 6]
+        vec.drop_start 2 . should_equal last_four
+        vec.drop_end 2 . should_equal first_four
+        vec.take_start 4 . should_equal first_four
+        vec.take_end 4 . should_equal last_four
+
+    Test.specify "should allow getting the head element" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.head . should_equal 1
+        singleton_vec.head . should_equal 1
+        empty_vec.head . should_fail_with Vector.Empty_Error
+
+    Test.specify "should allow getting the tail of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.tail . should_equal [2, 3, 4, 5]
+        singleton_vec.tail . should_equal []
+        empty_vec.tail . should_fail_with Vector.Empty_Error
+
+    Test.specify "should allow getting the init of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.init . should_equal [1, 2, 3, 4]
+        singleton_vec.init . should_equal []
+        empty_vec.init . should_fail_with Vector.Empty_Error
+
+    Test.specify "should allow getting the last element of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.last . should_equal 5
+        singleton_vec.last . should_equal 1
+        empty_vec.last . should_fail_with Vector.Empty_Error
+
+    Test.specify "should allow getting the first element" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.first . should_equal 1
+        singleton_vec.first . should_equal 1
+        empty_vec.first . should_fail_with Vector.Empty_Error
+
+    Test.specify "should allow getting the rest of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.rest . should_equal [2, 3, 4, 5]
+        singleton_vec.rest . should_equal []
+        empty_vec.rest . should_fail_with Vector.Empty_Error
+
+    Test.specify "should be able to be sorted" <|
+        empty_vec = []
+        short_vec = [2, 4, 38, -1, -1000, 3671, -32]
+        short_expected = [-1000, -32, -1, 2, 4, 38, 3671]
+        empty_vec.sort . should_equal []
+        short_vec.sort . should_equal short_expected
+
+    Test.specify "should leave the original vector unchanged" <|
+        non_empty_vec = [2, 4, 2, 3, 2, 3]
+        sorted = non_empty_vec.sort
+        non_empty_vec . should_equal [2, 4, 2, 3, 2, 3]
+        sorted . should_equal [2, 2, 2, 3, 3, 4]
+
+    Test.specify "should have a stable sort" <|
+        small_vec = [T 1 8, T 1 3, T -20 0, T -1 1, T -1 10, T 4 0]
+        small_expected = [T -20 0, T -1 1, T -1 10, T 1 8, T 1 3, T 4 0]
+        small_vec.sort . should_equal small_expected
+
+    Test.specify "should be able to use a custom element projection" <|
+        small_vec = [T 1 8, T 1 3, T -20 0, T -1 1, T -1 10, T 4 0]
+        small_expected = [T -20 0, T 4 0, T -1 1, T 1 3, T 1 8, T -1 10]
+        small_vec.sort (on = _.b) . should_equal small_expected
+
+    Test.specify "should be able to use a custom comparator" <|
+        small_vec = [2, 7, -3, 383, -392, 28, -90]
+        small_expected = [383, 28, 7, 2, -3, -90, -392]
+        small_vec.sort (by = l -> r -> r.compare_to l) . should_equal small_expected
+
+    Test.specify "should be able to use a custom comparator and projection" <|
+        small_vec = [T 1 8, T 1 3, T -20 0, T -1 1, T -1 10, T 4 0]
+        small_expected = [T -1 10, T 1 8, T 1 3, T -1 1, T -20 0, T 4 0]
+        small_vec.sort (on = _.b) (by = l -> r -> r.compare_to l) . should_equal small_expected
+
+    Test.specify "should be able to sort in descending order" <|
+        small_vec = [2, 7, -3, 383, -392, 28, -90]
+        small_expected = [383, 28, 7, 2, -3, -90, -392]
+        small_vec.sort order=Sort_Order.Descending . should_equal small_expected
+
+    Test.specify "should be stable in descending order" <|
+        small_vec = [T 1 8, T 1 3, T -20 0, T -1 1, T -1 10, T 4 0]
+        small_expected = [T 4 0, T 1 3, T 1 8, T -1 10, T -1 1, T -20 0]
+        small_vec.sort order=Sort_Order.Descending . should_equal small_expected
+
+    Test.specify "should be able to map over errors" <|
+        fail a = Error.throw <| My_Error a
+        [fail 1].map (x -> x.catch (x -> x.a)) . should_equal [1]
+        [1].map fail . map .catch . should_equal [My_Error 1]
+
+    Test.specify "should be able to be efficiently converted to a visualisation" <|
+        vec = Vector.fill 1000 0
+        text = vec.to_default_visualization_data
+        json = Json.parse text
+        as_vec = json.into (Vector.Vector Number)
+        as_vec.should_equal <| Vector.fill 100 0
+
+    Test.specify "should pad elements" <|
+        [].pad 3 0 . should_equal [0, 0, 0]
+        [1, 2, 3].pad 0 0 . should_equal [1, 2, 3]
+        [1, 2, 3].pad 3 0 . should_equal [1, 2, 3]
+        [1].pad 3 0 . should_equal [1, 0, 0]
+
+    Test.specify "should zip elements" <|
+        [1, 2, 3].zip [] (+) . should_equal []
+        [1, 2, 3].zip [4] (+) . should_equal [5]
+        [1, 2, 3].zip [4, 5, 6] (+) . should_equal [5, 7, 9]
+        [1, 2, 3].zip [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
+        [].zip [4, 5, 6] (+) . should_equal []
+
+    Test.specify "should flat_map elements" <|
+        [1, 2, 3].flat_map (_ -> []) . should_equal []
+        [1, 2, 3].flat_map (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
+        [1, 2, 3].flat_map (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
+        [0, 1, 0].flat_map (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
+        [0, 0, 0].flat_map (i -> [i]) . should_equal [0, 0, 0]
+
+    Test.specify "should prepend elements" <|
+        [2, 3].prepend 1 . should_equal [1, 2, 3]
+
+    Test.specify "should append elements" <|
+        [1, 2].append 3 . should_equal [1, 2, 3]
+

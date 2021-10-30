@@ -1,0 +1,222 @@
+namespace org.enso.languageserver.protocol.binary;
+
+// A mapping between payload enum and inbound payload types.
+union InboundPayload {
+  INIT_SESSION_CMD: InitSessionCommand,
+  WRITE_FILE_CMD: WriteFileCommand,
+  READ_FILE_CMD: ReadFileCommand,
+  WRITE_BYTES_CMD: WriteBytesCommand,
+  READ_BYTES_CMD: ReadBytesCommand,
+  CHECKSUM_BYTES_CMD: ChecksumBytesCommand
+}
+
+// An envelope for inbound requests and commands.
+table InboundMessage {
+  // A unique id of the message sent to the server.
+  messageId: EnsoUUID (required);
+
+  // An optional correlation id used to correlate a response with a request.
+  correlationId: EnsoUUID;
+
+  // A message payload that carries requests sent by a client.
+  payload: InboundPayload (required);
+}
+
+// A mapping between payload enum and outbound payload types.
+union OutboundPayload {
+  ERROR: Error,
+  SUCCESS: Success,
+  VISUALISATION_UPDATE: VisualisationUpdate,
+  FILE_CONTENTS_REPLY: FileContentsReply,
+  WRITE_BYTES_REPLY: WriteBytesReply,
+  READ_BYTES_REPLY: ReadBytesReply,
+  CHECKSUM_BYTES_REPLY: ChecksumBytesReply
+}
+
+// An envelope for outbound responses.
+table OutboundMessage {
+  // A unique id of the message sent from the server.
+  messageId: EnsoUUID (required);
+
+  // An optional correlation id used to correlate a response with a request.
+  correlationId: EnsoUUID;
+
+  // A message payload that carries responses and notifications sent by a server
+  payload: OutboundPayload (required);
+
+}
+
+// A binary representation of universally unique identifiers.
+struct EnsoUUID {
+  // The most significant bits of the UUID.
+  leastSigBits:uint64;
+
+  // The most significant bits of the UUID.
+  mostSigBits:uint64;
+
+}
+
+// The payload for an error.
+//
+// Will be extended with additional payloads as necessary.
+union ErrorPayload {
+  READ_OOB: ReadOutOfBoundsError
+}
+
+// This message type is used to indicate failure of some operation performed.
+table Error {
+
+  // A unique error code identifying error type.
+  code: int;
+
+  // An error message.
+  message: string (required);
+
+  // Any error-specific data.
+  data : ErrorPayload;
+}
+
+// The error payload for a read out of bounds error.
+table ReadOutOfBoundsError {
+  // The actual length of the file in which the read was out of bounds.
+  fileLength : ulong;
+}
+
+// Indicates an operation has succeeded.
+table Success {}
+
+// A command initializing a data session.
+table InitSessionCommand {
+  // A unique identifier of a client initializing the session.
+  identifier: EnsoUUID (required);
+
+}
+
+root_type InitSessionCommand;
+
+// A visualisation context identifying a concrete visualisation.
+table VisualisationContext {
+  // A visualisation identifier.
+  visualisationId: EnsoUUID (required);
+
+  // A context identifier.
+  contextId: EnsoUUID (required);
+
+  // An expression identifier.
+  expressionId: EnsoUUID (required);
+
+}
+
+// An event signaling visualisation update.
+table VisualisationUpdate {
+  // A visualisation context identifying a concrete visualisation.
+  visualisationContext: VisualisationContext (required);
+
+  // A visualisation data.
+  data: [ubyte] (required);
+
+}
+
+// A representation of a path relative to a specified content root.
+table Path {
+  //a content root id that the path is relative to
+  rootId: EnsoUUID;
+
+  //path segments
+  segments: [string];
+
+}
+
+// A command writing binary contents to a file.
+table WriteFileCommand {
+  // A path to a file.
+  path: Path;
+
+  // Binary contents.
+  contents: [ubyte];
+
+}
+
+// A command reading binary contents from a file.
+table ReadFileCommand {
+  // A path to a file.
+  path: Path;
+
+}
+
+// A reply for a ReadFileCommand.
+table FileContentsReply {
+  // Binary contents.
+  contents: [ubyte];
+
+}
+
+// A request to write the provided bytes to the file at `path`.
+table WriteBytesCommand {
+  // The file to write to.
+  path : Path (required);
+
+  // The byte offset in the file to write from.
+  byteOffset : ulong;
+
+  // Whether existing content should be overwritten.
+  overwriteExisting : bool;
+
+  // The file contents.
+  bytes : [ubyte] (required);
+}
+
+// A reply with the digest of the bytes that have been written to the file.
+table WriteBytesReply {
+  // The checksum of the written bytes.
+  checksum : EnsoDigest (required);
+}
+
+// A command to read the specified byte range from a file.
+table ReadBytesCommand {
+  // The segment in a file to read bytes from.
+  segment : FileSegment (required);
+}
+
+// A reply with the specified bytes.
+table ReadBytesReply {
+  // The checksum of the bytes in this response.
+  checksum : EnsoDigest (required);
+
+  // The requested file contents.
+  bytes : [ubyte] (required);
+}
+
+// A command to checksum a range of bytes in a file.
+table ChecksumBytesCommand {
+  // The segment in a file to checksum.
+  segment : FileSegment (required);
+}
+
+// The checksum of the specified bytes.
+table ChecksumBytesReply {
+  // The segment in a file to checksum.
+  checksum : EnsoDigest (required);
+}
+
+// A SHA3-224 digest.
+//
+// It is an error for the length of `bytes` to not equal 28. This is the binary
+// connection counterpart to the `SHA3-224` in the text protocol.
+table EnsoDigest {
+  bytes : [ubyte] (required);
+}
+
+// A representation of an arbitrary segment in a file.
+table FileSegment {
+  // The file to access.
+  path : Path (required);
+
+  // The byte offset in the file to read from.
+  byteOffset : ulong;
+
+  // The number of bytes to read.
+  length : ulong;
+}
+
+//todo Split up the schema once Rust bugs will be resolved.

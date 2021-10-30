@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+## Proxy settings.
+type Proxy
+
+    ## The proxy is disabled.
+    type None
+
+    ## Use the system proxy settings.
+    type System
+
+    ## Use the provided proxy server.
+    type Proxy_Addr proxy_host proxy_port
+
+## Create new proxy settings from a host and port.
+
+   Arguments:
+   - host: The host address for the proxy.
+   - port: The port number for the proxy server on `host`.
+
+   > Example
+     Create a new proxy running on localhost at port 80080.
+
+         import Standard.Base.Network.Proxy
+
+         example_new = Proxy.new "localhost" 80800
+new : Text -> Integer -> Proxy
+new host port=80 = Proxy_Addr host port

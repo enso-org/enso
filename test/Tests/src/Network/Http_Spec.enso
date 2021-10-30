@@ -1,0 +1,331 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Json
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Network.Http
+import Standard.Base.Network.Http.Form
+import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Method
+import Standard.Base.Network.Http.Request
+import Standard.Base.Network.Http.Request.Body as Request_Body
+import Standard.Base.Network.Http.Status_Code
+import Standard.Base.Network.Http.Version
+import Standard.Base.Network.Proxy
+import Standard.Base.Network.Uri
+import Standard.Base.System.File
+import Standard.Test
+
+polyglot java import java.lang.System
+
+spec =
+    is_ci = System.getenv "CI" == "true"
+    pending = if is_ci then Nothing else """
+        The HTTP tests only run when the `CI` environment variable is set to true
+    Test.group "Http" pending=pending <|
+        Test.specify "should create HTTP client with timeout setting" <|
+            http = Http.new (timeout = 30.seconds)
+            http.timeout.should_equal 30.seconds
+        Test.specify "should create HTTP client with follow_redirects setting" <|
+            http = Http.new (follow_redirects = False)
+            http.follow_redirects.should_equal False
+        Test.specify "should create HTTP client with proxy setting" <|
+            proxy_setting = Proxy.Proxy_Addr "example.com" 80
+            http = Http.new (proxy = proxy_setting)
+            http.proxy.should_equal proxy_setting
+        Test.specify "should create HTTP client with version setting" <|
+            version_setting = Version.Http_2
+            http = Http.new (version = version_setting)
+            http.version.should_equal version_setting
+        Test.specify "should throw error when requesting invalid Uri" <|
+            Http.new.get "not a uri" . should_fail_with Uri.Syntax_Error
+
+        Test.specify "should send Get request" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            res = Http.new.get "http://localhost:8080/get"
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should send Get request using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            res = Http.get "http://localhost:8080/get"
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+
+        Test.specify "should fetch the body of a Get request" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            res = Http.fetch "http://localhost:8080/get"
+            res.to_json.should_equal expected_response
+        Test.specify "should return error if the fetch method fails" <|
+            Http.fetch "http://undefined_host" . should_fail_with Http.Request_Error
+
+        Test.specify "should send Head request" <|
+            res = Http.new.head "http://localhost:8080/get"
+            res.code.should_equal Status_Code.ok
+            res.body.to_text.should_equal ''
+
+        Test.specify "should Post empty body" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            body_empty = Request_Body.Empty
+            res = Http.new.post "http://localhost:8080/post" body_empty
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should Post empty body using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            body_empty = Request_Body.Empty
+            res = Http.post "http://localhost:8080/post" body_empty
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should Post text body" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "12",
+                    "Content-Type": "text/plain",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "Hello World!",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            body_text = Request_Body.Text "Hello World!"
+            res = Http.new.post "http://localhost:8080/post" body_text
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should Post form text" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "7",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "key=val",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            form_parts = [Form.text_field "key" "val"]
+            res = Http.new.post_form "http://localhost:8080/post" form_parts
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should Post form text using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "7",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "key=val",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            form_parts = [Form.text_field "key" "val"]
+            res = Http.post_form "http://localhost:8080/post" form_parts
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should Post form file" <|
+            test_file = Enso_Project.data / "sample.txt"
+            form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
+            res = Http.new.post_form "http://localhost:8080/post" form_parts
+            res.code.should_equal Status_Code.ok
+        Test.specify "should Post form multipart" <|
+            test_file = Enso_Project.data / "sample.txt"
+            form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
+            res = Http.new.post_form "http://localhost:8080/post" form_parts [Header.multipart_form_data]
+            res.code.should_equal Status_Code.ok
+        Test.specify "should Post Json" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "13",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "{\\"key\\":\\"val\\"}",
+                  "files": null,
+                  "form": null,
+                  "json": {
+                    "key": "val"
+                  }
+                }
+            json = Json.parse <| '''
+                {"key":"val"}
+            res = Http.new.post_json "http://localhost:8080/post" json
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should Post Json using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "13",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "{\\"key\\":\\"val\\"}",
+                  "files": null,
+                  "form": null,
+                  "json": {
+                    "key": "val"
+                  }
+                }
+            json = Json.parse <| '''
+                {"key":"val"}
+            res = Http.post_json "http://localhost:8080/post" json
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should Post binary" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "12",
+                    "Content-Type": "application/octet-stream",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "Hello World!",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            body_bytes = Request_Body.Bytes "Hello World!".utf_8
+            res = Http.new.post "http://localhost:8080/post" body_bytes
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+
+        Test.specify "should create and send Get request" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            req = Request.new Method.Get "http://localhost:8080/get"
+            res = Http.new.request req
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should create and send Post request with json body" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "13",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "{\\"key\\":\\"val\\"}",
+                  "files": null,
+                  "form": null,
+                  "json": {
+                    "key": "val"
+                  }
+                }
+            json_body = Json.parse <| '''
+                { "key": "val" }
+            req = Request.new Method.Post "http://localhost:8080/post"
+            req_with_body = req.with_json json_body
+            res = Http.new.request req_with_body
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        Test.specify "should create and send Post request with json text" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "16",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Java-http-client/11.0.11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "{ \\"key\\": \\"val\\" }",
+                  "files": null,
+                  "form": null,
+                  "json": {
+                    "key": "val"
+                  }
+                }
+            json_text = '''
+                { "key": "val" }
+            req = Request.new Method.Post "http://localhost:8080/post"
+            req_with_body = req.with_json json_text
+            res = Http.new.request req_with_body
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response

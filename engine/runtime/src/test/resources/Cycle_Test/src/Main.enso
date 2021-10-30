@@ -1,0 +1,4 @@
+import project.Sub.Imp
+from Standard.Builtins import IO
+
+main = IO.println "Hello, World!"

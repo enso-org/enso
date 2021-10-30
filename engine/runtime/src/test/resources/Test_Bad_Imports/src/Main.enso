@@ -1,0 +1,4 @@
+import Surely_This.Does_Not_Exist.My_Module
+import Enso_Test.Test_Bad_Imports.Oopsie
+
+main = 10

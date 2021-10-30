@@ -1,0 +1,44 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec = Test.group "Range" <|
+    Test.specify "should be created with a start and an end" <|
+        range = 1.up_to 100
+        range.start . should_equal 1
+        range.end . should_equal 100
+    Test.specify "should have a length" <|
+        range = 0.up_to 100
+        range.length . should_equal 100
+    Test.specify "should allow checking for emptiness" <|
+        0.up_to 0 . is_empty . should_be_true
+        0.up_to -100 . is_empty . should_be_true
+        0.up_to 1 . is_empty . should_be_false
+        0.up_to 5 . is_empty . should_be_false
+    Test.specify "should allow checking for non emptiness" <|
+        0.up_to 0 . not_empty . should_be_false
+        0.up_to -100 . not_empty . should_be_false
+        0.up_to 1 . not_empty . should_be_true
+        0.up_to 5 . not_empty . should_be_true
+    Test.specify "should be able to be mapped over to make a Vector" <|
+        empty = 0.up_to 0
+        empty.map *2 . should_equal []
+        elements = 0.up_to 10
+        elements.map *2 . should_equal [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
+    Test.specify "should allow iteration" <|
+        vec_mut = Vector.new_builder
+        1.up_to 6 . each (i -> vec_mut.append i)
+        vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
+    Test.specify "should be able to be folded" <|
+        1.up_to 6 . fold 0 (+) . should_equal 15
+    Test.specify "should check all" <|
+        1.up_to 10 . all (> 0) . should_be_true
+        1.up_to 10 . all (< 0) . should_be_false
+    Test.specify "should check exists" <|
+        1.up_to 10 . exists (> 5) . should_be_true
+        1.up_to 10 . exists (> 10) . should_be_false
+    Test.specify "should check any" <|
+        1.up_to 10 . any (> 5) . should_be_true
+        1.up_to 10 . any (> 10) . should_be_false
+    Test.specify "should allow conversion to vector" <|
+        1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]

@@ -1,0 +1,50 @@
+from Standard.Base import all
+
+import Standard.Base.Network.Http.Form
+import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Method
+import Standard.Base.Network.Http.Request
+import Standard.Base.Network.Http.Request.Body as Request_Body
+import Standard.Base.Network.Uri
+import Standard.Test
+
+spec =
+    test_uri = Uri.parse "https://httpbin.org/post"
+    test_headers = [Header.application_json, Header.new "X-Foo-Id" "0123456789"]
+    Test.group "Request" <|
+        Test.specify "should return error when creating request from invalid Uri" <|
+            Request.new Method.Post "invalid uri" . should_fail_with Uri.Syntax_Error
+        Test.specify "should get method" <|
+            req = Request.new Method.Post test_uri
+            req.method.should_equal Method.Post
+        Test.specify "should get uri" <|
+            req = Request.get test_uri
+            req.uri.should_equal test_uri
+        Test.specify "should get headers" <|
+            req = Request.get test_uri test_headers
+            req.headers.should_equal test_headers
+        Test.specify "should add header" <|
+            new_header = Header.accept_all
+            req = Request.get test_uri test_headers . with_header new_header.name new_header.value
+            req.headers.should_equal (test_headers + [new_header])
+        Test.specify "should update header" <|
+            req = Request.get test_uri test_headers . with_header "X-Foo-Id" "42"
+            req.headers.should_equal [Header.application_json, Header.new "X-Foo-Id" "42"]
+        Test.specify "should add headers" <|
+            req = Request.get test_uri . with_headers test_headers
+            req.headers.should_equal test_headers
+        Test.specify "should update headers" <|
+            new_headers = [Header.multipart_form_data, Header.accept_all]
+            req = Request.get test_uri test_headers . with_headers new_headers
+            req.headers.should_equal [Header.multipart_form_data, test_headers.at 1, Header.accept_all]
+        Test.specify "should set json body" <|
+            json = '''
+                {"key":"val"}
+            req = Request.get test_uri . with_json json
+            req.body.should_equal (Request_Body.Json json)
+            req.headers.should_equal [Header.application_json]
+        Test.specify "should set form body" <|
+            body_form = [Form.text_field "key" "val"]
+            req = Request.get test_uri . with_form body_form
+            req.body.should_equal (Request_Body.Form body_form.to_form)
+            req.headers.should_equal [Header.application_x_www_form_urlencoded]

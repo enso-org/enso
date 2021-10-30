@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+
+prep_json size =
+    single = '{"foo": 543}, {"bar": false}'
+    many = Vector.new size (_ -> single)
+    str = "[" + (many.join ",") + "]"
+    str
+
+main =
+    large_json = here.prep_json 1000000
+    Bench.measure (Base.Json.parse large_json) "parse json" 10 10

@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+import Standard.Base.System.File
+import Standard.Base.System.Process
+import Standard.Base.System.Process.Exit_Code
+import Standard.Image.Codecs
+import Standard.Test
+
+polyglot java import java.lang.System as Java_System
+
+fetch addr file =
+    Process.run "curl" [addr, "--silent", "--output", file.path]
+
+spec =
+    is_ci = Java_System.getenv "CI" == "true"
+    rgba_addr = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
+    rgba_file = Enso_Project.root / "rgba.png"
+    pending = case is_ci of
+        True ->
+            case here.fetch rgba_addr rgba_file of
+                Exit_Code.Exit_Failure _ ->
+                    "The Codecs spec was not able to fetch the file from " + rgba_addr
+                Exit_Code.Exit_Success ->
+                    Nothing
+        False ->
+            "The Codecs spec only run when the `CI` environment variable is set to true"
+
+    Test.group "Codecs" pending=pending <|
+        Test.specify "should return error when read failed" <|
+            Codecs.read (Enso_Project.root / 'no_such_file.png') . should_fail_with File.Io_Error
+        Test.specify "should read a color image" <|
+            img = Codecs.read rgba_file
+            img.rows.should_equal 160
+            img.columns.should_equal 320
+            img.channels.should_equal 3
+        Test.specify "should read an image as grayscale" <|
+            img = Codecs.read rgba_file Codecs.Read_Grayscale
+            img.rows.should_equal 160
+            img.columns.should_equal 320
+            img.channels.should_equal 1
+        Test.specify "should read an image with an alpha channel" <|
+            img = Codecs.read rgba_file Codecs.Read_Alpha_Channel
+            img.rows.should_equal 160
+            img.columns.should_equal 320
+            img.channels.should_equal 4
+
+        Test.specify "should return error when write failed" <|
+            out_file = Enso_Project.root / "no_such_directory" / "out.png"
+            Test.expect_panic_with (Codecs.read rgba_file . write out_file) File.Io_Error
+        Test.specify "should write a PNG file with alpha channel" <|
+            out_file = Enso_Project.root / "out_alpha.png"
+            Codecs.read rgba_file Codecs.Read_Alpha_Channel . write out_file
+        Test.specify "should write a grayscale PNG file" <|
+            out_file = Enso_Project.root / "out_gray.png"
+            Codecs.read rgba_file Codecs.Read_Grayscale . write out_file
+        Test.specify "should write a PNG file with compression" <|
+            out_file = Enso_Project.root / "out.png"
+            Codecs.read rgba_file . write out_file (Codecs.Write_Png_Compression 3) . should_equal Nothing
+        Test.specify "should write a JPEG file with compression" <|
+            out_file = Enso_Project.root / "out.jpeg"
+            flags = [Codecs.Write_Jpeg_Quality 75, Codecs.Write_Jpeg_Optimize, Codecs.Write_Jpeg_Progressive]
+            Codecs.read rgba_file . write out_file flags . should_equal Nothing

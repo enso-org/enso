@@ -1,0 +1,32 @@
+include "evaluation.fbs";
+include "listbindings.fbs";
+include "session.fbs";
+
+namespace org.enso.polyglot.debugger.protocol;
+
+//A mapping between payload enum and payload types sent to the debugger.
+union RequestPayload {
+    EVALUATE: EvaluationRequest,
+    LIST_BINDINGS: ListBindingsRequest,
+    SESSION_EXIT: SessionExitRequest
+}
+
+// An envelope for messages sent to the debugger.
+table Request {
+    // Request message data.
+    payload: RequestPayload (required);
+}
+
+//A mapping between payload enum and payload types sent from the debugger.
+union ResponsePayload {
+    EVALUATION_SUCCESS: EvaluationSuccess,
+    EVALUATION_FAILURE: EvaluationFailure,
+    LIST_BINDINGS: ListBindingsResult,
+    SESSION_START: SessionStartNotification
+}
+
+// An envelope for messages sent from the debugger.
+table Response {
+    // Response message data.
+    payload: ResponsePayload (required);
+}

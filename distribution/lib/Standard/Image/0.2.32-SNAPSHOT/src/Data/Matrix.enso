@@ -1,0 +1,459 @@
+from Standard.Base import all
+
+import Standard.Image.Data.Histogram
+import Standard.Image.Data.Image
+import Standard.Image.Data.Matrix.Internal
+
+polyglot java import org.enso.image.data.Matrix as Java_Matrix
+
+## UNSTABLE
+
+   Create a matrix with all elements set to zero.
+
+   Arguments:
+   - rows: the number of rows in the resulting matrix.
+   - columns: the number of columns in the resulitng matrix.
+   - channels: the number of channels in the resulting matrix.
+
+   > Example
+     Create a matrix.
+
+         import Standard.Image.Data.Matrix
+
+         example_zeros = Matrix.zeros rows=2 columns=2
+zeros : Integer -> Integer -> Integer -> Matrix
+zeros rows columns channels=1 =
+    Matrix (Java_Matrix.zeros rows columns channels)
+
+## UNSTABLE
+
+   Create a matrix with all elements set to one.
+
+   Arguments:
+   - rows: the number of rows in the resulting matrix.
+   - columns: the number of columns in the resulitng matrix.
+   - channels: the number of channels in the resulting matrix.
+
+   > Example
+     Create a matrix.
+
+         import Standard.Image.Data.Matrix
+
+         example_ones = Matrix.zeros rows=2 columns=2 channels=3
+ones : Integer -> Integer -> Integer -> Matrix
+ones rows columns channels=1 =
+    Matrix (Java_Matrix.ones rows columns channels)
+
+## UNSTABLE
+
+   Create an identity matrix containing ones on a main diagonal.
+
+   Arguments:
+   - rows: the number of rows in the resulting matrix.
+   - columns: the number of columns in the resulitng matrix.
+   - channels: the number of channels in the resulting matrix.
+
+   > Example
+     Create a matrix.
+
+         import Standard.Image.Data.Matrix
+
+         example_identity = Matrix.identity rows=2 columns=2 channels=3
+identity : Integer -> Integer -> Integer -> Matrix
+identity rows columns channels=1 =
+    Matrix (Java_Matrix.identity rows columns channels)
+
+## UNSTABLE
+
+   Create a matrix from the provided vector.
+
+   Arguments:
+   - values: the vector of numbers.
+   - rows: the number of rows in the resulting matrix.
+   - channels: the number of channels in the resulting matrix.
+
+   > Example
+     Create a matrix.
+         import Standard.Image.Data.Matrix
+
+         example_from_vector = Matrix.from_vector [1, 1, 0, 0] rows=2
+from_vector : Vector -> Integer -> Integer -> Matrix
+from_vector values rows=1 channels=1 =
+    Matrix (Java_Matrix.from_vector values.to_array channels rows)
+
+## UNSTABLE
+type Matrix
+
+    ## PRIVATE
+
+       The matrix data type.
+
+       Arguments:
+       - opencv_mat: The internal representation of the matrix.
+
+       Each value of the matrix is represented with an array of
+       channels. In contrast to an Image data type, Matrix values are
+       not normalized.
+    type Matrix opencv_mat
+
+    ## UNSTABLE
+
+       Return the number of matrix rows.
+
+       > Example
+         Get the number of rows in this matrix.
+
+             import Standard.Examples
+
+             example_rows = Examples.matrix.rows
+    rows : Integer
+    rows = this.opencv_mat.rows
+
+    ## UNSTABLE
+
+       Return the number of matrix columns.
+
+       > Example
+         Get the number of columns in this matrix.
+
+             import Standard.Examples
+
+             example_columns = Examples.matrix.columns
+    columns : Integer
+    columns = this.opencv_mat.cols
+
+    ## Return the number of matrix channels.
+
+       > Example
+         Get the number of channels in this matrix.
+
+             import Standard.Examples
+
+             example_channels = Examples.matrix.channels
+    channels : Integer
+    channels = this.opencv_mat.channels
+
+    ## UNSTABLE
+
+       Get the matrix value at the specified row and column.
+
+       Arguments:
+       - row: the row index.
+       - column: the column index.
+
+       > Example
+         Get the value at the specified row and column.
+
+             import Standard.Examples
+
+             example_get = Examples.matrix.get 0 0
+    get : Integer -> Integer -> Vector ! Index_Out_Of_Bounds_Error
+    get row column =
+        if (row < 0) || (row >= this.rows) then Error.throw (Index_Out_Of_Bounds_Error this.rows this.columns row) else
+            if (column < 0) || (column >= this.columns) then Error.throw (Index_Out_Of_Bounds_Error this.rows this.columns column) else
+                arr = Java_Matrix.get this.opencv_mat row column
+                Vector.Vector arr
+
+    ## UNSTABLE
+
+       Reshape the matrix specifying new number of rows and channels.
+
+       Arguments:
+       - rows: the new number of rows.
+       - channels: the new number of channels.
+
+       > Example
+         Reshape the matrix to a new shape of 3 rows and 1 column, with 1 channel.
+
+             import Standard.Image.Data.Matrix
+
+             example_rewhsape = Matrix.from_vector [0, 0, 0] . reshape rows=3 channels=1
+    reshape : Integer -> Integer -> Matrix
+    reshape rows channels=Nothing =
+        case channels of
+            Nothing -> Matrix (this.opencv_mat.reshape this.channels rows)
+            _ -> Matrix (this.opencv_mat.reshape channels rows)
+
+    ## UNSTABLE
+
+       Calculates the per-element sum of two matrices or a matrix and a scalar.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
+
+       > Example
+         Add 1 to each element of the matrix.
+
+             import Standard.Examples
+
+             example_plus = Examples.matrix + 1
+
+       > Example
+         Add 100 to the first channel of the matrix.
+
+             import Standard.Examples
+
+             example_plus = Examples.matrix + [100]
+
+       > Example
+         Add two matrices.
+
+             import Standard.Examples
+
+             example_plus = Examples.matrix + Examples.matrix
+    + : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    + value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Calculates the per-element difference of two matrices or of a matrix and
+       a scalar.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
+
+       > Example
+         Subtract 1 from each element of the matrix.
+
+             import Standard.Examples
+
+             example_minus = Examples.matrix - 1
+
+       > Example
+         Subtract 100 from the second channel of the matrix.
+
+             import Standard.Examples
+
+             example_minus = Examples.matrix - [0, 100, 0, 0]
+
+       > Example
+         Subtract two matrices.
+
+             import Standard.Examples
+
+             example_minus = Examples.matrix - Examples.matrix
+    - : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Calculates the per-element product of two matrices or a matrix and a
+       scalar.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
+
+       > Example
+         Multiply each channel of the matrix by 2.
+
+             import Standard.Examples
+
+             example_mul = Examples.matrix * 2
+
+       > Example
+         Multiply first channel of the matrix by 2, and second channel by 4.
+
+             import Standard.Examples
+
+             example_mul = Examples.matrix * [2, 4, 1, 1]
+
+       > Example
+         Multiply first channel of the matrix by 2, and zero the rest of the
+         channels.
+
+             import Standard.Examples
+
+             example_mul = Examples.matrix * [2]
+
+       > Example
+         Multiply two matrices.
+             m * m
+    * : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Performs per-element division of two matrices or a matrix and a scalar.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
+
+        > Example
+          Divide each channel of the matrix by 2.
+
+              import Standard.Examples
+
+              example_div = Examples.matrix / 2
+
+        > Example
+          Divide first channel of the matrix by 2, and second channel by 4.
+
+              import Standard.Examples
+
+              example_div = Examples.matrix / [2, 4, 1, 1]
+
+        > Example
+          Divide two matrices.
+
+              import Standard.Examples
+
+              example_div = Examples.matrix / Examples.matrix
+    / : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Check the equality of two matrices.
+
+       Arguments:
+       - that: the matrix to compare with.
+
+       ? Implementation Note
+         Two matrices considered equal when they have the same number of rows,
+         columns and channels, and have the same values.
+
+       > Example
+         Comparing two matrices for equality.
+
+             import Standard.Examples
+
+             example_eq = Examples.matrix == Examples.matrix
+    == : Matrix -> Boolean
+    == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat
+
+    ## UNSTABLE
+
+       Normalize the matrix into a range of [min_value .. max_value] so that the
+       minimum value of the matrix becomes `min_value` and the maximum value of
+       the matrix becomes `max_value`.
+
+       Arguments:
+       - min_value: the minimum value in the resulting normalized range.
+       - max_value: the maximum value in the resulting normalized range.
+
+       > Example
+         Normalize a matrix from vector.
+
+             import Standard.Image.Data.Matrix
+
+             example_normalize = Matrix.from_vector [0, 1, 2, 3, 4] . normalize
+
+       > Example
+         Normalize a matrix of ones.
+
+             import Standard.Image.Data.Matrix
+
+             example_normalize = Matrix.ones 2 3 . normalize
+
+       > Example
+         Normalize an identity matrix.
+
+             import Standard.Image.Data.Matrix
+
+             example_normalize = Matrix.identity 3 3 . normalize
+    normalize : Number -> Number -> Matrix
+    normalize min_value=0.0 max_value=1.0 =
+        Matrix (Java_Matrix.normalize this.opencv_mat min_value max_value)
+
+    ## UNSTABLE
+
+       Convert this matrix to an image.
+
+       > Example
+         Convert a matrix to an image.
+
+             import Standard.Examples
+
+             example_to_image = Examples.matrix.to_image
+    to_image : Image.Image
+    to_image = Image.Image (Image.from_vector this.normalize.to_vector this.rows this.channels)
+
+    ## UNSTABLE
+
+       Get the elemets of this matrix as a vector.
+
+       > Example
+         Convert a matrix to a vector.
+
+             import Standard.Examples
+
+             example_to_vector = Examples.matrix.to_vector
+    to_vector : Vector
+    to_vector =
+        arr = Java_Matrix.to_vector this.opencv_mat
+        Vector.Vector arr
+
+    ## UNSTABLE
+
+       Convert this matrix to Json.
+
+       > Example
+         Convert a matrix to JSON.
+
+             import Standard.Examples
+
+             example_to_json = Examples.matrix.to_json
+    to_json : Json
+    to_json = Json.String this.opencv_mat.to_text
+
+## UNSTABLE
+type Matrix_Error
+
+    ## UNSTABLE
+
+       Indicates that a matrix has been accessed with an illegal index.
+
+       Arguments:
+       - rows: The number of rows in the matrix.
+       - columns: The number of columns in the matrix.
+       - index: The requested index in the matrix.
+    type Index_Out_Of_Bounds_Error rows columns index
+
+    ## UNSTABLE
+
+       An error indicating that an operation has failed due to a mismatch of
+       matrix dimensions.
+    type Dimensions_Not_Equal
+
+    ## UNSTABLE
+
+       Pretty-prints a matrix error to be readable by the users.
+    to_display_text : Text
+    to_display_text = case this of
+        Index_Out_Of_Bounds_Error rows columns index ->
+            'For a matrix with dimensions ' + rows.to_text + 'x' + columns.to_text + ', the index ' + index.to_text + ' is out of bounds.'
+        Dimensions_Not_Equal ->
+            'Dimensions are not equal.'
+

@@ -1,0 +1,377 @@
+from Standard.Base import all
+
+import Standard.Base.System.File
+import Standard.Image.Data.Image.Internal
+import Standard.Image.Data.Matrix
+
+polyglot java import org.enso.image.data.Image as Java_Image
+
+## UNSTABLE
+
+   Create an image from the array of values.
+
+   Arguments:
+   - values: the vector of numbers.
+   - rows: the number of rows in the resulting image.
+   - channels: the number of channels in the resulting image.
+
+   The function expects the array of normalized values to have each value in
+   the range of [0.0 .. 1.0].
+
+   > Example
+     Create an image from the vector.
+
+         import Standard.Image
+
+         example_from_vector =
+             Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
+from_vector : Vector -> Integer -> Integer -> Image
+from_vector values rows=1 channels=1 =
+    Image (Java_Image.from_vector values.to_array rows channels)
+
+## UNSTABLE
+type Image
+
+    ## UNSTABLE
+
+       The image data type.
+
+       Arguments:
+       - opencv_mat: The underlying matrix that stores the image data.
+
+       The image is represented with a matrix of rows x columns. Each
+       pixel is represented with a vector of 1 to 4 values (channels).
+       Pixel values are normalized in a range [0.0 .. 1.0].
+    type Image opencv_mat
+
+    ## UNSTABLE
+
+       Return the number of image rows.
+
+       > Example
+         Get the number of rows from an image.
+
+             import Standard.Examples
+
+             example_rows = Examples.image.rows
+    rows : Integer
+    rows = this.opencv_mat.rows
+
+    ## UNSTABLE
+
+       Return the number of image columns.
+
+       > Example
+         Get the number of columns from an image.
+
+             import Standard.Examples
+
+             example_cols = Examples.image.columns
+    columns : Integer
+    columns = this.opencv_mat.cols
+
+    ## UNSTABLE
+
+       Return the number of image channels.
+
+       > Example
+         Get the number of channels from an image.
+
+             import Standard.Examples
+
+             example_channels = Examples.image.channels
+    channels : Integer
+    channels = this.opencv_mat.channels
+
+    ## UNSTABLE
+
+       Get the pixel value indexed by row and column.
+
+       Arguments:
+       - row: the row index.
+       - column: the column index.
+
+       > Example
+         Get the value at the specified row and column.
+
+             import Standard.Examples
+
+             example_get = Examples.image.get 10 10
+    get : Integer -> Integer -> Vector ! Matrix.Index_Out_Of_Bounds_Error
+    get row column =
+        if (row < 0) || (row >= this.rows) then Error.throw (Matrix.Index_Out_Of_Bounds_Error this.rows this.columns row) else
+            if (column < 0) || (column >= this.columns) then Error.throw (Matrix.Index_Out_Of_Bounds_Error this.rows this.columns column) else
+                arr = Java_Image.get this.opencv_mat row column
+                Vector.Vector arr
+
+    ## UNSTABLE
+
+       Calculates the per-element sum of an image and a scalar or a matrix.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each pixel's channel of the image. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each image's pixel. The matrix value must have the same
+         dimensions (rows, columns, and channels) as this image. Otherwise, the
+         operation results in a `Dimensions_Not_Equal` error. The matrix is
+         applied element-wise, e.g., each matrix element is combined with the
+         appropriate pixel (the element with the same row and column) of this
+         image.
+
+       The matrix should have the same dimensions as the image.
+
+       > Example
+         Add the constant to an image. Operation will add 0.1 to each channel
+         of the image.
+
+             import Standard.Examples
+
+             example_plus = Examples.image + 0.1
+
+       > Example
+         Add 0.1 to the first channel of the image.
+
+             import Standard.Examples
+
+             example_plus = Examples.image + [0.1]
+
+       > Example
+         Add 0.1 to the third channel of the image.
+
+             import Standard.Examples
+
+             example_plus = Examples.image + [0, 0, 0.1]
+
+       > Example
+         Add a matrix to the image.
+
+             import Standard.Examples
+             import Standard.Image.Data.Matrix
+
+             example_plus =
+                 image = Examples.image
+                 image + (Matrix.zeros rows=image.rows columns=image.columns channels=image.channels)
+    + : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    + value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.add _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Calculates the per-element difference between an image and a scalar or a matrix.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each pixel's channel of the image. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each image's pixel. The matrix value must have the same
+         dimensions (rows, columns, and channels) as this image. Otherwise, the
+         operation results in a `Dimensions_Not_Equal` error. The matrix is
+         applied element-wise, e.g., each matrix element is combined with the
+         appropriate pixel (the element with the same row and column) of this
+         image.
+
+       The matrix should have the same dimensions as the image.
+
+       > Example
+         Add the constant to an image. Operation will subtract 0.1 from each
+         channel of the image.
+
+             import Standard.Examples
+
+             example_minus = Examples.image - 0.1
+
+       > Example
+         Subtract 0.1 from the first channel of the image.
+
+             import Standard.Examples
+
+             example_minus = Examples.image - [0.1]
+
+       > Example
+         Subtract 0.1 from the third channel of the image.
+
+             import Standard.Examples
+
+             example_minus = Examples.image - [0, 0, 0.1]
+
+       > Example
+         Subtract a matrix from the image.
+
+             import Standard.Examples
+             import Standard.Image.Data.Matrix
+
+             example_minus =
+                 image = Examples.image
+                 image - (Matrix.zeros rows=image.rows columns=image.columns channels=image.channels)
+    - : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.subtract _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Calculates the per-element product of an image and a scalar or a matrix.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each pixel's channel of the image. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each image's pixel. The matrix value must have the same
+         dimensions (rows, columns, and channels) as this image. Otherwise, the
+         operation results in a `Dimensions_Not_Equal` error. The matrix is
+         applied element-wise, e.g., each matrix element is combined with the
+         appropriate pixel (the element with the same row and column) of this
+         image.
+
+       The matrix should have the same dimensions as the image.
+
+       > Example
+         Multiply each channel of the image by 2.
+
+             import Standard.Examples
+
+             example_mul = Examples.image * 2
+
+       > Example
+         Multiply first channel of the image by 2, and second channel by 4.
+
+             import Standard.Examples
+
+             example_mul = Examples.image * [2, 4, 1, 1]
+
+       > Example
+         Multiply first channel of the image by 2, and zero the rest of
+         the channels.
+
+             import Standard.Examples
+
+             example_mul = image * [2]
+
+       > Example
+         Multiply a matrix and the image.
+
+             import Standard.Examples
+             import Standard.Image.Data.Matrix
+
+             example_mul =
+                 image = Examples.image
+                 image * (Matrix.ones rows=image.rows columns=image.columns channels=image.channels)
+    * : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.multiply _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Performs per-element division of an image and a scalar or a matrix.
+
+       Arguments:
+       - value: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each pixel's channel of the image. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each image's pixel. The matrix value must have the same
+         dimensions (rows, columns, and channels) as this image. Otherwise, the
+         operation results in a `Dimensions_Not_Equal` error. The matrix is
+         applied element-wise, e.g., each matrix element is combined with the
+         appropriate pixel (the element with the same row and column) of this
+         image.
+
+       The matrix should have the same dimensions as the image.
+
+       > Example
+         Divide each channel of the image by 2.
+
+             import Standard.Examples
+
+             example_div = Examples.image / 2
+
+       > Example
+         Divide first channel of the image by 2, and second channel by 4.
+
+             import Standard.Examples
+
+             example_div = Examples.image / [2, 4, 1, 1]
+
+       > Example
+         Divide first channel of the image by 2, and zero the rest of
+         the channels.
+
+             import Standard.Examples
+
+             example_div = image / [2]
+
+       > Example
+         Divide an image by a matrix.
+
+             import Standard.Examples
+             import Standard.Image.Data.Matrix
+
+             example_div =
+                 image = Examples.image
+                 image / (Matrix.ones rows=image.rows columns=image.columns channels=image.channels)
+    / : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.divide _ _ _)) . catch Internal.core_op_handler
+
+    ## UNSTABLE
+
+       Check the equality of two images.
+
+       Arguments:
+       - that: the matrix to compare with.
+
+       ? Implementation Note
+         Two images considered equal when they have the same number of rows,
+         columns and channels, and have the same pixel values.
+
+         The image represented internally as a byte array, and if two images
+         have the same dimensions, equality checks that underlying byte arrays
+         are equal as well.
+
+       > Example
+         Checking two images for equality.
+
+             import Standard.Examples
+
+             example_eq = Examples.image == Examples.image
+    == : Image -> Boolean
+    == that = Java_Image.is_equals this.opencv_mat that.opencv_mat
+
+    ## UNSTABLE
+
+       Convert the image to a vector.
+
+       > Example
+         Convert an image to a vector.
+
+             import Standard.Examples
+
+             example_to_vector = Examples.image.to_vector
+    to_vector : Vector
+    to_vector =
+        arr = Java_Image.to_vector this.opencv_mat
+        Vector.Vector arr
+
+    ## UNSTABLE
+
+       Convert the image to Json.
+
+       > Example
+         Convert an image to JSON.
+
+             import Standard.Examples
+
+             example_to_json = Examples.image.to_json
+    to_json : Json
+    to_json =
+        base64 = Java_Image.to_base64 this.opencv_mat
+        Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
+
+    ## UNSTABLE
+
+       Convert the image to a Matrix.
+
+       > Example
+         Convert an image to a matrix.
+
+             import Standard.Examples
+
+             example_to_mat = Examples.image.to_matrix
+    to_matrix : Matrix
+    to_matrix = Matrix.from_vector this.to_vector this.rows this.channels
+

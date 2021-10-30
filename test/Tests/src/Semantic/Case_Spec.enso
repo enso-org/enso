@@ -1,0 +1,90 @@
+from Standard.Base import all
+
+import Standard.Test
+
+polyglot java import java.util.Random
+
+spec = Test.group "Pattern Matches" <|
+    Test.specify "should be able to match on the Boolean type" <|
+        case Boolean of
+            Boolean -> Nothing
+            _ -> Test.fail "Expected the Boolean constructor to match."
+        case True of
+            Boolean -> Nothing
+            _ -> Test.fail "Expected the True constructor to match."
+        case False of
+            Boolean -> Nothing
+            _ -> Test.fail "Expected the False constructor to match."
+    Test.specify "should be able to match on the Integer type" <|
+        case 1 of
+            Integer -> Nothing
+            _ -> Test.fail "Expected an integer to match."
+        case 100000000000000000000000000000000000 of
+            Integer -> Nothing
+            _ -> Test.fail "Expected an integer to match."
+        case Integer of
+            Integer -> Nothing
+            _ -> Test.fail "Expected the Integer constructor to match."
+    Test.specify "should be able to match on the Decimal type" <|
+        case 1.7 of
+            Decimal -> Nothing
+            _ -> Test.fail "Expected a decimal to match."
+        case Decimal of
+            Decimal -> Nothing
+            _ -> Test.fail "Expected the Decimal constructor to match."
+    Test.specify "should be able to match on the Number type" <|
+        case 1 of
+            Number -> Nothing
+            _ -> Test.fail "Expected a number to match."
+        case 100000000000000000000000000000000000 of
+            Number -> Nothing
+            _ -> Test.fail "Expected a number to match."
+        case 1.7 of
+            Number -> Nothing
+            _ -> Test.fail "Expected a number to match."
+        case Number of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Number constructor to match."
+        case Integer of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Integer constructor to match."
+        case Decimal of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Decimal constructor to match."
+    Test.specify "should be able to match on the Text type" <|
+        case "foo" of
+            Text -> Nothing
+            _ -> Test.fail "Expected a text to match."
+        case Text of
+            Text -> Nothing
+            _ -> Test.fail "Expected the Text constructor to match."
+    Test.specify "should be able to match on the Array type" <|
+        case [].to_array of
+            Array -> Nothing
+            _ -> Test.fail "Expected an array to match."
+        case Array of
+            Array -> Nothing
+            _ -> Test.fail "Expected the Array constructor to match."
+    Test.specify "should be able to match on the Polyglot type" <|
+        random_gen = Random.new
+        case random_gen of
+            Polyglot -> Nothing
+            _ -> Test.fail "Expected a polyglot object to match."
+        case Polyglot of
+            Polyglot -> Nothing
+            _ -> Test.fail "Expected the Polyglot constructor to match."
+    Test.specify "should be able to match on the Any type" <|
+        value_1 = 1.23143
+        value_2 = "foo bar"
+        case value_1 of
+            Any -> Nothing
+            _ -> Test.fail "Expected any value to match Any."
+        case value_2 of
+            Any -> Nothing
+            _ -> Test.fail "Expected any value to match Any."
+        case Polyglot of
+            Any -> Nothing
+            _ -> Test.fail "Expect any constructor to match Any."
+        case Any of
+            Any -> Nothing
+            _ -> Test.fail "Expected the Any constructor to match."

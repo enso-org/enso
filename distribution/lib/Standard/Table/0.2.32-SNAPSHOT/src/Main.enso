@@ -1,0 +1,132 @@
+from Standard.Base import all
+
+import Standard.Geo.Geo_Json
+import Standard.Table.Io.Csv
+import Standard.Table.Io.Format
+import Standard.Table.Io.Spreadsheet
+import Standard.Table.Io.Spreadsheet_Write_Mode
+import Standard.Table.Data.Table
+import Standard.Table.Data.Column
+import Standard.Table.Data.Order_Rule
+import Standard.Table.Model
+
+from Standard.Table.Io.Csv export all hiding Parser
+from Standard.Table.Io.Spreadsheet export all hiding Reader
+
+export Standard.Table.Io.Format
+export Standard.Table.Io.Spreadsheet_Write_Mode
+export Standard.Table.Data.Column
+export Standard.Table.Model
+
+from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, Table
+from Standard.Table.Data.Order_Rule export Order_Rule
+
+## ALIAS To Table
+
+   Converts a JSON array into a dataframe, by looking up the requested keys
+   from each item.
+
+   Arguments:
+   - fields: a vector of texts representing the names of fields to look up.
+
+   The function assumes the elements have one of the following structures:
+   - a JSON object containing the requested keys. In case an item is not an
+     object, or the request key does not exist, the relevant values of the table
+     will be set to `Nothing`.
+   - a GeoJSON object of type Feature. The format is described in rfc7946.
+
+   ? Implementation Note
+     The GeoJson support is only partial.
+     - Supported geometry objects are Position and Point. Rows containing
+       other geometry objects are not included in the resulting dataframe.
+     - Position arrays are truncated to 3 elements: longitude, latitude
+       and elevation.
+     - Nested properties are not supported and not included in the resulting
+       dataframe.
+
+   > Example Converts a JSON array containing key-value pairs into a table for the
+     provided headers.
+
+         import Standard.Examples
+         import Standard.Table
+
+         example_to_table =
+             json = Examples.simple_table_json
+             headers = Examples.simple_table_json_headers
+             json.to_table headers
+Json.Array.to_table : Vector -> Table
+Json.Array.to_table fields = case this of
+    Json.Array items ->
+        rows = items.map item-> case item of
+            Json.Object fs ->
+                row = if item.get_type == Geo_Json.Feature.to_text then item.get_feature_row else fs
+                fields.map n-> row.get n . unwrap . catch (_ -> Nothing)
+            _ -> Vector.fill fields.length Nothing
+        cols = fields.map_with_index i-> n->
+            [n, rows.map (_.at i)]
+        Table.new cols
+
+## ALIAS To Table
+
+   Converts a JSON object into a dataframe, by looking up the requested keys
+   from each item.
+
+   Arguments:
+   - fields: a vector of texts representing the names of fields to look up.
+
+   The function assumes the elements have one of the following structures:
+   - a GeoJSON object of type FeatureCollection. The format is described in
+     rfc7946.
+
+   ? Implementation Note
+     The GeoJson support is only partial.
+     - Supported geometry objects are Position and Point. Rows containing
+       other geometry objects are not included in the resulting dataframe.
+     - Position arrays are truncated to 3 elements: longitude, latitude
+       and elevation.
+     - Nested properties are not supported and not included in the resulting
+       dataframe.
+
+   > Example
+     Convert a GeoJSON object into a dataframe by looking up the necessary keys
+     in the input item.
+
+         import Standard.Examples
+         import Standard.Table
+
+         example_to_table =
+             json = Examples.geo_json
+             json.to_table
+Json.Object.to_table : Vector -> Table ! Invalid_Format_Error
+Json.Object.to_table fields=Nothing =
+    if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error this "not being a feature collection") else
+        case this.get "features" of
+            Json.Array items ->
+                feature_rows = items.map .get_feature_row
+                column_names = case fields of
+                    Nothing ->
+                        column_names_row = feature_rows.fold Map.empty acc-> row->
+                            row.fold_with_key acc a-> k-> _->
+                                a.insert k 0
+                        column_names_row.keys
+                    _ -> fields
+                rows = feature_rows.map row->
+                    column_names.map n-> row.get n . unwrap . catch (_ -> Nothing)
+                cols = column_names.map_with_index i-> n->
+                    [n, rows.map (_.at i)]
+                Table.new cols
+
+            _ -> Error.throw (Invalid_Format_Error this "not having the 'features' key.")
+
+## UNSTABLE
+
+   An error representing an invalid format for conversion.
+type Invalid_Format_Error input message
+
+## UNSTABLE
+
+   Provides a human-readable representation of the Invalid_Format_Error.
+Invalid_Format_Error.to_display_text : Text
+Invalid_Format_Error.to_display_text =
+    "The input " + this.input.to_text + " had an invalid format due to: " + this.message.to_text + "."
+

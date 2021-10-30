@@ -1,0 +1,38 @@
+from Standard.Base import all
+
+from Standard.Builtins import System
+
+## A representation of the various operating systems on which Enso can run.
+type Os
+
+    ## The Linux operating system.
+    type Linux
+
+    ## The macOS operating system.
+    type MacOS
+
+    ## The Windows operating system.
+    type Windows
+
+    ## An unknown operating system.
+    type Unknown
+
+## Return the type of operating system.
+
+   > Example
+     Return the OS type:
+
+         import Standard.Base.System.Platform
+
+         example_os = Platform.os
+os : Os
+os = here.from_text System.os
+
+## PRIVATE
+
+   Create an Os object from text.
+from_text: Text -> Os
+from_text os =
+    if os == "linux" then Linux else
+        if os == "macos" then MacOS else
+            if os == "windows" then Windows else Unknown

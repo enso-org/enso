@@ -1,0 +1,428 @@
+from Standard.Base import all
+
+polyglot java import java.util.Locale as JavaLocale
+
+# Constants
+# These are chosen as the union of the top 10 countries by population, and the
+# top ten countries by total (nominal, not per-capita) GDP.
+
+## The default locale.
+
+   The default locale is a locale that does not specify any language, country,
+   or variant and is used as the language/country-neutral setting for locale
+   sensitive operations.
+default : Locale
+default = here.from_java JavaLocale.ROOT
+
+## A locale representing Bangladesh.
+
+   > Example
+     Get the Bangladeshi locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.bangladesh
+bangladesh : Locale
+bangladesh = here.from_language_tag "bn-BD"
+
+## A locale representing Brazil.
+
+   > Example
+     Get the Brazilian locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.brazil
+brazil : Locale
+brazil = here.from_language_tag "pt-BR"
+
+## A locale representing Canada with language English.
+
+   > Example
+     Get the Canadian english locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.canada_english
+canada_english : Locale
+canada_english = here.from_language_tag "en-CA"
+
+## A locale representing Canada with language French.
+
+   > Example
+     Get the Canadian french locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.canada_french
+canada_french : Locale
+canada_french = here.from_language_tag "fr-CA"
+
+## A locale representing the PRC.
+
+   > Example
+     Get the PRC locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.china
+china : Locale
+china = here.from_language_tag "zh-CN"
+
+## A locale representing France.
+
+   > Example
+     Get the French locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.france
+france : Locale
+france = here.from_language_tag "fr-FR"
+
+## A locale representing Germany.
+
+   > Example
+     Get the German locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.germany
+germany : Locale
+germany = here.from_language_tag "de-DE"
+
+## A locale representing India with language Hindi.
+
+   > Example
+     Get the Indian hindi locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.india_hindi
+india_hindi : Locale
+india_hindi = here.from_language_tag "hi-IN"
+
+## A locale representing India with language English.
+
+   > Example
+     Get the Indian english locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.india_english
+india_english : Locale
+india_english = here.from_language_tag "en-IN"
+
+## A locale representing Indonesia.
+
+   > Example
+     Get the Indonesian locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.indonesia
+indonesia : Locale
+indonesia = here.from_language_tag "id-ID"
+
+## A locale representing Italy.
+
+   > Example
+     Get the Italian locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.italy
+italy : Locale
+italy = here.from_language_tag "it-IT"
+
+## A locale representing Japan.
+
+   > Example
+     Get the Japanese locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.japan
+japan : Locale
+japan = here.from_language_tag "jp-JP"
+
+## A locale representing Mexico.
+
+   > Example
+     Get the Mexican locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.mexico
+mexico : Locale
+mexico = here.from_language_tag "es-MX"
+
+## A locale representing Nigeria.
+
+   > Example
+     Get the Nigerian locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.nigeria
+nigeria : Locale
+nigeria = here.from_language_tag "en-NG"
+
+## A locale representing paksitan with language Urdu.
+
+   > Example
+     Get the Pakistani urdu locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.pakistan_urdu
+pakistan_urdu : Locale
+pakistan_urdu = here.from_language_tag "ur-PK"
+
+## A locale representing paksitan with language English.
+
+   > Example
+     Get the Pakistani english locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.pakistan_english
+pakistan_english : Locale
+pakistan_english = here.from_language_tag "en-PK"
+
+## A locale representing Russia.
+
+   > Example
+     Get the Russian locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.russia
+russia : Locale
+russia = here.from_language_tag "ru-RU"
+
+## A locale representing South Korea.
+
+   > Example
+     Get the South Korean locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.south_korea
+south_korea : Locale
+south_korea = here.from_language_tag "ko-KR"
+
+## A locale representing the UK.
+
+   > Example
+     Get the british locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.uk
+uk : Locale
+uk = here.from_language_tag "en-GB"
+
+## A locale representing the United States.
+
+   > Example
+     Get the US locale.
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.us
+us : Locale
+us = here.from_language_tag "en-US"
+
+## Construct a new locale.
+
+   Arguments:
+   - language: The language tag for the locale.
+   - country: The country tag for the locale.
+   - variant: The variant for the locale.
+
+   > Example
+     A locale representing en-GB.UTF-8.
+
+         import Standard.Base.Data.Locale
+
+         example_new = Locale.new "en" "GB" "UTF-8"
+new : Text -> Text | Nothing -> Text | Nothing -> Locale
+new language country=Nothing variant=Nothing =
+    country_text = if country.is_nothing then "" else country
+    variant_text = if variant.is_nothing then "" else variant
+    java_locale = JavaLocale.new language country_text variant_text
+    here.from_java java_locale
+
+## Returns the locale specified by the provided IETF BCP47 language tag string.
+
+   ? Language Tag Syntax
+     If the specified language tag contains any ill-formed subtags, the first
+     such subtag and all following subtags are ignored.
+
+     The following conversions are performed:
+     - The language code "und" is mapped to language "".
+     - The language codes "he", "yi", and "id" are mapped to "iw", "ji", and
+       "in" respectively.
+     - The portion of a private use subtag prefixed by "lvariant", if any, is
+       removed and appended to the variant field in the result locale (without
+       case normalization).
+     - When the languageTag argument contains an extlang subtag, the first such
+       subtag is used as the language, and the primary language subtag and other
+       extlang subtags are ignored.
+     - Case is normalized except for variant tags, which are left unchanged.
+       Language is normalized to lower case, script to title case, country to
+       upper case, and extensions to lower case.
+     - If, after processing, the locale would exactly match either ja_JP_JP or
+       th_TH_TH with no extensions, the appropriate extensions are added.
+
+     This implements the 'Language-Tag' production of BCP47, and so supports
+     grandfathered (regular and irregular) as well as private use language tags.
+
+   > Example
+     Creating the locale en_US.
+
+         import Standard.Base.Data.Locale
+
+         example_from_tag = Locale.from_language_tag "en_US"
+from_language_tag : Text -> Locale
+from_language_tag tag =
+    java_locale = JavaLocale.forLanguageTag tag
+    here.from_java java_locale
+
+## A type representing a locale.
+
+   A locale consists of three parts:
+   - A language, which is mandatory.
+   - A country code, which is optional.
+   - A variant, which is optional.
+type Locale
+
+    ## PRIVATE
+       A type representing a locale.
+
+       Arguments:
+       - java_locale: The Java locale representation used internally.
+    type Locale java_locale
+
+    ## Gets the language from the locale.
+
+       > Example
+         Get the language tag from the default locale.
+
+             import Standard.Base.Data.Locale
+
+             example_language = Locale.default.language
+    language : Text | Nothing
+    language =
+        lang = this.java_locale.getLanguage
+        if lang.is_empty then Nothing else lang
+
+    ## Gets the country from the locale.
+
+       > Example
+         Get the country tag from the default locale.
+
+             import Standard.Base.Data.Locale
+
+             example_country = Locale.default.country
+    country : Text | Nothing
+    country =
+        place = this.java_locale.getCountry
+        if place.is_empty then Nothing else place
+
+    ## Gets the variant from the locale.
+
+       > Example
+         Get the variant tag from the default locale.
+
+             import Standard.Base.Data.Locale
+
+             example_variant = Locale.default.variant
+    variant : Text | Nothing
+    variant =
+        var = this.java_locale.getVariant
+        if var.is_empty then Nothing else var
+
+    ## Gets a representation of the language in the locale that can be shown to
+       the user.
+
+       > Example
+         Get the display language tag from the default locale.
+
+             import Standard.Base.Data.Locale
+
+             example_display_language = Locale.default.display_language
+    display_language : Text | Nothing
+    display_language =
+        disp = this.java_locale.getDisplayLanguage
+        if disp.is_empty then Nothing else disp
+
+    ## Gets a representation of the country in the locale that can be shown to
+       the user.
+
+       > Example
+         Get the display country tag from the default locale.
+
+             import Standard.Base.Data.Locale
+
+             example_display_country = Locale.default.display_country
+    display_country : Text | Nothing
+    display_country =
+        disp = this.java_locale.getDisplayCountry
+        if disp.is_empty then Nothing else disp
+
+    ## Gets a representation of the variant in the locale that can be shown to
+       the user.
+
+       > Example
+         Get the display variant tag from the default locale.
+
+             import Standard.Base.Data.Locale
+
+             example_display_variant = Locale.default.display_variant
+    display_variant : Text | Nothing
+    display_variant =
+        disp = this.java_locale.getDisplayVariant
+        if disp.is_empty then Nothing else disp
+
+    ## Converts the locale to text.
+
+       > Example
+         Convert the default locale to text.
+
+             import Standard.Base.Data.Locale
+
+             example_to_text = Locale.default.to_text
+    to_text : Text | Nothing
+    to_text = this.java_locale.toLanguageTag
+
+    ## A Locale to Json conversion
+
+       > Example
+         Convert the default locale to JSON.
+
+             import Standard.Base.Data.Locale
+
+             example_to_json = Locale.default.to_json
+    to_json : Json.Object
+    to_json =
+        b = Vector.new_builder
+        b.append ["type", "Locale"]
+        if this.language.is_nothing.not then b.append ["language", this.language]
+        if this.country.is_nothing.not then b.append ["country", this.country]
+        if this.variant.is_nothing.not then b.append ["variant", this.variant]
+        Json.from_pairs b.to_vector
+
+## PRIVATE
+
+   Convert a java locale to an Enso locale.
+
+   Arguments:
+   - java: The java locale value.
+from_java : JavaLocale -> Locale
+from_java java = Locale java
+
+## PRIVATE
+javaLocaleBuilder = JavaLocale.Builder
+

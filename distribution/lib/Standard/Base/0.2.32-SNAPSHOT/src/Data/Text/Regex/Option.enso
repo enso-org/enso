@@ -1,0 +1,46 @@
+## Options are used to configure how a regex engine behaves.
+
+   In this file, Enso provides a set of standard options that must be supported
+   by all regex engines integrated with Enso.
+
+from Standard.Base import all
+
+type Option
+
+    ## Specifies that all predefined character classes and POSIX character
+       classes will match _only_ on ASCII characters.
+
+       ! Performance
+         If you are _sure_ that your data can only ever contain characters from
+         the ASCII character set, you may be able to obtain a performance boost
+         by specifying this flag. This may not be the case on all engines or all
+         regexes.
+    type Ascii_Matching
+
+    ## Specifies that matching should be performed in a case-insensitive manner.
+    type Case_Insensitive
+
+    ## Specifies that the regular expression should be interpreted in comments
+       mode.
+
+       Comments mode has the following changes:
+       - Whitespace within the pattern is ignored, except when within a
+         character class or when preceeded by an unescaped backslash, or within
+         grouping constructs (e.g. `(?...)`).
+       - When a line contains a `#`, that is not in a character class and is not
+         preceeded by an unescaped backslash, all characters from the leftmost
+         such `#` to the end of the line are ignored. That is to say, they act
+         as _comments_ in the regex.
+    type Comments
+
+    ## Specifies that the `.` special character should match everything
+       _including_ newline characters. Without this flag, it will match all
+       characters _except_ newlines.
+    type Dot_Matches_Newline
+
+    ## Specifies that the pattern character `^` matches at both the beginning of
+       the string and at the beginning of each line (immediately following a
+       newline), and that the pattern character `$` matches at the end of each
+       line _and_ at the end of the string.
+    type Multiline
+

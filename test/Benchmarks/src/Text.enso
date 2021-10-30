@@ -1,0 +1,23 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+
+from Standard.Builtins import Prim_Text_Helper
+
+polyglot java import java.lang.StringBuilder
+
+build_long n =
+    res = 1.up_to n . fold "" acc-> n-> acc + n.to_text
+    Prim_Text_Helper.optimize res
+    res
+
+build_long_bldr n =
+    bldr = StringBuilder.new
+    1.up_to n . each n-> bldr.append n
+    res = bldr.toString
+    res
+
+main =
+    Bench.measure (here.build_long_bldr 1000000) "string append bldr" 1 1
+    Bench.measure (here.build_long 1000000) "string append" 1 1
+    IO.println "Bye"

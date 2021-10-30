@@ -1,0 +1,3 @@
+COMP_PATH=$(dirname "$0")/../component
+exec java -jar -Dtruffle.class.path.append="$COMP_PATH/runtime.jar" $JAVA_OPTS $COMP_PATH/runner.jar "$@"
+exit

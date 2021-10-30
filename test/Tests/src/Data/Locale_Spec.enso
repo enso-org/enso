@@ -1,0 +1,60 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Locale
+import Standard.Test
+
+spec = Test.group "Locale" <|
+    en_gb = Locale.new "en" "GB"
+    Test.specify "allow constructing a locale with optional parts" <|
+        loc = Locale.new "en"
+        loc.language . should_equal "en"
+        loc.country . should_equal Nothing
+        loc.variant . should_equal Nothing
+    Test.specify "should have a well-defined text conversion" <|
+        en_gb.to_text . should_equal "en-GB"
+    Test.specify "should allow obtaining it from a language tag" <|
+        locale = Locale.from_language_tag "en-US"
+        locale.to_text . should_equal "en-US"
+    Test.specify "should allow getting the language code" <|
+        locale = Locale.from_language_tag "en-US"
+        locale.language . should_equal "en"
+    Test.specify "should allow getting the country code" <|
+        locale = Locale.from_language_tag "en-US"
+        locale.country . should_equal "US"
+    Test.specify "should allow getting the variant code" <|
+        locale = Locale.from_language_tag "en-US-x-lvariant-UTF-8"
+        locale.variant . should_equal "UTF_8"
+    Test.specify "should allow getting the display language" <|
+        display = Locale.from_language_tag "en-GB" . display_language
+        display . should_equal "English"
+    Test.specify "should allow getting the display country" <|
+        display = Locale.from_language_tag "en-GB" . display_country
+        display . should_equal "United Kingdom"
+    Test.specify "should allow getting the display variant" <|
+        display = Locale.from_language_tag "en-GB-x-lvariant-UTF8" . display_variant
+        display . should_equal "UTF8"
+    Test.specify "should have some common locale constants" <|
+        Locale.default.to_text . should_equal "und"
+        Locale.bangladesh.to_text . should_equal "bn-BD"
+        Locale.brazil.to_text . should_equal "pt-BR"
+        Locale.canada_english.to_text . should_equal "en-CA"
+        Locale.canada_french.to_text . should_equal "fr-CA"
+        Locale.china.to_text . should_equal "zh-CN"
+        Locale.france.to_text . should_equal "fr-FR"
+        Locale.germany.to_text . should_equal "de-DE"
+        Locale.india_hindi.to_text . should_equal "hi-IN"
+        Locale.india_english.to_text . should_equal "en-IN"
+        Locale.indonesia.to_text . should_equal "id-ID"
+        Locale.italy.to_text . should_equal "it-IT"
+        Locale.japan.to_text . should_equal "jp-JP"
+        Locale.mexico.to_text . should_equal "es-MX"
+        Locale.nigeria.to_text . should_equal "en-NG"
+        Locale.pakistan_urdu.to_text . should_equal "ur-PK"
+        Locale.pakistan_english.to_text . should_equal "en-PK"
+        Locale.russia.to_text . should_equal "ru-RU"
+        Locale.south_korea.to_text . should_equal "ko-KR"
+        Locale.uk.to_text . should_equal "en-GB"
+        Locale.us.to_text . should_equal "en-US"
+    Test.specify "should convert to Json" <|
+        en_gb.to_json.should_equal <|
+            Json.from_pairs [["type", "Locale"], ["language", "en"], ["country", "GB"]]

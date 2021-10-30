@@ -1,0 +1,73 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+
+polyglot java import java.util.Random
+polyglot java import org.enso.base.Time_Utils
+
+
+
+## Bench Utilities ============================================================
+
+vector_size = 1000000
+iter_size = 100
+num_iterations = 10
+
+make_sorted_ascending_vec : Integer -> Base.Vector.Vector
+make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
+
+make_partially_sorted_vec : Integer -> Base.Vector.Vector
+make_partially_sorted_vec n =
+    random_gen = Random.new n
+    direction = Ref.new Sort_Order.Ascending
+    last_num = Ref.new 0
+    run_length = Ref.new 0
+    Base.Vector.fill n <|
+        case (Ref.get run_length) == 0 of
+            True ->
+                new_direction = if random_gen.nextDouble > 0 then Sort_Order.Ascending else
+                    Sort_Order.Descending
+                Ref.put direction new_direction
+                Ref.put run_length ((random_gen.nextLong % (n / 10).floor) - 1)
+                num = random_gen.nextInt
+                Ref.put last_num num
+                num
+            False ->
+                change = random_gen.nextInt.abs % n
+                num = case Ref.get direction of
+                    Sort_Order.Ascending ->
+                        num = (Ref.get last_num) + change
+                        Ref.put last_num num
+                        num
+                    Sort_Order.Descending ->
+                        num = (Ref.get last_num) - change
+                        Ref.put last_num num
+                        num
+                Ref.put run_length ((Ref.get run_length) - 1)
+                num
+
+make_random_vec : Integer -> Base.Vector.Vector
+make_random_vec n =
+    random_gen = Random.new n
+    Base.Vector.fill n random_gen.nextLong
+
+
+
+# The Benchmarks ==============================================================
+
+main =
+    sorted_vec = here.make_sorted_ascending_vec here.vector_size
+    partially_sorted_vec = here.make_partially_sorted_vec here.vector_size
+    random_vec = here.make_random_vec here.vector_size
+    projection = x -> x % 10
+    comparator = l -> r -> r.compare_to l
+
+    Bench.measure (sorted_vec.sort) "Already Sorted" here.iter_size here.num_iterations
+    Bench.measure (sorted_vec.sort order=Sort_Order.Descending) "Sorted in Opposite Order" here.iter_size here.num_iterations
+    Bench.measure (partially_sorted_vec.sort) "Sorted Runs Ascending" here.iter_size here.num_iterations
+    Bench.measure (partially_sorted_vec.sort order=Sort_Order.Descending) "Sorted Runs Descending" here.iter_size here.num_iterations
+    Bench.measure (random_vec.sort) "Random Elements Ascending" here.iter_size here.num_iterations
+    Bench.measure (random_vec.sort order=Sort_Order.Descending) "Random Elements Descending" here.iter_size here.num_iterations
+    Bench.measure (random_vec.sort on=projection) "Sorting with a Custom Projection" here.iter_size here.num_iterations
+    Bench.measure (random_vec.sort by=comparator) "Sorting with a Custom Comparison" here.iter_size here.num_iterations
+
