@@ -1,0 +1,74 @@
+[package]
+name = "ide"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+analytics = { version = "0.1.0", path = "lib/analytics" }
+enso-args = { path = "lib/args" }
+enso-callback = { path = "../lib/callback" }
+enso-data = { version = "0.2.0" }
+enso-frp = { path = "../lib/frp" }
+enso-logger = { version = "0.3.1" }
+enso-prelude = { version = "0.2.6" }
+enso-shapely = { version = "0.2.0" }
+ensogl = { path = "../ensogl" }
+ensogl-examples = { path = "../ensogl/example" }
+ensogl-gui-components = { path = "../ensogl/lib/components" }
+ensogl-system-web = { path = "../lib/system/web" }
+ensogl-text = { path = "../ensogl/lib/text" }
+ensogl-text-msdf-sys = { path = "../ensogl/lib/text/msdf-sys" }
+ensogl-theme = { path = "../ensogl/lib/theme" }
+ensogl-web = { path = "../ensogl/lib/web" }
+fuzzly = { path = "../lib/fuzzly" }
+ast = { path = "lib/ast/impl" }
+ide-view = { path = "view" }
+enso-protocol = { path = "lib/enso-protocol" }
+json-rpc = { path = "lib/json-rpc" }
+parser = { path = "lib/parser" }
+utils = { path = "lib/utils" }
+span-tree = { path = "lib/span-tree" }
+bimap = { version = "0.4.0" }
+console_error_panic_hook = { version = "0.1.6" }
+failure = { version = "0.1.6" }
+flo_stream = { version = "0.4.0" }
+futures = { version = "0.3.1" }
+itertools = { version = "0.10.0" }
+js-sys = { version = "0.3.28" }
+mockall = { version = "0.7.1", features = ["nightly"] }
+nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+semver = { version = "1.0.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+sha3 = { version = "0.8.2" }
+uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
+wasm-bindgen = { version = "=0.2.58" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+websocket = "0.23.0"
+
+[dev-dependencies]
+regex = { version = "1.3.6" }
+wasm-bindgen-test = { version = "0.3.8" }
+
+[dependencies.web-sys]
+version = "0.3.22"
+features = [
+  'BinaryType',
+  'Blob',
+  'console',
+  'CloseEvent',
+  'Document',
+  'Element',
+  'ErrorEvent',
+  'EventTarget',
+  'MessageEvent',
+  'HtmlElement',
+  'Node',
+  'WebSocket',
+  'Window',
+]

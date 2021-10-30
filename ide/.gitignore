@@ -1,0 +1,23 @@
+# Outputs
+dist
+
+# Rust
+/target
+/build/rust/target/
+**/*.rs.bk
+pkg/
+wasm-pack.log
+
+# IntelliJ
+.idea/
+*.iml
+
+# Visual Studio Code
+.vscode/
+
+# JavaScript
+node_modules
+.nvmrc
+
+# MacOS
+.DS_Store

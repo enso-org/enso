@@ -1,0 +1,7 @@
+<svg version="1.1" width="117" height="36" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .txt { font: 15px sans-serif; fill:white; }
+    </style>
+    <rect width="117" height="36" rx="18" fill="#1c64f2"/>
+    <text x="12" y="23" class="txt">New Features</text>
+</svg>
