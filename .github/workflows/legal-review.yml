@@ -2,7 +2,7 @@ name: Legal Review
 
 on:
   push:
-    branches: [main, "release/*"]
+    branches: [develop, "release/*"]
   pull_request:
     branches: ["*"]
 

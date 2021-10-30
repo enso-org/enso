@@ -4,7 +4,7 @@ name: Nightly Release CI
 on:
   push:
     branches:
-      - main
+      - develop
   schedule:
     - cron: "0 4 * * 2-6" # 4am (UTC) from Tuesday to Saturday (i.e. after every workday)
 
