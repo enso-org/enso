@@ -48,7 +48,7 @@ use crate::derive_iterator::IsMut;
 /// Caller must have the following features enabled:
 /// ```
 /// #![feature(generators)]
-/// #![feature(min_type_alias_impl_trait)]
+/// #![feature(type_alias_impl_trait)]
 /// ```
 ///
 /// When used on type that takes no type parameters, like `struct Foo`, does
