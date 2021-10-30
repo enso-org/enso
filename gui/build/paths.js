@@ -10,15 +10,16 @@ const os = require('os')
 let paths  = {}
 
 paths.root                = path.dirname(__dirname)
+paths.repo                = path.dirname(paths.root)
+
+paths.github              = {}
+paths.github.root         = path.join(paths.repo,'.github')
+paths.github.workflows    = path.join(paths.github.root,'workflows')
 
 paths.script              = {}
 paths.script.main         = path.join(paths.root,'run')
 paths.script.root         = path.join(paths.root,'build')
 paths.script.run          = path.join(paths.script.root,'run')
-
-paths.github              = {}
-paths.github.root         = path.join(paths.root,'.github')
-paths.github.workflows    = path.join(paths.github.root,'workflows')
 
 paths.dist                = {}
 paths.dist.root           = path.join(paths.root,'dist')

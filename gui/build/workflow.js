@@ -228,7 +228,7 @@ let uploadContentLinux = {
     uses: "actions/upload-artifact@v2",
     with: {
         name: 'content',
-        path: `dist/content`
+        path: `gui/dist/content`
     },
     if: `runner.os == 'Linux'`
 }
@@ -238,7 +238,7 @@ let uploadWASM = {
     uses: "actions/upload-artifact@v2",
     with: {
         name: 'ide-wasm',
-        path: `dist/wasm`
+        path: `gui/dist/wasm`
     }
 }
 
@@ -247,7 +247,7 @@ let downloadWASM = {
     uses: "actions/download-artifact@v2",
     with: {
         name: 'ide-wasm',
-        path: `dist/wasm`
+        path: `gui/dist/wasm`
     }
 }
 
@@ -263,7 +263,7 @@ function uploadArtifactsFor(name,ext,os) {
         uses: "actions/upload-artifact@v1",
         with: {
             name: `enso-${os}-\${{fromJson(steps.changelog.outputs.content).version}}.${ext}`,
-            path: `dist/client/enso-${os}-\${{fromJson(steps.changelog.outputs.content).version}}.${ext}`
+            path: `gui/dist/client/enso-${os}-\${{fromJson(steps.changelog.outputs.content).version}}.${ext}`
         },
         if: `runner.os == '${name}'`,
     }
@@ -468,6 +468,11 @@ let workflow = {
         pull_request: {},
         workflow_dispatch: {}
     },
+    defaults: {
+        run: {
+            "working-directory": "ide"
+        }
+    },
     jobs: {
         info: job_on_macos("Build Info", [
             dumpGitHubContext
@@ -557,7 +562,7 @@ let header = `
 /// Generates a new GitHub workflow file (in .github/workflow/...).
 function generate() {
     let workflow_script = header + '\n' + yaml.dump(workflow,{noRefs:true})
-    fss.writeFileSync(path.join(paths.github.workflows,'gui-ci.yml'),workflow_script)
+    fss.writeFileSync(path.join(paths.github.workflows,'gui.yml'),workflow_script)
 }
 
 
