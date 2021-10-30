@@ -1,0 +1,40 @@
+[package]
+name    = "enso-flexer"
+version = "0.2.1"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "A finite-automata-based lexing engine."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/flexer"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../LICENSE"
+
+keywords = ["lexer", "finite-automata"]
+categories = ["parsing"]
+
+publish = true
+
+[lib]
+name       = "enso_flexer"
+crate-type = ["cdylib", "rlib"]
+test       = true
+bench      = true
+
+[dependencies]
+enso-automata = { version = "^0.2.0", path = "../automata" }
+enso-logger = { version = "^0.3.0", path = "../logger" }
+enso-prelude = { version = "^0.2.1", path = "../prelude" }
+enso-lazy-reader = { version = "^0.2.0", path = "../lazy-reader" }
+enso-macro-utils = { version = "^0.2.0", path = "../macro-utils" }
+
+itertools            = "0.8"
+proc-macro2          = "1.0.19"
+nonempty             = "0.1.5"
+quote                = "1.0"
+syn                  = { version = "1.0.12", features = ["full", "extra-traits", "visit-mut", "visit", "parsing", "printing"] }
+unicode-segmentation = "1.6.0"
+wasm-bindgen         = "0.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"

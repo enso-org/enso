@@ -1,0 +1,92 @@
+[package]
+name    = "enso-prelude"
+version = "0.2.6"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "An augmented standard library in the vein of Haskell's prelude."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/rust-lib/src/-prelude"
+repository   = "https://github.com/enso-org/rust-lib"
+license-file = "../../LICENSE"
+
+keywords = ["prelude", "standard-library"]
+categories = ["algorithms"]
+
+publish = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-shapely = { version = "^0.2.0", path = "../shapely/impl" }
+
+anyhow = { version = "1.0.37" }
+backtrace = "0.3.53"
+boolinator = "2.4.0"
+bumpalo = { version = "3.4.0" }
+cfg-if = "1.0.0"
+colored = "2.0.0"
+derivative = "2.2.0"
+derive_more = "0.99.2"
+enclose = "1.1.8"
+failure = "0.1.5"
+ifmt = "0.3.3"
+itertools = "0.10.0"
+lazy_static = "1.4"
+num = "0.4.0"
+object = { version = "0.24.0" }
+paste = "1.0.5"
+shrinkwraprs = "0.3.0"
+serde = { version = "1.0.126", features = ["derive", "rc"] }
+smallvec = "1.0.0"
+weak-table = "0.3.0"
+wasm-bindgen = { version = "=0.2.58" , features = ["nightly"] }
+
+# TODO: should be behind a flag, as the `nalgebra` package is pretty big and this crate would be
+#       also useful for projects which do not require `nalgebra`.
+nalgebra = "0.26.2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'CanvasRenderingContext2d',
+  'CssStyleDeclaration',
+  'Document',
+  'Element',
+  'EventTarget',
+  'KeyboardEvent',
+  'HtmlCanvasElement',
+  'HtmlCollection',
+  'HtmlDivElement',
+  'HtmlElement',
+  'HtmlImageElement',
+  'Location',
+  'Node',
+  'Url',
+  'WebGlBuffer',
+  'WebGlFramebuffer',
+  'WebGlProgram',
+  'WebGlRenderingContext',
+  'WebGlShader',
+  'WebGlSync',
+  'WebGlTexture',
+  'WebGl2RenderingContext',
+  'WebGlUniformLocation',
+  'WebGlUniformLocation',
+  'WebGlVertexArrayObject',
+  'Window',
+  'console',
+  'EventTarget',
+  'Event',
+  'MouseEvent',
+  'Performance',
+  'WheelEvent',
+  'DomRect',
+  'AddEventListenerOptions'
+]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"

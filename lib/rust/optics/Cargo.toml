@@ -1,0 +1,23 @@
+[package]
+name    = "enso-optics"
+version = "0.2.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+description  = "An implementation of functional optics."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/rust-lib/src/optics"
+repository   = "https://github.com/enso-org/rust-lib"
+license-file = "../../LICENSE"
+
+keywords = ["optics","lenses"]
+categories = ["algorithms"]
+
+publish = true
+
+[lib]
+
+[features]
+
+[dependencies]
+enso-prelude = { version = "^0.2.1", path = "../prelude" }

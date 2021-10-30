@@ -1,0 +1,21 @@
+[package]
+name    = "enso-automata"
+version = "0.2.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+description  = "A finite-automata-based lexing engine."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/rust-lib/src/automata"
+repository   = "https://github.com/enso-org/rust-lib"
+license-file = "../../LICENSE"
+
+keywords = ["lexer", "finite-automata"]
+categories = ["parsing"]
+
+publish = true
+
+[lib]
+
+[dependencies]
+enso-prelude = { version = "^0.2.1", path = "../prelude" }
