@@ -312,7 +312,7 @@ pub fn branch_body<S:BuildHasher>
         }
     } else {
         let target_state_has_no_rule = match rule_name_for_state {
-            Some(_) => if !dfa_has_rule_name_for(&data, dfa, target_state) {
+            Some(_) => if !dfa_has_rule_name_for(data, dfa, target_state) {
                 dfa.sources[target_state.id()] = (*sources).clone();
                 has_overlaps.insert(target_state.id(),true);
                 true

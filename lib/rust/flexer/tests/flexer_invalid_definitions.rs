@@ -4,6 +4,8 @@
 //! allows for increased clarity in the testing.
 
 #![allow(missing_docs)]
+#![allow(clippy::blacklisted_name)] // `foo` is fine here.
+#![allow(clippy::new_without_default)] // No need for boilerplate in throwaway test code.
 
 use enso_flexer::*;
 

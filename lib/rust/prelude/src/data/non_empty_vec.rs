@@ -89,9 +89,7 @@ impl<T> NonEmptyVec<T> {
     /// vec.push(11);
     /// ```
     pub fn with_capacity(first:T, capacity:usize) -> NonEmptyVec<T> {
-        if capacity == 0 {
-            panic!("Capacity must be greater than zero for a NonEmptyVec.");
-        }
+        assert_ne!(capacity, 0, "Capacity must be greater than zero for a NonEmptyVec.");
         let mut elems = Vec::with_capacity(capacity);
         elems.push(first);
         NonEmptyVec{elems}
@@ -198,7 +196,7 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(*vec.first(), 0);
     /// ```
     pub fn first(&self) -> &T {
-        &self.elems.first().expect("The NonEmptyVec always has an item in it.")
+        self.elems.first().expect("The NonEmptyVec always has an item in it.")
     }
 
     /// Obtain a mutable reference to the head of the `NonEmptyVec`.

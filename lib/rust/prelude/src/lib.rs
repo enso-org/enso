@@ -394,7 +394,7 @@ pub trait WeakRef : CloneRef {
 impl<T:?Sized> StrongRef for Rc<T> {
     type WeakRef = Weak<T>;
     fn downgrade(&self) -> Self::WeakRef {
-        Rc::downgrade(&self)
+        Rc::downgrade(self)
     }
 }
 

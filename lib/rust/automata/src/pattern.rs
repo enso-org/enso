@@ -129,9 +129,7 @@ impl Pattern {
 
     /// This pattern doesn't trigger on any code contained in `codes`.
     pub fn none_of_codes(codes:&[u64],names:&[String]) -> Self {
-        if codes.len() != names.len() {
-            panic!("`codes` and `names`must have the same length.");
-        }
+        assert_eq!(codes.len(), names.len(), "`codes` and `names`must have the same length.");
         let mut codes = Vec::from(codes);
         codes.sort_unstable();
         codes.dedup();

@@ -2,7 +2,6 @@
 //! benchmarking the Enso lexer.
 
 use criterion::{black_box, Criterion, Throughput};
-use lexer;
 use std::time::Duration;
 
 

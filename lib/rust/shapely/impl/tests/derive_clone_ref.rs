@@ -16,11 +16,11 @@ use enso_prelude::*;
 #[derive(Clone,CloneRef)] enum EnumEmpty {}
 
 #[derive(Clone,CloneRef)] enum Enum {
-    VariantUnit,
-    VariantNamedEmpty {},
-    VariantNamed {named0:Rc<i32>,named1:Rc<String>},
-    VariantUnnamedEmpty(),
-    VariantUnnamed(Rc<i32>,Rc<String>),
+    Unit,
+    NamedEmpty {},
+    Named {named0:Rc<i32>,named1:Rc<String>},
+    UnnamedEmpty(),
+    Unnamed(Rc<i32>,Rc<String>),
 }
 
 #[derive(CloneRef,Derivative)]
@@ -42,7 +42,7 @@ struct StructBoundGeneric<T:Display>(Rc<T>);
 #[derive(CloneRef,Derivative)]
 #[derivative(Clone(bound=""))]
 // Note: CloneRef "knows" about `Display` bound.
-struct StructGenericLifetime<'t>(Rc<&'t String>);
+struct StructGenericLifetime<'t>(PhantomData<&'t String>);
 
 #[derive(CloneRef,Derivative)]
 #[derivative(Clone(bound=""))]

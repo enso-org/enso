@@ -282,7 +282,7 @@ pub mod literal {
 
 /// Get the first character of the lexeme, if it exists.
 pub fn char(literal:&'static str) -> Option<char> {
-    literal.chars().nth(0)
+    literal.chars().next()
 }
 
 /// Get the first character of the lexeme, assuming that it exists.

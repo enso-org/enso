@@ -213,7 +213,7 @@ pub fn gather_all_types(node:&syn::Type) -> Vec<&syn::TypePath> {
 
 /// All text representations of `TypePath`s in the given's `Type` subtree.
 pub fn gather_all_type_reprs(node:&syn::Type) -> Vec<String> {
-    gather_all_types(node).iter().map(|t| repr(t)).collect()
+    gather_all_types(node).iter().map(repr).collect()
 }
 
 

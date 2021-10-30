@@ -91,7 +91,7 @@ impl<'t> DependentValue<'t> {
         match self.ty {
             syn::Type::Tuple(tuple) => self.yield_tuple_value(tuple, is_mut),
             syn::Type::Path(path)   => {
-                if type_matches(&self.ty, &self.target_param) {
+                if type_matches(self.ty, self.target_param) {
                     self.yield_direct_value(is_mut)
                 } else {
                     self.yield_dependent_ty_path_value(path,is_mut)

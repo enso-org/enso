@@ -353,16 +353,16 @@ pub mod tests {
         }
 
         pub fn has_transition(&self, trigger:RangeInclusive<Symbol>, target:State) -> bool {
-            self.states.iter().any(|r| r.links().iter().find(|transition | {
+            self.states.iter().any(|r| r.links().iter().any(|transition | {
                     (transition.symbols == trigger) && transition.target == target
-                }).is_some())
+                }))
         }
 
         pub fn has_epsilon(&self, from:State, to:State) -> bool {
             self.states.iter().enumerate().fold(false,|l,(ix,r)| {
-                let state_has = ix == from.id() && r.epsilon_links().iter().find(|ident| {
-                    **ident == to
-                }).is_some();
+                let state_has = ix == from.id() && r.epsilon_links().iter().any(|ident| {
+                    *ident == to
+                });
                 l || state_has
             })
         }

@@ -28,7 +28,7 @@ fn bench_config() -> Criterion {
 fn gen_tree(width:usize, depth:usize) -> HashMapTree<usize,usize> {
     let mut tree = HashMapTree::<usize,usize>::default();
     let paths    = (0..width).permutations(depth);
-    paths.into_iter().for_each(|p| tree.set(p.clone(),1));
+    paths.into_iter().for_each(|p| tree.set(p,1));
     tree
 }
 

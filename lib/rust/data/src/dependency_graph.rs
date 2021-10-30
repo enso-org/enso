@@ -102,7 +102,7 @@ impl<T:Clone+Eq+Hash+Ord> DependencyGraph<T> {
         let mut keys_iter    = keys.iter();
         let mut opt_key      = keys_iter.next();
         while let Some(key)  = opt_key {
-            match next_to_keep.as_ref().map(|t| t.cmp(&key)) {
+            match next_to_keep.as_ref().map(|t| t.cmp(key)) {
                 Some(std::cmp::Ordering::Less) => {
                     next_to_keep = keep.next()
                 },
@@ -111,13 +111,13 @@ impl<T:Clone+Eq+Hash+Ord> DependencyGraph<T> {
                     opt_key      = keys_iter.next();
                 }
                 _ => {
-                    if let Some(node) = self.nodes.get_mut(&key) {
+                    if let Some(node) = self.nodes.get_mut(key) {
                         let node = mem::take(node);
                         for key2 in node.ins {
-                            self.nodes.get_mut(&key2).for_each(|t| t.out.remove_item(&key))
+                            self.nodes.get_mut(&key2).for_each(|t| t.out.remove_item(key))
                         }
                         for key2 in node.out {
-                            self.nodes.get_mut(&key2).for_each(|t| t.ins.remove_item(&key))
+                            self.nodes.get_mut(&key2).for_each(|t| t.ins.remove_item(key))
                         }
                     }
                     opt_key = keys_iter.next();

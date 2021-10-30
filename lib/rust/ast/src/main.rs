@@ -1,6 +1,5 @@
 use ast::generation::ScalaGenerator;
 
-use clap;
 use std::fs::File;
 use std::io::Write;
 

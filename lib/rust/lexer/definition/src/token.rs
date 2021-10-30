@@ -390,30 +390,17 @@ impl TextStyle {
 
     /// Check if the text literal is a line literal.
     pub fn is_line_literal(self) -> bool {
-        match self {
-            TextStyle::RawLine      => true,
-            TextStyle::FormatLine   => true,
-            TextStyle::UnclosedLine => true,
-            _                       => false,
-        }
+        matches!(self, TextStyle::RawLine | TextStyle::FormatLine | TextStyle::UnclosedLine)
     }
 
     /// Check if the text literal is an inline block literal.
     pub fn is_inline_block_literal(self) -> bool {
-        match self {
-            TextStyle::FormatInlineBlock => true,
-            TextStyle::RawInlineBlock    => true,
-            _                            => false,
-        }
+        matches!(self, TextStyle::FormatInlineBlock | TextStyle::RawInlineBlock)
     }
 
     /// Check if the text literal is a block literal.
     pub fn is_block_literal(self) -> bool {
-        match self {
-            TextStyle::FormatBlock => true,
-            TextStyle::RawBlock    => true,
-            _                      => false,
-        }
+        matches!(self, TextStyle::FormatBlock | TextStyle::RawBlock)
     }
 }
 
@@ -761,9 +748,14 @@ impl Stream {
     pub fn tokens_len(&self) -> usize {
         self.tokens.iter().map(|token|token.length + token.offset).sum()
     }
+}
 
-    /// Get a consuming iterator over the token stream.
-    pub fn into_iter(self) -> std::vec::IntoIter<Token> {
+/// Get a consuming iterator over the token stream.
+impl std::iter::IntoIterator for Stream {
+    type Item = Token;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
         self.tokens.into_iter()
     }
 }
@@ -791,8 +783,8 @@ impl From<Vec<Token>> for Stream {
     }
 }
 
-impl Into<Vec<Token>> for Stream {
-    fn into(self) -> Vec<Token> {
-        self.tokens
+impl From<Stream> for Vec<Token> {
+    fn from(stream: Stream) -> Self {
+        stream.tokens
     }
 }

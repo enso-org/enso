@@ -66,7 +66,7 @@ impl Dfa {
 impl Dfa {
     /// Simulate the DFA transition with the provided input symbol.
     pub fn next_state(&self, current_state:State, symbol:&Symbol) -> State {
-        let ix = self.alphabet.index_of_symbol(&symbol);
+        let ix = self.alphabet.index_of_symbol(symbol);
         self.links.safe_index(current_state.id(),ix).unwrap_or_default()
     }
 

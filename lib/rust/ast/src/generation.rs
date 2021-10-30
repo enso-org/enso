@@ -50,18 +50,18 @@ impl ScalaGenerator {
     /// Generates a block of Scala code.
     fn block(&mut self, ident:&Ident, lines:&[syn::Item]) {
         write!(self.code, "\n{:i$}object " , "", i=self.indent);
-        self.typ_name(&ident);
+        self.typ_name(ident);
         writeln!(self.code, " {{");
         self.indent += 2;
-        if self.extends.contains_key(&ident) {
+        if self.extends.contains_key(ident) {
             write!(self.code, "{:i$}sealed trait ", "", i=self.indent);
-            self.typ_name(&ident);
-            self.extends(&ident);
+            self.typ_name(ident);
+            self.extends(ident);
         }
 
         for item in lines {
             match item {
-                syn::Item::Enum  (val) => self.adt(&val),
+                syn::Item::Enum  (val) => self.adt(val),
                 syn::Item::Type  (val) => {
                     write!(self.code, "\n{:i$}type ", "", i=self.indent);
                     self.typ_name(&val.ident);
@@ -101,7 +101,7 @@ impl ScalaGenerator {
         for (i, field) in fields.named.iter().enumerate()  {
             if i != 0 { write!(self.code, ", "); }
             if let Some(ident) = &field.ident {
-                self.var_name(&ident);
+                self.var_name(ident);
             }
             write!(self.code, ": ");
             self.typ(&field.ty);
@@ -170,7 +170,7 @@ impl ScalaGenerator {
     ///
     /// `foo` => `extends Foo`
     fn extends(&mut self, ident:&Ident) {
-        if let Some(name) = self.extends.get(&ident).cloned() {
+        if let Some(name) = self.extends.get(ident).cloned() {
             write!(self.code, " extends ");
             self.typ_name(&name);
         }

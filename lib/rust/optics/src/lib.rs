@@ -165,7 +165,7 @@ impl<Src,Tgt,Path> OptLens<Src,Tgt,Path> {
 impl<Src,Tgt,Path> Lens<Src,Tgt,Path> {
     pub fn resolve(self, t: &Src) -> &NestedField<Src, Path>
     where Path: Resolver<Src> {
-        <Path as Resolver<Src>>::resolve(&t)
+        <Path as Resolver<Src>>::resolve(t)
     }
 }
 

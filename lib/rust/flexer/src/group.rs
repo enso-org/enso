@@ -192,7 +192,7 @@ impl AutomatonData {
 
     /// Get a reference to the states for this automaton.
     pub fn states(&self) -> &Vec<state::Data> {
-        &self.automaton.states()
+        self.automaton.states()
     }
 
     /// Get a reference to the state names for this automaton.

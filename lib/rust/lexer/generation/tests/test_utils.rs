@@ -5,7 +5,6 @@
 use enso_flexer::*;
 use lexer_definition::library::*;
 
-use lexer;
 use lexer_definition::library::token::Token;
 
 

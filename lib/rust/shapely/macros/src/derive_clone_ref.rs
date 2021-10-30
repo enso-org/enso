@@ -147,9 +147,7 @@ pub fn clone_ref_bounds(attr:&Attribute) -> Option<Vec<WherePredicate>> {
         Meta::List(ml) => ml.nested,
         _              => panic!("Attribute contents does not conform to meta item."),
     };
-    if list.len() > 1 {
-        panic!("Only a single entry within `{}` attribute is allowed.",CLONE_REF_ATTR);
-    }
+    assert!(list.len() <= 1,"Only a single entry within `{}` attribute is allowed.",CLONE_REF_ATTR);
     let bound_value = match list.first() {
         Some(NestedMeta::Meta(Meta::NameValue(name_val))) => {
             if is_custom_bound(name_val) {
