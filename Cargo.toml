@@ -7,23 +7,20 @@ members = [
     "lib/rust/lexer/generation",
     "lib/rust/parser",
     "lib/rust/parser-jni",
+    "lib/rust/automata",
+    "lib/rust/data",
+    "lib/rust/flexer",
+    "lib/rust/flexer-testing/definition",
+    "lib/rust/flexer-testing/generation",
+    "lib/rust/generics",
+    "lib/rust/lazy-reader",
+    "lib/rust/logger",
+    "lib/rust/macro-utils",
+    "lib/rust/optics",
+    "lib/rust/prelude",
+    "lib/rust/shapely/impl",
+    "lib/rust/shapely/macros",
 ]
-
-# These patch versions exist to allow local development of these libraries alongside Enso. It
-# assumes you have `rust-lib` in the same directory as `enso`. See:
-# https://github.com/enso-org/rust-lib/blob/main/docs/CONTRIBUTING.md#developing-in-conjunction-with-enso--ide
-[patch.crates-io]
-#enso-automata       = { path = '../rust-lib/src/automata'       }
-#enso-data           = { path = '../rust-lib/src/data'           }
-#enso-flexer         = { path = '../rust-lib/src/flexer'         }
-#enso-generics       = { path = '../rust-lib/src/generics'       }
-#enso-lazy-reader    = { path = '../rust-lib/src/lazy-reader'    }
-#enso-logger         = { path = '../rust-lib/src/logger'         }
-#enso-macro-utils    = { path = '../rust-lib/src/macro-utils'    }
-#enso-optics         = { path = '../rust-lib/src/optics'         }
-#enso-prelude        = { path = '../rust-lib/src/prelude'        }
-#enso-shapely        = { path = '../rust-lib/src/shapely/impl'   }
-#enso-shapely-macros = { path = '../rust-lib/src/shapely/macros' }
 
 [profile.dev]
 opt-level        = 0

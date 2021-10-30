@@ -9,7 +9,7 @@ on:
 env:
   wasmpackVersion: 0.8.1
   nodeVersion: 14.16.1
-  rustToolchain: nightly-2021-05-12
+  rustToolchain: nightly-2021-10-29
 
 jobs:
   check:
@@ -50,6 +50,7 @@ jobs:
         uses: actions-rs/cargo@v1.0.1
         with:
           command: check
+          args: --all-targets
 
   lint:
     name: Rust Lint
