@@ -15,18 +15,18 @@ use utils::test::traits::*;
 /// task will be blocked, panic will be raised.
 #[derive(Debug)]
 pub struct TestWithLocalPoolExecutor {
-    executor           : executor::LocalPool,
-    running_task_count : Rc<Cell<usize>>,
+    executor:           executor::LocalPool,
+    running_task_count: Rc<Cell<usize>>,
 }
 
 impl TestWithLocalPoolExecutor {
     /// Set up the test fixture.
     pub fn set_up() -> Self {
-        let executor           = executor::LocalPool::new();
+        let executor = executor::LocalPool::new();
         let running_task_count = Rc::new(Cell::new(0));
 
         set_spawner(executor.spawner());
-        Self {executor,running_task_count}
+        Self { executor, running_task_count }
     }
 
     /// Check if there are any uncompleted tasks in the pool.
@@ -36,7 +36,7 @@ impl TestWithLocalPoolExecutor {
 
     /// Spawn new task in executor.
     pub fn run_task<Task>(&mut self, task: Task)
-    where Task : Future<Output=()> + 'static {
+    where Task: Future<Output = ()> + 'static {
         self.running_task_count.set(self.running_task_count.get() + 1);
         let running_tasks_clone = self.running_task_count.clone_ref();
         spawn(async move {
@@ -49,8 +49,8 @@ impl TestWithLocalPoolExecutor {
     ///
     /// This callback may for instance do some operations on mocks which unblocks task spawned
     /// in executor.
-    pub fn when_stalled<Callback>(&mut self, callback:Callback)
-    where Callback : FnOnce() {
+    pub fn when_stalled<Callback>(&mut self, callback: Callback)
+    where Callback: FnOnce() {
         self.run_until_stalled();
         if self.has_ongoing_task() {
             callback();
@@ -61,8 +61,8 @@ impl TestWithLocalPoolExecutor {
     ///
     /// This structure is useful to ensure, that some task will be in progress before another task
     /// will be spawned, so we can test more specific asynchronous scenarios.
-    pub fn when_stalled_run_task<Task>(&mut self, task : Task)
-    where Task : Future<Output=()> + 'static {
+    pub fn when_stalled_run_task<Task>(&mut self, task: Task)
+    where Task: Future<Output = ()> + 'static {
         self.run_until_stalled();
         if self.has_ongoing_task() {
             self.run_task(task);
@@ -77,7 +77,7 @@ impl TestWithLocalPoolExecutor {
     /// Runs all tasks until stalled. Panics, if some tasks remains then unfinished.
     pub fn expect_finished(&mut self) {
         self.run_until_stalled();
-        assert_eq!(0,self.running_task_count.get(),"The tasks are not complete!");
+        assert_eq!(0, self.running_task_count.get(), "The tasks are not complete!");
     }
 
     /// Runs all tasks until stalled and tries retrieving value from the future.
@@ -86,7 +86,7 @@ impl TestWithLocalPoolExecutor {
     /// This function is useful when testing asynchronous code without using the `run_task` API
     /// (e.g. because we want to interleave the asynchronous task with other calls affecting its
     /// execution).
-    pub fn expect_completion<R>(&mut self, fut:impl Future<Output=R>) -> R {
+    pub fn expect_completion<R>(&mut self, fut: impl Future<Output = R>) -> R {
         self.run_until_stalled();
         fut.boxed_local().expect_ready()
     }
@@ -96,7 +96,7 @@ impl TestWithLocalPoolExecutor {
     ///
     /// This function is useful when testing that some values are not immediately available, when we
     /// don't care what this value will be eventually (as this function consumes the Future).
-    pub fn expect_pending<R>(&mut self, fut:impl Future<Output=R>) {
+    pub fn expect_pending<R>(&mut self, fut: impl Future<Output = R>) {
         self.run_until_stalled();
         fut.boxed_local().expect_pending()
     }

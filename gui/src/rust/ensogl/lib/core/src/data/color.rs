@@ -15,15 +15,15 @@
 //! make them more pleasant to work with, however, the equations you will fnd will probably work on
 //! different value ranges. Read documentation for each color space very carefully.
 
+pub mod animation;
 pub mod component;
 pub mod data;
 pub mod gradient;
 pub mod mix;
 pub mod space;
-pub mod animation;
 
+pub use self::data::*;
 pub use animation::Animation;
 pub use component::*;
 pub use mix::mix;
-pub use self::data::*;
 pub use space::*;

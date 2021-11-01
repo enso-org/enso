@@ -4,19 +4,19 @@ use ensogl::prelude::*;
 
 use ensogl::application::Application;
 use ensogl::data::color;
-use ensogl::display::DomSymbol;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::display::shape::compound::path::path;
+use ensogl::display::shape::*;
+use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl_theme::application::searcher::icons as theme;
 use ensogl::system::web::StyleSetter;
+use ensogl_theme::application::searcher::icons as theme;
 use std::f32::consts::PI;
 use wasm_bindgen::prelude::*;
 
 /// The width and height of all icons.
-const ICON_SIZE : f32 = 16.0;
+const ICON_SIZE: f32 = 16.0;
 
 // The following constant exists for development purposes only.
 // Due to a rendering error, shapes appear too big when the camera is zoomed in very closely.
@@ -31,7 +31,7 @@ const ICON_SIZE : f32 = 16.0;
 // the constant `SHRINK_AMOUNT` and apply `.shrink(SHRINK_AMOUNT.px())` to all icons. In every
 // commit, `SHRINK_AMOUNT` should be set to 0.0 to make icons look best in the user interface. But
 // during work on the icons, it can temporarily be set to 0.35.
-const SHRINK_AMOUNT : f32 = 0.0;
+const SHRINK_AMOUNT: f32 = 0.0;
 
 
 
@@ -41,14 +41,14 @@ const SHRINK_AMOUNT : f32 = 0.0;
 
 /// An arrow shape consisting of a straight line and a triangular head. The arrow points upwards and
 /// the tip is positioned at the origin.
-fn arrow(length:f32,width:f32,head_length:f32,head_width:f32) -> AnyShape {
+fn arrow(length: f32, width: f32, head_length: f32, head_width: f32) -> AnyShape {
     // We overlap the line with the head by this amount to make sure that the renderer does not
     // display a gap between them.
     const OVERLAP: f32 = 1.0;
     let line_length = length - head_length + OVERLAP;
-    let line        = Rect((width.px(),line_length.px()));
-    let line        = line.translate_y((-line_length/2.0-head_length+OVERLAP).px());
-    let head        = Triangle(head_width,head_length).translate_y((-head_length/2.0).px());
+    let line = Rect((width.px(), line_length.px()));
+    let line = line.translate_y((-line_length / 2.0 - head_length + OVERLAP).px());
+    let head = Triangle(head_width, head_length).translate_y((-head_length / 2.0).px());
     (line + head).into()
 }
 
@@ -56,30 +56,30 @@ fn arrow(length:f32,width:f32,head_length:f32,head_width:f32) -> AnyShape {
 /// `stroke_width`, the distance between horizontal lines and the distance between vertical lines
 /// are both given by `cell_size`. The origin is at the intersection of a horizontal and a vertical
 /// line, touching the horizontal line from the top and the vertical line from the left.
-fn grid(stroke_width:f32,cell_size:f32) -> AnyShape {
+fn grid(stroke_width: f32, cell_size: f32) -> AnyShape {
     let horizontal = HalfPlane();
     let horizontal = horizontal.translate_y(stroke_width.px()) - horizontal;
-    let vertical   = HalfPlane().rotate((PI/2.0).radians());
-    let vertical   = vertical.translate_x(stroke_width.px()) - vertical;
-    (horizontal + vertical).repeat((cell_size.px(),cell_size.px())).into()
+    let vertical = HalfPlane().rotate((PI / 2.0).radians());
+    let vertical = vertical.translate_x(stroke_width.px()) - vertical;
+    (horizontal + vertical).repeat((cell_size.px(), cell_size.px())).into()
 }
 
 /// A cursor shape, looking roughly like a capital "I".
 fn cursor() -> AnyShape {
-    let middle = Rect((1.0.px(),15.0.px()));
-    let top    = Rect((5.0.px(),1.0.px())).translate_y(7.5.px());
-    let bottom = Rect((5.0.px(),1.0.px())).translate_y((-7.5).px());
+    let middle = Rect((1.0.px(), 15.0.px()));
+    let top = Rect((5.0.px(), 1.0.px())).translate_y(7.5.px());
+    let bottom = Rect((5.0.px(), 1.0.px())).translate_y((-7.5).px());
     (middle + top + bottom).into()
 }
 
 /// An arc around the origin. `outer_radius` determines the distance from the origin to the outer
 /// edge of the arc, `stroke_width` the width of the arc. The arc starts at `start_angle`, relative
 /// to the origin and ends at `end_angle`. The ends are flat not rounded, as in [`RoundedArc`].
-fn arc(outer_radius:f32, stroke_width:f32, start_angle:f32, end_angle:f32) -> AnyShape {
-    let circle      = Circle(outer_radius.px()) - Circle((outer_radius - stroke_width).px());
+fn arc(outer_radius: f32, stroke_width: f32, start_angle: f32, end_angle: f32) -> AnyShape {
+    let circle = Circle(outer_radius.px()) - Circle((outer_radius - stroke_width).px());
     let inner_angle = (end_angle - start_angle).rem_euclid(2.0 * PI);
-    let mid_angle   = start_angle + inner_angle / 2.0;
-    let angle       = PlaneAngleFast(inner_angle.radians()).rotate(mid_angle.radians());
+    let mid_angle = start_angle + inner_angle / 2.0;
+    let angle = PlaneAngleFast(inner_angle.radians()).rotate(mid_angle.radians());
     // The implementation of `PlaneAngleFast` adds 0.5 px to the actual distance to avoid artifacts
     // in corner cases. We apply `grow` to compensate for that and get the shape that we really
     // want.
@@ -89,30 +89,31 @@ fn arc(outer_radius:f32, stroke_width:f32, start_angle:f32, end_angle:f32) -> An
 
 /// The shape of a table, given by a grid with size `columns` x `rows`. The stroke width is 1.0 and
 /// the cell size 4.0. The origin is at the lower left corner.
-fn table(columns:i32, rows:i32) -> AnyShape {
-    const STROKE_WIDTH : f32 = 1.0;
-    const CELL_SIZE    : f32 = 4.0;
+fn table(columns: i32, rows: i32) -> AnyShape {
+    const STROKE_WIDTH: f32 = 1.0;
+    const CELL_SIZE: f32 = 4.0;
 
-    let width  = columns as f32 * CELL_SIZE + STROKE_WIDTH;
+    let width = columns as f32 * CELL_SIZE + STROKE_WIDTH;
     let height = rows as f32 * CELL_SIZE + STROKE_WIDTH;
-    let bounds = Rect((width.px(),height.px())).translate(((width/2.0).px(),(height/2.0).px()));
-    let grid   = grid(STROKE_WIDTH, CELL_SIZE);
+    let bounds =
+        Rect((width.px(), height.px())).translate(((width / 2.0).px(), (height / 2.0).px()));
+    let grid = grid(STROKE_WIDTH, CELL_SIZE);
     (grid * bounds).into()
 }
 
 /// A plus, consisting of two strokes of length `size` and width `stroke_width`, intersecting at the
 /// origin.
-fn plus(size:f32,stroke_width:f32) -> AnyShape {
-    let horizontal = Rect((size.px(),stroke_width.px()));
-    let vertical   = Rect((stroke_width.px(),size.px()));
+fn plus(size: f32, stroke_width: f32) -> AnyShape {
+    let horizontal = Rect((size.px(), stroke_width.px()));
+    let vertical = Rect((stroke_width.px(), size.px()));
     (horizontal + vertical).into()
 }
 
 /// A shape resembling a lightning bolt, centered at the origin.
 fn lightning_bolt() -> AnyShape {
-    let top       = Triangle(3.0.px(),6.0.px()).translate(((-1.0).px(),1.9.px()));
-    let bottom    = Triangle(3.0.px(),6.0.px()).rotate(PI.radians());
-    let bottom    = bottom.translate((1.0.px(),(-1.9).px()));
+    let top = Triangle(3.0.px(), 6.0.px()).translate(((-1.0).px(), 1.9.px()));
+    let bottom = Triangle(3.0.px(), 6.0.px()).rotate(PI.radians());
+    let bottom = bottom.translate((1.0.px(), (-1.9).px()));
     let lightning = (top + bottom).rotate((PI / 6.0).radians());
     lightning.into()
 }
@@ -288,7 +289,7 @@ mod number_input {
             // The outer radius of the arc.
             let radius: f32          = connection_offset.norm() + stroke_width;
             let connection_direction = connection_offset.x.atan2(connection_offset.y);
-            
+
             let arc = arc(radius,stroke_width,connection_direction,228_f32.to_radians());
             let arc = arc.translate((arc_center.x.px(),arc_center.y.px()));
 
@@ -1001,30 +1002,32 @@ pub fn entry_point_searcher_icons() {
     web::set_stack_trace_limit();
 
     let logger = Logger::new("Icons example");
-    let app    = Application::new(&web::get_html_element_by_id("root").unwrap());
+    let app = Application::new(&web::get_html_element_by_id("root").unwrap());
     ensogl_theme::builtin::dark::register(&app);
     ensogl_theme::builtin::light::register(&app);
     ensogl_theme::builtin::light::enable(&app);
     let world = app.display.clone();
     mem::forget(app);
     let scene = world.scene();
-    mem::forget(Navigator::new(scene,&scene.camera()));
+    mem::forget(Navigator::new(scene, &scene.camera()));
 
 
     // === Grid ===
 
     let grid_div = web::create_div();
-    grid_div.set_style_or_panic("width",  "1000px");
+    grid_div.set_style_or_panic("width", "1000px");
     grid_div.set_style_or_panic("height", "16px");
     grid_div.set_style_or_panic("background-size", "1.0px 1.0px");
-    grid_div.set_style_or_panic("background-image",
-                                "linear-gradient(to right,  grey 0.05px, transparent 0.05px),
-                                 linear-gradient(to bottom, grey 0.05px, transparent 0.05px)");
+    grid_div.set_style_or_panic(
+        "background-image",
+        "linear-gradient(to right,  grey 0.05px, transparent 0.05px),
+                                 linear-gradient(to bottom, grey 0.05px, transparent 0.05px)",
+    );
 
     let grid = DomSymbol::new(&grid_div);
     scene.dom.layers.back.manage(&grid);
     world.add_child(&grid);
-    grid.set_size(Vector2(1000.0,ICON_SIZE));
+    grid.set_size(Vector2(1000.0, ICON_SIZE));
     mem::forget(grid);
 
 
@@ -1032,7 +1035,7 @@ pub fn entry_point_searcher_icons() {
 
     let frame = frame::View::new(&logger);
     world.add_child(&frame);
-    frame.size.set(Vector2(ICON_SIZE+20.0, ICON_SIZE+20.0));
+    frame.size.set(Vector2(ICON_SIZE + 20.0, ICON_SIZE + 20.0));
     mem::forget(frame);
 
 
@@ -1040,7 +1043,7 @@ pub fn entry_point_searcher_icons() {
 
     let star = star::View::new(&logger);
     world.add_child(&star);
-    star.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    star.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     star.set_position_x(20.0);
     mem::forget(star);
 
@@ -1049,7 +1052,7 @@ pub fn entry_point_searcher_icons() {
 
     let data_input = data_input::View::new(&logger);
     world.add_child(&data_input);
-    data_input.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    data_input.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     data_input.set_position_x(40.0);
     mem::forget(data_input);
 
@@ -1058,7 +1061,7 @@ pub fn entry_point_searcher_icons() {
 
     let data_output = data_output::View::new(&logger);
     world.add_child(&data_output);
-    data_output.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    data_output.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     data_output.set_position_x(60.0);
     mem::forget(data_output);
 
@@ -1067,7 +1070,7 @@ pub fn entry_point_searcher_icons() {
 
     let text_input = text_input::View::new(&logger);
     world.add_child(&text_input);
-    text_input.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    text_input.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     text_input.set_position_x(80.0);
     mem::forget(text_input);
 
@@ -1076,7 +1079,7 @@ pub fn entry_point_searcher_icons() {
 
     let number_input = number_input::View::new(&logger);
     world.add_child(&number_input);
-    number_input.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    number_input.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     number_input.set_position_x(100.0);
     mem::forget(number_input);
 
@@ -1085,7 +1088,7 @@ pub fn entry_point_searcher_icons() {
 
     let table_edit = table_edit::View::new(&logger);
     world.add_child(&table_edit);
-    table_edit.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    table_edit.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     table_edit.set_position_x(120.0);
     mem::forget(table_edit);
 
@@ -1094,7 +1097,7 @@ pub fn entry_point_searcher_icons() {
 
     let convert = convert::View::new(&logger);
     world.add_child(&convert);
-    convert.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    convert.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     convert.set_position_x(140.0);
     mem::forget(convert);
 
@@ -1103,7 +1106,7 @@ pub fn entry_point_searcher_icons() {
 
     let dataframe_clean = dataframe_clean::View::new(&logger);
     world.add_child(&dataframe_clean);
-    dataframe_clean.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    dataframe_clean.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     dataframe_clean.set_position_x(160.0);
     mem::forget(dataframe_clean);
 
@@ -1112,7 +1115,7 @@ pub fn entry_point_searcher_icons() {
 
     let add_column = add_column::View::new(&logger);
     world.add_child(&add_column);
-    add_column.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    add_column.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     add_column.set_position_x(180.0);
     mem::forget(add_column);
 
@@ -1121,7 +1124,7 @@ pub fn entry_point_searcher_icons() {
 
     let add_row = add_row::View::new(&logger);
     world.add_child(&add_row);
-    add_row.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    add_row.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     add_row.set_position_x(200.0);
     mem::forget(add_row);
 
@@ -1130,7 +1133,7 @@ pub fn entry_point_searcher_icons() {
 
     let select_column = select_column::View::new(&logger);
     world.add_child(&select_column);
-    select_column.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    select_column.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     select_column.set_position_x(220.0);
     mem::forget(select_column);
 
@@ -1139,7 +1142,7 @@ pub fn entry_point_searcher_icons() {
 
     let select_row = select_row::View::new(&logger);
     world.add_child(&select_row);
-    select_row.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    select_row.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     select_row.set_position_x(240.0);
     mem::forget(select_row);
 
@@ -1148,7 +1151,7 @@ pub fn entry_point_searcher_icons() {
 
     let dataframe_map_column = dataframe_map_column::View::new(&logger);
     world.add_child(&dataframe_map_column);
-    dataframe_map_column.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    dataframe_map_column.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     dataframe_map_column.set_position_x(260.0);
     mem::forget(dataframe_map_column);
 
@@ -1157,7 +1160,7 @@ pub fn entry_point_searcher_icons() {
 
     let dataframe_map_row = dataframe_map_row::View::new(&logger);
     world.add_child(&dataframe_map_row);
-    dataframe_map_row.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    dataframe_map_row.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     dataframe_map_row.set_position_x(280.0);
     mem::forget(dataframe_map_row);
 
@@ -1166,7 +1169,7 @@ pub fn entry_point_searcher_icons() {
 
     let dataframes_join = dataframes_join::View::new(&logger);
     world.add_child(&dataframes_join);
-    dataframes_join.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    dataframes_join.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     dataframes_join.set_position_x(300.0);
     mem::forget(dataframes_join);
 
@@ -1175,7 +1178,7 @@ pub fn entry_point_searcher_icons() {
 
     let dataframes_union = dataframes_union::View::new(&logger);
     world.add_child(&dataframes_union);
-    dataframes_union.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    dataframes_union.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     dataframes_union.set_position_x(320.0);
     mem::forget(dataframes_union);
 
@@ -1184,7 +1187,7 @@ pub fn entry_point_searcher_icons() {
 
     let sigma = sigma::View::new(&logger);
     world.add_child(&sigma);
-    sigma.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    sigma.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     sigma.set_position_x(340.0);
     mem::forget(sigma);
 
@@ -1193,7 +1196,7 @@ pub fn entry_point_searcher_icons() {
 
     let split_text = split_text::View::new(&logger);
     world.add_child(&split_text);
-    split_text.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    split_text.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     split_text.set_position_x(360.0);
     mem::forget(split_text);
 
@@ -1202,7 +1205,7 @@ pub fn entry_point_searcher_icons() {
 
     let data_science = data_science::View::new(&logger);
     world.add_child(&data_science);
-    data_science.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    data_science.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     data_science.set_position_x(380.0);
     mem::forget(data_science);
 
@@ -1211,7 +1214,7 @@ pub fn entry_point_searcher_icons() {
 
     let network = network::View::new(&logger);
     world.add_child(&network);
-    network.size.set(Vector2(ICON_SIZE+1.0,ICON_SIZE));
+    network.size.set(Vector2(ICON_SIZE + 1.0, ICON_SIZE));
     network.set_position_x(400.0);
     mem::forget(network);
 
@@ -1220,7 +1223,7 @@ pub fn entry_point_searcher_icons() {
 
     let system = system::View::new(&logger);
     world.add_child(&system);
-    system.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    system.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     system.set_position_x(420.0);
     mem::forget(system);
 
@@ -1229,7 +1232,7 @@ pub fn entry_point_searcher_icons() {
 
     let libraries = libraries::View::new(&logger);
     world.add_child(&libraries);
-    libraries.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    libraries.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     libraries.set_position_x(440.0);
     mem::forget(libraries);
 
@@ -1238,7 +1241,7 @@ pub fn entry_point_searcher_icons() {
 
     let marketplace = marketplace::View::new(&logger);
     world.add_child(&marketplace);
-    marketplace.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    marketplace.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     marketplace.set_position_x(460.0);
     mem::forget(marketplace);
 
@@ -1247,7 +1250,7 @@ pub fn entry_point_searcher_icons() {
 
     let io = io::View::new(&logger);
     world.add_child(&io);
-    io.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    io.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     io.set_position_x(480.0);
     mem::forget(io);
 
@@ -1256,7 +1259,7 @@ pub fn entry_point_searcher_icons() {
 
     let preparation = preparation::View::new(&logger);
     world.add_child(&preparation);
-    preparation.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    preparation.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     preparation.set_position_x(500.0);
     mem::forget(preparation);
 
@@ -1265,7 +1268,7 @@ pub fn entry_point_searcher_icons() {
 
     let join = join::View::new(&logger);
     world.add_child(&join);
-    join.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    join.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     join.set_position_x(520.0);
     mem::forget(join);
 
@@ -1274,7 +1277,7 @@ pub fn entry_point_searcher_icons() {
 
     let text = text::View::new(&logger);
     world.add_child(&text);
-    text.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    text.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     text.set_position_x(540.0);
     mem::forget(text);
 
@@ -1283,7 +1286,7 @@ pub fn entry_point_searcher_icons() {
 
     let date_and_time = date_and_time::View::new(&logger);
     world.add_child(&date_and_time);
-    date_and_time.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    date_and_time.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     date_and_time.set_position_x(560.0);
     mem::forget(date_and_time);
 
@@ -1292,7 +1295,7 @@ pub fn entry_point_searcher_icons() {
 
     let spatial = spatial::View::new(&logger);
     world.add_child(&spatial);
-    spatial.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    spatial.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     spatial.set_position_x(580.0);
     mem::forget(spatial);
 
@@ -1301,7 +1304,7 @@ pub fn entry_point_searcher_icons() {
 
     let predictive = predictive::View::new(&logger);
     world.add_child(&predictive);
-    predictive.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    predictive.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     predictive.set_position_x(600.0);
     mem::forget(predictive);
 
@@ -1310,7 +1313,7 @@ pub fn entry_point_searcher_icons() {
 
     let machine_learning = machine_learning::View::new(&logger);
     world.add_child(&machine_learning);
-    machine_learning.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    machine_learning.size.set(Vector2(ICON_SIZE, ICON_SIZE));
     machine_learning.set_position_x(620.0);
     mem::forget(machine_learning);
 

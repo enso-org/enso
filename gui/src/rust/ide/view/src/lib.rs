@@ -22,11 +22,9 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-
-#![recursion_limit="1024"]
+#![recursion_limit = "1024"]
 
 #[allow(clippy::option_map_unit_fn)]
-
 pub mod code_editor;
 pub mod debug_scenes;
 pub mod documentation;

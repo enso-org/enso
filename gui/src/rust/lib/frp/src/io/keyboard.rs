@@ -19,16 +19,19 @@ use web_sys::KeyboardEvent;
 // ============
 
 /// The key placement enum.
-#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[allow(missing_docs)]
-pub enum Side { Left, Right }
+pub enum Side {
+    Left,
+    Right,
+}
 
 impl Side {
     /// Convert the side to a lowercase string representation.
     pub fn simple_name(self) -> &'static str {
         match self {
-            Self::Left  => "left",
-            Self::Right => "right"
+            Self::Left => "left",
+            Self::Right => "right",
         }
     }
 }
@@ -99,22 +102,24 @@ impl Key {
     /// result in key `ą` in some keyboard layouts and the code `KeyA`. When layout changes, the
     /// symbol `ą` could be mapped to a different hardware key. Check the following site for more
     /// info: https://keycode.info.
-    pub fn new(key:String, code:&str) -> Self {
-        let key_ref  : &str = &key;
+    pub fn new(key: String, code: &str) -> Self {
+        let key_ref: &str = &key;
         // Space is very special case. It has key value being a character, but we don't want to
         // interpret is as a Key::Character.
-        if      key == " "                       { Self::Space          }
-        else if key.graphemes(true).count() == 1 { Self::Character(key) }
-        else {
+        if key == " " {
+            Self::Space
+        } else if key.graphemes(true).count() == 1 {
+            Self::Character(key)
+        } else {
             let key = KEY_NAME_MAP.get(key_ref).cloned().unwrap_or(Self::Other(key));
-            match (key,code) {
-                (Self::Alt      (_), "AltRight")     => Self::Alt      (Side::Right),
-                (Self::AltGr    (_), "AltRight")     => Self::AltGr    (Side::Right),
-                (Self::AltGraph (_), "AltRight")     => Self::AltGraph (Side::Right),
-                (Self::Control  (_), "ControlRight") => Self::Control  (Side::Right),
-                (Self::Meta     (_), "MetaRight")    => Self::Meta     (Side::Right),
-                (Self::Shift    (_), "ShiftRight")   => Self::Shift    (Side::Right),
-                (other,_)                            => other,
+            match (key, code) {
+                (Self::Alt(_), "AltRight") => Self::Alt(Side::Right),
+                (Self::AltGr(_), "AltRight") => Self::AltGr(Side::Right),
+                (Self::AltGraph(_), "AltRight") => Self::AltGraph(Side::Right),
+                (Self::Control(_), "ControlRight") => Self::Control(Side::Right),
+                (Self::Meta(_), "MetaRight") => Self::Meta(Side::Right),
+                (Self::Shift(_), "ShiftRight") => Self::Shift(Side::Right),
+                (other, _) => other,
             }
         }
     }
@@ -124,37 +129,44 @@ impl Key {
     /// although this is MacOS specific issue, we are simulating this behavior on all platforms to
     /// keep it consistent.
     pub fn can_be_missing_when_meta_is_down(&self) -> bool {
-        !matches!(self, Self::Alt(_) | Self::AltGr(_) | Self::AltGraph(_) | Self::Control(_)
-            | Self::Meta(_) | Self::Shift(_))
+        !matches!(
+            self,
+            Self::Alt(_)
+                | Self::AltGr(_)
+                | Self::AltGraph(_)
+                | Self::Control(_)
+                | Self::Meta(_)
+                | Self::Shift(_)
+        )
     }
 
     /// Simple, kebab-case name of a key.
     pub fn simple_name(&self) -> String {
-        let fmt = |side:&Side,repr| format!("{}-{}",repr,side.simple_name());
+        let fmt = |side: &Side, repr| format!("{}-{}", repr, side.simple_name());
         match self {
-            Self::Alt       (side) => fmt(side,"alt"),
-            Self::AltGr     (side) => fmt(side,"alt-graph"),
-            Self::AltGraph  (side) => fmt(side,"alt-graph"),
-            Self::Control   (side) => fmt(side,"ctrl"),
-            Self::Meta      (side) => fmt(side,"meta"),
-            Self::Shift     (side) => fmt(side,"shift"),
+            Self::Alt(side) => fmt(side, "alt"),
+            Self::AltGr(side) => fmt(side, "alt-graph"),
+            Self::AltGraph(side) => fmt(side, "alt-graph"),
+            Self::Control(side) => fmt(side, "ctrl"),
+            Self::Meta(side) => fmt(side, "meta"),
+            Self::Shift(side) => fmt(side, "shift"),
 
-            Self::ArrowDown        => "arrow-down".into(),
-            Self::ArrowLeft        => "arrow-left".into(),
-            Self::ArrowRight       => "arrow-right".into(),
-            Self::ArrowUp          => "arrow-up".into(),
-            Self::Backspace        => "backspace".into(),
-            Self::Delete           => "delete".into(),
-            Self::End              => "end".into(),
-            Self::Enter            => "enter".into(),
-            Self::Home             => "home".into(),
-            Self::Insert           => "insert".into(),
-            Self::PageDown         => "page-down".into(),
-            Self::PageUp           => "page-up".into(),
-            Self::Space            => "space".into(),
+            Self::ArrowDown => "arrow-down".into(),
+            Self::ArrowLeft => "arrow-left".into(),
+            Self::ArrowRight => "arrow-right".into(),
+            Self::ArrowUp => "arrow-up".into(),
+            Self::Backspace => "backspace".into(),
+            Self::Delete => "delete".into(),
+            Self::End => "end".into(),
+            Self::Enter => "enter".into(),
+            Self::Home => "home".into(),
+            Self::Insert => "insert".into(),
+            Self::PageDown => "page-down".into(),
+            Self::PageUp => "page-up".into(),
+            Self::Space => "space".into(),
 
-            Self::Character (repr) => repr.into(),
-            Self::Other     (repr) => repr.to_kebab_case()
+            Self::Character(repr) => repr.into(),
+            Self::Other(repr) => repr.to_kebab_case(),
         }
     }
 }
@@ -177,22 +189,24 @@ impl Default for Key {
 /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code and
 /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
 #[allow(missing_docs)]
-#[derive(Clone,Debug,Default)]
+#[derive(Clone, Debug, Default)]
 pub struct KeyWithCode {
-    pub key  : Key,
-    pub code : String,
+    pub key:  Key,
+    pub code: String,
 }
 
 impl KeyWithCode {
     /// Create a Key structure and return it with the passed code.
-    pub fn new(key:String, code:String) -> Self {
-        let key = Key::new(key,code.as_str());
-        KeyWithCode{key,code}
+    pub fn new(key: String, code: String) -> Self {
+        let key = Key::new(key, code.as_str());
+        KeyWithCode { key, code }
     }
 }
 
 impl From<&KeyboardEvent> for KeyWithCode {
-    fn from(event:&KeyboardEvent) -> Self { Self::new(event.key(),event.code()) }
+    fn from(event: &KeyboardEvent) -> Self {
+        Self::new(event.key(), event.code())
+    }
 }
 
 
@@ -218,10 +232,10 @@ impl From<&KeyboardEvent> for KeyWithCode {
 ///
 /// The current implementation will therefore emit repeat/release of pressed "key" values.
 /// (so in above example releasing `a` will never be emitted, only releasing `A`).
-#[derive(Clone,CloneRef,Debug,Default)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct KeyboardModel {
-    pressed_keys        : Rc<RefCell<HashSet<Key>>>,
-    pressed_code_to_key : Rc<RefCell<HashMap<String,Key>>>,
+    pressed_keys:        Rc<RefCell<HashSet<Key>>>,
+    pressed_code_to_key: Rc<RefCell<HashMap<String, Key>>>,
 }
 
 impl KeyboardModel {
@@ -246,15 +260,15 @@ impl KeyboardModel {
     }
 
     /// Checks whether the provided key is currently pressed.
-    pub fn is_down(&self, key:&Key) -> bool {
+    pub fn is_down(&self, key: &Key) -> bool {
         self.pressed_keys.borrow().contains(key)
     }
 
     /// Simulate press of the provided key.
-    pub fn press(&self, KeyWithCode{key,code}:&KeyWithCode) -> Key {
+    pub fn press(&self, KeyWithCode { key, code }: &KeyWithCode) -> Key {
         let pressed_key_opt = self.pressed_code_to_key.borrow_mut().get(code).cloned();
         let key = pressed_key_opt.unwrap_or_else(|| {
-            self.pressed_code_to_key.borrow_mut().insert(code.clone(),key.clone());
+            self.pressed_code_to_key.borrow_mut().insert(code.clone(), key.clone());
             key.clone()
         });
         self.pressed_keys.borrow_mut().insert(key.clone());
@@ -262,7 +276,7 @@ impl KeyboardModel {
     }
 
     /// Simulate release of the provided key.
-    pub fn release(&self, KeyWithCode{key,code}:&KeyWithCode) -> Key {
+    pub fn release(&self, KeyWithCode { key, code }: &KeyWithCode) -> Key {
         let key = self.pressed_code_to_key.borrow_mut().remove(code).unwrap_or_else(|| key.clone());
         self.pressed_keys.borrow_mut().remove(&key);
         key
@@ -273,14 +287,19 @@ impl KeyboardModel {
     #[allow(clippy::unnecessary_filter_map)] // Allows not cloning the element.
     pub fn release_meta_dependent(&self) -> Vec<Key> {
         let mut to_release = Vec::new();
-        let new_set        = self.pressed_code_to_key.borrow_mut().drain().filter_map(|(code,key)| {
-            if key.can_be_missing_when_meta_is_down() {
-                to_release.push(key);
-                None
-            } else {
-                Some((code,key))
-            }
-        }).collect();
+        let new_set = self
+            .pressed_code_to_key
+            .borrow_mut()
+            .drain()
+            .filter_map(|(code, key)| {
+                if key.can_be_missing_when_meta_is_down() {
+                    to_release.push(key);
+                    None
+                } else {
+                    Some((code, key))
+                }
+            })
+            .collect();
         *self.pressed_code_to_key.borrow_mut() = new_set;
         for released in &to_release {
             self.pressed_keys.borrow_mut().remove(released);
@@ -302,23 +321,23 @@ impl KeyboardModel {
 // ======================
 
 /// The source of FRP keyboard inputs (press / release).
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct KeyboardSource {
-    pub up               : frp::Source<KeyWithCode>,
-    pub down             : frp::Source<KeyWithCode>,
-    pub window_defocused : frp::Source,
+    pub up:               frp::Source<KeyWithCode>,
+    pub down:             frp::Source<KeyWithCode>,
+    pub window_defocused: frp::Source,
 }
 
 impl KeyboardSource {
     /// Constructor.
-    pub fn new(network:&frp::Network) -> Self {
+    pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             down             <- source();
             up               <- source();
             window_defocused <- source();
         }
-        Self {up,down,window_defocused}
+        Self { up, down, window_defocused }
     }
 }
 
@@ -329,26 +348,26 @@ impl KeyboardSource {
 // ================
 
 /// Keyboard FRP bindings.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Keyboard {
-    model                : KeyboardModel,
-    pub network          : frp::Network,
-    pub source           : KeyboardSource,
-    pub down             : frp::Stream<Key>,
-    pub up               : frp::Stream<Key>,
-    pub is_meta_down     : frp::Stream<bool>,
-    pub is_control_down  : frp::Stream<bool>,
-    pub is_alt_down      : frp::Stream<bool>,
-    pub is_modifier_down : frp::Stream<bool>,
+    model:                KeyboardModel,
+    pub network:          frp::Network,
+    pub source:           KeyboardSource,
+    pub down:             frp::Stream<Key>,
+    pub up:               frp::Stream<Key>,
+    pub is_meta_down:     frp::Stream<bool>,
+    pub is_control_down:  frp::Stream<bool>,
+    pub is_alt_down:      frp::Stream<bool>,
+    pub is_modifier_down: frp::Stream<bool>,
 }
 
 impl Keyboard {
     /// Constructor.
     pub fn new() -> Self {
         let network = frp::Network::new("keyboard");
-        let model   = KeyboardModel::default();
-        let source  = KeyboardSource::new(&network);
+        let model = KeyboardModel::default();
+        let source = KeyboardSource::new(&network);
         frp::extend! { network
             down         <- source.down.map(f!((kc) model.press(kc)));
             up           <- source.up.map(f!((kc) model.release(kc)));
@@ -365,8 +384,17 @@ impl Keyboard {
                 |m,c,a| *m || *c || *a
             );
         }
-        Keyboard {model,network,source,down,up,is_meta_down,is_control_down,is_alt_down
-            ,is_modifier_down}
+        Keyboard {
+            model,
+            network,
+            source,
+            down,
+            up,
+            is_meta_down,
+            is_control_down,
+            is_alt_down,
+            is_modifier_down,
+        }
     }
 }
 
@@ -382,32 +410,43 @@ impl Default for Keyboard {
 // === DomBindings ===
 // ===================
 
-/// A handle of listener emitting events on bound FRP graph. 
-/// 
-/// Note: The members are never directly accessed after creation, but need to be kept alive to 
+/// A handle of listener emitting events on bound FRP graph.
+///
+/// Note: The members are never directly accessed after creation, but need to be kept alive to
 /// keep routing the events.
 #[derive(Debug)]
 pub struct DomBindings {
     #[allow(dead_code)]
-    key_down : Listener<dyn KeyboardEventCallback>,
+    key_down: Listener<dyn KeyboardEventCallback>,
     #[allow(dead_code)]
-    key_up   : Listener<dyn KeyboardEventCallback>,
+    key_up:   Listener<dyn KeyboardEventCallback>,
     #[allow(dead_code)]
-    blur     : Listener<dyn EventCallback>,
+    blur:     Listener<dyn EventCallback>,
 }
 
 impl DomBindings {
     /// Create new Keyboard and Frp bindings.
-    pub fn new(logger:impl AnyLogger, keyboard:&Keyboard, current_event:&CurrentJsEvent) -> Self {
-        let key_down = Listener::new_key_down(&logger,current_event.make_event_handler(
-            f!((event:&KeyboardEvent) keyboard.source.down.emit(KeyWithCode::from(event)))
-        ));
-        let key_up = Listener::new_key_up(&logger,current_event.make_event_handler(
-            f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event)))
-        ));
-        let blur = Listener::new_blur(&logger,current_event.make_event_handler(
-            f_!(keyboard.source.window_defocused.emit(()))
-        ));
-        Self {key_down,key_up,blur}
+    pub fn new(
+        logger: impl AnyLogger,
+        keyboard: &Keyboard,
+        current_event: &CurrentJsEvent,
+    ) -> Self {
+        let key_down = Listener::new_key_down(
+            &logger,
+            current_event.make_event_handler(
+                f!((event:&KeyboardEvent) keyboard.source.down.emit(KeyWithCode::from(event))),
+            ),
+        );
+        let key_up = Listener::new_key_up(
+            &logger,
+            current_event.make_event_handler(
+                f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event))),
+            ),
+        );
+        let blur = Listener::new_blur(
+            &logger,
+            current_event.make_event_handler(f_!(keyboard.source.window_defocused.emit(()))),
+        );
+        Self { key_down, key_up, blur }
     }
 }

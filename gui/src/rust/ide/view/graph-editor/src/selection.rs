@@ -21,7 +21,7 @@ use ensogl::gui::cursor::Cursor;
 // ============
 
 /// Possible selection modes.
-#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Mode {
     /// Select a single node when clicking on it. Deselects all other nodes.
     Normal,
@@ -33,54 +33,53 @@ pub enum Mode {
     /// Remove selected nodes from the set of currently selected nodes.
     Subtract,
     /// Invert the selection state of the selected nodes.
-    Inverse
+    Inverse,
 }
 
 impl Mode {
-
     /// Return whether an element should be selected, if a selection was triggered through single
     /// (not area) selection and had the given `was_selected` status before.
-    fn single_should_select(self, was_selected:bool) -> bool {
+    fn single_should_select(self, was_selected: bool) -> bool {
         match self {
-            Self::Normal  => true,
-            Self::Merge   => true,
-            Self::Multi   => !was_selected,
+            Self::Normal => true,
+            Self::Merge => true,
+            Self::Multi => !was_selected,
             Self::Inverse => !was_selected,
-            _             => false
+            _ => false,
         }
     }
 
-   /// Return whether an element should be deselected, if a deselection was triggered through single
-   /// selection and had the given `was_selected` status before.
-   fn single_should_deselect(self, was_selected:bool) -> bool {
+    /// Return whether an element should be deselected, if a deselection was triggered through
+    /// single selection and had the given `was_selected` status before.
+    fn single_should_deselect(self, was_selected: bool) -> bool {
         match self {
             Self::Subtract => true,
-            Self::Multi    => was_selected,
-            Self::Inverse  => was_selected,
-            _              => false
+            Self::Multi => was_selected,
+            Self::Inverse => was_selected,
+            _ => false,
         }
     }
 
     /// Return whether an element should be selected, if a selection was triggered through an area
     /// selection and had the given `was_selected` status before.
-    fn area_should_select(self, was_selected:bool) -> bool {
+    fn area_should_select(self, was_selected: bool) -> bool {
         match self {
-            Self::Normal  => true,
-            Self::Merge   => true,
-            Self::Multi   => true,
+            Self::Normal => true,
+            Self::Merge => true,
+            Self::Multi => true,
             Self::Inverse => !was_selected,
-            _             => false
+            _ => false,
         }
     }
 
     /// Return whether an element should be deselected, if a deselection was triggered  through an
     /// area selection and had the given `was_selected` status before.
-    fn area_should_deselect(self, was_selected:bool) -> bool {
+    fn area_should_deselect(self, was_selected: bool) -> bool {
         match self {
             Self::Subtract => true,
-            Self::Multi    => was_selected,
-            Self::Inverse  => was_selected,
-            _              => false
+            Self::Multi => was_selected,
+            Self::Inverse => was_selected,
+            _ => false,
         }
     }
 }
@@ -104,15 +103,15 @@ impl Default for Mode {
 /// This implements `Hash` and `Eq` based only on the ndoe identity to avoid overwriting the initial
 /// selection state in a set of `TemporarySelection`s. This allows the first added element for a
 /// node to be preserved.
-#[derive(Clone,Copy,Default,Debug,Eq)]
+#[derive(Clone, Copy, Default, Debug, Eq)]
 pub struct TemporarySelection {
-    node         : NodeId,
-    was_selected : bool,
+    node:         NodeId,
+    was_selected: bool,
 }
 
 impl TemporarySelection {
-    fn new(node:NodeId, was_selected:bool)  -> Self {
-        Self{node,was_selected}
+    fn new(node: NodeId, was_selected: bool) -> Self {
+        Self { node, was_selected }
     }
 }
 
@@ -135,11 +134,11 @@ impl Hash for TemporarySelection {
 /// Set of `TemporarySelection` items. Used to keep track of the nodes currently selected with an
 /// ongoing area selection.
 mod node_set {
-    use ensogl::prelude::*;
-    use ensogl::frp;
     use crate::selection::TemporarySelection;
+    use ensogl::frp;
+    use ensogl::prelude::*;
 
-    type SetItem  = TemporarySelection;
+    type SetItem = TemporarySelection;
 
     ensogl::define_endpoints! {
         Input {
@@ -161,9 +160,9 @@ mod node_set {
        }
     }
 
-    #[derive(Clone,CloneRef,Debug,Default)]
+    #[derive(Clone, CloneRef, Debug, Default)]
     struct Model {
-        set: Rc<RefCell<HashSet<SetItem>>>
+        set: Rc<RefCell<HashSet<SetItem>>>,
     }
 
     impl Model {
@@ -184,23 +183,23 @@ mod node_set {
         }
     }
 
-    #[derive(Clone,CloneRef,Debug)]
+    #[derive(Clone, CloneRef, Debug)]
     pub struct Set {
-        frp: Rc<Frp>,
+        frp:   Rc<Frp>,
         model: Rc<Model>,
     }
 
     impl Set {
         pub fn new() -> Self {
-            let frp   = Rc::new(Frp::new());
+            let frp = Rc::new(Frp::new());
             let model = Rc::new(Model::default());
             Self { frp, model }.init()
         }
 
         fn init(self) -> Self {
             let network = &self.frp.network;
-            let frp     = &self.frp;
-            let set     = &self.model;
+            let frp = &self.frp;
+            let set = &self.model;
             frp::extend! { network
                 eval_ frp.reset (set.reset());
                 to_remove <- frp.remove_difference_with_vec.map(f!((values)
@@ -221,21 +220,25 @@ mod node_set {
 
     impl Deref for Set {
         type Target = Frp;
-        fn deref(&self) -> &Self::Target { &self.frp }
+        fn deref(&self) -> &Self::Target {
+            &self.frp
+        }
     }
 }
 
-fn get_nodes_in_bounding_box(bounding_box:&BoundingBox, nodes:&Nodes)  -> Vec<NodeId>{
+fn get_nodes_in_bounding_box(bounding_box: &BoundingBox, nodes: &Nodes) -> Vec<NodeId> {
     let nodes_raw = nodes.all.raw.as_ref().borrow();
-    nodes_raw.iter().filter_map(|(id,node)|
-        bounding_box.intersects(&node.view.frp.bounding_box.value()).as_some(*id)
-    ).collect()
-
+    nodes_raw
+        .iter()
+        .filter_map(|(id, node)| {
+            bounding_box.intersects(&node.view.frp.bounding_box.value()).as_some(*id)
+        })
+        .collect()
 }
 
 /// Return an FRP endpoint that indicates the current selection mode. This method sets up the logic
 /// for deriving the selection mode from the graph editor FRP.
-pub fn get_mode(network:&frp::Network,editor:&crate::FrpEndpoints) -> frp::stream::Stream<Mode> {
+pub fn get_mode(network: &frp::Network, editor: &crate::FrpEndpoints) -> frp::stream::Stream<Mode> {
     frp::extend! { network
 
     let multi_select_flag = crate::enable_disable_toggle
@@ -288,24 +291,27 @@ pub fn get_mode(network:&frp::Network,editor:&crate::FrpEndpoints) -> frp::strea
 
 /// Selection Controller that handles the logic for selecting and deselecting nodes in the graph
 /// editor.
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct Controller {
-    network                : frp::Network,
-    cursor_selection_nodes : node_set::Set,
+    network:                frp::Network,
+    cursor_selection_nodes: node_set::Set,
 
-    pub enable_area_selection : frp::Source<bool>,
+    pub enable_area_selection: frp::Source<bool>,
 
-    pub cursor_style       : frp::stream::Stream<cursor::Style>,
-    pub area_selection     : frp::stream::Stream<bool>,
+    pub cursor_style:   frp::stream::Stream<cursor::Style>,
+    pub area_selection: frp::stream::Stream<bool>,
 }
 
 impl Controller {
-    pub fn new(editor:&crate::FrpEndpoints,cursor:&Cursor,
-               mouse:&frp::io::Mouse,touch:&TouchState,nodes:&Nodes)
-    -> Self {
-
-        let network                = frp::Network::new("selection::Controller");
-        let selection_mode         = get_mode(&network,editor);
+    pub fn new(
+        editor: &crate::FrpEndpoints,
+        cursor: &Cursor,
+        mouse: &frp::io::Mouse,
+        touch: &TouchState,
+        nodes: &Nodes,
+    ) -> Self {
+        let network = frp::Network::new("selection::Controller");
+        let selection_mode = get_mode(&network, editor);
         let cursor_selection_nodes = node_set::Set::new();
 
 
@@ -440,7 +446,12 @@ impl Controller {
         // Init defaults.
         enable_area_selection.emit(true);
 
-        Controller { network,cursor_selection_nodes,enable_area_selection,cursor_style,
-                     area_selection }
+        Controller {
+            network,
+            cursor_selection_nodes,
+            enable_area_selection,
+            cursor_style,
+            area_selection,
+        }
     }
 }

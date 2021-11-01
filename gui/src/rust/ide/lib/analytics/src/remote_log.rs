@@ -10,7 +10,7 @@ pub use wasm_bindgen::prelude::*;
 mod js {
     use super::*;
 
-    #[wasm_bindgen(inline_js="
+    #[wasm_bindgen(inline_js = "
 export function remote_log(msg, value) {
     try {
         window.enso.remoteLog(msg,value)
@@ -27,28 +27,29 @@ export function remote_log_value(msg, field_name, value) {
 ")]
     extern "C" {
         #[allow(unsafe_code)]
-        pub fn remote_log_value(msg:JsValue,field_name:JsValue,value:JsValue);
+        pub fn remote_log_value(msg: JsValue, field_name: JsValue, value: JsValue);
         #[allow(unsafe_code)]
-        pub fn remote_log(msg:JsValue,value:JsValue);
+        pub fn remote_log(msg: JsValue, value: JsValue);
     }
 }
 
 
 /// Send the provided public event to our logging service.
 #[allow(unused_variables)] // used only on wasm target
-pub fn remote_log_event(message:&str) {
+pub fn remote_log_event(message: &str) {
     // Note: Disabling on non-wasm targets
-    #[cfg(target_arch="wasm32")]  {
-        js::remote_log(JsValue::from(message.to_string()),JsValue::UNDEFINED);
+    #[cfg(target_arch = "wasm32")]
+    {
+        js::remote_log(JsValue::from(message.to_string()), JsValue::UNDEFINED);
     }
 }
 
 /// Send the provided public event with a named value to our logging service.
 #[allow(unused_variables)] // used only on wasm target
-pub fn remote_log_value
-<T:Loggable>(message:&str, field_name:&str, data:AnonymousData<T>){
+pub fn remote_log_value<T: Loggable>(message: &str, field_name: &str, data: AnonymousData<T>) {
     // Note: Disabling on non-wasm targets
-    #[cfg(target_arch="wasm32")] {
+    #[cfg(target_arch = "wasm32")]
+    {
         let msg = JsValue::from(message.to_string());
         let field_name = JsValue::from(field_name.to_string());
         js::remote_log_value(msg, field_name, data.0.get());

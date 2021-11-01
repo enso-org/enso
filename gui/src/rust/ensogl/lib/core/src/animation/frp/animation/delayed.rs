@@ -40,17 +40,17 @@ crate::define_endpoints! {
 // =========================
 
 /// Animation that has a delayed onset.
-#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 pub struct DelayedAnimation {
     #[allow(missing_docs)]
-    pub frp : FrpEndpoints,
+    pub frp: FrpEndpoints,
 }
 
 impl DelayedAnimation {
     #[allow(missing_docs)]
-    pub fn new(network:&frp::Network) -> Self {
-        let frp        = Frp::extend(network);
-        let delay      = Easing::new(network);
+    pub fn new(network: &frp::Network) -> Self {
+        let frp = Frp::extend(network);
+        let delay = Easing::new(network);
         let transition = Easing::new(network);
 
         frp::extend! { network
@@ -79,6 +79,6 @@ impl DelayedAnimation {
                 (t - 1.0).abs() < std::f32::EPSILON).on_true();
         }
 
-        Self{frp}
+        Self { frp }
     }
 }

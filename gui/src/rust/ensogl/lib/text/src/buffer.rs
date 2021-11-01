@@ -18,12 +18,12 @@ pub mod traits {
     pub use super::data::traits::*;
 }
 
+pub use data::unit::*;
+pub use data::Range;
 pub use data::Text;
 pub use data::TextCell;
-pub use data::Range;
-pub use data::unit::*;
-pub use view::*;
 pub use style::*;
+pub use view::*;
 
 
 
@@ -32,9 +32,9 @@ pub use style::*;
 // ==============
 
 /// Internally mutable text container with associated styles.
-#[derive(Clone,CloneRef,Debug,Default)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct Buffer {
-    data : Rc<BufferData>
+    data: Rc<BufferData>,
 }
 
 impl Deref for Buffer {
@@ -63,10 +63,10 @@ impl Buffer {
 // ==================
 
 /// Internal data of `Buffer`.
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct BufferData {
-    pub(crate) text  : TextCell,
-    pub(crate) style : StyleCell,
+    pub(crate) text:  TextCell,
+    pub(crate) style: StyleCell,
 }
 
 impl Deref for BufferData {
@@ -88,7 +88,7 @@ impl BufferData {
     }
 
     /// Text setter.
-    pub(crate) fn set_text(&self, text:impl Into<Text>) {
+    pub(crate) fn set_text(&self, text: impl Into<Text>) {
         self.text.set(text);
     }
 
@@ -98,12 +98,12 @@ impl BufferData {
     }
 
     /// Style setter.
-    pub(crate) fn set_style(&self, style:Style) {
+    pub(crate) fn set_style(&self, style: Style) {
         self.style.set(style)
     }
 
     /// Query style information for the provided range.
-    pub fn sub_style(&self, range:impl data::RangeBounds) -> Style {
+    pub fn sub_style(&self, range: impl data::RangeBounds) -> Style {
         let range = self.crop_byte_range(range);
         self.style.sub(range)
     }
@@ -119,27 +119,27 @@ impl BufferData {
 trait Setter<T> {
     /// Replace the range with the provided value. The exact meaning of this function depends on the
     /// provided data type. See implementations provided in the `style` module.
-    fn replace(&self, range:impl data::RangeBounds, data:T);
+    fn replace(&self, range: impl data::RangeBounds, data: T);
 }
 
 /// Generic setter for default value for metadata like colors, font weight, etc.
 trait DefaultSetter<T> {
     /// Replace the default value of the metadata. The exact meaning of this function depends on the
     /// provided data type. See implementations provided in the `style` module.
-    fn set_default(&self, data:T);
+    fn set_default(&self, data: T);
 }
 
 impl Setter<Text> for Buffer {
-    fn replace(&self, range:impl data::RangeBounds, text:Text) {
+    fn replace(&self, range: impl data::RangeBounds, text: Text) {
         let range = self.crop_byte_range(range);
-        let size  = text.byte_size();
-        self.text.replace(range,text);
-        self.style.set_resize_with_default(range,size);
+        let size = text.byte_size();
+        self.text.replace(range, text);
+        self.style.set_resize_with_default(range, size);
     }
 }
 
 impl Setter<&Text> for Buffer {
-    fn replace(&self, range:impl data::RangeBounds, text:&Text) {
-        self.replace(range,text.clone())
+    fn replace(&self, range: impl data::RangeBounds, text: &Text) {
+        self.replace(range, text.clone())
     }
 }

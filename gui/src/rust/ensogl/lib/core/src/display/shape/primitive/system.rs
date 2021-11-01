@@ -5,14 +5,14 @@ use crate::prelude::*;
 
 use super::def;
 
+use crate::display;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol::geometry::compound::sprite;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
-use crate::display::symbol::material::Material;
 use crate::display::symbol::material;
-use crate::display;
+use crate::display::symbol::material::Material;
 use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::buffer::item::Storable;
 use crate::system::gpu::types::*;
@@ -42,25 +42,27 @@ newtype_prim_no_default_no_display! {
 ///
 /// Under the hood, it is a specialized version of `SpriteSystem`.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 pub struct ShapeSystem {
     #[shrinkwrap(main_field)]
-    pub sprite_system  : SpriteSystem,
-    pub shape          : Rc<RefCell<def::AnyShape>>,
-    pub material       : Rc<RefCell<Material>>,
-    pub pointer_events : Rc<Cell<bool>>,
+    pub sprite_system:  SpriteSystem,
+    pub shape:          Rc<RefCell<def::AnyShape>>,
+    pub material:       Rc<RefCell<Material>>,
+    pub pointer_events: Rc<Cell<bool>>,
 }
 
 impl ShapeSystem {
     /// Constructor.
-    pub fn new<'t,S,Sh>(scene:S, shape:Sh) -> Self
-    where S:Into<&'t Scene>, Sh:Into<def::AnyShape> {
-        let shape          = shape.into();
-        let sprite_system  = SpriteSystem::new(scene);
-        let material       = Rc::new(RefCell::new(Self::surface_material()));
+    pub fn new<'t, S, Sh>(scene: S, shape: Sh) -> Self
+    where
+        S: Into<&'t Scene>,
+        Sh: Into<def::AnyShape>, {
+        let shape = shape.into();
+        let sprite_system = SpriteSystem::new(scene);
+        let material = Rc::new(RefCell::new(Self::surface_material()));
         let pointer_events = Rc::new(Cell::new(true));
-        let shape          = Rc::new(RefCell::new(shape));
-        let this           = Self {sprite_system,shape,material,pointer_events};
+        let shape = Rc::new(RefCell::new(shape));
+        let this = Self { sprite_system, shape, material, pointer_events };
         this.reload_shape();
         this
     }
@@ -71,25 +73,25 @@ impl ShapeSystem {
     /// Defines a default material of this system.
     fn surface_material() -> Material {
         let mut material = Material::new();
-        material.add_input  ("pixel_ratio"  , 1.0);
-        material.add_input  ("z_zoom_1"     , 1.0);
-        material.add_input  ("time"         , 0.0);
-        material.add_input  ("symbol_id"    , 0);
-        material.add_input  ("display_mode" , 0);
-        material.add_output ("id"           , Vector4::<f32>::zero());
+        material.add_input("pixel_ratio", 1.0);
+        material.add_input("z_zoom_1", 1.0);
+        material.add_input("time", 0.0);
+        material.add_input("symbol_id", 0);
+        material.add_input("display_mode", 0);
+        material.add_output("id", Vector4::<f32>::zero());
         material
     }
 
     /// Enables or disables pointer events on this shape system. All shapes of a shape system which
     /// has pointer events disabled would be completely transparent for the mouse (they would pass
     /// through all mouse events).
-    pub fn set_pointer_events(&self, val:bool) {
+    pub fn set_pointer_events(&self, val: bool) {
         self.pointer_events.set(val);
         self.reload_shape();
     }
 
     /// Replaces the shape definition.
-    pub fn set_shape<S:Into<def::AnyShape>>(&self, shape:S) {
+    pub fn set_shape<S: Into<def::AnyShape>>(&self, shape: S) {
         let shape = shape.into();
         *self.shape.borrow_mut() = shape;
         self.reload_shape();
@@ -98,15 +100,15 @@ impl ShapeSystem {
     /// Generates the shape again. It is used after some parameters are changed, like setting new
     /// `pointer_events` value.
     fn reload_shape(&self) {
-        let code = shader::builder::Builder::run(&*self.shape.borrow(),self.pointer_events.get());
+        let code = shader::builder::Builder::run(&*self.shape.borrow(), self.pointer_events.get());
         self.material.borrow_mut().set_code(code);
         self.reload_material();
     }
 
     /// Define a new shader input.
-    pub fn add_input<T:material::Input + Storable>(&self, name:&str, t:T) -> Buffer<T>
+    pub fn add_input<T: material::Input + Storable>(&self, name: &str, t: T) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
-        self.material.borrow_mut().add_input(name,t);
+        self.material.borrow_mut().add_input(name, t);
         let buffer = self.sprite_system.symbol().surface().instance_scope().add_buffer(name);
         self.reload_material();
         buffer
@@ -132,11 +134,11 @@ impl display::Object for ShapeSystem {
 
 /// Trait for user defined shape systems. The easiest way to define custom shape system is by using
 /// the `define_shape_system` macro.
-pub trait ShapeSystemInstance : 'static + CloneRef {
+pub trait ShapeSystemInstance: 'static + CloneRef {
     /// The ID of the shape system.
     fn id() -> ShapeSystemId;
     /// Constructor.
-    fn new(scene:&Scene) -> Self;
+    fn new(scene: &Scene) -> Self;
     /// The [`ShapeSystem`] instance of the user defined shape system.
     fn shape_system(&self) -> &ShapeSystem;
     /// List of shape systems this shape system should always be drawn on above of. See the
@@ -151,20 +153,20 @@ pub trait ShapeSystemInstance : 'static + CloneRef {
 
 /// Trait for static (scene-instantiated) shape systems. Read docs of [`ShapeSystemInstance`], and
 /// [`DynShapeSystemInstance`] to learn more.
-pub trait StaticShapeSystemInstance : ShapeSystemInstance {
+pub trait StaticShapeSystemInstance: ShapeSystemInstance {
     /// The shape type of this shape system definition.
-    type Shape : Shape<System=Self>;
+    type Shape: Shape<System = Self>;
     /// New shape constructor.
     fn new_instance(&self) -> Self::Shape;
 }
 
 /// Trait for dynamic (possibly scene-non-instantiated) shape systems. Read docs of
 /// [`ShapeSystemInstance`], and [`StaticShapeSystemInstance`] to learn more.
-pub trait DynShapeSystemInstance : ShapeSystemInstance {
+pub trait DynShapeSystemInstance: ShapeSystemInstance {
     /// The dynamic shape type of this shape system definition.
-    type DynamicShape : DynamicShape<System=Self>;
+    type DynamicShape: DynamicShape<System = Self>;
     /// New shape instantiation. Used to bind a shape to a specific scene implementation.
-    fn instantiate(&self, shape:&Self::DynamicShape) -> attribute::InstanceIndex;
+    fn instantiate(&self, shape: &Self::DynamicShape) -> attribute::InstanceIndex;
 }
 
 /// Abstraction for every entity which is associated with a shape system (user generated one). For
@@ -183,13 +185,13 @@ pub trait KnownShapeSystemId {
 
 /// Type for every shape bound to a specific scene and GPU buffers. The easiest way to define such a
 /// shape is by using the `define_shape_system` macro.
-pub trait Shape : display::Object + CloneRef + Debug + Sized {
+pub trait Shape: display::Object + CloneRef + Debug + Sized {
     /// The shape system instance this shape belongs to.
-    type System : StaticShapeSystemInstance<Shape=Self>;
+    type System: StaticShapeSystemInstance<Shape = Self>;
     /// Accessor for the underlying sprite.
     fn sprite(&self) -> &Sprite;
     /// Check if given mouse-event-target means this shape.
-    fn is_this_target(&self, target:display::scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
         self.sprite().is_this_target(target)
     }
 }
@@ -202,20 +204,20 @@ pub trait Shape : display::Object + CloneRef + Debug + Sized {
 /// on bound.
 ///
 /// The easiest way to define such a shape is by using the `define_shape_system` macro.
-pub trait DynamicShape : display::Object + CloneRef + Debug + Sized {
+pub trait DynamicShape: display::Object + CloneRef + Debug + Sized {
     /// The static version of the shape. Dynamic shapes can be associated with one or more static
     /// shapes after they are placed on the stage and initialized.
-    type StaticShape : Shape;
+    type StaticShape: Shape;
     /// The shape system instance this shape belongs to.
-    type System : DynShapeSystemInstance<DynamicShape=Self>;
+    type System: DynShapeSystemInstance<DynamicShape = Self>;
     /// Constructor.
-    fn new(logger:impl AnyLogger) -> Self;
+    fn new(logger: impl AnyLogger) -> Self;
     /// Accessor for the underlying sprite, if the shape is initialized.
     fn sprites(&self) -> Vec<Sprite>;
     /// The "canvas" size of the shape. It defines the bounding-box for the shape drawing area.
     fn size(&self) -> &DynamicParam<sprite::Size>;
     /// Check if given pointer-event-target means this object.
-    fn is_this_target(&self, target:display::scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
         self.sprites().into_iter().any(|sprite| sprite.is_this_target(target))
     }
 }
@@ -224,12 +226,12 @@ pub trait DynamicShape : display::Object + CloneRef + Debug + Sized {
 /// explicitly, however, it is exposed as public interface as it is required for user-defined shape
 /// systems. Again, instead of implementing shape systems from scratch, you'd rather use the
 /// `define_shape_system!` macro.
-pub trait DynamicShapeInternals : DynamicShape {
+pub trait DynamicShapeInternals: DynamicShape {
     /// Add a new [`Shape`] instance to this dynamic shape. Please note that dynamic shapes can be
     /// attached with multiple [`Shape`]s at the same time if they are placed on multiple scene
     /// [`Layer`]s. Then, each layer has a separate shape system, and thus, a separate [`Shape`] to
     /// represent this [`DynamicShape`].
-    fn add_instance(&self, shape:Self::StaticShape);
+    fn add_instance(&self, shape: Self::StaticShape);
 
     /// Drop all [`Shape`] instanced assigned to this dynamic shape with the `add_instance` method.
     fn drop_instances(&self);
@@ -254,20 +256,23 @@ pub type DynShapeSystemOf<T> = <T as DynamicShape>::System;
 /// GPU, the `attribute` will be initialized as well and will point to the right buffer
 /// section. Otherwise, changing the parameter will not have any visual effect, however,
 /// all the changes will be recorded and applied as soon as the shape will get initialized.
-#[derive(CloneRef,Derivative)]
-#[derivative(Clone(bound=""))]
-#[derivative(Default(bound="T::Item:Default"))]
-#[derivative(Debug(bound="T::Item:Copy+Debug, T:Debug"))]
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Default(bound = "T::Item:Default"))]
+#[derivative(Debug(bound = "T::Item:Copy+Debug, T:Debug"))]
 #[allow(missing_docs)]
-pub struct DynamicParam<T:HasItem> {
-    cache      : Rc<Cell<T::Item>>,
-    attributes : Rc<RefCell<Vec<T>>>
+pub struct DynamicParam<T: HasItem> {
+    cache:      Rc<Cell<T::Item>>,
+    attributes: Rc<RefCell<Vec<T>>>,
 }
 
 impl<T> DynamicParam<T>
-where T:CellProperty, T::Item:Copy {
+where
+    T: CellProperty,
+    T::Item: Copy,
+{
     /// Set the parameter value.
-    pub fn set(&self, value:T::Item) {
+    pub fn set(&self, value: T::Item) {
         self.cache.set(value);
         for attribute in &*self.attributes.borrow() {
             attribute.set(value)
@@ -287,19 +292,22 @@ where T:CellProperty, T::Item:Copy {
 pub trait DynamicParamInternals<T> {
     /// Add a new binding to an attribute. This is done for every [`DynamicParam`] after the
     /// [`DynamicShape`] gets initialized with a new [`Shape`].
-    fn add_attribute_binding(&self, attribute:T);
+    fn add_attribute_binding(&self, attribute: T);
     /// Remove all attribute bindings. This is used, for example, when the [`DynamicShape`] gets
     /// removed from the display hierarchy.
     fn remove_attributes_bindings(&self);
 }
 
 impl<T> DynamicParamInternals<T> for DynamicParam<T>
-where T:CellProperty, T::Item:Copy {
+where
+    T: CellProperty,
+    T::Item: Copy,
+{
     fn remove_attributes_bindings(&self) {
         *self.attributes.borrow_mut() = default();
     }
 
-    fn add_attribute_binding(&self, attribute:T) {
+    fn add_attribute_binding(&self, attribute: T) {
         attribute.set(self.cache.get());
         self.attributes.borrow_mut().push(attribute);
     }

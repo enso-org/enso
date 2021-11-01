@@ -62,11 +62,21 @@ macro_rules! _define_theme_modules {
 
 /// Select the theme expression by its number.
 macro_rules! _select_theme_expr {
-    (0 $e0:expr                                         $(,$rest:tt)*) => { $e0 };
-    (1 $e0:expr, $e1:expr                               $(,$rest:tt)*) => { $e1 };
-    (2 $e0:expr, $e1:expr, $e2:expr                     $(,$rest:tt)*) => { $e2 };
-    (3 $e0:expr, $e1:expr, $e2:expr, $e3:expr           $(,$rest:tt)*) => { $e3 };
-    (4 $e0:expr, $e1:expr, $e2:expr, $e3:expr, $e4:expr $(,$rest:tt)*) => { $e4 };
+    (0 $e0:expr                                         $(,$rest:tt)*) => {
+        $e0
+    };
+    (1 $e0:expr, $e1:expr                               $(,$rest:tt)*) => {
+        $e1
+    };
+    (2 $e0:expr, $e1:expr, $e2:expr                     $(,$rest:tt)*) => {
+        $e2
+    };
+    (3 $e0:expr, $e1:expr, $e2:expr, $e3:expr           $(,$rest:tt)*) => {
+        $e3
+    };
+    (4 $e0:expr, $e1:expr, $e2:expr, $e3:expr, $e4:expr $(,$rest:tt)*) => {
+        $e4
+    };
 }
 
 /// Helper for defining multiple themes as the same time.
@@ -110,10 +120,10 @@ macro_rules! _define_theme_wrapper_and_literals {
     };
 }
 
-/// Used to define default theme. This one aside from generating code for `StyleManager` also creates
-/// nested public modules that makes accessing values much better than with bare string literals.
-/// It adds the `var` module with string constants, so now, instead of having to get data by string
-/// literal - like `style.get("foo.bar.baz",fallback)`, you can do
+/// Used to define default theme. This one aside from generating code for `StyleManager` also
+/// creates nested public modules that makes accessing values much better than with bare string
+/// literals. It adds the `var` module with string constants, so now, instead of having to get data
+/// by string literal - like `style.get("foo.bar.baz",fallback)`, you can do
 /// `style.get(theme::foo::bar::baz,fallback)`.
 macro_rules! define_themes {
     ($ids:tt $($t:tt)*) => {
@@ -138,7 +148,7 @@ macro_rules! define_themes {
 
 /// Enum holding available themes for ease of access.
 #[allow(missing_docs)]
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub enum Theme {
     Light,
     Dark,
@@ -146,7 +156,9 @@ pub enum Theme {
 }
 
 impl Default for Theme {
-    fn default() -> Self { Theme::Light }
+    fn default() -> Self {
+        Theme::Light
+    }
 }
 
 

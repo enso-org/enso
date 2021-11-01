@@ -8,20 +8,20 @@
 pub mod graph;
 pub mod ide;
 pub mod module;
-pub mod text;
 pub mod project;
-pub mod visualization;
 pub mod searcher;
+pub mod text;
 pub mod upload;
+pub mod visualization;
 
-pub use graph::Handle           as Graph;
-pub use graph::executed::Handle as ExecutedGraph;
 pub use self::ide::Ide;
-pub use module::Handle          as Module;
+pub use graph::executed::Handle as ExecutedGraph;
+pub use graph::Handle as Graph;
+pub use module::Handle as Module;
 pub use project::Project;
-pub use text::Handle            as Text;
-pub use visualization::Handle   as Visualization;
 pub use searcher::Searcher;
+pub use text::Handle as Text;
+pub use visualization::Handle as Visualization;
 
 
 

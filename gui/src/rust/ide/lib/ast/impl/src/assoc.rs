@@ -13,7 +13,7 @@ use regex::Regex;
 
 /// Operator associativity.
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Assoc {
     Left,
     Right,
@@ -21,7 +21,7 @@ pub enum Assoc {
 
 /// Checks if given operator identifier can be considered "applicative".
 /// Examples are: `<*>`, `<*`, `<$>`.
-pub fn is_applicative(operator:&str) -> bool {
+pub fn is_applicative(operator: &str) -> bool {
     // We want to cache Regex, as library authors recommend, because compiling it is expensive.
     lazy_static! {
         // Unwrap is safe, as the input is fixed and covered by tests.
@@ -32,23 +32,23 @@ pub fn is_applicative(operator:&str) -> bool {
 
 /// Character's "weight" when calculating associativity. Negative value means
 /// weighing towards right-associativity, positive - towards left-associativity.
-pub fn char_assoc(c:char) -> i32 {
+pub fn char_assoc(c: char) -> i32 {
     match c {
         '=' => -1,
         ',' => -1,
         '>' => -1,
-        '<' =>  1,
-        _   =>  0,
+        '<' => 1,
+        _ => 0,
     }
 }
 
 impl Assoc {
-    fn operator_weight(operator:&str) -> i32 {
+    fn operator_weight(operator: &str) -> i32 {
         operator.chars().map(char_assoc).sum::<i32>()
     }
 
     /// Obtains associativity of given operator identifier.
-    pub fn of(operator:&str) -> Assoc {
+    pub fn of(operator: &str) -> Assoc {
         if is_applicative(operator) || Self::operator_weight(operator) >= 0 {
             Assoc::Left
         } else {
@@ -76,9 +76,9 @@ mod tests {
     fn test_applicative() {
         assert_eq!(is_applicative("<$>"), true);
         assert_eq!(is_applicative("<*>"), true);
-        assert_eq!(is_applicative("<*"),  true);
-        assert_eq!(is_applicative("*>"),  true);
-        assert_eq!(is_applicative("="),   false);
-        assert_eq!(is_applicative("++"),  false);
+        assert_eq!(is_applicative("<*"), true);
+        assert_eq!(is_applicative("*>"), true);
+        assert_eq!(is_applicative("="), false);
+        assert_eq!(is_applicative("++"), false);
     }
 }

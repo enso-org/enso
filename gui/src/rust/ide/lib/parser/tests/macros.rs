@@ -13,15 +13,15 @@ fn import_utilities() {
     use ast::macros::is_match_import;
 
     let parser = Parser::new_or_panic();
-    let expect_import = |code:&str| {
+    let expect_import = |code: &str| {
         let ast = parser.parse_line_ast(code).unwrap();
         assert!(is_ast_import(&ast), "Not Ast import: {:?}", ast);
         let ast_match = ast_as_import_match(&ast).unwrap();
-        assert_eq!(&ast,ast_match.ast());
+        assert_eq!(&ast, ast_match.ast());
         assert!(is_match_import(&ast_match));
     };
 
-    let expect_not_import = |code:&str| {
+    let expect_not_import = |code: &str| {
         let ast = parser.parse_line_ast(code).unwrap();
         assert!(!is_ast_import(&ast));
         assert!(ast_as_import_match(&ast).is_none());
@@ -51,7 +51,7 @@ fn import_utilities() {
 fn recognizing_lambdas() {
     let parser = Parser::new_or_panic();
 
-    let expect_lambda = |code:&str, arg:&str, body:&str| {
+    let expect_lambda = |code: &str, arg: &str, body: &str| {
         let ast = parser.parse_line_ast(code).unwrap();
         let lambda = ast::macros::as_lambda(&ast).expect("failed to recognize lambda");
         assert_eq!(lambda.arg.repr(), arg);
@@ -59,15 +59,15 @@ fn recognizing_lambdas() {
         assert_eq!(*lambda.arg, ast.get_traversing(&lambda.arg.crumbs).unwrap());
         assert_eq!(*lambda.body, ast.get_traversing(&lambda.body.crumbs).unwrap());
     };
-    let expect_not_lambda = |code:&str| {
+    let expect_not_lambda = |code: &str| {
         let ast = parser.parse_line_ast(code).unwrap();
         assert!(ast::macros::as_lambda_match(&ast).is_none(), "wrongly recognized a lambda");
     };
 
-    expect_lambda("a->b",       "a",    "b");
-    expect_lambda("foo->4+(4)", "foo",  "4+(4)");
-    expect_lambda("a->b->c",    "a",    "b->c");
-    expect_lambda("(a->b)->c",  "(a->b)", "c");
+    expect_lambda("a->b", "a", "b");
+    expect_lambda("foo->4+(4)", "foo", "4+(4)");
+    expect_lambda("a->b->c", "a", "b->c");
+    expect_lambda("(a->b)->c", "(a->b)", "c");
 
     expect_not_lambda("(a->b)");
     expect_not_lambda("a+b");

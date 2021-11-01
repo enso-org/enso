@@ -1,7 +1,7 @@
 //! FRP data definition.
 
-use crate::prelude::*;
 use crate::data::watch;
+use crate::prelude::*;
 
 
 
@@ -20,7 +20,7 @@ pub trait Data = 'static + Clone + Debug + Default;
 /// Implementors of this trait has to know their output type.
 #[allow(missing_docs)]
 pub trait HasOutput {
-    type Output : Data;
+    type Output: Data;
 }
 
 /// A static version of `HasOutput`.
@@ -37,9 +37,9 @@ pub type Output<T> = <T as HasOutput>::Output;
 // ==========
 
 /// Identifier of FRP node. Used mainly for debug purposes.
-#[derive(Debug,Clone,CloneRef,Copy,Eq,From,Hash,Into,PartialEq)]
+#[derive(Debug, Clone, CloneRef, Copy, Eq, From, Hash, Into, PartialEq)]
 pub struct Id {
-    raw : usize
+    raw: usize,
 }
 
 /// Implementors of this trait has to be assigned with an unique Id. All FRP nodes implement it.
@@ -48,7 +48,7 @@ pub trait HasId {
     fn id(&self) -> Id;
 }
 
-impl<T:HasId> HasId for watch::Ref<T> {
+impl<T: HasId> HasId for watch::Ref<T> {
     fn id(&self) -> Id {
         self.target.id()
     }

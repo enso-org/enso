@@ -13,13 +13,13 @@ use crate::messages::Id;
 use crate::transport::Transport;
 use crate::transport::TransportEvent;
 
-use futures::future;
-use futures::FutureExt;
-use futures::StreamExt;
-use futures::Stream;
 use futures::channel::mpsc::unbounded;
 use futures::channel::mpsc::UnboundedSender;
 use futures::channel::oneshot;
+use futures::future;
+use futures::FutureExt;
+use futures::Stream;
+use futures::StreamExt;
 use serde::de::DeserializeOwned;
 use std::future::Future;
 use utils::channel;
@@ -36,13 +36,12 @@ use utils::channel;
 pub type ReplyMessage = messages::Result<serde_json::Value>;
 
 /// Converts remote message with JSON-serialized result into `Result<Ret>`.
-pub fn decode_result<Ret:DeserializeOwned>
-(result:messages::Result<serde_json::Value>) -> Result<Ret> {
+pub fn decode_result<Ret: DeserializeOwned>(
+    result: messages::Result<serde_json::Value>,
+) -> Result<Ret> {
     match result {
-        messages::Result::Success(ret) =>
-            Ok(serde_json::from_value::<Ret>(ret.result)?),
-        messages::Result::Error {error} =>
-            Err(RpcError::RemoteError(error)),
+        messages::Result::Success(ret) => Ok(serde_json::from_value::<Ret>(ret.result)?),
+        messages::Result::Error { error } => Err(RpcError::RemoteError(error)),
     }
 }
 
@@ -75,7 +74,7 @@ impl IdGenerator {
     }
 
     /// Create a new IdGenerator that gives Ids beginning with given number.
-    fn new_from(counter:i64) -> IdGenerator {
+    fn new_from(counter: i64) -> IdGenerator {
         IdGenerator { counter }
     }
 }
@@ -111,8 +110,7 @@ pub enum Event<N> {
 /// Container that stores Sender's for ongoing calls. Each call identified by
 /// id has its own sender. After reply is received, the call is removed
 /// from this container.
-pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
-
+pub type OngoingCalls = HashMap<Id, oneshot::Sender<ReplyMessage>>;
 
 
 
@@ -131,7 +129,6 @@ pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
 /// `Notification` is a type for notifications. It should implement
 /// `DeserializeOwned` and deserialize from JSON maps with `method` and `params`
 /// fields.
-
 pub use enso_shapely::shared;
 
 shared! { Handler
@@ -235,25 +232,27 @@ impl<Notification> Handler<Notification> {
     /// Creates a new handler working on a given `Transport`.
     ///
     /// `Transport` must be functional (e.g. not in the process of opening).
-    pub fn new(transport:impl Transport + 'static) -> Handler<Notification> {
+    pub fn new(transport: impl Transport + 'static) -> Handler<Notification> {
         let data = HandlerData {
-            timeout         : crate::constants::TIMEOUT,
-            ongoing_calls   : default(),
-            id_generator    : IdGenerator::new(),
-            transport       : Box::new(transport),
-            outgoing_events : None,
+            timeout:         crate::constants::TIMEOUT,
+            ongoing_calls:   default(),
+            id_generator:    IdGenerator::new(),
+            transport:       Box::new(transport),
+            outgoing_events: None,
         };
-        Handler {rc: Rc::new(RefCell::new(data))}
+        Handler { rc: Rc::new(RefCell::new(data)) }
     }
 
     /// Sends a request to the peer and returns a `Future` that shall yield a
     /// reply message. It is automatically decoded into the expected type.
-    pub fn open_request<In:api::RemoteMethodCall>
-    (&self, input:In) -> impl Future<Output = Result<In::Returned>> {
-        let id      = self.generate_new_id();
-        let message = api::into_request_message(input,id);
+    pub fn open_request<In: api::RemoteMethodCall>(
+        &self,
+        input: In,
+    ) -> impl Future<Output = Result<In::Returned>> {
+        let id = self.generate_new_id();
+        let message = api::into_request_message(input, id);
         let serialized_message = serde_json::to_string(&message).unwrap();
-        self.open_request_with_message(id,&serialized_message)
+        self.open_request_with_message(id, &serialized_message)
     }
 
     /// Sends a request to the peer and returns a `Future` that shall yield a reply message.
@@ -267,46 +266,49 @@ impl<Notification> Handler<Notification> {
     /// This is suboptimal but still less evil than cloning all input arguments like before.
     ///
     /// FIXME: when possible unify with `open_request`
-    pub fn open_request_with_json<Returned:DeserializeOwned>
-    (&self, method_name:&str, input:&serde_json::Value) -> impl Future<Output = Result<Returned>> {
-        let id      = self.generate_new_id();
-        let message = crate::messages::Message::new_request(id,method_name,input);
+    pub fn open_request_with_json<Returned: DeserializeOwned>(
+        &self,
+        method_name: &str,
+        input: &serde_json::Value,
+    ) -> impl Future<Output = Result<Returned>> {
+        let id = self.generate_new_id();
+        let message = crate::messages::Message::new_request(id, method_name, input);
         let serialized_message = serde_json::to_string(&message).unwrap();
-        self.open_request_with_message(id,&serialized_message)
+        self.open_request_with_message(id, &serialized_message)
     }
 
     /// Sends a request to the peer and returns a `Future` that shall yield a reply message.
     ///
     /// Helper common \code for `open_request` and `open_request_with_json`. See
     /// `open_request_with_json` docstring for more information.
-    pub fn open_request_with_message<Returned:DeserializeOwned>
-    (&self, id:Id, message_json:&str) -> impl Future<Output = Result<Returned>> {
+    pub fn open_request_with_message<Returned: DeserializeOwned>(
+        &self,
+        id: Id,
+        message_json: &str,
+    ) -> impl Future<Output = Result<Returned>> {
         let (sender, receiver) = oneshot::channel::<ReplyMessage>();
-        let ret                = receiver.map(|result_or_cancel| {
+        let ret = receiver.map(|result_or_cancel| {
             let result = result_or_cancel?;
             decode_result(result)
         });
 
-        self.insert_ongoing_request(id,sender);
+        self.insert_ongoing_request(id, sender);
         if self.send_text_message(message_json).is_err() {
             // If message cannot be send, future ret must be cancelled.
             self.remove_ongoing_request(id);
         }
 
         let millis = self.timeout().as_millis();
-        future::select(ret, sleep(self.timeout()).boxed_local()).map(move |either|
-            match either {
-                future::Either::Left ((x, _)) => x,
-                future::Either::Right((_, _)) => Err(RpcError::TimeoutError{millis}),
-            }
-        )
+        future::select(ret, sleep(self.timeout()).boxed_local()).map(move |either| match either {
+            future::Either::Left((x, _)) => x,
+            future::Either::Right((_, _)) => Err(RpcError::TimeoutError { millis }),
+        })
     }
 
     /// Deal with `Response` message from the peer.
     ///
     /// It shall be either matched with an open request or yield an error.
-    pub fn process_response
-    (&self, message:messages::Response<serde_json::Value>) {
+    pub fn process_response(&self, message: messages::Response<serde_json::Value>) {
         if let Some(sender) = self.remove_ongoing_request(message.id) {
             // Disregard any error. We do not care if RPC caller already
             // dropped the future.
@@ -320,14 +322,13 @@ impl<Notification> Handler<Notification> {
     ///
     /// If possible, emits a message with notification. In case of failure,
     /// emits relevant error.
-    pub fn process_notification
-    (&self, message:messages::Notification<serde_json::Value>)
+    pub fn process_notification(&self, message: messages::Notification<serde_json::Value>)
     where Notification: DeserializeOwned {
         match serde_json::from_value(message.0) {
             Ok(notification) => {
                 let event = Event::Notification(notification);
                 self.emit_event(event);
-            },
+            }
             Err(e) => {
                 let err = HandlingError::InvalidNotification(e);
                 self.error_occurred(err);
@@ -339,15 +340,13 @@ impl<Notification> Handler<Notification> {
     ///
     /// The message must conform either to the `Response` or to the
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
-    pub fn process_incoming_message(&self, message:String)
+    pub fn process_incoming_message(&self, message: String)
     where Notification: DeserializeOwned {
         match messages::decode_incoming_message(&message) {
-            Ok(messages::IncomingMessage::Response(response)) =>
-                self.process_response(response),
+            Ok(messages::IncomingMessage::Response(response)) => self.process_response(response),
             Ok(messages::IncomingMessage::Notification(notification)) =>
                 self.process_notification(notification),
-            Err(err) =>
-                self.error_occurred(HandlingError::InvalidMessage(err)),
+            Err(err) => self.error_occurred(HandlingError::InvalidMessage(err)),
         }
     }
 
@@ -360,11 +359,10 @@ impl<Notification> Handler<Notification> {
     /// Processes a single transport event.
     ///
     /// Each event either completes a requests or is translated into `Event`.
-    pub fn process_event(&self, event:TransportEvent)
+    pub fn process_event(&self, event: TransportEvent)
     where Notification: DeserializeOwned {
         match event {
-            TransportEvent::TextMessage(msg) =>
-                self.process_incoming_message(msg),
+            TransportEvent::TextMessage(msg) => self.process_incoming_message(msg),
             TransportEvent::BinaryMessage(data) =>
                 self.error_occurred(HandlingError::UnexpectedBinaryMessage(data)),
             TransportEvent::Opened => {}
@@ -388,11 +386,11 @@ impl<Notification> Handler<Notification> {
     /// passed to the main executor.
     pub fn runner(&mut self) -> impl Future<Output = ()>
     where Notification: DeserializeOwned + 'static {
-        let event_receiver  = self.transport_event_stream();
-        let weak_data       = Rc::downgrade(&self.rc);
-        event_receiver.for_each(move |event:TransportEvent| {
-            let data_opt    = weak_data.clone().upgrade();
-            let handler_opt = data_opt.map(|rc| Handler {rc});
+        let event_receiver = self.transport_event_stream();
+        let weak_data = Rc::downgrade(&self.rc);
+        event_receiver.for_each(move |event: TransportEvent| {
+            let data_opt = weak_data.clone().upgrade();
+            let handler_opt = data_opt.map(|rc| Handler { rc });
             if let Some(handler) = handler_opt {
                 handler.process_event(event)
             } else {

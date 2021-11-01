@@ -3,11 +3,11 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::DEPRECATED_Animation;
 use ensogl_core::data::color;
-use ensogl_core::display::shape::*;
 use ensogl_core::display;
+use ensogl_core::display::shape::*;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
+use ensogl_core::DEPRECATED_Animation;
 
 
 
@@ -15,17 +15,17 @@ use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 // === Cursor ===
 // ==============
 
-const CURSOR_PADDING           : f32 = 4.0;
-const CURSOR_WIDTH             : f32 = 2.0;
-const CURSOR_ALPHA             : f32 = 0.8;
-const CURSORS_SPACING          : f32 = 1.0;
-const SELECTION_ALPHA          : f32 = 0.3;
-const SELECTION_CORNER_RADIUS  : f32 = 2.0;
-const BLINK_SLOPE_IN_DURATION  : f32 = 200.0;
-const BLINK_SLOPE_OUT_DURATION : f32 = 200.0;
-const BLINK_ON_DURATION        : f32 = 300.0;
-const BLINK_OFF_DURATION       : f32 = 300.0;
-const BLINK_PERIOD             : f32 =
+const CURSOR_PADDING: f32 = 4.0;
+const CURSOR_WIDTH: f32 = 2.0;
+const CURSOR_ALPHA: f32 = 0.8;
+const CURSORS_SPACING: f32 = 1.0;
+const SELECTION_ALPHA: f32 = 0.3;
+const SELECTION_CORNER_RADIUS: f32 = 2.0;
+const BLINK_SLOPE_IN_DURATION: f32 = 200.0;
+const BLINK_SLOPE_OUT_DURATION: f32 = 200.0;
+const BLINK_ON_DURATION: f32 = 300.0;
+const BLINK_OFF_DURATION: f32 = 300.0;
+const BLINK_PERIOD: f32 =
     BLINK_SLOPE_IN_DURATION + BLINK_SLOPE_OUT_DURATION + BLINK_ON_DURATION + BLINK_OFF_DURATION;
 
 
@@ -108,17 +108,17 @@ ensogl_core::define_endpoints! {
 /// used for smooth glyph animation. For example, after several glyphs were selected and removed,
 /// the selection will gradually shrink. Making all following glyphs children of the `right_side`
 /// object will make the following glyphs  animate while the selection is shrinking.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Selection {
-    logger         : Logger,
-    display_object : display::object::Instance,
-    pub right_side : display::object::Instance,
-    shape_view     : shape::View,
-    pub network    : frp::Network,
-    pub position   : DEPRECATED_Animation<Vector2>,
-    pub width      : DEPRECATED_Animation<f32>,
-    pub edit_mode  : Rc<Cell<bool>>,
-    pub frp        : Frp,
+    logger:         Logger,
+    display_object: display::object::Instance,
+    pub right_side: display::object::Instance,
+    shape_view:     shape::View,
+    pub network:    frp::Network,
+    pub position:   DEPRECATED_Animation<Vector2>,
+    pub width:      DEPRECATED_Animation<f32>,
+    pub edit_mode:  Rc<Cell<bool>>,
+    pub frp:        Frp,
 }
 
 impl Deref for Selection {
@@ -130,30 +130,40 @@ impl Deref for Selection {
 
 impl Selection {
     /// Constructor.
-    pub fn new(logger:impl AnyLogger, edit_mode:bool) -> Self {
-        let logger         = Logger::new_sub(logger,"selection");
+    pub fn new(logger: impl AnyLogger, edit_mode: bool) -> Self {
+        let logger = Logger::new_sub(logger, "selection");
         let display_object = display::object::Instance::new(&logger);
-        let right_side     = display::object::Instance::new(&logger);
-        let network        = frp::Network::new("text_selection");
-        let shape_view     = shape::View::new(&logger);
-        let position       = DEPRECATED_Animation::new(&network);
-        let width          = DEPRECATED_Animation::new(&network);
-        let edit_mode      = Rc::new(Cell::new(edit_mode));
-        let frp            = Frp::new();
-        let debug          = false; // Change to true to slow-down movement for debug purposes.
-        let spring_factor  = if debug { 0.1 } else { 1.5 };
+        let right_side = display::object::Instance::new(&logger);
+        let network = frp::Network::new("text_selection");
+        let shape_view = shape::View::new(&logger);
+        let position = DEPRECATED_Animation::new(&network);
+        let width = DEPRECATED_Animation::new(&network);
+        let edit_mode = Rc::new(Cell::new(edit_mode));
+        let frp = Frp::new();
+        let debug = false; // Change to true to slow-down movement for debug purposes.
+        let spring_factor = if debug { 0.1 } else { 1.5 };
 
-        position . update_spring (|spring| spring * spring_factor);
-        width    . update_spring (|spring| spring * spring_factor);
+        position.update_spring(|spring| spring * spring_factor);
+        width.update_spring(|spring| spring * spring_factor);
 
-        Self {logger,display_object,right_side,shape_view,network,position,width,edit_mode,frp}
-            .init()
+        Self {
+            logger,
+            display_object,
+            right_side,
+            shape_view,
+            network,
+            position,
+            width,
+            edit_mode,
+            frp,
+        }
+        .init()
     }
 
     fn init(self) -> Self {
-        let network    = &self.network;
-        let view       = &self.shape_view;
-        let object     = &self.display_object;
+        let network = &self.network;
+        let view = &self.shape_view;
+        let object = &self.display_object;
         let right_side = &self.right_side;
         let shape_view = &self.shape_view;
         self.add_child(view);
@@ -181,8 +191,8 @@ impl Selection {
 
     pub fn flip_sides(&self) {
         let width = self.width.target_value();
-        self.position.set_value(self.position.value() + Vector2(width,0.0));
-        self.position.set_target_value(self.position.target_value() + Vector2(width,0.0));
+        self.position.set_value(self.position.value() + Vector2(width, 0.0));
+        self.position.set_target_value(self.position.target_value() + Vector2(width, 0.0));
 
         self.width.set_value(-self.width.value());
         self.width.set_target_value(-self.width.target_value());

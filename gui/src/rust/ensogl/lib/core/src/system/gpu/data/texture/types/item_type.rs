@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::gl_enum::*;
+use crate::system::gpu::data::prim::*;
 
 
 

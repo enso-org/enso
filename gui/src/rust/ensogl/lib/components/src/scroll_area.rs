@@ -6,11 +6,11 @@ use crate::scrollbar;
 use crate::scrollbar::Scrollbar;
 
 use enso_frp as frp;
+use ensogl_core::application::Application;
+use ensogl_core::control::callback;
+use ensogl_core::control::io::mouse;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::application::Application;
-use ensogl_core::control::io::mouse;
-use ensogl_core::control::callback;
 
 
 
@@ -55,16 +55,16 @@ ensogl_core::define_endpoints! {
 /// left corner. All scroll coordinates describe the point of the `content` object at that corner.
 /// The scrollbars are only active when the content is actually larger than the viewport on the
 /// respective axis.
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct ScrollArea {
     /// All objects that should be inside the scroll area and affected by the scrolling, have to be
     /// added as children to `content`.
-    pub content           : display::object::Instance,
-    display_object        : display::object::Instance,
-    h_scrollbar           : Scrollbar,
-    v_scrollbar           : Scrollbar,
-    scroll_handler_handle : callback::Handle,
-    frp                   : Frp,
+    pub content:           display::object::Instance,
+    display_object:        display::object::Instance,
+    h_scrollbar:           Scrollbar,
+    v_scrollbar:           Scrollbar,
+    scroll_handler_handle: callback::Handle,
+    frp:                   Frp,
 }
 
 impl Deref for ScrollArea {
@@ -83,9 +83,9 @@ impl display::Object for ScrollArea {
 
 impl ScrollArea {
     /// Create a new scroll area for use in the given application.
-    pub fn new(app:&Application) -> ScrollArea {
-        let scene          = app.display.scene();
-        let logger         = Logger::new("ScrollArea");
+    pub fn new(app: &Application) -> ScrollArea {
+        let scene = app.display.scene();
+        let logger = Logger::new("ScrollArea");
         let display_object = display::object::Instance::new(&logger);
 
         let content = display::object::Instance::new(&logger);
@@ -98,7 +98,7 @@ impl ScrollArea {
         display_object.add_child(&v_scrollbar);
         v_scrollbar.set_rotation_z(-90.0_f32.to_radians());
 
-        let frp     = Frp::new();
+        let frp = Frp::new();
         let network = &frp.network;
 
         frp::extend! { network
@@ -147,7 +147,7 @@ impl ScrollArea {
             hovering <- hovering.sampler();
         }
 
-        let mouse_manager  = &mouse.mouse_manager;
+        let mouse_manager = &mouse.mouse_manager;
         let scroll_handler = f!([v_scrollbar,h_scrollbar](event:&mouse::OnWheel)
             if hovering.value() {
                 h_scrollbar.scroll_by(event.delta_x() as f32);
@@ -157,6 +157,6 @@ impl ScrollArea {
         let scroll_handler_handle = mouse_manager.on_wheel.add(scroll_handler);
 
 
-        ScrollArea {content,display_object,h_scrollbar,v_scrollbar,scroll_handler_handle,frp}
+        ScrollArea { content, display_object, h_scrollbar, v_scrollbar, scroll_handler_handle, frp }
     }
 }

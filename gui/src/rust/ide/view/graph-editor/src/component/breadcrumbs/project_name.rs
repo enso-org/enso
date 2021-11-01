@@ -2,21 +2,21 @@
 
 use crate::prelude::*;
 
-use crate::component::breadcrumbs::TEXT_SIZE;
-use crate::component::breadcrumbs::GLYPH_WIDTH;
-use crate::component::breadcrumbs::VERTICAL_MARGIN;
 use crate::component::breadcrumbs::breadcrumb;
+use crate::component::breadcrumbs::GLYPH_WIDTH;
+use crate::component::breadcrumbs::TEXT_SIZE;
+use crate::component::breadcrumbs::VERTICAL_MARGIN;
 
 use enso_frp as frp;
-use ensogl::application::Application;
-use ensogl::application::shortcut;
 use ensogl::application;
+use ensogl::application::shortcut;
+use ensogl::application::Application;
 use ensogl::data::color;
+use ensogl::display;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::*;
-use ensogl::display;
-use ensogl::DEPRECATED_Animation;
 use ensogl::gui::cursor;
+use ensogl::DEPRECATED_Animation;
 use ensogl_text as text;
 use ensogl_text::style::Size as TextSize;
 use ensogl_theme as theme;
@@ -33,7 +33,7 @@ use logger::DefaultWarningLogger as Logger;
 // it was not set to the correct project name due to some bug.
 const UNINITIALIZED_PROJECT_NAME: &str = "Project Name Uninitialized";
 /// Default line height for project names.
-pub const LINE_HEIGHT          : f32  = TEXT_SIZE * 1.5;
+pub const LINE_HEIGHT: f32 = TEXT_SIZE * 1.5;
 
 
 
@@ -97,18 +97,18 @@ ensogl::define_endpoints! {
 // ==================
 
 /// DEPRECATED_Animation handlers.
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct Animations {
-    color    : DEPRECATED_Animation<color::Rgba>,
-    position : DEPRECATED_Animation<Vector3<f32>>
+    color:    DEPRECATED_Animation<color::Rgba>,
+    position: DEPRECATED_Animation<Vector3<f32>>,
 }
 
 impl Animations {
     /// Constructor.
-    pub fn new(network:&frp::Network) -> Self {
-        let color    = DEPRECATED_Animation::new(network);
+    pub fn new(network: &frp::Network) -> Self {
+        let color = DEPRECATED_Animation::new(network);
         let position = DEPRECATED_Animation::new(network);
-        Self{color,position}
+        Self { color, position }
     }
 }
 
@@ -118,30 +118,31 @@ impl Animations {
 // === ProjectNameModel ===
 // ========================
 
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 struct ProjectNameModel {
-    app            : Application,
-    logger         : Logger,
-    display_object : display::object::Instance,
-    view           : background::View,
-    style          : StyleWatch,
-    text_field     : text::Area,
-    project_name   : Rc<RefCell<String>>,
+    app:            Application,
+    logger:         Logger,
+    display_object: display::object::Instance,
+    view:           background::View,
+    style:          StyleWatch,
+    text_field:     text::Area,
+    project_name:   Rc<RefCell<String>>,
 }
 
 impl ProjectNameModel {
     /// Constructor.
-    fn new(app:&Application) -> Self {
-        let app                   = app.clone_ref();
-        let scene                 = app.display.scene();
-        let logger                = Logger::new("ProjectName");
-        let display_object        = display::object::Instance::new(&logger);
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let style                 = StyleWatch::new(&scene.style_sheet);
-        let base_color            = style.get_color(theme::graph_editor::breadcrumbs::transparent);
-        let text_size:TextSize    = TEXT_SIZE.into();
-        let text_field            = app.new_view::<text::Area>();
+    fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let scene = app.display.scene();
+        let logger = Logger::new("ProjectName");
+        let display_object = display::object::Instance::new(&logger);
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        // system (#795)
+        let style = StyleWatch::new(&scene.style_sheet);
+        let base_color = style.get_color(theme::graph_editor::breadcrumbs::transparent);
+        let text_size: TextSize = TEXT_SIZE.into();
+        let text_field = app.new_view::<text::Area>();
         text_field.set_default_color.emit(base_color);
         text_field.set_default_text_size(text_size);
         text_field.single_line(true);
@@ -150,34 +151,34 @@ impl ProjectNameModel {
         text_field.add_to_scene_layer(&scene.layers.panel_text);
         text_field.hover();
 
-        let view_logger = Logger::new_sub(&logger,"view_logger");
-        let view        = background::View::new(&view_logger);
+        let view_logger = Logger::new_sub(&logger, "view_logger");
+        let view = background::View::new(&view_logger);
 
         scene.layers.panel.add_exclusive(&view);
 
         let project_name = default();
-        Self{app,logger,display_object,view,style,text_field,project_name}.init()
+        Self { app, logger, display_object, view, style, text_field, project_name }.init()
     }
 
     /// Compute the width of the ProjectName view.
-    fn width(&self, content:&str) -> f32 {
+    fn width(&self, content: &str) -> f32 {
         let glyphs = content.len();
-        let width  = glyphs as f32 * GLYPH_WIDTH;
+        let width = glyphs as f32 * GLYPH_WIDTH;
         width + breadcrumb::LEFT_MARGIN + breadcrumb::RIGHT_MARGIN + breadcrumb::PADDING * 2.0
     }
 
-    fn update_alignment(&self, content:&str) {
-        let width    = self.width(content);
-        let x_left   = breadcrumb::LEFT_MARGIN + breadcrumb::PADDING;
-        let x_center = x_left + width/2.0;
+    fn update_alignment(&self, content: &str) {
+        let width = self.width(content);
+        let x_left = breadcrumb::LEFT_MARGIN + breadcrumb::PADDING;
+        let x_center = x_left + width / 2.0;
 
-        let height   = LINE_HEIGHT;
-        let y_top    = - VERTICAL_MARGIN - breadcrumb::VERTICAL_MARGIN - breadcrumb::PADDING;
-        let y_center = y_top - height/2.0;
+        let height = LINE_HEIGHT;
+        let y_top = -VERTICAL_MARGIN - breadcrumb::VERTICAL_MARGIN - breadcrumb::PADDING;
+        let y_center = y_top - height / 2.0;
 
-        self.text_field.set_position(Vector3(x_left,y_center+TEXT_SIZE/2.0,0.0));
-        self.view.size.set(Vector2(width,height));
-        self.view.set_position(Vector3(x_center,y_center,0.0));
+        self.text_field.set_position(Vector3(x_left, y_center + TEXT_SIZE / 2.0, 0.0));
+        self.view.size.set(Vector2(width, height));
+        self.view.set_position(Vector3(x_center, y_center, 0.0));
     }
 
     fn init(self) -> Self {
@@ -194,22 +195,22 @@ impl ProjectNameModel {
     }
 
     /// Update the visible content of the text field.
-    fn update_text_field_content(&self, content:&str) {
+    fn update_text_field_content(&self, content: &str) {
         self.text_field.set_content(content);
         self.update_alignment(content);
     }
 
-    fn set_color(&self, value:color::Rgba) {
+    fn set_color(&self, value: color::Rgba) {
         self.text_field.set_default_color(value);
         self.text_field.set_color_all(value);
     }
 
-    fn set_position(&self, value:Vector3<f32>) {
+    fn set_position(&self, value: Vector3<f32>) {
         self.text_field.set_position(value);
     }
 
     /// Change the text field content and commit the given name.
-    fn rename(&self, name:impl Str) {
+    fn rename(&self, name: impl Str) {
         let name = name.into();
         debug!(self.logger, "Renaming: '{name}'.");
         self.update_text_field_content(&name);
@@ -217,7 +218,7 @@ impl ProjectNameModel {
     }
 
     /// Confirm the given name as the current project name.
-    fn commit<T:Into<String>>(&self, name:T) {
+    fn commit<T: Into<String>>(&self, name: T) {
         let name = name.into();
         debug!(self.logger, "Committing name: '{name}'.");
         *self.project_name.borrow_mut() = name;
@@ -237,27 +238,28 @@ impl display::Object for ProjectNameModel {
 // ===================
 
 /// The view used for displaying and renaming it.
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct ProjectName {
-    model   : Rc<ProjectNameModel>,
-    pub frp : Frp
+    model:   Rc<ProjectNameModel>,
+    pub frp: Frp,
 }
 
 impl ProjectName {
     /// Constructor.
-    fn new(app:&Application) -> Self {
-        let frp     = Frp::new();
-        let model   = Rc::new(ProjectNameModel::new(app));
+    fn new(app: &Application) -> Self {
+        let frp = Frp::new();
+        let model = Rc::new(ProjectNameModel::new(app));
         let network = &frp.network;
-        let scene   = app.display.scene();
-        let text    = &model.text_field.frp;
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles           = StyleWatch::new(&scene.style_sheet);
-        let hover_color      = styles.get_color(theme::graph_editor::breadcrumbs::hover);
+        let scene = app.display.scene();
+        let text = &model.text_field.frp;
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        // system (#795)
+        let styles = StyleWatch::new(&scene.style_sheet);
+        let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
         let deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let selected_color   = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let animations       = Animations::new(network);
+        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
+        let animations = Animations::new(network);
 
         frp::extend! { network
 
@@ -353,9 +355,8 @@ impl ProjectName {
         frp.deselect();
         frp.input.set_name.emit(UNINITIALIZED_PROJECT_NAME.to_string());
 
-        Self{model,frp}
+        Self { model, frp }
     }
-
 }
 
 impl display::Object for ProjectName {
@@ -372,20 +373,31 @@ impl Deref for ProjectName {
 }
 
 impl application::command::FrpNetworkProvider for ProjectName {
-    fn network(&self) -> &frp::Network { &self.frp.network }
+    fn network(&self) -> &frp::Network {
+        &self.frp.network
+    }
 }
 
 impl View for ProjectName {
-    fn label()               -> &'static str { "ProjectName" }
-    fn new(app:&Application) -> Self         { ProjectName::new(app) }
-    fn app(&self)            -> &Application { &self.model.app }
+    fn label() -> &'static str {
+        "ProjectName"
+    }
+    fn new(app: &Application) -> Self {
+        ProjectName::new(app)
+    }
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
-            (      Press,            "",             "enter",          "commit"),
-            (    Release,            "",            "escape",  "cancel_editing"),
-            (DoublePress,  "is_hovered", "left-mouse-button",   "start_editing"),
-        ]).iter().map(|(a,b,c,d)|Self::self_shortcut_when(*a,*c,*d,*b)).collect()
+            (Press, "", "enter", "commit"),
+            (Release, "", "escape", "cancel_editing"),
+            (DoublePress, "is_hovered", "left-mouse-button", "start_editing"),
+        ])
+            .iter()
+            .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+            .collect()
     }
 }

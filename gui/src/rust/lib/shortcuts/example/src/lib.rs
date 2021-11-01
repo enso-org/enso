@@ -8,8 +8,8 @@ use enso_shortcuts::Registry;
 
 use enso_frp as frp;
 
+use frp::io::keyboard;
 use frp::io::keyboard::Keyboard;
-use frp::io::keyboard as keyboard;
 
 use enso_logger::AnyLogger;
 use enso_logger::WarningLogger as Logger;
@@ -29,9 +29,9 @@ pub fn main() {
 
     DEBUG!(shortcut_registry.nfa_as_graphviz_code());
 
-    let logger : Logger = Logger::new("kb");
-    let kb              = Keyboard::new();
-    let bindings        = keyboard::DomBindings::new(&logger,&kb,&default());
+    let logger: Logger = Logger::new("kb");
+    let kb = Keyboard::new();
+    let bindings = keyboard::DomBindings::new(&logger, &kb, &default());
 
     frp::new_network! { network
         eval kb.down ((t)shortcut_registry.on_press(t.simple_name()));

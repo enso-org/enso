@@ -8,7 +8,6 @@
 //! The metrics used for scoring may be adjusted by implementing `Metric` trait, or by customizing
 //! parameters of metrics defined in `metric` module.
 #![feature(option_result_contains)]
-
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -18,13 +17,13 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-pub mod subsequence_graph;
 pub mod metric;
 pub mod score;
+pub mod subsequence_graph;
 
 pub use enso_prelude as prelude;
 pub use metric::Metric;
-pub use subsequence_graph::Graph as SubsequenceGraph;
-pub use score::Subsequence;
-pub use score::matches;
 pub use score::find_best_subsequence;
+pub use score::matches;
+pub use score::Subsequence;
+pub use subsequence_graph::Graph as SubsequenceGraph;

@@ -10,13 +10,14 @@ use crate::prelude::*;
 use crate::documentation;
 
 use enso_frp as frp;
-use ensogl::DEPRECATED_Animation;
-use ensogl::application::{Application, shortcut};
 use ensogl::application;
-use ensogl::display::shape::*;
+use ensogl::application::shortcut;
+use ensogl::application::Application;
 use ensogl::display;
-use ensogl_gui_components::list_view::ListView;
+use ensogl::display::shape::*;
+use ensogl::DEPRECATED_Animation;
 use ensogl_gui_components::list_view;
+use ensogl_gui_components::list_view::ListView;
 
 pub use ensogl_gui_components::list_view::entry;
 
@@ -27,18 +28,18 @@ pub use ensogl_gui_components::list_view::entry;
 // =================
 
 /// Width of searcher panel in pixels.
-pub const SEARCHER_WIDTH:f32 = 480.0;
+pub const SEARCHER_WIDTH: f32 = 480.0;
 /// Height of searcher panel in pixels.
 ///
 /// Because we don't implement clipping yet, the best UX is when searcher height is almost multiple
 /// of entry height + padding.
-pub const SEARCHER_HEIGHT:f32 = 184.5;
+pub const SEARCHER_HEIGHT: f32 = 184.5;
 
-const ACTION_LIST_GAP     : f32 = 180.0;
-const LIST_DOC_GAP        : f32 = 15.0;
-const DOCUMENTATION_WIDTH : f32 = SEARCHER_WIDTH - ACTION_LIST_GAP - LIST_DOC_GAP;
-const ACTION_LIST_X       : f32 = (ACTION_LIST_GAP - SEARCHER_WIDTH) / 2.0;
-const DOCUMENTATION_X     : f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0;
+const ACTION_LIST_GAP: f32 = 180.0;
+const LIST_DOC_GAP: f32 = 15.0;
+const DOCUMENTATION_WIDTH: f32 = SEARCHER_WIDTH - ACTION_LIST_GAP - LIST_DOC_GAP;
+const ACTION_LIST_X: f32 = (ACTION_LIST_GAP - SEARCHER_WIDTH) / 2.0;
+const DOCUMENTATION_X: f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0;
 
 
 
@@ -49,36 +50,48 @@ const DOCUMENTATION_X     : f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0;
 /// The Entry Model Provider.
 ///
 /// This provider is used by searcher to print documentation of currently selected entry.
-pub trait DocumentationProvider : Debug {
+pub trait DocumentationProvider: Debug {
     /// Get documentation string to be displayed when no entry is selected.
-    fn get(&self) -> Option<String> { None }
+    fn get(&self) -> Option<String> {
+        None
+    }
 
     /// Get documentation string for given entry, or `None` if entry or documentation does not
     /// exist.
-    fn get_for_entry(&self, id:entry::Id) -> Option<String>;
+    fn get_for_entry(&self, id: entry::Id) -> Option<String>;
 }
 
 impl DocumentationProvider for entry::EmptyProvider {
-    fn get_for_entry(&self, _:entry::Id) -> Option<String> { None }
+    fn get_for_entry(&self, _: entry::Id) -> Option<String> {
+        None
+    }
 }
 
 
 // === AnyDocumentationProvider ===
 
 /// A wrapper for shared instance of some DocumentationProvider.
-#[derive(Clone,CloneRef,Debug,Deref)]
-pub struct AnyDocumentationProvider {rc:Rc<dyn DocumentationProvider>}
+#[derive(Clone, CloneRef, Debug, Deref)]
+pub struct AnyDocumentationProvider {
+    rc: Rc<dyn DocumentationProvider>,
+}
 
 impl Default for AnyDocumentationProvider {
-    fn default() -> Self { entry::EmptyProvider.into() }
+    fn default() -> Self {
+        entry::EmptyProvider.into()
+    }
 }
 
-impl<T:DocumentationProvider + 'static> From<T> for AnyDocumentationProvider {
-    fn from(provider:T) -> Self { Self {rc:Rc::new(provider)} }
+impl<T: DocumentationProvider + 'static> From<T> for AnyDocumentationProvider {
+    fn from(provider: T) -> Self {
+        Self { rc: Rc::new(provider) }
+    }
 }
 
-impl<T:DocumentationProvider + 'static> From<Rc<T>> for AnyDocumentationProvider {
-    fn from(provider:Rc<T>) -> Self { Self {rc:provider} }
+impl<T: DocumentationProvider + 'static> From<Rc<T>> for AnyDocumentationProvider {
+    fn from(provider: Rc<T>) -> Self {
+        Self { rc: provider }
+    }
 }
 
 
@@ -89,55 +102,53 @@ impl<T:DocumentationProvider + 'static> From<Rc<T>> for AnyDocumentationProvider
 /// A type of ListView entry used in searcher.
 pub type Entry = list_view::entry::GlyphHighlightedLabel;
 
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app            : Application,
-    logger         : Logger,
-    display_object : display::object::Instance,
-    list           : ListView<Entry>,
-    new_view       : new::View<usize>,
-    documentation  : documentation::View,
-    doc_provider   : Rc<CloneRefCell<AnyDocumentationProvider>>,
+    app:            Application,
+    logger:         Logger,
+    display_object: display::object::Instance,
+    list:           ListView<Entry>,
+    new_view:       new::View<usize>,
+    documentation:  documentation::View,
+    doc_provider:   Rc<CloneRefCell<AnyDocumentationProvider>>,
 }
 
 impl Model {
-    fn new(app:&Application) -> Self {
-        let scene          = app.display.scene();
-        let app            = app.clone_ref();
-        let logger         = Logger::new("SearcherView");
+    fn new(app: &Application) -> Self {
+        let scene = app.display.scene();
+        let app = app.clone_ref();
+        let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new(&logger);
-        let list           = app.new_view::<ListView<Entry>>();
-        let new_view       = new::View::new();
-        let documentation  = documentation::View::new(scene);
-        let doc_provider   = default();
+        let list = app.new_view::<ListView<Entry>>();
+        let new_view = new::View::new();
+        let documentation = documentation::View::new(scene);
+        let doc_provider = default();
         scene.layers.above_nodes.add_exclusive(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
 
         // FIXME: StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //  system (#795)
-        let style                = StyleWatch::new(&app.display.scene().style_sheet);
+        let style = StyleWatch::new(&app.display.scene().style_sheet);
         let action_list_gap_path = ensogl_theme::application::searcher::action_list_gap;
-        let action_list_gap      = style.get_number_or(action_list_gap_path,0.0);
+        let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
         list.set_label_layer(scene.layers.above_nodes_text.id());
         list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
         documentation.set_position_y(-action_list_gap);
-        Self{app,logger,display_object,list,new_view,documentation,doc_provider}
+        Self { app, logger, display_object, list, new_view, documentation, doc_provider }
     }
 
-    fn docs_for(&self, id:Option<entry::Id>) -> String {
-        let doc_provider       = self.doc_provider.get();
+    fn docs_for(&self, id: Option<entry::Id>) -> String {
+        let doc_provider = self.doc_provider.get();
         let when_none_selected = || doc_provider.get().unwrap_or_else(|| " ".to_owned());
-        id.map_or_else(when_none_selected, |id| {
-            doc_provider.get_for_entry(id).unwrap_or_default()
-        })
+        id.map_or_else(when_none_selected, |id| doc_provider.get_for_entry(id).unwrap_or_default())
     }
 
-    fn set_height(&self, h:f32) {
+    fn set_height(&self, h: f32) {
         self.list.resize(Vector2(ACTION_LIST_GAP, h));
-        self.documentation.visualization_frp.inputs.set_size.emit(Vector2(DOCUMENTATION_WIDTH,h));
+        self.documentation.visualization_frp.inputs.set_size.emit(Vector2(DOCUMENTATION_WIDTH, h));
     }
 }
 
@@ -180,32 +191,34 @@ ensogl::define_endpoints! {
 /// additional graph node in edit mode, so we could easily display e.g. connections between selected
 /// node and searcher input.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    pub frp : Frp,
-    model   : Model,
+    pub frp: Frp,
+    model:   Model,
 }
 
 impl Deref for View {
     type Target = Frp;
-    fn deref(&self) -> &Self::Target { &self.frp }
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
 impl View {
     /// Create new component.
-    pub fn new(app:&Application) -> Self {
-        let frp   = Frp::new();
+    pub fn new(app: &Application) -> Self {
+        let frp = Frp::new();
         let model = Model::new(app);
-        Self{frp,model}.init()
+        Self { frp, model }.init()
     }
 
     /// Initialize the FRP network.
     fn init(self) -> Self {
         self.model.set_height(0.0);
         let network = &self.frp.network;
-        let model   = &self.model;
-        let frp     = &self.frp;
-        let source  = &self.frp.source;
+        let model = &self.model;
+        let frp = &self.frp;
+        let source = &self.frp.source;
 
         let height = DEPRECATED_Animation::<f32>::new(network);
 
@@ -251,11 +264,13 @@ impl View {
     ///
     /// The list is represented list-entry-model and documentation provider. It's a helper for FRP
     /// `set_suggestion` input (FRP nodes cannot be generic).
-    pub fn set_actions
-    (&self, provider:Rc<impl list_view::entry::ModelProvider<Entry> + DocumentationProvider + 'static>) {
-        let entries       : list_view::entry::AnyModelProvider<Entry> = provider.clone_ref().into();
-        let documentation : AnyDocumentationProvider                  = provider.into();
-        self.frp.set_actions(entries,documentation);
+    pub fn set_actions(
+        &self,
+        provider: Rc<impl list_view::entry::ModelProvider<Entry> + DocumentationProvider + 'static>,
+    ) {
+        let entries: list_view::entry::AnyModelProvider<Entry> = provider.clone_ref().into();
+        let documentation: AnyDocumentationProvider = provider.into();
+        self.frp.set_actions(entries, documentation);
     }
 
     /// Clear the action list.
@@ -273,7 +288,9 @@ impl View {
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
+    fn display_object(&self) -> &display::object::Instance {
+        &self.model.display_object
+    }
 }
 
 impl application::command::FrpNetworkProvider for View {
@@ -283,12 +300,20 @@ impl application::command::FrpNetworkProvider for View {
 }
 
 impl application::View for View {
-    fn label()                -> &'static str { "Searcher" }
-    fn new(app: &Application) -> Self         { Self::new(app) }
-    fn app(&self)             -> &Application { &self.model.app }
-    fn default_shortcuts()    -> Vec<shortcut::Shortcut> {
+    fn label() -> &'static str {
+        "Searcher"
+    }
+    fn new(app: &Application) -> Self {
+        Self::new(app)
+    }
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
+    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press , "tab" , "use_as_suggestion"),
-        ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
+        (&[(Press, "tab", "use_as_suggestion")])
+            .iter()
+            .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
+            .collect()
     }
 }

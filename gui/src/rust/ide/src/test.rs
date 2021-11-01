@@ -5,9 +5,9 @@ use crate::prelude::*;
 
 use crate::double_representation::module;
 use crate::double_representation::project;
+use crate::executor::test_utils::TestWithLocalPoolExecutor;
 use crate::model::suggestion_database;
 use crate::model::undo_redo;
-use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
 use enso_frp::data::bitfield::BitField;
 use enso_frp::data::bitfield::BitField32;
@@ -34,22 +34,22 @@ pub mod mock {
         use enso_protocol::language_server::Position;
         use uuid::Uuid;
 
-        pub const ROOT_ID         : Uuid     = Uuid::from_u128(100);
-        pub const NAMESPACE_NAME  : &str     = "mock_namespace";
-        pub const PROJECT_NAME    : &str     = "Mock_Project";
-        pub const MODULE_NAME     : &str     = "Mock_Module";
-        pub const CODE            : &str     = "main = \n    2 + 2";
-        pub const DEFINITION_NAME : &str     = "main";
-        pub const TYPE_NAME       : &str     = "mock_namespace.MockProject.Mock_Module.Mock_Type";
-        pub const MAIN_FINISH     : Position = Position {line:1, character:9};
-        pub const CONTEXT_ID      : Uuid     = Uuid::from_u128(0xFE);
+        pub const ROOT_ID: Uuid = Uuid::from_u128(100);
+        pub const NAMESPACE_NAME: &str = "mock_namespace";
+        pub const PROJECT_NAME: &str = "Mock_Project";
+        pub const MODULE_NAME: &str = "Mock_Module";
+        pub const CODE: &str = "main = \n    2 + 2";
+        pub const DEFINITION_NAME: &str = "main";
+        pub const TYPE_NAME: &str = "mock_namespace.MockProject.Mock_Module.Mock_Type";
+        pub const MAIN_FINISH: Position = Position { line: 1, character: 9 };
+        pub const CONTEXT_ID: Uuid = Uuid::from_u128(0xFE);
 
         pub fn module_path() -> crate::model::module::Path {
             crate::model::module::Path::from_name_segments(ROOT_ID, &[MODULE_NAME]).unwrap()
         }
 
         pub fn project_qualified_name() -> project::QualifiedName {
-            project::QualifiedName::from_segments(NAMESPACE_NAME,PROJECT_NAME).unwrap()
+            project::QualifiedName::from_segments(NAMESPACE_NAME, PROJECT_NAME).unwrap()
         }
 
         pub fn module_qualified_name() -> module::QualifiedName {
@@ -66,59 +66,61 @@ pub mod mock {
 
         pub fn foo_method_parameter() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
-                name          : "this".to_owned(),
-                repr_type     : "Base".to_owned(),
-                is_suspended  : false,
-                has_default   : false,
-                default_value : None,
+                name:          "this".to_owned(),
+                repr_type:     "Base".to_owned(),
+                is_suspended:  false,
+                has_default:   false,
+                default_value: None,
             }
         }
 
         pub fn foo_method_parameter2() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
-                name          : "param1".to_owned(),
-                repr_type     : "Number".to_owned(),
-                is_suspended  : false,
-                has_default   : false,
-                default_value : None,
+                name:          "param1".to_owned(),
+                repr_type:     "Number".to_owned(),
+                is_suspended:  false,
+                has_default:   false,
+                default_value: None,
             }
         }
 
         pub fn bar_method_parameter() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
-                name          : "this".to_owned(),
-                repr_type     : "Other".to_owned(),
-                is_suspended  : false,
-                has_default   : false,
-                default_value : None,
+                name:          "this".to_owned(),
+                repr_type:     "Other".to_owned(),
+                is_suspended:  false,
+                has_default:   false,
+                default_value: None,
             }
         }
 
         pub fn suggestion_entry_foo() -> suggestion_database::Entry {
-            let project_name = project::QualifiedName::from_segments("std","Base").unwrap();
+            let project_name = project::QualifiedName::from_segments("std", "Base").unwrap();
             suggestion_database::Entry {
-                name               : "foo".to_owned(),
-                module             : module::QualifiedName::from_segments(project_name,&["Main"]).unwrap(),
-                self_type          : Some("std.Base.Main".to_owned().try_into().unwrap()),
-                arguments          : vec![foo_method_parameter(),foo_method_parameter2()],
-                return_type        : "Any".to_owned(),
-                kind               : suggestion_database::entry::Kind::Method,
-                scope              : suggestion_database::entry::Scope::Everywhere,
-                documentation_html : None
+                name:               "foo".to_owned(),
+                module:             module::QualifiedName::from_segments(project_name, &["Main"])
+                    .unwrap(),
+                self_type:          Some("std.Base.Main".to_owned().try_into().unwrap()),
+                arguments:          vec![foo_method_parameter(), foo_method_parameter2()],
+                return_type:        "Any".to_owned(),
+                kind:               suggestion_database::entry::Kind::Method,
+                scope:              suggestion_database::entry::Scope::Everywhere,
+                documentation_html: None,
             }
         }
 
         pub fn suggestion_entry_bar() -> suggestion_database::Entry {
-            let project_name = project::QualifiedName::from_segments("std","Base").unwrap();
+            let project_name = project::QualifiedName::from_segments("std", "Base").unwrap();
             suggestion_database::Entry {
-                name               : "bar".to_owned(),
-                module             : module::QualifiedName::from_segments(project_name,&["Other"]).unwrap(),
-                self_type          : Some("std.Base.Other".to_owned().try_into().unwrap()),
-                arguments          : vec![bar_method_parameter()],
-                return_type        : "Any".to_owned(),
-                kind               : suggestion_database::entry::Kind::Method,
-                scope              : suggestion_database::entry::Scope::Everywhere,
-                documentation_html : None
+                name:               "bar".to_owned(),
+                module:             module::QualifiedName::from_segments(project_name, &["Other"])
+                    .unwrap(),
+                self_type:          Some("std.Base.Other".to_owned().try_into().unwrap()),
+                arguments:          vec![bar_method_parameter()],
+                return_type:        "Any".to_owned(),
+                kind:               suggestion_database::entry::Kind::Method,
+                scope:              suggestion_database::entry::Scope::Everywhere,
+                documentation_html: None,
             }
         }
     }
@@ -126,52 +128,52 @@ pub mod mock {
     /// This mock data represents a rudimentary enviromment consisting of a project with a single
     /// module. The module contents is provided by default by [data::CODE], can be overwritten by
     /// calling [set_code] or [set_inline_code].
-    #[derive(Clone,Debug)]
+    #[derive(Clone, Debug)]
     pub struct Unified {
-        pub logger        : Logger,
-        pub project_name  : project::QualifiedName,
-        pub module_path   : model::module::Path,
-        pub suggestions   : HashMap<suggestion_database::entry::Id,suggestion_database::Entry>,
-        pub context_id    : model::execution_context::Id,
-        pub parser        : parser::Parser,
-        code              : String,
-        id_map            : ast::IdMap,
-        metadata          : crate::model::module::Metadata,
-        root_definition   : double_representation::definition::DefinitionName,
+        pub logger:       Logger,
+        pub project_name: project::QualifiedName,
+        pub module_path:  model::module::Path,
+        pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
+        pub context_id:   model::execution_context::Id,
+        pub parser:       parser::Parser,
+        code:             String,
+        id_map:           ast::IdMap,
+        metadata:         crate::model::module::Metadata,
+        root_definition:  double_representation::definition::DefinitionName,
     }
 
     impl Unified {
-        pub fn set_inline_code(&mut self, code:impl AsRef<str>) {
+        pub fn set_inline_code(&mut self, code: impl AsRef<str>) {
             let method = self.method_pointer();
-            self.code = format!("{} = {}",method.name,code.as_ref())
+            self.code = format!("{} = {}", method.name, code.as_ref())
         }
 
         pub fn get_code(&self) -> &str {
             &self.code
         }
 
-        pub fn set_code(&mut self, code:impl Into<String>) {
-            self.code     = code.into();
-            self.id_map   = default();
+        pub fn set_code(&mut self, code: impl Into<String>) {
+            self.code = code.into();
+            self.id_map = default();
             self.metadata = default();
         }
 
         pub fn new() -> Self {
             use crate::test::mock::data::*;
             let mut suggestions = HashMap::new();
-            suggestions.insert(1,suggestion_entry_foo());
-            suggestions.insert(2,suggestion_entry_bar());
+            suggestions.insert(1, suggestion_entry_foo());
+            suggestions.insert(2, suggestion_entry_bar());
             let logger = Logger::new("UnifiedMock");
             Unified {
                 suggestions,
-                project_name    : project_qualified_name(),
-                module_path     : module_path(),
-                code            : CODE.to_owned(),
-                id_map          : default(),
-                metadata        : default(),
-                context_id      : CONTEXT_ID,
-                root_definition : definition_name(),
-                parser          : parser::Parser::new_or_panic(),
+                project_name: project_qualified_name(),
+                module_path: module_path(),
+                code: CODE.to_owned(),
+                id_map: default(),
+                metadata: default(),
+                context_id: CONTEXT_ID,
+                root_definition: definition_name(),
+                parser: parser::Parser::new_or_panic(),
                 logger,
             }
         }
@@ -180,13 +182,14 @@ pub mod mock {
             Rc::new(model::undo_redo::Manager::new(&self.logger))
         }
 
-        pub fn module(&self, urm:Rc<undo_redo::Manager>) -> crate::model::Module {
-            let ast        = self.parser.parse_module(self.code.clone(),self.id_map.clone()).unwrap();
-            let path       = self.module_path.clone();
-            let metadata   = self.metadata.clone();
+        pub fn module(&self, urm: Rc<undo_redo::Manager>) -> crate::model::Module {
+            let ast = self.parser.parse_module(self.code.clone(), self.id_map.clone()).unwrap();
+            let path = self.module_path.clone();
+            let metadata = self.metadata.clone();
             let repository = urm.repository.clone_ref();
-            let logger     = &self.logger;
-            let module     = Rc::new(model::module::Plain::new(logger,path,ast,metadata,repository));
+            let logger = &self.logger;
+            let module =
+                Rc::new(model::module::Plain::new(logger, path, ast, metadata, repository));
             urm.module_opened(module.clone());
             module
         }
@@ -201,102 +204,135 @@ pub mod mock {
 
         pub fn method_pointer(&self) -> enso_protocol::language_server::MethodPointer {
             enso_protocol::language_server::MethodPointer {
-                module          : self.module_qualified_name().to_string(),
-                defined_on_type : self.module_qualified_name().to_string(),
-                name            : self.root_definition.to_string(),
+                module:          self.module_qualified_name().to_string(),
+                defined_on_type: self.module_qualified_name().to_string(),
+                name:            self.root_definition.to_string(),
             }
         }
 
         /// Create a graph controller from the current mock data.
-        pub fn graph
-        (&self, logger:impl AnyLogger, module:model::Module, db:Rc<model::SuggestionDatabase>)
-         -> crate::controller::Graph {
-            let parser      = self.parser.clone_ref();
-            let method      = self.method_pointer();
-            let definition  = module.lookup_method(self.project_name.clone(),&method).expect("Lookup failed.");
-            crate::controller::Graph::new(logger,module,db,parser,definition).expect("Graph could not be created")
+        pub fn graph(
+            &self,
+            logger: impl AnyLogger,
+            module: model::Module,
+            db: Rc<model::SuggestionDatabase>,
+        ) -> crate::controller::Graph {
+            let parser = self.parser.clone_ref();
+            let method = self.method_pointer();
+            let definition =
+                module.lookup_method(self.project_name.clone(), &method).expect("Lookup failed.");
+            crate::controller::Graph::new(logger, module, db, parser, definition)
+                .expect("Graph could not be created")
         }
 
         pub fn execution_context(&self) -> Rc<model::execution_context::Plain> {
-            let logger = Logger::new_sub(&self.logger,"Mocked Execution Context");
-            Rc::new(model::execution_context::Plain::new(logger,self.method_pointer()))
+            let logger = Logger::new_sub(&self.logger, "Mocked Execution Context");
+            Rc::new(model::execution_context::Plain::new(logger, self.method_pointer()))
         }
 
-        pub fn project
-        ( &self
-        , urm                 : Rc<undo_redo::Manager>
-        , module              : model::Module
-        , execution_context   : model::ExecutionContext
-        , suggestion_database : Rc<model::SuggestionDatabase>
-        , json_client         : language_server::MockClient
-        , binary_client       : binary::MockClient
+        pub fn project(
+            &self,
+            urm: Rc<undo_redo::Manager>,
+            module: model::Module,
+            execution_context: model::ExecutionContext,
+            suggestion_database: Rc<model::SuggestionDatabase>,
+            json_client: language_server::MockClient,
+            binary_client: binary::MockClient,
         ) -> model::Project {
             let mut project = model::project::MockAPI::new();
-            model::project::test::expect_name(&mut project,&self.project_name.project);
-            model::project::test::expect_qualified_name(&mut project,&self.project_name);
+            model::project::test::expect_name(&mut project, &self.project_name.project);
+            model::project::test::expect_qualified_name(&mut project, &self.project_name);
             model::project::test::expect_qualified_module_name(&mut project);
-            model::project::test::expect_parser(&mut project,&self.parser);
-            model::project::test::expect_module(&mut project,module);
-            model::project::test::expect_execution_ctx(&mut project,execution_context);
+            model::project::test::expect_parser(&mut project, &self.parser);
+            model::project::test::expect_module(&mut project, module);
+            model::project::test::expect_execution_ctx(&mut project, execution_context);
             // Root ID is needed to generate module path used to get the module.
-            model::project::test::expect_root_id(&mut project,crate::test::mock::data::ROOT_ID);
-            model::project::test::expect_suggestion_db(&mut project,suggestion_database);
-            let json_rpc   = language_server::Connection::new_mock_rc(json_client);
-            model::project::test::expect_json_rpc(&mut project,json_rpc);
+            model::project::test::expect_root_id(&mut project, crate::test::mock::data::ROOT_ID);
+            model::project::test::expect_suggestion_db(&mut project, suggestion_database);
+            let json_rpc = language_server::Connection::new_mock_rc(json_client);
+            model::project::test::expect_json_rpc(&mut project, json_rpc);
             let binary_rpc = binary::Connection::new_mock_rc(binary_client);
-            model::project::test::expect_binary_rpc(&mut project,binary_rpc);
+            model::project::test::expect_binary_rpc(&mut project, binary_rpc);
             project.expect_urm().returning_st(move || urm.clone_ref());
             Rc::new(project)
         }
 
-        pub fn ide(&self, project:&model::Project) -> controller::Ide {
+        pub fn ide(&self, project: &model::Project) -> controller::Ide {
             Rc::new(controller::ide::Plain::new(project.clone_ref()))
         }
 
         pub fn fixture(&self) -> Fixture {
-            self.fixture_customize(|_,_,_| {})
+            self.fixture_customize(|_, _, _| {})
         }
 
-        pub fn fixture_customize<Fun>(&self, customize_rpc:Fun) -> Fixture
-        where Fun : FnOnce( &Self, &mut language_server::MockClient, &mut binary::MockClient), {
-            let mut json_client   = language_server::MockClient::default();
+        pub fn fixture_customize<Fun>(&self, customize_rpc: Fun) -> Fixture
+        where Fun: FnOnce(&Self, &mut language_server::MockClient, &mut binary::MockClient)
+        {
+            let mut json_client = language_server::MockClient::default();
             let mut binary_client = binary::MockClient::new();
             // Creating a searcher controller always triggers a query for completion.
             controller::searcher::test::expect_completion(&mut json_client, &[]);
-            customize_rpc(self,&mut json_client,&mut binary_client);
+            customize_rpc(self, &mut json_client, &mut binary_client);
 
-            let logger        = self.logger.clone_ref();
-            let urm           = self.undo_redo_manager();
-            let module        = self.module(urm.clone());
-            let suggestion_db = Rc::new(model::SuggestionDatabase::new_from_entries(&logger,
-                &self.suggestions));
-            let graph     = self.graph(&logger,module.clone_ref(),suggestion_db.clone_ref());
+            let logger = self.logger.clone_ref();
+            let urm = self.undo_redo_manager();
+            let module = self.module(urm.clone());
+            let suggestion_db =
+                Rc::new(model::SuggestionDatabase::new_from_entries(&logger, &self.suggestions));
+            let graph = self.graph(&logger, module.clone_ref(), suggestion_db.clone_ref());
             let execution = self.execution_context();
-            let project   = self.project(urm,module.clone_ref(),execution.clone_ref(),
-                suggestion_db.clone_ref(),json_client,binary_client);
-            let ide            = self.ide(&project);
-            let executed_graph = controller::ExecutedGraph::new_internal(graph.clone_ref(),
-                project.clone_ref(),execution.clone_ref());
-            let executor       = TestWithLocalPoolExecutor::set_up();
-            let data           = self.clone();
+            let project = self.project(
+                urm,
+                module.clone_ref(),
+                execution.clone_ref(),
+                suggestion_db.clone_ref(),
+                json_client,
+                binary_client,
+            );
+            let ide = self.ide(&project);
+            let executed_graph = controller::ExecutedGraph::new_internal(
+                graph.clone_ref(),
+                project.clone_ref(),
+                execution.clone_ref(),
+            );
+            let executor = TestWithLocalPoolExecutor::set_up();
+            let data = self.clone();
             let selected_nodes = Vec::new();
-            let searcher_mode  = controller::searcher::Mode::NewNode {position:None};
-            let searcher       = controller::Searcher::new_from_graph_controller(&logger
-                ,ide.clone_ref(),&project,executed_graph.clone_ref(),searcher_mode,selected_nodes
-                ).unwrap();
-            Fixture
-                {logger,executor,data,module,graph,executed_graph,execution,suggestion_db,project
-                ,searcher,ide}
+            let searcher_mode = controller::searcher::Mode::NewNode { position: None };
+            let searcher = controller::Searcher::new_from_graph_controller(
+                &logger,
+                ide.clone_ref(),
+                &project,
+                executed_graph.clone_ref(),
+                searcher_mode,
+                selected_nodes,
+            )
+            .unwrap();
+            Fixture {
+                logger,
+                executor,
+                data,
+                module,
+                graph,
+                executed_graph,
+                execution,
+                suggestion_db,
+                project,
+                searcher,
+                ide,
+            }
         }
 
         /// Register an expectation that the module described by this mock data will be opened.
-        pub fn expect_opening_module
-        (&self, client:&mut enso_protocol::language_server::MockClient) {
-            let content          = self.code.clone();
-            let current_version  = Sha3_224::new(content.as_bytes());
-            let path             = self.module_path.file_path().clone();
+        pub fn expect_opening_module(
+            &self,
+            client: &mut enso_protocol::language_server::MockClient,
+        ) {
+            let content = self.code.clone();
+            let current_version = Sha3_224::new(content.as_bytes());
+            let path = self.module_path.file_path().clone();
             let write_capability = Some(CapabilityRegistration::create_can_edit_text_file(path));
-            let open_resp        = language_server::response::OpenTextFile {
+            let open_resp = language_server::response::OpenTextFile {
                 write_capability,
                 content,
                 current_version,
@@ -307,8 +343,10 @@ pub mod mock {
         }
 
         /// Register an expectation that the module described by this mock data will be closed.
-        pub fn expect_closing_module
-        (&self, client:&mut enso_protocol::language_server::MockClient) {
+        pub fn expect_closing_module(
+            &self,
+            client: &mut enso_protocol::language_server::MockClient,
+        ) {
             let path = self.module_path.file_path().clone();
             expect_call!(client.close_text_file(path=path) => Ok(()));
         }
@@ -320,21 +358,21 @@ pub mod mock {
         }
     }
 
-    #[derive(Debug,Shrinkwrap)]
+    #[derive(Debug, Shrinkwrap)]
     #[shrinkwrap(mutable)]
     pub struct Fixture {
-        pub logger         : Logger,
-        pub data           : Unified,
-        pub module         : model::Module,
-        pub graph          : controller::Graph,
-        pub execution      : Rc<model::execution_context::Plain>,
-        pub executed_graph : controller::ExecutedGraph,
-        pub suggestion_db  : Rc<model::SuggestionDatabase>,
-        pub project        : model::Project,
-        pub ide            : controller::Ide,
-        pub searcher       : controller::Searcher,
+        pub logger:         Logger,
+        pub data:           Unified,
+        pub module:         model::Module,
+        pub graph:          controller::Graph,
+        pub execution:      Rc<model::execution_context::Plain>,
+        pub executed_graph: controller::ExecutedGraph,
+        pub suggestion_db:  Rc<model::SuggestionDatabase>,
+        pub project:        model::Project,
+        pub ide:            controller::Ide,
+        pub searcher:       controller::Searcher,
         #[shrinkwrap(main_field)]
-        pub executor       : TestWithLocalPoolExecutor, // Last to drop the executor as last.
+        pub executor:       TestWithLocalPoolExecutor, // Last to drop the executor as last.
     }
 
     impl Fixture {
@@ -350,31 +388,32 @@ pub mod mock {
         /// language server API. Most likely also closing and initial edit (that adds metadata)
         /// should be expected. See usage for examples.
         pub fn synchronized_module(&self) -> Rc<model::module::Synchronized> {
-            let parser        = self.data.parser.clone();
-            let path          = self.data.module_path.clone();
-            let ls            = self.project.json_rpc().clone();
-            let repository    = self.project.urm().repository.clone_ref();
-            let module_future = model::module::Synchronized::open(path,ls,parser,repository);
+            let parser = self.data.parser.clone();
+            let path = self.data.module_path.clone();
+            let ls = self.project.json_rpc().clone();
+            let repository = self.project.urm().repository.clone_ref();
+            let module_future = model::module::Synchronized::open(path, ls, parser, repository);
             // We can `expect_ready`, because in fact this is synchronous in test conditions.
             // (there's no real asynchronous connection beneath, just the `MockClient`)
             let module = module_future.boxed_local().expect_ready().unwrap();
             self.project.urm().module_opened(module.clone());
             module
-
         }
 
         /// Create a synchronized module model and a module controller paired with it.
         ///
         /// Same considerations need to be made as with `[synchronized_module]`.
-        pub fn synchronized_module_w_controller(&self) -> (Rc<model::module::Synchronized>,controller::Module) {
+        pub fn synchronized_module_w_controller(
+            &self,
+        ) -> (Rc<model::module::Synchronized>, controller::Module) {
             let model = self.synchronized_module();
             let controller = controller::module::Handle {
-                language_server : self.project.json_rpc(),
-                model           : model.clone(),
-                parser          : self.data.parser.clone(),
-                logger          : Logger::new_sub(&self.data.logger,"MockModuleController"),
+                language_server: self.project.json_rpc(),
+                model:           model.clone(),
+                parser:          self.data.parser.clone(),
+                logger:          Logger::new_sub(&self.data.logger, "MockModuleController"),
             };
-            (model,controller)
+            (model, controller)
         }
 
         pub fn module_name(&self) -> model::module::QualifiedName {
@@ -382,30 +421,32 @@ pub mod mock {
         }
     }
 
-    pub fn indent(line:impl AsRef<str>) -> String {
+    pub fn indent(line: impl AsRef<str>) -> String {
         iformat!("    {line.as_ref()}")
     }
 
-    pub fn main_from_lines(lines:impl IntoIterator<Item:AsRef<str>>) -> String {
-        def_from_lines("main",lines)
+    pub fn main_from_lines(lines: impl IntoIterator<Item: AsRef<str>>) -> String {
+        def_from_lines("main", lines)
     }
 
-    pub fn def_from_lines
-    (name:impl Display, lines:impl IntoIterator<Item:AsRef<str>>) -> String {
+    pub fn def_from_lines(
+        name: impl Display,
+        lines: impl IntoIterator<Item: AsRef<str>>,
+    ) -> String {
         let body = lines.into_iter().map(indent).join("\n");
         iformat!("{name} =\n{body}")
     }
 }
 
 /// Check that given `CalledMethodInfo` is consistent with suggestion database `Entry`.
-pub fn assert_call_info
-( info:span_tree::generate::context::CalledMethodInfo
-, entry:&model::suggestion_database::Entry
+pub fn assert_call_info(
+    info: span_tree::generate::context::CalledMethodInfo,
+    entry: &model::suggestion_database::Entry,
 ) {
-    assert_eq!(info.parameters.len(),entry.arguments.len());
-    for (encountered,expected) in info.parameters.iter().zip(entry.arguments.iter()) {
+    assert_eq!(info.parameters.len(), entry.arguments.len());
+    for (encountered, expected) in info.parameters.iter().zip(entry.arguments.iter()) {
         let expected_info = model::suggestion_database::entry::to_span_tree_param(expected);
-        assert_eq!(encountered,&expected_info);
+        assert_eq!(encountered, &expected_info);
     }
 }
 
@@ -430,27 +471,27 @@ pub fn assert_call_info
 /// The `run` method will run test multiple times, to cover all possible combinations.
 /// The test should call `perhaps_run_until_stalled` the same number of times on each iteration.
 /// Otherwise, the `perhaps_run_until_stalled` behavior is unspecified (but still well-formed).
-#[derive(Clone,Copy,Debug,Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Runner {
     /// Incremented each time when the runnee calls an interruption point.
     /// Reset to 0 after each run.
-    current : u32,
+    current: u32,
     /// Bitmap that encodes behavior of subsequent `run_until_stalled` calls. True means running.
-    seed : BitField32,
+    seed:    BitField32,
 }
 
 impl Runner {
-    fn new(seed:BitField32) -> Self {
+    fn new(seed: BitField32) -> Self {
         let current = 0;
-        Self {current,seed}
+        Self { current, seed }
     }
 
     /// Call's the fixture's `run_until_stalled`. Or does not call. Depends on the current seed
     /// (defined by the iteration number) and the number of previous calls to this method.
     ///
     /// See the `[Runner]` documentation.
-    pub fn perhaps_run_until_stalled(&mut self, fixture:&mut crate::test::mock::Fixture) {
-        let index     = self.current;
+    pub fn perhaps_run_until_stalled(&mut self, fixture: &mut crate::test::mock::Fixture) {
+        let index = self.current;
         self.current += 1;
         if dbg!(self.seed.get_bit(index as usize)) {
             fixture.run_until_stalled();
@@ -469,20 +510,23 @@ impl Runner {
     /// NOTE: The number of runs will grow *exponentially* with the `run_until_stalled` methods!
     /// Be certain to use it sparingly, to cover really specific scenarios. It is not meant for
     /// general usage in big tests in multiple places.
-    pub fn run(mut test:impl FnMut(&mut Runner)) {
-        let count         = Self::run_nth(0,&mut test);
+    pub fn run(mut test: impl FnMut(&mut Runner)) {
+        let count = Self::run_nth(0, &mut test);
         let possibilities = 2u32.pow(count);
         // Just to prevent accidentally generating too many runs.
-        assert!(count < 5, "Consider reducing number of calls to `run_until_stalled` or bump this \
-        limit if it doesn't cause slowdowns during the testing.");
-        for i in 1 ..possibilities {
-            Self::run_nth(i,&mut test);
+        assert!(
+            count < 5,
+            "Consider reducing number of calls to `run_until_stalled` or bump this \
+        limit if it doesn't cause slowdowns during the testing."
+        );
+        for i in 1..possibilities {
+            Self::run_nth(i, &mut test);
         }
     }
 
     /// Calls the `test` function once. The executor behavior is defined by the `seed`.
     /// Returns the number of calls made to `perhaps_run_until_stalled`.
-    pub fn run_with(seed:BitField32, mut test:impl FnMut(&mut Runner)) -> u32 {
+    pub fn run_with(seed: BitField32, mut test: impl FnMut(&mut Runner)) -> u32 {
         let mut runner = Runner::new(seed);
         test(&mut runner);
         runner.current
@@ -490,8 +534,8 @@ impl Runner {
 
     /// Calls the `test` function once. The executor behavior is defined by the `n` parameter.
     /// Returns the number of calls made to `perhaps_run_until_stalled`.
-    pub fn run_nth(n:u32, test:impl FnMut(&mut Runner)) -> u32 {
+    pub fn run_nth(n: u32, test: impl FnMut(&mut Runner)) -> u32 {
         DEBUG!("Runner: Iteration " n);
-        Self::run_with(BitField32 {raw:n}, test)
+        Self::run_with(BitField32 { raw: n }, test)
     }
 }

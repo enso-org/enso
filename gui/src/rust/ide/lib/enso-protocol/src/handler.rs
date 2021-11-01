@@ -2,14 +2,14 @@
 
 use crate::prelude::*;
 
-use crate::common::ongoing_calls::OngoingCalls;
 use crate::common::event::Event;
+use crate::common::ongoing_calls::OngoingCalls;
 
+use enso_logger::WarningLogger as Logger;
+use enso_logger::*;
 use futures::channel::mpsc::UnboundedSender;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
-use enso_logger::*;
-use enso_logger::WarningLogger as Logger;
 use std::future::Future;
 use utils::fail::FallibleResult;
 
@@ -21,34 +21,41 @@ use utils::fail::FallibleResult;
 
 /// Describes how the given server's message should be dealt with.
 #[derive(Debug)]
-pub enum Disposition<Id,Reply,Notification>
-where Id:Debug, Reply:Debug, Notification:Debug {
+pub enum Disposition<Id, Reply, Notification>
+where
+    Id: Debug,
+    Reply: Debug,
+    Notification: Debug, {
     /// Ignore the message.
     Ignore,
     /// Treat as a reply to an open request.
     HandleReply {
         /// Remote Call ID (correlation ID).
-        id:Id,
+        id:    Id,
         /// The reply contents.
-        reply:Reply
+        reply: Reply,
     },
     /// Emit given event (usually error or a notification).
     EmitEvent {
         /// Event to be emitted.
-        event:Event<Notification>
+        event: Event<Notification>,
     },
 }
 
-impl<Id,Reply,Notification> Disposition<Id,Reply,Notification>
-where Id:Debug, Reply:Debug, Notification:Debug {
+impl<Id, Reply, Notification> Disposition<Id, Reply, Notification>
+where
+    Id: Debug,
+    Reply: Debug,
+    Notification: Debug,
+{
     /// Creates a notification event disposition.
-    pub fn notify(notification:Notification) -> Self {
-        Disposition::EmitEvent {event:Event::Notification(notification)}
+    pub fn notify(notification: Notification) -> Self {
+        Disposition::EmitEvent { event: Event::Notification(notification) }
     }
 
     /// Creates an error event disposition.
-    pub fn error(error:impl Into<failure::Error> + Debug) -> Self {
-        Disposition::EmitEvent {event:Event::Error(error.into())}
+    pub fn error(error: impl Into<failure::Error> + Debug) -> Self {
+        Disposition::EmitEvent { event: Event::Error(error.into()) }
     }
 }
 
@@ -59,38 +66,47 @@ where Id:Debug, Reply:Debug, Notification:Debug {
 // ===================
 
 #[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-struct HandlerData<Id,Reply,Notification>
-where Id           : Eq+Hash+Debug,
-      Notification : Debug,
-      Reply        : Debug, {
-    #[derivative(Debug="ignore")]
-    transport     : Box<dyn Transport>,
-    logger        : Logger,
-    sender        : Option<UnboundedSender<Event<Notification>>>,
-    ongoing_calls : OngoingCalls<Id,Reply>,
-    #[derivative(Debug="ignore")]
-    processor     : Box<dyn FnMut(TransportEvent) -> Disposition<Id,Reply,Notification>>,
+#[derivative(Debug(bound = ""))]
+struct HandlerData<Id, Reply, Notification>
+where
+    Id: Eq + Hash + Debug,
+    Notification: Debug,
+    Reply: Debug, {
+    #[derivative(Debug = "ignore")]
+    transport:     Box<dyn Transport>,
+    logger:        Logger,
+    sender:        Option<UnboundedSender<Event<Notification>>>,
+    ongoing_calls: OngoingCalls<Id, Reply>,
+    #[derivative(Debug = "ignore")]
+    processor:     Box<dyn FnMut(TransportEvent) -> Disposition<Id, Reply, Notification>>,
 }
 
-impl <Id,Reply,Notification> HandlerData<Id,Reply,Notification>
-where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
-      Notification : Debug,
-      Reply        : Debug, {
-    fn new<T,P>(transport:T, logger:&Logger, processor:P) -> HandlerData<Id,Reply,Notification>
-    where T : Transport + 'static,
-          P : FnMut(TransportEvent) -> Disposition<Id,Reply,Notification> + 'static {
+impl<Id, Reply, Notification> HandlerData<Id, Reply, Notification>
+where
+    Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
+    Notification: Debug,
+    Reply: Debug,
+{
+    fn new<T, P>(
+        transport: T,
+        logger: &Logger,
+        processor: P,
+    ) -> HandlerData<Id, Reply, Notification>
+    where
+        T: Transport + 'static,
+        P: FnMut(TransportEvent) -> Disposition<Id, Reply, Notification> + 'static,
+    {
         HandlerData {
-            transport     : Box::new(transport),
-            logger        : logger.clone_ref(),
-            sender        : None,
-            ongoing_calls : OngoingCalls::new(logger),
-            processor     : Box::new(processor),
+            transport:     Box::new(transport),
+            logger:        logger.clone_ref(),
+            sender:        None,
+            ongoing_calls: OngoingCalls::new(logger),
+            processor:     Box::new(processor),
         }
     }
 
     /// Emits event. Clients can consume them through `event_stream`.
-    fn emit_event(&mut self, event:Event<Notification>) {
+    fn emit_event(&mut self, event: Event<Notification>) {
         if let Some(sender) = self.sender.as_ref() {
             // Error can happen if there is no listener. But we don't mind this.
             let _ = sender.unbounded_send(event);
@@ -98,16 +114,16 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
     }
 
     /// Feeds the reply to complete the corresponding open request.
-    fn process_reply(&mut self, id:Id, reply:Reply) {
-        info!(self.logger,"Processing reply to request {id}: {reply:?}");
-        if let Err(error) = self.ongoing_calls.complete_request(id,reply) {
+    fn process_reply(&mut self, id: Id, reply: Reply) {
+        info!(self.logger, "Processing reply to request {id}: {reply:?}");
+        if let Err(error) = self.ongoing_calls.complete_request(id, reply) {
             self.emit_error(error);
         }
     }
 
     /// Helper that wraps error into an appropriate event value and emits it.
-    fn emit_error(&mut self, error:impl Into<failure::Error> + Debug) {
-        info!(self.logger,"Emitting error: {error:?}");
+    fn emit_error(&mut self, error: impl Into<failure::Error> + Debug) {
+        info!(self.logger, "Emitting error: {error:?}");
         let event = Event::Error(error.into());
         self.emit_event(event);
     }
@@ -117,7 +133,7 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
     ///
     /// Main entry point for input data while running. Should be connected to the `Transport`s
     /// output event stream.
-    pub fn process_event(&mut self, event:TransportEvent) {
+    pub fn process_event(&mut self, event: TransportEvent) {
         debug!(self.logger, "Processing incoming transport event", || {
             debug!(self.logger, "Transport event contents: {event:?}.");
             match event {
@@ -125,24 +141,29 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
                     let disposition = (self.processor)(event);
                     debug!(self.logger, "Disposition: {disposition:?}");
                     match disposition {
-                        Disposition::HandleReply {id,reply} => self.process_reply(id,reply),
-                        Disposition::EmitEvent   {event}    => self.emit_event(event),
+                        Disposition::HandleReply { id, reply } => self.process_reply(id, reply),
+                        Disposition::EmitEvent { event } => self.emit_event(event),
                         Disposition::Ignore => {}
                     }
                 }
                 TransportEvent::Opened => {}
-                TransportEvent::Closed => { self.emit_event(Event::Closed) }
+                TransportEvent::Closed => self.emit_event(Event::Closed),
             }
         });
     }
 
-    pub fn make_request<F,R>
-    (&mut self, message:&dyn IsRequest<Id=Id>, f:F) -> impl Future<Output=FallibleResult<R>>
-    where F: FnOnce(Reply) -> FallibleResult<R> {
+    pub fn make_request<F, R>(
+        &mut self,
+        message: &dyn IsRequest<Id = Id>,
+        f: F,
+    ) -> impl Future<Output = FallibleResult<R>>
+    where
+        F: FnOnce(Reply) -> FallibleResult<R>,
+    {
         debug!(self.logger, "Making a new RPC call", || {
-            let id  = message.id();
-            let ret = self.ongoing_calls.open_new_request(id,f);
-            debug!(self.logger,"Sending message {message:?}");
+            let id = message.id();
+            let ret = self.ongoing_calls.open_new_request(id, f);
+            debug!(self.logger, "Sending message {message:?}");
             let sending_result = message.send(self.transport.as_mut());
             if sending_result.is_err() {
                 // If we failed to send the request, it should be immediately removed.
@@ -158,13 +179,13 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
     /// If such stream was already existing, it will be finished (and
     /// continuations should be able to process any remaining events).
     pub fn event_stream(&mut self) -> impl Stream<Item = Event<Notification>> {
-        let (transmitter,receiver) = futures::channel::mpsc::unbounded();
+        let (transmitter, receiver) = futures::channel::mpsc::unbounded();
         self.sender = Some(transmitter);
         receiver
     }
 
     /// See the `runner` on the `Client`.
-    pub fn runner(this:&Rc<RefCell<Self>>) -> impl Future<Output = ()> {
+    pub fn runner(this: &Rc<RefCell<Self>>) -> impl Future<Output = ()> {
         let event_receiver = this.borrow_mut().transport.establish_event_stream();
         let weak_this = Rc::downgrade(this);
         event_receiver.for_each(move |event: TransportEvent| {
@@ -191,42 +212,45 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
 /// `Notification` represents a notification received from a peer.
 ///
 /// Notifications and internal messages are emitted using the `event_stream` stream.
-#[derive(CloneRef,Debug,Derivative)]
-#[derivative(Clone(bound=""))]
-pub struct Handler<Id,Reply,Notification:Debug>
-where Id           : Eq+Hash+Debug,
-      Notification : Debug,
-      Reply        : Debug, {
-    logger : Logger,
-    state  : Rc<RefCell<HandlerData<Id,Reply,Notification>>>,
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct Handler<Id, Reply, Notification: Debug>
+where
+    Id: Eq + Hash + Debug,
+    Notification: Debug,
+    Reply: Debug, {
+    logger: Logger,
+    state:  Rc<RefCell<HandlerData<Id, Reply, Notification>>>,
 }
 
 /// A value that can be used to represent a request to remote RPC server.
-pub trait IsRequest:Debug {
+pub trait IsRequest: Debug {
     /// Request ID.
-    type Id : Copy;
+    type Id: Copy;
 
     /// Send the message to the peer using the provided transport.
-    fn send(&self, transport:&mut dyn Transport) -> FallibleResult;
+    fn send(&self, transport: &mut dyn Transport) -> FallibleResult;
 
     /// Request ID, that will be used later to associate peer's response.
     fn id(&self) -> Self::Id;
 }
 
-impl <Id,Reply,Notification> Handler<Id,Reply,Notification>
-where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
-      Notification : Debug,
-      Reply        : Debug {
-
+impl<Id, Reply, Notification> Handler<Id, Reply, Notification>
+where
+    Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
+    Notification: Debug,
+    Reply: Debug,
+{
     /// Creates a new handler operating over given transport.
     ///
     /// `processor` must deal with decoding incoming transport events.
-    pub fn new<T,P>(transport:T, logger:Logger, processor:P) -> Self
-    where T : Transport + 'static,
-          P : FnMut(TransportEvent) -> Disposition<Id,Reply,Notification> + 'static {
-        let state  = Rc::new(RefCell::new(HandlerData::new(transport,&logger,processor)));
-        let logger = Logger::new_sub(&logger,"handler");
-        Handler {logger,state}
+    pub fn new<T, P>(transport: T, logger: Logger, processor: P) -> Self
+    where
+        T: Transport + 'static,
+        P: FnMut(TransportEvent) -> Disposition<Id, Reply, Notification> + 'static, {
+        let state = Rc::new(RefCell::new(HandlerData::new(transport, &logger, processor)));
+        let logger = Logger::new_sub(&logger, "handler");
+        Handler { logger, state }
     }
 
     /// Starts a new request described by a given message.
@@ -241,10 +265,15 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
     /// We use here `&dyn IsRequest` rather them generic parameter `impl IsRequest` only to avoid
     /// lifetime issues caused by this Rust compiler bug:
     /// https://github.com/rust-lang/rust/issues/42940
-    pub fn make_request<F,R>
-    (&self, message:&dyn IsRequest<Id=Id>, f:F) -> impl Future<Output=FallibleResult<R>>
-    where F: FnOnce(Reply) -> FallibleResult<R> {
-        self.state.borrow_mut().make_request(message,f)
+    pub fn make_request<F, R>(
+        &self,
+        message: &dyn IsRequest<Id = Id>,
+        f: F,
+    ) -> impl Future<Output = FallibleResult<R>>
+    where
+        F: FnOnce(Reply) -> FallibleResult<R>,
+    {
+        self.state.borrow_mut().make_request(message, f)
     }
 
     /// See the `runner` on the `Client`.
@@ -271,12 +300,12 @@ mod tests {
 
     #[test]
     fn test_closed_socked_event_passing() {
-        let logger        =  Logger::new("RPC_Handler_Test");
+        let logger = Logger::new("RPC_Handler_Test");
         let mut transport = MockTransport::new();
-        let processor     = |msg| panic!("Must never be called in this test, but got {:?}!",msg);
-        let handler       = Handler::<i32,(),()>::new(transport.clone_ref(),logger,processor);
-        let mut runner    = handler.runner().boxed_local();
-        let mut events    = handler.event_stream().boxed_local();
+        let processor = |msg| panic!("Must never be called in this test, but got {:?}!", msg);
+        let handler = Handler::<i32, (), ()>::new(transport.clone_ref(), logger, processor);
+        let mut runner = handler.runner().boxed_local();
+        let mut events = handler.event_stream().boxed_local();
         events.expect_pending();
         transport.mock_connection_closed();
         events.expect_pending();
@@ -289,4 +318,3 @@ mod tests {
         events.expect_pending();
     }
 }
-

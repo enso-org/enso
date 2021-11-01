@@ -3,9 +3,7 @@
 //! of the `ensogl` crate to learn more.
 
 #![allow(dead_code)]
-
 #![deny(unconditional_recursion)]
-
 #![feature(associated_type_defaults)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
@@ -26,8 +24,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit="512"]
-
+#![recursion_limit = "512"]
 // To be removed after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
 #![allow(clippy::option_map_unit_fn)]
 
@@ -38,16 +35,12 @@
 // ===================
 
 /// Uncomment the following lines in order to enable macro-expansion debugging during compilation.
-
 //#![feature(trace_macros)]
 //trace_macros!(true);
-
-
 
 // =================================
 // === Module Structure Reexport ===
 // =================================
-
 pub mod animation;
 pub mod application;
 pub mod control;
@@ -57,32 +50,32 @@ pub mod display;
 pub mod gui;
 pub mod system;
 
-pub use enso_frp   as frp;
+pub use enso_frp as frp;
 pub use enso_types as types;
 
 pub use animation::Animation;
-pub use animation::Easing;
 pub use animation::DEPRECATED_Animation;
 pub use animation::DEPRECATED_Tween;
+pub use animation::Easing;
 
 /// Commonly used utilities.
 pub mod prelude {
+    pub use super::display::traits::*;
+    pub use super::types::*;
     pub use crate::data::container::AddMut;
     pub use crate::shapes_order_dependencies;
     pub use enso_data as data;
     pub use enso_logger as logger;
-    pub use enso_logger::*;
     pub use enso_logger::AnyLogger;
     pub use enso_logger::DefaultWarningLogger as Logger;
+    pub use enso_logger::*;
     pub use enso_prelude::*;
-    pub use enso_shapely::CloneRef;
     pub use enso_shapely::newtype_prim;
     pub use enso_shapely::newtype_prim_no_default;
     pub use enso_shapely::newtype_prim_no_default_no_display;
     pub use enso_shapely::newtype_prim_no_derives;
     pub use enso_shapely::shared;
-    pub use super::display::traits::*;
-    pub use super::types::*;
+    pub use enso_shapely::CloneRef;
 }
 
 /// Common traits.
