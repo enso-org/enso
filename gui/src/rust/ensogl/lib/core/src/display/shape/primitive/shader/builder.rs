@@ -52,7 +52,7 @@ impl Builder {
 
         let defs = overload::allow_overloading(&defs);
         let code = format!("{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}",redirections,math,color,debug,shape,defs);
-        let main = format!("bool pointer_events_enabled = {};\n{}",pointer_events_enabled,FRAGMENT_RUNNER.to_string());
+        let main = format!("bool pointer_events_enabled = {};\n{}",pointer_events_enabled,FRAGMENT_RUNNER);
 
         CodeTemplate::new(code,main,"")
     }

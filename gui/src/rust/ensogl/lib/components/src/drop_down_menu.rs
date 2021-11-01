@@ -101,8 +101,6 @@ pub type Entry = list_view::entry::Label;
 
 #[derive(Clone,Debug)]
 struct Model {
-    logger          : Logger,
-    app             : Application,
     display_object  : display::object::Instance,
 
     icon            : arrow::View,
@@ -118,15 +116,14 @@ struct Model {
 impl Model {
     fn new(app:&Application) -> Self {
         let logger         = Logger::new("drop_down_menu");
-        let app            = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
         let icon           = arrow::View::new(&logger);
         let icon_overlay   = chooser_hover_area::View::new(&logger);
-        let selection_menu = list_view::ListView::new(&app);
+        let selection_menu = list_view::ListView::new(app);
         let label          = app.new_view::<text::Area>();
         let content        = default();
 
-        Self{logger,app,display_object,icon,icon_overlay,label,selection_menu,content}.init()
+        Self{display_object,icon,icon_overlay,label,selection_menu,content}.init()
     }
 
     fn init(self) -> Self {

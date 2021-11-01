@@ -47,6 +47,8 @@ pub struct History {
 #[derive(Debug,Clone,Default)]
 pub struct HistoryData {
     undo_stack : Vec<(Text,Style,selection::Group)>,
+    #[allow(dead_code)]
+    /// Not yet implemented.
     redo_stack : Vec<(Text,Style,selection::Group)>,
 }
 

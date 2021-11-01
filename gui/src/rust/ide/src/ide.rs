@@ -40,6 +40,9 @@ const ALIVE_LOG_INTERVAL_SEC:u64 = 60;
 #[derive(Debug)]
 pub struct Ide {
     application : Application,
+    #[allow(dead_code)]
+    /// The integration layer is never directly accessed, but needs to be kept alive to keep
+    /// performing its function.
     integration : Integration,
     network     : frp::Network,
 }

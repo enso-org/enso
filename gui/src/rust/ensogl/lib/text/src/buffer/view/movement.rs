@@ -112,7 +112,7 @@ impl ViewBuffer {
     pub fn moved_selection_region
     (&self, transform:Transform, selection:Selection, modify:bool) -> Selection {
         let text  = &self.text();
-        let shape = |start,end| selection::Shape(start,end);
+        let shape = selection::Shape;
         let shape : selection::Shape = match transform {
             Transform::All => {
                 shape(default(),self.offset_to_location(text.byte_size()))

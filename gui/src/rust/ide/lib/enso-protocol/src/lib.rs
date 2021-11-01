@@ -6,7 +6,7 @@
 #![feature(associated_type_defaults)]
 #![feature(coerce_unsized)]
 #![feature(trait_alias)]
-#![feature(min_type_alias_impl_trait)]
+#![feature(type_alias_impl_trait)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]

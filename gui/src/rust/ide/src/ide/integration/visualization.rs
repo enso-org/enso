@@ -502,6 +502,7 @@ mod tests {
     use super::*;
     use utils::test::traits::*;
 
+    use std::assert_matches::assert_matches;
     use futures::future::ready;
     use ide_view::graph_editor::component::visualization::instance::ContextModule;
     use ide_view::graph_editor::component::visualization::instance::PreprocessorConfiguration;

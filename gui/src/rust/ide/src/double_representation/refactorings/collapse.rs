@@ -181,8 +181,6 @@ pub struct Extracted {
     output : Option<Output>,
     /// Nodes that are being collapsed and extracted into a separate method.
     extracted_nodes : Vec<NodeInfo>,
-    /// Helper for efficient lookup.
-    extracted_nodes_set : HashSet<node::Id>,
 }
 
 impl Extracted {
@@ -233,7 +231,7 @@ impl Extracted {
             Some(Output{node,identifier})
         });
 
-        Ok(Self {inputs,output,extracted_nodes,extracted_nodes_set})
+        Ok(Self {inputs,output,extracted_nodes})
     }
 
     /// Check if the given line belongs to the selection (i.e. is extracted into a new method).

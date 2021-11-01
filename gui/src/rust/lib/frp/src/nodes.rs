@@ -878,6 +878,9 @@ impl          IntoParam<String>    for &str {fn into_param(self) -> String {self
 
 #[derive(Debug)]
 pub struct SamplerData  <Out=()> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
     src        : Box<dyn std::any::Any>,
     value      : RefCell<Out>,
     /// Used to cache the output even if no connection is present YET. Consider the following
@@ -935,7 +938,12 @@ impl<Out:Data> stream::EventConsumer<Out> for OwnedSampler<Out> {
 // =============
 
 #[derive(Clone,Debug)]
-pub struct TraceData  <T> { src:T }
+pub struct TraceData  <T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src:T
+}
 pub type   OwnedTrace <T> = stream::Node     <TraceData<T>>;
 pub type   Trace      <T> = stream::WeakNode <TraceData<T>>;
 
@@ -967,7 +975,13 @@ impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
 // ==============
 
 #[derive(Debug)]
-pub struct ToggleData  <T>  { src:T, value:Cell<bool> }
+pub struct ToggleData  <T>  {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src:T,
+    value:Cell<bool>
+}
 pub type   OwnedToggle <T> = stream::Node     <ToggleData<T>>;
 pub type   Toggle      <T> = stream::WeakNode <ToggleData<T>>;
 
@@ -1005,7 +1019,13 @@ impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedToggle<T> {
 // =============
 
 #[derive(Debug)]
-pub struct CountData  <T> { src:T, value:Cell<usize> }
+pub struct CountData  <T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src:T,
+    value:Cell<usize>
+}
 pub type   OwnedCount <T> = stream::Node     <CountData<T>>;
 pub type   Count      <T> = stream::WeakNode <CountData<T>>;
 
@@ -1038,7 +1058,13 @@ impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedCount<T> {
 // ================
 
 #[derive(Debug)]
-pub struct ConstantData  <T,Out=()> { src:T, value:Out }
+pub struct ConstantData  <T,Out=()> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src:T,
+    value:Out
+}
 pub type   OwnedConstant <T,Out=()> = stream::Node     <ConstantData<T,Out>>;
 pub type   Constant      <T,Out=()> = stream::WeakNode <ConstantData<T,Out>>;
 
@@ -1068,7 +1094,13 @@ impl<T:EventOutput,Out:Data> stream::EventConsumer<Output<T>> for OwnedConstant<
 // ================
 
 #[derive(Debug)]
-pub struct PreviousData  <T:EventOutput> { src:T, previous:RefCell<Output<T>> }
+pub struct PreviousData  <T:EventOutput> {
+    #[allow(dead_code)]
+    src:T,
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    previous:RefCell<Output<T>>
+}
 pub type   OwnedPrevious <T> = stream::Node     <PreviousData<T>>;
 pub type   Previous      <T> = stream::WeakNode <PreviousData<T>>;
 
@@ -1100,7 +1132,13 @@ impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedPrevious<T> {
 // ==============
 
 #[derive(Debug)]
-pub struct SampleData  <T1,T2> { behavior:watch::Ref<T1>, event:T2 }
+pub struct SampleData  <T1,T2> {
+    behavior:watch::Ref<T1>,
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:T2
+}
 pub type   OwnedSample <T1,T2> = stream::Node     <SampleData<T1,T2>>;
 pub type   Sample      <T1,T2> = stream::WeakNode <SampleData<T1,T2>>;
 
@@ -1137,7 +1175,13 @@ impl<T1:EventOutput,T2> stream::InputBehaviors for SampleData<T1,T2> {
 // ============
 
 #[derive(Debug)]
-pub struct GateData  <T1,T2> { event:T1, behavior:watch::Ref<T2> }
+pub struct GateData  <T1,T2> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:T1,
+    behavior:watch::Ref<T2>
+}
 pub type   OwnedGate <T1,T2> = stream::Node     <GateData<T1,T2>>;
 pub type   Gate      <T1,T2> = stream::WeakNode <GateData<T1,T2>>;
 
@@ -1179,7 +1223,13 @@ where T2:EventOutput {
 // ===============
 
 #[derive(Debug)]
-pub struct GateNotData  <T1,T2> { event:T1, behavior:watch::Ref<T2> }
+pub struct GateNotData  <T1,T2> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:T1,
+    behavior:watch::Ref<T2>
+}
 pub type   OwnedGateNot <T1,T2> = stream::Node     <GateNotData<T1,T2>>;
 pub type   GateNot      <T1,T2> = stream::WeakNode <GateNotData<T1,T2>>;
 
@@ -1221,7 +1271,12 @@ impl<T1,T2> stream::InputBehaviors for GateNotData<T1,T2>
 // ==============
 
 #[derive(Debug)]
-pub struct UnwrapData  <T:EventOutput> { src:T }
+pub struct UnwrapData  <T:EventOutput> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src:T
+}
 pub type   OwnedUnwrap <T> = stream::Node     <UnwrapData<T>>;
 pub type   Unwrap      <T> = stream::WeakNode <UnwrapData<T>>;
 
@@ -1454,7 +1509,12 @@ impl<T> stream::EventConsumer<T> for OwnedAny_ {
 // ============
 
 #[derive(Debug)]
-pub struct Get0Data  <T1> { event:T1 }
+pub struct Get0Data  <T1> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:T1
+}
 pub type   OwnedGet0 <T1> = stream::Node     <Get0Data<T1>>;
 pub type   Get0      <T1> = stream::WeakNode <Get0Data<T1>>;
 
@@ -1493,7 +1553,12 @@ impl<T1> stream::InputBehaviors for Get0Data<T1> {
 // ============
 
 #[derive(Debug)]
-pub struct Get1Data  <T1> { event:T1 }
+pub struct Get1Data  <T1> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:T1
+}
 pub type   OwnedGet1 <T1> = stream::Node     <Get1Data<T1>>;
 pub type   Get1      <T1> = stream::WeakNode <Get1Data<T1>>;
 
@@ -1532,7 +1597,12 @@ impl<T1> stream::InputBehaviors for Get1Data<T1> {
 // ============
 
 #[derive(Debug)]
-pub struct Get2Data  <T1> { event:T1 }
+pub struct Get2Data  <T1> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:T1
+}
 pub type   OwnedGet2 <T1> = stream::Node     <Get2Data<T1>>;
 pub type   Get2      <T1> = stream::WeakNode <Get2Data<T1>>;
 
@@ -1571,7 +1641,10 @@ impl<T1> stream::InputBehaviors for Get2Data<T1> {
 // ============
 
 #[derive(Debug)]
-pub struct IterData  <T1> { event:T1 }
+pub struct IterData  <T1> {
+    #[allow(dead_code)]
+    event:T1
+}
 pub type   OwnedIter <T1> = stream::Node     <IterData<T1>>;
 pub type   Iter      <T1> = stream::WeakNode <IterData<T1>>;
 
@@ -1612,7 +1685,12 @@ impl<T1> stream::InputBehaviors for IterData<T1> {
 // ============
 
 #[derive(Debug)]
-pub struct FoldData  <T1> { event:T1 }
+pub struct FoldData  <T1> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct 
+    /// stays alive at least as long as this struct.
+    event:T1
+}
 pub type   OwnedFold <T1> = stream::Node     <FoldData<T1>>;
 pub type   Fold      <T1> = stream::WeakNode <FoldData<T1>>;
 

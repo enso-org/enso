@@ -45,7 +45,7 @@ impl ShapeData {
     /// Constructor.
     pub fn new(shape_num:usize) -> Self {
         let ids  = default();
-        let name = format!("shape_{}",shape_num.to_string());
+        let name = format!("shape_{}",shape_num);
         Self {shape_num,ids,name}
     }
 
@@ -140,9 +140,8 @@ impl Canvas {
 
     /// Get the final GLSL code.
     pub fn to_glsl(&self) -> String {
-        if !self.current_function_lines.is_empty() {
-            panic!("Internal error. Not all canvas GLSL code lines were converted to functions.");
-        }
+        assert!(self.current_function_lines.is_empty(), 
+            "Internal error. Not all canvas GLSL code lines were converted to functions.");
         self.functions.join("\n\n")
     }
 }

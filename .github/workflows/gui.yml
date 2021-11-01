@@ -116,7 +116,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-06-17
+          toolchain: nightly-2021-10-29
           override: true
       - name: Install Prettier
         run: npm install --save-dev --save-exact prettier
@@ -150,7 +150,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-06-17
+          toolchain: nightly-2021-10-29
           override: true
       - name: Run tests (no WASM)
         run: node ./run test --no-wasm --skip-version-validation
@@ -176,7 +176,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-06-17
+          toolchain: nightly-2021-10-29
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -235,7 +235,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-06-17
+          toolchain: nightly-2021-10-29
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -314,7 +314,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-06-17
+          toolchain: nightly-2021-10-29
           override: true
       - name: Install wasm-pack (macOS)
         env:
