@@ -734,6 +734,7 @@ macro_rules! define_components {
 
         impl $name {
             /// Constructor.
+            #[allow(clippy::vec_init_then_push)]
             pub fn new(logger:Logger) -> Self {
                 let display_object = display::object::Instance::new(&logger);
                 $(let $field = <$field_type>::new(Logger::new_sub(&logger,stringify!($field)));)*
@@ -768,6 +769,7 @@ macro_rules! define_components {
         }
 
         impl AnyEdgeShape for $name {
+            #[allow(clippy::vec_init_then_push)]
             fn shapes(&self) -> Vec<&dyn EdgeShape> {
                 let mut output = Vec::<&dyn EdgeShape>::default();
                 $(output.push(&self.$field);)*

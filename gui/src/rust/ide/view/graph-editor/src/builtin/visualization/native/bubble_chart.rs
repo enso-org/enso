@@ -50,6 +50,7 @@ pub struct BubbleChartModel {
 }
 
 impl BubbleChartModel {
+    #[allow(clippy::question_mark)]
     fn receive_data(&self, data:&Data) -> Result<(),DataError> {
         let data_inner = match data {
             Data::Json {content} => content,

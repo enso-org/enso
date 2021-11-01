@@ -32,7 +32,7 @@ impl GlobalConfig {
     /// The requirements for Engine's version, in format understandable by
     /// [`semver::VersionReq::parse`].
     pub fn engine_version_supported(&self) -> VersionReq {
-        VersionReq::parse(format!("^{}", self.engine_version.to_string()).as_str()).unwrap()
+        VersionReq::parse(format!("^{}", self.engine_version).as_str()).unwrap()
     }
 }
 

@@ -45,7 +45,7 @@ impl ShapeData {
     /// Constructor.
     pub fn new(shape_num:usize) -> Self {
         let ids  = default();
-        let name = format!("shape_{}",shape_num.to_string());
+        let name = format!("shape_{}",shape_num);
         Self {shape_num,ids,name}
     }
 
