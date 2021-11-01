@@ -1,10 +1,9 @@
-
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # DO NOT CHANGE THIS FILE. IT WAS GENERATED FROM 'build/workflow.js'. READ DOCS THERE TO LEARN MORE.
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 name: GUI CI
-'on':
+"on":
   push:
     branches:
       - develop
@@ -51,7 +50,7 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-              
+
         shell: bash
       - name: Assert Version Unstable
         run: node ./run assert-version-unstable --skip-version-validation
@@ -77,7 +76,7 @@ jobs:
                   list=`git diff --name-only origin/${{github.base_ref}} HEAD | tr '\n' ' '`
                   echo $list
                   echo "::set-output name=list::'$list'"
-              
+
         shell: bash
         if: >-
           github.base_ref == 'develop' || github.base_ref == 'unstable' ||
@@ -274,7 +273,7 @@ jobs:
       - uses: actions/setup-java@v2
         with:
           distribution: adopt
-          java-version: '11'
+          java-version: "11"
       - name: Build WASM
         run: node ./run build --no-js --skip-version-validation
       - name: Upload IDE WASM artifacts
@@ -304,7 +303,7 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-              
+
         shell: bash
       - name: Install Node
         uses: actions/setup-node@v1
@@ -353,7 +352,7 @@ jobs:
       - uses: actions/setup-java@v2
         with:
           distribution: adopt
-          java-version: '11'
+          java-version: "11"
       - name: Download IDE WASM artifacts
         uses: actions/download-artifact@v2
         with:
@@ -448,7 +447,7 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-              
+
         shell: bash
       - id: checkCurrentReleaseTag
         uses: mukunku/tag-exists-action@v1.0.0
@@ -505,7 +504,7 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-              
+
         shell: bash
       - shell: bash
         run: |2-
@@ -516,7 +515,7 @@ jobs:
                   us-west-1
                   text
                   EOF
-              
+
       - name: Upload 'index.js.gz' to CDN
         shell: bash
         run: >-
