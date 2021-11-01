@@ -19,7 +19,6 @@ use ensogl_core::system::gpu::texture;
 
 
 
-
 // =============
 // === Glyph ===
 // =============

@@ -104,9 +104,9 @@ impl FolderContent for FileProvider {
                     Some((path.clone(), FolderType::Root)),
                 language_server::ContentRoot::Home { .. } =>
                     Some(("Home".to_owned(), FolderType::Home)),
-                language_server::ContentRoot::Library { .. } => None, /* We skip libraries, as
-                                                                        * they cannot be easily
-                                                                        * inserted. */
+                language_server::ContentRoot::Library { .. } => None, /* We skip libraries, as */
+                // they cannot be easily
+                // inserted.
                 language_server::ContentRoot::Custom { .. } => None, /* Custom content roots are
                                                                       * not used. */
             }?;
