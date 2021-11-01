@@ -387,10 +387,12 @@ impl Default for Keyboard {
 /// Note: The members are never directly accessed after creation, but need to be kept alive to 
 /// keep routing the events.
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct DomBindings {
+    #[allow(dead_code)]
     key_down : Listener<dyn KeyboardEventCallback>,
+    #[allow(dead_code)]
     key_up   : Listener<dyn KeyboardEventCallback>,
+    #[allow(dead_code)]
     blur     : Listener<dyn EventCallback>,
 }
 
