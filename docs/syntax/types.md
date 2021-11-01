@@ -73,6 +73,9 @@ This means that you can section them, which is incredibly useful for programming
 with types. In addition, Enso supports a number of additional operators for
 working with types. These are listed below.
 
+<!-- For some reason prettier breaks the table below. -->
+<!-- prettier-ignore-start -->
+
 | Operator |     Precedence Relations     | Level | Assoc. | Description                                                                 |
 | :------: | :--------------------------: | :---: | :----: | :-------------------------------------------------------------------------- |
 |   `:`    |            `> =`             |   0   |  Left  | Ascribes the type (the right operand) to the value of the left operand.     |
@@ -86,6 +89,8 @@ working with types. These are listed below.
 |   `&`    |            `> \|`            |   6   |  Left  | Computes the intersection of the left and right operand typesets.           |
 |   `\`    |            `> &`             |   7   |  Left  | Computes the subtraction of the right typeset from the left typeset.        |
 |   `:=`   |     `< :`, `> =`, `> ;`      |  -1   |  Left  | Creates a typeset member by assigning a value to a label.                   |
+
+<!-- prettier-ignore-end -->
 
 Solving this set of inequalities produces the _relative_ precedence levels for
 these operators shown in the table above. In order to check this, you can use
