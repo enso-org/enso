@@ -12,3 +12,6 @@ distribution/lib/Standard/Image/*/THIRD-PARTY
 distribution/lib/Standard/Database/*/THIRD-PARTY
 built-distribution/
 THIRD-PARTY
+
+# GUI has its own config in the subdirectory.
+gui/

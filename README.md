@@ -208,7 +208,8 @@ Enso consists of several sub projects:
   inspect Enso code as it runs. These components can be used on their own as
   command line tools.
 
-- **Enso IDE:** The [Enso IDE](https://github.com/enso-org/enso/tree/develop/gui) is the desktop
+- **Enso IDE:** The
+  [Enso IDE](https://github.com/enso-org/enso/tree/develop/gui) is the desktop
   application that allows working with the visual form of Enso. It consists of
   an Electron application, a high performance WebGL UI framework, and the
   searcher which provides contextual search, hints, and documentation for all of
@@ -220,10 +221,10 @@ Enso consists of several sub projects:
 
 The Enso Engine is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/enso-org/enso/blob/develop/LICENSE) file. The Enso IDE
-is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0), as
-specified in the [LICENSE](https://github.com/enso-org/enso/blob/develop/gui/LICENSE)
-file.
+[LICENSE](https://github.com/enso-org/enso/blob/develop/LICENSE) file. The Enso
+IDE is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0),
+as specified in the
+[LICENSE](https://github.com/enso-org/enso/blob/develop/gui/LICENSE) file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
