@@ -13,15 +13,15 @@
     <img src="https://github.com/enso-org/enso/workflows/Engine%20CI/badge.svg"
          alt="Actions Status">
   </a>
-  <a href="https://github.com/enso-org/ide/actions">
-    <img src="https://github.com/enso-org/ide/workflows/GUI%20CI/badge.svg"
+  <a href="https://github.com/enso-org/enso/actions">
+    <img src="https://github.com/enso-org/enso/workflows/GUI%20CI/badge.svg"
          alt="Actions Status">
   </a>
-  <a href="https://github.com/enso-org/enso/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/enso/blob/develop/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/enso-org/ide/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/enso/blob/develop/gui/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
@@ -144,7 +144,7 @@ always trust the results you get.
 <ul><ul>
     <b>Watch Tutorials</b><br/>
     <ul>
-        <li><a href="https://github.com/enso-org/ide/blob/develop/docs/product/shortcuts.md">Enso keyboard shortcuts</a></li>
+        <li><a href="https://github.com/enso-org/enso/blob/develop/gui/docs/product/shortcuts.md">Enso keyboard shortcuts</a></li>
         <li><a href="https://youtu.be/3f6FE1dgMNw?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Enso 101</a></li>
         <li><a href="https://youtu.be/hFxugfGbvGI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze trams data</a></li>
         <li><a href="https://youtu.be/gXnojGR6wOI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze GitHub Stargazers data</a></li>
@@ -208,7 +208,7 @@ Enso consists of several sub projects:
   inspect Enso code as it runs. These components can be used on their own as
   command line tools.
 
-- **Enso IDE:** The [Enso IDE](https://github.com/enso-org/ide) is the desktop
+- **Enso IDE:** The [Enso IDE](https://github.com/enso-org/enso/tree/develop/gui) is the desktop
   application that allows working with the visual form of Enso. It consists of
   an Electron application, a high performance WebGL UI framework, and the
   searcher which provides contextual search, hints, and documentation for all of
@@ -220,9 +220,9 @@ Enso consists of several sub projects:
 
 The Enso Engine is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/enso-org/enso/blob/main/LICENSE) file. The Enso IDE
+[LICENSE](https://github.com/enso-org/enso/blob/develop/LICENSE) file. The Enso IDE
 is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0), as
-specified in the [LICENSE](https://github.com/enso-org/ide/blob/main/LICENSE)
+specified in the [LICENSE](https://github.com/enso-org/enso/blob/develop/gui/LICENSE)
 file.
 
 This license set was choosen to both provide you with a complete freedom to use

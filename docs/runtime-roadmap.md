@@ -237,7 +237,7 @@ To rectify this situation, we recommend implementing a system we have termed
 - For builtin types, the compiler should be informed that the type for a builtin
   is actually _defined_ in a source file, despite being implemented elsewhere.
 - You can see the existing design for this annotation-based system in
-  [`Builtins.enso`](https://github.com/enso-org/enso/tree/main/engine/runtime/src/main/resources/Builtins.enso).
+  [`Builtins.enso`](https://github.com/enso-org/enso/tree/develop/engine/runtime/src/main/resources/Builtins.enso).
 - Implementing this has a knock-on effect on what can be done later. For
   example, `Vector` and `Time` are currently defined in `Base`, and are
   therefore not (Truffle) interop friendly. With this system, we could implement

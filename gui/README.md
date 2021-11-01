@@ -11,11 +11,11 @@
     <img src="https://img.shields.io/discord/401396655599124480.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2"
          alt="Chat">
   </a>
-  <a href="https://github.com/enso-org/enso/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/enso/blob/develop/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/enso-org/ide/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/enso/tree/develop/gui/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
@@ -62,9 +62,9 @@ learn more.
 ### License
 
 The Enso Language Compiler is released under the terms of the
-[Apache v2 License](https://github.com/enso-org/enso/blob/main/LICENSE). The
+[Apache v2 License](https://github.com/enso-org/enso/blob/develop/LICENSE). The
 Enso Graphical Interface and it's rendering engine are released under the terms
-of the [AGPL v3 License](https://github.com/enso-org/ide/blob/main/LICENSE).
+of the [AGPL v3 License](https://github.com/enso-org/enso/blob/develop/gui/LICENSEE).
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
 also allowing us to release commercial products on top of the platform,

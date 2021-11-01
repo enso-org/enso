@@ -602,7 +602,7 @@ Hello, World!
 
 #### Running IDE
 
-You can start [IDE](https://github.com/enso-org/ide) with a development version
+You can start [IDE](https://github.com/enso-org/enso/tree/develop/gui) with a development version
 of the language server. IDE executable has `--no-backend` flag that switches off
 the bundled backend. That requires you to run the project manager process
 yourself. You can either get a project manager from one of the latest releases

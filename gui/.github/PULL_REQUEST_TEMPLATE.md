@@ -15,7 +15,7 @@ Please include the following checklist in your PR:
 
 - [ ] The `CHANGELOG.md` was updated with the changes introduced in this PR.
 - [ ] The documentation has been updated if necessary.
-- [ ] All code conforms to the [Rust](https://github.com/enso-org/enso/blob/main/docs/style-guide/rust.md) style guide.
+- [ ] All code conforms to the [Rust](https://github.com/enso-org/enso/blob/develop/docs/style-guide/rust.md) style guide.
 - [ ] All code has automatic tests where possible.
 - [ ] All code has been profiled where possible.
 - [ ] All code has been manually tested in the IDE.

@@ -33,7 +33,7 @@ these libraries, as well as notes on how they should be used.
 `Base` is the core library of Enso. It contains core types and data structures,
 as well as basic functionality for interacting with the outside world. It can be
 found in
-[`distribution/lib/Standard/Base/`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Base/).
+[`distribution/lib/Standard/Base/`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Base/).
 
 `Base` is intended to be imported unqualified at the top of the file:
 `from Standard.Base import all`. Items not included in this unqualified import
@@ -47,7 +47,7 @@ interpreter also contains a set of definitions that are considered "primitive"
 and are hence built into the interpreter.
 
 For the purposes of documentation, there is a
-[`Builtins.enso`](https://github.com/enso-org/enso/tree/main/engine/runtime/src/main/resources/Builtins.enso)
+[`Builtins.enso`](https://github.com/enso-org/enso/tree/develop/engine/runtime/src/main/resources/Builtins.enso)
 file that provides stub definitions for these builtin functions. It is used for
 documentation purposes, and must be kept up to date as the builtins change.
 
@@ -65,7 +65,7 @@ imported directly.
 `Database` is a library that provides utilities for accessing data in databases
 and processing that data efficiently. It is part of the Enso standard libraries
 and is located in
-[`distribution/lib/Standard/Database/`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Database/).
+[`distribution/lib/Standard/Database/`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Database/).
 
 It is designed to be imported _qualified_.
 
@@ -73,20 +73,20 @@ It is designed to be imported _qualified_.
 
 `Geo` is a library that contains very basic functionality for working with
 geographic data. We hope to expand it greatly in the future. It is located in
-[`distribution/lib/Standard/Geo/`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Geo/).
+[`distribution/lib/Standard/Geo/`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Geo/).
 
 ## Image
 
 `Image` is a library that contains bindings to [OpenCV](https://opencv.org/)
 that allows users to work with image data. It is located in
-[`distribution/lib/Standard/Image/`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Image/).
+[`distribution/lib/Standard/Image/`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Image/).
 
 ## Table
 
 `Table` is Enso's dataframes library, providing functionality for loading and
 analysing tabular data. It is a core data-science toolkit, that integrates
 deeply with Enso and its IDE. It can be found in
-[`distribution/lib/Standard/Table/`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Table/).
+[`distribution/lib/Standard/Table/`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Table/).
 
 `Table` is designed to be imported qualified: `import Table`.
 
@@ -96,7 +96,7 @@ deeply with Enso and its IDE. It can be found in
 time it is _very_ rudimentary, and needs significant improvement before we can
 consider it an "official" part of the Enso standard libraries. It can be found
 in
-[`distribution/lib/Standard/Test/`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Test/).
+[`distribution/lib/Standard/Test/`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Test/).
 
 `Test` is intended to be imported qualified: `import Test`. This ensures that
 there aren't spurious name clashes between user-defined functionality and the
@@ -106,7 +106,7 @@ testing library.
 
 `Visualization` is a semi-internal library that provides visualization-specific
 utilities for displaying data in the IDE. It is located in
-[`distribution/lib/Standard/Visualization/`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Visualization/).
+[`distribution/lib/Standard/Visualization/`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Visualization/).
 
 ## Documentation
 
@@ -188,7 +188,7 @@ All examples assume that the prelude is imported using
 `from Standard.Base import all` in the file into which it is being pasted.
 
 The
-[`Standard.Examples`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Examples/)
+[`Standard.Examples`](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard/Examples/)
 file contains example data for use in examples. If an example requires
 non-trivial data on which to operate, it should be placed here.
 

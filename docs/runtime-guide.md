@@ -56,7 +56,7 @@ order: 7
    [the follow up post](https://chrisseaton.com/truffleruby/basic-truffle-graphs/))
    to familiarize yourself with the representation.
 2. Use our sbt
-   [`withDebug`](https://github.com/enso-org/enso/blob/main/project/WithDebugCommand.scala)
+   [`withDebug`](https://github.com/enso-org/enso/blob/develop/project/WithDebugCommand.scala)
    utility. Familiarize yourself with the different otpions. It is a useful
    helper for running your programs and microbenchmarks with different Truffle
    debugging options.
@@ -96,7 +96,7 @@ order: 7
 ## Code & Internal Documentation Map
 
 Other than the subsections here, go through the
-[existing documentation](https://github.com/enso-org/enso/tree/main/docs).
+[existing documentation](https://github.com/enso-org/enso/tree/develop/docs).
 
 ### Entry Points
 
@@ -130,7 +130,7 @@ design choices. Here's a list with some explanations:
    a method via call site" functionality of the IDE. Start reading from
    `ApplicationNode` and follow the execute methods (or `@Specialization`s).
    There's a lot of them, but don't get too scared. It is also outlined
-   [here](https://github.com/enso-org/enso/blob/main/docs/runtime/function-call-flow.md).
+   [here](https://github.com/enso-org/enso/blob/develop/docs/runtime/function-call-flow.md).
 2. **Polyglot Code**: While for some languages (Java, Ruby and Python) it is
    straightforward and very Truffle-like, for others (JS and R) it becomes
    tricky. The reason is that Truffle places strong limitations on threading in
@@ -139,7 +139,7 @@ design choices. Here's a list with some explanations:
    sub-language, running on 2 separate Truffle contexts, exposing the single
    threaded languages in a safe way (through a GIL). The language is called EPB
    (Enso Polyglot Bridge) and lives in
-   [this subtree](https://github.com/enso-org/enso/tree/main/engine/runtime/src/main/java/org/enso/interpreter/epb).
+   [this subtree](https://github.com/enso-org/enso/tree/develop/engine/runtime/src/main/java/org/enso/interpreter/epb).
    To really understand it, you'll need to familiarize yourself with what a
    [TruffleContext](https://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/TruffleContext.html)
    is and how it relates to polyglot and language contexts (oh, and also get
@@ -149,31 +149,31 @@ design choices. Here's a list with some explanations:
    when needed. Safepoints are polled during normal code execution (usually at
    the start of every non-inlined method call and at each iteration of a TCO
    loop). See
-   [the source](https://github.com/enso-org/enso/blob/main/engine/runtime/src/main/java/org/enso/interpreter/runtime/ThreadManager.java).
+   [the source](https://github.com/enso-org/enso/blob/develop/engine/runtime/src/main/java/org/enso/interpreter/runtime/ThreadManager.java).
 4. **Resource Finalization**: Enso exposes a system for automatic resource
    finalization. This is non-trivial on the JVM and is handled in the
-   [ResourceManager](https://github.com/enso-org/enso/blob/main/engine/runtime/src/main/java/org/enso/interpreter/runtime/ResourceManager.java).
+   [ResourceManager](https://github.com/enso-org/enso/blob/develop/engine/runtime/src/main/java/org/enso/interpreter/runtime/ResourceManager.java).
 5. **Builtin Definitions**: Certain basic functions and types are exposed
    directly from the interpreter. They currently are all bundled in a virtual
    module called `Standard.Builtins`. See
-   [the Builtins class](https://github.com/enso-org/enso/blob/main/engine/runtime/src/main/java/org/enso/interpreter/runtime/builtin/Builtins.java)
+   [the Builtins class](https://github.com/enso-org/enso/blob/develop/engine/runtime/src/main/java/org/enso/interpreter/runtime/builtin/Builtins.java)
    to see how that module is constructed. There's also a java-side
    annotation-driven DSL for automatic generation of builtin method boilerplate.
    See nodes in
-   [this tree](https://github.com/enso-org/enso/tree/main/engine/runtime/src/main/java/org/enso/interpreter/runtime/builtin)
+   [this tree](https://github.com/enso-org/enso/tree/develop/engine/runtime/src/main/java/org/enso/interpreter/runtime/builtin)
    to get an idea of how it works. Also
-   [read the doc](https://github.com/enso-org/enso/blob/main/docs/runtime/builtin-base-methods.md)
+   [read the doc](https://github.com/enso-org/enso/blob/develop/docs/runtime/builtin-base-methods.md)
 6. **Standard Library Sources**: These are very non-magical – just plain old
    Enso projects that get shipped with every compiler release. They live
-   [in this tree](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard).
+   [in this tree](https://github.com/enso-org/enso/tree/develop/distribution/lib/Standard).
    And are tested through
-   [these projects](https://github.com/enso-org/enso/tree/main/test). It also
+   [these projects](https://github.com/enso-org/enso/tree/develop/test). It also
    makes heavy use of host interop. The Java methods used by the standard
    library are located in
-   [this directory](https://github.com/enso-org/enso/tree/main/std-bits).
+   [this directory](https://github.com/enso-org/enso/tree/develop/std-bits).
 7. **Microbenchmarks**: There are some microbenchmarks for tiny Enso programs
    for basic language constructs. They are located in
-   [this directory](https://github.com/enso-org/enso/tree/main/engine/runtime/src/bench).
+   [this directory](https://github.com/enso-org/enso/tree/develop/engine/runtime/src/bench).
    They can be run through `sbt runtime/bench`. Each run will generate (or
    append to) the `bench-report.xml` file. It will also fail the benchmark suite
    if any benchmark is more than 20% slower than the fastest recorded run. Don't

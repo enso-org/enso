@@ -40,7 +40,7 @@ pub mod test_utils;
 /// Indentation: Indentation is four spaces, and all tabs are converted to 4 spaces. This is not
 /// configurable on purpose.
 ///
-/// Link: https://github.com/enso-org/enso/blob/main/doc/syntax/encoding.md
+/// Link: https://github.com/enso-org/enso/blob/develop/doc/syntax/encoding.md
 pub const INDENT : usize = 4;
 
 

@@ -1,6 +1,6 @@
 //! Client library for the Language Server part of the Enso Protocol.
 //!
-//! Please refer to https://github.com/enso-org/enso/blob/main/docs/language-server/README.md---language-server
+//! Please refer to https://github.com/enso-org/enso/blob/develop/docs/language-server/README.md---language-server
 //! for the full protocol documentation and discussion on the types and terms used here.
 //!
 //! Also, the Enso Protocol specification is source for many names and comments used here.

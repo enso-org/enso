@@ -711,7 +711,7 @@ pub enum StackItem {
 #[serde(rename_all="camelCase")]
 pub struct CapabilityRegistration {
     /// Method is the name of the capability listed in
-    /// https://github.com/enso-org/enso/blob/main/docs/language-server/protocol-language-server.md#capabilities
+    /// https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#capabilities
     pub method: String,
     /// One of the enumerated `RegisterOptions` depending of `method`.
     pub register_options: RegisterOptions
@@ -761,7 +761,7 @@ impl CapabilityRegistration {
 
 /// `capability/acquire` takes method and options specific to the method. This type represents the
 /// options. The used variant must match the method. See for details:
-/// https://github.com/enso-org/enso/blob/main/docs/language-server/protocol-language-server.md#capabilities
+/// https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#capabilities
 //TODO[ao] we cannot have one variant for each cabability due to `untagged` attribute.
 // The best solution is make CapabilityRegistration an enum and write serialization and
 // deserialization by hand.

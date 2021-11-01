@@ -117,7 +117,7 @@ impl LanguageServerContent {
 /// changes done to it. On drop the module is closed in Language Server.
 ///
 /// See also (enso protocol documentation)
-/// [https://github.com/enso-org/enso/blob/main/docs/language-server/protocol-language-server.md].
+/// [https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md].
 #[derive(Debug)]
 pub struct Module {
     model           : model::module::Plain,

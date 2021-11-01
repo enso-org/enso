@@ -8,7 +8,7 @@
 
 - [Updated Enso engine to version 0.2.30][engine-0.2.31]. If you're interested
   in the enhancements and fixes made to the Enso compiler, you can find their
-  release notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  release notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
@@ -49,9 +49,9 @@
 
 - [Updated Enso engine to version 0.2.30][engine-0.2.30]. If you're interested
   in the enhancements and fixes made to the Enso compiler, you can find their
-  release notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  release notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
-[engine-0.2.30]: https://github.com/enso-org/enso/blob/main/RELEASES.md
+[engine-0.2.30]: https://github.com/enso-org/enso/blob/develop/RELEASES.md
 
 # Enso 2.0.0-alpha.16 (2021-09-16)
 
@@ -70,9 +70,9 @@
 
 - [Updated Enso engine to version 0.2.29][engine-0.2.29]. If you're interested
   in the enhancements and fixes made to the Enso compiler, you can find their
-  release notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  release notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
-[engine-0.2.29]: https://github.com/enso-org/enso/blob/main/RELEASES.md
+[engine-0.2.29]: https://github.com/enso-org/enso/blob/develop/RELEASES.md
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
@@ -112,7 +112,7 @@
 
 - [Updated Enso engine to version 0.2.28][1829]. If you're interested in the
   enhancements and fixes made to the Enso compiler, you can find their release
-  notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [1829]: https://github.com/enso-org/ide/pull/1829
 
@@ -124,7 +124,7 @@
 
 - [Updated Enso engine to version 0.2.27][1811]. If you're interested in the
   enhancements and fixes made to the Enso compiler, you can find their release
-  notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [1811]: https://github.com/enso-org/ide/pull/1811
 
@@ -144,7 +144,7 @@
 
 - [Updated Enso engine to version 0.2.26][1801]. If you're interested in the
   enhancements and fixes made to the Enso compiler, you can find their release
-  notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [1801]: https://github.com/enso-org/ide/pull/1801
 [1775]: https://github.com/enso-org/ide/pull/1775
@@ -170,7 +170,7 @@ these updates be shipped in a stable release before the end of the year.
 - [Updated Enso engine to version 0.2.22][1762]. If you are interested in the
   enhancements and fixes made to the Enso compiler, you can find out more
   details in
-  [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  [the engine release notes](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
@@ -195,7 +195,7 @@ these updates be shipped in a stable release before the end of the year.
 - [Updated Enso engine to version 0.2.15][1710]. If you're interested in the
   enhancements and fixes made to the Enso compiler, you can find out more
   details in
-  [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  [the engine release notes](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 <br/>
 
@@ -224,7 +224,7 @@ these updates be shipped in a stable release before the end of the year.
 - [Updated Enso engine to version 0.2.12][1640]. If you're interested in the
   enhancements and fixes made to the Enso compiler, you can find out more
   details in
-  [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+  [the engine release notes](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [1640]: https://github.com/enso-org/ide/pull/1640
 
@@ -333,7 +333,7 @@ these updates be shipped in a stable release before the end of the year.
 
 If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
-[here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+[here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [1366]: https://github.com/enso-org/ide/pull/1366
 [1541]: https://github.com/enso-org/ide/pull/1541
@@ -372,7 +372,7 @@ you can find their release notes
 
 If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
-[here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+[here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [1511]: https://github.com/enso-org/ide/pull/1511
 [1536]: https://github.com/enso-org/ide/pull/1536
@@ -524,7 +524,7 @@ you can find their release notes
 
 If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
-[here](https://github.com/enso-org/enso/blob/main/RELEASES.md#enso-0210-2021-04-07).
+[here](https://github.com/enso-org/enso/blob/develop/RELEASES.md#enso-0210-2021-04-07).
 
 [1064]: https://github.com/enso-org/ide/pull/1064
 [1209]: https://github.com/enso-org/ide/pull/1209
@@ -681,7 +681,7 @@ users about errors and where they originate.
 
 If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
-[here](https://github.com/enso-org/enso/blob/main/RELEASES.md#enso-026-2021-03-02).
+[here](https://github.com/enso-org/enso/blob/develop/RELEASES.md#enso-026-2021-03-02).
 
 [1067]: https://github.com/enso-org/ide/pull/1067
 [1096]: https://github.com/enso-org/ide/pull/1096

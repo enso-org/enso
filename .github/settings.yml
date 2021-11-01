@@ -16,7 +16,7 @@ repository:
   has_projects: true
   has_downloads: true
 
-  default_branch: main
+  default_branch: develop
 
   allow_squash_merge: true
   allow_merge_commit: false
