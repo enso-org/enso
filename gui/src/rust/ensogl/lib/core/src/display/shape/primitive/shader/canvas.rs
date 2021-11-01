@@ -140,9 +140,7 @@ impl Canvas {
 
     /// Get the final GLSL code.
     pub fn to_glsl(&self) -> String {
-        if !self.current_function_lines.is_empty() {
-            panic!("Internal error. Not all canvas GLSL code lines were converted to functions.");
-        }
+        assert!(self.current_function_lines.is_empty(), "Internal error. Not all canvas GLSL code lines were converted to functions.");
         self.functions.join("\n\n")
     }
 }

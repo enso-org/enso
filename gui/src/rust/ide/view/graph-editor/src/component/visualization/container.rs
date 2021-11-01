@@ -155,7 +155,6 @@ ensogl::define_endpoints! {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct View {
-    logger         : Logger,
     display_object : display::object::Instance,
 
     background     : background::View,
@@ -200,7 +199,7 @@ impl View {
         shadow::add_to_dom_element(&background_dom,&styles,&logger);
         display_object.add_child(&background_dom);
 
-        Self {logger,display_object,background,overlay,background_dom,scene}.init()
+        Self {display_object,background,overlay,background_dom,scene}.init()
     }
 
     fn set_layer(&self, layer:visualization::Layer) {

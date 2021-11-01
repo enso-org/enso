@@ -69,7 +69,6 @@ struct Model {
     background     : background::View,
     label          : text::Area,
     display_object : display::object::Instance,
-    app            : Application,
     style          : StyleWatch,
 }
 
@@ -94,7 +93,7 @@ impl Model {
 
         let style = StyleWatch::new(&app.display.scene().style_sheet);
 
-        Model {background,label,display_object,app,style}
+        Model {background,label,display_object,style}
     }
 
     pub fn height(&self) -> f32 {

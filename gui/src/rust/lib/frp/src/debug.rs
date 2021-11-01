@@ -2,6 +2,7 @@
 //! diagram.
 
 #![allow(missing_docs)]
+#![allow(dead_code)]
 
 //! WARNING
 //! THIS MODULE IS IN A VERY WORK-IN-PROGRESS STATE. IT WILL BE CHANGED SOON.

@@ -9,7 +9,6 @@ use ensogl_text_msdf_sys::run_once_initialized;
 use ensogl_gui_components::list_view;
 use logger::TraceLogger as Logger;
 use wasm_bindgen::prelude::*;
-use ensogl_core::display::Scene;
 use ensogl_text::buffer::data::unit::Bytes;
 use ensogl_theme as theme;
 
@@ -40,16 +39,12 @@ pub fn entry_point_list_view() {
 
 #[derive(Clone,Debug)]
 struct MockEntries {
-    logger        : Logger,
-    scene         : Scene,
     entries_count : usize,
 }
 
 impl MockEntries {
-    fn new(app:&Application, entries_count:usize) -> Self {
-        let logger  = Logger::new("MockEntries");
-        let scene   = app.display.scene().clone_ref();
-        Self {logger,scene,entries_count}
+    fn new(entries_count:usize) -> Self {
+        Self {entries_count}
     }
 }
 
@@ -79,7 +74,7 @@ fn init(app:&Application) {
     theme::builtin::light::enable(&app);
 
     let list_view = app.new_view::<list_view::ListView<list_view::entry::GlyphHighlightedLabel>>();
-    let provider  = list_view::entry::AnyModelProvider::new(MockEntries::new(app,1000));
+    let provider  = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
     list_view.frp.resize(Vector2(100.0,160.0));
     list_view.frp.set_entries(provider);
     app.display.add_child(&list_view);

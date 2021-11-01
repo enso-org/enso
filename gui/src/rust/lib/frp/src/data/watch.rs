@@ -80,6 +80,9 @@ pub struct Ref<T> {
     /// The underlying type.
     #[shrinkwrap(main_field)]
     pub target : T,
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the handle stays 
+    /// alive at least as long as this struct.
     handle : Handle
 }
 

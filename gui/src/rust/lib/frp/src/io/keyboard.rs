@@ -382,8 +382,12 @@ impl Default for Keyboard {
 // === DomBindings ===
 // ===================
 
-/// A handle of listener emitting events on bound FRP graph.
+/// A handle of listener emitting events on bound FRP graph. 
+/// 
+/// Note: The members are never directly accessed after creation, but need to be kept alive to 
+/// keep routing the events.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct DomBindings {
     key_down : Listener<dyn KeyboardEventCallback>,
     key_up   : Listener<dyn KeyboardEventCallback>,

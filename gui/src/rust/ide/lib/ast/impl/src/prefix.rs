@@ -95,9 +95,9 @@ impl Chain {
     /// App(App(a,b),c) into flat list where first element is the function and
     /// then arguments are placed: `{func:a, args:[b,c]}`.
     pub fn from_prefix(ast:&known::Prefix) -> Chain {
-        fn run(ast:&known::Prefix, mut acc: &mut Vec<Argument>) -> Ast {
+        fn run(ast:&known::Prefix, acc: &mut Vec<Argument>) -> Ast {
             let func = match known::Prefix::try_from(&ast.func) {
-                Ok(lhs_app) => run(&lhs_app, &mut acc),
+                Ok(lhs_app) => run(&lhs_app, acc),
                 _           => ast.func.clone(),
             };
             let sast      = Shifted{wrapped:ast.arg.clone(),off:ast.off};
