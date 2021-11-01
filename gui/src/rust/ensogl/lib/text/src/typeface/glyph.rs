@@ -16,7 +16,7 @@ use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::display::world::*;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
-use ensogl_core::system::gpu::types::*;
+
 
 
 

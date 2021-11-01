@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use ensogl_core::prelude::*;
-use ensogl_core::traits::*;
+
 
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::Sprite;
