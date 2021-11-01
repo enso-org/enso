@@ -6,3 +6,9 @@
 
 # Repo Configuration
 /.github/settings.yml @4e6 @radeusgd
+
+# GUI
+/gui/* @wdanilo
+/gui/src/rust/ide @mwu-tow
+/gui/src/rust/ide/view @wdanilo
+/gui/src/rust/ide/view @MichaelMauderer

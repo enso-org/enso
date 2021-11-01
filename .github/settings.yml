@@ -199,7 +199,7 @@ teams:
 
 # Branch protection
 branches:
-  - name: main
+  - name: develop
     protection:
       required_pull_request_reviews:
         required_approving_review_count: 1
@@ -224,6 +224,16 @@ branches:
           - "Rust Test WASM"
           - "Verify Notice Package"
           - "license/cla"
+          # GUI jobs
+          - "Build Info (macOS-latest)"
+          - "Assertions (macOS-latest)"
+          - "Linter (Linux, linter)"
+          - "Native Tests (Linux, test_native)"
+          - "WASM Tests (Linux, test_wasm)"
+          - "Build WASM (Linux, build_wasm)"
+          - "Build package (macOS-latest)"
+          - "Build package (windows-latest)"
+          - "Build package (Linux, package)"
       enforce_admins: null
       restrictions: null
   - name: "release/*.x"

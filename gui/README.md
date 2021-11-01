@@ -64,7 +64,8 @@ learn more.
 The Enso Language Compiler is released under the terms of the
 [Apache v2 License](https://github.com/enso-org/enso/blob/develop/LICENSE). The
 Enso Graphical Interface and it's rendering engine are released under the terms
-of the [AGPL v3 License](https://github.com/enso-org/enso/blob/develop/gui/LICENSEE).
+of the
+[AGPL v3 License](https://github.com/enso-org/enso/blob/develop/gui/LICENSEE).
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
 also allowing us to release commercial products on top of the platform,

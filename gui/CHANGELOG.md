@@ -8,7 +8,8 @@
 
 - [Updated Enso engine to version 0.2.30][engine-0.2.31]. If you're interested
   in the enhancements and fixes made to the Enso compiler, you can find their
-  release notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
+  release notes
+  [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
@@ -49,7 +50,8 @@
 
 - [Updated Enso engine to version 0.2.30][engine-0.2.30]. If you're interested
   in the enhancements and fixes made to the Enso compiler, you can find their
-  release notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
+  release notes
+  [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [engine-0.2.30]: https://github.com/enso-org/enso/blob/develop/RELEASES.md
 
@@ -70,7 +72,8 @@
 
 - [Updated Enso engine to version 0.2.29][engine-0.2.29]. If you're interested
   in the enhancements and fixes made to the Enso compiler, you can find their
-  release notes [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
+  release notes
+  [here](https://github.com/enso-org/enso/blob/develop/RELEASES.md).
 
 [engine-0.2.29]: https://github.com/enso-org/enso/blob/develop/RELEASES.md
 
