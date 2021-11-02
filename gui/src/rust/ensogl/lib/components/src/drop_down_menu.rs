@@ -6,12 +6,12 @@ use crate::list_view::entry::ModelProvider;
 
 use enso_frp as frp;
 use enso_frp;
-use ensogl_core::DEPRECATED_Animation;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::display::shape::*;
-use ensogl_core::display::shape::primitive::StyleWatch;
 use ensogl_core::display;
+use ensogl_core::display::shape::primitive::StyleWatch;
+use ensogl_core::display::shape::*;
+use ensogl_core::DEPRECATED_Animation;
 use ensogl_text as text;
 use ensogl_theme as theme;
 
@@ -21,9 +21,9 @@ use ensogl_theme as theme;
 // =================
 
 /// Invisible dummy color to catch hover events.
-const HOVER_COLOR : color::Rgba = color::Rgba::new(1.0,0.0,0.0,0.000_001);
+const HOVER_COLOR: color::Rgba = color::Rgba::new(1.0, 0.0, 0.0, 0.000_001);
 /// The width of the visualisation selection menu.
-const MENU_WIDTH  : f32         = 180.0;
+const MENU_WIDTH: f32 = 180.0;
 
 
 
@@ -99,31 +99,31 @@ ensogl_core::define_endpoints! {
 /// A type of Entry used in DropDownMenu's ListView.
 pub type Entry = list_view::entry::Label;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 struct Model {
-    display_object  : display::object::Instance,
+    display_object: display::object::Instance,
 
-    icon            : arrow::View,
-    icon_overlay    : chooser_hover_area::View,
+    icon:         arrow::View,
+    icon_overlay: chooser_hover_area::View,
 
-    label           : text::Area,
-    selection_menu  : list_view::ListView<Entry>,
+    label:          text::Area,
+    selection_menu: list_view::ListView<Entry>,
 
     // `SingleMaskedProvider` allows us to hide the selected element.
-    content         : RefCell<Option<list_view::entry::SingleMaskedProvider<Entry>>>,
+    content: RefCell<Option<list_view::entry::SingleMaskedProvider<Entry>>>,
 }
 
 impl Model {
-    fn new(app:&Application) -> Self {
-        let logger         = Logger::new("drop_down_menu");
+    fn new(app: &Application) -> Self {
+        let logger = Logger::new("drop_down_menu");
         let display_object = display::object::Instance::new(&logger);
-        let icon           = arrow::View::new(&logger);
-        let icon_overlay   = chooser_hover_area::View::new(&logger);
+        let icon = arrow::View::new(&logger);
+        let icon_overlay = chooser_hover_area::View::new(&logger);
         let selection_menu = list_view::ListView::new(app);
-        let label          = app.new_view::<text::Area>();
-        let content        = default();
+        let label = app.new_view::<text::Area>();
+        let content = default();
 
-        Self{display_object,icon,icon_overlay,label,selection_menu,content}.init()
+        Self { display_object, icon, icon_overlay, label, selection_menu, content }.init()
     }
 
     fn init(self) -> Self {
@@ -135,7 +135,7 @@ impl Model {
         self
     }
 
-    fn set_label(&self, label:&str) {
+    fn set_label(&self, label: &str) {
         self.label.set_cursor(&default());
         self.label.select_all();
         self.label.insert(label);
@@ -150,8 +150,10 @@ impl Model {
         self.selection_menu.unset_parent()
     }
 
-    fn get_content_item
-    (&self, id:Option<list_view::entry::Id>) -> Option<<Entry as list_view::entry::Entry>::Model> {
+    fn get_content_item(
+        &self,
+        id: Option<list_view::entry::Id>,
+    ) -> Option<<Entry as list_view::entry::Entry>::Model> {
         self.content.borrow().as_ref()?.get(id?)
     }
 
@@ -163,7 +165,7 @@ impl Model {
     /// Item list      [A, B,  C]
     /// Unmasked index [0, 1,  2]
     /// Masked indices [0, na, 1]
-    fn get_unmasked_index(&self, ix:Option<usize>) -> Option<usize> {
+    fn get_unmasked_index(&self, ix: Option<usize>) -> Option<usize> {
         Some(self.content.borrow().as_ref()?.unmasked_index(ix?))
     }
 }
@@ -182,32 +184,34 @@ impl display::Object for Model {
 
 /// UI entity that shows a button that opens a list of visualisations that can be selected from.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct DropDownMenu {
-    model   : Rc<Model>,
-    pub frp : Frp,
+    model:   Rc<Model>,
+    pub frp: Frp,
 }
 
 impl Deref for DropDownMenu {
     type Target = Frp;
-    fn deref(&self) -> &Self::Target { &self.frp }
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
 impl DropDownMenu {
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
-        let frp   = Frp::new();
+    pub fn new(app: &Application) -> Self {
+        let frp = Frp::new();
         let model = Rc::new(Model::new(app));
-        Self {model,frp}.init(app)
+        Self { model, frp }.init(app)
     }
 
-    fn init(self, app:&Application) -> Self {
+    fn init(self, app: &Application) -> Self {
         let network = &self.frp.network;
-        let frp     = &self.frp;
-        let model   = &self.model;
+        let frp = &self.frp;
+        let model = &self.model;
 
-        let scene   = app.display.scene();
-        let mouse   = &scene.mouse.frp;
+        let scene = app.display.scene();
+        let mouse = &scene.mouse.frp;
 
         frp::extend! { network
 
@@ -354,7 +358,7 @@ impl DropDownMenu {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
         // shape system (#795)
-        let styles     = StyleWatch::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.scene().style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
         model.label.set_default_color(text_color);
 

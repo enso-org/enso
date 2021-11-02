@@ -19,24 +19,30 @@ use nalgebra::Vector2;
 /// JS supports up to 5 mouse buttons currently:
 /// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
 /// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
-#[derive(Debug,Clone,Copy,PartialEq,Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
-pub enum Button {Button0,Button1,Button2,Button3,Button4}
+pub enum Button {
+    Button0,
+    Button1,
+    Button2,
+    Button3,
+    Button4,
+}
 pub use Button::*;
 
-#[allow(non_upper_case_globals,missing_docs)]
+#[allow(non_upper_case_globals, missing_docs)]
 mod button_aliases {
     use super::*;
-    pub const PrimaryButton   : Button = Button0;
-    pub const MiddleButton    : Button = Button1;
-    pub const SecondaryButton : Button = Button2;
+    pub const PrimaryButton: Button = Button0;
+    pub const MiddleButton: Button = Button1;
+    pub const SecondaryButton: Button = Button2;
 }
 pub use button_aliases::*;
 
 impl Button {
     /// Construct a button from the provided code point. In case the code is unrecognized, `None`
     /// will be returned.
-    pub fn try_from_code(code:i32) -> Option<Self> {
+    pub fn try_from_code(code: i32) -> Option<Self> {
         match code {
             0 => Some(Self::Button0),
             1 => Some(Self::Button1),
@@ -49,7 +55,7 @@ impl Button {
 
     /// Construct a button from the provided code point. In case the code is unrecognized, the
     /// default button will be returned.
-    pub fn from_code(code:i32) -> Self {
+    pub fn from_code(code: i32) -> Self {
         Self::try_from_code(code).unwrap_or_default()
     }
 
@@ -66,7 +72,7 @@ impl Button {
 
     /// Simple, user-friendly name of a key. Used in shortcut manager.
     pub fn simple_name(self) -> String {
-        format!("mouse-button-{}",self.code())
+        format!("mouse-button-{}", self.code())
     }
 }
 
@@ -83,51 +89,85 @@ impl Default for Button {
 // ==================
 
 /// The button bitmask (each bit represents one button). Used for matching button combinations.
-#[derive(Clone,Copy,Debug,Default,Eq,Hash,PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[allow(missing_docs)]
 pub struct ButtonMask {
-    pub bits : BitField32
+    pub bits: BitField32,
 }
 
 impl ButtonMask {
     /// Creates ButtonMask from Vec<Key>.
-    pub fn from_vec(buttons:Vec<Button>) -> Self {
+    pub fn from_vec(buttons: Vec<Button>) -> Self {
         buttons.iter().collect()
     }
 
     /// Check if button bit is on.
-    pub fn contains(self, button:Button) -> bool {
+    pub fn contains(self, button: Button) -> bool {
         self.bits.get_bit(button.code())
     }
 
     /// Set the `button` bit with the new state.
-    pub fn set(&mut self, button:Button, state:bool) {
-        self.bits.set_bit(button.code(),state);
+    pub fn set(&mut self, button: Button, state: bool) {
+        self.bits.set_bit(button.code(), state);
     }
 
     /// Clone the mask and set the `button` bit with the new state.
-    pub fn with_set(mut self, button:Button, state:bool) -> Self {
-        self.set(button,state);
+    pub fn with_set(mut self, button: Button, state: bool) -> Self {
+        self.set(button, state);
         self
     }
 }
 
 impl<'a> FromIterator<&'a Button> for ButtonMask {
-    fn from_iter<T: IntoIterator<Item=&'a Button>>(buttons:T) -> Self {
+    fn from_iter<T: IntoIterator<Item = &'a Button>>(buttons: T) -> Self {
         let mut mask = ButtonMask::default();
-        for button in buttons { mask.set(*button,true) }
+        for button in buttons {
+            mask.set(*button, true)
+        }
         mask
     }
 }
 
-impl From<&[Button]>   for ButtonMask { fn from(t:&[Button])   -> Self {ButtonMask::from_iter(t)} }
-impl From<&[Button;0]> for ButtonMask { fn from(t:&[Button;0]) -> Self {ButtonMask::from_iter(t)} }
-impl From<&[Button;1]> for ButtonMask { fn from(t:&[Button;1]) -> Self {ButtonMask::from_iter(t)} }
-impl From<&[Button;2]> for ButtonMask { fn from(t:&[Button;2]) -> Self {ButtonMask::from_iter(t)} }
-impl From<&[Button;3]> for ButtonMask { fn from(t:&[Button;3]) -> Self {ButtonMask::from_iter(t)} }
-impl From<&[Button;4]> for ButtonMask { fn from(t:&[Button;4]) -> Self {ButtonMask::from_iter(t)} }
-impl From<&[Button;5]> for ButtonMask { fn from(t:&[Button;5]) -> Self {ButtonMask::from_iter(t)} }
-impl From<&ButtonMask> for ButtonMask { fn from(t:&ButtonMask) -> Self {*t} }
+impl From<&[Button]> for ButtonMask {
+    fn from(t: &[Button]) -> Self {
+        ButtonMask::from_iter(t)
+    }
+}
+impl From<&[Button; 0]> for ButtonMask {
+    fn from(t: &[Button; 0]) -> Self {
+        ButtonMask::from_iter(t)
+    }
+}
+impl From<&[Button; 1]> for ButtonMask {
+    fn from(t: &[Button; 1]) -> Self {
+        ButtonMask::from_iter(t)
+    }
+}
+impl From<&[Button; 2]> for ButtonMask {
+    fn from(t: &[Button; 2]) -> Self {
+        ButtonMask::from_iter(t)
+    }
+}
+impl From<&[Button; 3]> for ButtonMask {
+    fn from(t: &[Button; 3]) -> Self {
+        ButtonMask::from_iter(t)
+    }
+}
+impl From<&[Button; 4]> for ButtonMask {
+    fn from(t: &[Button; 4]) -> Self {
+        ButtonMask::from_iter(t)
+    }
+}
+impl From<&[Button; 5]> for ButtonMask {
+    fn from(t: &[Button; 5]) -> Self {
+        ButtonMask::from_iter(t)
+    }
+}
+impl From<&ButtonMask> for ButtonMask {
+    fn from(t: &ButtonMask) -> Self {
+        *t
+    }
+}
 
 
 
@@ -136,57 +176,57 @@ impl From<&ButtonMask> for ButtonMask { fn from(t:&ButtonMask) -> Self {*t} }
 // =============
 
 /// Mouse FRP bindings.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Mouse {
-    pub network           : frp::Network,
-    pub up                : frp::Source<Button>,
-    pub down              : frp::Source<Button>,
-    pub wheel             : frp::Source,
-    pub up_0              : frp::Stream,
-    pub up_1              : frp::Stream,
-    pub up_2              : frp::Stream,
-    pub up_3              : frp::Stream,
-    pub up_4              : frp::Stream,
-    pub up_primary        : frp::Stream,
-    pub up_middle         : frp::Stream,
-    pub up_secondary      : frp::Stream,
-    pub down_0            : frp::Stream,
-    pub down_1            : frp::Stream,
-    pub down_2            : frp::Stream,
-    pub down_3            : frp::Stream,
-    pub down_4            : frp::Stream,
-    pub down_primary      : frp::Stream,
-    pub down_middle       : frp::Stream,
-    pub down_secondary    : frp::Stream,
-    pub is_up_0           : frp::Stream<bool>,
-    pub is_up_1           : frp::Stream<bool>,
-    pub is_up_2           : frp::Stream<bool>,
-    pub is_up_3           : frp::Stream<bool>,
-    pub is_up_4           : frp::Stream<bool>,
-    pub is_up_primary     : frp::Stream<bool>,
-    pub is_up_middle      : frp::Stream<bool>,
-    pub is_up_secondary   : frp::Stream<bool>,
-    pub is_down_0         : frp::Stream<bool>,
-    pub is_down_1         : frp::Stream<bool>,
-    pub is_down_2         : frp::Stream<bool>,
-    pub is_down_3         : frp::Stream<bool>,
-    pub is_down_4         : frp::Stream<bool>,
-    pub is_down_primary   : frp::Stream<bool>,
-    pub is_down_middle    : frp::Stream<bool>,
-    pub is_down_secondary : frp::Stream<bool>,
-    pub position          : frp::Source<Vector2<f32>>,
-    pub prev_position     : frp::Stream<Vector2<f32>>,
-    pub translation       : frp::Stream<Vector2<f32>>,
-    pub distance          : frp::Stream<f32>,
-    pub ever_moved        : frp::Stream<bool>,
-    pub button_mask       : frp::Stream<ButtonMask>,
-    pub prev_button_mask  : frp::Stream<ButtonMask>,
+    pub network:           frp::Network,
+    pub up:                frp::Source<Button>,
+    pub down:              frp::Source<Button>,
+    pub wheel:             frp::Source,
+    pub up_0:              frp::Stream,
+    pub up_1:              frp::Stream,
+    pub up_2:              frp::Stream,
+    pub up_3:              frp::Stream,
+    pub up_4:              frp::Stream,
+    pub up_primary:        frp::Stream,
+    pub up_middle:         frp::Stream,
+    pub up_secondary:      frp::Stream,
+    pub down_0:            frp::Stream,
+    pub down_1:            frp::Stream,
+    pub down_2:            frp::Stream,
+    pub down_3:            frp::Stream,
+    pub down_4:            frp::Stream,
+    pub down_primary:      frp::Stream,
+    pub down_middle:       frp::Stream,
+    pub down_secondary:    frp::Stream,
+    pub is_up_0:           frp::Stream<bool>,
+    pub is_up_1:           frp::Stream<bool>,
+    pub is_up_2:           frp::Stream<bool>,
+    pub is_up_3:           frp::Stream<bool>,
+    pub is_up_4:           frp::Stream<bool>,
+    pub is_up_primary:     frp::Stream<bool>,
+    pub is_up_middle:      frp::Stream<bool>,
+    pub is_up_secondary:   frp::Stream<bool>,
+    pub is_down_0:         frp::Stream<bool>,
+    pub is_down_1:         frp::Stream<bool>,
+    pub is_down_2:         frp::Stream<bool>,
+    pub is_down_3:         frp::Stream<bool>,
+    pub is_down_4:         frp::Stream<bool>,
+    pub is_down_primary:   frp::Stream<bool>,
+    pub is_down_middle:    frp::Stream<bool>,
+    pub is_down_secondary: frp::Stream<bool>,
+    pub position:          frp::Source<Vector2<f32>>,
+    pub prev_position:     frp::Stream<Vector2<f32>>,
+    pub translation:       frp::Stream<Vector2<f32>>,
+    pub distance:          frp::Stream<f32>,
+    pub ever_moved:        frp::Stream<bool>,
+    pub button_mask:       frp::Stream<ButtonMask>,
+    pub prev_button_mask:  frp::Stream<ButtonMask>,
 }
 
 impl Mouse {
     /// Smart accessor for `up_X` field.
-    pub fn up(&self, button:Button) -> &frp::Stream {
+    pub fn up(&self, button: Button) -> &frp::Stream {
         match button {
             Button0 => &self.up_0,
             Button1 => &self.up_1,
@@ -197,7 +237,7 @@ impl Mouse {
     }
 
     /// Smart accessor for `down_X` field.
-    pub fn down(&self, button:Button) -> &frp::Stream {
+    pub fn down(&self, button: Button) -> &frp::Stream {
         match button {
             Button0 => &self.down_0,
             Button1 => &self.down_1,
@@ -208,7 +248,7 @@ impl Mouse {
     }
 
     /// Smart accessor for `is_up_X` field.
-    pub fn is_up(&self, button:Button) -> &frp::Stream<bool> {
+    pub fn is_up(&self, button: Button) -> &frp::Stream<bool> {
         match button {
             Button0 => &self.is_up_0,
             Button1 => &self.is_up_1,
@@ -219,7 +259,7 @@ impl Mouse {
     }
 
     /// Smart accessor for `is_down_X` field.
-    pub fn is_down(&self, button:Button) -> &frp::Stream<bool> {
+    pub fn is_down(&self, button: Button) -> &frp::Stream<bool> {
         match button {
             Button0 => &self.is_down_0,
             Button1 => &self.is_down_1,
@@ -297,12 +337,51 @@ impl Default for Mouse {
             prev_button_mask <- button_mask.previous();
         };
         let button_mask = button_mask.into();
-        Self { network,up,down,wheel,up_0,up_1,up_2,up_3,up_4,up_primary,up_middle,up_secondary
-             , down_0,down_1,down_2,down_3,down_4,down_primary,down_middle,down_secondary
-             , is_up_0,is_up_1,is_up_2,is_up_3,is_up_4,is_up_primary,is_up_middle,is_up_secondary
-             , is_down_0, is_down_1,is_down_2,is_down_3,is_down_4,is_down_primary,is_down_middle
-             ,is_down_secondary, position,prev_position,translation,distance,ever_moved,button_mask
-             , prev_button_mask }
+        Self {
+            network,
+            up,
+            down,
+            wheel,
+            up_0,
+            up_1,
+            up_2,
+            up_3,
+            up_4,
+            up_primary,
+            up_middle,
+            up_secondary,
+            down_0,
+            down_1,
+            down_2,
+            down_3,
+            down_4,
+            down_primary,
+            down_middle,
+            down_secondary,
+            is_up_0,
+            is_up_1,
+            is_up_2,
+            is_up_3,
+            is_up_4,
+            is_up_primary,
+            is_up_middle,
+            is_up_secondary,
+            is_down_0,
+            is_down_1,
+            is_down_2,
+            is_down_3,
+            is_down_4,
+            is_down_primary,
+            is_down_middle,
+            is_down_secondary,
+            position,
+            prev_position,
+            translation,
+            distance,
+            ever_moved,
+            button_mask,
+            prev_button_mask,
+        }
     }
 }
 

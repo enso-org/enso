@@ -5,16 +5,16 @@ pub mod builder;
 
 use crate::prelude::*;
 
-use crate::data::dirty::traits::*;
+use crate::control::callback::CallbackFn;
 use crate::data::dirty;
+use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
-use crate::display::symbol::ScopeType;
 use crate::display::symbol::shader;
-use crate::system::gpu::shader::*;
+use crate::display::symbol::ScopeType;
 use crate::system::gpu::shader::Context;
-use crate::control::callback::CallbackFn;
+use crate::system::gpu::shader::*;
 
 use web_sys::WebGlProgram;
 
@@ -26,17 +26,17 @@ use enso_shapely::shared;
 // === VarBinding ===
 // ==================
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct VarBinding {
-    pub name  : String,
-    pub decl  : VarDecl,
-    pub scope : Option<ScopeType>,
+    pub name:  String,
+    pub decl:  VarDecl,
+    pub scope: Option<ScopeType>,
 }
 
 impl VarBinding {
-    pub fn new<Name:Str>(name:Name, decl:VarDecl, scope:Option<ScopeType>) -> Self {
+    pub fn new<Name: Str>(name: Name, decl: VarDecl, scope: Option<ScopeType>) -> Self {
         let name = name.into();
-        Self {name,decl,scope}
+        Self { name, decl, scope }
     }
 }
 

@@ -1,7 +1,7 @@
 //! This module implements utilities for managing WebGL buffers.
 
-pub mod usage;
 pub mod item;
+pub mod usage;
 
 use crate::prelude::*;
 
@@ -36,10 +36,10 @@ pub use crate::system::gpu::data::Storable;
 // =============
 
 /// A vector which fires events whenever it is modified or resized.
-pub type ObservableVec<T> = Observable<Vec<T>,OnMut,OnResize>;
+pub type ObservableVec<T> = Observable<Vec<T>, OnMut, OnResize>;
 
 /// Dirty flag keeping track of the range of modified elements.
-pub type MutDirty = dirty::SharedRange<usize,Callback>;
+pub type MutDirty = dirty::SharedRange<usize, Callback>;
 
 /// Dirty flag keeping track of whether the buffer was resized.
 pub type ResizeDirty = dirty::SharedBool<Callback>;
@@ -64,16 +64,16 @@ fn on_mut_fn(dirty:MutDirty) -> OnMut {
 /// bound to WebGL context. See the main architecture docs of this library to learn more.
 #[derive(Debug)]
 pub struct GlData {
-    context : Context,
-    buffer  : WebGlBuffer,
+    context: Context,
+    buffer:  WebGlBuffer,
 }
 
 impl GlData {
     /// Constructor.
-    pub fn new(context:&Context) -> Self {
+    pub fn new(context: &Context) -> Self {
         let context = context.clone();
-        let buffer  = create_gl_buffer(&context);
-        Self {context,buffer}
+        let buffer = create_gl_buffer(&context);
+        Self { context, buffer }
     }
 }
 
@@ -249,7 +249,7 @@ impl<T:Storable> {
 
 // === Private API ===
 
-impl<T:Storable> BufferData<T> {
+impl<T: Storable> BufferData<T> {
     /// View the data as slice of primitive elements.
     pub fn as_prim_slice(&self) -> &[item::Cell<T>] {
         <T as Storable>::slice_to_items(&self.buffer.data)
@@ -270,15 +270,15 @@ impl<T:Storable> BufferData<T> {
 // `WebAssembly.Memory` buffer, but if we allocate more pages (aka do a memory allocation in Rust)
 // it'll cause the buffer to change, causing the resulting js array to be invalid.
 
-impl<T:Storable> BufferData<T> {
+impl<T: Storable> BufferData<T> {
     /// Upload the provided data range to the GPU buffer. In case the local buffer was resized,
     /// it will be re-created on the GPU.
-    fn upload_data(&mut self, opt_range:&Option<RangeInclusive<usize>>) {
-        info!(self.logger,"Uploading buffer data.", || {
+    fn upload_data(&mut self, opt_range: &Option<RangeInclusive<usize>>) {
+        info!(self.logger, "Uploading buffer data.", || {
             self.stats.inc_data_upload_count();
             match opt_range {
-                None        => self.replace_gpu_buffer(),
-                Some(range) => self.update_gpu_sub_buffer(range)
+                None => self.replace_gpu_buffer(),
+                Some(range) => self.update_gpu_sub_buffer(range),
             }
         });
     }
@@ -287,12 +287,16 @@ impl<T:Storable> BufferData<T> {
     #[allow(unsafe_code)]
     fn replace_gpu_buffer(&mut self) {
         if let Some(gl) = &self.gl {
-            let data    = self.as_slice();
+            let data = self.as_slice();
             let gl_enum = self.usage.to_gl_enum().into();
-            unsafe { // Note [Safety]
+            unsafe {
+                // Note [Safety]
                 let js_array = data.js_buffer_view();
-                gl.context.buffer_data_with_array_buffer_view
-                (Context::ARRAY_BUFFER,&js_array,gl_enum);
+                gl.context.buffer_data_with_array_buffer_view(
+                    Context::ARRAY_BUFFER,
+                    &js_array,
+                    gl_enum,
+                );
             }
             crate::if_compiled_with_stats! {
                 let item_byte_size    = T::item_gpu_byte_size() as u32;
@@ -308,20 +312,26 @@ impl<T:Storable> BufferData<T> {
 
     /// Update the GPU sub-buffer data by the provided index range.
     #[allow(unsafe_code)]
-    fn update_gpu_sub_buffer(&mut self, range:&RangeInclusive<usize>) {
+    fn update_gpu_sub_buffer(&mut self, range: &RangeInclusive<usize>) {
         if let Some(gl) = &self.gl {
-            let data            = self.as_slice();
-            let item_byte_size  = T::item_gpu_byte_size() as u32;
-            let item_count      = T::item_count() as u32;
-            let start           = *range.start() as u32;
-            let end             = *range.end() as u32;
-            let start_item      = start * item_count;
-            let length          = (end - start + 1) * item_count;
+            let data = self.as_slice();
+            let item_byte_size = T::item_gpu_byte_size() as u32;
+            let item_count = T::item_count() as u32;
+            let start = *range.start() as u32;
+            let end = *range.end() as u32;
+            let start_item = start * item_count;
+            let length = (end - start + 1) * item_count;
             let dst_byte_offset = (item_byte_size * item_count * start) as i32;
-            unsafe { // Note [Safety]
+            unsafe {
+                // Note [Safety]
                 let js_array = data.js_buffer_view();
-                gl.context.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length
-                (Context::ARRAY_BUFFER,dst_byte_offset,&js_array,start_item,length)
+                gl.context.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length(
+                    Context::ARRAY_BUFFER,
+                    dst_byte_offset,
+                    &js_array,
+                    start_item,
+                    length,
+                )
             }
             self.stats.mod_data_upload_size(|s| s + length * item_byte_size);
         }
@@ -341,10 +351,10 @@ impl<T> BufferData<T> {
 
 // === Smart Accessors ===
 
-impl<T:Storable> Buffer<T> {
+impl<T: Storable> Buffer<T> {
     /// Get the attribute pointing to a given buffer index.
-    pub fn at(&self, index:attribute::InstanceIndex) -> Attribute<T> {
-        Attribute::new(index,self.clone_ref())
+    pub fn at(&self, index: attribute::InstanceIndex) -> Attribute<T> {
+        Attribute::new(index, self.clone_ref())
     }
 }
 
@@ -376,7 +386,7 @@ impl<T> Drop for BufferData<T> {
 
 // === Utils ===
 
-fn create_gl_buffer(context:&Context) -> WebGlBuffer {
+fn create_gl_buffer(context: &Context) -> WebGlBuffer {
     let buffer = context.create_buffer();
     buffer.ok_or("Failed to create WebGL buffer.").unwrap()
 }
@@ -393,7 +403,7 @@ use enum_dispatch::*;
 // === Macros ===
 
 /// Variant mismatch error type.
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct BadVariant;
 
 macro_rules! define_any_buffer {
@@ -442,14 +452,14 @@ crate::with_all_prim_types!([[define_any_buffer] []]);
 #[allow(missing_docs)]
 pub trait IsBuffer {
     /// Set the WebGL context. See the main architecture docs of this library to learn more.
-    fn set_context           (&self, context:Option<&Context>);
-    fn add_element           (&self);
-    fn len                   (&self) -> usize;
-    fn is_empty              (&self) -> bool;
-    fn update                (&self);
-    fn bind                  (&self, target:u32);
-    fn vertex_attrib_pointer (&self, index:u32, instanced:bool);
-    fn set_to_default        (&self, index:usize);
+    fn set_context(&self, context: Option<&Context>);
+    fn add_element(&self);
+    fn len(&self) -> usize;
+    fn is_empty(&self) -> bool;
+    fn update(&self);
+    fn bind(&self, target: u32);
+    fn vertex_attrib_pointer(&self, index: u32, instanced: bool);
+    fn set_to_default(&self, index: usize);
 }
 
 // Calls are not recursive, as inherent methods are preferred over methods provided by trait.
@@ -457,8 +467,8 @@ pub trait IsBuffer {
 // implement the trait, as it invokes trait methods explicitly on variant values.
 //
 // Thus we provide implementation that just redirects calls to methods defined in the Buffer itself.
-impl<T:Storable> IsBuffer for Buffer<T> {
-    fn set_context(&self, context:Option<&Context>) {
+impl<T: Storable> IsBuffer for Buffer<T> {
+    fn set_context(&self, context: Option<&Context>) {
         self.set_context(context)
     }
     fn add_element(&self) {
@@ -473,13 +483,13 @@ impl<T:Storable> IsBuffer for Buffer<T> {
     fn update(&self) {
         self.update()
     }
-    fn bind(&self, target:u32) {
+    fn bind(&self, target: u32) {
         self.bind(target)
     }
-    fn vertex_attrib_pointer(&self, index:u32, instanced:bool) {
-        self.vertex_attrib_pointer(index,instanced)
+    fn vertex_attrib_pointer(&self, index: u32, instanced: bool) {
+        self.vertex_attrib_pointer(index, instanced)
     }
-    fn set_to_default(&self, index:usize) {
+    fn set_to_default(&self, index: usize) {
         self.set_to_default(index)
     }
 }

@@ -25,7 +25,7 @@ pub struct Message<T> {
     /// or serialized form.
     #[serde(flatten)]
     #[shrinkwrap(main_field)]
-    pub payload: T
+    pub payload: T,
 }
 
 
@@ -45,41 +45,39 @@ pub type NotificationMessage<Ret> = Message<Notification<MethodCall<Ret>>>;
 
 impl<T> Message<T> {
     /// Wraps given payload into a JSON-RPC 2.0 message.
-    pub fn new(t:T) -> Message<T> {
-        Message {
-            jsonrpc : Version::V2,
-            payload : t,
-        }
+    pub fn new(t: T) -> Message<T> {
+        Message { jsonrpc: Version::V2, payload: t }
     }
 
     /// Construct a request message.
-    pub fn new_request
-    (id:Id, method:&str, params:T) -> RequestMessage<T> {
-        let call = MethodCall {method: method.into(),params};
-        let request = Request::new(id,call);
+    pub fn new_request(id: Id, method: &str, params: T) -> RequestMessage<T> {
+        let call = MethodCall { method: method.into(), params };
+        let request = Request::new(id, call);
         Message::new(request)
     }
 
     /// Construct a successful response message.
-    pub fn new_success(id:Id, result:T) -> ResponseMessage<T> {
-        let result   = Result::new_success(result);
-        let response = Response {id,result};
+    pub fn new_success(id: Id, result: T) -> ResponseMessage<T> {
+        let result = Result::new_success(result);
+        let response = Response { id, result };
         Message::new(response)
     }
 
     /// Construct a successful response message.
-    pub fn new_error
-    (id:Id, code:i64, message:String, data:Option<serde_json::Value>)
-     -> ResponseMessage<T> {
-        let result = Result::new_error(code,message,data);
-        let response = Response {id,result};
+    pub fn new_error(
+        id: Id,
+        code: i64,
+        message: String,
+        data: Option<serde_json::Value>,
+    ) -> ResponseMessage<T> {
+        let result = Result::new_error(code, message, data);
+        let response = Response { id, result };
         Message::new(response)
     }
 
     /// Construct a request message.
-    pub fn new_notification
-    (method:&'static str, params:T) -> NotificationMessage<T> {
-        let call = MethodCall {method: method.into(),params};
+    pub fn new_notification(method: &'static str, params: T) -> NotificationMessage<T> {
+        let call = MethodCall { method: method.into(), params };
         let notification = Notification(call);
         Message::new(notification)
     }
@@ -117,7 +115,7 @@ pub enum Version {
 #[derive(Shrinkwrap)]
 pub struct Request<Call> {
     /// An identifier for this request that will allow matching the response.
-    pub id: Id,
+    pub id:   Id,
     #[serde(flatten)]
     #[shrinkwrap(main_field)]
     /// method and its params
@@ -126,8 +124,8 @@ pub struct Request<Call> {
 
 impl<M> Request<M> {
     /// Create a new request.
-    pub fn new(id:Id, call:M) -> Request<M> {
-        Request {id,call}
+    pub fn new(id: Id, call: M) -> Request<M> {
+        Request { id, call }
     }
 }
 
@@ -143,10 +141,10 @@ pub struct Notification<Call>(pub Call);
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Response<Res> {
     /// Identifier, matching the value given in `Request` when call was made.
-    pub id:Id,
+    pub id:     Id,
     /// Call result.
     #[serde(flatten)]
-    pub result:Result<Res>
+    pub result: Result<Res>,
 }
 
 /// Result of the remote call — either a returned value or en error.
@@ -157,24 +155,23 @@ pub enum Result<Res> {
     /// Returned value of a successful call.
     Success(Success<Res>),
     /// Error value from a called that failed on the remote side.
-    Error {error:Error},
+    Error { error: Error },
 }
 
 impl<Res> Result<Res> {
     /// Construct a successful remote call result value.
     pub fn new_success(result: Res) -> Result<Res> {
-        Result::Success(Success {result})
+        Result::Success(Success { result })
     }
 
     /// Construct a failed remote call result value.
-    pub fn new_error
-    (code:i64, message:String, data:Option<serde_json::Value>) -> Result<Res> {
-        Result::Error{error : Error{code,message,data}}
+    pub fn new_error(code: i64, message: String, data: Option<serde_json::Value>) -> Result<Res> {
+        Result::Error { error: Error { code, message, data } }
     }
 
     /// Construct a failed remote call result value that bears no optional data.
-    pub fn new_error_simple(code:i64, message:String) -> Result<Res> {
-        Self::new_error(code,message,None)
+    pub fn new_error_simple(code: i64, message: String) -> Result<Res> {
+        Self::new_error(code, message, None)
     }
 }
 
@@ -187,13 +184,13 @@ pub struct Success<Ret> {
 
 /// Error raised on a failed remote call.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Error<Payload=serde_json::Value> {
+pub struct Error<Payload = serde_json::Value> {
     /// A number indicating what type of error occurred.
-    pub code    : i64,
+    pub code:    i64,
     /// A short description of the error.
-    pub message : String,
+    pub message: String,
     /// Optional value with additional information about the error.
-    pub data    : Option<Payload>
+    pub data:    Option<Payload>,
 }
 
 /// A message that can come from Server to Client — either a response or
@@ -202,7 +199,7 @@ pub struct Error<Payload=serde_json::Value> {
 #[serde(untagged)]
 pub enum IncomingMessage {
     /// A response to a call made by client.
-    Response    (Response    <serde_json::Value>),
+    Response(Response<serde_json::Value>),
     /// A notification call (initiated by the server).
     Notification(Notification<serde_json::Value>),
 }
@@ -211,11 +208,10 @@ pub enum IncomingMessage {
 ///
 /// This checks if has `jsonrpc` version string, and whether it is a
 /// response or a notification.
-pub fn decode_incoming_message
-(message:&str) -> serde_json::Result<IncomingMessage> {
-    use serde_json::Value;
+pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMessage> {
     use serde_json::from_str;
     use serde_json::from_value;
+    use serde_json::Value;
     let message = from_str::<Message<Value>>(message)?;
     from_value::<IncomingMessage>(message.payload)
 }
@@ -228,10 +224,10 @@ pub fn decode_incoming_message
 #[derive(Shrinkwrap)]
 pub struct MethodCall<In> {
     /// Name of the method that is being called.
-    pub method : String,
+    pub method: String,
     /// Method arguments.
     #[shrinkwrap(main_field)]
-    pub params : In
+    pub params: In,
 }
 
 
@@ -248,43 +244,42 @@ mod tests {
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     struct MockRequest {
-        number: i64
+        number: i64,
     }
     impl MockRequest {
-        const FIELD_COUNT : usize        = 1;
-        const FIELD_NAME  : &'static str = "number";
+        const FIELD_COUNT: usize = 1;
+        const FIELD_NAME: &'static str = "number";
     }
 
     mod protocol {
         // === Field Names ===
-        pub const JSONRPC : &str = "jsonrpc";
-        pub const METHOD  : &str = "method";
-        pub const PARAMS  : &str = "params";
-        pub const ID      : &str = "id";
+        pub const JSONRPC: &str = "jsonrpc";
+        pub const METHOD: &str = "method";
+        pub const PARAMS: &str = "params";
+        pub const ID: &str = "id";
 
         // === Version strings ===
-        pub const VERSION2_STRING:&str = "2.0";
+        pub const VERSION2_STRING: &str = "2.0";
 
         // === Other ===
-        pub const FIELD_COUNT_IN_REQUEST      : usize = 4;
-        pub const FIELD_COUNT_IN_NOTIFICATION : usize = 3;
+        pub const FIELD_COUNT_IN_REQUEST: usize = 4;
+        pub const FIELD_COUNT_IN_NOTIFICATION: usize = 3;
     }
 
-    fn expect_field<'a,Obj:'a>
-    (obj:&'a Map<String, Value>, field_name:&str) -> &'a Value
-    where &'a Obj:Into<&'a Value> {
-        let missing_msg = format!("missing field {}",field_name);
+    fn expect_field<'a, Obj: 'a>(obj: &'a Map<String, Value>, field_name: &str) -> &'a Value
+    where &'a Obj: Into<&'a Value> {
+        let missing_msg = format!("missing field {}", field_name);
         obj.get(field_name).expect(&missing_msg)
     }
 
     #[test]
     fn test_request_serialization() {
         let id = Id(50);
-        let method  = "mockMethod";
-        let number  = 124;
-        let params  = MockRequest {number};
-        let call    = MethodCall {method:method.into(),params};
-        let request = Request::new(id,call);
+        let method = "mockMethod";
+        let number = 124;
+        let params = MockRequest { number };
+        let call = MethodCall { method: method.into(), params };
+        let request = Request::new(id, call);
         let message = Message::new(request);
 
         let json = serde_json::to_value(message).expect("serialization error");
@@ -302,12 +297,12 @@ mod tests {
 
     #[test]
     fn test_notification_serialization() {
-        let method       = "mockNotification";
-        let number       = 125;
-        let params       = MockRequest {number};
-        let call         = MethodCall {method:method.into(),params};
+        let method = "mockNotification";
+        let number = 125;
+        let params = MockRequest { number };
+        let call = MethodCall { method: method.into(), params };
         let notification = Notification(call);
-        let message      = Message::new(notification);
+        let message = Message::new(notification);
 
         DEBUG!(serde_json::to_string(&message).unwrap());
 
@@ -327,7 +322,9 @@ mod tests {
     #[test]
     fn test_response_deserialization() {
         #[derive(Debug, Deserialize)]
-        struct MockResponse { exists: bool }
+        struct MockResponse {
+            exists: bool,
+        }
 
         let response = r#"{"jsonrpc":"2.0","id":0,"result":{"exists":true}}"#;
         let msg = serde_json::from_str(&response).unwrap();
@@ -338,8 +335,7 @@ mod tests {
                 assert_eq!(obj.len(), 1);
                 let exists = obj.get("exists").unwrap().as_bool().unwrap();
                 assert_eq!(exists, true)
-            }
-            else {
+            } else {
                 panic!("Expected a success result")
             }
         } else {
@@ -349,12 +345,12 @@ mod tests {
 
     #[test]
     fn version_serialization_and_deserialization() {
-        use serde_json::from_str;
         use protocol::VERSION2_STRING;
-        let expected_json      = Value::String(VERSION2_STRING.into());
+        use serde_json::from_str;
+        let expected_json = Value::String(VERSION2_STRING.into());
         let expected_json_text = serde_json::to_string(&expected_json);
         let expected_json_text = expected_json_text.unwrap();
-        let got_json_text      = serde_json::to_string(&Version::V2).unwrap();
+        let got_json_text = serde_json::to_string(&Version::V2).unwrap();
         assert_eq!(got_json_text, expected_json_text);
 
         let got_value = from_str::<Version>(&expected_json_text).unwrap();
@@ -363,17 +359,17 @@ mod tests {
 
     #[test]
     fn decode_incoming_error_message_text() {
-        let text    = r#"{"jsonrpc":"2.0","id":1,"error":{"code":1,"message":"Service error"}}"#;
+        let text = r#"{"jsonrpc":"2.0","id":1,"error":{"code":1,"message":"Service error"}}"#;
         let decoding_result = decode_incoming_message(text);
         match decoding_result {
-            Ok(IncomingMessage::Response(Response{
-                 result : Result::Error {error:Error{code,message,data}},
-                 ..
-             })) => {
-                assert_eq!(code,1);
-                assert_eq!(message,"Service error");
+            Ok(IncomingMessage::Response(Response {
+                result: Result::Error { error: Error { code, message, data } },
+                ..
+            })) => {
+                assert_eq!(code, 1);
+                assert_eq!(message, "Service error");
                 assert!(data.is_none());
-            },
+            }
             _ => panic!("Invalid decoding result of {}: {:?}", text, decoding_result),
         }
     }

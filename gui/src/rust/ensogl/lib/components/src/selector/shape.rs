@@ -17,32 +17,32 @@ use crate::shadow;
 /// meta information about it. This information can be used to align other shapes with the
 /// background.
 struct Background {
-    pub width         : Var<Pixels>,
-    pub height        : Var<Pixels>,
+    pub width:         Var<Pixels>,
+    pub height:        Var<Pixels>,
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
-    pub corner_radius : Var<Pixels>,
-    pub shape         : AnyShape,
+    pub corner_radius: Var<Pixels>,
+    pub shape:         AnyShape,
 }
 
 impl Background {
-    fn new(corner_left:&Var<f32>, corner_right:&Var<f32>, style:&StyleWatch)
-    -> Background {
-        let sprite_width  : Var<Pixels> = "input_size.x".into();
-        let sprite_height : Var<Pixels> = "input_size.y".into();
+    fn new(corner_left: &Var<f32>, corner_right: &Var<f32>, style: &StyleWatch) -> Background {
+        let sprite_width: Var<Pixels> = "input_size.x".into();
+        let sprite_height: Var<Pixels> = "input_size.y".into();
 
-        let width         = &sprite_width - shadow::size(style).px();
-        let height        = &sprite_height - shadow::size(style).px();
-        let corner_radius = &height/2.0;
-        let rect_left     = Rect((&width/2.0,&height)).corners_radius(&corner_radius*corner_left);
-        let rect_left     = rect_left.translate_x(-&width/4.0);
-        let rect_right    = Rect((&width/2.0,&height)).corners_radius(&corner_radius*corner_right);
-        let rect_right    = rect_right.translate_x(&width/4.0);
-        let rect_center   = Rect((&corner_radius*2.0,&height));
+        let width = &sprite_width - shadow::size(style).px();
+        let height = &sprite_height - shadow::size(style).px();
+        let corner_radius = &height / 2.0;
+        let rect_left = Rect((&width / 2.0, &height)).corners_radius(&corner_radius * corner_left);
+        let rect_left = rect_left.translate_x(-&width / 4.0);
+        let rect_right =
+            Rect((&width / 2.0, &height)).corners_radius(&corner_radius * corner_right);
+        let rect_right = rect_right.translate_x(&width / 4.0);
+        let rect_center = Rect((&corner_radius * 2.0, &height));
 
-        let shape = (rect_left+rect_right+rect_center).into();
+        let shape = (rect_left + rect_right + rect_center).into();
 
-        Background{width,height,corner_radius,shape}
+        Background { width, height, corner_radius, shape }
     }
 }
 
@@ -133,29 +133,29 @@ pub mod track {
 struct OverflowShape {
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
-    pub width  : Var<Pixels>,
+    pub width:  Var<Pixels>,
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
-    pub height : Var<Pixels>,
-    pub shape  : AnyShape
+    pub height: Var<Pixels>,
+    pub shape:  AnyShape,
 }
 
 impl OverflowShape {
-    fn new(style:&StyleWatch) -> Self {
-        let sprite_width  : Var<Pixels> = "input_size.x".into();
-        let sprite_height : Var<Pixels> = "input_size.y".into();
+    fn new(style: &StyleWatch) -> Self {
+        let sprite_width: Var<Pixels> = "input_size.x".into();
+        let sprite_height: Var<Pixels> = "input_size.y".into();
 
-        let width           = &sprite_width - shadow::size(style).px();
-        let height          = &sprite_height - shadow::size(style).px();
-        let overflow_color  = style.get_color(theme::component::slider::overflow::color);
-        let shape           = Triangle(&sprite_height/6.0,&sprite_height/6.0);
-        let shape           = shape.fill(&overflow_color);
+        let width = &sprite_width - shadow::size(style).px();
+        let height = &sprite_height - shadow::size(style).px();
+        let overflow_color = style.get_color(theme::component::slider::overflow::color);
+        let shape = Triangle(&sprite_height / 6.0, &sprite_height / 6.0);
+        let shape = shape.fill(&overflow_color);
 
         let hover_area = Circle(&height);
         let hover_area = hover_area.fill(HOVER_COLOR);
 
         let shape = (shape + hover_area).into();
-        OverflowShape{width,height,shape}
+        OverflowShape { width, height, shape }
     }
 }
 
@@ -207,8 +207,11 @@ use ensogl_core::display::Scene;
 /// Return whether a dragging action has been started from the shape passed to this function. A
 /// dragging action is started by a mouse down on the shape, followed by a movement of the mouse.
 /// Dragging is ended by a mouse up.
-pub fn shape_is_dragged
-(network:&Network, shape:&ShapeViewEvents, mouse:&Mouse) -> enso_frp::Stream<bool>  {
+pub fn shape_is_dragged(
+    network: &Network,
+    shape: &ShapeViewEvents,
+    mouse: &Mouse,
+) -> enso_frp::Stream<bool> {
     enso_frp::extend! { network
         mouse_up              <- mouse.up.constant(());
         mouse_down            <- mouse.down.constant(());
@@ -221,10 +224,10 @@ pub fn shape_is_dragged
 
 /// Returns the position of a mouse down on a shape. The position is given in the shape's local
 /// coordinate system
-pub fn relative_shape_down_position<T:'static+display::Object+CloneRef>
-( network : &Network
-, scene   : &Scene
-, shape   : &ShapeView<T>
+pub fn relative_shape_down_position<T: 'static + display::Object + CloneRef>(
+    network: &Network,
+    scene: &Scene,
+    shape: &ShapeView<T>,
 ) -> enso_frp::Stream<Vector2> {
     let mouse = &scene.mouse.frp;
     enso_frp::extend! { network
@@ -256,28 +259,28 @@ mod tests {
     #[test]
     fn test_shape_is_dragged() {
         let network = enso_frp::Network::new("TestNetwork");
-        let mouse   = enso_frp::io::Mouse::default();
-        let shape   = ShapeViewEvents::default();
+        let mouse = enso_frp::io::Mouse::default();
+        let shape = ShapeViewEvents::default();
 
-        let is_dragged = shape_is_dragged(&network,&shape,&mouse);
+        let is_dragged = shape_is_dragged(&network, &shape, &mouse);
         let _watch = is_dragged.register_watch();
 
 
         // Default is false.
-        assert_eq!(is_dragged.value(),false);
+        assert_eq!(is_dragged.value(), false);
 
         // Mouse down over shape activates dragging.
         shape.mouse_over.emit(());
         mouse.down.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(),true);
+        assert_eq!(is_dragged.value(), true);
 
         // Release mouse stops dragging.
         mouse.up.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(),false);
+        assert_eq!(is_dragged.value(), false);
 
         // Mouse down while not over shape  does not activate dragging.
         shape.mouse_out.emit(());
         mouse.down.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(),false);
+        assert_eq!(is_dragged.value(), false);
     }
 }

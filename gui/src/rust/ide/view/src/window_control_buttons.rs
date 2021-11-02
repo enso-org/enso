@@ -43,51 +43,51 @@ mod shape {
 
 /// Information on how to layout shapes in the top buttons panel, as defined in the theme.
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct LayoutParams<T> {
-    pub spacing        : T,
-    pub padding_left   : T,
-    pub padding_top    : T,
-    pub padding_right  : T,
-    pub padding_bottom : T,
+    pub spacing:        T,
+    pub padding_left:   T,
+    pub padding_top:    T,
+    pub padding_right:  T,
+    pub padding_bottom: T,
 }
 
 impl Default for LayoutParams<f32> {
     fn default() -> Self {
         Self {
-            spacing        : 8.0,
-            padding_left   : 13.0,
-            padding_top    : 13.0,
-            padding_right  : 13.0,
-            padding_bottom : 13.0,
+            spacing:        8.0,
+            padding_left:   13.0,
+            padding_top:    13.0,
+            padding_right:  13.0,
+            padding_bottom: 13.0,
         }
     }
 }
 
 impl<T> LayoutParams<T> {
     /// Applies a given function over all stored values and return layout with resulting values.
-    pub fn map<U>(&self, f:impl Fn(&T)->U) -> LayoutParams<U> {
+    pub fn map<U>(&self, f: impl Fn(&T) -> U) -> LayoutParams<U> {
         LayoutParams {
-            spacing        : f(&self.spacing),
-            padding_left   : f(&self.padding_left),
-            padding_top    : f(&self.padding_top),
-            padding_right  : f(&self.padding_right),
-            padding_bottom : f(&self.padding_bottom),
+            spacing:        f(&self.spacing),
+            padding_left:   f(&self.padding_left),
+            padding_top:    f(&self.padding_top),
+            padding_right:  f(&self.padding_right),
+            padding_bottom: f(&self.padding_bottom),
         }
     }
 }
 
 impl LayoutParams<frp::Sampler<f32>> {
     /// Get layout from theme. Each layout parameter will be an frp sampler.
-    pub fn from_theme(style:&StyleWatchFrp) -> Self {
+    pub fn from_theme(style: &StyleWatchFrp) -> Self {
         use ensogl_theme::application::window_control_buttons as theme;
-        let default        = LayoutParams::default();
-        let spacing        = style.get_number_or(theme::spacing,         default.spacing);
-        let padding_left   = style.get_number_or(theme::padding::left,   default.padding_left);
-        let padding_top    = style.get_number_or(theme::padding::top,    default.padding_top);
-        let padding_right  = style.get_number_or(theme::padding::right,  default.padding_right);
+        let default = LayoutParams::default();
+        let spacing = style.get_number_or(theme::spacing, default.spacing);
+        let padding_left = style.get_number_or(theme::padding::left, default.padding_left);
+        let padding_top = style.get_number_or(theme::padding::top, default.padding_top);
+        let padding_right = style.get_number_or(theme::padding::right, default.padding_right);
         let padding_bottom = style.get_number_or(theme::padding::bottom, default.padding_bottom);
-        Self {spacing,padding_left,padding_top,padding_right,padding_bottom}
+        Self { spacing, padding_left, padding_top, padding_right, padding_bottom }
     }
 
     /// Take values from the parameters' samplers.
@@ -96,21 +96,33 @@ impl LayoutParams<frp::Sampler<f32>> {
     }
 
     /// Join all member frp streams into a single stream with aggregated values.
-    pub fn flatten(&self, network:&frp::Network) -> frp::Stream<LayoutParams<f32>> {
+    pub fn flatten(&self, network: &frp::Network) -> frp::Stream<LayoutParams<f32>> {
         /// Helper method that puts back LayoutParams from its fields.
         /// Be careful, as the arguments must be in the same order as they are in `all_with5`
         /// invocation below.
         // We intentionally take references to f32 for seamless usage in FRP.
         #[allow(clippy::trivially_copy_pass_by_ref)]
-        fn to_layout
-        (spacing:&f32, padding_left:&f32, padding_top:&f32, padding_right:&f32, padding_bottom:&f32)
-        -> LayoutParams<f32> {
-            let ret = LayoutParams{spacing,padding_left,padding_top,padding_right,padding_bottom};
+        fn to_layout(
+            spacing: &f32,
+            padding_left: &f32,
+            padding_top: &f32,
+            padding_right: &f32,
+            padding_bottom: &f32,
+        ) -> LayoutParams<f32> {
+            let ret =
+                LayoutParams { spacing, padding_left, padding_top, padding_right, padding_bottom };
             ret.map(|v| **v)
         }
 
-        network.all_with5("TopButtonsLayoutStyle", &self.spacing, &self.padding_left,
-            &self.padding_top,&self.padding_right, &self.padding_bottom, to_layout)
+        network.all_with5(
+            "TopButtonsLayoutStyle",
+            &self.spacing,
+            &self.padding_left,
+            &self.padding_top,
+            &self.padding_right,
+            &self.padding_bottom,
+            to_layout,
+        )
     }
 }
 
@@ -121,21 +133,21 @@ impl LayoutParams<frp::Sampler<f32>> {
 // =============
 
 /// An internal model of Status Bar component
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    app             : Application,
-    logger          : Logger,
-    display_object  : display::object::Instance,
-    shape           : shape::View,
-    close           : close::View,
-    fullscreen      : fullscreen::View,
+    app:            Application,
+    logger:         Logger,
+    display_object: display::object::Instance,
+    shape:          shape::View,
+    close:          close::View,
+    fullscreen:     fullscreen::View,
 }
 
 impl Model {
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
-        let app            = app.clone_ref();
-        let logger         = Logger::new("TopButtons");
+    pub fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let logger = Logger::new("TopButtons");
         let display_object = display::object::Instance::new(&logger);
 
         ensogl::shapes_order_dependencies! {
@@ -153,21 +165,22 @@ impl Model {
         let shape = shape::View::new(&logger);
         display_object.add_child(&shape);
 
-        Self{app,logger,display_object,shape,close,fullscreen}
+        Self { app, logger, display_object, shape, close, fullscreen }
     }
 
     /// Updates positions of the buttons and sizes of the mouse area.
     /// Returns the new size of the panel (being also the size of mouse area).
-    pub fn set_layout(&self, layout:LayoutParams<f32>) -> Vector2 {
-        let LayoutParams{spacing,padding_left,padding_top,padding_right,padding_bottom} = layout;
-        let close_size      = self.close.size.value();
+    pub fn set_layout(&self, layout: LayoutParams<f32>) -> Vector2 {
+        let LayoutParams { spacing, padding_left, padding_top, padding_right, padding_bottom } =
+            layout;
+        let close_size = self.close.size.value();
         let fullscreen_size = self.fullscreen.size.value();
 
-        self.close.set_position_xy(Vector2(padding_left,-padding_top));
+        self.close.set_position_xy(Vector2(padding_left, -padding_top));
         let fullscreen_x = padding_left + close_size.x + spacing;
-        self.fullscreen.set_position_xy(Vector2(fullscreen_x,-padding_top));
+        self.fullscreen.set_position_xy(Vector2(fullscreen_x, -padding_top));
 
-        let width  = fullscreen_x + fullscreen_size.x + padding_right;
+        let width = fullscreen_x + fullscreen_size.x + padding_right;
         let height = padding_top + max(close_size.y, fullscreen_size.y) + padding_bottom;
 
         let size = Vector2(width, height);
@@ -204,22 +217,22 @@ ensogl::define_endpoints! {
 ///
 /// The panel contains two buttons: one for closing IDE and one for toggling the fullscreen mode.
 /// The panel is meant to be displayed only when IDE runs in a cloud environment.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    frp   : Frp,
-    model : Model,
-    style : StyleWatchFrp,
+    frp:   Frp,
+    model: Model,
+    style: StyleWatchFrp,
 }
 
 impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let frp     = Frp::new();
-        let model   = Model::new(app);
+        let frp = Frp::new();
+        let model = Model::new(app);
         let network = &frp.network;
 
-        let style        = StyleWatchFrp::new(&app.display.scene().style_sheet);
-        let style_frp    = LayoutParams::from_theme(&style);
+        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style_frp = LayoutParams::from_theme(&style);
         let layout_style = style_frp.flatten(network);
 
         frp::extend! { network
@@ -242,28 +255,40 @@ impl View {
         }
 
         let initial_style = style_frp.value();
-        let initial_size  = model.set_layout(initial_style);
+        let initial_size = model.set_layout(initial_style);
         frp.source.size.emit(initial_size);
 
-        Self {frp,model,style}
+        Self { frp, model, style }
     }
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
+    fn display_object(&self) -> &display::object::Instance {
+        &self.model.display_object
+    }
 }
 
 impl Deref for View {
     type Target = Frp;
-    fn deref(&self) -> &Self::Target { &self.frp }
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
 impl application::command::FrpNetworkProvider for View {
-    fn network(&self) -> &frp::Network { &self.frp.network }
+    fn network(&self) -> &frp::Network {
+        &self.frp.network
+    }
 }
 
 impl application::View for View {
-    fn label() -> &'static str { "TopButtons" }
-    fn new(app:&Application) -> Self { View::new(app) }
-    fn app(&self) -> &Application { &self.model.app }
+    fn label() -> &'static str {
+        "TopButtons"
+    }
+    fn new(app: &Application) -> Self {
+        View::new(app)
+    }
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
 }

@@ -1,4 +1,3 @@
-
 // ==================
 // === Data Types ===
 // ==================
@@ -7,7 +6,7 @@
 pub mod enso {
     use crate::prelude::*;
 
-    im_string_newtype!{
+    im_string_newtype! {
         /// Name of the Enso library.
         LibraryName,
 
@@ -27,7 +26,7 @@ pub mod enso {
             "Any".into()
         }
 
-        pub fn alternatives(&self) -> impl Iterator<Item=Type> + '_ {
+        pub fn alternatives(&self) -> impl Iterator<Item = Type> + '_ {
             self.content.split('|').map(str::trim).map(Type::new)
         }
     }

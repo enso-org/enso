@@ -23,8 +23,8 @@
 
 use crate::prelude::*;
 
-use futures::task::LocalSpawnExt;
 use futures::task::LocalSpawn;
+use futures::task::LocalSpawnExt;
 
 thread_local! {
     /// Global spawner handle.
@@ -42,7 +42,7 @@ thread_local! {
 ///
 /// Caller should also ensure that the spawner will remain functional the whole
 /// time, so e.g. it must not drop the executor connected with this spawner.
-pub fn set_spawner(spawner_to_set:impl LocalSpawn + 'static) {
+pub fn set_spawner(spawner_to_set: impl LocalSpawn + 'static) {
     // Note [Global Executor Safety]
     SPAWNER.with(|s| *s.borrow_mut() = Some(Box::new(spawner_to_set)));
 }
@@ -50,25 +50,30 @@ pub fn set_spawner(spawner_to_set:impl LocalSpawn + 'static) {
 /// Spawns a task using the global spawner.
 /// Panics, if called when there is no global spawner set or if it fails to
 /// spawn task (e.g. because the connected executor was prematurely dropped).
-pub fn spawn(f:impl Future<Output=()> + 'static) {
+pub fn spawn(f: impl Future<Output = ()> + 'static) {
     SPAWNER.with(|spawner| {
         let error_msg = "No global executor has been provided.";
         // Note [Global Executor Safety]
         let mut borrowed = spawner.borrow_mut();
-        let unwrapped    = borrowed.as_mut().expect(error_msg);
-        let error_msg    = "Failed to spawn the task. Global executor might have been dropped.";
+        let unwrapped = borrowed.as_mut().expect(error_msg);
+        let error_msg = "Failed to spawn the task. Global executor might have been dropped.";
         unwrapped.spawn_local(f).expect(error_msg);
     });
 }
 /// Process stream elements while object under `weak` handle exists.
 ///
 /// Like [`utils::channel::process_stream_with_handle`] but automatically spawns the processor.
-pub fn spawn_stream_handler<Weak,Stream,Function,Ret>(weak:Weak, stream:Stream, handler:Function)
-where Stream   : StreamExt + Unpin + 'static,
-      Weak     : WeakElement + 'static,
-      Function : FnMut(Stream::Item,Weak::Strong) -> Ret + 'static,
-      Ret      : Future<Output=()> + 'static {
-    let handler = utils::channel::process_stream_with_handle(stream,weak,handler);
+pub fn spawn_stream_handler<Weak, Stream, Function, Ret>(
+    weak: Weak,
+    stream: Stream,
+    handler: Function,
+) where
+    Stream: StreamExt + Unpin + 'static,
+    Weak: WeakElement + 'static,
+    Function: FnMut(Stream::Item, Weak::Strong) -> Ret + 'static,
+    Ret: Future<Output = ()> + 'static,
+{
+    let handler = utils::channel::process_stream_with_handle(stream, weak, handler);
     spawn(handler);
 }
 

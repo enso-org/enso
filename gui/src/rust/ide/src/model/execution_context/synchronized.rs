@@ -5,8 +5,8 @@ use crate::prelude::*;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
-use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::execution_context::VisualizationId;
+use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
 
 use enso_protocol::language_server;
@@ -20,7 +20,7 @@ use enso_protocol::language_server;
 /// Notification received by the synchronized execution context.
 ///
 /// They are based on the relevant language server notifications.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub enum Notification {
     /// Evaluation of this execution context has completed successfully.
     ///
@@ -44,10 +44,10 @@ pub enum Notification {
 /// from LS once dropped.
 #[derive(Debug)]
 pub struct ExecutionContext {
-    id              : model::execution_context::Id,
-    model           : model::execution_context::Plain,
-    language_server : Rc<language_server::Connection>,
-    logger          : Logger,
+    id:              model::execution_context::Id,
+    model:           model::execution_context::Plain,
+    language_server: Rc<language_server::Connection>,
+    logger:          Logger,
 }
 
 impl ExecutionContext {
@@ -61,34 +61,37 @@ impl ExecutionContext {
     ///
     /// NOTE: By itself this execution context will not be able to receive any updates from the
     /// language server.
-    pub fn create
-    ( parent          : impl AnyLogger
-    , language_server : Rc<language_server::Connection>
-    , root_definition : language_server::MethodPointer
-    ) -> impl Future<Output=FallibleResult<Self>> {
-        let logger = Logger::new_sub(&parent,"ExecutionContext");
+    pub fn create(
+        parent: impl AnyLogger,
+        language_server: Rc<language_server::Connection>,
+        root_definition: language_server::MethodPointer,
+    ) -> impl Future<Output = FallibleResult<Self>> {
+        let logger = Logger::new_sub(&parent, "ExecutionContext");
         async move {
             info!(logger, "Creating.");
-            let id     = language_server.client.create_execution_context().await?.context_id;
-            let logger = Logger::new_sub(&parent,iformat!{"ExecutionContext {id}"});
-            let model  = model::execution_context::Plain::new(&logger,root_definition);
+            let id = language_server.client.create_execution_context().await?.context_id;
+            let logger = Logger::new_sub(&parent, iformat! {"ExecutionContext {id}"});
+            let model = model::execution_context::Plain::new(&logger, root_definition);
             info!(logger, "Created. Id: {id}.");
-            let this = Self {id,model,language_server,logger};
+            let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
             Ok(this)
         }
     }
 
-    fn push_root_frame(&self) -> impl Future<Output=FallibleResult> {
-        let method_pointer                   = self.model.entry_point.clone();
-        let this_argument_expression         = default();
+    fn push_root_frame(&self) -> impl Future<Output = FallibleResult> {
+        let method_pointer = self.model.entry_point.clone();
+        let this_argument_expression = default();
         let positional_arguments_expressions = default();
 
-        let call = language_server::ExplicitCall {method_pointer,this_argument_expression,
-            positional_arguments_expressions};
-        let frame  = language_server::StackItem::ExplicitCall(call);
-        let result = self.language_server.push_to_execution_context(&self.id,&frame);
+        let call = language_server::ExplicitCall {
+            method_pointer,
+            this_argument_expression,
+            positional_arguments_expressions,
+        };
+        let frame = language_server::StackItem::ExplicitCall(call);
+        let result = self.language_server.push_to_execution_context(&self.id, &frame);
         result.map(|res| res.map_err(|err| err.into()))
     }
 
@@ -96,30 +99,30 @@ impl ExecutionContext {
     ///
     /// Necessary because the Language Server requires passing both visualization ID and expression
     /// ID for the visualization attach point, and `Visualization` structure contains both.
-    async fn detach_visualization_inner
-    (&self, vis:Visualization) -> FallibleResult<Visualization> {
+    async fn detach_visualization_inner(
+        &self,
+        vis: Visualization,
+    ) -> FallibleResult<Visualization> {
         let vis_id = vis.id;
         let exe_id = self.id;
         let ast_id = vis.expression_id;
-        let ls     = self.language_server.clone_ref();
+        let ls = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
-        info!(logger,"About to detach visualization by id: {vis_id}.");
-        ls.detach_visualisation(&exe_id,&vis_id,&ast_id).await?;
+        info!(logger, "About to detach visualization by id: {vis_id}.");
+        ls.detach_visualisation(&exe_id, &vis_id, &ast_id).await?;
         if let Err(err) = self.model.detach_visualization(vis_id) {
-            warning!(logger,"Failed to update model after detaching visualization: {err:?}.")
+            warning!(logger, "Failed to update model after detaching visualization: {err:?}.")
         }
         Ok(vis)
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_notification
-    (&self, notification: Notification) -> FallibleResult {
+    pub fn handle_notification(&self, notification: Notification) -> FallibleResult {
         match notification {
-            Notification::Completed => {
+            Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
                     WARNING!("Context {self.id} Became ready");
-                }
-            }
+                },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
             }
@@ -154,26 +157,27 @@ impl model::execution_context::API for ExecutionContext {
         self.model.computed_value_info_registry()
     }
 
-    fn stack_items<'a>(&'a self) -> Box<dyn Iterator<Item=LocalCall> + 'a> {
+    fn stack_items<'a>(&'a self) -> Box<dyn Iterator<Item = LocalCall> + 'a> {
         self.model.stack_items()
     }
 
     fn push(&self, stack_item: LocalCall) -> BoxFuture<FallibleResult> {
         async move {
             let expression_id = stack_item.call;
-            let call          = language_server::LocalCall{expression_id};
-            let frame         = language_server::StackItem::LocalCall(call);
-            self.language_server.push_to_execution_context(&self.id,&frame).await?;
+            let call = language_server::LocalCall { expression_id };
+            let frame = language_server::StackItem::LocalCall(call);
+            self.language_server.push_to_execution_context(&self.id, &frame).await?;
             self.model.push(stack_item);
             Ok(())
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 
     fn pop(&self) -> BoxFuture<FallibleResult<LocalCall>> {
         async move {
             // We do pop first, because we want to call any ls method if the operation is impossible
             // in the plain model.
-            let frame  = self.model.pop()?;
+            let frame = self.model.pop()?;
             let result = self.language_server.pop_from_execution_context(&self.id).await;
             if let Err(err) = result {
                 self.model.push(frame);
@@ -181,12 +185,15 @@ impl model::execution_context::API for ExecutionContext {
             } else {
                 Ok(frame)
             }
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 
-    fn attach_visualization
-    (&self, vis:Visualization)
-    -> BoxFuture<FallibleResult<futures::channel::mpsc::UnboundedReceiver<VisualizationUpdateData>>> {
+    fn attach_visualization(
+        &self,
+        vis: Visualization,
+    ) -> BoxFuture<FallibleResult<futures::channel::mpsc::UnboundedReceiver<VisualizationUpdateData>>>
+    {
         // Note: [mwu]
         //  We must register our visualization in the model first, because Language server can send
         //  us visualization updates through the binary socket before confirming that visualization
@@ -195,52 +202,66 @@ impl model::execution_context::API for ExecutionContext {
         let stream = self.model.attach_visualization(vis.clone());
 
         async move {
-            let result = self.language_server.attach_visualisation(&vis.id, &vis.expression_id, &config).await;
+            let result = self
+                .language_server
+                .attach_visualisation(&vis.id, &vis.expression_id, &config)
+                .await;
             if let Err(e) = result {
                 self.model.detach_visualization(vis.id)?;
                 Err(e.into())
             } else {
                 Ok(stream)
             }
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 
-    fn detach_visualization
-    (&self, vis_id:VisualizationId) -> BoxFuture<FallibleResult<Visualization>> {
+    fn detach_visualization(
+        &self,
+        vis_id: VisualizationId,
+    ) -> BoxFuture<FallibleResult<Visualization>> {
         async move {
             let vis = self.model.visualization_info(vis_id)?;
             self.detach_visualization_inner(vis).await
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 
-    fn modify_visualization
-    (&self, id:VisualizationId, expression:Option<String>, module:Option<module::QualifiedName>)
-    -> BoxFuture<FallibleResult> {
-        let result     = self.model.modify_visualization(id,expression,module);
-        let new_config = self.model.visualization_config(id,self.id);
+    fn modify_visualization(
+        &self,
+        id: VisualizationId,
+        expression: Option<String>,
+        module: Option<module::QualifiedName>,
+    ) -> BoxFuture<FallibleResult> {
+        let result = self.model.modify_visualization(id, expression, module);
+        let new_config = self.model.visualization_config(id, self.id);
         async move {
             result?;
-            self.language_server.modify_visualisation(&id,&new_config?).await?;
+            self.language_server.modify_visualisation(&id, &new_config?).await?;
             Ok(())
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 
-    fn dispatch_visualization_update
-    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult {
+    fn dispatch_visualization_update(
+        &self,
+        visualization_id: VisualizationId,
+        data: VisualizationUpdateData,
+    ) -> FallibleResult {
         debug!(self.logger, "Dispatching visualization update through the context {self.id()}");
-        self.model.dispatch_visualization_update(visualization_id,data)
+        self.model.dispatch_visualization_update(visualization_id, data)
     }
 }
 
 impl Drop for ExecutionContext {
     fn drop(&mut self) {
-        let id     = self.id;
-        let ls     = self.language_server.clone_ref();
+        let id = self.id;
+        let ls = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
             let result = ls.client.destroy_execution_context(&id).await;
             if result.is_err() {
-                error!(logger,"Error when destroying Execution Context: {result:?}.");
+                error!(logger, "Error when destroying Execution Context: {result:?}.");
             }
         });
     }
@@ -261,53 +282,55 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
+    use enso_protocol::language_server::response::CreateExecutionContext;
     use enso_protocol::language_server::CapabilityRegistration;
     use enso_protocol::language_server::ExpressionUpdates;
-    use enso_protocol::language_server::response::CreateExecutionContext;
     use json_rpc::expect_call;
-    use utils::test::ExpectTuple;
     use utils::test::stream::StreamTestExt;
+    use utils::test::ExpectTuple;
 
     #[derive(Debug)]
     pub struct Fixture {
-        context : ExecutionContext,
-        data    : MockData,
-        test    : TestWithLocalPoolExecutor,
+        context: ExecutionContext,
+        data:    MockData,
+        test:    TestWithLocalPoolExecutor,
     }
 
     impl Fixture {
         fn new() -> Fixture {
-            Self::new_customized(|_,_|{})
+            Self::new_customized(|_, _| {})
         }
 
-        fn new_customized(ls_setup:impl FnOnce(&mut language_server::MockClient,&MockData)) -> Fixture {
-            let data          = MockData::new();
+        fn new_customized(
+            ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
+        ) -> Fixture {
+            let data = MockData::new();
             let mut ls_client = language_server::MockClient::default();
-            Self::mock_create_push_destroy_calls(&data,&mut ls_client);
-            ls_setup(&mut ls_client,&data);
+            Self::mock_create_push_destroy_calls(&data, &mut ls_client);
+            ls_setup(&mut ls_client, &data);
             ls_client.require_all_calls();
             let connection = language_server::Connection::new_mock_rc(ls_client);
-            let mut test   = TestWithLocalPoolExecutor::set_up();
-            let logger     = Logger::new("Fixture");
-            let method     = data.main_method_pointer();
-            let context    = ExecutionContext::create(logger,connection,method);
-            let context    = test.expect_completion(context).unwrap();
-            Fixture {data,context,test}
+            let mut test = TestWithLocalPoolExecutor::set_up();
+            let logger = Logger::new("Fixture");
+            let method = data.main_method_pointer();
+            let context = ExecutionContext::create(logger, connection, method);
+            let context = test.expect_completion(context).unwrap();
+            Fixture { data, context, test }
         }
 
         /// What is expected server's response to a successful creation of this context.
-        fn expected_creation_response(data:&MockData) -> CreateExecutionContext {
+        fn expected_creation_response(data: &MockData) -> CreateExecutionContext {
             let context_id = data.context_id;
             let can_modify =
                 CapabilityRegistration::create_can_modify_execution_context(context_id);
             let receives_updates =
                 CapabilityRegistration::create_receives_execution_context_updates(context_id);
-            CreateExecutionContext {context_id,can_modify,receives_updates}
+            CreateExecutionContext { context_id, can_modify, receives_updates }
         }
 
         /// Sets up mock client expectations for context creation and destruction.
-        fn mock_create_destroy_calls(data:&MockData, ls:&mut language_server::MockClient) {
-            let id     = data.context_id;
+        fn mock_create_destroy_calls(data: &MockData, ls: &mut language_server::MockClient) {
+            let id = data.context_id;
             let result = Self::expected_creation_response(data);
             expect_call!(ls.create_execution_context()    => Ok(result));
             expect_call!(ls.destroy_execution_context(id) => Ok(()));
@@ -315,13 +338,16 @@ pub mod test {
 
         /// Sets up mock client expectations for context creation, initial frame push
         /// and destruction.
-        pub fn mock_create_push_destroy_calls(data:&MockData, ls:&mut language_server::MockClient) {
-            Self::mock_create_destroy_calls(&data,ls);
-            let id         = data.context_id;
+        pub fn mock_create_push_destroy_calls(
+            data: &MockData,
+            ls: &mut language_server::MockClient,
+        ) {
+            Self::mock_create_destroy_calls(&data, ls);
+            let id = data.context_id;
             let root_frame = language_server::ExplicitCall {
-                method_pointer                   : data.main_method_pointer(),
-                this_argument_expression         : None,
-                positional_arguments_expressions : vec![]
+                method_pointer:                   data.main_method_pointer(),
+                this_argument_expression:         None,
+                positional_arguments_expressions: vec![],
             };
             let stack_item = language_server::StackItem::ExplicitCall(root_frame);
             expect_call!(ls.push_to_execution_context(id,stack_item) => Ok(()));
@@ -333,16 +359,16 @@ pub mod test {
         pub fn mock_expression_update() -> language_server::ExpressionUpdate {
             use enso_protocol::language_server::types::test::value_update_with_type;
             let expression_id = model::execution_context::ExpressionId::new_v4();
-            value_update_with_type(expression_id,crate::test::mock::data::TYPE_NAME)
+            value_update_with_type(expression_id, crate::test::mock::data::TYPE_NAME)
         }
 
         /// Generates a mock update for a single expression.
         ///
         /// The updated expression id will be random. The typename will be mock typename.
-        pub fn mock_expression_updates(data:&MockData) -> ExpressionUpdates {
+        pub fn mock_expression_updates(data: &MockData) -> ExpressionUpdates {
             ExpressionUpdates {
-                context_id : data.context_id,
-                updates    : vec![Self::mock_expression_update()],
+                context_id: data.context_id,
+                updates:    vec![Self::mock_expression_update()],
             }
         }
     }
@@ -351,7 +377,7 @@ pub mod test {
     fn creating_context() {
         let f = Fixture::new();
         assert_eq!(f.data.context_id, f.context.id);
-        let name_in_data      = f.data.module_qualified_name();
+        let name_in_data = f.data.module_qualified_name();
         let name_in_ctx_model = QualifiedName::try_from(&f.context.model.entry_point);
         assert_eq!(name_in_data, name_in_ctx_model.unwrap());
         assert_eq!(Vec::<LocalCall>::new(), f.context.model.stack_items().collect_vec());
@@ -360,19 +386,17 @@ pub mod test {
     #[test]
     fn pushing_and_popping_stack_item() {
         let expression_id = model::execution_context::ExpressionId::new_v4();
-        let Fixture{data,mut test,context} = Fixture::new_customized(|ls,data| {
-            let id                  = data.context_id;
-            let expected_call_frame = language_server::LocalCall{expression_id};
+        let Fixture { data, mut test, context } = Fixture::new_customized(|ls, data| {
+            let id = data.context_id;
+            let expected_call_frame = language_server::LocalCall { expression_id };
             let expected_stack_item = language_server::StackItem::LocalCall(expected_call_frame);
             expect_call!(ls.push_to_execution_context(id,expected_stack_item) => Ok(()));
             expect_call!(ls.pop_from_execution_context(id) => Ok(()));
         });
         test.run_task(async move {
             assert!(context.pop().await.is_err());
-            let item    = LocalCall {
-                call       : expression_id,
-                definition : data.main_method_pointer(),
-            };
+            let item =
+                LocalCall { call: expression_id, definition: data.main_method_pointer() };
             context.push(item.clone()).await.unwrap();
             assert_eq!((item,), context.model.stack_items().expect_tuple());
             context.pop().await.unwrap();
@@ -384,12 +408,12 @@ pub mod test {
     #[test]
     fn attaching_visualizations_and_notifying() {
         let vis = Visualization {
-            id                : model::execution_context::VisualizationId::new_v4(),
-            expression_id     : model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code : "".to_string(),
-            context_module    : MockData::new().module_qualified_name(),
+            id:                model::execution_context::VisualizationId::new_v4(),
+            expression_id:     model::execution_context::ExpressionId::new_v4(),
+            preprocessor_code: "".to_string(),
+            context_module:    MockData::new().module_qualified_name(),
         };
-        let Fixture{mut test,context,..} = Fixture::new_customized(|ls,data| {
+        let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
             let vis_id = vis.id;
             let ast_id = vis.expression_id;
@@ -400,25 +424,25 @@ pub mod test {
         });
 
         test.run_task(async move {
-            let wrong_id   = model::execution_context::VisualizationId::new_v4();
-            let events     = context.attach_visualization(vis.clone()).await.unwrap();
+            let wrong_id = model::execution_context::VisualizationId::new_v4();
+            let events = context.attach_visualization(vis.clone()).await.unwrap();
             let mut events = events.boxed_local();
             events.expect_pending();
 
-            let update = VisualizationUpdateData::new(vec![1,2,3]);
-            context.dispatch_visualization_update(vis.id,update.clone()).unwrap();
-            assert_eq!(events.expect_next(),update);
+            let update = VisualizationUpdateData::new(vec![1, 2, 3]);
+            context.dispatch_visualization_update(vis.id, update.clone()).unwrap();
+            assert_eq!(events.expect_next(), update);
 
             events.expect_pending();
             let other_vis_id = VisualizationId::new_v4();
-            context.dispatch_visualization_update(other_vis_id,update.clone()).unwrap_err();
+            context.dispatch_visualization_update(other_vis_id, update.clone()).unwrap_err();
             events.expect_pending();
             assert!(context.detach_visualization(wrong_id).await.is_err());
             events.expect_pending();
             assert!(context.detach_visualization(vis.id).await.is_ok());
             events.expect_terminated();
             assert!(context.detach_visualization(vis.id).await.is_err());
-            context.dispatch_visualization_update(vis.id,update.clone()).unwrap_err();
+            context.dispatch_visualization_update(vis.id, update.clone()).unwrap_err();
         });
     }
 
@@ -428,22 +452,19 @@ pub mod test {
     #[test]
     fn detaching_all_visualizations() {
         let vis = Visualization {
-            id                   : model::execution_context::VisualizationId::new_v4(),
-            expression_id     : model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code : "".to_string(),
-            context_module    : MockData::new().module_qualified_name(),
+            id:                model::execution_context::VisualizationId::new_v4(),
+            expression_id:     model::execution_context::ExpressionId::new_v4(),
+            preprocessor_code: "".to_string(),
+            context_module:    MockData::new().module_qualified_name(),
         };
-        let vis2 = Visualization{
-            id : VisualizationId::new_v4(),
-            ..vis.clone()
-        };
+        let vis2 = Visualization { id: VisualizationId::new_v4(), ..vis.clone() };
 
-        let Fixture{mut test,context,..} = Fixture::new_customized(|ls,data| {
-            let exe_id  = data.context_id;
-            let vis_id  = vis.id;
+        let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
+            let exe_id = data.context_id;
+            let vis_id = vis.id;
             let vis2_id = vis2.id;
-            let ast_id  = vis.expression_id;
-            let config  = vis.config(exe_id);
+            let ast_id = vis.expression_id;
+            let config = vis.config(exe_id);
             let config2 = vis2.config(exe_id);
 
             expect_call!(ls.attach_visualisation(vis_id,ast_id,config)   => Ok(()));
@@ -463,23 +484,23 @@ pub mod test {
     #[test]
     fn modifying_visualizations() {
         let vis = Visualization {
-            id                : model::execution_context::VisualizationId::new_v4(),
-            expression_id     : model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code : "x -> x.to_json.to_string".to_string(),
-            context_module    : MockData::new().module_qualified_name(),
+            id:                model::execution_context::VisualizationId::new_v4(),
+            expression_id:     model::execution_context::ExpressionId::new_v4(),
+            preprocessor_code: "x -> x.to_json.to_string".to_string(),
+            context_module:    MockData::new().module_qualified_name(),
         };
-        let vis_id         = vis.id;
+        let vis_id = vis.id;
         let new_expression = "x -> x";
-        let new_module     = "Test.Test_Module";
-        let Fixture{mut test,context,..} = Fixture::new_customized(|ls,data| {
+        let new_module = "Test.Test_Module";
+        let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
             let ast_id = vis.expression_id;
             let config = vis.config(exe_id);
 
             let expected_config = language_server::types::VisualisationConfiguration {
-                execution_context_id : data.context_id,
-                visualisation_module : new_module.to_owned(),
-                expression           : new_expression.to_owned(),
+                execution_context_id: data.context_id,
+                visualisation_module: new_module.to_owned(),
+                expression:           new_expression.to_owned(),
             };
 
             expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
@@ -489,8 +510,8 @@ pub mod test {
         test.run_task(async move {
             context.attach_visualization(vis.clone()).await.unwrap();
             let expression = Some(new_expression.to_owned());
-            let module     = Some(QualifiedName::from_text(new_module).unwrap());
-            context.modify_visualization(vis_id,expression,module).await.unwrap();
+            let module = Some(QualifiedName::from_text(new_module).unwrap());
+            context.modify_visualization(vis_id, expression, module).await.unwrap();
         });
     }
 }

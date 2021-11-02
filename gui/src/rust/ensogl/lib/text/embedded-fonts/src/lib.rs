@@ -25,7 +25,7 @@ use enso_prelude::*;
 /// For list of embedded fonts, see FONTS_TO_EXTRACT constant in `build.rs`.
 #[allow(missing_docs)]
 pub struct EmbeddedFonts {
-    pub font_data_by_name: HashMap<&'static str,&'static [u8]>
+    pub font_data_by_name: HashMap<&'static str, &'static [u8]>,
 }
 
 impl EmbeddedFonts {
@@ -33,9 +33,9 @@ impl EmbeddedFonts {
     ///
     /// For list of embedded fonts, see `FONTS_TO_EXTRACT` constant in `build.rs`
     pub fn create_and_fill() -> EmbeddedFonts {
-        let mut font_data_by_name = HashMap::<&'static str,&'static [u8]>::new();
+        let mut font_data_by_name = HashMap::<&'static str, &'static [u8]>::new();
         include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
-        EmbeddedFonts{font_data_by_name}
+        EmbeddedFonts { font_data_by_name }
     }
 }
 
@@ -57,11 +57,11 @@ mod test {
 
     #[test]
     fn loading_embedded_fonts() {
-        let fonts        = EmbeddedFonts::create_and_fill();
+        let fonts = EmbeddedFonts::create_and_fill();
         let example_font = fonts.font_data_by_name.get("DejaVuSans").unwrap();
 
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);
-        assert_eq!(0x1d, example_font[example_font.len()-1]);
+        assert_eq!(0x1d, example_font[example_font.len() - 1]);
     }
 }

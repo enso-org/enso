@@ -2,11 +2,11 @@
 
 use crate::prelude::*;
 
-use crate::system::gpu::shader::glsl::Glsl;
-use crate::system::gpu::shader::glsl;
 use crate::system::gpu::data::gl_enum::GlEnum;
 use crate::system::gpu::data::sized::GpuKnownSize;
 use crate::system::gpu::data::GpuDefault;
+use crate::system::gpu::shader::glsl;
+use crate::system::gpu::shader::glsl::Glsl;
 
 use crate::system::gpu::data::gl_enum::traits::*;
 
@@ -19,10 +19,12 @@ use nalgebra::*;
 // =============
 
 /// Common Matrix bounds used as super-bounds for many helpers in this module.
-pub trait MatrixCtx<T,R,C> = where
-    T:Scalar, R:DimName, C:DimName,
-    DefaultAllocator: nalgebra::allocator::Allocator<T,R,C>,
-    <DefaultAllocator as nalgebra::allocator::Allocator<T,R,C>>::Buffer:Copy;
+pub trait MatrixCtx<T, R, C> = where
+    T: Scalar,
+    R: DimName,
+    C: DimName,
+    DefaultAllocator: nalgebra::allocator::Allocator<T, R, C>,
+    <DefaultAllocator as nalgebra::allocator::Allocator<T, R, C>>::Buffer: Copy;
 
 
 
@@ -32,7 +34,7 @@ pub trait MatrixCtx<T,R,C> = where
 
 // === Definition ===
 
-pub trait JsBufferViewArr = Sized where [Self]:JsBufferView;
+pub trait JsBufferViewArr = Sized where [Self]: JsBufferView;
 
 /// Super bounds of the `Item::Item` type;
 pub trait ItemBounds = Storable + PhantomInto<GlEnum>;
@@ -44,10 +46,12 @@ pub trait BufferItemBounds =
 /// GPU Buffer item.
 pub trait Item {
     /// Storable representation of the item.
-    type Storable : Storable;
+    type Storable: Storable;
 }
 
-impl<T:Storable> Item for T { type Storable = T; }
+impl<T: Storable> Item for T {
+    type Storable = T;
+}
 
 
 
@@ -57,7 +61,6 @@ impl<T:Storable> Item for T { type Storable = T; }
 /// as six `f32` values. This trait defines fast conversions (views) for the underlying flat data
 /// storage.
 pub trait Storable: BufferItemBounds {
-
     // === Types ===
 
     /// The primitive type which this type is build of. In case of the most primitive types, like
@@ -124,13 +127,13 @@ pub trait Storable: BufferItemBounds {
 // === Type Families ===
 
 /// Item accessor.
-pub type Cell <T> = <T as Storable>::Cell;
+pub type Cell<T> = <T as Storable>::Cell;
 
 /// Rows accessor.
-pub type Rows <T> = <T as Storable>::Rows;
+pub type Rows<T> = <T as Storable>::Rows;
 
 /// Cols accessor.
-pub type Cols <T> = <T as Storable>::Cols;
+pub type Cols<T> = <T as Storable>::Cols;
 
 
 // === Instances ===
@@ -141,10 +144,18 @@ impl Storable for bool {
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
+    fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
+        buffer
+    }
+    fn slice_from_items_mut(buffer: &mut [Self::Cell]) -> &mut [Self] {
+        buffer
+    }
+    fn slice_to_items(buffer: &[Self]) -> &[Self::Cell] {
+        buffer
+    }
+    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Cell] {
+        buffer
+    }
 }
 
 impl Storable for i32 {
@@ -152,10 +163,18 @@ impl Storable for i32 {
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
+    fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
+        buffer
+    }
+    fn slice_from_items_mut(buffer: &mut [Self::Cell]) -> &mut [Self] {
+        buffer
+    }
+    fn slice_to_items(buffer: &[Self]) -> &[Self::Cell] {
+        buffer
+    }
+    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Cell] {
+        buffer
+    }
 }
 
 impl Storable for u32 {
@@ -163,10 +182,18 @@ impl Storable for u32 {
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
+    fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
+        buffer
+    }
+    fn slice_from_items_mut(buffer: &mut [Self::Cell]) -> &mut [Self] {
+        buffer
+    }
+    fn slice_to_items(buffer: &[Self]) -> &[Self::Cell] {
+        buffer
+    }
+    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Cell] {
+        buffer
+    }
 }
 
 impl Storable for f32 {
@@ -174,15 +201,26 @@ impl Storable for f32 {
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
+    fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
+        buffer
+    }
+    fn slice_from_items_mut(buffer: &mut [Self::Cell]) -> &mut [Self] {
+        buffer
+    }
+    fn slice_to_items(buffer: &[Self]) -> &[Self::Cell] {
+        buffer
+    }
+    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Cell] {
+        buffer
+    }
 }
 
-impl<T:Storable<Cell=T>,R,C> Storable for OMatrix<T,R,C>
-    where T:ItemBounds, Self:MatrixCtx<T,R,C>,
-          Self:GpuDefault + PhantomInto<glsl::PrimType> + GpuKnownSize {
+impl<T: Storable<Cell = T>, R, C> Storable for OMatrix<T, R, C>
+where
+    T: ItemBounds,
+    Self: MatrixCtx<T, R, C>,
+    Self: GpuDefault + PhantomInto<glsl::PrimType> + GpuKnownSize,
+{
     type Cell = T;
     type Rows = R;
     type Cols = C;
@@ -258,7 +296,7 @@ pub trait JsBufferView {
 #[allow(unsafe_code)]
 impl JsBufferView for [bool] {
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
-        let i32arr = self.iter().cloned().map(|t| if t {1} else {0}).collect::<Vec<i32>>();
+        let i32arr = self.iter().cloned().map(|t| if t { 1 } else { 0 }).collect::<Vec<i32>>();
         js_sys::Int32Array::view(&i32arr).into()
     }
 }
@@ -292,19 +330,24 @@ impl JsBufferView for [u8] {
 }
 
 #[allow(unsafe_code)]
-impl<T: Storable<Cell=T>,R,C> JsBufferView for [OMatrix<T,R,C>]
-    where Self                    : MatrixCtx<T,R,C>,
-          T                       : ItemBounds,
-          OMatrix<T,R,C>         : Storable,
-          [Cell<OMatrix<T,R,C>>] : JsBufferView {
+impl<T: Storable<Cell = T>, R, C> JsBufferView for [OMatrix<T, R, C>]
+where
+    Self: MatrixCtx<T, R, C>,
+    T: ItemBounds,
+    OMatrix<T, R, C>: Storable,
+    [Cell<OMatrix<T, R, C>>]: JsBufferView,
+{
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
-        <OMatrix<T,R,C> as Storable>::slice_to_items(self).js_buffer_view()
+        <OMatrix<T, R, C> as Storable>::slice_to_items(self).js_buffer_view()
     }
 }
 
 #[allow(unsafe_code)]
-impl<T: Storable<Cell=T>,R,C> JsBufferView for OMatrix<T,R,C>
-    where Self:MatrixCtx<T,R,C>, T:ItemBounds {
+impl<T: Storable<Cell = T>, R, C> JsBufferView for OMatrix<T, R, C>
+where
+    Self: MatrixCtx<T, R, C>,
+    T: ItemBounds,
+{
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
         self.as_slice().js_buffer_view()
     }

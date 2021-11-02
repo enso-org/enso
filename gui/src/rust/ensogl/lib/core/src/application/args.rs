@@ -10,12 +10,13 @@ use crate::prelude::*;
 // =================
 
 /// Marker trait used to disambiguate overlapping impls of [`ArgReader`].
-#[marker] pub trait ArgMarker {}
+#[marker]
+pub trait ArgMarker {}
 
 /// Trait used to convert provided string arguments to the desired type.
 #[allow(missing_docs)]
-pub trait ArgReader : Sized {
-    fn read_arg(str:String) -> Option<Self>;
+pub trait ArgReader: Sized {
+    fn read_arg(str: String) -> Option<Self>;
 }
 
 
@@ -23,26 +24,29 @@ pub trait ArgReader : Sized {
 
 /// Helper trait used to disambiguate overlapping impls of [`ArgReader`].
 #[allow(missing_docs)]
-pub trait ArgReaderFromString : Sized {
-    fn read_arg_from_string(str:String) -> Option<Self>;
+pub trait ArgReaderFromString: Sized {
+    fn read_arg_from_string(str: String) -> Option<Self>;
 }
 
 impl<T> ArgReaderFromString for T
-where String:TryInto<T> {
-    fn read_arg_from_string(str:String) -> Option<Self> {
+where String: TryInto<T>
+{
+    fn read_arg_from_string(str: String) -> Option<Self> {
         str.try_into().ok()
     }
 }
 
 impl<T> ArgReaderFromString for T {
-    default fn read_arg_from_string(_:String) -> Option<Self> {
+    default fn read_arg_from_string(_: String) -> Option<Self> {
         unreachable!()
     }
 }
 
-impl<T> ArgMarker for T where T : TryFrom<String> {}
-impl<T> ArgReader for T where T : ArgMarker {
-    default fn read_arg(str:String) -> Option<Self> {
+impl<T> ArgMarker for T where T: TryFrom<String> {}
+impl<T> ArgReader for T
+where T: ArgMarker
+{
+    default fn read_arg(str: String) -> Option<Self> {
         ArgReaderFromString::read_arg_from_string(str)
     }
 }
@@ -52,17 +56,17 @@ impl<T> ArgReader for T where T : ArgMarker {
 
 impl ArgMarker for bool {}
 impl ArgReader for bool {
-    fn read_arg(str:String) -> Option<Self> {
+    fn read_arg(str: String) -> Option<Self> {
         match &str[..] {
-            "true"     => Some(true),
-            "false"    => Some(false),
-            "ok"       => Some(true),
-            "fail"     => Some(false),
-            "enabled"  => Some(true),
+            "true" => Some(true),
+            "false" => Some(false),
+            "ok" => Some(true),
+            "fail" => Some(false),
+            "enabled" => Some(true),
             "disabled" => Some(false),
-            "yes"      => Some(true),
-            "no"       => Some(false),
-            _          => None,
+            "yes" => Some(true),
+            "no" => Some(false),
+            _ => None,
         }
     }
 }

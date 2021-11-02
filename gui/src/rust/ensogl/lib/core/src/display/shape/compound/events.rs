@@ -30,10 +30,10 @@ crate::define_endpoints! {
 /// `Events` defines a common FRP api that handles mouse over/out events for  multiple
 /// sub-shapes. It avoids boilerplate of setting up FRP bindings for every single shape,
 /// instead the `Shape` frp endpoints can be used.
-#[derive(Clone,CloneRef,Default,Debug)]
+#[derive(Clone, CloneRef, Default, Debug)]
 #[allow(missing_docs)]
 pub struct MouseEvents {
-    pub frp : Frp,
+    pub frp: Frp,
 }
 
 impl Deref for MouseEvents {
@@ -50,7 +50,7 @@ impl MouseEvents {
     }
 
     /// Connect the given [`ShapeViewEvents`] to the [`Events`] output.
-    pub fn add_sub_shape<T:DynamicShape>(&self, sub_shape:&ShapeView<T>) {
+    pub fn add_sub_shape<T: DynamicShape>(&self, sub_shape: &ShapeView<T>) {
         frp::extend! { network
             self.frp.source.mouse_over <+ sub_shape.events.mouse_over;
             self.frp.source.mouse_out  <+ sub_shape.events.mouse_out;

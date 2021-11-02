@@ -2,13 +2,13 @@
 
 use crate::prelude::*;
 
-use super::unit::*;
 use super::modifier::*;
+use super::unit::*;
 
+use crate::data::color;
+use crate::display::shape::primitive::def::var::Var;
 use crate::display::shape::primitive::shader::canvas;
 use crate::display::shape::primitive::shader::canvas::Canvas;
-use crate::display::shape::primitive::def::var::Var;
-use crate::data::color;
 
 
 
@@ -21,9 +21,9 @@ pub trait Shape = 'static + canvas::Draw;
 
 /// Generic 2d shape representation. You can convert any specific shape type to this type and use it
 /// as a generic shape type.
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct AnyShape {
-    rc: Rc<dyn canvas::Draw>
+    rc: Rc<dyn canvas::Draw>,
 }
 
 impl AsOwned for AnyShape {
@@ -32,13 +32,13 @@ impl AsOwned for AnyShape {
 
 impl AnyShape {
     /// Constructor.
-    pub fn new<T:Shape>(t:T) -> Self {
-        Self {rc : Rc::new(t)}
+    pub fn new<T: Shape>(t: T) -> Self {
+        Self { rc: Rc::new(t) }
     }
 }
 
 impl canvas::Draw for AnyShape {
-    fn draw(&self, canvas:&mut Canvas) -> canvas::Shape {
+    fn draw(&self, canvas: &mut Canvas) -> canvas::Shape {
         self.rc.draw(canvas)
     }
 }
@@ -50,22 +50,22 @@ impl canvas::Draw for AnyShape {
 // ================
 
 /// Immutable reference to a shape. It is also used to get unique id for each shape.
-#[derive(Debug,Derivative,Shrinkwrap)]
-#[derivative(Clone(bound=""))]
+#[derive(Debug, Derivative, Shrinkwrap)]
+#[derivative(Clone(bound = ""))]
 pub struct ShapeRef<T> {
-    rc:Rc<T>
+    rc: Rc<T>,
 }
 
 impl<T> From<&ShapeRef<T>> for ShapeRef<T> {
-    fn from(t:&ShapeRef<T>) -> Self {
+    fn from(t: &ShapeRef<T>) -> Self {
         t.clone()
     }
 }
 
 impl<T> ShapeRef<T> {
     /// Constructor.
-    pub fn new(t:T) -> Self {
-        Self {rc:Rc::new(t)}
+    pub fn new(t: T) -> Self {
+        Self { rc: Rc::new(t) }
     }
 
     /// Unwraps the shape and provides the raw reference to its content.
@@ -80,7 +80,7 @@ impl<T> ShapeRef<T> {
     /// want to define `s4 = s1 - s2`, `s5 = s1 - s3`, and `s6 = s4 + s5`. We need to discover that
     /// we use `s1` twice under the hood in order to optimize the GLSL.
     pub fn id(&self) -> usize {
-        Rc::downgrade(&self.rc).as_ptr() as *const() as usize
+        Rc::downgrade(&self.rc).as_ptr() as *const () as usize
     }
 }
 
@@ -91,55 +91,56 @@ impl<T> ShapeRef<T> {
 // ================
 
 impl<T> ShapeOps for ShapeRef<T> {}
-impl    ShapeOps for AnyShape {}
+impl ShapeOps for AnyShape {}
 
 /// Methods implemented by every shape.
-pub trait ShapeOps : Sized where for<'t> &'t Self : IntoOwned<Owned=Self> {
+pub trait ShapeOps: Sized
+where for<'t> &'t Self: IntoOwned<Owned = Self> {
     /// Translate the shape by a given offset.
-    fn translate<V:Into<Var<Vector2<Pixels>>>>(&self, v:V) -> Translate<Self> {
-        Translate(self,v)
+    fn translate<V: Into<Var<Vector2<Pixels>>>>(&self, v: V) -> Translate<Self> {
+        Translate(self, v)
     }
 
     /// Translate the shape along X-axis by a given offset.
-    fn translate_x<X>(&self, x:X) -> Translate<Self>
-        where (X,Var<Pixels>) : Into<Var<Vector2<Pixels>>> {
-        self.translate((x,0.px()))
+    fn translate_x<X>(&self, x: X) -> Translate<Self>
+    where (X, Var<Pixels>): Into<Var<Vector2<Pixels>>> {
+        self.translate((x, 0.px()))
     }
 
     /// Translate the shape along Y-axis by a given offset.
-    fn translate_y<Y>(&self, y:Y) -> Translate<Self>
-        where (Var<Pixels>,Y) : Into<Var<Vector2<Pixels>>> {
-        self.translate((0.px(),y))
+    fn translate_y<Y>(&self, y: Y) -> Translate<Self>
+    where (Var<Pixels>, Y): Into<Var<Vector2<Pixels>>> {
+        self.translate((0.px(), y))
     }
 
     /// Rotate the shape by a given angle.
-    fn rotate<A:Into<Var<Radians>>>(&self, angle:A) -> Rotation<Self> {
-        Rotation(self,angle)
+    fn rotate<A: Into<Var<Radians>>>(&self, angle: A) -> Rotation<Self> {
+        Rotation(self, angle)
     }
 
     /// Scales the shape by a given value.
-    fn scale<S:Into<Var<f32>>>(&self, value:S) -> Scale<Self> {
-        Scale(self,value)
+    fn scale<S: Into<Var<f32>>>(&self, value: S) -> Scale<Self> {
+        Scale(self, value)
     }
 
     /// Unify the shape with another one.
-    fn union<S:IntoOwned>(&self, that:S) -> Union<Self,Owned<S>> {
-        Union(self,that)
+    fn union<S: IntoOwned>(&self, that: S) -> Union<Self, Owned<S>> {
+        Union(self, that)
     }
 
     /// Subtracts the argument from this shape.
-    fn difference<S:IntoOwned>(&self, that:S) -> Difference<Self,Owned<S>> {
-        Difference(self,that)
+    fn difference<S: IntoOwned>(&self, that: S) -> Difference<Self, Owned<S>> {
+        Difference(self, that)
     }
 
     /// Computes the intersection of the shapes.
-    fn intersection<S:IntoOwned>(&self, that:S) -> Intersection<Self,Owned<S>> {
-        Intersection(self,that)
+    fn intersection<S: IntoOwned>(&self, that: S) -> Intersection<Self, Owned<S>> {
+        Intersection(self, that)
     }
 
     /// Fill the shape with the provided color.
-    fn fill<Color:Into<Var<color::Rgba>>>(&self, color:Color) -> Fill<Self> {
-        Fill(self,color)
+    fn fill<Color: Into<Var<color::Rgba>>>(&self, color: Color) -> Fill<Self> {
+        Fill(self, color)
     }
 
     /// Makes the borders of the shape crisp. Please note that it removes any form of antialiasing
@@ -149,17 +150,17 @@ pub trait ShapeOps : Sized where for<'t> &'t Self : IntoOwned<Owned=Self> {
     }
 
     /// Grows the shape by the given amount.
-    fn grow<T:Into<Var<Pixels>>>(&self, value:T) -> Grow<Self> {
+    fn grow<T: Into<Var<Pixels>>>(&self, value: T) -> Grow<Self> {
         Grow(self, value.into())
     }
 
     /// Shrinks the shape by the given amount.
-    fn shrink<T:Into<Var<Pixels>>>(&self, value:T) -> Shrink<Self> {
+    fn shrink<T: Into<Var<Pixels>>>(&self, value: T) -> Shrink<Self> {
         Shrink(self, value.into())
     }
 
     /// Repeats the shape with the given tile size.
-    fn repeat<T:Into<Var<Vector2<Pixels>>>>(&self, value:T) -> Repeat<Self> {
+    fn repeat<T: Into<Var<Vector2<Pixels>>>>(&self, value: T) -> Repeat<Self> {
         Repeat(self, value)
     }
 }

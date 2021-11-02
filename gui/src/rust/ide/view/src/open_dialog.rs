@@ -4,10 +4,10 @@ pub mod project_list;
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl::display;
-use ensogl_gui_components::file_browser::FileBrowser;
 use ensogl::application::Application;
+use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
+use ensogl_gui_components::file_browser::FileBrowser;
 use ensogl_theme as theme;
 
 
@@ -22,22 +22,22 @@ use ensogl_theme as theme;
 /// provide frp endpoints by its own: you should just go directly to the `project_list` or
 /// `file_browser` field.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct OpenDialog {
-    logger           : Logger,
-    network          : frp::Network,
-    pub project_list : project_list::ProjectList,
-    pub file_browser : FileBrowser,
-    display_object   : display::object::Instance,
-    style_watch      : StyleWatchFrp,
+    logger:           Logger,
+    network:          frp::Network,
+    pub project_list: project_list::ProjectList,
+    pub file_browser: FileBrowser,
+    display_object:   display::object::Instance,
+    style_watch:      StyleWatchFrp,
 }
 
 impl OpenDialog {
     /// Create Open Dialog component.
-    pub fn new(app:&Application) -> Self {
-        let logger       = Logger::new("OpenDialog");
-        let network      = frp::Network::new("OpenDialog");
-        let style_watch  = StyleWatchFrp::new(&app.display.scene().style_sheet);
+    pub fn new(app: &Application) -> Self {
+        let logger = Logger::new("OpenDialog");
+        let network = frp::Network::new("OpenDialog");
+        let style_watch = StyleWatchFrp::new(&app.display.scene().style_sheet);
         let project_list = project_list::ProjectList::new(app);
         let file_browser = FileBrowser::new();
         // Once FileBrowser will be implemented as component, it should be instantiated this way:
@@ -65,10 +65,12 @@ impl OpenDialog {
             eval file_browser_x ((x) file_browser.set_position_x(*x));
         }
         init.emit(());
-        Self {logger,network,project_list,file_browser,display_object,style_watch}
+        Self { logger, network, project_list, file_browser, display_object, style_watch }
     }
 }
 
 impl display::Object for OpenDialog {
-    fn display_object(&self) -> &display::object::Instance { &self.display_object }
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
 }

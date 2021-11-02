@@ -11,15 +11,15 @@ use crate::prelude::*;
 // =============
 
 /// Structure containing all the gathered stats.
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct Stats {
-    rc: Rc<RefCell<StatsData>>
+    rc: Rc<RefCell<StatsData>>,
 }
 
 impl Default for Stats {
     fn default() -> Self {
         let rc = Rc::new(RefCell::new(default()));
-        Self {rc}
+        Self { rc }
     }
 }
 
@@ -70,7 +70,7 @@ macro_rules! gen_stats {
     }};
 }
 
-gen_stats!{
+gen_stats! {
     gpu_memory_usage     : u32,
     draw_call_count      : usize,
     buffer_count         : usize,
@@ -86,10 +86,10 @@ gen_stats!{
 
 impl StatsData {
     fn reset_per_frame_statistics(&mut self) {
-        self.draw_call_count      = 0;
+        self.draw_call_count = 0;
         self.shader_compile_count = 0;
-        self.data_upload_count    = 0;
-        self.data_upload_size     = 0;
+        self.data_upload_count = 0;
+        self.data_upload_size = 0;
     }
 }
 

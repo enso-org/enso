@@ -6,13 +6,13 @@ use crate::prelude::*;
 use crate::double_representation::definition::DefinitionName;
 use crate::double_representation::definition::ScopeKind;
 
-use ast::Ast;
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
-use ast::macros::DocumentationCommentAst;
 use ast::known;
+use ast::macros::DocumentationCommentAst;
 use ast::opr;
 use ast::prefix;
+use ast::Ast;
 
 pub mod alias_analysis;
 pub mod connection;
@@ -41,7 +41,7 @@ pub mod test_utils;
 /// configurable on purpose.
 ///
 /// Link: https://github.com/enso-org/enso/blob/develop/doc/syntax/encoding.md
-pub const INDENT : usize = 4;
+pub const INDENT: usize = 4;
 
 
 
@@ -50,79 +50,84 @@ pub const INDENT : usize = 4;
 // ========================
 
 /// What kind of node or definition a line should be treated as.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub enum LineKind {
     /// Definition is a binding, which defines a new entity with arguments.
     Definition {
         /// The binding that introduces the definition.
-        ast:known::Infix,
+        ast:  known::Infix,
         /// Name of this definition. Includes typename, if this is an extension method.
-        name:Located<DefinitionName>,
+        name: Located<DefinitionName>,
         /// Arguments for this definition. Does not include any implicit ones (e.g. no `this`).
-        args:Vec<Located<Ast>>,
+        args: Vec<Located<Ast>>,
     },
     /// Node in a binding form.
     ExpressionAssignment {
         /// Ast of the whole binding.
-        ast : known::Infix,
+        ast: known::Infix,
     },
     /// Node consisting of a plain expression, with no pattern binding.
     ExpressionPlain {
         /// Ast of the whole expression.
-        ast : Ast,
+        ast: Ast,
     },
     /// Documentation comment lines are not nodes.
     /// Instead, they are discovered and processed as part of nodes that follow them.
     DocumentationComment {
         /// The comment representation.
-        documentation : DocumentationCommentAst
-    }
+        documentation: DocumentationCommentAst,
+    },
 }
 
 impl LineKind {
     /// Tell how the given line (described by an Ast) should be treated.
-    // TODO [mwu] This method deserves unit tests of its own. 
-    pub fn discern(ast:&Ast, kind:ScopeKind) -> Self {
+    // TODO [mwu] This method deserves unit tests of its own.
+    pub fn discern(ast: &Ast, kind: ScopeKind) -> Self {
         use LineKind::*;
 
         // First of all, if non-empty line is not an infix (i.e. binding) it can be only a node or
         // a documentation comment.
         let ast = match opr::to_assignment(ast) {
-            Some(infix) =>
-                infix,
+            Some(infix) => infix,
             None =>
                 return if let Some(documentation) = DocumentationCommentAst::new(ast) {
                     // e.g. `## My comment.`
-                    DocumentationComment {documentation}
+                    DocumentationComment { documentation }
                 } else {
                     // The simplest form of node, e.g. `Point 5 10`
-                    ExpressionPlain {ast:ast.clone_ref()}
-                }
+                    ExpressionPlain { ast: ast.clone_ref() }
+                },
         };
 
         // Assignment can be either nodes or definitions. To discern, we check the left hand side.
-        // For definition it is a prefix chain, where first is the name, then arguments (if explicit).
-        // For node it is a pattern, either in a form of Var without args on Cons application.
+        // For definition it is a prefix chain, where first is the name, then arguments (if
+        // explicit). For node it is a pattern, either in a form of Var without args on Cons
+        // application.
         let crumb = InfixCrumb::LeftOperand;
-        let lhs   = Located::new(crumb,prefix::Chain::from_ast_non_strict(&ast.larg));
-        let name  = lhs.entered(|chain| {
-            let name_ast = chain.located_func();
-            name_ast.map(DefinitionName::from_ast)
-        }).into_opt();
+        let lhs = Located::new(crumb, prefix::Chain::from_ast_non_strict(&ast.larg));
+        let name = lhs
+            .entered(|chain| {
+                let name_ast = chain.located_func();
+                name_ast.map(DefinitionName::from_ast)
+            })
+            .into_opt();
 
         // If this is a pattern match, `name` will fail to construct and we'll treat line as a node.
         // e.g. for `Point x y = get_point …`
         let name = match name {
             Some(name) => name,
-            None       => return ExpressionAssignment{ast}
+            None => return ExpressionAssignment { ast },
         };
 
-        let args = lhs.enumerate_args().map(|Located{crumbs,item}| {
-            // We already in the left side of assignment, so we need to prepend this crumb.
-            let crumbs = lhs.crumbs.clone().into_iter().chain(crumbs);
-            let ast    = item.clone();
-            Located::new(crumbs,ast)
-        }).collect_vec();
+        let args = lhs
+            .enumerate_args()
+            .map(|Located { crumbs, item }| {
+                // We already in the left side of assignment, so we need to prepend this crumb.
+                let crumbs = lhs.crumbs.clone().into_iter().chain(crumbs);
+                let ast = item.clone();
+                Located::new(crumbs, ast)
+            })
+            .collect_vec();
 
         // Note [Scope Differences]
         if kind == ScopeKind::NonRoot {
@@ -134,11 +139,11 @@ impl LineKind {
             // e.g. `point = Point 5 10`
             let is_node = args.is_empty();
             if is_setter || is_node {
-                return ExpressionAssignment{ast}
+                return ExpressionAssignment { ast };
             }
         };
 
-        Definition {ast,name,args}
+        Definition { ast, name, args }
     }
 }
 
@@ -161,20 +166,21 @@ mod tests {
 
     /// Expect `main` method, where first line is a documentation comment.
     /// The text of this comment should match the expected one.
-    fn run_case(parser:&Parser, code:&str, expected_comment_text:&str) {
-        let ast = parser.parse_module(code,default()).unwrap();
+    fn run_case(parser: &Parser, code: &str, expected_comment_text: &str) {
+        let ast = parser.parse_module(code, default()).unwrap();
         let main_id = double_representation::definition::Id::new_plain_name("main");
-        let main = double_representation::module::get_definition(&ast,&main_id).unwrap();
+        let main = double_representation::module::get_definition(&ast, &main_id).unwrap();
         let lines = main.block_lines();
         let first_line = lines[0].transpose_ref().unwrap();
-        let doc = DocumentationCommentInfo::new(&first_line,main.indent()).unwrap();
+        let doc = DocumentationCommentInfo::new(&first_line, main.indent()).unwrap();
         let text = doc.pretty_text();
         assert_eq!(text, expected_comment_text);
 
         // Now, if we convert our pretty text to code, will it be the same as original line?
-        let code = DocumentationCommentInfo::text_to_repr(main.indent(),&text);
+        let code = DocumentationCommentInfo::text_to_repr(main.indent(), &text);
         let ast2 = parser.parse_line(&code).unwrap();
-        let doc2 = DocumentationCommentInfo::new(&ast2.as_ref(),main.indent()).expect(&format!("Failed to parse `{}` as comment",code));
+        let doc2 = DocumentationCommentInfo::new(&ast2.as_ref(), main.indent())
+            .expect(&format!("Failed to parse `{}` as comment", code));
         assert_eq!(doc.line().repr(), doc2.line().repr())
     }
 
@@ -188,7 +194,7 @@ main =
     ## Single line
     node"#;
         let expected = " Single line";
-        run_case(&parser, code,expected);
+        run_case(&parser, code, expected);
 
         // Single line case without space after `##`.
         let code = r#"
@@ -196,7 +202,7 @@ main =
     ##Single line
     node"#;
         let expected = "Single line";
-        run_case(&parser, code,expected);
+        run_case(&parser, code, expected);
 
         // Single line case with a single trailing space after `##`.
         let code = r#"
@@ -204,7 +210,7 @@ main =
     ## 
     node"#;
         let expected = " ";
-        run_case(&parser, code,expected);
+        run_case(&parser, code, expected);
 
         // Single line case without content.
         let code = r#"
@@ -212,8 +218,7 @@ main =
     ##
     node"#;
         let expected = "";
-        run_case(&parser, code,expected);
-
+        run_case(&parser, code, expected);
     }
 
     #[wasm_bindgen_test]
@@ -225,7 +230,6 @@ main =
        Second line
     node"#;
         let expected = " First line\n Second line";
-        run_case(&parser, code,expected);
+        run_case(&parser, code, expected);
     }
-
 }

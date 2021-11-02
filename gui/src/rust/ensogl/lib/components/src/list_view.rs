@@ -10,8 +10,8 @@ use crate::shadow;
 
 use enso_frp as frp;
 use ensogl_core::application;
-use ensogl_core::application::Application;
 use ensogl_core::application::shortcut;
+use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
@@ -29,8 +29,8 @@ pub use entry::Entry;
 // === Constants ===
 
 /// The size of shadow under element. It is not counted in the component width and height.
-pub const SHADOW_PX:f32 = 10.0;
-const SHAPE_PADDING:f32 = 5.0;
+pub const SHADOW_PX: f32 = 10.0;
+const SHAPE_PADDING: f32 = 5.0;
 
 
 // === Selection ===
@@ -40,7 +40,7 @@ pub mod selection {
     use super::*;
 
     /// The corner radius in pixels.
-    pub const CORNER_RADIUS_PX:f32 = 12.0;
+    pub const CORNER_RADIUS_PX: f32 = 12.0;
 
     ensogl_core::define_shape_system! {
         (style:Style) {
@@ -66,7 +66,7 @@ pub mod background {
     use super::*;
 
     /// The corner radius in pixels.
-    pub const CORNER_RADIUS_PX:f32 = selection::CORNER_RADIUS_PX;
+    pub const CORNER_RADIUS_PX: f32 = selection::CORNER_RADIUS_PX;
 
     ensogl_core::define_shape_system! {
         below = [selection];
@@ -93,100 +93,105 @@ pub mod background {
 // =============
 
 /// Information about displayed fragment of entries list.
-#[derive(Copy,Clone,Debug,Default)]
+#[derive(Copy, Clone, Debug, Default)]
 struct View {
-    position_y : f32,
-    size       : Vector2<f32>,
+    position_y: f32,
+    size:       Vector2<f32>,
 }
 
 /// The Model of Select Component.
-#[derive(Clone,CloneRef,Debug)]
-struct Model<E:Entry> {
-    app            : Application,
-    entries        : entry::List<E>,
-    selection      : selection::View,
-    background     : background::View,
-    scrolled_area  : display::object::Instance,
-    display_object : display::object::Instance,
+#[derive(Clone, CloneRef, Debug)]
+struct Model<E: Entry> {
+    app:            Application,
+    entries:        entry::List<E>,
+    selection:      selection::View,
+    background:     background::View,
+    scrolled_area:  display::object::Instance,
+    display_object: display::object::Instance,
 }
 
-impl<E:Entry> Model<E> {
-
-    fn new(app:&Application) -> Self {
-        let app            = app.clone_ref();
-        let logger         = Logger::new("SelectionContainer");
+impl<E: Entry> Model<E> {
+    fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let logger = Logger::new("SelectionContainer");
         let display_object = display::object::Instance::new(&logger);
-        let scrolled_area  = display::object::Instance::new(&logger);
-        let entries        = entry::List::new(&logger,&app);
-        let background     = background::View::new(&logger);
-        let selection      = selection::View::new(&logger);
+        let scrolled_area = display::object::Instance::new(&logger);
+        let entries = entry::List::new(&logger, &app);
+        let background = background::View::new(&logger);
+        let selection = selection::View::new(&logger);
         display_object.add_child(&background);
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model{app,entries,selection,background,scrolled_area,display_object}
+        Model { app, entries, selection, background, scrolled_area, display_object }
     }
 
     fn padding(&self) -> f32 {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles   = StyleWatch::new(&self.app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&self.app.display.scene().style_sheet);
         styles.get_number(ensogl_theme::application::searcher::padding)
     }
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
     /// resized.
-    fn update_after_view_change(&self, view:&View) {
-        let visible_entries = Self::visible_entries(view,self.entries.entry_count());
-        let padding_px      = self.padding();
-        let padding         = 2.0 * padding_px + SHAPE_PADDING;
-        let padding         = Vector2(padding, padding);
-        let shadow          = Vector2(2.0 * SHADOW_PX,  2.0 * SHADOW_PX);
+    fn update_after_view_change(&self, view: &View) {
+        let visible_entries = Self::visible_entries(view, self.entries.entry_count());
+        let padding_px = self.padding();
+        let padding = 2.0 * padding_px + SHAPE_PADDING;
+        let padding = Vector2(padding, padding);
+        let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
         self.entries.update_entries(visible_entries);
     }
 
-    fn set_entries(&self, provider:entry::AnyModelProvider<E>, view:&View) {
-        let visible_entries = Self::visible_entries(view,provider.entry_count());
-        self.entries.update_entries_new_provider(provider,visible_entries);
+    fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View) {
+        let visible_entries = Self::visible_entries(view, provider.entry_count());
+        self.entries.update_entries_new_provider(provider, visible_entries);
     }
 
-    fn visible_entries(View {position_y,size}:&View, entry_count:usize) -> Range<entry::Id> {
+    fn visible_entries(View { position_y, size }: &View, entry_count: usize) -> Range<entry::Id> {
         if entry_count == 0 {
             0..0
         } else {
-            let entry_at_y_saturating = |y:f32| {
-                match entry::List::<E>::entry_at_y_position(y,entry_count) {
+            let entry_at_y_saturating =
+                |y: f32| match entry::List::<E>::entry_at_y_position(y, entry_count) {
                     entry::list::IdAtYPosition::AboveFirst => 0,
-                    entry::list::IdAtYPosition::UnderLast  => entry_count - 1,
-                    entry::list::IdAtYPosition::Entry(id)  => id,
-                }
-            };
+                    entry::list::IdAtYPosition::UnderLast => entry_count - 1,
+                    entry::list::IdAtYPosition::Entry(id) => id,
+                };
             let first = entry_at_y_saturating(*position_y);
-            let last  = entry_at_y_saturating(position_y - size.y) + 1;
+            let last = entry_at_y_saturating(position_y - size.y) + 1;
             first..last
         }
     }
 
     /// Check if the `point` is inside component assuming that it have given `size`.
-    fn is_inside(&self, point:Vector2<f32>, size:Vector2<f32>) -> bool {
-        let pos_obj_space = self.app.display.scene().screen_to_object_space(&self.background,point);
-        let x_range       = (-size.x / 2.0)..=(size.x / 2.0);
-        let y_range       = (-size.y / 2.0)..=(size.y / 2.0);
+    fn is_inside(&self, point: Vector2<f32>, size: Vector2<f32>) -> bool {
+        let pos_obj_space =
+            self.app.display.scene().screen_to_object_space(&self.background, point);
+        let x_range = (-size.x / 2.0)..=(size.x / 2.0);
+        let y_range = (-size.y / 2.0)..=(size.y / 2.0);
         x_range.contains(&pos_obj_space.x) && y_range.contains(&pos_obj_space.y)
     }
 
-    fn selected_entry_after_jump
-    (&self, current_entry:Option<entry::Id>, jump:isize) -> Option<entry::Id> {
+    fn selected_entry_after_jump(
+        &self,
+        current_entry: Option<entry::Id>,
+        jump: isize,
+    ) -> Option<entry::Id> {
         if jump < 0 {
             let current_entry = current_entry?;
-            if current_entry == 0 { None                                    }
-            else                  { Some(current_entry.saturating_sub(-jump as usize)) }
+            if current_entry == 0 {
+                None
+            } else {
+                Some(current_entry.saturating_sub(-jump as usize))
+            }
         } else {
             let max_entry = self.entries.entry_count().checked_sub(1)?;
-            Some(current_entry.map_or(0, |id| id+(jump as usize)).min(max_entry))
+            Some(current_entry.map_or(0, |id| id + (jump as usize)).min(max_entry))
         }
     }
 }
@@ -243,40 +248,43 @@ ensogl_core::define_endpoints! {
 /// This is a displayed list of entries (of any type `E`) with possibility of selecting one and
 /// "choosing" by clicking or pressing enter. The basic entry types are defined in [`entry`] module.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug)]
-pub struct ListView<E:Entry> {
-    model   : Model<E>,
-    pub frp : Frp<E>,
+#[derive(Clone, CloneRef, Debug)]
+pub struct ListView<E: Entry> {
+    model:   Model<E>,
+    pub frp: Frp<E>,
 }
 
-impl<E:Entry> Deref for ListView<E> {
+impl<E: Entry> Deref for ListView<E> {
     type Target = Frp<E>;
-    fn deref(&self) -> &Self::Target { &self.frp }
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
-impl<E:Entry> ListView<E>
-where E::Model : Default {
+impl<E: Entry> ListView<E>
+where E::Model: Default
+{
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
-        let frp   = Frp::new();
+    pub fn new(app: &Application) -> Self {
+        let frp = Frp::new();
         let model = Model::new(app);
-        ListView {model,frp}.init(app)
+        ListView { model, frp }.init(app)
     }
 
-    fn init(self, app:&Application) -> Self {
-        const MAX_SCROLL:f32           = entry::HEIGHT/2.0;
-        const MOUSE_MOVE_THRESHOLD:f32 = std::f32::EPSILON;
+    fn init(self, app: &Application) -> Self {
+        const MAX_SCROLL: f32 = entry::HEIGHT / 2.0;
+        const MOUSE_MOVE_THRESHOLD: f32 = std::f32::EPSILON;
 
-        let frp              = &self.frp;
-        let network          = &frp.network;
-        let model            = &self.model;
-        let scene            = app.display.scene();
-        let mouse            = &scene.mouse.frp;
-        let view_y           = DEPRECATED_Animation::<f32>::new(network);
-        let selection_y      = DEPRECATED_Animation::<f32>::new(network);
+        let frp = &self.frp;
+        let network = &frp.network;
+        let model = &self.model;
+        let scene = app.display.scene();
+        let mouse = &scene.mouse.frp;
+        let view_y = DEPRECATED_Animation::<f32>::new(network);
+        let selection_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
 
-        frp::extend!{ network
+        frp::extend! { network
 
             // === Mouse Position ===
 
@@ -424,32 +432,46 @@ where E::Model : Default {
     }
 
     /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, layer:LayerId) {
+    pub fn set_label_layer(&self, layer: LayerId) {
         self.model.entries.set_label_layer(layer);
     }
 }
 
-impl<E:Entry> display::Object for ListView<E> {
-    fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
+impl<E: Entry> display::Object for ListView<E> {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.model.display_object
+    }
 }
 
-impl<E:Entry> application::command::FrpNetworkProvider for ListView<E> {
-    fn network(&self) -> &frp::Network { &self.frp.network }
+impl<E: Entry> application::command::FrpNetworkProvider for ListView<E> {
+    fn network(&self) -> &frp::Network {
+        &self.frp.network
+    }
 }
 
-impl<E:Entry> application::View for ListView<E> {
-    fn label() -> &'static str { "ListView" }
-    fn new(app:&Application) -> Self { ListView::new(app) }
-    fn app(&self) -> &Application { &self.model.app }
+impl<E: Entry> application::View for ListView<E> {
+    fn label() -> &'static str {
+        "ListView"
+    }
+    fn new(app: &Application) -> Self {
+        ListView::new(app)
+    }
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (PressAndRepeat , "up"        , "move_selection_up")
-          , (PressAndRepeat , "down"      , "move_selection_down")
-          , (Press          , "page-up"   , "move_selection_page_up")
-          , (Press          , "page-down" , "move_selection_page_down")
-          , (Press          , "home"      , "move_selection_to_first")
-          , (Press          , "end"       , "move_selection_to_last")
-          , (Press          , "enter"     , "chose_selected_entry")
-          ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
+        (&[
+            (PressAndRepeat, "up", "move_selection_up"),
+            (PressAndRepeat, "down", "move_selection_down"),
+            (Press, "page-up", "move_selection_page_up"),
+            (Press, "page-down", "move_selection_page_down"),
+            (Press, "home", "move_selection_to_first"),
+            (Press, "end", "move_selection_to_last"),
+            (Press, "enter", "chose_selected_entry"),
+        ])
+            .iter()
+            .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
+            .collect()
     }
 }

@@ -1,9 +1,9 @@
 //! A module with structures related to examples found in Suggestion Database.
 use crate::prelude::*;
 
+use crate::double_representation::definition;
 use crate::double_representation::definition::DefinitionName;
 use crate::double_representation::module;
-use crate::double_representation::definition;
 
 use parser::Parser;
 
@@ -14,7 +14,7 @@ use parser::Parser;
 // ==============
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,Fail)]
+#[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Invalid example code.")]
 pub struct InvalidExample;
 
@@ -30,16 +30,15 @@ pub struct InvalidExample;
 /// If a user picks an example, its `code` should became a body of a new method defined in current
 /// module. On the scene the node calling this method should appear.
 #[allow(missing_docs)]
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Example {
-    pub name               : String,
-    pub code               : String,
-    pub imports            : Vec<String>,
-    pub documentation_html : String,
+    pub name:               String,
+    pub code:               String,
+    pub imports:            Vec<String>,
+    pub documentation_html: String,
 }
 
 impl Example {
-
     /// Return the example name converted in such way, that it will be a valid identifier.
     ///
     /// #### Example
@@ -48,33 +47,43 @@ impl Example {
     ///
     /// use ide::model::suggestion_database::Example;
     ///
-    /// let name    = "With Spaces and Strange $ąę#%^& Characters.".to_owned();
-    /// let example = Example{name,..default()};
+    /// let name = "With Spaces and Strange $ąę#%^& Characters.".to_owned();
+    /// let example = Example { name, ..default() };
     /// assert_eq!(example.function_name(), "with_spaces_and_strange__characters");
     /// ```
     pub fn function_name(&self) -> String {
-        self.name.chars().filter_map(|c|
-            if c == ' ' { Some('_') }
-            else if !c.is_ascii_alphanumeric() { None }
-            else { Some(c.to_ascii_lowercase()) }
-        ).collect()
+        self.name
+            .chars()
+            .filter_map(|c| {
+                if c == ' ' {
+                    Some('_')
+                } else if !c.is_ascii_alphanumeric() {
+                    None
+                } else {
+                    Some(c.to_ascii_lowercase())
+                }
+            })
+            .collect()
     }
 
     /// Returns the function definition containing the example code.
-    pub fn definition_to_add(&self, module:&module::Info, parser:&Parser)
-    -> FallibleResult<definition::ToAdd> {
-        let base_name  = self.function_name();
-        let name       = DefinitionName::new_plain(module.generate_name(&base_name)?);
-        let code_ast   = parser.parse_module(self.code.clone(),default())?;
+    pub fn definition_to_add(
+        &self,
+        module: &module::Info,
+        parser: &Parser,
+    ) -> FallibleResult<definition::ToAdd> {
+        let base_name = self.function_name();
+        let name = DefinitionName::new_plain(module.generate_name(&base_name)?);
+        let code_ast = parser.parse_module(self.code.clone(), default())?;
         let body_block = code_ast.shape().as_block(0).ok_or(InvalidExample)?;
-        let body_ast   = Ast::new(body_block,None);
-        Ok(definition::ToAdd::new_with_body(name,default(),body_ast))
+        let body_ast = Ast::new(body_block, None);
+        Ok(definition::ToAdd::new_with_body(name, default(), body_ast))
     }
 }
 
 /// Creates a pretty documentation from hardcoded inner text.
-pub fn documentation_html_from(inner:&str) -> String {
-    return format!("<div class=\"doc\" style=\"font-size: 13px;\"><p>{}</p></div>", inner)
+pub fn documentation_html_from(inner: &str) -> String {
+    return format!("<div class=\"doc\" style=\"font-size: 13px;\"><p>{}</p></div>", inner);
 }
 
 // =========================

@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use std::fmt::Formatter;
 use std::fmt::Error;
+use std::fmt::Formatter;
 
 
 
@@ -12,17 +12,17 @@ use std::fmt::Error;
 // =======================
 
 /// Abstraction for every type which can be an item of typed array in JavaScript.
-pub trait JsTypedArrayItem : Debug + Clone + Sized + 'static {
+pub trait JsTypedArrayItem: Debug + Clone + Sized + 'static {
     /// Internal JavaScript array type.
-    type JsArrayType: JsTypedArrayOps<Item=Self>;
+    type JsArrayType: JsTypedArrayOps<Item = Self>;
 }
 
 /// Abstraction for all operations on raw JavaScript typed arrays.
-pub trait JsTypedArrayOps : Debug + Clone {
+pub trait JsTypedArrayOps: Debug + Clone {
     /// Rust item type for a given JavaScript array type.
     type Item;
     /// Constructs a new array with a given length.
-    fn new_with_length(len:u32) -> Self;
+    fn new_with_length(len: u32) -> Self;
     /// Returns a JavaScripts `ArrayBuffer` view for this array.
     fn buffer(&self) -> js_sys::ArrayBuffer;
     /// Converts the array to a vector.
@@ -78,18 +78,18 @@ define_js_typed_array_bindings! {
 // ====================
 
 /// Rust-style wrapper for typed array living in JavaScript scope.
-pub struct JsTypedArray<T:JsTypedArrayItem> {
+pub struct JsTypedArray<T: JsTypedArrayItem> {
     raw: <T as JsTypedArrayItem>::JsArrayType,
 }
 
 
 // === API ===
 
-impl<T:JsTypedArrayItem> JsTypedArray<T> {
+impl<T: JsTypedArrayItem> JsTypedArray<T> {
     /// Constructor.
-    pub fn new_with_length(len:u32) -> Self {
+    pub fn new_with_length(len: u32) -> Self {
         let raw = <T as JsTypedArrayItem>::JsArrayType::new_with_length(len);
-        Self {raw}
+        Self { raw }
     }
 
     /// Accessor of the underlying raw `JsArrayType`.
@@ -101,20 +101,20 @@ impl<T:JsTypedArrayItem> JsTypedArray<T> {
 
 // === Instances ===
 
-impl<T:JsTypedArrayItem> Clone for JsTypedArray<T> {
+impl<T: JsTypedArrayItem> Clone for JsTypedArray<T> {
     fn clone(&self) -> Self {
         let raw = self.raw.clone();
-        Self {raw}
+        Self { raw }
     }
 }
 
-impl<T:JsTypedArrayItem> Debug for JsTypedArray<T> {
-    fn fmt(&self, f:&mut Formatter<'_>) -> Result<(), Error> {
-        Debug::fmt(&self.raw,f)
+impl<T: JsTypedArrayItem> Debug for JsTypedArray<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        Debug::fmt(&self.raw, f)
     }
 }
 
-impl<T:JsTypedArrayItem> Deref for JsTypedArray<T> {
+impl<T: JsTypedArrayItem> Deref for JsTypedArray<T> {
     type Target = <T as JsTypedArrayItem>::JsArrayType;
     fn deref(&self) -> &Self::Target {
         &self.raw

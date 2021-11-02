@@ -9,12 +9,12 @@ mod token;
 use crate::prelude::*;
 use crate::token::TokenDescription;
 
-use enso_prelude as prelude;
 use enso_macro_utils::gather_all_type_reprs;
 use enso_macro_utils::repr;
-use proc_macro2::TokenStream;
+use enso_prelude as prelude;
 use proc_macro2::Ident;
 use proc_macro2::Span;
+use proc_macro2::TokenStream;
 use quote::quote;
 
 
@@ -30,9 +30,9 @@ use quote::quote;
 /// Implicitly applied by `ast` on target and generated types. User should not
 /// need to use this macro directly.
 #[proc_macro_attribute]
-pub fn ast_node
-( _meta: proc_macro::TokenStream
-, input: proc_macro::TokenStream
+pub fn ast_node(
+    _meta: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let input: TokenStream = input.into();
     let output = quote! {
@@ -47,12 +47,12 @@ pub fn ast_node
 /// Marks target declaration as `ast_node`. If it is an enumeration, also
 /// applies `to_variant_types`.
 #[proc_macro_attribute]
-pub fn ast
-( attrs : proc_macro::TokenStream
-, input : proc_macro::TokenStream
+pub fn ast(
+    attrs: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let attrs: TokenStream = attrs.into();
-    let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
+    let decl = syn::parse_macro_input!(input as syn::DeriveInput);
     let output = match &decl.data {
         syn::Data::Enum { .. } => quote! {
             #[to_variant_types(#attrs)]
@@ -62,7 +62,7 @@ pub fn ast
         _ => quote! {
             #[ast_node]
             #decl
-        }
+        },
     };
     output.into()
 }
@@ -83,28 +83,28 @@ pub fn ast
 // }
 
 /// Produces declaration of the structure for given source enum variant.
-fn mk_product_type
-( is_flat : bool
-, decl    : &syn::DeriveInput
-, variant : &syn::Variant
+fn mk_product_type(
+    is_flat: bool,
+    decl: &syn::DeriveInput,
+    variant: &syn::Variant,
 ) -> syn::ItemStruct {
     use syn::ItemStruct;
-    let fields       = &variant.fields;
-    let fields       = fields.iter();
-    let types        = fields.flat_map(|f| {gather_all_type_reprs(&f.ty) });
-    let types        = types.collect::<HashSet<_>>();
-    let ty_vars      = decl.generics.params.iter().cloned();
-    let params       = ty_vars.filter(|v| types.contains(&repr(&v))).collect();
-    let attrs        = decl.attrs.clone();
-    let vis          = decl.vis.clone();
+    let fields = &variant.fields;
+    let fields = fields.iter();
+    let types = fields.flat_map(|f| gather_all_type_reprs(&f.ty));
+    let types = types.collect::<HashSet<_>>();
+    let ty_vars = decl.generics.params.iter().cloned();
+    let params = ty_vars.filter(|v| types.contains(&repr(&v))).collect();
+    let attrs = decl.attrs.clone();
+    let vis = decl.vis.clone();
     let struct_token = syn::token::Struct { span: Span::call_site() };
-    let ident_flat   = variant.ident.clone();
+    let ident_flat = variant.ident.clone();
     let ident_nested = format!("{}{}", decl.ident, variant.ident);
     let ident_nested = Ident::new(&ident_nested, Span::call_site());
-    let ident        = if is_flat { ident_flat } else { ident_nested };
-    let generics     = syn::Generics { params, .. default() };
-    let mut fields   = variant.fields.clone();
-    let semi_token   = None;
+    let ident = if is_flat { ident_flat } else { ident_nested };
+    let generics = syn::Generics { params, ..default() };
+    let mut fields = variant.fields.clone();
+    let semi_token = None;
     fields.iter_mut().for_each(|f| f.vis = vis.clone());
     ItemStruct { attrs, vis, struct_token, ident, generics, fields, semi_token }
 }
@@ -112,10 +112,9 @@ fn mk_product_type
 /// Generates rewritten enumeration declaration.
 ///
 /// Each constructor will be a single-elem tuple holder for extracted type.
-fn gen_variant_decl
-(ident: &syn::Ident, variant: &syn::ItemStruct) -> TokenStream {
+fn gen_variant_decl(ident: &syn::Ident, variant: &syn::ItemStruct) -> TokenStream {
     let variant_ident = &variant.ident;
-    let params        = variant.generics.params.iter();
+    let params = variant.generics.params.iter();
     quote! {
         // See note [Expansion Example]
         // App(ShapeApp<T>),
@@ -129,19 +128,17 @@ fn gen_variant_decl
 /// Generate `TryFrom` implementation from primary enumeration into each
 /// extracted type.
 #[allow(clippy::cognitive_complexity)]
-fn gen_from_impls
-( ident  : &syn::Ident
-, decl   : &syn::DeriveInput
-, variant: &syn::ItemStruct
+fn gen_from_impls(
+    ident: &syn::Ident,
+    decl: &syn::DeriveInput,
+    variant: &syn::ItemStruct,
 ) -> TokenStream {
-    let sum_label     = &decl.ident;
+    let sum_label = &decl.ident;
     let variant_label = &variant.ident;
     let variant_name = variant_label.to_string();
 
-    let sum_params = &decl.generics.params
-        .iter().cloned().collect::<Vec<_>>();
-    let variant_params = &variant.generics.params
-        .iter().cloned().collect::<Vec<_>>();
+    let sum_params = &decl.generics.params.iter().cloned().collect::<Vec<_>>();
+    let variant_params = &variant.generics.params.iter().cloned().collect::<Vec<_>>();
 
     quote! {
         // See note [Expansion Example]
@@ -216,33 +213,34 @@ fn gen_from_impls
 /// To name generated types with only their constructor name, use `flat`
 /// attribute: `#[ast(flat)]`.
 #[proc_macro_attribute]
-pub fn to_variant_types
-( attrs: proc_macro::TokenStream
-, input: proc_macro::TokenStream
+pub fn to_variant_types(
+    attrs: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let attrs: TokenStream = attrs.into();
-    let decl     = syn::parse_macro_input!(input as syn::DeriveInput);
-    let ident    = &decl.ident;
-    let ty_vars  = &decl.generics.params;
+    let decl = syn::parse_macro_input!(input as syn::DeriveInput);
+    let ident = &decl.ident;
+    let ty_vars = &decl.generics.params;
     let variants = match &decl.data {
         syn::Data::Enum(ref data) => data.variants.iter(),
-        _ => unimplemented!()
-    }.collect::<Vec<_>>();
+        _ => unimplemented!(),
+    }
+    .collect::<Vec<_>>();
 
     let is_flat = repr(&attrs) == "flat";
     let structs = variants.iter().map(|v| mk_product_type(is_flat, &decl, v));
     let structs = structs.collect::<Vec<_>>();
 
     let variant_idents = variants.iter().map(|v| &v.ident).collect::<Vec<_>>();
-    let variant_decls  = variant_idents.iter().zip(structs.iter())
-        .map(|(i,v)| gen_variant_decl(i,v));
-    let variant_froms  = variant_idents.iter().zip(structs.iter())
-        .map(|(i,v)| gen_from_impls(i, &decl, v));
+    let variant_decls =
+        variant_idents.iter().zip(structs.iter()).map(|(i, v)| gen_variant_decl(i, v));
+    let variant_froms =
+        variant_idents.iter().zip(structs.iter()).map(|(i, v)| gen_from_impls(i, &decl, v));
 
     // Handle single value, unnamed params as created by user.
     let structs = structs.iter().filter(|v| match &v.fields {
         syn::Fields::Unnamed(f) => f.unnamed.len() != 1,
-        _                       => true
+        _ => true,
     });
 
     let decl_attrs = &decl.attrs;
@@ -263,19 +261,18 @@ pub fn to_variant_types
 /// The implementation uses underlying HasTokens implementation for
 /// stored values.
 #[proc_macro_derive(HasTokens)]
-pub fn derive_has_tokens
-(input:proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
+pub fn derive_has_tokens(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let decl = syn::parse_macro_input!(input as syn::DeriveInput);
     let ret = match decl.data {
         syn::Data::Enum(ref e) => token::derive_for_enum(&decl, e),
-        _       => quote! {},
+        _ => quote! {},
     };
     proc_macro::TokenStream::from(ret)
 }
 
 /// Provides only `HasTokens` implementation.
 #[proc_macro]
-pub fn has_tokens(input:proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn has_tokens(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let maker = syn::parse::<TokenDescription>(input).unwrap();
     maker.has_tokens().into()
 }
@@ -283,11 +280,10 @@ pub fn has_tokens(input:proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// Generates `HasTokens` instances that are just sum of their parts.
 ///
 /// Takes 1+ parameters:
-/// * first goes the typename for which implementations are generated (can take
-///   type parameters, as long as they implement `HasTokens`)
-/// * then arbitrary number (0 or more) of expressions, that shall yield values
-///   implementing `HasTokens`. The `self` can be used in th
-///   expressions.
+/// * first goes the typename for which implementations are generated (can take type parameters, as
+///   long as they implement `HasTokens`)
+/// * then arbitrary number (0 or more) of expressions, that shall yield values implementing
+///   `HasTokens`. The `self` can be used in th expressions.
 ///
 /// For example, for invocation:
 /// ```ignore
@@ -306,6 +302,6 @@ pub fn has_tokens(input:proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 /// Generates `HasTokens` implementations for spaceless AST that panics when used.
 #[proc_macro]
-pub fn spaceless_ast(input:proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn spaceless_ast(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     crate::token::spaceless_ast(input)
 }

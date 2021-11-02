@@ -3,13 +3,13 @@
 use crate::api;
 use crate::prelude::*;
 
-use websocket::{
-    stream::sync::TcpStream, ClientBuilder, Message,
-};
+use websocket::stream::sync::TcpStream;
+use websocket::ClientBuilder;
+use websocket::Message;
 
 use api::Ast;
-use api::Metadata;
 use api::Error::*;
+use api::Metadata;
 use api::ParsedSourceFile;
 use ast::IdMap;
 
@@ -24,12 +24,12 @@ type WsTcpClient = websocket::sync::Client<TcpStream>;
 // == Constants & literals ==
 // ==========================
 
-pub const LOCALHOST:        &str = "localhost";
-pub const DEFAULT_PORT:      i32 = 30615;
+pub const LOCALHOST: &str = "localhost";
+pub const DEFAULT_PORT: i32 = 30615;
 pub const DEFAULT_HOSTNAME: &str = LOCALHOST;
 
 pub const HOSTNAME_VAR: &str = "ENSO_PARSER_HOSTNAME";
-pub const PORT_VAR:     &str = "ENSO_PARSER_PORT";
+pub const PORT_VAR: &str = "ENSO_PARSER_PORT";
 
 
 
@@ -92,25 +92,29 @@ impl From<serde_json::error::Error> for Error {
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest                 { program : String, ids : IdMap },
-    ParseRequestWithMetadata     { content : String },
-    DocParserGenerateHtmlSource  { program : String },
-    DocParserGenerateHtmlFromDoc { code : String },
+    ParseRequest { program: String, ids: IdMap },
+    ParseRequestWithMetadata { content: String },
+    DocParserGenerateHtmlSource { program: String },
+    DocParserGenerateHtmlFromDoc { code: String },
 }
 
 /// All responses that Parser Service might reply with.
 #[derive(Debug, serde::Deserialize)]
 pub enum Response<Metadata> {
     #[serde(bound(deserialize = "Metadata:Default+DeserializeOwned"))]
-    Success { module  : ParsedSourceFile<Metadata> },
-    Error   { message : String                     },
+    Success {
+        module: ParsedSourceFile<Metadata>,
+    },
+    Error {
+        message: String,
+    },
 }
 
 /// All responses that Doc Parser Service might reply with.
 #[derive(Debug, serde::Deserialize)]
 pub enum ResponseDoc {
-    SuccessDoc { code    : String },
-    Error      { message : String },
+    SuccessDoc { code: String },
+    Error { message: String },
 }
 
 
@@ -120,7 +124,7 @@ pub enum ResponseDoc {
 // ============
 
 /// Describes a WS endpoint.
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub host: String,
     pub port: i32,
@@ -161,7 +165,7 @@ mod internal {
         /// Serializes `Request` to JSON and sends to peer as a text message.
         pub fn send_request(&mut self, request: Request) -> Result<()> {
             let request_txt = serde_json::to_string(&request)?;
-            let message     = Message::text(request_txt);
+            let message = Message::text(request_txt);
             self.connection.send_message(&message)?;
             Ok(())
         }
@@ -170,7 +174,7 @@ mod internal {
         /// into a `Response`.
         ///
         /// Should be called exactly once after each `send_request` invocation.
-        pub fn recv_response<M:Metadata>(&mut self) -> Result<Response<M>> {
+        pub fn recv_response<M: Metadata>(&mut self) -> Result<Response<M>> {
             let response = self.connection.recv_message()?;
             match response {
                 websocket::OwnedMessage::Text(text) =>
@@ -187,7 +191,7 @@ mod internal {
             let response = self.connection.recv_message()?;
             match response {
                 websocket::OwnedMessage::Text(code) => Ok(serde_json::from_str(&code)?),
-                _                                   => Err(Error::NonTextResponse(response)),
+                _ => Err(Error::NonTextResponse(response)),
             }
         }
 
@@ -195,8 +199,7 @@ mod internal {
         ///
         /// Both request and response are exchanged in JSON using text messages
         /// over WebSocket.
-        pub fn rpc_call<M:Metadata>
-        (&mut self, request:Request) -> Result<Response<M>> {
+        pub fn rpc_call<M: Metadata>(&mut self, request: Request) -> Result<Response<M>> {
             self.send_request(request)?;
             self.recv_response()
         }
@@ -205,8 +208,7 @@ mod internal {
         ///
         /// Both request and response are exchanged in JSON using text messages
         /// over WebSocket.
-        pub fn rpc_call_doc
-        (&mut self, request:Request) -> Result<ResponseDoc> {
+        pub fn rpc_call_doc(&mut self, request: Request) -> Result<ResponseDoc> {
             self.send_request(request)?;
             self.recv_response_doc()
         }
@@ -216,9 +218,9 @@ mod internal {
 impl Client {
     /// Creates a new `Client` connected to the already running parser service.
     pub fn from_conf(config: &Config) -> Result<Client> {
-        let address     = config.address_string();
+        let address = config.address_string();
         let mut builder = ClientBuilder::new(&address)?;
-        let connection  = builder.connect_insecure()?;
+        let connection = builder.connect_insecure()?;
         Ok(Client { connection })
     }
 
@@ -235,46 +237,47 @@ impl Client {
     }
 
     /// Sends a request to parser service to parse Enso code.
-    pub fn parse(&mut self, program:String, ids:IdMap) -> api::Result<Ast> {
-        let request  = Request::ParseRequest {program,ids};
+    pub fn parse(&mut self, program: String, ids: IdMap) -> api::Result<Ast> {
+        let request = Request::ParseRequest { program, ids };
         let response = self.rpc_call::<serde_json::Value>(request)?;
         match response {
-            Response::Success {module} => Ok(module.ast.into()),
-            Response::Error  {message} => Err(ParsingError(message)),
+            Response::Success { module } => Ok(module.ast.into()),
+            Response::Error { message } => Err(ParsingError(message)),
         }
     }
 
     /// Sends a request to parser service to parse code with metadata.
-    pub fn parse_with_metadata<M:Metadata>
-    (&mut self, program:String) -> api::Result<ParsedSourceFile<M>> {
-        let request  = Request::ParseRequestWithMetadata {content:program};
+    pub fn parse_with_metadata<M: Metadata>(
+        &mut self,
+        program: String,
+    ) -> api::Result<ParsedSourceFile<M>> {
+        let request = Request::ParseRequestWithMetadata { content: program };
         let response = self.rpc_call(request)?;
         match response {
-            Response::Success {module} => Ok(module),
-            Response::Error  {message} => Err(ParsingError(message)),
+            Response::Success { module } => Ok(module),
+            Response::Error { message } => Err(ParsingError(message)),
         }
     }
 
     /// Sends a request to parser service to generate HTML code from documented Enso code.
-    pub fn generate_html_docs(&mut self, program:String) -> api::Result<String> {
-        let request      = Request::DocParserGenerateHtmlSource {program};
+    pub fn generate_html_docs(&mut self, program: String) -> api::Result<String> {
+        let request = Request::DocParserGenerateHtmlSource { program };
         let response_doc = self.rpc_call_doc(request)?;
         match response_doc {
-            ResponseDoc::SuccessDoc {code} => Ok(code),
-            ResponseDoc::Error   {message} => Err(ParsingError(message)),
+            ResponseDoc::SuccessDoc { code } => Ok(code),
+            ResponseDoc::Error { message } => Err(ParsingError(message)),
         }
     }
 
     /// Sends a request to parser service to generate HTML code from pure documentation code.
-    pub fn generate_html_doc_pure(&mut self, code:String) -> api::Result<String> {
-        let request      = Request::DocParserGenerateHtmlFromDoc {code};
+    pub fn generate_html_doc_pure(&mut self, code: String) -> api::Result<String> {
+        let request = Request::DocParserGenerateHtmlFromDoc { code };
         let response_doc = self.rpc_call_doc(request)?;
         match response_doc {
-            ResponseDoc::SuccessDoc {code} => Ok(code),
-            ResponseDoc::Error   {message} => Err(ParsingError(message)),
+            ResponseDoc::SuccessDoc { code } => Ok(code),
+            ResponseDoc::Error { message } => Err(ParsingError(message)),
         }
     }
-
 }
 
 impl Debug for Client {
@@ -291,9 +294,9 @@ impl Debug for Client {
 
 #[test]
 fn wrong_url_reported() {
-    let invalid_hostname    = String::from("bgjhkb 7");
-    let wrong_config        = Config { host: invalid_hostname, port: 8080 };
-    let client              = Client::from_conf(&wrong_config);
+    let invalid_hostname = String::from("bgjhkb 7");
+    let wrong_config = Config { host: invalid_hostname, port: 8080 };
+    let client = Client::from_conf(&wrong_config);
     let got_wrong_url_error = matches::matches!(client, Err(Error::WrongUrl(_)));
     assert!(got_wrong_url_error, "expected WrongUrl error");
 }

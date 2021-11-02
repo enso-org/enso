@@ -20,8 +20,7 @@ macro_rules! gen_unsupported_types {
 #[allow(non_camel_case_types)]
 #[allow(missing_docs)]
 pub mod unsupported_types {
-    gen_unsupported_types!
-    { f16, f32_u24_u8_REV, u16_4_4_4_4, u16_5_5_5_1, u16_5_6_5, u32_f10_f11_f11_REV, u32_24_8
+    gen_unsupported_types! { f16, f32_u24_u8_REV, u16_4_4_4_4, u16_5_5_5_1, u16_5_6_5, u32_f10_f11_f11_REV, u32_24_8
     , u32_2_10_10_10_REV, u32_5_9_9_9_REV
     }
 }
@@ -51,5 +50,5 @@ macro_rules! with_all_prim_types {
              [Matrix4x2 f32] [Matrix4x3 f32]
             ]
         }
-    }
+    };
 }

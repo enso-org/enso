@@ -1,24 +1,24 @@
 use json_rpc::prelude::*;
 
 use ensogl_system_web::Duration;
+use futures::task::LocalSpawnExt;
 use futures::FutureExt;
 use futures::Stream;
-use futures::task::LocalSpawnExt;
-use json_rpc::*;
 use json_rpc::api::RemoteMethodCall;
 use json_rpc::api::Result;
-use json_rpc::error::RpcError;
 use json_rpc::error::HandlingError;
+use json_rpc::error::RpcError;
 use json_rpc::messages::Id;
 use json_rpc::messages::Message;
 use json_rpc::messages::Version;
 use json_rpc::test_util::transport::mock::MockTransport;
+use json_rpc::*;
 use serde::Deserialize;
 use serde::Serialize;
 use std::future::Future;
 use std::pin::Pin;
-use utils::test::traits::*;
 use std::thread::sleep;
+use utils::test::traits::*;
 
 type MockEvent = json_rpc::handler::Event<MockNotification>;
 
@@ -31,30 +31,34 @@ type MockEvent = json_rpc::handler::Event<MockNotification>;
 
 // === Remote Method ===
 
-fn pow_impl(msg:MockRequestMessage) -> MockResponseMessage {
-    let ret = MockResponse { result : msg.i * msg.i };
-    Message::new_success(msg.id,ret)
+fn pow_impl(msg: MockRequestMessage) -> MockResponseMessage {
+    let ret = MockResponse { result: msg.i * msg.i };
+    Message::new_success(msg.id, ret)
 }
 
 
 // === Protocol Data ===
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct MockRequest {i:i64}
+struct MockRequest {
+    i: i64,
+}
 
 impl RemoteMethodCall for MockRequest {
-    const NAME:&'static str = "pow";
-    type Returned           = MockResponse;
+    const NAME: &'static str = "pow";
+    type Returned = MockResponse;
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct MockResponse { result:i64 }
+struct MockResponse {
+    result: i64,
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(tag = "method", content="params")]
+#[serde(tag = "method", content = "params")]
 pub enum MockNotification {
-    Meow {text:String},
-    Bark {text:String},
+    Meow { text: String },
+    Bark { text: String },
 }
 
 
@@ -71,21 +75,18 @@ type MockResponseMessage = messages::ResponseMessage<MockResponse>;
 // ===================
 
 pub struct Client {
-    pub handler       : Handler<MockNotification>,
-    pub events_stream : Pin<Box<dyn Stream<Item = MockEvent>>>,
+    pub handler:       Handler<MockNotification>,
+    pub events_stream: Pin<Box<dyn Stream<Item = MockEvent>>>,
 }
 
 impl Client {
-    pub fn new(transport:impl Transport + 'static) -> Client {
-        let handler       = Handler::new(transport);
+    pub fn new(transport: impl Transport + 'static) -> Client {
+        let handler = Handler::new(transport);
         let events_stream = Box::pin(handler.handler_event_stream());
-        Client {
-            handler,
-            events_stream,
-        }
+        Client { handler, events_stream }
     }
 
-    pub fn pow(&mut self, i:i64) -> impl Future<Output = Result<i64>> {
+    pub fn pow(&mut self, i: i64) -> impl Future<Output = Result<i64>> {
         let input = MockRequest { i };
         self.handler.open_request(input).map(|result| result.map(|r| r.result))
     }
@@ -103,7 +104,7 @@ impl Client {
         if let MockEvent::Notification(notification) = event {
             notification
         } else {
-            panic!("Expected a notification, got different kind of event: {:?}",event)
+            panic!("Expected a notification, got different kind of event: {:?}", event)
         }
     }
 
@@ -124,28 +125,28 @@ impl Client {
 // ============
 
 struct Fixture {
-    transport : MockTransport,
-    client    : Client,
-    pool      : futures::executor::LocalPool,
+    transport: MockTransport,
+    client:    Client,
+    pool:      futures::executor::LocalPool,
 }
 
 impl Fixture {
     pub fn new() -> Fixture {
-        let     transport  = MockTransport::new();
-        let mut client     = Client::new(transport.clone());
-        let     pool       = futures::executor::LocalPool::new();
-        let     fut        = client.events_processor();
+        let transport = MockTransport::new();
+        let mut client = Client::new(transport.clone());
+        let pool = futures::executor::LocalPool::new();
+        let fut = client.events_processor();
         pool.spawner().spawn_local(fut).unwrap();
-        Fixture {transport,client,pool}
+        Fixture { transport, client, pool }
     }
 }
 
 #[test]
 fn test_success_call() {
-    let mut fixture                   = Fixture::new();
-    let     call_input                = 8;
-    let mut fut                       = Box::pin(fixture.client.pow(8));
-    let     expected_first_request_id = Id(0);
+    let mut fixture = Fixture::new();
+    let call_input = 8;
+    let mut fut = Box::pin(fixture.client.pow(8));
+    let expected_first_request_id = Id(0);
 
     // validate request sent
     let req_msg = fixture.transport.expect_json_message::<MockRequestMessage>();
@@ -167,26 +168,22 @@ fn test_success_call() {
     fixture.pool.run_until_stalled();
 
     let result = fut.expect_ok();
-    assert_eq!(result, 8*8);
+    assert_eq!(result, 8 * 8);
 }
 
 #[test]
 fn test_error_call() {
     let mut fixture = Fixture::new();
-    let mut fut     = Box::pin(fixture.client.pow(8));
+    let mut fut = Box::pin(fixture.client.pow(8));
     fut.expect_pending(); // no reply
 
     // reply with error
-    let req_msg           = fixture.transport.expect_json_message::<MockRequestMessage>();
-    let error_code        = 5;
+    let req_msg = fixture.transport.expect_json_message::<MockRequestMessage>();
+    let error_code = 5;
     let error_description = "wrong!";
-    let error_data        = None;
-    let error_msg: MockResponseMessage = Message::new_error(
-        req_msg.id,
-        error_code,
-        error_description.into(),
-        error_data.clone(),
-    );
+    let error_data = None;
+    let error_msg: MockResponseMessage =
+        Message::new_error(req_msg.id, error_code, error_description.into(), error_data.clone());
     fixture.transport.mock_peer_json_message(error_msg);
 
     // receive error
@@ -205,7 +202,7 @@ fn test_error_call() {
 #[test]
 fn test_garbage_reply_error() {
     let mut fixture = Fixture::new();
-    let mut fut     = Box::pin(fixture.client.pow(8));
+    let mut fut = Box::pin(fixture.client.pow(8));
     fut.expect_pending(); // no reply
     fixture.transport.mock_peer_text_message("hello, nice to meet you");
 
@@ -222,14 +219,15 @@ fn test_garbage_reply_error() {
 #[test]
 fn test_timeout_error() {
     let mut fixture = Fixture::new();
-    let mut fut     = Box::pin(fixture.client.pow(8));
+    let mut fut = Box::pin(fixture.client.pow(8));
 
     fut.expect_pending(); // no reply
     fixture.pool.run_until_stalled();
     sleep(fixture.client.handler.timeout());
     sleep(Duration::from_secs(1)); // sleep a little longer than the timeout
 
-    if let RpcError::TimeoutError{..} = fut.expect_err() {} else {
+    if let RpcError::TimeoutError { .. } = fut.expect_err() {
+    } else {
         panic!("Expected an error to be TimeoutError");
     }
 }
@@ -237,7 +235,7 @@ fn test_timeout_error() {
 #[test]
 fn test_disconnect_error() {
     let mut fixture = Fixture::new();
-    let mut fut     = Box::pin(fixture.client.pow(8));
+    let mut fut = Box::pin(fixture.client.pow(8));
     fut.expect_pending(); // no reply nor relevant event
     fixture.transport.mock_connection_closed();
     fut.expect_pending(); // closing event not yet processed
@@ -245,7 +243,8 @@ fn test_disconnect_error() {
     fixture.pool.run_until_stalled();
 
     let result = fut.expect_err();
-    if let RpcError::LostConnection = result {} else {
+    if let RpcError::LostConnection = result {
+    } else {
         panic!("Expected an error to be RemoteError");
     }
 }
@@ -258,24 +257,24 @@ fn test_sending_while_disconnected() {
     fut.expect_err();
 }
 
-fn test_notification(mock_notif:MockNotification) {
+fn test_notification(mock_notif: MockNotification) {
     let mut fixture = Fixture::new();
-    let message     = Message::new(mock_notif.clone());
+    let message = Message::new(mock_notif.clone());
     fixture.client.events_stream.expect_pending();
     fixture.transport.mock_peer_json_message(message);
     fixture.client.events_stream.expect_pending();
     fixture.pool.run_until_stalled();
 
     let notification = fixture.client.expect_notification();
-    assert_eq!(notification,mock_notif);
+    assert_eq!(notification, mock_notif);
 }
 
 #[test]
 fn test_recognizing_notifications() {
-    let meow_notification = MockNotification::Meow {text:"meow!".into()};
+    let meow_notification = MockNotification::Meow { text: "meow!".into() };
     test_notification(meow_notification);
 
-    let bark_notification = MockNotification::Bark {text:"woof!".into()};
+    let bark_notification = MockNotification::Bark { text: "woof!".into() };
     test_notification(bark_notification);
 }
 
@@ -295,8 +294,8 @@ fn test_handling_invalid_notification() {
     fixture.pool.run_until_stalled();
 
     let internal_error = fixture.client.expect_handling_error();
-    if let HandlingError::InvalidNotification(_) = internal_error {}
-    else {
+    if let HandlingError::InvalidNotification(_) = internal_error {
+    } else {
         panic!("expected InvalidNotification error");
     }
 }

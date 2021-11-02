@@ -3,29 +3,29 @@
 
 use crate::prelude::*;
 
-use crate::buffer::data::unit::*;
-use crate::buffer::Transform;
 use crate::buffer;
+use crate::buffer::data::unit::*;
 use crate::buffer::style;
 use crate::buffer::Text;
-use crate::typeface::glyph::Glyph;
-use crate::typeface::glyph;
-use crate::typeface::pen;
-use crate::typeface;
+use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
+use crate::typeface;
+use crate::typeface::glyph;
+use crate::typeface::glyph::Glyph;
+use crate::typeface::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
-use ensogl_core::DEPRECATED_Animation;
-use ensogl_core::application::Application;
-use ensogl_core::application::shortcut;
 use ensogl_core::application;
+use ensogl_core::application::shortcut;
+use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::display::shape::*;
 use ensogl_core::display;
+use ensogl_core::display::shape::*;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
+use ensogl_core::DEPRECATED_Animation;
 use std::ops::Not;
 
 
@@ -36,8 +36,8 @@ use std::ops::Not;
 
 /// Record separator ASCII code. Used for separating of copied strings. It is defined as the `\RS`
 /// escape code (`x1E`) (https://en.wikipedia.org/wiki/ASCII).
-pub const RECORD_SEPARATOR : &str = "\x1E";
-const LINE_VERTICAL_OFFSET     : f32 = 4.0; // Set manually. May depend on font. To be improved.
+pub const RECORD_SEPARATOR: &str = "\x1E";
+const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To be improved.
 
 
 
@@ -46,10 +46,10 @@ const LINE_VERTICAL_OFFSET     : f32 = 4.0; // Set manually. May depend on font.
 // ====================
 
 /// Mapping between selection id, `Selection`, and text location.
-#[derive(Clone,Debug,Default)]
+#[derive(Clone, Debug, Default)]
 pub struct SelectionMap {
-    id_map       : HashMap<usize,Selection>,
-    location_map : HashMap<usize,HashMap<Column,usize>>
+    id_map:       HashMap<usize, Selection>,
+    location_map: HashMap<usize, HashMap<Column, usize>>,
 }
 
 
@@ -65,42 +65,42 @@ pub struct SelectionMap {
 /// inside of the text area, it allows us to binary search the place of the mouse pointer.
 #[derive(Debug)]
 pub struct Line {
-    display_object : display::object::Instance,
-    glyphs         : Vec<Glyph>,
-    divs           : Vec<f32>,
-    centers        : Vec<f32>,
+    display_object: display::object::Instance,
+    glyphs:         Vec<Glyph>,
+    divs:           Vec<f32>,
+    centers:        Vec<f32>,
 }
 
 impl Line {
-    fn new(logger:impl AnyLogger) -> Self {
-        let logger         = Logger::new_sub(logger,"line");
+    fn new(logger: impl AnyLogger) -> Self {
+        let logger = Logger::new_sub(logger, "line");
         let display_object = display::object::Instance::new(logger);
-        let glyphs         = default();
-        let divs           = default();
-        let centers        = default();
-        Self {display_object,glyphs,divs,centers}
+        let glyphs = default();
+        let divs = default();
+        let centers = default();
+        Self { display_object, glyphs, divs, centers }
     }
 
     /// Set the division points (offsets between letters). Also updates center points.
-    fn set_divs(&mut self, divs:Vec<f32>) {
-        let div_iter         = divs.iter();
+    fn set_divs(&mut self, divs: Vec<f32>) {
+        let div_iter = divs.iter();
         let div_iter_skipped = divs.iter().skip(1);
-        self.centers         = div_iter.zip(div_iter_skipped).map(|(t,s)|(t+s)/2.0).collect();
+        self.centers = div_iter.zip(div_iter_skipped).map(|(t, s)| (t + s) / 2.0).collect();
         self.divs = divs;
     }
 
-    fn div_index_close_to(&self, offset:f32) -> usize {
-        self.centers.binary_search_by(|t|t.partial_cmp(&offset).unwrap()).unwrap_both()
+    fn div_index_close_to(&self, offset: f32) -> usize {
+        self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
     }
 
-    fn div_by_column(&self, column:Column) -> f32 {
+    fn div_by_column(&self, column: Column) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
         self.divs[ix]
     }
 
-    fn resize_with(&mut self, size:usize, cons:impl Fn()->Glyph) {
+    fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
-        self.glyphs.resize_with(size,move || {
+        self.glyphs.resize_with(size, move || {
             let glyph = cons();
             display_object.add_child(&glyph);
             glyph
@@ -121,9 +121,9 @@ impl display::Object for Line {
 // =============
 
 /// Set of all visible lines.
-#[derive(Clone,CloneRef,Debug,Default)]
+#[derive(Clone, CloneRef, Debug, Default)]
 struct Lines {
-    rc : Rc<RefCell<Vec<Line>>>
+    rc: Rc<RefCell<Vec<Line>>>,
 }
 
 impl Lines {
@@ -133,10 +133,10 @@ impl Lines {
     }
 
     /// Resize the line container and use the provided function to construct missing elements.
-    pub fn resize_with(&self, size:usize, cons:impl Fn(usize)->Line) {
-        let vec    = &mut self.rc.borrow_mut();
+    pub fn resize_with(&self, size: usize, cons: impl Fn(usize) -> Line) {
+        let vec = &mut self.rc.borrow_mut();
         let mut ix = vec.len();
-        vec.resize_with(size,|| {
+        vec.resize_with(size, || {
             let line = cons(ix);
             ix += 1;
             line
@@ -275,14 +275,14 @@ ensogl_core::define_endpoints! {
 // ============
 
 /// Hardcoded line height. To be generalized in the future.
-pub const LINE_HEIGHT : f32 = 14.0;
+pub const LINE_HEIGHT: f32 = 14.0;
 
 /// The visual text area implementation.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Area {
-    data    : Rc<AreaModel>,
-    pub frp : Rc<Frp>,
+    data:    Rc<AreaModel>,
+    pub frp: Rc<Frp>,
 }
 
 impl Deref for Area {
@@ -294,23 +294,23 @@ impl Deref for Area {
 
 impl Area {
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
-        let frp  = Rc::new(Frp::new());
-        let data = Rc::new(AreaModel::new(app,&frp.output));
-        Self {data,frp} . init()
+    pub fn new(app: &Application) -> Self {
+        let frp = Rc::new(Frp::new());
+        let data = Rc::new(AreaModel::new(app, &frp.output));
+        Self { data, frp }.init()
     }
 
     fn init(self) -> Self {
-        let network  = &self.frp.network;
-        let model    = &self.data;
-        let scene    = model.app.display.scene();
-        let mouse    = &scene.mouse.frp;
-        let input    = &self.frp.input;
-        let out      = &self.frp.output;
-        let pos      = DEPRECATED_Animation :: <Vector2> :: new(network);
+        let network = &self.frp.network;
+        let model = &self.data;
+        let scene = model.app.display.scene();
+        let mouse = &scene.mouse.frp;
+        let input = &self.frp.input;
+        let out = &self.frp.output;
+        let pos = DEPRECATED_Animation::<Vector2>::new(network);
         let keyboard = &scene.keyboard;
-        let m        = &model;
-        pos.update_spring(|spring| spring*2.0);
+        let m = &model;
+        pos.update_spring(|spring| spring * 2.0);
 
         frp::extend! { network
 
@@ -494,23 +494,24 @@ impl Area {
 
     /// Add the text area to a specific scene layer. The mouse event positions will be mapped to
     /// this view regardless the previous views this component could be added to.
-    ///
     // TODO https://github.com/enso-org/ide/issues/1576
     //     This function needs to be updated. However, it requires a few steps:
     //     1. The new `ShapeView` and `DynamicShape` are implemented and they use display objects to
     //        pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
     //        is a very non-standard implementation, and thus has to handle the new display object
     //        callbacks in a special way as well.
-    //     2. The `self.data.camera` has to still be used, otherwise there would be no way to convert
-    //        the screen to object space (see the [`to_object_space`] function). This is a very
-    //        temporary solution, as any object can be assigned to more than one scene layer, and thus
-    //        can be rendered from more than one camera. Screen / object space location of events
-    //        should thus become much more primitive information / mechanisms.
-    //     Please note, that this function handles the selection management correctly, as it uses
-    //     the new shape system definition, and thus, inherits the scene layer settings from this
-    //     display object.
-    pub fn add_to_scene_layer(&self, layer:&display::scene::Layer) {
-        for symbol in self.symbols() { layer.add_exclusive(&symbol); }
+    //     2. The `self.data.camera` has to still be used, otherwise there would be no way to
+    // convert        the screen to object space (see the [`to_object_space`] function). This is
+    // a very        temporary solution, as any object can be assigned to more than one scene
+    // layer, and thus        can be rendered from more than one camera. Screen / object space
+    // location of events        should thus become much more primitive information /
+    // mechanisms.     Please note, that this function handles the selection management
+    // correctly, as it uses     the new shape system definition, and thus, inherits the scene
+    // layer settings from this     display object.
+    pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
+        for symbol in self.symbols() {
+            layer.add_exclusive(&symbol);
+        }
         self.data.camera.set(layer.camera());
         layer.add_exclusive(self);
     }
@@ -518,17 +519,19 @@ impl Area {
     /// Remove this component from view.
     // TODO see TODO in add_to_scene_layer method.
     #[allow(non_snake_case)]
-    pub fn remove_from_scene_layer(&self, layer:&display::scene::Layer) {
-        for symbol in self.symbols() { layer.remove_symbol(&symbol); }
+    pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
+        for symbol in self.symbols() {
+            layer.remove_symbol(&symbol);
+        }
     }
 
-    fn symbols(&self) -> SmallVec<[display::Symbol;1]> {
-        let text_symbol       = self.data.glyph_system.sprite_system().symbol.clone_ref();
-        let shapes            = &self.data.app.display.scene().shapes;
-        let selection_system  = shapes.shape_system(PhantomData::<selection::shape::Shape>);
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
+        let shapes = &self.data.app.display.scene().shapes;
+        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
         //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-        SmallVec::from_buf([text_symbol,/*selection_symbol*/])
+        SmallVec::from_buf([text_symbol /* selection_symbol */])
     }
 }
 
@@ -539,38 +542,38 @@ impl Area {
 // =================
 
 /// Internal representation of `Area`.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct AreaModel {
-    app            : Application,
+    app:    Application,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
-    camera         : Rc<CloneRefCell<display::camera::Camera2d>>,
+    camera: Rc<CloneRefCell<display::camera::Camera2d>>,
 
-    logger         : Logger,
-    frp_endpoints  : FrpEndpoints,
-    buffer         : buffer::View,
-    display_object : display::object::Instance,
-    glyph_system   : glyph::System,
-    lines          : Lines,
-    single_line    : Rc<Cell<bool>>,
-    selection_map  : Rc<RefCell<SelectionMap>>,
+    logger:         Logger,
+    frp_endpoints:  FrpEndpoints,
+    buffer:         buffer::View,
+    display_object: display::object::Instance,
+    glyph_system:   glyph::System,
+    lines:          Lines,
+    single_line:    Rc<Cell<bool>>,
+    selection_map:  Rc<RefCell<SelectionMap>>,
 }
 
 impl AreaModel {
     /// Constructor.
-    pub fn new(app:&Application, frp_endpoints:&FrpEndpoints) -> Self {
-        let app            = app.clone_ref();
-        let scene          = app.display.scene();
-        let logger         = Logger::new("text_area");
-        let selection_map  = default();
-        let fonts          = scene.extension::<typeface::font::Registry>();
-        let font           = fonts.load("DejaVuSansMono");
-        let glyph_system   = typeface::glyph::System::new(&scene,font);
+    pub fn new(app: &Application, frp_endpoints: &FrpEndpoints) -> Self {
+        let app = app.clone_ref();
+        let scene = app.display.scene();
+        let logger = Logger::new("text_area");
+        let selection_map = default();
+        let fonts = scene.extension::<typeface::font::Registry>();
+        let font = fonts.load("DejaVuSansMono");
+        let glyph_system = typeface::glyph::System::new(&scene, font);
         let display_object = display::object::Instance::new(&logger);
-        let buffer         = default();
-        let lines          = default();
-        let single_line    = default();
-        let camera         = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
+        let buffer = default();
+        let lines = default();
+        let single_line = default();
+        let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
 
         display_object.add_child(&glyph_system);
 
@@ -578,7 +581,7 @@ impl AreaModel {
         // initialization of the shape system, not for every area creation. To be improved during
         // refactoring of the architecture some day.
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let symbol       = &shape_system.shape_system.sprite_system.symbol;
+        let symbol = &shape_system.shape_system.sprite_system.symbol;
         shape_system.shape_system.set_pointer_events(false);
 
         // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
@@ -588,46 +591,71 @@ impl AreaModel {
 
         let frp_endpoints = frp_endpoints.clone_ref();
 
-        Self {app,camera,logger,frp_endpoints,buffer,display_object,glyph_system,lines,single_line
-             ,selection_map}.init()
+        Self {
+            app,
+            camera,
+            logger,
+            frp_endpoints,
+            buffer,
+            display_object,
+            glyph_system,
+            lines,
+            single_line,
+            selection_map,
+        }
+        .init()
     }
 
-    fn on_modified_selection(&self, selections:&buffer::selection::Group, time:f32, do_edit:bool) {
+    fn on_modified_selection(
+        &self,
+        selections: &buffer::selection::Group,
+        time: f32,
+        do_edit: bool,
+    ) {
         {
-            let mut selection_map     = self.selection_map.borrow_mut();
+            let mut selection_map = self.selection_map.borrow_mut();
             let mut new_selection_map = SelectionMap::default();
             for sel in selections {
-                let sel        = self.buffer.snap_selection(*sel);
-                let id         = sel.id;
+                let sel = self.buffer.snap_selection(*sel);
+                let id = sel.id;
                 let start_line = sel.start.line.as_usize();
-                let end_line   = sel.end.line.as_usize();
-                let pos_x      = |line:usize, column:Column| if line >= self.lines.len() {
-                    self.lines.rc.borrow().last().and_then(|l| l.divs.last().cloned()).unwrap_or(0.0)
-                } else {
-                    self.lines.rc.borrow()[line].div_by_column(column)
+                let end_line = sel.end.line.as_usize();
+                let pos_x = |line: usize, column: Column| {
+                    if line >= self.lines.len() {
+                        self.lines
+                            .rc
+                            .borrow()
+                            .last()
+                            .and_then(|l| l.divs.last().cloned())
+                            .unwrap_or(0.0)
+                    } else {
+                        self.lines.rc.borrow()[line].div_by_column(column)
+                    }
                 };
-                let min_pos_x  = pos_x(start_line,sel.start.column);
-                let max_pos_x  = pos_x(end_line  ,sel.end  .column);
-                let logger     = Logger::new_sub(&self.logger,"cursor");
-                let min_pos_y  = -LINE_HEIGHT/2.0 - LINE_HEIGHT * start_line as f32;
-                let pos        = Vector2(min_pos_x,min_pos_y);
-                let width      = max_pos_x - min_pos_x;
-                let selection  = match selection_map.id_map.remove(&id) {
+                let min_pos_x = pos_x(start_line, sel.start.column);
+                let max_pos_x = pos_x(end_line, sel.end.column);
+                let logger = Logger::new_sub(&self.logger, "cursor");
+                let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * start_line as f32;
+                let pos = Vector2(min_pos_x, min_pos_y);
+                let width = max_pos_x - min_pos_x;
+                let selection = match selection_map.id_map.remove(&id) {
                     Some(selection) => {
-                        let select_left  = selection.width.simulator.target_value() < 0.0;
+                        let select_left = selection.width.simulator.target_value() < 0.0;
                         let select_right = selection.width.simulator.target_value() > 0.0;
-                        let tgt_pos_x    = selection.position.simulator.target_value().x;
-                        let tgt_width    = selection.width.simulator.target_value();
-                        let mid_point    = tgt_pos_x + tgt_width / 2.0;
-                        let go_left      = pos.x < mid_point;
-                        let go_right     = pos.x > mid_point;
-                        let need_flip    = (select_left && go_left) || (select_right && go_right);
-                        if width == 0.0 && need_flip { selection.flip_sides() }
+                        let tgt_pos_x = selection.position.simulator.target_value().x;
+                        let tgt_width = selection.width.simulator.target_value();
+                        let mid_point = tgt_pos_x + tgt_width / 2.0;
+                        let go_left = pos.x < mid_point;
+                        let go_right = pos.x > mid_point;
+                        let need_flip = (select_left && go_left) || (select_right && go_right);
+                        if width == 0.0 && need_flip {
+                            selection.flip_sides()
+                        }
                         selection.position.set_target_value(pos);
                         selection
                     }
                     None => {
-                        let selection = Selection::new(&logger,do_edit);
+                        let selection = Selection::new(&logger, do_edit);
                         selection.letter_width.set(7.0); // FIXME hardcoded values
                         self.add_child(&selection);
                         selection.position.set_target_value(pos);
@@ -651,8 +679,12 @@ impl AreaModel {
                 selection.width.set_target_value(width);
                 selection.edit_mode.set(do_edit);
                 selection.start_time.set(time);
-                new_selection_map.id_map.insert(id,selection);
-                new_selection_map.location_map.entry(start_line).or_default().insert(sel.start.column,id);
+                new_selection_map.id_map.insert(id, selection);
+                new_selection_map
+                    .location_map
+                    .entry(start_line)
+                    .or_default()
+                    .insert(sel.start.column, id);
             }
             *selection_map = new_selection_map;
         }
@@ -660,29 +692,29 @@ impl AreaModel {
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
-    fn to_object_space(&self, screen_pos:Vector2) -> Vector2 {
-        let camera             = self.camera.get();
-        let origin_world_space = Vector4(0.0,0.0,0.0,1.0);
-        let origin_clip_space  = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix  = self.transform_matrix().try_inverse().unwrap();
+    fn to_object_space(&self, screen_pos: Vector2) -> Vector2 {
+        let camera = self.camera.get();
+        let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
+        let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
+        let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
 
-        let shape        = self.app.display.scene().frp.shape.value();
+        let shape = self.app.display.scene().frp.shape.value();
         let clip_space_z = origin_clip_space.z;
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
-        let clip_space   = Vector4(clip_space_x,clip_space_y,clip_space_z,origin_clip_space.w);
-        let world_space  = camera.inversed_view_projection_matrix() * clip_space;
+        let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
+        let world_space = camera.inversed_view_projection_matrix() * clip_space;
         (inv_object_matrix * world_space).xy()
     }
 
-    fn get_in_text_location(&self, screen_pos:Vector2) -> Location {
+    fn get_in_text_location(&self, screen_pos: Vector2) -> Location {
         let object_space = self.to_object_space(screen_pos);
-        let line_index   = (-object_space.y / LINE_HEIGHT) as usize;
-        let line_index   = std::cmp::min(line_index,self.lines.len() - 1);
-        let div_index    = self.lines.rc.borrow()[line_index].div_index_close_to(object_space.x);
-        let line         = line_index.into();
-        let column       = div_index.into();
-        Location(line,column)
+        let line_index = (-object_space.y / LINE_HEIGHT) as usize;
+        let line_index = std::cmp::min(line_index, self.lines.len() - 1);
+        let div_index = self.lines.rc.borrow()[line_index].div_index_close_to(object_space.x);
+        let line = line_index.into();
+        let column = div_index.into();
+        Location(line, column)
     }
 
     fn init(self) -> Self {
@@ -691,14 +723,16 @@ impl AreaModel {
     }
 
     /// Redraw the text.
-    fn redraw(&self, size_may_change:bool) {
-        let lines      = self.buffer.view_lines();
+    fn redraw(&self, size_may_change: bool) {
+        let lines = self.buffer.view_lines();
         let line_count = lines.len();
-        self.lines.resize_with(line_count,|ix| self.new_line(ix));
-        let widths = lines.into_iter().enumerate().map(|(view_line_index,content)|{
-            self.redraw_line(view_line_index,content)
-        }).collect_vec();
-        let width = widths.into_iter().max_by(|x, y|x.partial_cmp(y).unwrap()).unwrap_or_default();
+        self.lines.resize_with(line_count, |ix| self.new_line(ix));
+        let widths = lines
+            .into_iter()
+            .enumerate()
+            .map(|(view_line_index, content)| self.redraw_line(view_line_index, content))
+            .collect_vec();
+        let width = widths.into_iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or_default();
         if size_may_change {
             let height = self.calculate_height();
             self.frp_endpoints.source.width.emit(width);
@@ -710,90 +744,95 @@ impl AreaModel {
         self.lines.len() as f32 * LINE_HEIGHT
     }
 
-    fn redraw_line(&self, view_line_index:usize, content:String) -> f32 {
-        let cursor_map = self.selection_map.borrow()
-            .location_map.get(&view_line_index).cloned().unwrap_or_default();
-        let line            = &mut self.lines.rc.borrow_mut()[view_line_index];
-        let line_object     = line.display_object().clone_ref();
-        let line_range      = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-        let mut line_style  = self.buffer.sub_style(line_range.start .. line_range.end).iter();
-        let mut pen         = pen::Pen::new(&self.glyph_system.font);
-        let mut divs        = vec![];
-        let mut column      = 0.column();
+    fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
+        let cursor_map = self
+            .selection_map
+            .borrow()
+            .location_map
+            .get(&view_line_index)
+            .cloned()
+            .unwrap_or_default();
+        let line = &mut self.lines.rc.borrow_mut()[view_line_index];
+        let line_object = line.display_object().clone_ref();
+        let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
+        let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
+        let mut pen = pen::Pen::new(&self.glyph_system.font);
+        let mut divs = vec![];
+        let mut column = 0.column();
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        line.resize_with(content.chars().count(),||self.glyph_system.new_glyph());
+        line.resize_with(content.chars().count(), || self.glyph_system.new_glyph());
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
-            let next      = iter.next();
-            let style     = line_style.next().unwrap_or_default();
-            let chr_size  = style.size.raw;
-            let char_info = next.as_ref().map(|t|pen::CharInfo::new(t.1,chr_size));
-            let info      = pen.advance(char_info);
+            let next = iter.next();
+            let style = line_style.next().unwrap_or_default();
+            let chr_size = style.size.raw;
+            let char_info = next.as_ref().map(|t| pen::CharInfo::new(t.1, chr_size));
+            let info = pen.advance(char_info);
 
             cursor_map.get(&column).for_each(|id| {
                 self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
                     if cursor.edit_mode.get() {
-                        let pos_y          = LINE_HEIGHT/2.0 - LINE_VERTICAL_OFFSET;
-                        last_cursor        = Some(cursor.clone_ref());
-                        last_cursor_target = Vector2(info.offset,pos_y);
+                        let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
+                        last_cursor = Some(cursor.clone_ref());
+                        last_cursor_target = Vector2(info.offset, pos_y);
                     }
                 });
             });
 
             divs.push(info.offset);
-            let opt_glyph = next.map(|t|t.0);
+            let opt_glyph = next.map(|t| t.0);
             match opt_glyph.zip(info.char) {
-                Some((glyph,chr)) => {
-                    let chr_bytes : Bytes = chr.len_utf8().into();
+                Some((glyph, chr)) => {
+                    let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
-                    let glyph_info   = self.glyph_system.font.glyph_info(chr);
-                    let size         = glyph_info.scale.scale(chr_size);
+                    let glyph_info = self.glyph_system.font.glyph_info(chr);
+                    let size = glyph_info.scale.scale(chr_size);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
-                    let glyph_x      = info.offset + glyph_offset.x;
-                    let glyph_y      = glyph_offset.y;
-                    glyph.set_position_xy(Vector2(glyph_x,glyph_y));
+                    let glyph_x = info.offset + glyph_offset.x;
+                    let glyph_y = glyph_offset.y;
+                    glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
                     glyph.size.set(size);
                     match &last_cursor {
-                        None         => line_object.add_child(glyph),
+                        None => line_object.add_child(glyph),
                         Some(cursor) => {
                             cursor.right_side.add_child(glyph);
                             glyph.mod_position_xy(|p| p - last_cursor_target);
-                        },
+                        }
                     }
                 }
-                None => break
+                None => break,
             }
             column += 1.column();
         }
 
-        let last_offset   = divs.last().cloned().unwrap_or_default();
+        let last_offset = divs.last().cloned().unwrap_or_default();
         let cursor_offset = last_cursor.map(|cursor| last_cursor_target.x - cursor.position().x);
         let cursor_offset = cursor_offset.unwrap_or_default();
         line.set_divs(divs);
         last_offset - cursor_offset
     }
 
-    fn new_line(&self, index:usize) -> Line {
-        let line     = Line::new(&self.logger);
-        let y_offset = - ((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+    fn new_line(&self, index: usize) -> Line {
+        let line = Line::new(&self.logger);
+        let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
         line.set_position_y(y_offset);
         self.add_child(&line);
         line
     }
 
-    fn copy(&self, selections:&[String]) {
+    fn copy(&self, selections: &[String]) {
         let encoded = match selections {
-            []  => "".to_string(),
+            [] => "".to_string(),
             [s] => s.clone(),
             lst => lst.join(RECORD_SEPARATOR),
         };
         clipboard::write_text(encoded);
     }
 
-    fn cut(&self, selections:&[String]) {
+    fn cut(&self, selections: &[String]) {
         self.copy(selections);
     }
 
@@ -818,20 +857,20 @@ impl AreaModel {
         self.buffer.frp.paste(chunks);
     }
 
-    fn decode_paste(&self, encoded:&str) -> Vec<String> {
-        encoded.split(RECORD_SEPARATOR).map(|s|s.into()).collect()
+    fn decode_paste(&self, encoded: &str) -> Vec<String> {
+        encoded.split(RECORD_SEPARATOR).map(|s| s.into()).collect()
     }
 
     fn drop_all_but_first_line(s: &mut String) {
         *s = s.lines().next().unwrap_or("").to_string();
     }
 
-    fn key_to_string(&self, key:&Key) -> Option<String> {
+    fn key_to_string(&self, key: &Key) -> Option<String> {
         match key {
             Key::Character(s) => Some(s.clone()),
-            Key::Enter        => self.single_line.get().not().as_some("\n".into()),
-            Key::Space        => Some(" ".into()),
-            _                 => None
+            Key::Enter => self.single_line.get().not().as_some("\n".into()),
+            Key::Space => Some(" ".into()),
+            _ => None,
         }
     }
 }
@@ -859,7 +898,7 @@ impl application::View for Area {
         "TextArea"
     }
 
-    fn new(app:&Application) -> Self {
+    fn new(app: &Application) -> Self {
         Area::new(app)
     }
 
@@ -869,44 +908,48 @@ impl application::View for Area {
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (PressAndRepeat , "left"                    , "cursor_move_left")
-          , (PressAndRepeat , "right"                   , "cursor_move_right")
-          , (PressAndRepeat , "up"                      , "cursor_move_up")
-          , (PressAndRepeat , "down"                    , "cursor_move_down")
-          , (PressAndRepeat , "cmd left"                , "cursor_move_left_word")
-          , (PressAndRepeat , "cmd right"               , "cursor_move_right_word")
-          , (Press          , "alt left"                , "cursor_move_left_of_line")
-          , (Press          , "alt right"               , "cursor_move_right_of_line")
-          , (Press          , "home"                    , "cursor_move_left_of_line")
-          , (Press          , "end"                     , "cursor_move_right_of_line")
-          , (PressAndRepeat , "shift left"              , "cursor_select_left")
-          , (PressAndRepeat , "shift right"             , "cursor_select_right")
-          , (PressAndRepeat , "cmd shift left"          , "cursor_select_left_word")
-          , (PressAndRepeat , "cmd shift right"         , "cursor_select_right_word")
-          , (PressAndRepeat , "shift up"                , "cursor_select_up")
-          , (PressAndRepeat , "shift down"              , "cursor_select_down")
-          , (PressAndRepeat , "backspace"               , "delete_left")
-          , (PressAndRepeat , "delete"                  , "delete_right")
-          , (PressAndRepeat , "cmd backspace"           , "delete_word_left")
-          , (PressAndRepeat , "cmd delete"              , "delete_word_right")
-          , (Press          , "shift left-mouse-button" , "set_newest_selection_end_to_mouse_position")
-          , (DoublePress    , "left-mouse-button"       , "select_word_at_cursor")
-          , (Press          , "left-mouse-button"       , "set_cursor_at_mouse_position")
-          , (Press          , "left-mouse-button"       , "start_newest_selection_end_follow_mouse")
-          , (Release        , "left-mouse-button"       , "stop_newest_selection_end_follow_mouse")
-          , (Press          , "cmd left-mouse-button"   , "add_cursor_at_mouse_position")
-          , (Press          , "cmd left-mouse-button"   , "start_newest_selection_end_follow_mouse")
-          , (Release        , "cmd left-mouse-button"   , "stop_newest_selection_end_follow_mouse")
-          , (Press          , "cmd a"                   , "select_all")
-          , (Press          , "cmd c"                   , "copy")
-          , (Press          , "cmd x"                   , "cut")
-          , (Press          , "cmd v"                   , "paste")
-          , (Press          , "escape"                  , "keep_oldest_cursor_only")
-          ]).iter().map(|(action,rule,command)| {
-              let only_hovered = *action != Release && rule.contains("left-mouse-button");
-              let condition = if only_hovered { "focused & hovered" } else { "focused" };
-              Self::self_shortcut_when(*action,*rule,*command,condition)
-          }).collect()
+        (&[
+            (PressAndRepeat, "left", "cursor_move_left"),
+            (PressAndRepeat, "right", "cursor_move_right"),
+            (PressAndRepeat, "up", "cursor_move_up"),
+            (PressAndRepeat, "down", "cursor_move_down"),
+            (PressAndRepeat, "cmd left", "cursor_move_left_word"),
+            (PressAndRepeat, "cmd right", "cursor_move_right_word"),
+            (Press, "alt left", "cursor_move_left_of_line"),
+            (Press, "alt right", "cursor_move_right_of_line"),
+            (Press, "home", "cursor_move_left_of_line"),
+            (Press, "end", "cursor_move_right_of_line"),
+            (PressAndRepeat, "shift left", "cursor_select_left"),
+            (PressAndRepeat, "shift right", "cursor_select_right"),
+            (PressAndRepeat, "cmd shift left", "cursor_select_left_word"),
+            (PressAndRepeat, "cmd shift right", "cursor_select_right_word"),
+            (PressAndRepeat, "shift up", "cursor_select_up"),
+            (PressAndRepeat, "shift down", "cursor_select_down"),
+            (PressAndRepeat, "backspace", "delete_left"),
+            (PressAndRepeat, "delete", "delete_right"),
+            (PressAndRepeat, "cmd backspace", "delete_word_left"),
+            (PressAndRepeat, "cmd delete", "delete_word_right"),
+            (Press, "shift left-mouse-button", "set_newest_selection_end_to_mouse_position"),
+            (DoublePress, "left-mouse-button", "select_word_at_cursor"),
+            (Press, "left-mouse-button", "set_cursor_at_mouse_position"),
+            (Press, "left-mouse-button", "start_newest_selection_end_follow_mouse"),
+            (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse"),
+            (Press, "cmd left-mouse-button", "add_cursor_at_mouse_position"),
+            (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse"),
+            (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse"),
+            (Press, "cmd a", "select_all"),
+            (Press, "cmd c", "copy"),
+            (Press, "cmd x", "cut"),
+            (Press, "cmd v", "paste"),
+            (Press, "escape", "keep_oldest_cursor_only"),
+        ])
+            .iter()
+            .map(|(action, rule, command)| {
+                let only_hovered = *action != Release && rule.contains("left-mouse-button");
+                let condition = if only_hovered { "focused & hovered" } else { "focused" };
+                Self::self_shortcut_when(*action, *rule, *command, condition)
+            })
+            .collect()
     }
 }
 

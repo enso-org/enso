@@ -2,11 +2,11 @@
 
 use crate::prelude::*;
 
+use super::range::Range;
+use super::range::RangeBounds;
 use super::rope;
 use super::rope::Rope;
 use super::unit::*;
-use super::range::Range;
-use super::range::RangeBounds;
 use crate::selection::Selection;
 
 
@@ -35,10 +35,10 @@ use crate::selection::Selection;
 /// use strong types for all units (like line number, column number, byte offset), so part of
 /// responsibility of this struct is to wrap the underlying API with strong types introduced in this
 /// library.
-#[derive(Debug,Clone,Default,Deref)]
+#[derive(Debug, Clone, Default, Deref)]
 #[allow(missing_docs)]
 pub struct Text {
-    pub rope : Rope,
+    pub rope: Rope,
 }
 impl_clone_ref_as_clone!(Text);
 
@@ -62,16 +62,16 @@ impl Text {
     }
 
     /// Return text narrowed to the given range.
-    pub fn sub(&self, range:impl RangeBounds) -> Text {
+    pub fn sub(&self, range: impl RangeBounds) -> Text {
         let range = self.crop_byte_range(range);
-        let rope  = self.rope.subseq(range.into_rope_interval());
-        Text {rope}
+        let rope = self.rope.subseq(range.into_rope_interval());
+        Text { rope }
     }
 
     /// The number of grapheme clusters in this text.
     pub fn grapheme_count(&self) -> usize {
         let mut offset = 0;
-        let mut count  = 0;
+        let mut count = 0;
         while let Some(off) = self.rope.next_grapheme_offset(offset) {
             offset = off;
             count += 1;
@@ -91,40 +91,40 @@ impl Text {
 
     /// Constraint the provided byte range so it will be contained of the range of this data. This
     /// ensures that the resulting byte range will be valid for operations on this data.
-    pub fn crop_byte_range(&self, range:impl RangeBounds) -> Range<Bytes> {
+    pub fn crop_byte_range(&self, range: impl RangeBounds) -> Range<Bytes> {
         range.with_upper_bound(self.byte_size())
     }
 
     /// Constraint the provided location so it will be contained of the range of this data. This
     /// ensures that the resulting location will be valid for operations on this data.
-    pub fn snap_location(&self, location:Location) -> Location {
+    pub fn snap_location(&self, location: Location) -> Location {
         use BoundsError::*;
         match self.validate_line_index(location.line) {
             Err(TooSmall) => self.first_line_start_location(),
-            Err(TooBig)   => self.last_line_end_location(),
-            Ok(line)      => {
-                let column = min(location.column,self.line_end_column(line).unwrap());
-                Location(line,column)
+            Err(TooBig) => self.last_line_end_location(),
+            Ok(line) => {
+                let column = min(location.column, self.line_end_column(line).unwrap());
+                Location(line, column)
             }
         }
     }
 
     /// Constrain the selection to values valid inside of the current text buffer.
-    pub fn snap_selection(&self, selection:Selection) -> Selection {
+    pub fn snap_selection(&self, selection: Selection) -> Selection {
         let start = self.snap_location(selection.start);
-        let end   = self.snap_location(selection.end);
+        let end = self.snap_location(selection.end);
         selection.with_start(start).with_end(end)
     }
 
     /// Return the offset to the next grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
-    pub fn next_grapheme_offset(&self, offset:Bytes) -> Option<Bytes> {
+    pub fn next_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
         self.rope.next_grapheme_offset(offset.as_usize()).map(|t| Bytes(t as i32))
     }
 
     /// Return the offset to the previous grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
-    pub fn prev_grapheme_offset(&self, offset:Bytes) -> Option<Bytes> {
+    pub fn prev_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
         self.rope.prev_grapheme_offset(offset.as_usize()).map(|t| Bytes(t as i32))
     }
 
@@ -132,15 +132,15 @@ impl Text {
     ///
     /// Lines are ended with either Unix (`\n`) or MS-DOS (`\r\n`) style line endings. The line
     /// ending is stripped from the resulting string. The final line ending is optional.
-    pub fn lines<T:rope::IntervalBounds>(&self, range:T) -> rope::Lines {
+    pub fn lines<T: rope::IntervalBounds>(&self, range: T) -> rope::Lines {
         self.rope.lines(range)
     }
 
     /// Replaces the provided range with the provided text.
-    pub fn replace(&mut self, range:impl RangeBounds, text:impl Into<Text>) {
-        let text  = text.into();
+    pub fn replace(&mut self, range: impl RangeBounds, text: impl Into<Text>) {
+        let text = text.into();
         let range = self.crop_byte_range(range);
-        self.rope.edit(range.into_rope_interval(),text.rope);
+        self.rope.edit(range.into_rope_interval(), text.rope);
     }
 }
 
@@ -165,9 +165,9 @@ impl Text {
 
     /// The start location of the first line.
     pub fn first_line_start_location(&self) -> Location {
-        let line   = self.first_line_index();
+        let line = self.first_line_index();
         let column = self.first_line_start_column();
-        Location(line,column)
+        Location(line, column)
     }
 }
 
@@ -194,9 +194,9 @@ impl Text {
 
     /// The start location of the last line.
     pub fn last_line_start_location(&self) -> Location {
-        let line   = self.last_line_index();
+        let line = self.last_line_index();
         let column = self.last_line_start_column();
-        Location(line,column)
+        Location(line, column)
     }
 
     /// The last column number of the last line.
@@ -211,9 +211,9 @@ impl Text {
 
     /// The location of the last character in the text.
     pub fn last_line_end_location(&self) -> Location {
-        let line   = self.last_line_index();
+        let line = self.last_line_index();
         let column = self.last_line_end_column();
-        Location(line,column)
+        Location(line, column)
     }
 }
 
@@ -222,19 +222,27 @@ impl Text {
 
 impl Text {
     /// Check whether the provided line index is valid in this text.
-    pub fn validate_line_index(&self, line:Line) -> Result<Line,BoundsError> {
+    pub fn validate_line_index(&self, line: Line) -> Result<Line, BoundsError> {
         use BoundsError::*;
-        if      line < 0.line()               {Err(TooSmall)}
-        else if line > self.last_line_index() {Err(TooBig)}
-        else                                  {Ok(line)}
+        if line < 0.line() {
+            Err(TooSmall)
+        } else if line > self.last_line_index() {
+            Err(TooBig)
+        } else {
+            Ok(line)
+        }
     }
 
     /// Check whether the provided byte offset is valid in this text.
-    pub fn validate_byte_offset(&self, offset:Bytes) -> Result<Bytes,BoundsError> {
+    pub fn validate_byte_offset(&self, offset: Bytes) -> Result<Bytes, BoundsError> {
         use BoundsError::*;
-        if      offset < 0.bytes()        {Err(TooSmall)}
-        else if offset > self.byte_size() {Err(TooBig)}
-        else                              {Ok(offset)}
+        if offset < 0.bytes() {
+            Err(TooSmall)
+        } else if offset > self.byte_size() {
+            Err(TooBig)
+        } else {
+            Ok(offset)
+        }
     }
 }
 
@@ -248,53 +256,55 @@ impl Text {
 
 impl Text {
     /// Return the offset after the last character of a given line if the line exists.
-    pub fn end_byte_offset_of_line_index(&self, line:Line) -> Result<Bytes,BoundsError> {
+    pub fn end_byte_offset_of_line_index(&self, line: Line) -> Result<Bytes, BoundsError> {
         self.validate_line_index(line)?;
-        let next_line      = line + 1.line();
-        let next_line_off  = self.byte_offset_of_line_index(next_line).ok();
+        let next_line = line + 1.line();
+        let next_line_off = self.byte_offset_of_line_index(next_line).ok();
         let next_line_prev = next_line_off.and_then(|t| self.prev_grapheme_offset(t));
         Ok(next_line_prev.unwrap_or_else(|| self.byte_size()))
     }
 
     /// Return the offset after the last character of a given line if the line exists. Snapped to
     /// the closest valid value.
-    pub fn end_byte_offset_of_line_index_snapped(&self, line:Line) -> Bytes {
+    pub fn end_byte_offset_of_line_index_snapped(&self, line: Line) -> Bytes {
         self.snap_bytes_bounds_result(self.end_byte_offset_of_line_index(line))
     }
 
     /// The line byte offset. Panics in case the line index was invalid.
-    pub fn byte_offset_of_line_index_unchecked(&self, line:Line) -> Bytes {
+    pub fn byte_offset_of_line_index_unchecked(&self, line: Line) -> Bytes {
         self.rope.offset_of_line(line.as_usize()).into()
     }
 
     /// The byte offset of the given line index.
-    pub fn byte_offset_of_line_index(&self, line:Line) -> Result<Bytes,BoundsError> {
+    pub fn byte_offset_of_line_index(&self, line: Line) -> Result<Bytes, BoundsError> {
         self.validate_line_index(line)?;
         Ok(self.byte_offset_of_line_index_unchecked(line))
     }
 
     /// The byte offset of the given line. Snapped to the closest valid byte offset in case the
     /// line index was invalid.
-    pub fn byte_offset_of_line_index_snapped(&self, line:Line) -> Bytes {
+    pub fn byte_offset_of_line_index_snapped(&self, line: Line) -> Bytes {
         use BoundsError::*;
         match self.byte_offset_of_line_index(line) {
-            Ok(offset)             => offset,
+            Ok(offset) => offset,
             Err(TooSmall) => self.first_line_byte_offset(),
-            Err(TooBig)   => self.last_line_byte_offset(),
+            Err(TooBig) => self.last_line_byte_offset(),
         }
     }
 
     /// Byte offset of the given location.
-    pub fn byte_offset_of_location(&self, location:Location)
-    -> Result<Bytes,LocationError<Bytes>> {
+    pub fn byte_offset_of_location(
+        &self,
+        location: Location,
+    ) -> Result<Bytes, LocationError<Bytes>> {
         let mut column = 0.column();
         let mut offset = self.byte_offset_of_line_index(location.line)?;
         let max_offset = self.end_byte_offset_of_line_index(location.line)?;
         while column < location.column {
             match self.next_grapheme_offset(offset) {
-                None      => return Err(LocationError::LineTooShort(offset)),
+                None => return Err(LocationError::LineTooShort(offset)),
                 Some(off) => {
-                    offset  = off;
+                    offset = off;
                     column += 1.column();
                 }
             }
@@ -307,24 +317,26 @@ impl Text {
     }
 
     /// Byte offset of the given location. Snapped to the closest valid value.
-    pub fn byte_offset_of_location_snapped(&self, location:Location) -> Bytes {
+    pub fn byte_offset_of_location_snapped(&self, location: Location) -> Bytes {
         let offset = self.byte_offset_of_location(location);
         self.snap_bytes_location_result(offset)
     }
 
     /// Byte range of the given line.
-    pub fn byte_range_of_line_index(&self, line:Line)
-    -> Result<std::ops::Range<Bytes>,BoundsError> {
+    pub fn byte_range_of_line_index(
+        &self,
+        line: Line,
+    ) -> Result<std::ops::Range<Bytes>, BoundsError> {
         let start = self.byte_offset_of_line_index(line)?;
-        let end   = self.end_byte_offset_of_line_index(line)?;
-        Ok(start .. end)
+        let end = self.end_byte_offset_of_line_index(line)?;
+        Ok(start..end)
     }
 
     /// Byte range of the given line. Snapped to the closest valid value.
-    pub fn byte_range_of_line_index_snapped(&self, line:Line) -> std::ops::Range<Bytes> {
+    pub fn byte_range_of_line_index_snapped(&self, line: Line) -> std::ops::Range<Bytes> {
         let start = self.byte_offset_of_line_index_snapped(line);
-        let end   = self.end_byte_offset_of_line_index_snapped(line);
-        start .. end
+        let end = self.end_byte_offset_of_line_index_snapped(line);
+        start..end
     }
 }
 
@@ -335,24 +347,24 @@ impl Text {
     // FIXME: what happens when we put offset between \r and \n ?
 
     /// The line of a given byte offset. Panics in case the offset was invalid.
-    pub fn line_index_of_byte_offset_unchecked(&self, offset:Bytes) -> Line {
+    pub fn line_index_of_byte_offset_unchecked(&self, offset: Bytes) -> Line {
         self.rope.line_of_offset(offset.as_usize()).into()
     }
 
     /// The line index of the given byte offset.
-    pub fn line_index_of_byte_offset(&self, offset:Bytes) -> Result<Line,BoundsError> {
+    pub fn line_index_of_byte_offset(&self, offset: Bytes) -> Result<Line, BoundsError> {
         self.validate_byte_offset(offset)?;
         Ok(self.line_index_of_byte_offset_unchecked(offset))
     }
 
     /// The line index of the given byte offset. Snapped to the closest valid line index in case the
     /// byte offset was invalid.
-    pub fn line_index_of_byte_offset_snapped(&self, offset:Bytes) -> Line {
+    pub fn line_index_of_byte_offset_snapped(&self, offset: Bytes) -> Line {
         use BoundsError::*;
         match self.line_index_of_byte_offset(offset) {
-            Ok(index)     => index,
+            Ok(index) => index,
             Err(TooSmall) => self.first_line_index(),
-            Err(TooBig)   => self.last_line_index(),
+            Err(TooBig) => self.last_line_index(),
         }
     }
 }
@@ -362,14 +374,16 @@ impl Text {
 
 impl Text {
     /// The last column number of the given line.
-    pub fn line_end_column(&self, line:Line) -> Result<Column,BoundsError> {
+    pub fn line_end_column(&self, line: Line) -> Result<Column, BoundsError> {
         let offset = self.end_byte_offset_of_line_index(line)?;
         Ok(self.column_of_byte_offset(offset).unwrap())
     }
 
     /// The column number of the given byte offset.
-    pub fn column_of_byte_offset(&self, tgt_offset:Bytes)
-    -> Result<Column,LocationError<Column>> {
+    pub fn column_of_byte_offset(
+        &self,
+        tgt_offset: Bytes,
+    ) -> Result<Column, LocationError<Column>> {
         use self::BoundsError::*;
         use LocationError::*;
         let line_index = self.line_index_of_byte_offset(tgt_offset)?;
@@ -377,9 +391,9 @@ impl Text {
         let mut column = 0.column();
         while offset < tgt_offset {
             match self.next_grapheme_offset(offset) {
-                None      => return Err(BoundsError(TooBig)),
+                None => return Err(BoundsError(TooBig)),
                 Some(off) => {
-                    offset  = off;
+                    offset = off;
                     column += 1.column();
                 }
             }
@@ -394,25 +408,31 @@ impl Text {
     /// The column number of the given byte offset. Snapped to the closest valid
     /// value. In case the offset points inside of a grapheme cluster, it will be snapped to its
     /// right side.
-    pub fn column_of_byte_offset_snapped(&self, tgt_offset:Bytes) -> Column {
+    pub fn column_of_byte_offset_snapped(&self, tgt_offset: Bytes) -> Column {
         self.snap_column_location_result(self.column_of_byte_offset(tgt_offset))
     }
 
     /// The column from line number and byte offset within the line.
-    pub fn column_of_line_index_and_in_line_byte_offset(&self, line:Line, in_line_offset:Bytes)
-    -> Result<Column,LocationError<Column>> {
-        let offset     = self.byte_offset_of_line_index(line)?;
+    pub fn column_of_line_index_and_in_line_byte_offset(
+        &self,
+        line: Line,
+        in_line_offset: Bytes,
+    ) -> Result<Column, LocationError<Column>> {
+        let offset = self.byte_offset_of_line_index(line)?;
         let tgt_offset = offset + in_line_offset;
-        let column     = self.column_of_byte_offset(tgt_offset)?;
+        let column = self.column_of_byte_offset(tgt_offset)?;
         Ok(column)
     }
 
     /// The column from line number and byte offset within the line. Snapped to
     /// the closest valid value. In case the offset points inside of a grapheme cluster, it will be
     /// snapped to its right side.
-    pub fn column_of_line_index_and_in_line_byte_offset_snapped
-    (&self, line:Line, in_line_offset:Bytes) -> Column {
-        let column = self.column_of_line_index_and_in_line_byte_offset(line,in_line_offset);
+    pub fn column_of_line_index_and_in_line_byte_offset_snapped(
+        &self,
+        line: Line,
+        in_line_offset: Bytes,
+    ) -> Column {
+        let column = self.column_of_line_index_and_in_line_byte_offset(line, in_line_offset);
         self.snap_column_location_result(column)
     }
 }
@@ -427,29 +447,29 @@ impl Text {
         if lines_count == 0 {
             default()
         } else {
-            let line   = ((lines_count - 1) as i32).line();
+            let line = ((lines_count - 1) as i32).line();
             let column = self.line_end_column(line).unwrap();
-            Location(line,column)
+            Location(line, column)
         }
     }
 
     /// The location of the provided byte offset.
-    pub fn location_of_byte_offset(&self, offset:Bytes) -> Result<Location,BoundsError> {
-        let line        = self.line_index_of_byte_offset(offset)?;
+    pub fn location_of_byte_offset(&self, offset: Bytes) -> Result<Location, BoundsError> {
+        let line = self.line_index_of_byte_offset(offset)?;
         let line_offset = offset - self.byte_offset_of_line_index(line).unwrap();
-        let column      = self.column_of_line_index_and_in_line_byte_offset(line,line_offset);
-        let column      = column.unwrap();
-        Ok(Location(line,column))
+        let column = self.column_of_line_index_and_in_line_byte_offset(line, line_offset);
+        let column = column.unwrap();
+        Ok(Location(line, column))
     }
 
     /// The location of the provided byte offset. Snapped to the closest valid
     /// value.
-    pub fn location_of_byte_offset_snapped(&self, offset:Bytes) -> Location {
+    pub fn location_of_byte_offset_snapped(&self, offset: Bytes) -> Location {
         use BoundsError::*;
         match self.location_of_byte_offset(offset) {
-            Ok(location)        => location,
+            Ok(location) => location,
             Err(TooSmall) => self.first_line_start_location(),
-            Err(TooBig)   => self.last_line_end_location(),
+            Err(TooBig) => self.last_line_end_location(),
         }
     }
 }
@@ -462,7 +482,7 @@ impl Text {
 
 /// Error indicating the usage of incorrect line index or byte offset - negative, or bigger than the
 /// size of the text.
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
 pub enum BoundsError {
     TooSmall,
@@ -470,78 +490,78 @@ pub enum BoundsError {
 }
 
 /// Error indicating the usage of incorrect location in the text.
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
 pub enum LocationError<T> {
-    BoundsError        (BoundsError),
-    LineTooShort       (T),
-    NotClusterBoundary (T)
+    BoundsError(BoundsError),
+    LineTooShort(T),
+    NotClusterBoundary(T),
 }
 
 impl<T> From<BoundsError> for LocationError<T> {
-    fn from(err:BoundsError) -> Self {
+    fn from(err: BoundsError) -> Self {
         Self::BoundsError(err)
     }
 }
 
 impl Text {
     /// Snaps the `LocationError<Column>` to the closest valid column.
-    pub fn snap_column_location_error(&self, err:LocationError<Column>) -> Column {
+    pub fn snap_column_location_error(&self, err: LocationError<Column>) -> Column {
         use self::BoundsError::*;
         use LocationError::*;
         match err {
-            BoundsError        (TooSmall) => 0.column(),
-            BoundsError        (TooBig)   => self.last_line_end_column(),
-            LineTooShort       (column)   => column,
-            NotClusterBoundary (column)   => column,
+            BoundsError(TooSmall) => 0.column(),
+            BoundsError(TooBig) => self.last_line_end_column(),
+            LineTooShort(column) => column,
+            NotClusterBoundary(column) => column,
         }
     }
 
     /// Snaps the `LocationError<Bytes>` to the closest valid byte offset.
-    pub fn snap_bytes_location_error(&self, err:LocationError<Bytes>) -> Bytes {
+    pub fn snap_bytes_location_error(&self, err: LocationError<Bytes>) -> Bytes {
         use self::BoundsError::*;
         use LocationError::*;
         match err {
-            BoundsError        (TooSmall) => 0.bytes(),
-            BoundsError        (TooBig)   => self.last_line_end_byte_offset(),
-            LineTooShort       (offset)   => offset,
-            NotClusterBoundary (offset)   => offset,
+            BoundsError(TooSmall) => 0.bytes(),
+            BoundsError(TooBig) => self.last_line_end_byte_offset(),
+            LineTooShort(offset) => offset,
+            NotClusterBoundary(offset) => offset,
         }
     }
 
     /// Snaps the `BoundsError` to the closest valid byte offset.
-    pub fn snap_bytes_bounds_error(&self, err:BoundsError) -> Bytes {
+    pub fn snap_bytes_bounds_error(&self, err: BoundsError) -> Bytes {
         use self::BoundsError::*;
         match err {
             TooSmall => 0.bytes(),
-            TooBig   => self.last_line_end_byte_offset(),
+            TooBig => self.last_line_end_byte_offset(),
         }
     }
 
     /// Snaps the `LocationResult<Column>` to the closest valid column.
-    pub fn snap_column_location_result
-    (&self, result:Result<Column,LocationError<Column>>) -> Column {
+    pub fn snap_column_location_result(
+        &self,
+        result: Result<Column, LocationError<Column>>,
+    ) -> Column {
         match result {
             Ok(column) => column,
-            Err(err)   => self.snap_column_location_error(err),
+            Err(err) => self.snap_column_location_error(err),
         }
     }
 
     /// Snaps the `LocationResult<Bytes>` to the closest valid byte offset.
-    pub fn snap_bytes_location_result
-    (&self, result:Result<Bytes,LocationError<Bytes>>) -> Bytes {
+    pub fn snap_bytes_location_result(&self, result: Result<Bytes, LocationError<Bytes>>) -> Bytes {
         match result {
             Ok(bytes) => bytes,
-            Err(err)  => self.snap_bytes_location_error(err),
+            Err(err) => self.snap_bytes_location_error(err),
         }
     }
 
     /// Snaps the `Result<Bytes,BoundsError>` to the closest valid byte offset.
-    pub fn snap_bytes_bounds_result
-    (&self, result:Result<Bytes,BoundsError>) -> Bytes {
+    pub fn snap_bytes_bounds_result(&self, result: Result<Bytes, BoundsError>) -> Bytes {
         match result {
             Ok(bytes) => bytes,
-            Err(err)  => self.snap_bytes_bounds_error(err),
+            Err(err) => self.snap_bytes_bounds_error(err),
         }
     }
 }
@@ -552,18 +572,58 @@ impl Text {
 // === Conversions ===
 // ===================
 
-impl From<Rope>     for Text { fn from(t:Rope)     -> Self { Self {rope:t} } }
-impl From<&Rope>    for Text { fn from(t:&Rope)    -> Self { t.clone().into() } }
+impl From<Rope> for Text {
+    fn from(t: Rope) -> Self {
+        Self { rope: t }
+    }
+}
+impl From<&Rope> for Text {
+    fn from(t: &Rope) -> Self {
+        t.clone().into()
+    }
+}
 
-impl From<&str>     for Text { fn from(t:&str)     -> Self { Self {rope:t.into()} } }
-impl From<String>   for Text { fn from(t:String)   -> Self { Self {rope:t.into()} } }
-impl From<&String>  for Text { fn from(t:&String)  -> Self { Self {rope:t.into()} } }
-impl From<&&String> for Text { fn from(t:&&String) -> Self { (*t).into() } }
-impl From<&&str>    for Text { fn from(t:&&str)    -> Self { (*t).into() } }
+impl From<&str> for Text {
+    fn from(t: &str) -> Self {
+        Self { rope: t.into() }
+    }
+}
+impl From<String> for Text {
+    fn from(t: String) -> Self {
+        Self { rope: t.into() }
+    }
+}
+impl From<&String> for Text {
+    fn from(t: &String) -> Self {
+        Self { rope: t.into() }
+    }
+}
+impl From<&&String> for Text {
+    fn from(t: &&String) -> Self {
+        (*t).into()
+    }
+}
+impl From<&&str> for Text {
+    fn from(t: &&str) -> Self {
+        (*t).into()
+    }
+}
 
-impl From<Text>     for String { fn from(t:Text)   -> Self { t.rope.into() } }
-impl From<&Text>    for String { fn from(t:&Text)  -> Self { t.clone().into() } }
-impl From<&&Text>   for String { fn from(t:&&Text) -> Self { (*t).into() } }
+impl From<Text> for String {
+    fn from(t: Text) -> Self {
+        t.rope.into()
+    }
+}
+impl From<&Text> for String {
+    fn from(t: &Text) -> Self {
+        t.clone().into()
+    }
+}
+impl From<&&Text> for String {
+    fn from(t: &&Text) -> Self {
+        (*t).into()
+    }
+}
 
 
 
@@ -572,10 +632,10 @@ impl From<&&Text>   for String { fn from(t:&&Text) -> Self { (*t).into() } }
 // ================
 
 /// Internally mutable version of `Text`.
-#[derive(Debug,Clone,Default,Deref)]
+#[derive(Debug, Clone, Default, Deref)]
 #[allow(missing_docs)]
 pub struct TextCell {
-    cell : RefCell<Text>
+    cell: RefCell<Text>,
 }
 
 impl TextCell {
@@ -585,17 +645,19 @@ impl TextCell {
     }
 
     /// Setter of the value of the cell.
-    pub fn set(&self, new_text:impl Into<Text>) {
+    pub fn set(&self, new_text: impl Into<Text>) {
         let new_text = new_text.into();
         *self.cell.borrow_mut() = new_text;
     }
 
     /// Get all lines in the provided range as strings.
-    pub fn lines_vec(&self, range:std::ops::Range<Bytes>) -> Vec<String> {
-        let rope_range   = range.start.as_usize() .. range.end.as_usize();
-        let mut lines    = self.cell.borrow().lines(rope_range).map(|t|t.into()).collect_vec();
+    pub fn lines_vec(&self, range: std::ops::Range<Bytes>) -> Vec<String> {
+        let rope_range = range.start.as_usize()..range.end.as_usize();
+        let mut lines = self.cell.borrow().lines(rope_range).map(|t| t.into()).collect_vec();
         let missing_last = lines.len() == self.last_line_index().as_usize();
-        if  missing_last { lines.push("".into()) }
+        if missing_last {
+            lines.push("".into())
+        }
         lines
     }
 }
@@ -611,7 +673,7 @@ impl TextCell {
         self.cell.borrow().is_empty()
     }
 
-    pub fn sub(&self, range:impl RangeBounds) -> Text {
+    pub fn sub(&self, range: impl RangeBounds) -> Text {
         self.cell.borrow().sub(range)
     }
 
@@ -627,28 +689,28 @@ impl TextCell {
         self.cell.borrow().byte_range()
     }
 
-    pub fn crop_byte_range(&self, range:impl RangeBounds) -> Range<Bytes> {
+    pub fn crop_byte_range(&self, range: impl RangeBounds) -> Range<Bytes> {
         self.cell.borrow().crop_byte_range(range)
     }
 
-    pub fn snap_location(&self, location:Location) -> Location {
+    pub fn snap_location(&self, location: Location) -> Location {
         self.cell.borrow().snap_location(location)
     }
 
-    pub fn snap_selection(&self, selection:Selection) -> Selection {
+    pub fn snap_selection(&self, selection: Selection) -> Selection {
         self.cell.borrow().snap_selection(selection)
     }
 
-    pub fn next_grapheme_offset(&self, offset:Bytes) -> Option<Bytes> {
+    pub fn next_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
         self.cell.borrow().next_grapheme_offset(offset)
     }
 
-    pub fn prev_grapheme_offset(&self, offset:Bytes) -> Option<Bytes> {
+    pub fn prev_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
         self.cell.borrow().prev_grapheme_offset(offset)
     }
 
-    pub fn replace(&self, range:impl RangeBounds, text:impl Into<Text>) {
-        self.cell.borrow_mut().replace(range,text)
+    pub fn replace(&self, range: impl RangeBounds, text: impl Into<Text>) {
+        self.cell.borrow_mut().replace(range, text)
     }
 
     pub fn first_line_index(&self) -> Line {
@@ -695,93 +757,106 @@ impl TextCell {
         self.cell.borrow().last_line_end_location()
     }
 
-    pub fn validate_line_index(&self, line:Line) -> Result<Line,BoundsError> {
+    pub fn validate_line_index(&self, line: Line) -> Result<Line, BoundsError> {
         self.cell.borrow().validate_line_index(line)
     }
 
-    pub fn validate_byte_offset(&self, offset:Bytes) -> Result<Bytes,BoundsError> {
+    pub fn validate_byte_offset(&self, offset: Bytes) -> Result<Bytes, BoundsError> {
         self.cell.borrow().validate_byte_offset(offset)
     }
 
-    pub fn end_byte_offset_of_line_index(&self, line:Line) -> Result<Bytes,BoundsError> {
+    pub fn end_byte_offset_of_line_index(&self, line: Line) -> Result<Bytes, BoundsError> {
         self.cell.borrow().end_byte_offset_of_line_index(line)
     }
 
-    pub fn end_byte_offset_of_line_index_snapped(&self, line:Line) -> Bytes {
+    pub fn end_byte_offset_of_line_index_snapped(&self, line: Line) -> Bytes {
         self.cell.borrow().end_byte_offset_of_line_index_snapped(line)
     }
 
-    pub fn byte_offset_of_line_index_unchecked(&self, line:Line) -> Bytes {
+    pub fn byte_offset_of_line_index_unchecked(&self, line: Line) -> Bytes {
         self.cell.borrow().byte_offset_of_line_index_unchecked(line)
     }
 
-    pub fn byte_offset_of_line_index(&self, line:Line) -> Result<Bytes,BoundsError> {
+    pub fn byte_offset_of_line_index(&self, line: Line) -> Result<Bytes, BoundsError> {
         self.cell.borrow().byte_offset_of_line_index(line)
     }
 
-    pub fn byte_offset_of_line_index_snapped(&self, line:Line) -> Bytes {
+    pub fn byte_offset_of_line_index_snapped(&self, line: Line) -> Bytes {
         self.cell.borrow().byte_offset_of_line_index_snapped(line)
     }
 
-    pub fn byte_offset_of_location(&self, location:Location)
-    -> Result<Bytes,LocationError<Bytes>> {
+    pub fn byte_offset_of_location(
+        &self,
+        location: Location,
+    ) -> Result<Bytes, LocationError<Bytes>> {
         self.cell.borrow().byte_offset_of_location(location)
     }
 
-    pub fn byte_offset_of_location_snapped(&self, location:Location) -> Bytes {
+    pub fn byte_offset_of_location_snapped(&self, location: Location) -> Bytes {
         self.cell.borrow().byte_offset_of_location_snapped(location)
     }
 
-    pub fn byte_range_of_line_index(&self, line:Line)
-    -> Result<std::ops::Range<Bytes>,BoundsError> {
+    pub fn byte_range_of_line_index(
+        &self,
+        line: Line,
+    ) -> Result<std::ops::Range<Bytes>, BoundsError> {
         self.cell.borrow().byte_range_of_line_index(line)
     }
 
-    pub fn byte_range_of_line_index_snapped(&self, line:Line) -> std::ops::Range<Bytes> {
+    pub fn byte_range_of_line_index_snapped(&self, line: Line) -> std::ops::Range<Bytes> {
         self.cell.borrow().byte_range_of_line_index_snapped(line)
     }
 
-    pub fn line_index_of_byte_offset_unchecked(&self, offset:Bytes) -> Line {
+    pub fn line_index_of_byte_offset_unchecked(&self, offset: Bytes) -> Line {
         self.cell.borrow().line_index_of_byte_offset_unchecked(offset)
     }
 
-    pub fn line_index_of_byte_offset(&self, offset:Bytes) -> Result<Line,BoundsError> {
+    pub fn line_index_of_byte_offset(&self, offset: Bytes) -> Result<Line, BoundsError> {
         self.cell.borrow().line_index_of_byte_offset(offset)
     }
 
-    pub fn line_index_of_byte_offset_snapped(&self, offset:Bytes) -> Line {
+    pub fn line_index_of_byte_offset_snapped(&self, offset: Bytes) -> Line {
         self.cell.borrow().line_index_of_byte_offset_snapped(offset)
     }
 
-    pub fn line_end_column(&self, line:Line) -> Result<Column,BoundsError> {
+    pub fn line_end_column(&self, line: Line) -> Result<Column, BoundsError> {
         self.cell.borrow().line_end_column(line)
     }
 
-    pub fn column_of_byte_offset(&self, tgt_offset:Bytes)
-    -> Result<Column,LocationError<Column>> {
+    pub fn column_of_byte_offset(
+        &self,
+        tgt_offset: Bytes,
+    ) -> Result<Column, LocationError<Column>> {
         self.cell.borrow().column_of_byte_offset(tgt_offset)
     }
 
-    pub fn column_of_byte_offset_snapped(&self, tgt_offset:Bytes) -> Column {
+    pub fn column_of_byte_offset_snapped(&self, tgt_offset: Bytes) -> Column {
         self.cell.borrow().column_of_byte_offset_snapped(tgt_offset)
     }
 
-    pub fn column_of_line_index_and_in_line_byte_offset(&self, line:Line, in_line_offset:Bytes)
-    -> Result<Column,LocationError<Column>> {
-        self.cell.borrow().column_of_line_index_and_in_line_byte_offset(line,in_line_offset)
+    pub fn column_of_line_index_and_in_line_byte_offset(
+        &self,
+        line: Line,
+        in_line_offset: Bytes,
+    ) -> Result<Column, LocationError<Column>> {
+        self.cell.borrow().column_of_line_index_and_in_line_byte_offset(line, in_line_offset)
     }
 
-    pub fn column_of_line_index_and_in_line_byte_offset_snapped
-    (&self, line:Line, in_line_offset:Bytes) -> Column {
-        self.cell.borrow().column_of_line_index_and_in_line_byte_offset_snapped
-            (line,in_line_offset)
+    pub fn column_of_line_index_and_in_line_byte_offset_snapped(
+        &self,
+        line: Line,
+        in_line_offset: Bytes,
+    ) -> Column {
+        self.cell
+            .borrow()
+            .column_of_line_index_and_in_line_byte_offset_snapped(line, in_line_offset)
     }
 
-    pub fn location_of_byte_offset(&self, offset:Bytes) -> Result<Location,BoundsError> {
+    pub fn location_of_byte_offset(&self, offset: Bytes) -> Result<Location, BoundsError> {
         self.cell.borrow().location_of_byte_offset(offset)
     }
 
-    pub fn location_of_byte_offset_snapped(&self, offset:Bytes) -> Location {
+    pub fn location_of_byte_offset_snapped(&self, offset: Bytes) -> Location {
         self.cell.borrow().location_of_byte_offset_snapped(offset)
     }
 }

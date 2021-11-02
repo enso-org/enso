@@ -3,12 +3,12 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_gui_components::list_view;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::*;
-use ensogl_text as text;
+use ensogl_gui_components::list_view;
 use ensogl_gui_components::shadow;
+use ensogl_text as text;
 use ensogl_theme::application::project_list as theme;
 
 
@@ -28,8 +28,8 @@ pub type Entry = list_view::entry::Label;
 mod background {
     use super::*;
 
-    pub const SHADOW_PX:f32 = 10.0;
-    pub const CORNER_RADIUS_PX:f32 = 16.0;
+    pub const SHADOW_PX: f32 = 10.0;
+    pub const CORNER_RADIUS_PX: f32 = 16.0;
 
     ensogl::define_shape_system! {
         (style:Style) {
@@ -63,32 +63,34 @@ mod background {
 /// The Project List GUI Component.
 ///
 /// This is a list of projects in a nice frame with title.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct ProjectList {
-    logger         : Logger,
-    network        : frp::Network,
-    display_object : display::object::Instance,
-    background     : background::View, //TODO[ao] use Card instead.
-    caption        : text::Area,
-    list           : list_view::ListView<Entry>,
-    style_watch    : StyleWatchFrp,
+    logger:         Logger,
+    network:        frp::Network,
+    display_object: display::object::Instance,
+    background:     background::View, //TODO[ao] use Card instead.
+    caption:        text::Area,
+    list:           list_view::ListView<Entry>,
+    style_watch:    StyleWatchFrp,
 }
 
 impl Deref for ProjectList {
     type Target = list_view::Frp<Entry>;
 
-    fn deref(&self) -> &Self::Target { &self.list.frp }
+    fn deref(&self) -> &Self::Target {
+        &self.list.frp
+    }
 }
 
 impl ProjectList {
     /// Create Project List Component.
-    pub fn new(app:&Application) -> Self {
-        let logger         = Logger::new("ProjectList");
-        let network        = frp::Network::new("ProjectList");
+    pub fn new(app: &Application) -> Self {
+        let logger = Logger::new("ProjectList");
+        let network = frp::Network::new("ProjectList");
         let display_object = display::object::Instance::new(&logger);
-        let background     = background::View::new(&logger);
-        let caption        = app.new_view::<text::Area>();
-        let list           = app.new_view::<list_view::ListView<Entry>>();
+        let background = background::View::new(&logger);
+        let caption = app.new_view::<text::Area>();
+        let list = app.new_view::<list_view::ListView<Entry>>();
         display_object.add_child(&background);
         display_object.add_child(&caption);
         display_object.add_child(&list);
@@ -105,12 +107,12 @@ impl ProjectList {
         }
 
         let style_watch = StyleWatchFrp::new(&app.display.scene().style_sheet);
-        let width       = style_watch.get_number(theme::width);
-        let height      = style_watch.get_number(theme::height);
-        let bar_height  = style_watch.get_number(theme::bar::height);
-        let padding     = style_watch.get_number(theme::padding);
-        let color       = style_watch.get_color(theme::bar::label::color);
-        let label_size  = style_watch.get_number(theme::bar::label::size);
+        let width = style_watch.get_number(theme::width);
+        let height = style_watch.get_number(theme::height);
+        let bar_height = style_watch.get_number(theme::bar::height);
+        let padding = style_watch.get_number(theme::padding);
+        let color = style_watch.get_color(theme::bar::label::color);
+        let label_size = style_watch.get_number(theme::bar::label::size);
 
         frp::extend! { network
             init <- source::<()>();
@@ -135,10 +137,12 @@ impl ProjectList {
         };
         init.emit(());
 
-        Self {logger,network,display_object,background,caption,list,style_watch}
+        Self { logger, network, display_object, background, caption, list, style_watch }
     }
 }
 
 impl display::Object for ProjectList {
-    fn display_object(&self) -> &display::object::Instance { &self.display_object }
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
 }

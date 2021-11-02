@@ -3,18 +3,18 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::Animation;
-use ensogl_core::application::Application;
 use ensogl_core::application;
+use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::display::shape::*;
+use ensogl_core::Animation;
 use ensogl_theme as theme;
 
 use crate::component;
-use crate::selector::Bounds;
-use crate::selector::model::Model;
 use crate::selector;
+use crate::selector::model::Model;
+use crate::selector::Bounds;
 use ensogl_core::animation::delayed::DelayedAnimation;
 
 
@@ -28,17 +28,17 @@ use ensogl_core::animation::delayed::DelayedAnimation;
 //       described at https://github.com/enso-org/ide/issues/1654.
 
 /// Amount the scrollbar moves on a single click, relative to the viewport size.
-const CLICK_JUMP_PERCENTAGE : f32 = 0.80;
+const CLICK_JUMP_PERCENTAGE: f32 = 0.80;
 /// Width of the scrollbar in px.
-pub const WIDTH             : f32 = 11.0;
+pub const WIDTH: f32 = 11.0;
 /// The amount of padding on each side inside the scrollbar.
-const PADDING               : f32 = 2.0;
+const PADDING: f32 = 2.0;
 /// The thumb will be displayed with at least this size to make it more visible and dragging easier.
-const MIN_THUMB_SIZE        : f32 = 12.0;
+const MIN_THUMB_SIZE: f32 = 12.0;
 /// After an animation, the thumb will be visible for this time, before it hides again.
-const HIDE_DELAY            : f32 = 1000.0;
+const HIDE_DELAY: f32 = 1000.0;
 
-const ERROR_MARGIN_FOR_ACTIVITY_DETECTION : f32 = 0.1;
+const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
 
 
 
@@ -71,9 +71,13 @@ ensogl_core::define_endpoints! {
 }
 
 impl Frp {
-    fn compute_target_alpha
-    (&recently_active:&bool, &dragging:&bool, &cursor_distance:&f32, &thumb_size:&f32, &max:&f32)
-    -> f32 {
+    fn compute_target_alpha(
+        &recently_active: &bool,
+        &dragging: &bool,
+        &cursor_distance: &f32,
+        &thumb_size: &f32,
+        &max: &f32,
+    ) -> f32 {
         let thumb_fills_bar = thumb_size >= max;
         if thumb_fills_bar {
             0.0
@@ -93,13 +97,13 @@ impl Frp {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(&self, app:&Application, model:&Model, style:&StyleWatchFrp){
-        let frp               = &self;
-        let network           = &frp.network;
-        let scene             = app.display.scene();
-        let mouse             = &scene.mouse.frp;
-        let thumb_position    = Animation::new(network);
-        let thumb_color       = color::Animation::new(network);
+    fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
+        let frp = &self;
+        let network = &frp.network;
+        let scene = app.display.scene();
+        let mouse = &scene.mouse.frp;
+        let thumb_position = Animation::new(network);
+        let thumb_color = color::Animation::new(network);
         let activity_cool_off = DelayedAnimation::new(network);
         activity_cool_off.frp.set_delay(HIDE_DELAY);
         activity_cool_off.frp.set_duration(0.0);
@@ -118,7 +122,7 @@ impl component::Frp<Model> for Frp {
         model.set_padding(PADDING);
 
         let default_color = style.get_color(theme::component::slider::track::color);
-        let hover_color   = style.get_color(theme::component::slider::track::hover_color);
+        let hover_color = style.get_color(theme::component::slider::track::hover_color);
 
         frp::extend! { network
 
@@ -251,7 +255,7 @@ impl component::Frp<Model> for Frp {
         frp.set_length(200.0);
         frp.set_thumb_size(0.2);
         frp.set_max(1.0);
-        init_mouse_position.emit(Vector2(f32::NAN,f32::NAN));
+        init_mouse_position.emit(Vector2(f32::NAN, f32::NAN));
         init_color.emit(());
     }
 }
@@ -274,10 +278,16 @@ impl component::Frp<Model> for Frp {
 ///
 /// All operations related to the scroll position take as argument a number of pixels describing a
 /// position or distance on the scrolled area. We call them scroll units.
-pub type Scrollbar = crate::component::Component<Model,Frp>;
+pub type Scrollbar = crate::component::Component<Model, Frp>;
 
 impl application::View for Scrollbar {
-    fn label() -> &'static str { "Scrollbar" }
-    fn new(app:&Application) -> Self { Scrollbar::new(app) }
-    fn app(&self) -> &Application { &self.app }
+    fn label() -> &'static str {
+        "Scrollbar"
+    }
+    fn new(app: &Application) -> Self {
+        Scrollbar::new(app)
+    }
+    fn app(&self) -> &Application {
+        &self.app
+    }
 }

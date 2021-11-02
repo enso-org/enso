@@ -2,15 +2,15 @@
 
 use crate::prelude::*;
 
-use ensogl_core::system::web;
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_core::system::web;
 use ensogl_gui_components::list_view;
+use ensogl_text::buffer::data::unit::Bytes;
+use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_theme as theme;
 use logger::TraceLogger as Logger;
 use wasm_bindgen::prelude::*;
-use ensogl_text::buffer::data::unit::Bytes;
-use ensogl_theme as theme;
 
 
 
@@ -37,27 +37,29 @@ pub fn entry_point_list_view() {
 // === Mock Entries ===
 // ====================
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 struct MockEntries {
-    entries_count : usize,
+    entries_count: usize,
 }
 
 impl MockEntries {
-    fn new(entries_count:usize) -> Self {
-        Self {entries_count}
+    fn new(entries_count: usize) -> Self {
+        Self { entries_count }
     }
 }
 
 impl list_view::entry::ModelProvider<list_view::entry::GlyphHighlightedLabel> for MockEntries {
-    fn entry_count(&self) -> usize { self.entries_count }
+    fn entry_count(&self) -> usize {
+        self.entries_count
+    }
 
-    fn get(&self, id:usize) -> Option<list_view::entry::GlyphHighlightedLabelModel> {
+    fn get(&self, id: usize) -> Option<list_view::entry::GlyphHighlightedLabelModel> {
         if id >= self.entries_count {
             None
         } else {
             let label = iformat!("Entry {id}");
             let highlighted = if id == 10 { vec![(Bytes(1)..Bytes(3)).into()] } else { vec![] };
-            Some(list_view::entry::GlyphHighlightedLabelModel {label,highlighted})
+            Some(list_view::entry::GlyphHighlightedLabelModel { label, highlighted })
         }
     }
 }
@@ -68,20 +70,20 @@ impl list_view::entry::ModelProvider<list_view::entry::GlyphHighlightedLabel> fo
 // === Init Application ===
 // ========================
 
-fn init(app:&Application) {
+fn init(app: &Application) {
     theme::builtin::dark::register(&app);
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
     let list_view = app.new_view::<list_view::ListView<list_view::entry::GlyphHighlightedLabel>>();
-    let provider  = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
-    list_view.frp.resize(Vector2(100.0,160.0));
+    let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
+    list_view.frp.resize(Vector2(100.0, 160.0));
     list_view.frp.set_entries(provider);
     app.display.add_child(&list_view);
     // FIXME[WD]: This should not be needed after text gets proper depth-handling.
     app.display.scene().layers.below_main.add_exclusive(&list_view);
 
-    let logger : Logger = Logger::new("SelectDebugScene");
+    let logger: Logger = Logger::new("SelectDebugScene");
     let network = enso_frp::Network::new("test");
     enso_frp::extend! {network
         eval list_view.chosen_entry([logger](entry) {

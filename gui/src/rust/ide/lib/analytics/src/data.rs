@@ -7,17 +7,36 @@
 use wasm_bindgen::JsValue;
 
 /// Trait that allows us to log an object remotely.
-pub trait Loggable{
+pub trait Loggable {
     /// Return the log message as JsValue.
     fn get(self) -> JsValue;
 }
 
-impl      Loggable for bool     { fn get(self) -> JsValue { self.into() } }
-impl      Loggable for &str     { fn get(self) -> JsValue { self.into() } }
-impl      Loggable for String   { fn get(self) -> JsValue { self.into() } }
-impl      Loggable for &String  { fn get(self) -> JsValue { self.into() } }
-impl<F,S> Loggable for F
-    where F:Fn()->S, S:Loggable {
+impl Loggable for bool {
+    fn get(self) -> JsValue {
+        self.into()
+    }
+}
+impl Loggable for &str {
+    fn get(self) -> JsValue {
+        self.into()
+    }
+}
+impl Loggable for String {
+    fn get(self) -> JsValue {
+        self.into()
+    }
+}
+impl Loggable for &String {
+    fn get(self) -> JsValue {
+        self.into()
+    }
+}
+impl<F, S> Loggable for F
+where
+    F: Fn() -> S,
+    S: Loggable,
+{
     fn get(self) -> JsValue {
         self().get()
     }
@@ -25,6 +44,5 @@ impl<F,S> Loggable for F
 
 
 /// Wrapper struct for data that can be made public and has no privacy implications.
-#[derive(Clone,Copy,Debug)]
-pub struct AnonymousData<T:Loggable>(pub T);
-
+#[derive(Clone, Copy, Debug)]
+pub struct AnonymousData<T: Loggable>(pub T);

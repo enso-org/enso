@@ -17,17 +17,17 @@ use crate::model::module::MethodId;
 
 /// A structure serving as a type for [`ICONS`] constant, containing a set of hardcoded icon names.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug,Default)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct Icons {
-    pub search_result : ImString,
-    pub data_science  : ImString,
-    pub input_output  : ImString,
-    pub text          : ImString,
-    pub number_input  : ImString,
-    pub text_input    : ImString,
-    pub data_input    : ImString,
-    pub libraries     : ImString,
-    pub default       : ImString,
+    pub search_result: ImString,
+    pub data_science:  ImString,
+    pub input_output:  ImString,
+    pub text:          ImString,
+    pub number_input:  ImString,
+    pub text_input:    ImString,
+    pub data_input:    ImString,
+    pub libraries:     ImString,
+    pub default:       ImString,
 }
 
 thread_local! {
@@ -59,11 +59,11 @@ thread_local! {
 /// hierarchy, the [`add_hardcoded_entries_to_list`] will add analogous [`action::RootCategory`]
 /// to the built list.
 #[allow(missing_docs)]
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct RootCategory {
-    pub name       : &'static str,
-    pub icon       : ImString,
-    pub categories : Vec<Subcategory>,
+    pub name:       &'static str,
+    pub icon:       ImString,
+    pub categories: Vec<Subcategory>,
 }
 
 
@@ -75,92 +75,99 @@ pub struct RootCategory {
 /// hierarchy, the [`add_hardcoded_entries_to_list`] will add analogous [`action::Category`]
 /// to the built list.
 #[allow(missing_docs)]
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Subcategory {
-    pub name        : &'static str,
-    pub icon        : ImString,
-    pub suggestions : Vec<Rc<Suggestion>>
+    pub name:        &'static str,
+    pub icon:        ImString,
+    pub suggestions: Vec<Rc<Suggestion>>,
 }
 
 
 // === Suggestion ===
 
 /// The hardcoded suggestion.
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Suggestion {
     /// The name displayed in the Searcher.
-    pub name:&'static str,
+    pub name:               &'static str,
     /// The code inserted when picking suggestion.
-    pub code:&'static str,
+    pub code:               &'static str,
     /// The type of expected `this` argument.
-    pub this_arg:Option<tp::QualifiedName>,
+    pub this_arg:           Option<tp::QualifiedName>,
     /// The list of argument types which may be applied to the code returned by this suggestion.
-    pub argument_types:Vec<tp::QualifiedName>,
+    pub argument_types:     Vec<tp::QualifiedName>,
     /// The type returned by the suggestion's code.
-    pub return_type:Option<tp::QualifiedName>,
+    pub return_type:        Option<tp::QualifiedName>,
     /// An import required by the suggestion.
-    pub imports:Vec<module::QualifiedName>,
+    pub imports:            Vec<module::QualifiedName>,
     /// The documentation bound to the suggestion.
-    pub documentation_html:Option<&'static str>,
+    pub documentation_html: Option<&'static str>,
     /// The id of the method called by the suggestion.
-    pub method_id:Option<MethodId>,
+    pub method_id:          Option<MethodId>,
     /// The name of the icon bound to this entry.
-    pub icon:ImString,
+    pub icon:               ImString,
 }
 
 impl Suggestion {
-    fn new(name:&'static str, code:&'static str,icon:&ImString) -> Self {
+    fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
         let icon = icon.clone_ref();
-        Self {name,code,icon,..default()}
+        Self { name, code, icon, ..default() }
     }
 
-    fn with_this_arg(mut self, this_arg:impl TryInto<tp::QualifiedName, Error:Debug>) -> Self {
+    fn with_this_arg(mut self, this_arg: impl TryInto<tp::QualifiedName, Error: Debug>) -> Self {
         self.this_arg = Some(this_arg.try_into().unwrap());
         self
     }
 
-    fn with_argument_types<Iter>
-    (mut self, argument_types:Iter) -> Self
-    where Iter : IntoIterator,
-          Iter::Item : TryInto<tp::QualifiedName, Error:Debug>,
-    {
-        let conv_results    = argument_types.into_iter().map(|arg| arg.try_into());
-        let result          = conv_results.collect::<Result<Vec<tp::QualifiedName>,_>>();
+    fn with_argument_types<Iter>(mut self, argument_types: Iter) -> Self
+    where
+        Iter: IntoIterator,
+        Iter::Item: TryInto<tp::QualifiedName, Error: Debug>, {
+        let conv_results = argument_types.into_iter().map(|arg| arg.try_into());
+        let result = conv_results.collect::<Result<Vec<tp::QualifiedName>, _>>();
         self.argument_types = result.unwrap();
         self
     }
 
-    fn with_return_type
-    (mut self, return_type:impl TryInto<tp::QualifiedName, Error:Debug>) -> Self {
+    fn with_return_type(
+        mut self,
+        return_type: impl TryInto<tp::QualifiedName, Error: Debug>,
+    ) -> Self {
         self.return_type = Some(return_type.try_into().unwrap());
         self
     }
 
-    fn with_import_added
-    (mut self, import:impl TryInto<module::QualifiedName, Error:Debug>) -> Self {
+    fn with_import_added(
+        mut self,
+        import: impl TryInto<module::QualifiedName, Error: Debug>,
+    ) -> Self {
         self.imports.push(import.try_into().unwrap());
         self
     }
-    
-    fn marked_as_method_call
-    (mut self, name:&'static str, module:impl TryInto<module::QualifiedName, Error:Debug>)
-    -> Self {
+
+    fn marked_as_method_call(
+        mut self,
+        name: &'static str,
+        module: impl TryInto<module::QualifiedName, Error: Debug>,
+    ) -> Self {
         self.method_id = Some(MethodId {
-            module          : module.try_into().unwrap(),
-            defined_on_type : self.this_arg.as_ref().unwrap().clone(),
-            name            : name.to_owned()
+            module:          module.try_into().unwrap(),
+            defined_on_type: self.this_arg.as_ref().unwrap().clone(),
+            name:            name.to_owned(),
         });
         self
     }
 
-    fn marked_as_module_method_call
-    (mut self, name:&'static str, module:impl TryInto<module::QualifiedName, Error:Debug>)
-    -> Self {
-        let module =  module.try_into().unwrap();
+    fn marked_as_module_method_call(
+        mut self,
+        name: &'static str,
+        module: impl TryInto<module::QualifiedName, Error: Debug>,
+    ) -> Self {
+        let module = module.try_into().unwrap();
         self.method_id = Some(MethodId {
-            module          : module.clone(),
-            defined_on_type : module.into(),
-            name            : name.to_owned()
+            module:          module.clone(),
+            defined_on_type: module.into(),
+            name:            name.to_owned(),
         });
         self
     }
@@ -244,29 +251,36 @@ thread_local! {
 
 /// Extend the list built by given [`ListBuilder`] with the categories and actions hardcoded
 /// in [`SUGGESTIONS`] constant.
-pub fn add_hardcoded_entries_to_list
-( list         : &mut ListBuilder
-, this_type    : Option<&tp::QualifiedName>
-, return_types : Option<&HashSet<tp::QualifiedName>>
+pub fn add_hardcoded_entries_to_list(
+    list: &mut ListBuilder,
+    this_type: Option<&tp::QualifiedName>,
+    return_types: Option<&HashSet<tp::QualifiedName>>,
 ) {
     SUGGESTIONS.with(|hardcoded| {
         for hc_root_category in hardcoded {
-            let icon         = hc_root_category.icon.clone_ref();
-            let mut root_cat = list.add_root_category(hc_root_category.name,icon);
+            let icon = hc_root_category.icon.clone_ref();
+            let mut root_cat = list.add_root_category(hc_root_category.name, icon);
             for hc_category in &hc_root_category.categories {
-                let icon     = hc_root_category.icon.clone_ref();
-                let category = root_cat.add_category(hc_category.name,icon);
+                let icon = hc_root_category.icon.clone_ref();
+                let category = root_cat.add_category(hc_category.name, icon);
                 category.extend(hc_category.suggestions.iter().cloned().filter_map(|suggestion| {
                     let this_type_matches = if let Some(this_type) = this_type {
                         suggestion.this_arg.contains(this_type)
-                    } else { true };
+                    } else {
+                        true
+                    };
                     let return_type_matches = if let Some(return_types) = return_types {
-                        suggestion.return_type.as_ref().map_or(false, |rt| return_types.contains(rt))
-                    } else { true };
+                        suggestion
+                            .return_type
+                            .as_ref()
+                            .map_or(false, |rt| return_types.contains(rt))
+                    } else {
+                        true
+                    };
                     let filtered_in = this_type_matches && return_type_matches;
-                    filtered_in.as_some_from(||
+                    filtered_in.as_some_from(|| {
                         action::Action::Suggestion(action::Suggestion::Hardcoded(suggestion))
-                    )
+                    })
                 }));
             }
         }
