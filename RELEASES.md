@@ -1,5 +1,9 @@
 # Enso Next
 
+## GUI
+
+- Fixed histograms coloring and added a color legend ([#3134](https://github.com/enso-org/enso/pull/3134)).
+
 ## Enso 0.2.31 (2021-10-01)
 
 ## Interpreter/Runtime
