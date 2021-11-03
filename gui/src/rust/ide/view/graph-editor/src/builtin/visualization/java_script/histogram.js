@@ -17,6 +17,7 @@ const ANIMATION_DURATION = 1000
 const LINEAR_SCALE = 'linear'
 const DEFAULT_NUMBER_OF_BINS = 50
 const BUTTON_HEIGHT = 25
+const COLOR_LEGEND_WIDTH = 5
 
 /**
  * A d3.js histogram visualization.
@@ -187,11 +188,26 @@ class Histogram extends Visualization {
         )
         this.dom.appendChild(container)
 
-        this.svg = d3
+        const svg = d3
             .select(container)
             .append('svg')
             .attr('width', this.canvas.outer.width)
             .attr('height', this.canvas.outer.height)
+
+        this.colorLegend = svg
+            .append('rect')
+            .attr('id', 'color-legend')
+            .attr('width', COLOR_LEGEND_WIDTH)
+            .attr('height', this.canvas.inner.height)
+            .attr(
+                'transform',
+                `translate(${this.canvas.margin.left - COLOR_LEGEND_WIDTH}, ${
+                    this.canvas.margin.top
+                })`
+            )
+            .style('fill', 'url(#color-legend-gradient)')
+
+        this.svg = svg
             .append('g')
             .attr(
                 'transform',
@@ -210,6 +226,14 @@ class Histogram extends Visualization {
             .append('rect')
             .attr('width', this.canvas.inner.width)
             .attr('height', this.canvas.inner.height)
+
+        this.colorLegendGradient = defs
+            .append('linearGradient')
+            .attr('id', 'color-legend-gradient')
+            .attr('x1', '0%') // Vertical gradient
+            .attr('y1', '100%')
+            .attr('x2', '0%')
+            .attr('y2', '0%')
     }
 
     /**
@@ -542,10 +566,9 @@ class Histogram extends Visualization {
 
         this.yAxis.call(yAxis.ticks((10 * this.canvasDimensions().outer.height) / 200))
 
-        const fill = d3
-            .scaleSequential()
-            .interpolator(d3.interpolateViridis)
-            .domain(y.domain())
+        const fill = d3.scaleSequential().interpolator(d3.interpolateViridis).domain(y.domain())
+
+        this.updateColorLegend(fill)
 
         const items = this.plot.selectAll('rect').data(bins)
 
@@ -561,6 +584,24 @@ class Histogram extends Visualization {
         items.exit().remove()
 
         this.scale = { x, y, zoom: 1.0 }
+    }
+
+    /**
+     * Updates position and gradient of a color legend
+     */
+    updateColorLegend(colorScale) {
+        const colorScaleToGradient = (t, i, n) => ({
+            offset: `${(100 * i) / n.length}%`,
+            color: colorScale(t),
+        })
+        this.colorLegendGradient
+            .selectAll('stop')
+            .data(colorScale.ticks().map(colorScaleToGradient))
+            .enter()
+            .append('stop')
+            .attr('offset', d => d.offset)
+            .attr('stop-color', d => d.color)
+        this.colorLegend.attr('width', COLOR_LEGEND_WIDTH).attr('height', this.canvas.inner.height)
     }
 
     /**
