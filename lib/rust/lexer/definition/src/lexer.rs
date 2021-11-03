@@ -1813,6 +1813,7 @@ impl Default for EnsoLexer {
 #[derive(Debug)]
 pub struct State<Logger> {
     /// The logger for the lexing state.
+    #[allow(dead_code)]
     logger : Logger,
     /// The bookmarks used by the lexer.
     bookmarks : reader::BookmarkManager,
@@ -1865,6 +1866,7 @@ pub struct State<Logger> {
     /// The state entered when a literal CRLF is seen inside a text literal.
     text_interpolate : group::Identifier,
     /// A parent group for all comments.
+    #[allow(dead_code)]
     comment : group::Identifier,
     /// A state for lexing disable comments.
     disable_comment : group::Identifier,
@@ -1905,7 +1907,7 @@ where Logger : AnyLogger<Owned=Logger> + LoggerOps<DebugLevel> {
 impl<Logger> enso_flexer::State for State<Logger>
 where Logger : AnyLogger<Owned=Logger> + LoggerOps<DebugLevel> {
     fn new(parent_logger:&impl AnyLogger) -> Self {
-        let logger                  = <Logger>::sub(parent_logger, "State");
+        let logger                  = parent_logger.sub("State");
         let bookmarks               = default();
         let mut lexer_states        = group::Registry::default();
         let initial_state           = lexer_states.define_group("ROOT",None);

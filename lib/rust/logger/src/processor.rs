@@ -222,7 +222,7 @@ impl<Input> Processor<Input> for Identity {
 /// Formatter processor. It uses the provided formatter to format its input.
 #[derive(Debug,Default)]
 pub struct Formatter<T> {
-    formatter : T,
+    formatter : PhantomData<T>,
 }
 
 impl<Fmt,Lvl> Processor<Entry<Lvl>> for Formatter<Fmt>
@@ -261,7 +261,7 @@ where C:consumer::Definition<Levels,Message> {
 #[allow(missing_docs)]
 pub struct Buffer<Input,Next> {
     model   : Rc<RefCell<BufferModel<Input,Next>>>,
-    closure : Closure<dyn Fn()>,
+    _closure: Closure<dyn Fn()>,
 }
 
 impl<Input,Next> Default for Buffer<Input,Next>
@@ -274,7 +274,7 @@ impl<Input,Next> Default for Buffer<Input,Next>
             println!("Debug mode. Logs will be enabled automatically.");
             js::show_logs();
         }
-        Self{model,closure}
+        Self{model, _closure: closure }
     }
 }
 
