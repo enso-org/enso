@@ -14,16 +14,16 @@ use crate::status_bar;
 
 use enso_args::ARGS;
 use enso_frp as frp;
-use ensogl::Animation;
 use ensogl::application;
-use ensogl::application::Application;
 use ensogl::application::shortcut;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::*;
-use ensogl::DEPRECATED_Animation;
 use ensogl::system::web;
 use ensogl::system::web::dom;
-use ensogl_theme::Theme as Theme;
+use ensogl::Animation;
+use ensogl::DEPRECATED_Animation;
+use ensogl_theme::Theme;
 
 
 
@@ -101,35 +101,35 @@ mod prompt_background {
 // === Model ===
 // =============
 
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app                    : Application,
-    logger                 : Logger,
-    display_object         : display::object::Instance,
+    app:                    Application,
+    logger:                 Logger,
+    display_object:         display::object::Instance,
     /// These buttons are present only in a cloud environment.
-    window_control_buttons : Immutable<Option<crate::window_control_buttons::View>>,
-    graph_editor           : Rc<GraphEditor>,
-    searcher               : searcher::View,
-    code_editor            : code_editor::View,
-    status_bar             : status_bar::View,
-    fullscreen_vis         : Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    prompt_background      : prompt_background::View,
-    prompt                 : ensogl_text::Area,
-    open_dialog            : Rc<OpenDialog>,
+    window_control_buttons: Immutable<Option<crate::window_control_buttons::View>>,
+    graph_editor:           Rc<GraphEditor>,
+    searcher:               searcher::View,
+    code_editor:            code_editor::View,
+    status_bar:             status_bar::View,
+    fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
+    prompt_background:      prompt_background::View,
+    prompt:                 ensogl_text::Area,
+    open_dialog:            Rc<OpenDialog>,
 }
 
 impl Model {
-    fn new(app:&Application) -> Self {
-        let logger                 = Logger::new("project::View");
-        let scene                  = app.display.scene();
-        let display_object         = display::object::Instance::new(&logger);
-        let searcher               = app.new_view::<searcher::View>();
-        let graph_editor           = app.new_view::<GraphEditor>();
-        let code_editor            = app.new_view::<code_editor::View>();
-        let status_bar             = status_bar::View::new(app);
-        let fullscreen_vis         = default();
-        let prompt_background      = prompt_background::View::new(&logger);
-        let prompt                 = ensogl_text::Area::new(app);
+    fn new(app: &Application) -> Self {
+        let logger = Logger::new("project::View");
+        let scene = app.display.scene();
+        let display_object = display::object::Instance::new(&logger);
+        let searcher = app.new_view::<searcher::View>();
+        let graph_editor = app.new_view::<GraphEditor>();
+        let code_editor = app.new_view::<code_editor::View>();
+        let status_bar = status_bar::View::new(app);
+        let fullscreen_vis = default();
+        let prompt_background = prompt_background::View::new(&logger);
+        let prompt = ensogl_text::Area::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
@@ -137,7 +137,7 @@ impl Model {
             window_control_buttons
         });
         let window_control_buttons = Immutable(window_control_buttons);
-        let open_dialog            = Rc::new(OpenDialog::new(app));
+        let open_dialog = Rc::new(OpenDialog::new(app));
         prompt_background.add_child(&prompt);
         prompt.set_content("Press the tab key to search for components.");
         scene.layers.panel.add_exclusive(&prompt_background);
@@ -151,17 +151,29 @@ impl Model {
         display_object.add_child(&prompt_background);
         display_object.remove_child(&searcher);
 
-        let app          = app.clone_ref();
+        let app = app.clone_ref();
         let graph_editor = Rc::new(graph_editor);
-        Self{app,logger,display_object,window_control_buttons,graph_editor,searcher,code_editor
-            ,status_bar,fullscreen_vis,prompt_background,prompt,open_dialog}
+        Self {
+            app,
+            logger,
+            display_object,
+            window_control_buttons,
+            graph_editor,
+            searcher,
+            code_editor,
+            status_bar,
+            fullscreen_vis,
+            prompt_background,
+            prompt,
+            open_dialog,
+        }
     }
 
     /// Sets style of IDE to the one defined by parameter `theme`.
-    pub fn set_style(&self, theme:Theme) {
+    pub fn set_style(&self, theme: Theme) {
         match theme {
-            Theme::Light => { self.set_light_style() },
-            _            => { self.set_dark_style()  },
+            Theme::Light => self.set_light_style(),
+            _ => self.set_dark_style(),
         }
     }
 
@@ -175,17 +187,17 @@ impl Model {
         self.set_html_style("dark-theme");
     }
 
-    fn set_html_style(&self, style:&'static str) {
-        web::with_element_by_id_or_warn(&self.logger,"root",|root| root.set_class_name(style));
+    fn set_html_style(&self, style: &'static str) {
+        web::with_element_by_id_or_warn(&self.logger, "root", |root| root.set_class_name(style));
     }
 
-    fn searcher_left_top_position_when_under_node_at(position:Vector2<f32>) -> Vector2<f32> {
+    fn searcher_left_top_position_when_under_node_at(position: Vector2<f32>) -> Vector2<f32> {
         let x = position.x;
-        let y = position.y - node::HEIGHT/2.0;
-        Vector2(x,y)
+        let y = position.y - node::HEIGHT / 2.0;
+        Vector2(x, y)
     }
 
-    fn searcher_left_top_position_when_under_node(&self, node_id:NodeId) -> Vector2<f32> {
+    fn searcher_left_top_position_when_under_node(&self, node_id: NodeId) -> Vector2<f32> {
         if let Some(node) = self.graph_editor.model.nodes.get_cloned_ref(&node_id) {
             Self::searcher_left_top_position_when_under_node_at(node.position().xy())
         } else {
@@ -195,11 +207,11 @@ impl Model {
     }
 
     /// Update Searcher View - its visibility and position - when edited node changed.
-    fn update_searcher_view
-    ( &self
-    , edited_node                : Option<NodeId>
-    , is_searcher_empty          : bool
-    , searcher_left_top_position : &DEPRECATED_Animation<Vector2<f32>>
+    fn update_searcher_view(
+        &self,
+        edited_node: Option<NodeId>,
+        is_searcher_empty: bool,
+        searcher_left_top_position: &DEPRECATED_Animation<Vector2<f32>>,
     ) {
         match edited_node {
             Some(id) if !is_searcher_empty => {
@@ -215,21 +227,23 @@ impl Model {
 
     fn add_node_and_edit(&self) -> NodeId {
         let graph_editor_inputs = &self.graph_editor.frp.input;
-        let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned() {
+        let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned()
+        {
             self.graph_editor.add_node_below(selected)
         } else {
             graph_editor_inputs.add_node_at_cursor.emit(());
             self.graph_editor.frp.output.node_added.value()
         };
-        graph_editor_inputs.set_node_expression.emit(&(node_id,Expression::default()));
+        graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
         node_id
     }
 
-    fn show_fullscreen_visualization(&self, node_id:NodeId) {
+    fn show_fullscreen_visualization(&self, node_id: NodeId) {
         let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
         if let Some(node) = node {
-            let visualization = node.view.model.visualization.fullscreen_visualization().clone_ref();
+            let visualization =
+                node.view.model.visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
@@ -243,7 +257,7 @@ impl Model {
         }
     }
 
-    fn on_dom_shape_changed(&self, shape:&dom::shape::Shape) {
+    fn on_dom_shape_changed(&self, shape: &dom::shape::Shape) {
         // Top buttons must always stay in top-left corner.
         if let Some(window_control_buttons) = &*self.window_control_buttons {
             let pos = Vector2(-shape.width, shape.height) / 2.0;
@@ -274,7 +288,7 @@ mod js {
     // use super::*;
     use wasm_bindgen::prelude::*;
 
-    #[wasm_bindgen(inline_js="
+    #[wasm_bindgen(inline_js = "
     export function close(windowAppScopeConfigName) {
         try { window[windowAppScopeConfigName].close(); }
         catch(e) {
@@ -283,11 +297,11 @@ mod js {
     }")]
     extern "C" {
         #[allow(unsafe_code)]
-        pub fn close(window_app_scope_name:&str);
+        pub fn close(window_app_scope_name: &str);
     }
 
 
-    #[wasm_bindgen(inline_js="
+    #[wasm_bindgen(inline_js = "
     export function fullscreen() {
         try {
             if(document.fullscreenElement === null)
@@ -313,10 +327,10 @@ mod js {
 
 /// The main view of single project opened in IDE.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    model   : Model,
-    pub frp : Frp,
+    model:   Model,
+    pub frp: Frp,
 }
 
 impl Deref for View {
@@ -328,7 +342,7 @@ impl Deref for View {
 
 impl View {
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
+    pub fn new(app: &Application) -> Self {
         ensogl_theme::builtin::dark::register(app);
         ensogl_theme::builtin::light::register(app);
         let theme = match ARGS.theme.as_deref() {
@@ -344,16 +358,16 @@ impl View {
 
         display::style::javascript::expose_to_window(&app.themes);
 
-        let scene                      = app.display.scene().clone_ref();
-        let model                      = Model::new(app);
-        let frp                        = Frp::new();
-        let searcher                   = &model.searcher.frp;
-        let graph                      = &model.graph_editor.frp;
-        let project_list               = &model.open_dialog.project_list;
-        let file_browser               = &model.open_dialog.file_browser;
-        let network                    = &frp.network;
+        let scene = app.display.scene().clone_ref();
+        let model = Model::new(app);
+        let frp = Frp::new();
+        let searcher = &model.searcher.frp;
+        let graph = &model.graph_editor.frp;
+        let project_list = &model.open_dialog.project_list;
+        let file_browser = &model.open_dialog.file_browser;
+        let network = &frp.network;
         let searcher_left_top_position = DEPRECATED_Animation::<Vector2<f32>>::new(network);
-        let prompt_visibility          = Animation::new(network);
+        let prompt_visibility = Animation::new(network);
 
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
         //   want shader recompilation. Model uses styles already.
@@ -362,8 +376,8 @@ impl View {
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
 
-        let style_sheet        = &scene.style_sheet;
-        let styles             = StyleWatchFrp::new(style_sheet);
+        let style_sheet = &scene.style_sheet;
+        let styles = StyleWatchFrp::new(style_sheet);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -376,7 +390,7 @@ impl View {
         }
 
         let shape = scene.shape().clone_ref();
-        frp::extend!{ network
+        frp::extend! { network
             eval shape ((shape) model.on_dom_shape_changed(shape));
 
             // === Searcher Position and Size ===
@@ -561,40 +575,60 @@ impl View {
         init.emit(());
         std::mem::forget(prompt_visibility);
 
-        Self{model,frp}
+        Self { model, frp }
     }
 
     /// Graph Editor View.
-    pub fn graph(&self) -> &GraphEditor { &self.model.graph_editor }
+    pub fn graph(&self) -> &GraphEditor {
+        &self.model.graph_editor
+    }
 
     /// Searcher View.
-    pub fn searcher(&self) -> &searcher::View { &self.model.searcher }
+    pub fn searcher(&self) -> &searcher::View {
+        &self.model.searcher
+    }
 
     /// Searcher 2.0 FRP.
-    pub fn new_searcher_frp(&self) -> &searcher::new::Frp<usize> { self.model.searcher.new_frp() }
+    pub fn new_searcher_frp(&self) -> &searcher::new::Frp<usize> {
+        self.model.searcher.new_frp()
+    }
 
     /// Code Editor View.
-    pub fn code_editor(&self) -> &code_editor::View { &self.model.code_editor }
+    pub fn code_editor(&self) -> &code_editor::View {
+        &self.model.code_editor
+    }
 
     /// Status Bar View.
-    pub fn status_bar(&self) -> &status_bar::View { &self.model.status_bar }
+    pub fn status_bar(&self) -> &status_bar::View {
+        &self.model.status_bar
+    }
 
     /// Open File or Project Dialog
-    pub fn open_dialog(&self) -> &OpenDialog { &self.model.open_dialog }
+    pub fn open_dialog(&self) -> &OpenDialog {
+        &self.model.open_dialog
+    }
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
+    fn display_object(&self) -> &display::object::Instance {
+        &self.model.display_object
+    }
 }
 
 impl application::command::FrpNetworkProvider for View {
-    fn network(&self) -> &frp::Network { &self.frp.network }
+    fn network(&self) -> &frp::Network {
+        &self.frp.network
+    }
 }
 
 impl application::View for View {
-    fn label() -> &'static str { "ProjectView" }
+    fn label() -> &'static str {
+        "ProjectView"
+    }
 
-    fn new(app:&Application) -> Self { View::new(app) }
+    fn new(app: &Application) -> Self {
+        View::new(app)
+    }
 
     fn app(&self) -> &Application {
         &self.model.app
@@ -602,17 +636,21 @@ impl application::View for View {
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press   , "!is_searcher_opened", "tab"             , "open_searcher")
-          , (Press   , "!is_searcher_opened", "cmd o"           , "show_open_dialog")
-          , (Press   , "is_searcher_opened" , "escape"          , "close_searcher")
-          , (Press   , "open_dialog_shown"  , "escape"          , "close_open_dialog")
-          , (Press   , ""                   , "tab"             , "disable_prompt")
-          , (Press   , ""                   , "cmd o"           , "disable_prompt")
-          , (Press   , ""                   , "space"           , "disable_prompt")
-          , (Press   , ""                   , "cmd alt shift t" , "toggle_style")
-          , (Press   , ""                   , "cmd s"           , "save_module")
-          , (Press   , ""                   , "cmd z"           , "undo")
-          , (Press   , ""                   , "cmd y"           , "redo")
-          ]).iter().map(|(a,b,c,d)|Self::self_shortcut_when(*a,*c,*d,*b)).collect()
+        (&[
+            (Press, "!is_searcher_opened", "tab", "open_searcher"),
+            (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
+            (Press, "is_searcher_opened", "escape", "close_searcher"),
+            (Press, "open_dialog_shown", "escape", "close_open_dialog"),
+            (Press, "", "tab", "disable_prompt"),
+            (Press, "", "cmd o", "disable_prompt"),
+            (Press, "", "space", "disable_prompt"),
+            (Press, "", "cmd alt shift t", "toggle_style"),
+            (Press, "", "cmd s", "save_module"),
+            (Press, "", "cmd z", "undo"),
+            (Press, "", "cmd y", "redo"),
+        ])
+            .iter()
+            .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+            .collect()
     }
 }

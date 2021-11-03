@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 use failure::Error;
+use futures::channel::mpsc::unbounded;
 use futures::channel::mpsc::UnboundedReceiver;
 use futures::channel::mpsc::UnboundedSender;
-use futures::channel::mpsc::unbounded;
 
 /// A transport that facilitate JSON-RPC protocol.
 ///
@@ -14,15 +14,15 @@ use futures::channel::mpsc::unbounded;
 ///
 /// Typical implementation would use WebSockets but it can be also a mock for
 /// tests.
-pub trait Transport : Debug {
+pub trait Transport: Debug {
     /// Send a text message.
-    fn send_text(&mut self, message:&str) -> Result<(), Error>;
+    fn send_text(&mut self, message: &str) -> Result<(), Error>;
 
     /// Send a binary data message.
-    fn send_binary(&mut self, message:&[u8]) -> Result<(), Error>;
+    fn send_binary(&mut self, message: &[u8]) -> Result<(), Error>;
 
     /// Set up a channel which shall be used to receive events from the `Transport`.
-    fn set_event_transmitter(&mut self, transmitter:UnboundedSender<TransportEvent>);
+    fn set_event_transmitter(&mut self, transmitter: UnboundedSender<TransportEvent>);
 
     /// Sets up a stream's receiver yielding `TransportEvent`s.
     fn establish_event_stream(&mut self) -> UnboundedReceiver<TransportEvent> {

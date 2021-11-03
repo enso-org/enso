@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
 use js_sys::Function;
-use wasm_bindgen::JsCast;
 use wasm_bindgen::convert::FromWasmAbi;
+use wasm_bindgen::JsCast;
 
 
 
@@ -18,21 +18,21 @@ pub trait ClosureFn<Arg> = FnMut(Arg) + 'static where Arg: ClosureArg;
 
 /// Stores an optional closure.
 /// The purpose it reduce boilerplate repeating when setting JS callbacks.
-#[derive(Debug,Derivative)]
-#[derivative(Default(bound=""))]
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct OptionalFmMutClosure<Arg> {
     /// The stored closure.
-    pub closure : Option<Closure<dyn FnMut(Arg)>>,
+    pub closure: Option<Closure<dyn FnMut(Arg)>>,
 }
 
-impl <Arg> OptionalFmMutClosure<Arg> {
+impl<Arg> OptionalFmMutClosure<Arg> {
     /// An empty closure storage.
     pub fn new() -> OptionalFmMutClosure<Arg> {
         default()
     }
 
     /// Stores the given closure.
-    pub fn store(&mut self, closure:Closure<dyn FnMut(Arg)>) -> &Function {
+    pub fn store(&mut self, closure: Closure<dyn FnMut(Arg)>) -> &Function {
         self.closure = Some(closure);
         // TODO [mwu]: `insert` should be used when we bump rustc - and then get rid of unwrap.
         //              Blocked by https://github.com/enso-org/ide/issues/1028
@@ -47,11 +47,11 @@ impl <Arg> OptionalFmMutClosure<Arg> {
     }
 
     /// Wraps given function into a Closure.
-    pub fn wrap(&mut self, f:impl ClosureFn<Arg>) -> &Function  {
+    pub fn wrap(&mut self, f: impl ClosureFn<Arg>) -> &Function {
         let boxed = Box::new(f);
         // Note: [mwu] Not sure exactly why, but compiler sometimes require this
         // explicit type below and sometimes does not.
-        let wrapped:Closure<dyn FnMut(Arg)> = Closure::wrap(boxed);
+        let wrapped: Closure<dyn FnMut(Arg)> = Closure::wrap(boxed);
         self.store(wrapped)
     }
 
@@ -64,7 +64,7 @@ impl <Arg> OptionalFmMutClosure<Arg> {
 
     /// Register this closure as an event handler.
     /// No action is taken if there is no closure stored.
-    pub fn add_listener<EventType:crate::event::Type>(&self, target:&EventType::Target) {
+    pub fn add_listener<EventType: crate::event::Type>(&self, target: &EventType::Target) {
         if let Some(function) = self.js_ref() {
             EventType::add_listener(target, function)
         }
@@ -72,7 +72,7 @@ impl <Arg> OptionalFmMutClosure<Arg> {
 
     /// Unregister this closure as an event handler. The closure must be the same as when it was
     /// registered.
-    pub fn remove_listener<EventType:crate::event::Type>(&self, target:&EventType::Target) {
+    pub fn remove_listener<EventType: crate::event::Type>(&self, target: &EventType::Target) {
         if let Some(function) = self.js_ref() {
             EventType::remove_listener(target, function)
         }

@@ -1,6 +1,6 @@
-//! The `Registry` provides a mechanism to store `visualization::Class`es for all available visualizations. It
-//! provides functionality to register new factories, as well as get suitable factories for
-//! a specific data type.
+//! The `Registry` provides a mechanism to store `visualization::Class`es for all available
+//! visualizations. It provides functionality to register new factories, as well as get suitable
+//! factories for a specific data type.
 
 use crate::prelude::*;
 
@@ -17,12 +17,12 @@ use enso_prelude::CloneRef;
 // ================
 
 /// The registry struct. For more information see the module description.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Registry {
-    path_map : Rc<RefCell<HashMap<visualization::Path,visualization::Definition>>>,
-    type_map : Rc<RefCell<HashMap<enso::Type,Vec<visualization::Definition>>>>,
-    logger   : Logger,
+    path_map: Rc<RefCell<HashMap<visualization::Path, visualization::Definition>>>,
+    type_map: Rc<RefCell<HashMap<enso::Type, Vec<visualization::Definition>>>>,
+    logger:   Logger,
 }
 
 impl Registry {
@@ -30,8 +30,8 @@ impl Registry {
     pub fn new() -> Self {
         let path_map = default();
         let type_map = default();
-        let logger   = Logger::new("Registry");
-        Registry{path_map,type_map,logger}
+        let logger = Logger::new("Registry");
+        Registry { path_map, type_map, logger }
     }
 
     /// Return a `Registry` pre-populated with default visualizations.
@@ -42,9 +42,9 @@ impl Registry {
     }
 
     /// Register a new `visualization::Definition`.
-    pub fn add(&self, class:impl Into<visualization::Definition>) {
+    pub fn add(&self, class: impl Into<visualization::Definition>) {
         let class = class.into();
-        let sig   = &class.signature;
+        let sig = &class.signature;
         for tp in sig.input_type.alternatives() {
             self.type_map.borrow_mut().entry(tp).or_default().push(class.clone_ref());
         }
@@ -53,22 +53,29 @@ impl Registry {
 
     /// Register a new `visualization::java_script::Definition`. If creating the class fails, it
     /// will not be added an warning is emitted.
-    pub fn try_add_java_script(&self, class:impl Into<visualization::java_script::FallibleDefinition>) {
+    pub fn try_add_java_script(
+        &self,
+        class: impl Into<visualization::java_script::FallibleDefinition>,
+    ) {
         let class = class.into();
         match class {
-            Ok(class) => {self.add(class) },
-            Err(err)    => {
-                warning!(&self.logger,"Failed to add visualization class to registry due to error: \
-                                       {err}")
-            },
+            Ok(class) => self.add(class),
+            Err(err) => {
+                warning!(
+                    &self.logger,
+                    "Failed to add visualization class to registry due to error: \
+                                       {err}"
+                )
+            }
         };
     }
 
     /// Return all `visualization::Class`es that can create a visualization for the given datatype.
-    pub fn valid_sources(&self, tp:&enso::Type) -> Vec<visualization::Definition>{
+    pub fn valid_sources(&self, tp: &enso::Type) -> Vec<visualization::Definition> {
         let type_map = self.type_map.borrow();
         let any_type = enso::Type::any();
-        let mut result:Vec<visualization::Definition> = type_map.get(tp).cloned().unwrap_or_default();
+        let mut result: Vec<visualization::Definition> =
+            type_map.get(tp).cloned().unwrap_or_default();
         if tp != &any_type {
             if let Some(vis_for_any) = type_map.get(&any_type) {
                 result.extend(vis_for_any.iter().cloned());
@@ -78,8 +85,10 @@ impl Registry {
     }
 
     /// Return the `visualization::Definition` registered for the given `visualization::Path`.
-    pub fn definition_from_path(&self, path:&visualization::Path)
-                                -> Option<visualization::Definition> {
+    pub fn definition_from_path(
+        &self,
+        path: &visualization::Path,
+    ) -> Option<visualization::Definition> {
         self.path_map.borrow().get(path).cloned()
     }
 

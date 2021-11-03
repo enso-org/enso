@@ -45,7 +45,7 @@ macro_rules! def_saturating_unsigned_int {
     )*}
 }
 
-def_saturating_unsigned_int!{
+def_saturating_unsigned_int! {
     SaturatingU8(u8),
     SaturatingU16(u16),
     SaturatingU32(u32),

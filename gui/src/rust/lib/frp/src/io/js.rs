@@ -5,8 +5,8 @@ use crate as frp;
 
 use enso_logger::WarningLogger as Logger;
 use ensogl_system_web as web;
-use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
 
 
@@ -22,65 +22,68 @@ pub trait EventCallback = FnMut(&web_sys::Event) + 'static;
 
 /// Keyboard event listener which calls the callback function as long it lives.
 #[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-pub struct Listener<Callback:?Sized> {
-    logger     : Logger,
-    callback   : Closure<Callback>,
-    element    : web::Window,
-    event_type : String
+#[derivative(Debug(bound = ""))]
+pub struct Listener<Callback: ?Sized> {
+    logger:     Logger,
+    callback:   Closure<Callback>,
+    element:    web::Window,
+    event_type: String,
 }
 
-impl<Callback:?Sized> Listener<Callback> {
+impl<Callback: ?Sized> Listener<Callback> {
     /// Constructor.
-    pub fn new(logger:impl AnyLogger,event_type:impl Str, callback:Closure<Callback>) -> Self {
-        let element     = web::window();
+    pub fn new(logger: impl AnyLogger, event_type: impl Str, callback: Closure<Callback>) -> Self {
+        let element = web::window();
         let js_function = callback.as_ref().unchecked_ref();
-        let logger      = Logger::new_sub(logger,"Listener");
-        let event_type  = event_type.as_ref();
-        let options     = event_listener_options();
-        let result      = element.add_event_listener_with_callback_and_add_event_listener_options
-            (event_type,js_function,&options);
+        let logger = Logger::new_sub(logger, "Listener");
+        let event_type = event_type.as_ref();
+        let options = event_listener_options();
+        let result = element.add_event_listener_with_callback_and_add_event_listener_options(
+            event_type,
+            js_function,
+            &options,
+        );
         if let Err(err) = result {
             warning!(logger, "Couldn't add {event_type} event listener: {err:?}.");
         }
         let event_type = event_type.into();
-        Self {logger,callback,element,event_type}
+        Self { logger, callback, element, event_type }
     }
 }
 
 impl Listener<dyn KeyboardEventCallback> {
     /// Creates a new key down event listener.
-    pub fn new_key_down<F>(logger:impl AnyLogger, f:F) -> Self
-    where F : KeyboardEventCallback {
-        let boxed   = Box::new(f);
+    pub fn new_key_down<F>(logger: impl AnyLogger, f: F) -> Self
+    where F: KeyboardEventCallback {
+        let boxed = Box::new(f);
         let closure = Closure::<dyn KeyboardEventCallback>::wrap(boxed);
-        Self::new(logger,"keydown",closure)
+        Self::new(logger, "keydown", closure)
     }
 
     /// Creates a new key up event listener.
-    pub fn new_key_up<F>(logger:impl AnyLogger, f:F) -> Self
-    where F : KeyboardEventCallback {
-        let boxed   = Box::new(f);
+    pub fn new_key_up<F>(logger: impl AnyLogger, f: F) -> Self
+    where F: KeyboardEventCallback {
+        let boxed = Box::new(f);
         let closure = Closure::<dyn KeyboardEventCallback>::wrap(boxed);
-        Self::new(logger,"keyup",closure)
+        Self::new(logger, "keyup", closure)
     }
 }
 
 impl Listener<dyn EventCallback> {
     /// Creates a blur event listener.
-    pub fn new_blur<F>(logger:impl AnyLogger, f:F) -> Self
-    where F : EventCallback {
-        let boxed   = Box::new(f);
+    pub fn new_blur<F>(logger: impl AnyLogger, f: F) -> Self
+    where F: EventCallback {
+        let boxed = Box::new(f);
         let closure = Closure::<dyn EventCallback>::wrap(boxed);
-        Self::new(logger,"blur",closure)
+        Self::new(logger, "blur", closure)
     }
 }
 
-impl<Callback:?Sized> Drop for Listener<Callback> {
+impl<Callback: ?Sized> Drop for Listener<Callback> {
     fn drop(&mut self) {
         let callback = self.callback.as_ref().unchecked_ref();
         if self.element.remove_event_listener_with_callback(&self.event_type, callback).is_err() {
-            warning!(self.logger,"Couldn't remove event listener.");
+            warning!(self.logger, "Couldn't remove event listener.");
         }
     }
 }
@@ -113,18 +116,22 @@ fn event_listener_options() -> web_sys::AddEventListenerOptions {
 ///
 /// To make this class manage js event, you should wrap the closure passed as event listener using
 /// `make_event_handler` function.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct CurrentJsEvent {
     /// Currently handled js event.
-    pub event       : frp::Stream<Option<web_sys::Event>>,
+    pub event:       frp::Stream<Option<web_sys::Event>>,
     /// Emitting this signal while handling js event (`current_js_event` is Some) makes this event
     /// pass to the DOM elements. Otherwise the js event propagation will be stopped.
-    pub pass_to_dom : frp::Source,
-    event_source    : frp::Source<Option<web_sys::Event>>,
-    network         : frp::Network,
+    pub pass_to_dom: frp::Source,
+    event_source:    frp::Source<Option<web_sys::Event>>,
+    network:         frp::Network,
 }
 
-impl Default for CurrentJsEvent { fn default() -> Self { Self::new() } }
+impl Default for CurrentJsEvent {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl CurrentJsEvent {
     /// Constructor
@@ -142,16 +149,20 @@ impl CurrentJsEvent {
             event                  <+ new_event;
         }
         let event = event.into();
-        Self {event,pass_to_dom,event_source,network}
+        Self { event, pass_to_dom, event_source, network }
     }
 
     /// A helper function for creating mouse event handlers.
     ///
     /// This wraps the `processing_fn` so before processing the current js event is
     /// set to the received js event, and after processing it is set back to `None`.
-    pub fn make_event_handler<Event>
-    (&self, mut processing_fn:impl FnMut(&Event)) -> impl FnMut(&Event)
-    where Event : AsRef<web_sys::Event> {
+    pub fn make_event_handler<Event>(
+        &self,
+        mut processing_fn: impl FnMut(&Event),
+    ) -> impl FnMut(&Event)
+    where
+        Event: AsRef<web_sys::Event>,
+    {
         let event_source = self.event_source.clone_ref();
         move |event| {
             let js_event = event.as_ref().clone();
@@ -165,9 +176,11 @@ impl CurrentJsEvent {
 
     // The bool is passed by reference to match the signatures expected by FRP eval.
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn on_event_change
-    (new:&Option<web_sys::Event>, current:&Option<web_sys::Event>, is_passed:&bool)
-    -> Option<web_sys::Event> {
+    fn on_event_change(
+        new: &Option<web_sys::Event>,
+        current: &Option<web_sys::Event>,
+        is_passed: &bool,
+    ) -> Option<web_sys::Event> {
         // Whenever the current js event change, we pass the processed one to the dom if someone
         // asked to.
         if let Some(e) = current {

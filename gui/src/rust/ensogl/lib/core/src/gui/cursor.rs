@@ -2,16 +2,16 @@
 
 use crate::prelude::*;
 
+use crate::data::color;
+use crate::define_style;
+use crate::display;
+use crate::display::scene::Scene;
+use crate::display::shape::*;
+use crate::frp;
+use crate::gui::style::*;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
 use crate::DEPRECATED_Tween;
-use crate::data::color;
-use crate::define_style;
-use crate::display::scene::Scene;
-use crate::display::shape::*;
-use crate::display;
-use crate::frp;
-use crate::gui::style::*;
 
 
 
@@ -20,16 +20,18 @@ use crate::gui::style::*;
 // =================
 
 /// Default radius of the mouse cursor symbol.
-pub const DEFAULT_RADIUS : f32 = 8.0;
-const PADDING            : f32 = 2.0;
+pub const DEFAULT_RADIUS: f32 = 8.0;
+const PADDING: f32 = 2.0;
 /// Sum of the padding at both sides of the cursor shape.
-pub const SIDES_PADDING      : f32 = PADDING * 2.0;
-const DEFAULT_COLOR      : color::Lcha = color::Lcha::new(0.7,0.0,0.0,0.5);
-const TEXT_CURSOR_COLOR  : color::Lcha = color::Lcha::new(0.8,0.0,0.0,0.7);
-const FADE_OUT_TIME      : f32 = 3000.0;
+pub const SIDES_PADDING: f32 = PADDING * 2.0;
+const DEFAULT_COLOR: color::Lcha = color::Lcha::new(0.7, 0.0, 0.0, 0.5);
+const TEXT_CURSOR_COLOR: color::Lcha = color::Lcha::new(0.8, 0.0, 0.0, 0.7);
+const FADE_OUT_TIME: f32 = 3000.0;
 
 #[allow(non_snake_case)]
-fn DEFAULT_SIZE() -> Vector2<f32> { Vector2(16.0,16.0) }
+fn DEFAULT_SIZE() -> Vector2<f32> {
+    Vector2(16.0, 16.0)
+}
 
 
 
@@ -55,39 +57,44 @@ define_style! {
 
 #[allow(missing_docs)]
 impl Style {
-    pub fn new_highlight<H,Color:Into<color::Lcha>>
-    (host:H, size:Vector2<f32>, color:Option<Color>) -> Self
-    where H:display::Object {
-        let host  = Some(StyleValue::new(host.display_object().clone_ref()));
-        let size  = Some(StyleValue::new(size));
-        let color = color.map(|color|{
+    pub fn new_highlight<H, Color: Into<color::Lcha>>(
+        host: H,
+        size: Vector2<f32>,
+        color: Option<Color>,
+    ) -> Self
+    where
+        H: display::Object,
+    {
+        let host = Some(StyleValue::new(host.display_object().clone_ref()));
+        let size = Some(StyleValue::new(size));
+        let color = color.map(|color| {
             let color = color.into();
             StyleValue::new(color)
         });
         let port_selection_layer = Some(StyleValue::new_no_animation(true));
-        Self {host,size,color,port_selection_layer,..default()}
+        Self { host, size, color, port_selection_layer, ..default() }
     }
 
-    pub fn new_color(color:color::Lcha) -> Self {
+    pub fn new_color(color: color::Lcha) -> Self {
         let color = Some(StyleValue::new(color));
-        Self {color,..default()}
+        Self { color, ..default() }
     }
 
-    pub fn new_color_no_animation(color:color::Lcha) -> Self {
+    pub fn new_color_no_animation(color: color::Lcha) -> Self {
         let color = Some(StyleValue::new_no_animation(color));
-        Self {color,..default()}
+        Self { color, ..default() }
     }
 
     pub fn new_press() -> Self {
         let press = Some(StyleValue::new(1.0));
-        Self {press,..default()}
+        Self { press, ..default() }
     }
 
     pub fn new_text_cursor() -> Self {
-        let size  = Vector2::new(3.0,DEFAULT_SIZE().y);
-        let size  = Some(StyleValue::new(size));
+        let size = Vector2::new(3.0, DEFAULT_SIZE().y);
+        let size = Some(StyleValue::new(size));
         let color = Some(StyleValue::new(TEXT_CURSOR_COLOR));
-        Self {size,color,..default()}
+        Self { size, color, ..default() }
     }
 }
 
@@ -101,10 +108,10 @@ impl Style {
         self
     }
 
-    pub fn box_selection(mut self, size:Vector2<f32>) -> Self {
+    pub fn box_selection(mut self, size: Vector2<f32>) -> Self {
         let def_size = DEFAULT_SIZE();
-        self.offset  = Some(StyleValue::new_no_animation(-size / 2.0));
-        self.size    = Some(StyleValue::new_no_animation(size.abs() + def_size));
+        self.offset = Some(StyleValue::new_no_animation(-size / 2.0));
+        self.size = Some(StyleValue::new_no_animation(size.abs() + def_size));
         self
     }
 }
@@ -175,45 +182,45 @@ crate::define_endpoints! {
 // ===================
 
 /// Internal data for `Cursor`.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct CursorModel {
-    pub logger         : Logger,
-    pub scene          : Scene,
-    pub display_object : display::object::Instance,
-    pub view           : shape::View,
-    pub port_selection : shape::View,
-    pub style          : Rc<RefCell<Style>>,
+    pub logger:         Logger,
+    pub scene:          Scene,
+    pub display_object: display::object::Instance,
+    pub view:           shape::View,
+    pub port_selection: shape::View,
+    pub style:          Rc<RefCell<Style>>,
 }
 
 impl CursorModel {
     /// Constructor.
-    pub fn new(scene:&Scene) -> Self {
-        let scene          = scene.clone_ref();
-        let logger         = Logger::new("cursor");
+    pub fn new(scene: &Scene) -> Self {
+        let scene = scene.clone_ref();
+        let logger = Logger::new("cursor");
         let display_object = display::object::Instance::new(&logger);
-        let view           = shape::View::new(&logger);
+        let view = shape::View::new(&logger);
         let port_selection = shape::View::new(&logger);
-        let style          = default();
+        let style = default();
 
         display_object.add_child(&view);
         display_object.add_child(&port_selection);
-        let tgt_layer            = &scene.layers.cursor;
+        let tgt_layer = &scene.layers.cursor;
         let port_selection_layer = &scene.layers.port_selection;
         tgt_layer.add_exclusive(&view);
         port_selection_layer.add_exclusive(&port_selection);
 
-        for layer in &[tgt_layer,port_selection_layer] {
-            let registry  = &layer.shape_system_registry;
-            let shape_sys = registry.shape_system(&scene,PhantomData::<shape::DynamicShape>);
+        for layer in &[tgt_layer, port_selection_layer] {
+            let registry = &layer.shape_system_registry;
+            let shape_sys = registry.shape_system(&scene, PhantomData::<shape::DynamicShape>);
             shape_sys.shape_system.set_pointer_events(false);
         }
 
-        Self {logger,scene,display_object,view,port_selection,style}
+        Self { logger, scene, display_object, view, port_selection, style }
     }
 
-    fn for_each_view(&self, f:impl Fn(&shape::View)) {
-        for view in &[&self.view,&self.port_selection] {
+    fn for_each_view(&self, f: impl Fn(&shape::View)) {
+        for view in &[&self.view, &self.port_selection] {
             f(*view)
         }
     }
@@ -226,20 +233,20 @@ impl CursorModel {
 // ==============
 
 /// Cursor (mouse pointer) definition.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Cursor {
-    pub frp : Frp,
-    model   : Rc<CursorModel>,
+    pub frp: Frp,
+    model:   Rc<CursorModel>,
 }
 
 impl Cursor {
     /// Constructor.
-    pub fn new(scene:&Scene) -> Self {
-        let frp     = Frp::new();
+    pub fn new(scene: &Scene) -> Self {
+        let frp = Frp::new();
         let network = &frp.network;
-        let model   = CursorModel::new(scene);
-        let mouse   = &scene.mouse.frp;
+        let model = CursorModel::new(scene);
+        let mouse = &scene.mouse.frp;
 
         // === Animations ===
         //
@@ -247,31 +254,28 @@ impl Cursor {
         // with a non-obvious behavior, namely the `host_follow_weight` and `host_attached_weight`.
         // The mouse position is driven by three factors:
         //
-        //   - Real-time cursor mode.
-        //     Cursor follows the system mouse position.
+        //   - Real-time cursor mode. Cursor follows the system mouse position.
         //
-        //   - Host-follow mode.
-        //     Cursor follows the host using dynamic inertia simulator. The `host_follow_weight`
-        //     variable is a weight between real-time mode and this one.
+        //   - Host-follow mode. Cursor follows the host using dynamic inertia simulator. The
+        //     `host_follow_weight` variable is a weight between real-time mode and this one.
         //
-        //   - Host-attached mode.
-        //     Cursor follows the host without any delay. The `host_attached_weight` variable is a
-        //     weight between host-follow mode and this one. The host-attached mode is especially
-        //     useful when panning the stage in such way, that cursor starts to be attached to a
-        //     host during the movement. After it is fully attached, cursor moves with the same
-        //     speed as the scene when panning.
+        //   - Host-attached mode. Cursor follows the host without any delay. The
+        //     `host_attached_weight` variable is a weight between host-follow mode and this one.
+        //     The host-attached mode is especially useful when panning the stage in such way, that
+        //     cursor starts to be attached to a host during the movement. After it is fully
+        //     attached, cursor moves with the same speed as the scene when panning.
         //
-        let press                       = Animation            :: <f32>     :: new(network);
-        let radius                      = DEPRECATED_Animation :: <f32>     :: new(network);
-        let size                        = DEPRECATED_Animation :: <Vector2> :: new(network);
-        let offset                      = DEPRECATED_Animation :: <Vector2> :: new(network);
-        let color_lab                   = DEPRECATED_Animation :: <Vector3> :: new(network);
-        let color_alpha                 = DEPRECATED_Animation :: <f32>     :: new(network);
-        let inactive_fade               = DEPRECATED_Animation :: <f32>     :: new(network);
-        let host_position               = DEPRECATED_Animation :: <Vector3> :: new(network);
-        let host_follow_weight          = DEPRECATED_Animation :: <f32>     :: new(network);
-        let host_attached_weight        = DEPRECATED_Tween                  :: new(network);
-        let port_selection_layer_weight = Animation            :: <f32>     :: new(network);
+        let press = Animation::<f32>::new(network);
+        let radius = DEPRECATED_Animation::<f32>::new(network);
+        let size = DEPRECATED_Animation::<Vector2>::new(network);
+        let offset = DEPRECATED_Animation::<Vector2>::new(network);
+        let color_lab = DEPRECATED_Animation::<Vector3>::new(network);
+        let color_alpha = DEPRECATED_Animation::<f32>::new(network);
+        let inactive_fade = DEPRECATED_Animation::<f32>::new(network);
+        let host_position = DEPRECATED_Animation::<Vector3>::new(network);
+        let host_follow_weight = DEPRECATED_Animation::<f32>::new(network);
+        let host_attached_weight = DEPRECATED_Tween::new(network);
+        let port_selection_layer_weight = Animation::<f32>::new(network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
@@ -280,7 +284,7 @@ impl Cursor {
         size.set_target_value(DEFAULT_SIZE());
 
         let fade_out_spring = inactive_fade.spring() * 0.2;
-        let fade_in_spring  = inactive_fade.spring();
+        let fade_in_spring = inactive_fade.spring();
 
         frp::extend! { network
             eval press.value  ((v) model.for_each_view(|vw| vw.press.set(*v)));
@@ -469,10 +473,12 @@ impl Cursor {
 
         frp.set_style.emit(Style::default());
         let model = Rc::new(model);
-        Cursor {frp,model}
+        Cursor { frp, model }
     }
 }
 
 impl display::Object for Cursor {
-    fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
+    fn display_object(&self) -> &display::object::Instance {
+        &self.model.display_object
+    }
 }

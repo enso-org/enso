@@ -4,9 +4,9 @@ use super::var::*;
 
 use crate::types::topology;
 
+pub use crate::types::topology::Degrees;
 pub use crate::types::topology::Pixels;
 pub use crate::types::topology::Radians;
-pub use crate::types::topology::Degrees;
 
 
 
@@ -43,11 +43,11 @@ impl PixelDistance for f32 {
 
 /// Common types.
 pub mod types {
-    use super::*;
     pub use super::PixelDistance;
+    use super::*;
+    pub use topology::Degrees;
     pub use topology::Pixels;
     pub use topology::Radians;
-    pub use topology::Degrees;
 }
 
 pub use types::*;

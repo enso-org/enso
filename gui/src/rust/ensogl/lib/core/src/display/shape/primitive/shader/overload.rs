@@ -13,5 +13,5 @@ extern "C" {
 
     /// Mangles the provided GLSL code to allow primitive definitions overloading.
     #[allow(unsafe_code)]
-    pub fn allow_overloading(s:&str) -> String;
+    pub fn allow_overloading(s: &str) -> String;
 }

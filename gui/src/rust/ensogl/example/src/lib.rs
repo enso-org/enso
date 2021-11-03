@@ -9,7 +9,7 @@
 #![feature(fn_traits)]
 #![feature(specialization)]
 #![feature(trait_alias)]
-#![feature(min_type_alias_impl_trait)]
+#![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
@@ -20,18 +20,16 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+#![recursion_limit = "1024"]
 
-#![recursion_limit="1024"]
-
-#[allow(clippy::option_map_unit_fn)]
-
-mod leak;
 pub mod animation;
 pub mod complex_shape_system;
 pub mod dom_symbols;
 pub mod drop_manager;
 pub mod easing_animator;
 pub mod glyph_system;
+#[allow(clippy::option_map_unit_fn)]
+mod leak;
 pub mod list_view;
 pub mod mouse_events;
 pub mod scroll_area;
@@ -43,6 +41,6 @@ pub mod text_area;
 
 /// Common types that should be visible across the whole crate.
 pub mod prelude {
-    pub use ensogl_core::prelude::*;
     pub use super::leak::*;
+    pub use ensogl_core::prelude::*;
 }

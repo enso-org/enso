@@ -1,8 +1,8 @@
 //! This module is the root module for all primitive shapes and shape transform definitions.
 
-pub mod primitive;
 pub mod class;
 pub mod modifier;
+pub mod primitive;
 pub mod unit;
 pub mod var;
 

@@ -13,21 +13,24 @@ use crate::prelude::*;
 
 /// Strongly typed value representation in the mix space.
 #[allow(missing_docs)]
-pub struct Space<T:Mixable> {
-    pub value : Repr<T>
+pub struct Space<T: Mixable> {
+    pub value: Repr<T>,
 }
 
-impl<T:Mixable> Space<T> {
+impl<T: Mixable> Space<T> {
     /// Constructor.
-    pub fn new(value:Repr<T>) -> Self {
-        Self {value}
+    pub fn new(value: Repr<T>) -> Self {
+        Self { value }
     }
 }
 
-impl<T:Mixable> Debug for Space<T>
-    where T:Mixable, Repr<T>:Debug {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"Space({:?})",self.value)
+impl<T: Mixable> Debug for Space<T>
+where
+    T: Mixable,
+    Repr<T>: Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Space({:?})", self.value)
     }
 }
 
@@ -40,34 +43,34 @@ impl<T:Mixable> Debug for Space<T>
 /// Type association between a value and its representation used for mixing. For example, for colors
 /// in sRGB space, the representation may be RGB in the linear color space.
 #[allow(missing_docs)]
-pub trait Mixable : BiInto<Space<Self>> {
-    type Repr : Value;
+pub trait Mixable: BiInto<Space<Self>> {
+    type Repr: Value;
 }
 
 /// Mixable::Repr getter.
 pub type Repr<T> = <T as Mixable>::Repr;
 
 /// Trait for values that can be mixed.
-pub trait Value = Sized + Mul<f32,Output=Self> + Add<Output=Self>;
+pub trait Value = Sized + Mul<f32, Output = Self> + Add<Output = Self>;
 
 
 // === Utils ===
 
 /// Convert the mix space representation to corresponding value.
-pub fn from_space<T:Mixable>(value:Repr<T>) -> T {
-    Space{value}.into()
+pub fn from_space<T: Mixable>(value: Repr<T>) -> T {
+    Space { value }.into()
 }
 
 /// Convert value to corresponding mix space representation.
-pub fn into_space<T:Mixable>(t:T) -> Repr<T> {
+pub fn into_space<T: Mixable>(t: T) -> Repr<T> {
     t.into().value
 }
 
 /// Perform a mix of two values. See module docs to learn more.
-pub fn mix<T:Mixable>(t1:T, t2:T, coefficient:f32) -> T {
+pub fn mix<T: Mixable>(t1: T, t2: T, coefficient: f32) -> T {
     let v1 = into_space(t1);
     let v2 = into_space(t2);
-    let v  = v1 * (1.0 - coefficient) + v2 * coefficient;
+    let v = v1 * (1.0 - coefficient) + v2 * coefficient;
     from_space(v)
 }
 
@@ -99,4 +102,4 @@ macro_rules! define_self_mixables {
     )*}
 }
 
-define_self_mixables!(f32,Vector2,Vector3,Vector4);
+define_self_mixables!(f32, Vector2, Vector3, Vector4);

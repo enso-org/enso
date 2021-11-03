@@ -3,14 +3,14 @@
 
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::display;
-use ensogl::prelude::*;
-use ensogl::gui::style::*;
 use ensogl::define_style;
+use ensogl::display;
+use ensogl::gui::style::*;
+use ensogl::prelude::*;
 
-use ensogl_gui_components::label::Label;
 use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::display::shape::StyleWatch;
+use ensogl_gui_components::label::Label;
 
 
 
@@ -18,7 +18,7 @@ use ensogl::display::shape::StyleWatch;
 // === Constants ===
 // =================
 
-const PLACEMENT_OFFSET:f32 = 5.0;
+const PLACEMENT_OFFSET: f32 = 5.0;
 
 
 
@@ -33,34 +33,34 @@ define_style! {
 
 impl Style {
     /// Create a `TooltipUpdate` that sets the label of the tooltip.
-    pub fn set_label(text:String) -> Self {
+    pub fn set_label(text: String) -> Self {
         let text = Some(StyleValue::new(Some(text)));
-        Self{text, ..default()}
+        Self { text, ..default() }
     }
     /// Create a `TooltipUpdate` that unsets the label of the tooltip.
     pub fn unset_label() -> Self {
         let text = Some(StyleValue::new(None));
-        Self{text, ..default()}
+        Self { text, ..default() }
     }
 
     /// Indicate whether the `Style` has content to display.
     pub fn has_content(&self) -> bool {
         if let Some(style_value) = self.text.as_ref() {
             if let Some(inner) = style_value.value.as_ref() {
-                return inner.is_some()
+                return inner.is_some();
             }
         }
         false
     }
 
     /// Create a `TooltipUpdate` that sets the placement of the tooltip.
-    pub fn set_placement(placement:Placement) -> Self {
+    pub fn set_placement(placement: Placement) -> Self {
         let placement = Some(StyleValue::new(placement));
-        Self{placement, ..default()}
+        Self { placement, ..default() }
     }
 
     /// Sets the placement of the tooltip.
-    pub fn with_placement(mut self, placement:Placement) -> Self {
+    pub fn with_placement(mut self, placement: Placement) -> Self {
         self.placement = Some(StyleValue::new(placement));
         self
     }
@@ -72,11 +72,14 @@ impl Style {
 // === Offset ===
 // ==============
 
-#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 /// Indicates the placement of the tooltip relative to the base position location.
 pub enum Placement {
-    Top, Bottom, Left, Right
+    Top,
+    Bottom,
+    Left,
+    Right,
 }
 
 impl Default for Placement {
@@ -100,36 +103,36 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 struct Model {
-    tooltip   : Label,
-    root      : display::object::Instance,
-    placement : Cell<Placement>,
+    tooltip:   Label,
+    root:      display::object::Instance,
+    placement: Cell<Placement>,
 }
 
 impl Model {
-    fn new(app:&Application) -> Self {
-        let logger  = Logger::new("TooltipModel");
+    fn new(app: &Application) -> Self {
+        let logger = Logger::new("TooltipModel");
         let tooltip = Label::new(app);
-        let root    = display::object::Instance::new(&logger);
+        let root = display::object::Instance::new(&logger);
         root.add_child(&tooltip);
         let placement = default();
-        Self{tooltip,root,placement}
+        Self { tooltip, root, placement }
     }
 
-    fn set_location(&self, position:Vector2, size:Vector2) {
+    fn set_location(&self, position: Vector2, size: Vector2) {
         let layout_offset = match self.placement.get() {
-            Placement::Top    => Vector2::new(0.0, size.y * 0.5 + PLACEMENT_OFFSET),
+            Placement::Top => Vector2::new(0.0, size.y * 0.5 + PLACEMENT_OFFSET),
             Placement::Bottom => Vector2::new(0.0, -size.y * 0.5 - PLACEMENT_OFFSET),
-            Placement::Left   => Vector2::new(-size.x / 2.0 - PLACEMENT_OFFSET, 0.0),
-            Placement::Right  => Vector2::new(size.x / 2.0 + PLACEMENT_OFFSET, 0.0),
+            Placement::Left => Vector2::new(-size.x / 2.0 - PLACEMENT_OFFSET, 0.0),
+            Placement::Right => Vector2::new(size.x / 2.0 + PLACEMENT_OFFSET, 0.0),
         };
 
         let base_positions = position.xy();
         self.tooltip.set_position_xy(base_positions + layout_offset)
     }
 
-    fn set_style(&self, update:&Style) {
+    fn set_style(&self, update: &Style) {
         if let Some(style) = update.text.as_ref() {
             let text = style.value.clone().flatten();
             if let Some(text) = text {
@@ -143,7 +146,7 @@ impl Model {
         }
     }
 
-    fn set_visibility(&self, visible:bool) {
+    fn set_visibility(&self, visible: bool) {
         if visible {
             self.root.add_child(&self.tooltip)
         } else {
@@ -151,7 +154,7 @@ impl Model {
         }
     }
 
-    fn set_opacity(&self, value:f32) {
+    fn set_opacity(&self, value: f32) {
         self.tooltip.frp.set_opacity(value);
     }
 }
@@ -163,36 +166,36 @@ impl Model {
 // ===============
 
 /// Tooltip component that can show extra information about other UI components.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Tooltip {
-    model   : Rc<Model>,
+    model:   Rc<Model>,
     #[allow(missing_docs)]
-    pub frp : Rc<Frp>
+    pub frp: Rc<Frp>,
 }
 
 impl Tooltip {
     #[allow(missing_docs)]
     pub fn new(app: &Application) -> Self {
         let model = Rc::new(Model::new(app));
-        let frp   = Rc::new(Frp::new());
-        Self{model,frp}.init(app)
+        let frp = Rc::new(Frp::new());
+        Self { model, frp }.init(app)
     }
 
-    fn init(self,app: &Application) -> Self {
-        let frp     = &self.frp;
+    fn init(self, app: &Application) -> Self {
+        let frp = &self.frp;
         let network = &frp.network;
-        let model   = &self.model;
+        let model = &self.model;
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles                 = StyleWatch::new(&app.display.scene().style_sheet);
-        let hide_delay_duration_ms = styles.get_number_or(
-            ensogl_theme::application::tooltip::hide_delay_duration_ms,0.0);
-        let show_delay_duration_ms = styles.get_number_or(
-            ensogl_theme::application::tooltip::show_delay_duration_ms,0.0);
+        let styles = StyleWatch::new(&app.display.scene().style_sheet);
+        let hide_delay_duration_ms =
+            styles.get_number_or(ensogl_theme::application::tooltip::hide_delay_duration_ms, 0.0);
+        let show_delay_duration_ms =
+            styles.get_number_or(ensogl_theme::application::tooltip::show_delay_duration_ms, 0.0);
 
-        let hysteretic_transition = HystereticAnimation::new(
-            network,hide_delay_duration_ms,show_delay_duration_ms);
+        let hysteretic_transition =
+            HystereticAnimation::new(network, hide_delay_duration_ms, show_delay_duration_ms);
 
         frp::extend! { network
 

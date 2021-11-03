@@ -9,12 +9,12 @@ use crate::system::web;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use wasm_bindgen::prelude::Closure;
 
-pub use event::*;
 pub use crate::frp::io::mouse::*;
+pub use event::*;
 
 
 
@@ -25,21 +25,21 @@ pub use crate::frp::io::mouse::*;
 // TODO: Consider merging this implementation with crate::control::callback::* ones.
 
 /// Shared event dispatcher.
-#[derive(Debug,CloneRef,Derivative)]
-#[derivative(Clone(bound=""))]
-#[derivative(Default(bound=""))]
+#[derive(Debug, CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Default(bound = ""))]
 pub struct EventDispatcher<T> {
-    rc: Rc<RefCell<callback::Registry1<T>>>
+    rc: Rc<RefCell<callback::Registry1<T>>>,
 }
 
 impl<T> EventDispatcher<T> {
     /// Adds a new callback.
-    pub fn add<F:FnMut(&T)+'static>(&self, f:F) -> callback::Handle {
+    pub fn add<F: FnMut(&T) + 'static>(&self, f: F) -> callback::Handle {
         self.rc.borrow_mut().add(f)
     }
 
     /// Dispatches event to all callbacks.
-    pub fn dispatch(&self, t:&T) {
+    pub fn dispatch(&self, t: &T) {
         self.rc.borrow_mut().run_all(t);
     }
 }
@@ -52,12 +52,12 @@ impl<T> EventDispatcher<T> {
 
 /// An utility which registers JavaScript handlers for mouse events and translates them to Rust
 /// handlers. It is a top level mouse registry hub.
-#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 pub struct MouseManager {
     #[shrinkwrap(main_field)]
-    dispatchers : MouseManagerDispatchers,
-    closures    : Rc<MouseManagerClosures>,
-    dom         : web::dom::WithKnownShape<web::EventTarget>
+    dispatchers: MouseManagerDispatchers,
+    closures:    Rc<MouseManagerClosures>,
+    dom:         web::dom::WithKnownShape<web::EventTarget>,
 }
 
 /// A JavaScript callback closure for any mouse event.
@@ -155,29 +155,28 @@ define_bindings! {
 /// A handles of callbacks emitting events on bound FRP graph. See `callback::Handle`.
 #[derive(Debug)]
 pub struct MouseFrpCallbackHandles {
-    on_move  : callback::Handle,
-    on_down  : callback::Handle,
-    on_up    : callback::Handle,
-    on_wheel : callback::Handle
+    on_move:  callback::Handle,
+    on_down:  callback::Handle,
+    on_up:    callback::Handle,
+    on_wheel: callback::Handle,
 }
 
 // FIXME: This is obsolete. Use mouse bindings from scene instead.
 /// Bind FRP graph to MouseManager.
-pub fn bind_frp_to_mouse(frp:&Mouse, mouse_manager:&MouseManager)
--> MouseFrpCallbackHandles {
+pub fn bind_frp_to_mouse(frp: &Mouse, mouse_manager: &MouseManager) -> MouseFrpCallbackHandles {
     let dom_shape = mouse_manager.dom.clone_ref().shape();
     let on_move = enclose!((frp.position => frp) move |e:&OnMove| {
         let position = Vector2(e.client_x() as f32,e.client_y() as f32);
         let position = position - Vector2(dom_shape.width,dom_shape.height) / 2.0;
         frp.emit(position);
     });
-    let on_down  = enclose!((frp.down  => frp) move |_:&OnDown | frp.emit(Button0));
-    let on_up    = enclose!((frp.up    => frp) move |_:&OnUp   | frp.emit(Button0));
+    let on_down = enclose!((frp.down  => frp) move |_:&OnDown | frp.emit(Button0));
+    let on_up = enclose!((frp.up    => frp) move |_:&OnUp   | frp.emit(Button0));
     let on_wheel = enclose!((frp.wheel => frp) move |_:&OnWheel| frp.emit(()));
     MouseFrpCallbackHandles {
-        on_move  : mouse_manager.on_move.add(on_move),
-        on_down  : mouse_manager.on_down.add(on_down),
-        on_up    : mouse_manager.on_up.add(on_up),
-        on_wheel : mouse_manager.on_wheel.add(on_wheel)
+        on_move:  mouse_manager.on_move.add(on_move),
+        on_down:  mouse_manager.on_down.add(on_down),
+        on_up:    mouse_manager.on_up.add(on_up),
+        on_wheel: mouse_manager.on_wheel.add(on_wheel),
     }
 }

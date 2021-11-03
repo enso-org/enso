@@ -12,11 +12,10 @@
 /// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
 ///
 /// Legend:
-/// - COL (Color Renderable)
-///   True if you can render to this format of texture.
+/// - COL (Color Renderable) True if you can render to this format of texture.
 ///
-/// - FILT (Texture Filterable)
-///   True if you can filter the texture, false if you can ony use `Nearest`.
+/// - FILT (Texture Filterable) True if you can filter the texture, false if you can ony use
+///   `Nearest`.
 ///
 /// - BLEND (Color Blendable)
 ///   True if you can use color blending when writing to this texture from shaders.
@@ -29,7 +28,6 @@
 /// The features of some texture formats can be modified through extensions. For example, the
 /// the extension `EXT_color_buffer_float` can make the group of float texture (e.g., `Rgba32f`)
 /// color renderable.
-///
 #[macro_export]
 macro_rules! with_texture_format_relations { ($f:ident $args:tt) => { $crate::$f! { $args
 //  INTERNAL_FORMAT   FORMAT         SAMPLER      COL   FILT  BLEND [POSSIBLE_TYPE:BYTES_PER_TEXTURE_ELEM]
@@ -140,5 +138,5 @@ macro_rules! with_all_texture_types_impl {
 macro_rules! with_all_texture_types {
     ($f:tt) => {
         $crate::with_texture_format_relations! { with_all_texture_types_impl $f }
-    }
+    };
 }

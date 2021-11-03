@@ -4,8 +4,8 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application;
-use ensogl::application::Application;
 use ensogl::application::shortcut;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::DEPRECATED_Animation;
@@ -18,9 +18,9 @@ use ensogl_text as text;
 // =================
 
 /// The height of code editor in project view.
-pub const HEIGHT_FRACTION : f32 = 0.3;
+pub const HEIGHT_FRACTION: f32 = 0.3;
 /// The padding between text area and scene left boundary.
-pub const PADDING_LEFT : f32 = 7.0;
+pub const PADDING_LEFT: f32 = 7.0;
 
 
 
@@ -50,11 +50,11 @@ ensogl::define_endpoints! {
 // ============
 
 /// The View of IDE Code Editor.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    model  : text::Area,
-    styles : StyleWatchFrp,
-    frp    : Frp,
+    model:  text::Area,
+    styles: StyleWatchFrp,
+    frp:    Frp,
 }
 
 impl Deref for View {
@@ -66,12 +66,12 @@ impl Deref for View {
 
 impl View {
     /// Create Code Editor component.
-    pub fn new(app:&Application) -> Self {
-        let scene           = app.display.scene();
-        let styles          = StyleWatchFrp::new(&app.display.scene().style_sheet);
-        let frp             = Frp::new();
-        let network         = &frp.network;
-        let model           = app.new_view::<text::Area>();
+    pub fn new(app: &Application) -> Self {
+        let scene = app.display.scene();
+        let styles = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let frp = Frp::new();
+        let network = &frp.network;
+        let model = app.new_view::<text::Area>();
         let height_fraction = DEPRECATED_Animation::<f32>::new(network);
 
         model.set_position_x(PADDING_LEFT);
@@ -82,7 +82,7 @@ impl View {
         //  (https://github.com/enso-org/ide/issues/823)
         model.hover();
 
-        frp::extend!{ network
+        frp::extend! { network
             let is_visible     =  frp.output.is_visible.clone_ref();
             show_after_toggle <- frp.toggle.gate_not(&is_visible);
             hide_after_toggle <- frp.toggle.gate    (&is_visible);
@@ -114,25 +114,35 @@ impl View {
         }
         model.set_default_color(color.value());
 
-        Self{model,styles,frp}
+        Self { model, styles, frp }
     }
 
     /// Return the Text Area component inside this editor.
-    pub fn text_area(&self) -> &text::Area { &self.model }
+    pub fn text_area(&self) -> &text::Area {
+        &self.model
+    }
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance { self.model.display_object() }
+    fn display_object(&self) -> &display::object::Instance {
+        self.model.display_object()
+    }
 }
 
 impl application::command::FrpNetworkProvider for View {
-    fn network(&self) -> &frp::Network { &self.frp.network }
+    fn network(&self) -> &frp::Network {
+        &self.frp.network
+    }
 }
 
 impl application::View for View {
-    fn label() -> &'static str { "CodeEditor" }
+    fn label() -> &'static str {
+        "CodeEditor"
+    }
 
-    fn new(app: &Application) -> Self { Self::new(app) }
+    fn new(app: &Application) -> Self {
+        Self::new(app)
+    }
 
     fn app(&self) -> &Application {
         self.model.app()
@@ -140,8 +150,9 @@ impl application::View for View {
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press, "ctrl `" , "toggle")
-          , (Press, "escape", "hide"  )
-        ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
+        (&[(Press, "ctrl `", "toggle"), (Press, "escape", "hide")])
+            .iter()
+            .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
+            .collect()
     }
 }

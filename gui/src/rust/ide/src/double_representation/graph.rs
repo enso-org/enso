@@ -8,11 +8,11 @@ use crate::double_representation::node;
 use crate::double_representation::node::LocatedNode;
 use crate::double_representation::node::NodeInfo;
 
+use crate::double_representation::connection::Connection;
+use ast::known;
 use ast::Ast;
 use ast::BlockLine;
-use ast::known;
 use utils::fail::FallibleResult;
-use crate::double_representation::connection::Connection;
 
 
 /// Graph uses the same `Id` as the definition which introduces the graph.
@@ -25,7 +25,7 @@ pub type Id = double_representation::definition::Id;
 // ====================
 
 /// Describes the desired position of the node's line in the graph's code block.
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum LocationHint {
     /// Try placing this node's line before the line described by id.
     Before(ast::Id),
@@ -44,22 +44,22 @@ pub enum LocationHint {
 // =================
 
 /// Description of the graph, based on information available in AST.
-#[derive(Clone,Debug,Shrinkwrap)]
+#[derive(Clone, Debug, Shrinkwrap)]
 pub struct GraphInfo {
     /// The definition providing this graph.
-    pub source:DefinitionInfo,
+    pub source: DefinitionInfo,
 }
 
 impl GraphInfo {
     /// Look for a node with given id in the graph.
-    pub fn locate_node(&self, id:double_representation::node::Id) -> FallibleResult<LocatedNode> {
+    pub fn locate_node(&self, id: double_representation::node::Id) -> FallibleResult<LocatedNode> {
         let lines = self.source.block_lines();
         double_representation::node::locate(&lines, self.source.context_indent, id)
     }
 
     /// Describe graph of the given definition.
-    pub fn from_definition(source:DefinitionInfo) -> GraphInfo {
-        GraphInfo {source}
+    pub fn from_definition(source: DefinitionInfo) -> GraphInfo {
+        GraphInfo { source }
     }
 
     /// Gets the AST of this graph definition.
@@ -74,8 +74,8 @@ impl GraphInfo {
         let body = &ast.rarg;
         if let Ok(body_block) = known::Block::try_new(body.clone()) {
             let context_indent = self.source.indent();
-            let lines_iter     = body_block.enumerate_non_empty_lines();
-            let nodes_iter     = node::NodeIterator {lines_iter,context_indent};
+            let lines_iter = body_block.enumerate_non_empty_lines();
+            let nodes_iter = node::NodeIterator { lines_iter, context_indent };
             nodes_iter.map(|n| n.node).collect()
         } else if let Some(node) = node::NodeInfo::from_main_line_ast(body) {
             // There's no way to attach a documentation comment to an inline node, it consists only
@@ -94,29 +94,28 @@ impl GraphInfo {
     }
 
     /// Adds a new node to this graph.
-    pub fn add_node
-    (&mut self, node:&NodeInfo, location_hint:LocationHint) -> FallibleResult {
-        let mut lines      = self.source.block_lines();
+    pub fn add_node(&mut self, node: &NodeInfo, location_hint: LocationHint) -> FallibleResult {
+        let mut lines = self.source.block_lines();
         let last_non_empty = || lines.iter().rposition(|line| line.elem.is_some());
-        let index          = match location_hint {
-            LocationHint::Start      => 0,
-            LocationHint::End        => last_non_empty().map_or(lines.len(),|ix| ix + 1),
-            LocationHint::After(id)  => self.locate_node(id)?.index.last() + 1,
+        let index = match location_hint {
+            LocationHint::Start => 0,
+            LocationHint::End => last_non_empty().map_or(lines.len(), |ix| ix + 1),
+            LocationHint::After(id) => self.locate_node(id)?.index.last() + 1,
             LocationHint::Before(id) => self.locate_node(id)?.index.first(),
         };
         let elem = Some(node.ast().clone_ref());
-        let off  = 0;
-        lines.insert(index,BlockLine{elem,off});
+        let off = 0;
+        lines.insert(index, BlockLine { elem, off });
         if let Some(documentation) = &node.documentation {
             let elem = Some(documentation.ast().into());
-            let line = BlockLine {elem,off};
-            lines.insert(index,line);
+            let line = BlockLine { elem, off };
+            lines.insert(index, line);
         }
         self.source.set_block_lines(lines)
     }
 
     /// Locates a node with the given id.
-    pub fn find_node(&self,id:ast::Id) -> Option<NodeInfo> {
+    pub fn find_node(&self, id: ast::Id) -> Option<NodeInfo> {
         self.nodes().iter().find(|node| node.id() == id).cloned()
     }
 
@@ -127,33 +126,37 @@ impl GraphInfo {
     }
 
     /// Removes the node from graph.
-    pub fn remove_node(&mut self, node_id:ast::Id) -> FallibleResult {
+    pub fn remove_node(&mut self, node_id: ast::Id) -> FallibleResult {
         self.update_node(node_id, |_| None)
     }
 
     /// Sets a new state for the node. The id of the described node must denote already existing
     /// node.
-    pub fn set_node(&mut self, node:&NodeInfo) -> FallibleResult {
+    pub fn set_node(&mut self, node: &NodeInfo) -> FallibleResult {
         self.update_node(node.id(), |_| Some(node.clone()))
     }
 
     /// Sets a new state for the node. The id of the described node must denote already existing
     /// node.
-    pub fn update_node(&mut self, id:ast::Id, f:impl FnOnce(NodeInfo) -> Option<NodeInfo>) -> FallibleResult {
-        let LocatedNode{index,node} = self.locate_node(id)?;
+    pub fn update_node(
+        &mut self,
+        id: ast::Id,
+        f: impl FnOnce(NodeInfo) -> Option<NodeInfo>,
+    ) -> FallibleResult {
+        let LocatedNode { index, node } = self.locate_node(id)?;
 
         let mut lines = self.source.block_lines();
         if let Some(updated_node) = f(node) {
             lines[index.main_line].elem = Some(updated_node.main_line.ast().clone_ref());
             match (index.documentation_line, updated_node.documentation) {
-                (Some(old_comment_index),None) => {
+                (Some(old_comment_index), None) => {
                     lines.remove(old_comment_index);
                 }
-                (Some(old_comment_index),Some(new_comment)) =>
+                (Some(old_comment_index), Some(new_comment)) =>
                     lines[old_comment_index] = new_comment.block_line(),
-                (None,Some(new_comment)) =>
+                (None, Some(new_comment)) =>
                     lines.insert(index.main_line, new_comment.block_line()),
-                (None,None) => {},
+                (None, None) => {}
             }
         } else {
             lines.remove(index.main_line);
@@ -172,7 +175,7 @@ impl GraphInfo {
     }
 
     /// Sets expression of the given node.
-    pub fn edit_node(&mut self, node_id:ast::Id, new_expression:Ast) -> FallibleResult {
+    pub fn edit_node(&mut self, node_id: ast::Id, new_expression: Ast) -> FallibleResult {
         self.update_node(node_id, |mut node| {
             node.set_expression(new_expression);
             Some(node)
@@ -180,9 +183,9 @@ impl GraphInfo {
     }
 
     #[cfg(test)]
-    pub fn expect_code(&self, expected_code:impl Str) {
+    pub fn expect_code(&self, expected_code: impl Str) {
         let code = self.source.ast.repr();
-        assert_eq!(code,expected_code.as_ref());
+        assert_eq!(code, expected_code.as_ref());
     }
 }
 
@@ -200,28 +203,26 @@ mod tests {
     use crate::double_representation::definition::DefinitionProvider;
     use crate::double_representation::module::get_definition;
 
-    use ast::HasRepr;
     use ast::macros::DocumentationCommentInfo;
     use ast::test_utils::expect_single_line;
+    use ast::HasRepr;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     /// Takes a program with main definition in root and returns main's graph.
-    fn main_graph(parser:&parser::Parser, program:impl Str) -> GraphInfo {
+    fn main_graph(parser: &parser::Parser, program: impl Str) -> GraphInfo {
         let module = parser.parse_module(program.into(), default()).unwrap();
-        let name   = DefinitionName::new_plain("main");
-        let main   = module.def_iter().find_by_name(&name).unwrap();
+        let name = DefinitionName::new_plain("main");
+        let main = module.def_iter().find_by_name(&name).unwrap();
         GraphInfo::from_definition(main.item)
     }
 
-    fn find_graph(parser:&parser::Parser, program:impl Str, name:impl Str) -> GraphInfo {
-        let module     = parser.parse_module(program.into(), default()).unwrap();
-        let crumbs     = name.into().split(".").map(|name| {
-            DefinitionName::new_plain(name)
-        }).collect();
-        let id         = Id{crumbs};
+    fn find_graph(parser: &parser::Parser, program: impl Str, name: impl Str) -> GraphInfo {
+        let module = parser.parse_module(program.into(), default()).unwrap();
+        let crumbs = name.into().split(".").map(|name| DefinitionName::new_plain(name)).collect();
+        let id = Id { crumbs };
         let definition = get_definition(&module, &id).unwrap();
         GraphInfo::from_definition(definition)
     }
@@ -246,32 +247,34 @@ mod tests {
         }
     }
 
-    fn new_expression_node(parser:&parser::Parser, expression:&str) -> NodeInfo {
+    fn new_expression_node(parser: &parser::Parser, expression: &str) -> NodeInfo {
         let node_ast = parser.parse(expression.to_string(), default()).unwrap();
         let line_ast = expect_single_line(&node_ast).clone();
         NodeInfo::from_main_line_ast(&line_ast).unwrap()
     }
 
-    fn assert_all(nodes:&[NodeInfo], expected:&[NodeInfo]) {
+    fn assert_all(nodes: &[NodeInfo], expected: &[NodeInfo]) {
         assert_eq!(nodes.len(), expected.len());
-        for (left,right) in nodes.iter().zip(expected) {
-            assert_same(left,right)
+        for (left, right) in nodes.iter().zip(expected) {
+            assert_same(left, right)
         }
     }
 
-    fn assert_same(left:&NodeInfo, right:&NodeInfo) {
+    fn assert_same(left: &NodeInfo, right: &NodeInfo) {
         assert_eq!(left.id(), right.id());
-        assert_eq!( left.documentation.as_ref().map(DocumentationCommentInfo::to_string)
-                  , right.documentation.as_ref().map(DocumentationCommentInfo::to_string));
+        assert_eq!(
+            left.documentation.as_ref().map(DocumentationCommentInfo::to_string),
+            right.documentation.as_ref().map(DocumentationCommentInfo::to_string)
+        );
         assert_eq!(left.main_line.repr(), right.main_line.repr());
     }
 
     #[wasm_bindgen_test]
     fn add_node_to_graph_with_single_line() {
-        let program   = "main = print \"hello\"";
-        let parser    = parser::Parser::new_or_panic();
+        let program = "main = print \"hello\"";
+        let parser = parser::Parser::new_or_panic();
         let mut graph = main_graph(&parser, program);
-        let nodes     = graph.nodes();
+        let nodes = graph.nodes();
         assert_eq!(nodes.len(), 1);
         let initial_node = nodes[0].clone();
         assert_eq!(initial_node.expression().repr(), "print \"hello\"");
@@ -281,9 +284,9 @@ mod tests {
         let node_to_add0 = new_expression_node(&parser, expr0);
         let node_to_add1 = new_expression_node(&parser, expr1);
 
-        graph.add_node(&node_to_add0,LocationHint::Start).unwrap();
+        graph.add_node(&node_to_add0, LocationHint::Start).unwrap();
         assert_eq!(graph.nodes().len(), 2);
-        graph.add_node(&node_to_add1,LocationHint::Before(graph.nodes()[0].id())).unwrap();
+        graph.add_node(&node_to_add1, LocationHint::Before(graph.nodes()[0].id())).unwrap();
 
         let nodes = graph.nodes();
         assert_all(nodes.as_slice(), &[node_to_add1, node_to_add0, initial_node]);
@@ -297,7 +300,7 @@ mod tests {
     foo a = not_node
     print "hello""#;
         let mut parser = parser::Parser::new_or_panic();
-        let mut graph  = main_graph(&mut parser, program);
+        let mut graph = main_graph(&mut parser, program);
 
         let node_to_add0 = new_expression_node(&mut parser, "4 + 4");
         let node_to_add1 = new_expression_node(&mut parser, "a + b");
@@ -356,9 +359,9 @@ mod tests {
 
 foo = 5";
         let mut parser = parser::Parser::new_or_panic();
-        let mut graph  = main_graph(&mut parser, program);
+        let mut graph = main_graph(&mut parser, program);
 
-        let id2             = graph.nodes()[0].id();
+        let id2 = graph.nodes()[0].id();
         let node_to_add0 = new_expression_node(&mut parser, "node0");
         let node_to_add1 = new_expression_node(&mut parser, "node1");
         let node_to_add3 = new_expression_node(&mut parser, "node3");
@@ -420,7 +423,7 @@ main =
     foo = 2 + 2
     bar = 3 + 17";
         let mut graph = main_graph(&mut parser, program);
-        let nodes     = graph.nodes();
+        let nodes = graph.nodes();
         assert_eq!(nodes.len(), 2);
         assert_eq!(nodes[0].expression().repr(), "2 + 2");
         assert_eq!(nodes[1].expression().repr(), "3 + 17");
@@ -446,13 +449,13 @@ main =
     foo = 2 + 2";
         let mut graph = main_graph(&mut parser, program);
         DEBUG!("aa");
-        let (node,)   = graph.nodes().expect_tuple();
+        let (node,) = graph.nodes().expect_tuple();
         assert_eq!(node.expression().repr(), "2 + 2");
         DEBUG!("vv");
         graph.remove_node(node.id()).unwrap();
         DEBUG!("zz");
 
-        let (node,)   = graph.nodes().expect_tuple();
+        let (node,) = graph.nodes().expect_tuple();
         assert_eq!(node.expression().repr(), constants::keywords::NOTHING);
         graph.expect_code("main = Nothing");
     }
@@ -474,7 +477,7 @@ main =
         assert_eq!(nodes[0].expression().repr(), "2 + 2");
         assert_eq!(nodes[1].expression().repr(), "3 + 17");
 
-        graph.edit_node(nodes[0].id(),new_expression).unwrap();
+        graph.edit_node(nodes[0].id(), new_expression).unwrap();
 
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 2);

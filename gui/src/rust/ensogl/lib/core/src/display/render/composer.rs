@@ -84,9 +84,9 @@ impl {
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct ComposerPass {
-    #[derivative(Debug="ignore")]
-    pass     : Box<dyn pass::Definition>,
-    instance : pass::Instance,
+    #[derivative(Debug = "ignore")]
+    pass:     Box<dyn pass::Definition>,
+    instance: pass::Instance,
 }
 
 impl Deref for ComposerPass {
@@ -105,16 +105,16 @@ impl DerefMut for ComposerPass {
 impl ComposerPass {
     /// Constructor
     #[allow(clippy::borrowed_box)]
-    pub fn new
-    ( context   : &Context
-    , variables : &UniformScope
-    , mut pass  : Box<dyn pass::Definition>
-    , width     : i32
-    , height    : i32
+    pub fn new(
+        context: &Context,
+        variables: &UniformScope,
+        mut pass: Box<dyn pass::Definition>,
+        width: i32,
+        height: i32,
     ) -> Self {
-        let instance = pass::Instance::new(context,variables,width,height);
+        let instance = pass::Instance::new(context, variables, width, height);
         pass.initialize(&instance);
-        Self {pass,instance}
+        Self { pass, instance }
     }
 
     /// Run the pass.

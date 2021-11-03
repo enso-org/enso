@@ -3,11 +3,11 @@
 
 use crate::prelude::*;
 
+use crate::with_shape_variants;
 use crate::Ast;
 use crate::HasTokens;
-use crate::TokenConsumer;
 use crate::Shape;
-use crate::with_shape_variants;
+use crate::TokenConsumer;
 
 use serde::Deserialize;
 use serde::Deserializer;
@@ -24,12 +24,12 @@ use serde::Serializer;
 /// Use `TryFrom<&Ast>` to obtain values.
 ///
 /// Provides `Deref` implementation that allows accessing underlying shape `T` value.
-#[derive(CloneRef,Derivative)]
-#[derivative(Clone(bound=""))]
-#[derive(Debug,Eq,PartialEq)]
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+#[derive(Debug, Eq, PartialEq)]
 pub struct KnownAst<T> {
-    ast     : Ast,
-    phantom : PhantomData<T>,
+    ast:     Ast,
+    phantom: PhantomData<T>,
 }
 
 impl<T> KnownAst<T> {
@@ -37,41 +37,46 @@ impl<T> KnownAst<T> {
     ///
     /// Note that this API requires caller to ensure that Ast stores proper shape. Violating this
     /// rule will lead to panics later.
-    fn new_unchecked(ast:Ast) -> KnownAst<T> {
-        KnownAst {ast,phantom:default()}
+    fn new_unchecked(ast: Ast) -> KnownAst<T> {
+        KnownAst { ast, phantom: default() }
     }
 
     /// Gets AST id.
-    pub fn id(&self) -> Option<crate::Id> { self.ast.id }
+    pub fn id(&self) -> Option<crate::Id> {
+        self.ast.id
+    }
 
     /// Returns a reference to the stored `Ast` with `Shape` of `T`.
-    pub fn ast(&self) -> &Ast { &self.ast }
+    pub fn ast(&self) -> &Ast {
+        &self.ast
+    }
 }
 
-impl<T,E> KnownAst<T>
-where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E> {
-
+impl<T, E> KnownAst<T>
+where for<'t> &'t Shape<Ast>: TryInto<&'t T, Error = E>
+{
     /// Checks if the shape of given Ast node is compatible with `T`.
     /// If yes, returns Ok with Ast node wrapped as KnownAst.
     /// Otherwise, returns an error.
-    pub fn try_new(ast:Ast) -> Result<KnownAst<T>,E> {
+    pub fn try_new(ast: Ast) -> Result<KnownAst<T>, E> {
         if let Some(error_matching) = ast.shape().try_into().err() {
             Err(error_matching)
         } else {
-            Ok(KnownAst {ast,phantom:default()})
+            Ok(KnownAst { ast, phantom: default() })
         }
     }
 
     /// Returns the AST's shape.
     pub fn shape(&self) -> &T
-    where E : Debug {
+    where E: Debug {
         self.deref()
     }
 
     /// Updated self in place by applying given function on the stored Shape.
-    pub fn update_shape<R>(&mut self, f:impl FnOnce(&mut T) -> R) -> R
-    where T : Clone + Into<Shape<Ast>>,
-          E : Debug {
+    pub fn update_shape<R>(&mut self, f: impl FnOnce(&mut T) -> R) -> R
+    where
+        T: Clone + Into<Shape<Ast>>,
+        E: Debug, {
         let mut shape = self.shape().clone();
         let ret = f(&mut shape);
         self.ast = self.ast.with_shape(shape);
@@ -79,22 +84,23 @@ where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E> {
     }
 
     /// Create new instance of KnownAst with mapped shape.
-    pub fn with_shape<S,E1>(&self, f:impl FnOnce(T) -> S) -> KnownAst<S>
-    where for<'t> &'t Shape<Ast> : TryInto<&'t S,Error=E1>,
-          T                      : Clone + Into<Shape<Ast>>,
-          S                      : Clone + Into<Shape<Ast>>,
-          E                      : Debug,
-          E1                     : Debug {
-        let shape     = self.shape().clone();
+    pub fn with_shape<S, E1>(&self, f: impl FnOnce(T) -> S) -> KnownAst<S>
+    where
+        for<'t> &'t Shape<Ast>: TryInto<&'t S, Error = E1>,
+        T: Clone + Into<Shape<Ast>>,
+        S: Clone + Into<Shape<Ast>>,
+        E: Debug,
+        E1: Debug, {
+        let shape = self.shape().clone();
         let new_shape = f(shape);
         KnownAst::new_unchecked(self.ast.with_shape(new_shape))
     }
 }
 
-impl<T:Into<Shape<Ast>>> KnownAst<T> {
+impl<T: Into<Shape<Ast>>> KnownAst<T> {
     /// Creates a new `KnownAst<T>` from `shape` with random ID if id=None.
-    pub fn new(shape:T, id:Option<crate::Id>) -> KnownAst<T> {
-        let ast = Ast::new(shape,id);
+    pub fn new(shape: T, id: Option<crate::Id>) -> KnownAst<T> {
+        let ast = Ast::new(shape, id);
         Self::new_unchecked(ast)
     }
 
@@ -102,15 +108,17 @@ impl<T:Into<Shape<Ast>>> KnownAst<T> {
     /// Should be only used on nodes that can't have ID because of scala AST design.
     /// Example: Module, Section.opr, MacroMatchSegment.head
     /// Tracking issue: https://github.com/enso-org/ide/issues/434
-    pub fn new_no_id(shape:T) -> KnownAst<T> {
+    pub fn new_no_id(shape: T) -> KnownAst<T> {
         let ast = Ast::new_no_id(shape);
         Self::new_unchecked(ast)
     }
 }
 
-impl<T,E> Deref for KnownAst<T>
-where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
-      E                      : Debug, {
+impl<T, E> Deref for KnownAst<T>
+where
+    for<'t> &'t Shape<Ast>: TryInto<&'t T, Error = E>,
+    E: Debug,
+{
     type Target = T;
     fn deref(&self) -> &Self::Target {
         let result = self.ast.shape().try_into();
@@ -126,62 +134,65 @@ impl<T> AsRef<Ast> for KnownAst<T> {
     }
 }
 
-impl<T,E> TryFrom<&Ast> for KnownAst<T>
-where for<'t> &'t Shape<Ast>:TryInto<&'t T,Error=E> {
+impl<T, E> TryFrom<&Ast> for KnownAst<T>
+where for<'t> &'t Shape<Ast>: TryInto<&'t T, Error = E>
+{
     type Error = E;
-    fn try_from(ast:&Ast) -> Result<KnownAst<T>,Self::Error> {
+    fn try_from(ast: &Ast) -> Result<KnownAst<T>, Self::Error> {
         KnownAst::try_new(ast.clone())
     }
 }
 
-impl<T,E> TryFrom<Ast> for KnownAst<T>
-where for<'t> &'t Shape<Ast>:TryInto<&'t T,Error=E> {
+impl<T, E> TryFrom<Ast> for KnownAst<T>
+where for<'t> &'t Shape<Ast>: TryInto<&'t T, Error = E>
+{
     type Error = E;
-    fn try_from(ast:Ast) -> Result<KnownAst<T>,Self::Error> {
+    fn try_from(ast: Ast) -> Result<KnownAst<T>, Self::Error> {
         KnownAst::try_new(ast)
     }
 }
 
 /// One can always throw away the knowledge.
 impl<T> From<KnownAst<T>> for Ast {
-    fn from(known_ast:KnownAst<T>) -> Ast {
+    fn from(known_ast: KnownAst<T>) -> Ast {
         known_ast.ast
     }
 }
 
-impl<'a,T> From<&'a KnownAst<T>> for &'a Ast {
-    fn from(known_ast:&'a KnownAst<T>) -> &'a Ast {
+impl<'a, T> From<&'a KnownAst<T>> for &'a Ast {
+    fn from(known_ast: &'a KnownAst<T>) -> &'a Ast {
         &known_ast.ast
     }
 }
 
 impl<T> Serialize for KnownAst<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok,S::Error>
-    where S : Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer {
         self.ast.serialize(serializer)
     }
 }
 
-impl<'de,T,E> Deserialize<'de> for KnownAst<T>
-where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
-      E                      : fmt::Display {
-
+impl<'de, T, E> Deserialize<'de> for KnownAst<T>
+where
+    for<'t> &'t Shape<Ast>: TryInto<&'t T, Error = E>,
+    E: fmt::Display,
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D : Deserializer<'de> {
+    where D: Deserializer<'de> {
         let ast = Ast::deserialize(deserializer)?;
         Self::try_new(ast).map_err(serde::de::Error::custom)
     }
 }
 
 impl<T> HasTokens for KnownAst<T> {
-    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
         self.ast.feed_to(consumer)
     }
 }
 
 impl<T> Display for KnownAst<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.ast,f)
+        fmt::Display::fmt(&self.ast, f)
     }
 }
 

@@ -4,7 +4,6 @@
 
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
-
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -13,8 +12,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-
-#![recursion_limit="512"]
+#![recursion_limit = "512"]
 
 pub mod component;
 pub mod drop_down_menu;

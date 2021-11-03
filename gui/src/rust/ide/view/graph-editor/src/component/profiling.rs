@@ -7,10 +7,10 @@ use crate::view;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
-use ensogl::display::shape::*;
 use ensogl::display;
-use ensogl_gui_components::toggle_button::ToggleButton;
+use ensogl::display::shape::*;
 use ensogl_gui_components::toggle_button;
+use ensogl_gui_components::toggle_button::ToggleButton;
 
 
 
@@ -125,11 +125,11 @@ ensogl::define_endpoints! {
 
 /// A toggle button that can be used to toggle the graph editor's view mode. It positions itself in
 /// the upper right corner of the scene.
-#[derive(Debug,Clone,CloneRef)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct Button {
-    frp    : Frp,
-    button : ToggleButton<icon::DynamicShape>,
-    styles : StyleWatchFrp,
+    frp:    Frp,
+    button: ToggleButton<icon::DynamicShape>,
+    styles: StyleWatchFrp,
 }
 
 impl Deref for Button {
@@ -143,9 +143,9 @@ impl Deref for Button {
 impl Button {
     /// Constructs a new button for toggling the editor's view mode.
     pub fn new(app: &Application) -> Button {
-        let scene   = app.display.scene();
-        let styles  = StyleWatchFrp::new(&scene.style_sheet);
-        let frp     = Frp::new();
+        let scene = app.display.scene();
+        let styles = StyleWatchFrp::new(&scene.style_sheet);
+        let frp = Frp::new();
         let network = &frp.network;
 
         let button = ToggleButton::<icon::DynamicShape>::new(Logger::new("profiling::Button"));
@@ -194,7 +194,7 @@ impl Button {
         }
 
         init_color_scheme.emit(());
-        Button {frp,button,styles}
+        Button { frp, button, styles }
     }
 }
 

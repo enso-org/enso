@@ -22,10 +22,10 @@ type ReadTextClosure = Closure<dyn Fn(String)>;
 #[wasm_bindgen(module = "/js/clipboard.js")]
 extern "C" {
     #[allow(unsafe_code)]
-    fn writeText(text:String);
+    fn writeText(text: String);
 
     #[allow(unsafe_code)]
-    fn readText(closure:&ReadTextClosure);
+    fn readText(closure: &ReadTextClosure);
 }
 
 /// Write the provided text to the clipboard. Please note that:
@@ -35,8 +35,8 @@ extern "C" {
 ///   The delay may be caused for example by waiting for permission from the user.
 /// - This will probably display a permission prompt to the user for the first time it is used.
 /// - The website has to be served over HTTPS for this function to work correctly.
-/// - This function needs to be called from within user-initiated event callbacks, like mouse or
-///   key press. Otherwise it will not work.
+/// - This function needs to be called from within user-initiated event callbacks, like mouse or key
+///   press. Otherwise it will not work.
 ///
 /// Moreover, in case something fails, this function implements a fallback mechanism which tries
 /// to create a hidden text field, fill it with the text and use the obsolete
@@ -44,7 +44,7 @@ extern "C" {
 /// function.
 ///
 /// To learn more, see this [StackOverflow question](https://stackoverflow.com/questions/400212/how-do-i-copy-to-the-clipboard-in-javascript).
-pub fn write_text(text:impl Into<String>) {
+pub fn write_text(text: impl Into<String>) {
     let text = text.into();
     writeText(text)
 }
@@ -56,8 +56,8 @@ pub fn write_text(text:impl Into<String>) {
 ///   be ready. The delay may be caused for example by waiting for permissions from the user.
 /// - This will probably display a permission prompt to the user for the first time it is used.
 /// - The website has to be served over HTTPS for this function to work correctly.
-/// - This function needs to be called from within user-initiated event callbacks, like mouse or
-///   key press. Otherwise it will not work.
+/// - This function needs to be called from within user-initiated event callbacks, like mouse or key
+///   press. Otherwise it will not work.
 ///
 /// Moreover, this function works in a very strange way in Firefox.
 /// [Firefox only supports reading the clipboard in browser extensions](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/readText).
@@ -66,10 +66,10 @@ pub fn write_text(text:impl Into<String>) {
 /// will work correctly only when called as a direct action to the `cmd + v` shortcut.
 ///
 /// To learn more, see this [StackOverflow question](https://stackoverflow.com/questions/400212/how-do-i-copy-to-the-clipboard-in-javascript).
-pub fn read_text(callback:impl Fn(String)+'static) {
-    let handler : Rc<RefCell<Option<ReadTextClosure>>> = default();
+pub fn read_text(callback: impl Fn(String) + 'static) {
+    let handler: Rc<RefCell<Option<ReadTextClosure>>> = default();
     let handler_clone = handler.clone_ref();
-    let closure       = Closure::wrap(Box::new(move |result| {
+    let closure = Closure::wrap(Box::new(move |result| {
         *handler_clone.borrow_mut() = None;
         callback(result);
     }) as Box<dyn Fn(String)>);

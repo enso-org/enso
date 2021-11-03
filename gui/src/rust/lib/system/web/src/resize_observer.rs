@@ -10,7 +10,7 @@ use wasm_bindgen::JsValue;
 // === Types ===
 // =============
 
-pub type Listener = Closure<dyn FnMut(f32,f32)>;
+pub type Listener = Closure<dyn FnMut(f32, f32)>;
 
 
 
@@ -48,10 +48,10 @@ pub struct ResizeObserver {
 }
 
 impl ResizeObserver {
-    pub fn new(target:&JsValue, listener:Listener) -> Self {
-        let target      = target.clone_ref();
+    pub fn new(target: &JsValue, listener: Listener) -> Self {
+        let target = target.clone_ref();
         let observer_id = resize_observe(&target, &listener);
-        Self {target,listener,observer_id}
+        Self { target, listener, observer_id }
     }
 }
 
