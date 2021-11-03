@@ -8,10 +8,10 @@ pub mod unit;
 
 pub use range::Range;
 pub use range::RangeBounds;
-pub use rope::Cursor;
 pub use rope::metric;
+pub use rope::Cursor;
 pub use spans::Spans;
 pub use text::Text;
 pub use text::TextCell;
-pub use unit::*;
 pub use unit::traits;
+pub use unit::*;

@@ -1,8 +1,8 @@
 //! This module contains definitions of various color spaces, including `Rgb`, `Hsl`, `Lch`, etc.
 
-use crate::prelude::*;
-use super::super::data::*;
 use super::super::component::*;
+use super::super::data::*;
+use crate::prelude::*;
 
 
 
@@ -14,15 +14,18 @@ macro_rules! define_color_parsing {
     ($name:ident) => {
         impl std::str::FromStr for $name {
             type Err = ParseError;
-            fn from_str(s:&str) -> Result<Self, Self::Err> {
-                let (head,args) = generic_parse(s)?;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                let (head, args) = generic_parse(s)?;
                 if &head != stringify!($name) {
-                    return Err(ParseError::new(format!("No '{}' header found.",stringify!($name))))
+                    return Err(ParseError::new(format!(
+                        "No '{}' header found.",
+                        stringify!($name)
+                    )));
                 }
                 Ok($name::from_slice(&args))
             }
         }
-    }
+    };
 }
 
 macro_rules! define_color_spaces {
@@ -73,19 +76,23 @@ macro_rules! define_color_spaces {
 }
 
 impl<C> From<AnyFormat> for Color<C>
-where Rgb: Into<Color<C>>, Rgba: Into<Color<C>>,
-      Lch: Into<Color<C>>, Lcha: Into<Color<C>> {
+where
+    Rgb: Into<Color<C>>,
+    Rgba: Into<Color<C>>,
+    Lch: Into<Color<C>>,
+    Lcha: Into<Color<C>>,
+{
     fn from(c: AnyFormat) -> Self {
         match c {
-            AnyFormat::Rgb(t)  => t.into(),
+            AnyFormat::Rgb(t) => t.into(),
             AnyFormat::Rgba(t) => t.into(),
-            AnyFormat::Lch(t)  => t.into(),
+            AnyFormat::Lch(t) => t.into(),
             AnyFormat::Lcha(t) => t.into(),
             // TODO[WD]: This should be implemented by the commented out macro above, however,
             //   it requires a lot more conversions than we support currently. To be implemented
             //   one day.
             //   https://github.com/enso-org/ide/issues/1404
-            _ => panic!("Not implemented.")
+            _ => panic!("Not implemented."),
         }
     }
 }
@@ -378,7 +385,7 @@ define_color_spaces! {
 
 impl Rgb {
     /// Construct RGB color by mapping [0 – 255] value range into [0.0 – 1.0].
-    pub fn from_base_255(r:impl Into<f32>, g:impl Into<f32>, b:impl Into<f32>) -> Self {
+    pub fn from_base_255(r: impl Into<f32>, g: impl Into<f32>, b: impl Into<f32>) -> Self {
         Self::new(r.into() / 255.0, g.into() / 255.0, b.into() / 255.0)
     }
 
@@ -389,42 +396,42 @@ impl Rgb {
 
     /// Convert the color to JavaScript representation.
     pub fn to_javascript_string(self) -> String {
-        let red   = (self.red*255.0).round() as i32;
-        let green = (self.green*255.0).round() as i32;
-        let blue  = (self.blue*255.0).round() as i32;
-        format!("rgb({},{},{})",red,green,blue)
+        let red = (self.red * 255.0).round() as i32;
+        let green = (self.green * 255.0).round() as i32;
+        let blue = (self.blue * 255.0).round() as i32;
+        format!("rgb({},{},{})", red, green, blue)
     }
 }
 
 impl Rgba {
     /// Constructor.
     pub fn black() -> Self {
-        Self::new(0.0,0.0,0.0,1.0)
+        Self::new(0.0, 0.0, 0.0, 1.0)
     }
 
     /// Constructor.
     pub fn white() -> Self {
-        Self::new(1.0,1.0,1.0,1.0)
+        Self::new(1.0, 1.0, 1.0, 1.0)
     }
 
     /// Constructor.
     pub fn red() -> Self {
-        Self::new(1.0,0.0,0.0,1.0)
+        Self::new(1.0, 0.0, 0.0, 1.0)
     }
 
     /// Constructor.
     pub fn green() -> Self {
-        Self::new(0.0,1.0,0.0,1.0)
+        Self::new(0.0, 1.0, 0.0, 1.0)
     }
 
     /// Constructor.
     pub fn blue() -> Self {
-        Self::new(0.0,0.0,1.0,1.0)
+        Self::new(0.0, 0.0, 1.0, 1.0)
     }
 
     /// Fully transparent color constructor.
     pub fn transparent() -> Self {
-        Self::new(0.0,0.0,0.0,0.0)
+        Self::new(0.0, 0.0, 0.0, 0.0)
     }
 
     /// Convert the color to `LinearRgba` representation.
@@ -434,10 +441,10 @@ impl Rgba {
 
     /// Convert the color to JavaScript representation.
     pub fn to_javascript_string(self) -> String {
-        let red   = (self.red*255.0).round() as i32;
-        let green = (self.green*255.0).round() as i32;
-        let blue  = (self.blue*255.0).round() as i32;
-        format!("rgba({},{},{},{})",red,green,blue,self.alpha)
+        let red = (self.red * 255.0).round() as i32;
+        let green = (self.green * 255.0).round() as i32;
+        let blue = (self.blue * 255.0).round() as i32;
+        format!("rgba({},{},{},{})", red, green, blue, self.alpha)
     }
 }
 
@@ -465,7 +472,9 @@ impl LabData {
             None
         } else {
             let mut hue = self.b.atan2(self.a) * 180.0 / std::f32::consts::PI;
-            if hue < 0.0 { hue += 360.0 }
+            if hue < 0.0 {
+                hue += 360.0
+            }
             Some(hue)
         }
     }
@@ -481,50 +490,114 @@ impl LabData {
 /// uses scale used by popular color-conversion math equations, such as https://css.land/lch, or
 /// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html. Used internally for color
 /// conversions.
-pub(crate) const LCH_MAX_CHROMA_IN_SRGB_IN_STD_EQUATIONS : usize = 120;
+pub(crate) const LCH_MAX_CHROMA_IN_SRGB_IN_STD_EQUATIONS: usize = 120;
 
 #[allow(missing_docs)]
 impl Lch {
-    pub fn pink_hue       () -> f32 { 0.0   } // approx.   0.0 degrees
-    pub fn red_hue        () -> f32 { 0.111 } // approx.  40.0 degrees
-    pub fn orange_hue     () -> f32 { 0.18  } // approx.  65.0 degrees
-    pub fn yellow_hue     () -> f32 { 0.236 } // approx.  85.0 degrees
-    pub fn olive_hue      () -> f32 { 0.291 } // approx. 105.0 degrees
-    pub fn green_hue      () -> f32 { 0.378 } // approx. 136.0 degrees
-    pub fn blue_green_hue () -> f32 { 0.6   } // approx. 216.0 degrees
-    pub fn blue_hue       () -> f32 { 0.672 } // approx. 242.0 degrees
-    pub fn violet_hue     () -> f32 { 0.847 } // approx. 305.0 degrees
+    pub fn pink_hue() -> f32 {
+        0.0
+    } // approx.   0.0 degrees
+    pub fn red_hue() -> f32 {
+        0.111
+    } // approx.  40.0 degrees
+    pub fn orange_hue() -> f32 {
+        0.18
+    } // approx.  65.0 degrees
+    pub fn yellow_hue() -> f32 {
+        0.236
+    } // approx.  85.0 degrees
+    pub fn olive_hue() -> f32 {
+        0.291
+    } // approx. 105.0 degrees
+    pub fn green_hue() -> f32 {
+        0.378
+    } // approx. 136.0 degrees
+    pub fn blue_green_hue() -> f32 {
+        0.6
+    } // approx. 216.0 degrees
+    pub fn blue_hue() -> f32 {
+        0.672
+    } // approx. 242.0 degrees
+    pub fn violet_hue() -> f32 {
+        0.847
+    } // approx. 305.0 degrees
 }
 
 #[allow(missing_docs)]
 impl Lch {
-    pub fn white      ()             -> Lch { Lch::new(1.0,0.0,0.0) }
-    pub fn black      ()             -> Lch { Lch::new(0.0,0.0,0.0) }
-    pub fn pink       (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::pink_hue())       }
-    pub fn red        (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::red_hue())        }
-    pub fn orange     (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::orange_hue())     }
-    pub fn yellow     (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::yellow_hue())     }
-    pub fn olive      (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::olive_hue())      }
-    pub fn green      (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::green_hue())      }
-    pub fn blue_green (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::blue_green_hue()) }
-    pub fn blue       (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::blue_hue())       }
-    pub fn violet     (l:f32, c:f32) -> Lch { Lch::new(l,c,Lch::violet_hue())     }
+    pub fn white() -> Lch {
+        Lch::new(1.0, 0.0, 0.0)
+    }
+    pub fn black() -> Lch {
+        Lch::new(0.0, 0.0, 0.0)
+    }
+    pub fn pink(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::pink_hue())
+    }
+    pub fn red(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::red_hue())
+    }
+    pub fn orange(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::orange_hue())
+    }
+    pub fn yellow(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::yellow_hue())
+    }
+    pub fn olive(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::olive_hue())
+    }
+    pub fn green(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::green_hue())
+    }
+    pub fn blue_green(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::blue_green_hue())
+    }
+    pub fn blue(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::blue_hue())
+    }
+    pub fn violet(l: f32, c: f32) -> Lch {
+        Lch::new(l, c, Lch::violet_hue())
+    }
 }
 
 #[allow(missing_docs)]
 impl Lcha {
-    pub fn transparent ()             -> Lcha { Lcha::new(0.0,0.0,0.0,0.0) }
-    pub fn white       ()             -> Lcha { Lch::white      ()    . into() }
-    pub fn black       ()             -> Lcha { Lch::black      ()    . into() }
-    pub fn pink        (l:f32, c:f32) -> Lcha { Lch::pink       (l,c) . into() }
-    pub fn red         (l:f32, c:f32) -> Lcha { Lch::red        (l,c) . into() }
-    pub fn orange      (l:f32, c:f32) -> Lcha { Lch::orange     (l,c) . into() }
-    pub fn yellow      (l:f32, c:f32) -> Lcha { Lch::yellow     (l,c) . into() }
-    pub fn olive       (l:f32, c:f32) -> Lcha { Lch::olive      (l,c) . into() }
-    pub fn green       (l:f32, c:f32) -> Lcha { Lch::green      (l,c) . into() }
-    pub fn blue_green  (l:f32, c:f32) -> Lcha { Lch::blue_green (l,c) . into() }
-    pub fn blue        (l:f32, c:f32) -> Lcha { Lch::blue       (l,c) . into() }
-    pub fn violet      (l:f32, c:f32) -> Lcha { Lch::violet     (l,c) . into() }
+    pub fn transparent() -> Lcha {
+        Lcha::new(0.0, 0.0, 0.0, 0.0)
+    }
+    pub fn white() -> Lcha {
+        Lch::white().into()
+    }
+    pub fn black() -> Lcha {
+        Lch::black().into()
+    }
+    pub fn pink(l: f32, c: f32) -> Lcha {
+        Lch::pink(l, c).into()
+    }
+    pub fn red(l: f32, c: f32) -> Lcha {
+        Lch::red(l, c).into()
+    }
+    pub fn orange(l: f32, c: f32) -> Lcha {
+        Lch::orange(l, c).into()
+    }
+    pub fn yellow(l: f32, c: f32) -> Lcha {
+        Lch::yellow(l, c).into()
+    }
+    pub fn olive(l: f32, c: f32) -> Lcha {
+        Lch::olive(l, c).into()
+    }
+    pub fn green(l: f32, c: f32) -> Lcha {
+        Lch::green(l, c).into()
+    }
+    pub fn blue_green(l: f32, c: f32) -> Lcha {
+        Lch::blue_green(l, c).into()
+    }
+    pub fn blue(l: f32, c: f32) -> Lcha {
+        Lch::blue(l, c).into()
+    }
+    pub fn violet(l: f32, c: f32) -> Lcha {
+        Lch::violet(l, c).into()
+    }
 
     /// Convert the color to JavaScript representation.
     pub fn to_javascript_string(self) -> String {
@@ -576,16 +649,109 @@ impl Lcha {
 /// 0       12.5      25.0      37.5     50.0      62.5      75.0     75.5     100.0
 ///                                     LIGHTNESS
 /// ```
-pub const LCH_MAX_LIGHTNESS_CHROMA_IN_SRGB_CORRELATION : &[(usize,usize)] =
-    &[(0,0),(1,1),(2,2),(3,5),(4,5),(5,6),(6,8),(7,9),(8,10),(9,11),(10,12),(11,13),(12,13),(13,14)
-     ,(14,14),(15,15),(16,15),(17,16),(18,16),(19,17),(20,17),(21,18),(22,18),(23,18),(24,19)
-     ,(25,19),(26,20),(27,20),(28,21),(29,21),(30,22),(31,22),(32,23),(33,23),(34,24),(35,24)
-     ,(36,25),(37,25),(38,26),(39,26),(40,27),(41,27),(42,28),(43,28),(44,29),(45,29),(46,30)
-     ,(47,30),(48,31),(49,31),(50,32),(51,32),(52,33),(53,33),(54,34),(55,34),(56,35),(57,35)
-     ,(58,36),(59,36),(60,36),(61,37),(62,37),(63,38),(64,38),(65,39),(66,39),(67,40),(68,40)
-     ,(69,41),(70,41),(71,42),(72,42),(73,41),(74,39),(75,38),(76,36),(77,35),(78,33),(79,31)
-     ,(80,30),(81,28),(82,27),(83,25),(84,24),(85,22),(86,20),(87,19),(88,17),(89,16),(90,14)
-     ,(91,12),(92,11),(93,9),(94,8),(95,6),(96,5),(97,4),(98,2),(99,1),(100,0)];
+pub const LCH_MAX_LIGHTNESS_CHROMA_IN_SRGB_CORRELATION: &[(usize, usize)] = &[
+    (0, 0),
+    (1, 1),
+    (2, 2),
+    (3, 5),
+    (4, 5),
+    (5, 6),
+    (6, 8),
+    (7, 9),
+    (8, 10),
+    (9, 11),
+    (10, 12),
+    (11, 13),
+    (12, 13),
+    (13, 14),
+    (14, 14),
+    (15, 15),
+    (16, 15),
+    (17, 16),
+    (18, 16),
+    (19, 17),
+    (20, 17),
+    (21, 18),
+    (22, 18),
+    (23, 18),
+    (24, 19),
+    (25, 19),
+    (26, 20),
+    (27, 20),
+    (28, 21),
+    (29, 21),
+    (30, 22),
+    (31, 22),
+    (32, 23),
+    (33, 23),
+    (34, 24),
+    (35, 24),
+    (36, 25),
+    (37, 25),
+    (38, 26),
+    (39, 26),
+    (40, 27),
+    (41, 27),
+    (42, 28),
+    (43, 28),
+    (44, 29),
+    (45, 29),
+    (46, 30),
+    (47, 30),
+    (48, 31),
+    (49, 31),
+    (50, 32),
+    (51, 32),
+    (52, 33),
+    (53, 33),
+    (54, 34),
+    (55, 34),
+    (56, 35),
+    (57, 35),
+    (58, 36),
+    (59, 36),
+    (60, 36),
+    (61, 37),
+    (62, 37),
+    (63, 38),
+    (64, 38),
+    (65, 39),
+    (66, 39),
+    (67, 40),
+    (68, 40),
+    (69, 41),
+    (70, 41),
+    (71, 42),
+    (72, 42),
+    (73, 41),
+    (74, 39),
+    (75, 38),
+    (76, 36),
+    (77, 35),
+    (78, 33),
+    (79, 31),
+    (80, 30),
+    (81, 28),
+    (82, 27),
+    (83, 25),
+    (84, 24),
+    (85, 22),
+    (86, 20),
+    (87, 19),
+    (88, 17),
+    (89, 16),
+    (90, 14),
+    (91, 12),
+    (92, 11),
+    (93, 9),
+    (94, 8),
+    (95, 6),
+    (96, 5),
+    (97, 4),
+    (98, 2),
+    (99, 1),
+    (100, 0),
+];
 
 lazy_static! {
     /// Map from LCH lightness to max chroma, so every hue value will be included in the sRGB color
@@ -620,19 +786,19 @@ lazy_static! {
 /// For a given LCH lightness, compute the max chroma value, so every hue value will be included in
 /// the sRGB color space. Please read the docs of `LCH_MAX_LIGHTNESS_CHROMA_IN_SRGB_CORRELATION` to
 /// learn more.
-fn lch_lightness_to_max_chroma_in_srgb(l:f32) -> f32 {
-    let l                = l.max(0.0).min(100.0);
-    let l_scaled         = l * 100.0;
-    let l_scaled_floor   = l_scaled.floor();
-    let l_scaled_ceil    = l_scaled.ceil();
-    let coeff            = (l_scaled - l_scaled_floor) / (l_scaled_ceil - l_scaled_floor);
+fn lch_lightness_to_max_chroma_in_srgb(l: f32) -> f32 {
+    let l = l.max(0.0).min(100.0);
+    let l_scaled = l * 100.0;
+    let l_scaled_floor = l_scaled.floor();
+    let l_scaled_ceil = l_scaled.ceil();
+    let coeff = (l_scaled - l_scaled_floor) / (l_scaled_ceil - l_scaled_floor);
     let l_scaled_floor_u = l_scaled_floor as usize;
-    let l_scaled_ceil_u  = l_scaled_ceil as usize;
+    let l_scaled_ceil_u = l_scaled_ceil as usize;
     let c_scaled_floor_u = LCH_LIGHTNESS_TO_MAX_CHROMA_IN_SRGB.get(&l_scaled_floor_u);
-    let c_scaled_ceil_u  = LCH_LIGHTNESS_TO_MAX_CHROMA_IN_SRGB.get(&l_scaled_ceil_u);
-    let c_scaled_floor   = c_scaled_floor_u.copied().unwrap_or(0) as f32;
-    let c_scaled_ceil    = c_scaled_ceil_u.copied().unwrap_or(0) as f32;
-    let c_scaled         = c_scaled_floor + (c_scaled_ceil - c_scaled_floor) * coeff;
+    let c_scaled_ceil_u = LCH_LIGHTNESS_TO_MAX_CHROMA_IN_SRGB.get(&l_scaled_ceil_u);
+    let c_scaled_floor = c_scaled_floor_u.copied().unwrap_or(0) as f32;
+    let c_scaled_ceil = c_scaled_ceil_u.copied().unwrap_or(0) as f32;
+    let c_scaled = c_scaled_floor + (c_scaled_ceil - c_scaled_floor) * coeff;
     c_scaled / LCH_MAX_CHROMA_IN_SRGB_IN_STD_EQUATIONS as f32
 }
 
@@ -643,56 +809,54 @@ fn lch_lightness_to_max_chroma_in_srgb(l:f32) -> f32 {
 // ===============
 
 /// String to color parse error.
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub struct ParseError {
-    pub reason:String
+    pub reason: String,
 }
 
 impl ParseError {
     /// Constructor.
-    pub fn new(reason:impl Into<String>) -> Self {
+    pub fn new(reason: impl Into<String>) -> Self {
         let reason = reason.into();
-        Self {reason}
+        Self { reason }
     }
 }
 
 impl From<std::num::ParseFloatError> for ParseError {
-    fn from(_:std::num::ParseFloatError) -> Self {
+    fn from(_: std::num::ParseFloatError) -> Self {
         ParseError::new("Improper numeric argument.")
     }
 }
 
-fn uppercase_first_letter(s:&str) -> String {
+fn uppercase_first_letter(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {
-        None    => String::new(),
+        None => String::new(),
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
     }
 }
 
 /// Consume the input string and return the header and list of args. For example, for the input
 /// `rgba(1.0,0.0,0.0,0.5)`, the header will be `"rgba"`, and the nubers will be arguments.
-fn generic_parse(s:&str) -> Result<(String,Vec<f32>),ParseError> {
-    let mut splitter = s.splitn(2,'(');
+fn generic_parse(s: &str) -> Result<(String, Vec<f32>), ParseError> {
+    let mut splitter = s.splitn(2, '(');
     match splitter.next() {
-        None       => Err(ParseError::new("Empty input.")),
-        Some(head) => {
-            match splitter.next() {
-                None       => Err(ParseError::new("No arguments provided.")),
-                Some(rest) => {
-                    let head = uppercase_first_letter(&head.to_lowercase());
-                    if !rest.ends_with(')') {
-                        Err(ParseError::new("Expression does not end with ')'."))
-                    } else {
-                        let rest = &rest[..rest.len()-1];
-                        let args : Result<Vec<f32>,std::num::ParseFloatError> =
-                            rest.split(',').map(|t|t.parse::<f32>()).collect();
-                        let args = args?;
-                        Ok((head,args))
-                    }
+        None => Err(ParseError::new("Empty input.")),
+        Some(head) => match splitter.next() {
+            None => Err(ParseError::new("No arguments provided.")),
+            Some(rest) => {
+                let head = uppercase_first_letter(&head.to_lowercase());
+                if !rest.ends_with(')') {
+                    Err(ParseError::new("Expression does not end with ')'."))
+                } else {
+                    let rest = &rest[..rest.len() - 1];
+                    let args: Result<Vec<f32>, std::num::ParseFloatError> =
+                        rest.split(',').map(|t| t.parse::<f32>()).collect();
+                    let args = args?;
+                    Ok((head, args))
                 }
             }
-        }
+        },
     }
 }

@@ -26,18 +26,18 @@ pub use uniform::*;
 
 /// Common types.
 pub mod types {
+    pub use super::texture;
     use super::*;
     pub use attribute::Attribute;
     pub use attribute::AttributeScope;
     pub use buffer::AnyBuffer;
     pub use buffer::Buffer;
-    pub use buffer::Storable;
     pub use buffer::IsBuffer;
+    pub use buffer::Storable;
     pub use default::GpuDefault;
-    pub use gl_enum::GlEnum;
     pub use gl_enum::traits::*;
+    pub use gl_enum::GlEnum;
     pub use prim::*;
-    pub use super::texture;
     pub use texture::Texture;
     pub use texture::TextureBindGuard;
     pub use uniform::AnyPrimUniform;

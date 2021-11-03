@@ -21,7 +21,7 @@ use data::opt_vec::OptVec;
 // === Types ===
 // =============
 
-pub type SymbolDirty = dirty::SharedSet<SymbolId,Box<dyn Fn()>>;
+pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 
 
 
@@ -33,47 +33,50 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId,Box<dyn Fn()>>;
 
 /// Registry for all the created symbols. The `z_zoom_1` value describes the z-axis distance at
 /// which the `zoom` value is `1.0`.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
-    symbols         : Rc<RefCell<OptVec<Symbol>>>,
-    symbol_dirty    : SymbolDirty,
-    logger          : Logger,
-    view_projection : Uniform<Matrix4<f32>>,
-    z_zoom_1        : Uniform<f32>,
-    variables       : UniformScope,
-    context         : Rc<RefCell<Option<Context>>>,
-    stats           : Stats,
+    symbols:         Rc<RefCell<OptVec<Symbol>>>,
+    symbol_dirty:    SymbolDirty,
+    logger:          Logger,
+    view_projection: Uniform<Matrix4<f32>>,
+    z_zoom_1:        Uniform<f32>,
+    variables:       UniformScope,
+    context:         Rc<RefCell<Option<Context>>>,
+    stats:           Stats,
 }
 
 impl SymbolRegistry {
     /// Constructor.
-    pub fn mk<OnMut:Fn()+'static,Log:AnyLogger>
-    (variables:&UniformScope, stats:&Stats, logger:&Log, on_mut:OnMut)
-    -> Self {
-        let logger = Logger::new_sub(logger,"symbol_registry");
-        debug!(logger,"Initializing.");
-        let symbol_logger   = Logger::new_sub(&logger,"symbol_dirty");
-        let symbol_dirty    = SymbolDirty::new(symbol_logger,Box::new(on_mut));
-        let symbols         = default();
-        let variables       = variables.clone();
+    pub fn mk<OnMut: Fn() + 'static, Log: AnyLogger>(
+        variables: &UniformScope,
+        stats: &Stats,
+        logger: &Log,
+        on_mut: OnMut,
+    ) -> Self {
+        let logger = Logger::new_sub(logger, "symbol_registry");
+        debug!(logger, "Initializing.");
+        let symbol_logger = Logger::new_sub(&logger, "symbol_dirty");
+        let symbol_dirty = SymbolDirty::new(symbol_logger, Box::new(on_mut));
+        let symbols = default();
+        let variables = variables.clone();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
-        let z_zoom_1        = variables.add_or_panic("z_zoom_1"       , 1.0);
-        let context         = default();
-        let stats           = stats.clone_ref();
-        Self {symbols,symbol_dirty,logger,view_projection,z_zoom_1,variables,context,stats}
+        let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
+        let context = default();
+        let stats = stats.clone_ref();
+        Self { symbols, symbol_dirty, logger, view_projection, z_zoom_1, variables, context, stats }
     }
 
     /// Creates a new `Symbol` instance and returns its id.
     pub fn new_get_id(&self) -> SymbolId {
         let symbol_dirty = self.symbol_dirty.clone();
-        let variables    = &self.variables;
-        let logger       = &self.logger;
-        let stats        = &self.stats;
-        let index        = self.symbols.borrow_mut().insert_with_ix_(|ix| {
-            let id     = SymbolId::new(ix as u32);
-            let on_mut = move || {symbol_dirty.set(id)};
-            let logger = Logger::new_sub(logger,format!("symbol_{}",ix));
-            let symbol = Symbol::new(logger,stats,id,variables,on_mut);
+        let variables = &self.variables;
+        let logger = &self.logger;
+        let stats = &self.stats;
+        let index = self.symbols.borrow_mut().insert_with_ix_(|ix| {
+            let id = SymbolId::new(ix as u32);
+            let on_mut = move || symbol_dirty.set(id);
+            let logger = Logger::new_sub(logger, format!("symbol_{}", ix));
+            let symbol = Symbol::new(logger, stats, id, variables, on_mut);
             symbol.set_context(self.context.borrow().as_ref());
             symbol
         });
@@ -81,7 +84,7 @@ impl SymbolRegistry {
     }
 
     /// Set the WebGL context. See the main architecture docs of this library to learn more.
-    pub fn set_context(&self, context:Option<&Context>) {
+    pub fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         for symbol in &*self.symbols.borrow() {
             symbol.set_context(context)
@@ -96,7 +99,7 @@ impl SymbolRegistry {
     }
 
     /// Get symbol by its ID.
-    pub fn index(&self, id:SymbolId) -> Symbol {
+    pub fn index(&self, id: SymbolId) -> Symbol {
         self.symbols.borrow()[(*id) as usize].clone_ref()
     }
 
@@ -111,7 +114,7 @@ impl SymbolRegistry {
     }
 
     /// Updates the view-projection matrix after camera movement.
-    pub fn set_camera(&self, camera:&Camera2d) {
+    pub fn set_camera(&self, camera: &Camera2d) {
         self.view_projection.set(camera.view_projection_matrix());
         self.z_zoom_1.set(camera.z_zoom_1());
     }
@@ -124,7 +127,7 @@ impl SymbolRegistry {
     }
 
     /// Rasterize selected symbols.
-    pub fn render_by_ids(&self,ids:&[SymbolId]) {
+    pub fn render_by_ids(&self, ids: &[SymbolId]) {
         let symbols = self.symbols.borrow();
         for id in ids {
             symbols[(**id) as usize].render();

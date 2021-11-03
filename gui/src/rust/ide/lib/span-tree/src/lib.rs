@@ -21,21 +21,21 @@
 #![warn(missing_debug_implementations)]
 
 pub mod action;
+pub mod builder;
 pub mod generate;
 pub mod iter;
 pub mod node;
-pub mod builder;
 
-pub use node::Node;
 pub use node::Crumb;
 pub use node::Crumbs;
+pub use node::Node;
 pub use node::Payload;
 
 /// Module gathering all commonly used traits for massive importing.
 pub mod traits {
     pub use crate::action::Actions;
-    pub use crate::generate::SpanTreeGenerator;
     pub use crate::builder::Builder;
+    pub use crate::generate::SpanTreeGenerator;
 }
 
 /// Common types that should be visible across the whole crate.
@@ -46,8 +46,8 @@ pub mod prelude {
     pub use utils::fail::FallibleResult;
 }
 
-use traits::*;
 use prelude::*;
+
 
 use crate::generate::Context;
 
@@ -58,23 +58,23 @@ use crate::generate::Context;
 // =====================
 
 /// Additional information available for nodes being function arguments or their placeholders.
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct ArgumentInfo {
-    pub name : Option<String>,
-    pub tp   : Option<String>,
+    pub name: Option<String>,
+    pub tp:   Option<String>,
 }
 
 impl ArgumentInfo {
     /// Constructor.
-    pub fn new(name:Option<String>, tp:Option<String>) -> Self {
-        Self {name,tp}
+    pub fn new(name: Option<String>, tp: Option<String>) -> Self {
+        Self { name, tp }
     }
 
     /// Specialized constructor for "this" argument.
-    pub fn this(tp:Option<String>) -> Self {
+    pub fn this(tp: Option<String>) -> Self {
         let name = Some(node::This::NAME.into());
-        Self {name,tp}
+        Self { name, tp }
     }
 }
 
@@ -93,15 +93,15 @@ impl ArgumentInfo {
 /// Please note that `SpanTree` was designed in such a way, that its leaves cover all visual tokens
 /// in the code. Even in the case of parenthesed expressions, like `(foo)`, the parentheses are also
 /// `SpanTree` tokens.
-#[derive(Clone,Debug,Eq,PartialEq)]
-pub struct SpanTree<T=()> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SpanTree<T = ()> {
     /// A root node of the tree.
-    pub root : Node<T>
+    pub root: Node<T>,
 }
 
-impl<T:Payload> SpanTree<T> {
+impl<T: Payload> SpanTree<T> {
     /// Create span tree from something that could generate it (usually AST).
-    pub fn new(gen:&impl SpanTreeGenerator<T>, context:&impl Context) -> FallibleResult<Self> {
+    pub fn new(gen: &impl SpanTreeGenerator<T>, context: &impl Context) -> FallibleResult<Self> {
         gen.generate_tree(context)
     }
 
@@ -116,29 +116,31 @@ impl<T:Payload> SpanTree<T> {
     }
 
     /// Get the node (root, child, or further descendant) identified by `crumbs`.
-    pub fn get_node<'a>
-    (&self, crumbs:impl IntoIterator<Item=&'a Crumb>) -> FallibleResult<node::Ref<T>> {
+    pub fn get_node<'a>(
+        &self,
+        crumbs: impl IntoIterator<Item = &'a Crumb>,
+    ) -> FallibleResult<node::Ref<T>> {
         self.root_ref().get_descendant(crumbs)
     }
 
     /// Payload mapping utility.
-    pub fn map<S>(self, f:impl Copy+Fn(T)->S) -> SpanTree<S> {
+    pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> SpanTree<S> {
         let root = self.root.map(f);
-        SpanTree {root}
+        SpanTree { root }
     }
 }
 
 
 // === Getters ===
 
-impl<T:Payload> SpanTree<T> {
+impl<T: Payload> SpanTree<T> {
     /// Get `ast::Id` of the nested node, if exists.
-    pub fn nested_ast_id(&self, crumbs:&Crumbs) -> Option<ast::Id> {
+    pub fn nested_ast_id(&self, crumbs: &Crumbs) -> Option<ast::Id> {
         if self.root_ref().crumbs == crumbs {
             self.root.ast_id
         } else {
             let span_tree_descendant = self.root_ref().get_descendant(crumbs);
-            span_tree_descendant.map(|t|t.ast_id).ok().flatten()
+            span_tree_descendant.map(|t| t.ast_id).ok().flatten()
         }
     }
 }
@@ -146,9 +148,9 @@ impl<T:Payload> SpanTree<T> {
 
 // == Impls ===
 
-impl<T:Payload> Default for SpanTree<T> {
+impl<T: Payload> Default for SpanTree<T> {
     fn default() -> Self {
         let root = Node::<T>::new().with_kind(node::Kind::Root);
-        Self {root}
+        Self { root }
     }
 }

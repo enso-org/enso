@@ -10,10 +10,10 @@ use crate::prelude::*;
 
 use crate::types::UTCDateTime;
 use json_rpc::api::Result;
-use json_rpc::Handler;
 use json_rpc::make_rpc_methods;
-use serde::Serialize;
+use json_rpc::Handler;
 use serde::Deserialize;
+use serde::Serialize;
 use std::future::Future;
 use uuid::Uuid;
 
@@ -85,66 +85,70 @@ trait API {
 // =============
 
 /// Address consisting of host and port.
-#[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct IpWithSocket {
     /// Host name.
-    pub host : String,
+    pub host: String,
     /// Port number.
-    pub port : u16
+    pub port: u16,
 }
 
 impl Display for IpWithSocket {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f,"ws://{}:{}",self.host,self.port)
+        write!(f, "ws://{}:{}", self.host, self.port)
     }
 }
 
 /// Project name.
-#[derive(Clone,Debug,Deserialize,Display,Eq,From,Hash,PartialEq,Serialize,Shrinkwrap)]
+#[derive(Clone, Debug, Deserialize, Display, Eq, From, Hash, PartialEq, Serialize, Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct ProjectName(pub String);
 
 impl ProjectName {
     /// Create new ProjectName.
-    pub fn new(name : impl Str) -> Self {
+    pub fn new(name: impl Str) -> Self {
         Self(name.into())
     }
 }
 
 impl AsRef<str> for ProjectName {
-    fn as_ref(&self) -> &str { &self.0 }
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
 }
 
 impl From<ProjectName> for String {
-    fn from(name:ProjectName) -> Self { name.0 }
+    fn from(name: ProjectName) -> Self {
+        name.0
+    }
 }
 
 /// Project information, such as name, its id and last time it was opened.
-#[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
-#[serde(rename_all="camelCase")]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ProjectMetadata {
     /// Project's name.
-    pub name:ProjectName,
+    pub name:           ProjectName,
     /// Project's namespace,
-    pub namespace:String,
+    pub namespace:      String,
     /// Project's uuid.
-    pub id:Uuid,
+    pub id:             Uuid,
     /// Engine version to use for the project, represented by a semver version string.
-    pub engine_version:Option<String>,
+    pub engine_version: Option<String>,
     /// Last time the project was opened.
-    pub last_opened:Option<UTCDateTime>
+    pub last_opened:    Option<UTCDateTime>,
 }
 
 /// This type specifies what action should be taken if an Engine's component required to complete
 /// the Project Manager operation (like project/open) is missing.
-#[derive(Debug,Clone,Copy,Serialize,Deserialize,Eq,PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
 pub enum MissingComponentAction {
     /// Will make the operation fail if any components are missing.
     Fail,
     /// Will try to install any missing components, unless they are marked as broken.
     Install,
     /// Will try to install all missing components, even if some of them are marked as broken.
-    ForceInstallBroken
+    ForceInstallBroken,
 }
 
 
@@ -156,31 +160,31 @@ pub mod response {
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     pub struct ProjectList {
         /// List of projects.
-        pub projects: Vec<ProjectMetadata>
+        pub projects: Vec<ProjectMetadata>,
     }
 
     /// Response of `create_project`.
     #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
-    #[serde(rename_all="camelCase")]
+    #[serde(rename_all = "camelCase")]
     pub struct CreateProject {
         /// Created project uuid.
-        pub project_id: Uuid
+        pub project_id: Uuid,
     }
 
     /// Response of `open_project`.
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-    #[serde(rename_all="camelCase")]
+    #[serde(rename_all = "camelCase")]
     pub struct OpenProject {
         /// The version of the started language server represented by a semver version string.
-        pub engine_version:String,
+        pub engine_version:                 String,
         /// Address of the endpoint for JSON-RPC communication.
-        pub language_server_json_address:IpWithSocket,
+        pub language_server_json_address:   IpWithSocket,
         /// Address of the endpoint for binary FlatBuffers communication.
-        pub language_server_binary_address:IpWithSocket,
+        pub language_server_binary_address: IpWithSocket,
         /// The name of the project as it is opened.
-        pub project_name:ProjectName,
+        pub project_name:                   ProjectName,
         /// The namespace of the project.
-        pub project_namespace:String,
+        pub project_namespace:              String,
     }
 }
 
@@ -202,35 +206,35 @@ mod mock_client_tests {
     use std::future::Future;
     use uuid::Uuid;
 
-    fn error<T>(message:&str) -> Result<T> {
-        let code    = 1;
-        let data    = None;
+    fn error<T>(message: &str) -> Result<T> {
+        let code = 1;
+        let data = None;
         let message = message.to_string();
-        let error   = Error {code,data,message};
+        let error = Error { code, data, message };
         Err(RpcError::RemoteError(error))
     }
 
-    fn result<T,F:Future<Output = Result<T>>>(fut:F) -> Result<T> {
+    fn result<T, F: Future<Output = Result<T>>>(fut: F) -> Result<T> {
         let mut fut = Box::pin(fut);
         fut.expect_ready()
     }
 
     #[test]
     fn project_life_cycle() {
-        let mock_client             = MockClient::default();
-        let expected_uuid           = Uuid::default();
-        let creation_response       = response::CreateProject {project_id : expected_uuid};
-        let host                    = "localhost".to_string();
-        let port                    = 30500;
-        let language_server_address = IpWithSocket {host,port};
-        let expected_open_result    = response::OpenProject {
-            engine_version                 : "0.2.1".to_owned(),
-            language_server_json_address   : language_server_address.clone(),
-            language_server_binary_address : language_server_address,
-            project_name                   : ProjectName::new("Test"),
-            project_namespace              : "local".to_owned(),
+        let mock_client = MockClient::default();
+        let expected_uuid = Uuid::default();
+        let creation_response = response::CreateProject { project_id: expected_uuid };
+        let host = "localhost".to_string();
+        let port = 30500;
+        let language_server_address = IpWithSocket { host, port };
+        let expected_open_result = response::OpenProject {
+            engine_version:                 "0.2.1".to_owned(),
+            language_server_json_address:   language_server_address.clone(),
+            language_server_binary_address: language_server_address,
+            project_name:                   ProjectName::new("Test"),
+            project_namespace:              "local".to_owned(),
         };
-        let open_result              = Ok(expected_open_result.clone());
+        let open_result = Ok(expected_open_result.clone());
         let missing_component_action = MissingComponentAction::Fail;
         expect_call!(mock_client.create_project(
             name                     = "HelloWorld".to_string(),
@@ -244,14 +248,15 @@ mod mock_client_tests {
         let delete_result = mock_client.delete_project(&expected_uuid);
         result(delete_result).expect_err("Project shouldn't exist.");
 
-        let creation_response = mock_client.create_project(&"HelloWorld".to_string(),&None,&missing_component_action);
+        let creation_response =
+            mock_client.create_project(&"HelloWorld".to_string(), &None, &missing_component_action);
         let uuid = result(creation_response).expect("Couldn't create project").project_id;
         assert_eq!(uuid, expected_uuid);
 
         let close_result = result(mock_client.close_project(&uuid));
         close_result.expect_err("Project shouldn't be open.");
 
-        let ip_with_socket = result(mock_client.open_project(&uuid,&missing_component_action));
+        let ip_with_socket = result(mock_client.open_project(&uuid, &missing_component_action));
         let ip_with_socket = ip_with_socket.expect("Couldn't open project");
         assert_eq!(ip_with_socket, expected_open_result);
 
@@ -265,45 +270,45 @@ mod mock_client_tests {
     #[test]
     fn list_projects() {
         let mock_client = MockClient::default();
-        let project1    = ProjectMetadata {
-            name           : ProjectName::new("project1"),
-            id             : Uuid::default(),
-            last_opened    : Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
-            engine_version : Some("0.2.21".to_owned()),
-            namespace      : "local".to_owned(),
+        let project1 = ProjectMetadata {
+            name:           ProjectName::new("project1"),
+            id:             Uuid::default(),
+            last_opened:    Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
+            engine_version: Some("0.2.21".to_owned()),
+            namespace:      "local".to_owned(),
         };
         let project2 = ProjectMetadata {
-            name        : ProjectName::new("project2"),
-            id          : Uuid::default(),
-            last_opened : Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
-            engine_version : Some("0.2.22".to_owned()),
-            namespace      : "local".to_owned(),
+            name:           ProjectName::new("project2"),
+            id:             Uuid::default(),
+            last_opened:    Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
+            engine_version: Some("0.2.22".to_owned()),
+            namespace:      "local".to_owned(),
         };
-        let expected_recent_projects = response::ProjectList { projects : vec![project1,project2] };
+        let expected_recent_projects = response::ProjectList { projects: vec![project1, project2] };
         let sample1 = ProjectMetadata {
-            name           : ProjectName::new("sample1"),
-            id             : Uuid::default(),
-            last_opened    : Some(DateTime::parse_from_rfc3339("2019-11-23T05:30:12Z").unwrap()),
-            engine_version : Some("0.2.21".to_owned()),
-            namespace      : "test".to_owned(),
+            name:           ProjectName::new("sample1"),
+            id:             Uuid::default(),
+            last_opened:    Some(DateTime::parse_from_rfc3339("2019-11-23T05:30:12Z").unwrap()),
+            engine_version: Some("0.2.21".to_owned()),
+            namespace:      "test".to_owned(),
         };
         let sample2 = ProjectMetadata {
-            name           : ProjectName::new("sample2"),
-            id             : Uuid::default(),
-            last_opened    : Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap()),
-            engine_version : Some("0.2.21".to_owned()),
-            namespace      : "test".to_owned(),
+            name:           ProjectName::new("sample2"),
+            id:             Uuid::default(),
+            last_opened:    Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap()),
+            engine_version: Some("0.2.21".to_owned()),
+            namespace:      "test".to_owned(),
         };
-        let expected_sample_projects = response::ProjectList { projects : vec![sample1,sample2] };
+        let expected_sample_projects = response::ProjectList { projects: vec![sample1, sample2] };
         expect_call!(mock_client.list_projects(count=Some(2)) =>
            Ok(expected_recent_projects.clone()));
         expect_call!(mock_client.list_samples(count=2) => Ok(expected_sample_projects.clone()));
 
         let list_recent_error = "Couldn't get recent projects.";
         let list_sample_error = "Couldn't get sample projects.";
-        let count_limit       = Some(2);
-        let recent_projects   = result(mock_client.list_projects(&count_limit));
-        let recent_projects   = recent_projects.expect(list_recent_error);
+        let count_limit = Some(2);
+        let recent_projects = result(mock_client.list_projects(&count_limit));
+        let recent_projects = recent_projects.expect(list_recent_error);
         assert_eq!(recent_projects, expected_recent_projects);
         let sample_projects = result(mock_client.list_samples(&2)).expect(list_sample_error);
         assert_eq!(sample_projects, expected_sample_projects);
@@ -321,26 +326,26 @@ mod remote_client_tests {
     use super::*;
 
     use chrono::DateTime;
+    use futures::task::LocalSpawnExt;
     use json_rpc::messages::Message;
     use json_rpc::messages::RequestMessage;
     use json_rpc::test_util::transport::mock::MockTransport;
     use serde_json::json;
     use serde_json::Value;
     use std::future::Future;
-    use futures::task::LocalSpawnExt;
 
     struct Fixture {
-        transport : MockTransport,
-        client    : Client,
-        executor  : futures::executor::LocalPool,
+        transport: MockTransport,
+        client:    Client,
+        executor:  futures::executor::LocalPool,
     }
 
     fn setup_fm() -> Fixture {
         let transport = MockTransport::new();
-        let client    = Client::new(transport.clone());
-        let executor  = futures::executor::LocalPool::new();
+        let client = Client::new(transport.clone());
+        let executor = futures::executor::LocalPool::new();
         executor.spawner().spawn_local(client.runner()).unwrap();
-        Fixture {transport,client,executor}
+        Fixture { transport, client, executor }
     }
 
     /// Tests making a request using project manager:
@@ -349,17 +354,19 @@ mod remote_client_tests {
     /// * checks that request input is `expected_input`
     /// * mocks receiving a response from server with `result`
     /// * checks that FM-returned Future yields `expected_output`
-    fn test_request<Fun, Fut, T>
-    ( make_request    : Fun
-    , expected_method : &str
-    , expected_input  : &Value
-    , result          : &Value
-    , expected_output : &T
-    ) where Fun : FnOnce(&mut Client) -> Fut,
-            Fut : Future<Output = Result<T>>,
-              T : Debug + PartialEq {
+    fn test_request<Fun, Fut, T>(
+        make_request: Fun,
+        expected_method: &str,
+        expected_input: &Value,
+        result: &Value,
+        expected_output: &T,
+    ) where
+        Fun: FnOnce(&mut Client) -> Fut,
+        Fut: Future<Output = Result<T>>,
+        T: Debug + PartialEq,
+    {
         let mut fixture = setup_fm();
-        let mut fut     = Box::pin(make_request(&mut fixture.client));
+        let mut fut = Box::pin(make_request(&mut fixture.client));
 
         let request = fixture.transport.expect_json_message::<RequestMessage<Value>>();
         assert_eq!(request.method, *expected_method);
@@ -374,26 +381,32 @@ mod remote_client_tests {
 
     #[test]
     fn test_requests() {
-        let unit_json                = json!(null);
-        let project_id               = Uuid::default();
+        let unit_json = json!(null);
+        let project_id = Uuid::default();
         let missing_component_action = MissingComponentAction::Install;
-        let engine_version           = "1.0.0".to_owned();
-        let engine_version_opt       = Some(engine_version.clone());
-        let create_project_response  = response::CreateProject { project_id };
-        let project_id_json          = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
-        let project_id_and_mca       = json!({
+        let engine_version = "1.0.0".to_owned();
+        let engine_version_opt = Some(engine_version.clone());
+        let create_project_response = response::CreateProject { project_id };
+        let project_id_json = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
+        let project_id_and_mca = json!({
             "projectId"              : "00000000-0000-0000-0000-000000000000",
             "missingComponentAction" : "Install"
         });
 
-        let engine_version                 = "0.2.1".to_owned();
-        let language_server_json_address   = IpWithSocket{host:"localhost".to_string(),port:27015};
-        let language_server_binary_address = IpWithSocket{host:"localhost".to_string(),port:27016};
-        let project_name                   = ProjectName::new("Test");
-        let project_namespace              = "test_ns".to_owned();
-        let open_result                    = response::OpenProject {engine_version
-            ,language_server_json_address,language_server_binary_address,project_name
-            ,project_namespace};
+        let engine_version = "0.2.1".to_owned();
+        let language_server_json_address =
+            IpWithSocket { host: "localhost".to_string(), port: 27015 };
+        let language_server_binary_address =
+            IpWithSocket { host: "localhost".to_string(), port: 27016 };
+        let project_name = ProjectName::new("Test");
+        let project_namespace = "test_ns".to_owned();
+        let open_result = response::OpenProject {
+            engine_version,
+            language_server_json_address,
+            language_server_binary_address,
+            project_name,
+            project_namespace,
+        };
         let open_result_json = json!({
             "engineVersion" : "0.2.1",
             "languageServerJsonAddress" : {
@@ -407,30 +420,30 @@ mod remote_client_tests {
             "projectName"      : "Test",
             "projectNamespace" : "test_ns",
         });
-        let project_name        = String::from("HelloWorld");
+        let project_name = String::from("HelloWorld");
         let project_create_json = json!({
             "name"                   : serde_json::to_value(&project_name).unwrap(),
             "missingComponentAction" : "Install",
             "version"                : "1.0.0",
         });
-        let number_of_projects      = 2;
-        let number_of_projects_json = json!({"numberOfProjects":number_of_projects});
-        let num_projects_json       = json!({"numProjects":number_of_projects});
-        let project1                = ProjectMetadata {
-            name           : ProjectName::new("project1"),
-            id             : Uuid::default(),
-            last_opened    : Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
-            engine_version : Some("0.2.21".to_owned()),
-            namespace      : "local".to_owned(),
+        let number_of_projects = 2;
+        let number_of_projects_json = json!({ "numberOfProjects": number_of_projects });
+        let num_projects_json = json!({ "numProjects": number_of_projects });
+        let project1 = ProjectMetadata {
+            name:           ProjectName::new("project1"),
+            id:             Uuid::default(),
+            last_opened:    Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
+            engine_version: Some("0.2.21".to_owned()),
+            namespace:      "local".to_owned(),
         };
         let project2 = ProjectMetadata {
-            name           : ProjectName::new("project2"),
-            id             : Uuid::default(),
-            last_opened    : Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
-            engine_version : Some("0.2.22".to_owned()),
-            namespace      : "local".to_owned(),
+            name:           ProjectName::new("project2"),
+            id:             Uuid::default(),
+            last_opened:    Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
+            engine_version: Some("0.2.22".to_owned()),
+            namespace:      "local".to_owned(),
         };
-        let project_list      = response::ProjectList { projects : vec![project1,project2] };
+        let project_list = response::ProjectList { projects: vec![project1, project2] };
         let project_list_json = json!({
             "projects" : [
                 {
@@ -455,42 +468,44 @@ mod remote_client_tests {
             "project/list",
             &number_of_projects_json,
             &project_list_json,
-            &project_list
+            &project_list,
         );
         test_request(
             |client| client.list_samples(&number_of_projects),
             "project/listSample",
             &num_projects_json,
             &project_list_json,
-            &project_list
+            &project_list,
         );
         test_request(
-            |client| client.open_project(&project_id,&missing_component_action),
+            |client| client.open_project(&project_id, &missing_component_action),
             "project/open",
             &project_id_and_mca,
             &open_result_json,
-            &open_result
+            &open_result,
         );
         test_request(
             |client| client.close_project(&project_id),
             "project/close",
             &project_id_json,
             &unit_json,
-            &()
+            &(),
         );
         test_request(
             |client| client.delete_project(&project_id),
             "project/delete",
             &project_id_json,
             &unit_json,
-            &()
+            &(),
         );
         test_request(
-            |client| client.create_project(&project_name,&engine_version_opt,&missing_component_action),
+            |client| {
+                client.create_project(&project_name, &engine_version_opt, &missing_component_action)
+            },
             "project/create",
             &project_create_json,
             &project_id_json,
-            &create_project_response
+            &create_project_response,
         );
     }
 }

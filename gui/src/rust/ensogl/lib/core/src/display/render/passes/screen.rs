@@ -13,21 +13,21 @@ use crate::display::symbol::Screen;
 // ========================
 
 /// Renders the last `'color'` variable to the screen.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ScreenRenderPass {
     screen: Screen,
 }
 
 impl ScreenRenderPass {
     /// Constructor.
-    pub fn new(scene:&Scene) -> Self {
-        let screen = Screen::new_identity_painter(scene,"pass_color");
-        Self {screen}
+    pub fn new(scene: &Scene) -> Self {
+        let screen = Screen::new_identity_painter(scene, "pass_color");
+        Self { screen }
     }
 }
 
 impl pass::Definition for ScreenRenderPass {
-    fn run(&mut self, _:&pass::Instance) {
+    fn run(&mut self, _: &pass::Instance) {
         self.screen.render();
     }
 }

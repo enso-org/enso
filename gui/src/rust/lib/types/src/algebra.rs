@@ -22,11 +22,11 @@ pub use std::ops::Neg;
 pub use std::ops::Sub;
 
 use nalgebra;
-use nalgebra::Scalar;
-use nalgebra::Matrix;
+use nalgebra::storage::Storage;
 use nalgebra::ComplexField;
 use nalgebra::Dim;
-use nalgebra::storage::Storage;
+use nalgebra::Matrix;
+use nalgebra::Scalar;
 
 
 
@@ -38,16 +38,22 @@ use nalgebra::storage::Storage;
 mod vectors {
     use super::*;
 
-    pub type Vector2<T=f32> = nalgebra::Vector2<T>;
-    pub type Vector3<T=f32> = nalgebra::Vector3<T>;
-    pub type Vector4<T=f32> = nalgebra::Vector4<T>;
+    pub type Vector2<T = f32> = nalgebra::Vector2<T>;
+    pub type Vector3<T = f32> = nalgebra::Vector3<T>;
+    pub type Vector4<T = f32> = nalgebra::Vector4<T>;
 
-    pub type Rotation2<T=f32> = nalgebra::Rotation2<T>;
-    pub type Rotation3<T=f32> = nalgebra::Rotation3<T>;
+    pub type Rotation2<T = f32> = nalgebra::Rotation2<T>;
+    pub type Rotation3<T = f32> = nalgebra::Rotation3<T>;
 
-    pub fn Vector2<T:Scalar>(t1:T,t2:T)           -> Vector2<T> { Vector2::new(t1,t2) }
-    pub fn Vector3<T:Scalar>(t1:T,t2:T,t3:T)      -> Vector3<T> { Vector3::new(t1,t2,t3) }
-    pub fn Vector4<T:Scalar>(t1:T,t2:T,t3:T,t4:T) -> Vector4<T> { Vector4::new(t1,t2,t3,t4) }
+    pub fn Vector2<T: Scalar>(t1: T, t2: T) -> Vector2<T> {
+        Vector2::new(t1, t2)
+    }
+    pub fn Vector3<T: Scalar>(t1: T, t2: T, t3: T) -> Vector3<T> {
+        Vector3::new(t1, t2, t3)
+    }
+    pub fn Vector4<T: Scalar>(t1: T, t2: T, t3: T, t4: T) -> Vector4<T> {
+        Vector4::new(t1, t2, t3, t4)
+    }
 }
 pub use vectors::*;
 
@@ -64,7 +70,7 @@ pub trait Zero {
 }
 
 /// Smart constructor for the `Zero` trait.
-pub fn zero<T:Zero>() -> T {
+pub fn zero<T: Zero>() -> T {
     <T as Zero>::zero()
 }
 
@@ -92,10 +98,12 @@ macro_rules! gen_zero_nalgebra {
     )*};
 }
 
-gen_zero!([f32,f64] = 0.0);
-gen_zero!([i32,i64,usize] = 0);
-gen_zero_nalgebra!([Vector2,Vector3,Vector4,Matrix2,Matrix3,Matrix4,Matrix2x3,Matrix2x4,Matrix3x2
-                   ,Matrix3x4,Matrix4x2,Matrix4x3]);
+gen_zero!([f32, f64] = 0.0);
+gen_zero!([i32, i64, usize] = 0);
+gen_zero_nalgebra!([
+    Vector2, Vector3, Vector4, Matrix2, Matrix3, Matrix4, Matrix2x3, Matrix2x4, Matrix3x2,
+    Matrix3x4, Matrix4x2, Matrix4x3
+]);
 
 
 
@@ -115,19 +123,19 @@ pub trait HasComponents {
 // ============
 
 /// Describes types that have the first dimension component.
-pub trait Dim1 : HasComponents {
+pub trait Dim1: HasComponents {
     /// X-axis component getter.
     fn x(&self) -> Self::Component;
 }
 
 /// Describes types that have the second dimension component.
-pub trait Dim2 : Dim1 {
+pub trait Dim2: Dim1 {
     /// Y-axis component getter.
     fn y(&self) -> Self::Component;
 }
 
 /// Describes types that have the third dimension component.
-pub trait Dim3 : Dim2 {
+pub trait Dim3: Dim2 {
     /// Z-axis component getter.
     fn z(&self) -> Self::Component;
 }
@@ -145,7 +153,9 @@ pub trait Abs {
 }
 
 impl Abs for usize {
-    fn abs(&self) -> Self { *self }
+    fn abs(&self) -> Self {
+        *self
+    }
 }
 
 
@@ -161,7 +171,7 @@ macro_rules! gen_abs {
     )*};
 }
 
-gen_abs!([f32,f64,i32,i64]);
+gen_abs!([f32, f64, i32, i64]);
 
 
 
@@ -172,7 +182,7 @@ gen_abs!([f32,f64,i32,i64]);
 /// Types where minimum of the values can be found.
 pub trait Min {
     /// Lesser of the two values.
-    fn min(a:Self, b:Self) -> Self;
+    fn min(a: Self, b: Self) -> Self;
 }
 
 
@@ -188,7 +198,7 @@ macro_rules! gen_min {
     )*};
 }
 
-gen_min!([f32,f64,i32,i64,usize]);
+gen_min!([f32, f64, i32, i64, usize]);
 
 
 
@@ -199,7 +209,7 @@ gen_min!([f32,f64,i32,i64,usize]);
 /// Types where maximum of the values can be found.
 pub trait Max {
     /// Greater of the two values.
-    fn max(a:Self, b:Self) -> Self;
+    fn max(a: Self, b: Self) -> Self;
 }
 
 
@@ -215,7 +225,7 @@ macro_rules! gen_max {
     )*};
 }
 
-gen_max!([f32,f64,i32,i64,usize]);
+gen_max!([f32, f64, i32, i64, usize]);
 
 
 
@@ -225,14 +235,14 @@ gen_max!([f32,f64,i32,i64,usize]);
 
 /// Types which can be raised to the given power.
 #[allow(missing_docs)]
-pub trait Pow<T=Self> {
+pub trait Pow<T = Self> {
     type Output;
-    fn pow(self, t:T) -> Self::Output;
+    fn pow(self, t: T) -> Self::Output;
 }
 
 impl Pow<f32> for f32 {
     type Output = f32;
-    fn pow(self, t:f32) -> Self::Output {
+    fn pow(self, t: f32) -> Self::Output {
         self.powf(t)
     }
 }
@@ -260,7 +270,7 @@ impl Magnitude for f32 {
     }
 }
 
-impl<N:ComplexField, R:Dim, C:Dim, S:Storage<N,R,C>> Magnitude for Matrix<N,R,C,S> {
+impl<N: ComplexField, R: Dim, C: Dim, S: Storage<N, R, C>> Magnitude for Matrix<N, R, C, S> {
     type Output = N::RealField;
     fn magnitude(&self) -> Self::Output {
         self.norm()
@@ -301,7 +311,7 @@ impl Signum for f32 {
 #[allow(missing_docs)]
 pub trait Clamp {
     type Output;
-    fn clamp(self, min:Self, max:Self) -> Self::Output;
+    fn clamp(self, min: Self, max: Self) -> Self::Output;
 }
 
 
@@ -309,8 +319,8 @@ pub trait Clamp {
 
 impl Clamp for f32 {
     type Output = f32;
-    fn clamp(self, min:f32, max:f32) -> f32 {
-        self.clamp(min,max)
+    fn clamp(self, min: f32, max: f32) -> f32 {
+        self.clamp(min, max)
     }
 }
 
@@ -321,13 +331,21 @@ impl Clamp for f32 {
 // =================
 
 /// Compares and returns the minimum of two values.
-pub fn min<T:PartialOrd>(a:T, b:T) -> T {
-    if b < a { b } else { a }
+pub fn min<T: PartialOrd>(a: T, b: T) -> T {
+    if b < a {
+        b
+    } else {
+        a
+    }
 }
 
 /// Compares and returns the maximum of two values.
-pub fn max<T:PartialOrd>(a:T, b:T) -> T {
-    if b > a { b } else { a }
+pub fn max<T: PartialOrd>(a: T, b: T) -> T {
+    if b > a {
+        b
+    } else {
+        a
+    }
 }
 
 
@@ -364,7 +382,9 @@ impl Normalize for Vector3<f32> {
 }
 
 impl Normalize for Vector4<f32> {
-    fn normalize(&self) -> Self { self.normalize() }
+    fn normalize(&self) -> Self {
+        self.normalize()
+    }
 }
 
 
@@ -491,32 +511,32 @@ impl Acos for f32 {
 /// Saturating addition. Computes self + rhs, saturating at the numeric bounds instead of
 /// overflowing.
 #[allow(missing_docs)]
-pub trait SaturatingAdd<Rhs=Self> {
+pub trait SaturatingAdd<Rhs = Self> {
     type Output;
-    fn saturating_add(self, rhs:Rhs) -> Self::Output;
+    fn saturating_add(self, rhs: Rhs) -> Self::Output;
 }
 
 /// Saturating subtraction. Computes self - rhs, saturating at the numeric bounds instead of
 /// overflowing.
 #[allow(missing_docs)]
-pub trait SaturatingSub<Rhs=Self> {
+pub trait SaturatingSub<Rhs = Self> {
     type Output;
-    fn saturating_sub(self, rhs:Rhs) -> Self::Output;
+    fn saturating_sub(self, rhs: Rhs) -> Self::Output;
 }
 
 /// Saturating multiplication. Computes self * rhs, saturating at the numeric bounds instead of
 /// overflowing.
 #[allow(missing_docs)]
-pub trait SaturatingMul<Rhs=Self> {
+pub trait SaturatingMul<Rhs = Self> {
     type Output;
-    fn saturating_mul(self, rhs:Rhs) -> Self::Output;
+    fn saturating_mul(self, rhs: Rhs) -> Self::Output;
 }
 
 /// Saturating power. Computes self ^ exp, saturating at the numeric bounds instead of overflowing.
 #[allow(missing_docs)]
 pub trait SaturatingPow {
     type Output;
-    fn saturating_pow(self, exp:u32) -> Self::Output;
+    fn saturating_pow(self, exp: u32) -> Self::Output;
 }
 
 
@@ -526,28 +546,28 @@ macro_rules! impl_saturating_opr {
     ($name:ident :: $opr:ident for $tgt:ident) => {
         impl $name<$tgt> for $tgt {
             type Output = $tgt;
-            fn $opr(self, rhs:$tgt) -> Self::Output {
+            fn $opr(self, rhs: $tgt) -> Self::Output {
                 self.$opr(rhs)
             }
         }
 
         impl $name<$tgt> for &$tgt {
             type Output = $tgt;
-            fn $opr(self, rhs:$tgt) -> Self::Output {
+            fn $opr(self, rhs: $tgt) -> Self::Output {
                 (*self).$opr(rhs)
             }
         }
 
         impl $name<&$tgt> for $tgt {
             type Output = $tgt;
-            fn $opr(self, rhs:&$tgt) -> Self::Output {
+            fn $opr(self, rhs: &$tgt) -> Self::Output {
                 self.$opr(*rhs)
             }
         }
 
         impl $name<&$tgt> for &$tgt {
             type Output = $tgt;
-            fn $opr(self, rhs:&$tgt) -> Self::Output {
+            fn $opr(self, rhs: &$tgt) -> Self::Output {
                 (*self).$opr(*rhs)
             }
         }
@@ -562,4 +582,4 @@ macro_rules! impl_saturating_integer {
     }
 }
 
-impl_saturating_integer!(u8,u16,u32,u64,u128,usize);
+impl_saturating_integer!(u8, u16, u32, u64, u128, usize);

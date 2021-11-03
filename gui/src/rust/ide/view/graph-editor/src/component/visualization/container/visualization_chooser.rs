@@ -15,8 +15,8 @@ use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl_gui_components::list_view;
 use ensogl_gui_components::drop_down_menu;
+use ensogl_gui_components::list_view;
 
 
 
@@ -51,22 +51,22 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 struct Model {
-    selection_menu : drop_down_menu::DropDownMenu,
-    registry       : visualization::Registry,
+    selection_menu: drop_down_menu::DropDownMenu,
+    registry:       visualization::Registry,
 }
 
 impl Model {
-    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
+    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let selection_menu = drop_down_menu::DropDownMenu::new(app);
         app.display.scene().layers.below_main.add_exclusive(&selection_menu);
-        Self{selection_menu,registry}
+        Self { selection_menu, registry }
     }
 
-    pub fn entries(&self, input_type:&Option<enso::Type>) -> Vec<visualization::Path> {
+    pub fn entries(&self, input_type: &Option<enso::Type>) -> Vec<visualization::Path> {
         let input_type_or_any = input_type.clone().unwrap_or_else(enso::Type::any);
-        let definitions_iter  = self.registry.valid_sources(&input_type_or_any).into_iter();
+        let definitions_iter = self.registry.valid_sources(&input_type_or_any).into_iter();
         definitions_iter.map(|d| d.signature.path).collect_vec()
     }
 }
@@ -85,25 +85,25 @@ impl display::Object for Model {
 
 /// UI entity that shows a button that opens a list of visualisations that can be selected from.
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct VisualizationChooser {
-    pub frp : Frp,
-    model   : Model,
+    pub frp: Frp,
+    model:   Model,
 }
 
 impl VisualizationChooser {
     /// Constructor.
-    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
-        let frp   = Frp::new();
-        let model = Model::new(app,registry);
-        Self {frp,model}.init()
+    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
+        let frp = Frp::new();
+        let model = Model::new(app, registry);
+        Self { frp, model }.init()
     }
 
     fn init(self) -> Self {
         let network = &self.frp.network;
-        let frp     = &self.frp;
-        let model   = &self.model;
-        let menu    = &self.model.selection_menu.frp;
+        let frp = &self.frp;
+        let model = &self.model;
+        let menu = &self.model.selection_menu.frp;
 
         frp::extend! { network
 

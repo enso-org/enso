@@ -10,11 +10,11 @@ use crate::prelude::*;
 use crate::graph_editor::component::node::input::area::TEXT_SIZE;
 
 use ensogl::application::Application;
+use ensogl::display;
 use ensogl::display::camera::Camera2d;
-use ensogl::display::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::style;
-use ensogl::display;
+use ensogl::display::Scene;
 use ensogl_gui_components::shadow;
 use ensogl_text as text;
 use ensogl_theme as theme;
@@ -27,13 +27,13 @@ use std::future::Future;
 // =================
 
 /// The height of the status bar.
-const HEIGHT              : f32 = 28.0;
+const HEIGHT: f32 = 28.0;
 /// Padding inside the status bar.
-pub const PADDING         : f32 = 12.0;
+pub const PADDING: f32 = 12.0;
 /// Margin between status bar and edge of the screen
-const MARGIN              : f32 = 12.0;
+const MARGIN: f32 = 12.0;
 /// This should be as large as the shadow around the background.
-const MAGIC_SHADOW_MARGIN : f32 = 40.0;
+const MAGIC_SHADOW_MARGIN: f32 = 40.0;
 
 
 
@@ -46,7 +46,7 @@ pub mod event {
     use crate::prelude::*;
 
     /// An id of some event displayed in a status bar.
-    #[derive(Clone,CloneRef,Copy,Debug,Default,Eq,From,Hash,Into,PartialEq)]
+    #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, From, Hash, Into, PartialEq)]
     pub struct Id(pub usize);
 
     im_string_newtype! {
@@ -66,7 +66,7 @@ pub mod process {
     use crate::prelude::*;
 
     /// An id of some process displayed in a status bar.
-    #[derive(Clone,CloneRef,Copy,Debug,Default,Eq,From,Hash,Into,PartialEq)]
+    #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, From, Hash, Into, PartialEq)]
     pub struct Id(pub u64);
 
     impl Id {
@@ -143,44 +143,54 @@ ensogl::define_endpoints! {
 // =============
 
 /// An internal model of Status Bar component
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 struct Model {
-    logger          : Logger,
-    display_object  : display::object::Instance,
-    root            : display::object::Instance,
-    background      : background::View,
-    label           : text::Area,
-    events          : Rc<RefCell<Vec<event::Label>>>,
-    processes       : Rc<RefCell<HashMap<process::Id,process::Label>>>,
-    next_process_id : Rc<RefCell<process::Id>>,
-    camera          : Camera2d,
+    logger:          Logger,
+    display_object:  display::object::Instance,
+    root:            display::object::Instance,
+    background:      background::View,
+    label:           text::Area,
+    events:          Rc<RefCell<Vec<event::Label>>>,
+    processes:       Rc<RefCell<HashMap<process::Id, process::Label>>>,
+    next_process_id: Rc<RefCell<process::Id>>,
+    camera:          Camera2d,
 }
 
 impl Model {
-    fn new(app:&Application) -> Self {
-        let scene           = app.display.scene();
-        let logger          = Logger::new("StatusBar");
-        let display_object  = display::object::Instance::new(&logger);
-        let root            = display::object::Instance::new(&logger);
-        let background      = background::View::new(&logger);
-        let label           = text::Area::new(app);
-        let events          = default();
-        let processes       = default();
+    fn new(app: &Application) -> Self {
+        let scene = app.display.scene();
+        let logger = Logger::new("StatusBar");
+        let display_object = display::object::Instance::new(&logger);
+        let root = display::object::Instance::new(&logger);
+        let background = background::View::new(&logger);
+        let label = text::Area::new(app);
+        let events = default();
+        let processes = default();
         let next_process_id = Rc::new(RefCell::new(process::Id(1)));
-        let camera          = scene.camera();
+        let camera = scene.camera();
 
         scene.layers.panel.add_exclusive(&background);
         label.remove_from_scene_layer(&scene.layers.main);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         let text_color_path = theme::application::status_bar::text;
-        let style           = StyleWatch::new(&app.display.scene().style_sheet);
-        let text_color      = style.get_color(text_color_path);
+        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let text_color = style.get_color(text_color_path);
         label.frp.set_color_all.emit(text_color);
         label.frp.set_default_color.emit(text_color);
 
-        Self {logger,display_object,root,background,label,events,processes,next_process_id,camera}
-            .init()
+        Self {
+            logger,
+            display_object,
+            root,
+            background,
+            label,
+            events,
+            processes,
+            next_process_id,
+            camera,
+        }
+        .init()
     }
 
     fn init(self) -> Self {
@@ -196,15 +206,15 @@ impl Model {
 
     fn camera_changed(&self) {
         let screen = self.camera.screen();
-        let x = -screen.width/2.0 + MARGIN;
-        let y = -screen.height/2.0 + MARGIN;
+        let x = -screen.width / 2.0 + MARGIN;
+        let y = -screen.height / 2.0 + MARGIN;
         self.root.set_position_x(x.round());
         self.root.set_position_y(y.round());
     }
 
     fn update_layout(&self) {
         self.label.set_position_x(PADDING);
-        self.label.set_position_y(HEIGHT/2.0 + TEXT_SIZE/2.0);
+        self.label.set_position_y(HEIGHT / 2.0 + TEXT_SIZE / 2.0);
 
         let bg_width = if self.label.width.value() > 0.0 {
             PADDING + self.label.width.value() + PADDING
@@ -212,29 +222,31 @@ impl Model {
             0.0
         };
         let bg_height = HEIGHT;
-        self.background.size.set(Vector2(bg_width+2.0*MAGIC_SHADOW_MARGIN,
-            bg_height+2.0*MAGIC_SHADOW_MARGIN));
-        self.background.set_position(Vector3(bg_width/2.0,bg_height/2.0,0.0));
+        self.background.size.set(Vector2(
+            bg_width + 2.0 * MAGIC_SHADOW_MARGIN,
+            bg_height + 2.0 * MAGIC_SHADOW_MARGIN,
+        ));
+        self.background.set_position(Vector3(bg_width / 2.0, bg_height / 2.0, 0.0));
     }
 
-    fn add_event(&self, label:&event::Label) -> event::Id {
+    fn add_event(&self, label: &event::Label) -> event::Id {
         let mut events = self.events.borrow_mut();
-        let new_id     = event::Id(events.len());
+        let new_id = event::Id(events.len());
         events.push(label.clone_ref());
         new_id
     }
 
-    fn add_process(&self, label:&process::Label) -> process::Id {
-        let mut processes       = self.processes.borrow_mut();
+    fn add_process(&self, label: &process::Label) -> process::Id {
+        let mut processes = self.processes.borrow_mut();
         let mut next_process_id = self.next_process_id.borrow_mut();
-        let new_id              = *next_process_id;
-        *next_process_id        = next_process_id.next();
-        processes.insert(new_id,label.clone_ref());
+        let new_id = *next_process_id;
+        *next_process_id = next_process_id.next();
+        processes.insert(new_id, label.clone_ref());
         new_id
     }
 
     /// Returns true if there was process with given id.
-    fn finish_process(&self, id:process::Id) -> bool {
+    fn finish_process(&self, id: process::Id) -> bool {
         self.processes.borrow_mut().remove(&id).is_some()
     }
 
@@ -259,19 +271,19 @@ impl Model {
 ///
 /// The status bar gathers information about events and processes occurring in the Application.
 // TODO: This is a stub. Extend it when doing https://github.com/enso-org/ide/issues/1193
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    frp   : Frp,
-    model : Model,
+    frp:   Frp,
+    model: Model,
 }
 
 impl View {
     /// Create new StatusBar view.
-    pub fn new(app:&Application) -> Self {
-        let frp         = Frp::new();
-        let model       = Model::new(app);
-        let network     = &frp.network;
-        let scene       = app.display.scene();
+    pub fn new(app: &Application) -> Self {
+        let frp = Frp::new();
+        let model = Model::new(app);
+        let network = &frp.network;
+        let scene = app.display.scene();
 
         enso_frp::extend! { network
             event_added       <- frp.add_event.map(f!((label) model.add_event(label)));
@@ -313,19 +325,25 @@ impl View {
             eval_ scene.frp.camera_changed (model.camera_changed());
         }
 
-        Self {frp,model}
+        Self { frp, model }
     }
 
     /// Returns a future will add a new process to the status bar, evaluate `f` and then mark the
     /// process as finished.
-    pub fn process<'f, F>(&self, label:process::Label, f:F) -> impl Future<Output=F::Output> + 'f
-    where F : Future + 'f {
-        let add_process    = self.frp.add_process.clone_ref();
-        let last_process   = self.frp.last_process.clone_ref();
+    pub fn process<'f, F>(
+        &self,
+        label: process::Label,
+        f: F,
+    ) -> impl Future<Output = F::Output> + 'f
+    where
+        F: Future + 'f,
+    {
+        let add_process = self.frp.add_process.clone_ref();
+        let last_process = self.frp.last_process.clone_ref();
         let finish_process = self.frp.finish_process.clone_ref();
         async move {
             add_process.emit(label);
-            let id     = last_process.value();
+            let id = last_process.value();
             let result = f.await;
             finish_process.emit(id);
             result
@@ -334,11 +352,15 @@ impl View {
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance<Scene> { &self.model.display_object }
+    fn display_object(&self) -> &display::object::Instance<Scene> {
+        &self.model.display_object
+    }
 }
 
 impl Deref for View {
     type Target = Frp;
 
-    fn deref(&self) -> &Self::Target { &self.frp }
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }

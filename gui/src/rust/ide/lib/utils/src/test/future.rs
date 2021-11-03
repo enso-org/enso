@@ -9,7 +9,7 @@ use std::task::Poll;
 
 /// Extensions to the `Future` trait allowing manual control of the future execution by subsequent
 /// polling.
-pub trait FutureTestExt<F:Future+?Sized> {
+pub trait FutureTestExt<F: Future + ?Sized> {
     /// Access the underlying `Future` in its pinned form, so that it can be `poll`ed.
     fn get_pinned_future(&mut self) -> Pin<&mut F>;
 
@@ -46,22 +46,24 @@ pub trait FutureTestExt<F:Future+?Sized> {
     }
 }
 
-impl<P,F> FutureTestExt<F> for Pin<P>
-where P : Unpin  + DerefMut<Target=F>,
-      F : ?Sized + Future {
+impl<P, F> FutureTestExt<F> for Pin<P>
+where
+    P: Unpin + DerefMut<Target = F>,
+    F: ?Sized + Future,
+{
     fn get_pinned_future(&mut self) -> Pin<&mut F> {
         self.as_mut()
     }
 }
 
 /// Convenience extensions for testing `Future`s that yields `Result` type.
-pub trait FutureResultTestExt<F,R,E> : FutureTestExt<F>
-where F: ?Sized + Future<Output=Result<R,E>> {
+pub trait FutureResultTestExt<F, R, E>: FutureTestExt<F>
+where F: ?Sized + Future<Output = Result<R, E>> {
     /// Polls the future and asserts that the result is Ok(_) - and returns it after unwrapping.
     ///
     /// Same caveats apply as for `manual_poll`.
     fn expect_ok(&mut self) -> R
-    where E:Debug {
+    where E: Debug {
         self.expect_ready().expect("Expected future to yield an Ok(_) result.")
     }
 
@@ -70,11 +72,14 @@ where F: ?Sized + Future<Output=Result<R,E>> {
     ///
     /// Same caveats apply as for `manual_poll`.
     fn expect_err(&mut self) -> E
-        where R:Debug {
+    where R: Debug {
         self.expect_ready().expect_err("Expected future to yield an Err(_) result.")
     }
 }
 
-impl<T,F,R,E> FutureResultTestExt<F,R,E> for T
-where T : FutureTestExt<F>,
-      F : ?Sized + Future<Output=Result<R,E>> {}
+impl<T, F, R, E> FutureResultTestExt<F, R, E> for T
+where
+    T: FutureTestExt<F>,
+    F: ?Sized + Future<Output = Result<R, E>>,
+{
+}

@@ -3,20 +3,20 @@
 use crate::prelude::*;
 
 use crate::component::node;
-use crate::component::visualization::container::visualization_chooser::VisualizationChooser;
 use crate::component::visualization;
+use crate::component::visualization::container::visualization_chooser::VisualizationChooser;
 
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
+use ensogl::display;
+use ensogl::display::shape::system::DynamicShape;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
-use ensogl::display;
 use ensogl::gui::component::ShapeView;
-use ensogl::display::shape::system::DynamicShape;
-use ensogl_theme as theme;
 use ensogl_gui_components::drop_down_menu;
+use ensogl_theme as theme;
 
 
 
@@ -24,10 +24,10 @@ use ensogl_gui_components::drop_down_menu;
 // === Constants ===
 // =================
 
-const HOVER_COLOR      : color::Rgba = color::Rgba::new(1.0,0.0,0.0,0.000_001);
+const HOVER_COLOR: color::Rgba = color::Rgba::new(1.0, 0.0, 0.0, 0.000_001);
 /// Gap between action bar and selection menu
-const MENU_GAP         : f32 = 5.0;
-const ACTION_ICON_SIZE : f32 = 20.0;
+const MENU_GAP: f32 = 5.0;
+const ACTION_ICON_SIZE: f32 = 20.0;
 
 
 
@@ -155,33 +155,33 @@ mod pin_icon {
     }
 }
 
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 struct Icons {
-    display_object      : display::object::Instance,
-    icon_root           : display::object::Instance,
-    reset_position_icon : pin_icon::View,
-    drag_icon           : four_arrow_icon::View,
-    size                : Rc<Cell<Vector2>>,
+    display_object:      display::object::Instance,
+    icon_root:           display::object::Instance,
+    reset_position_icon: pin_icon::View,
+    drag_icon:           four_arrow_icon::View,
+    size:                Rc<Cell<Vector2>>,
 }
 
 impl Icons {
-    fn new(logger:impl AnyLogger) -> Self {
-        let logger              = Logger::new_sub(logger,"Icons");
-        let display_object      = display::object::Instance::new(&logger);
-        let icon_root           = display::object::Instance::new(&logger);
+    fn new(logger: impl AnyLogger) -> Self {
+        let logger = Logger::new_sub(logger, "Icons");
+        let display_object = display::object::Instance::new(&logger);
+        let icon_root = display::object::Instance::new(&logger);
         let reset_position_icon = pin_icon::View::new(&logger);
-        let drag_icon           = four_arrow_icon::View::new(&logger);
-        let size                = default();
+        let drag_icon = four_arrow_icon::View::new(&logger);
+        let size = default();
 
         display_object.add_child(&icon_root);
         icon_root.add_child(&reset_position_icon);
         icon_root.add_child(&drag_icon);
-        Self {display_object,icon_root,reset_position_icon,drag_icon,size}.init_layout()
+        Self { display_object, icon_root, reset_position_icon, drag_icon, size }.init_layout()
     }
 
-    fn place_shape_in_slot<T:DynamicShape>(&self, view:&ShapeView<T>, index:usize) {
+    fn place_shape_in_slot<T: DynamicShape>(&self, view: &ShapeView<T>, index: usize) {
         let icon_size = self.icon_size();
-        let index     = index as f32;
+        let index = index as f32;
         view.mod_position(|p| p.x = index * icon_size.x + node::CORNER_RADIUS);
         view.size().set(icon_size)
     }
@@ -191,27 +191,26 @@ impl Icons {
     }
 
     fn init_layout(self) -> Self {
-        self.place_shape_in_slot(&self.drag_icon,0);
-        self.place_shape_in_slot(&self.reset_position_icon,1);
+        self.place_shape_in_slot(&self.drag_icon, 0);
+        self.place_shape_in_slot(&self.reset_position_icon, 1);
         self.set_reset_icon_visibility(false);
         self
     }
 
-    fn set_size(&self, size:Vector2) {
+    fn set_size(&self, size: Vector2) {
         self.size.set(size);
-        self.icon_root.set_position_x(-size.x/2.0);
+        self.icon_root.set_position_x(-size.x / 2.0);
         self.place_shape_in_slot(&self.drag_icon, 0);
-        self.place_shape_in_slot(&self.reset_position_icon,1);
+        self.place_shape_in_slot(&self.reset_position_icon, 1);
     }
 
-    fn set_reset_icon_visibility(&self, visibility:bool) {
+    fn set_reset_icon_visibility(&self, visibility: bool) {
         if visibility {
             self.icon_root.add_child(&self.reset_position_icon)
         } else {
             self.reset_position_icon.unset_parent()
         }
     }
-
 }
 
 impl display::Object for Icons {
@@ -250,27 +249,27 @@ ensogl::define_endpoints! {
 // === Action Bar Model ===
 // ========================
 
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 struct Model {
-    hover_area            : hover_area::View,
-    visualization_chooser : VisualizationChooser,
-    background            : background::View,
-    display_object        : display::object::Instance,
-    size                  : Rc<Cell<Vector2>>,
-    icons                 : Icons,
-    shapes                : compound::events::MouseEvents,
+    hover_area:            hover_area::View,
+    visualization_chooser: VisualizationChooser,
+    background:            background::View,
+    display_object:        display::object::Instance,
+    size:                  Rc<Cell<Vector2>>,
+    icons:                 Icons,
+    shapes:                compound::events::MouseEvents,
 }
 
 impl Model {
-    fn new(app:&Application, vis_registry:visualization::Registry) -> Self {
-        let logger                = Logger::new("ActionBarModel");
-        let background            = background::View::new(&logger);
-        let hover_area            = hover_area::View::new(&logger);
-        let visualization_chooser = VisualizationChooser::new(app,vis_registry);
-        let display_object        = display::object::Instance::new(&logger);
-        let size                  = default();
-        let icons                 = Icons::new(logger);
-        let shapes                = compound::events::MouseEvents::default();
+    fn new(app: &Application, vis_registry: visualization::Registry) -> Self {
+        let logger = Logger::new("ActionBarModel");
+        let background = background::View::new(&logger);
+        let hover_area = hover_area::View::new(&logger);
+        let visualization_chooser = VisualizationChooser::new(app, vis_registry);
+        let display_object = display::object::Instance::new(&logger);
+        let size = default();
+        let icons = Icons::new(logger);
+        let shapes = compound::events::MouseEvents::default();
 
         app.display.scene().layers.below_main.add_exclusive(&hover_area);
         app.display.scene().layers.below_main.add_exclusive(&background);
@@ -281,7 +280,8 @@ impl Model {
         shapes.add_sub_shape(&icons.reset_position_icon);
         shapes.add_sub_shape(&icons.drag_icon);
 
-        Model {hover_area,visualization_chooser,background,display_object,size,icons,shapes}.init()
+        Model { hover_area, visualization_chooser, background, display_object, size, icons, shapes }
+            .init()
     }
 
     fn init(self) -> Self {
@@ -289,18 +289,18 @@ impl Model {
         self
     }
 
-    fn set_size(&self, size:Vector2) {
+    fn set_size(&self, size: Vector2) {
         self.size.set(size);
         self.hover_area.size.set(size);
         self.background.size.set(size);
         self.icons.set_size(size);
 
-        let height        = size.y;
-        let width         = size.x;
+        let height = size.y;
+        let width = size.x;
         let right_padding = height / 2.0;
-        self.visualization_chooser.frp.set_icon_size(Vector2::new(height,height));
-        self.visualization_chooser.frp.set_icon_padding(Vector2::new(height/3.0,height/3.0));
-        self.visualization_chooser.set_position_x((width/2.0) - right_padding);
+        self.visualization_chooser.frp.set_icon_size(Vector2::new(height, height));
+        self.visualization_chooser.frp.set_icon_padding(Vector2::new(height / 3.0, height / 3.0));
+        self.visualization_chooser.set_position_x((width / 2.0) - right_padding);
         self.visualization_chooser.frp.set_menu_offset_y(MENU_GAP);
     }
 
@@ -339,29 +339,27 @@ impl display::Object for Model {
 ///     / ---------------------------- \
 ///    |              <vis chooser> V   |
 ///    |--------------------------------|
-///
 /// ```
 #[allow(missing_docs)]
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct ActionBar {
-    pub frp : Frp,
-    model   : Rc<Model>,
+    pub frp: Frp,
+    model:   Rc<Model>,
 }
 
 impl ActionBar {
-
     /// Constructor.
-    pub fn new(app:&Application, vis_registry:visualization::Registry) -> Self {
-        let frp   = Frp::new();
-        let model = Rc::new(Model::new(app,vis_registry));
-        ActionBar {frp,model}.init_frp(app)
+    pub fn new(app: &Application, vis_registry: visualization::Registry) -> Self {
+        let frp = Frp::new();
+        let model = Rc::new(Model::new(app, vis_registry));
+        ActionBar { frp, model }.init_frp(app)
     }
 
-    fn init_frp(self, app:&Application) -> Self {
-        let network               = &self.frp.network;
-        let frp                   = &self.frp;
-        let model                 = &self.model;
-        let mouse                 = &app.display.scene().mouse.frp;
+    fn init_frp(self, app: &Application) -> Self {
+        let network = &self.frp.network;
+        let frp = &self.frp;
+        let model = &self.model;
+        let mouse = &app.display.scene().mouse.frp;
         let visualization_chooser = &model.visualization_chooser.frp;
 
         frp::extend! { network
@@ -411,7 +409,9 @@ impl ActionBar {
     }
 
     /// Visualization Chooser component getter.
-    pub fn visualization_chooser(&self) -> &VisualizationChooser { &self.model.visualization_chooser }
+    pub fn visualization_chooser(&self) -> &VisualizationChooser {
+        &self.model.visualization_chooser
+    }
 }
 
 impl display::Object for ActionBar {

@@ -5,15 +5,15 @@
 
 #[deny(missing_docs)]
 pub mod action_bar;
+#[warn(missing_docs)]
+pub mod error;
 pub mod expression;
 pub mod input;
 pub mod output;
 #[warn(missing_docs)]
-pub mod error;
+pub mod profiling;
 #[deny(missing_docs)]
 pub mod vcs;
-#[warn(missing_docs)]
-pub mod profiling;
 
 pub use error::Error;
 pub use expression::Expression;
@@ -21,23 +21,23 @@ pub use expression::Expression;
 use crate::prelude::*;
 
 use crate::component::node::profiling::ProfilingLabel;
-use crate::view;
 use crate::component::visualization;
 use crate::tooltip;
+use crate::view;
 use crate::Type;
 
 use enso_frp as frp;
-use ensogl_theme as theme;
 use enso_frp;
-use ensogl::Animation;
 use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
+use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
-use ensogl::display;
+use ensogl::Animation;
 use ensogl_gui_components::shadow;
 use ensogl_text::Text;
+use ensogl_theme as theme;
 use ensogl_theme;
 use std::f32::EPSILON;
 
@@ -50,27 +50,27 @@ use crate::selection::BoundingBox;
 // === Constants ===
 // =================
 
-pub const ACTION_BAR_WIDTH  : f32 = 180.0;
-pub const ACTION_BAR_HEIGHT : f32 = 15.0;
-pub const CORNER_RADIUS     : f32 = 14.0;
-pub const HEIGHT            : f32 = 28.0;
-pub const PADDING           : f32 = 40.0;
-pub const RADIUS            : f32 = 14.0;
+pub const ACTION_BAR_WIDTH: f32 = 180.0;
+pub const ACTION_BAR_HEIGHT: f32 = 15.0;
+pub const CORNER_RADIUS: f32 = 14.0;
+pub const HEIGHT: f32 = 28.0;
+pub const PADDING: f32 = 40.0;
+pub const RADIUS: f32 = 14.0;
 
 /// Space between the documentation comment and the node.
-pub const COMMENT_MARGIN    : f32 = 10.0;
+pub const COMMENT_MARGIN: f32 = 10.0;
 
-const INFINITE                 : f32       = 99999.0;
-const ERROR_VISUALIZATION_SIZE : (f32,f32) = visualization::container::DEFAULT_SIZE;
+const INFINITE: f32 = 99999.0;
+const ERROR_VISUALIZATION_SIZE: (f32, f32) = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y : f32  = -120.0;
+const VISUALIZATION_OFFSET_Y: f32 = -120.0;
 
-const ENABLE_VIS_PREVIEW     : bool = false;
-const VIS_PREVIEW_ONSET_MS   : f32  = 4000.0;
-const ERROR_PREVIEW_ONSET_MS : f32  = 0000.0;
+const ENABLE_VIS_PREVIEW: bool = false;
+const VIS_PREVIEW_ONSET_MS: f32 = 4000.0;
+const ERROR_PREVIEW_ONSET_MS: f32 = 0000.0;
 /// A type of unresolved methods. We filter them out, because we don't want to treat them as types
 /// for ports and edges coloring (due to bad UX otherwise).
-const UNRESOLVED_SYMBOL_TYPE : &str = "Builtins.Main.Unresolved_Symbol";
+const UNRESOLVED_SYMBOL_TYPE: &str = "Builtins.Main.Unresolved_Symbol";
 
 
 
@@ -79,8 +79,8 @@ const UNRESOLVED_SYMBOL_TYPE : &str = "Builtins.Main.Unresolved_Symbol";
 // ===============
 
 /// String with documentation comment text for this node.
-/// 
-/// This is just a plain string, as this is what text area expects and node just redirects this 
+///
+/// This is just a plain string, as this is what text area expects and node just redirects this
 /// value,
 pub type Comment = String;
 
@@ -232,24 +232,27 @@ pub mod error_shape {
 // === Crumbs ===
 // ==============
 
-#[derive(Clone,Copy,Debug)]
-pub enum Endpoint { Input, Output }
+#[derive(Clone, Copy, Debug)]
+pub enum Endpoint {
+    Input,
+    Output,
+}
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Crumbs {
-    pub endpoint : Endpoint,
-    pub crumbs   : span_tree::Crumbs,
+    pub endpoint: Endpoint,
+    pub crumbs:   span_tree::Crumbs,
 }
 
 impl Crumbs {
     pub fn input(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Input;
-        Self {endpoint,crumbs}
+        Self { endpoint, crumbs }
     }
 
     pub fn output(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Output;
-        Self {endpoint,crumbs}
+        Self { endpoint, crumbs }
     }
 }
 
@@ -365,11 +368,11 @@ ensogl::define_endpoints! {
 ///    emitted back to the right node).
 ///
 /// Currently, the solution "C" (most optimal) is implemented here.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Node {
-    pub model : Rc<NodeModel>,
-    pub frp   : Frp,
+    pub model: Rc<NodeModel>,
+    pub frp:   Frp,
 }
 
 impl AsRef<Node> for Node {
@@ -386,30 +389,30 @@ impl Deref for Node {
 }
 
 /// Internal data of `Node`
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct NodeModel {
-    pub app                 : Application,
-    pub display_object      : display::object::Instance,
-    pub logger              : Logger,
-    pub backdrop            : backdrop::View,
-    pub background          : background::View,
-    pub drag_area           : drag_area::View,
-    pub error_indicator     : error_shape::View,
-    pub profiling_label     : ProfilingLabel,
-    pub input               : input::Area,
-    pub output              : output::Area,
-    pub visualization       : visualization::Container,
-    pub error_visualization : error::Container,
-    pub action_bar          : action_bar::ActionBar,
-    pub vcs_indicator       : vcs::StatusIndicator,
-    pub style               : StyleWatchFrp,
-    pub comment             : ensogl_text::Area,
+    pub app:                 Application,
+    pub display_object:      display::object::Instance,
+    pub logger:              Logger,
+    pub backdrop:            backdrop::View,
+    pub background:          background::View,
+    pub drag_area:           drag_area::View,
+    pub error_indicator:     error_shape::View,
+    pub profiling_label:     ProfilingLabel,
+    pub input:               input::Area,
+    pub output:              output::Area,
+    pub visualization:       visualization::Container,
+    pub error_visualization: error::Container,
+    pub action_bar:          action_bar::ActionBar,
+    pub vcs_indicator:       vcs::StatusIndicator,
+    pub style:               StyleWatchFrp,
+    pub comment:             ensogl_text::Area,
 }
 
 impl NodeModel {
     /// Constructor.
-    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
+    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.scene() => {
                 //TODO[ao] The two lines below should not be needed - the ordering should be
@@ -434,20 +437,20 @@ impl NodeModel {
             }
         }
 
-        let scene  = app.display.scene();
+        let scene = app.display.scene();
         let logger = Logger::new("node");
 
-        let main_logger             = Logger::new_sub(&logger,"main_area");
-        let drag_logger             = Logger::new_sub(&logger,"drag_area");
-        let error_indicator_logger  = Logger::new_sub(&logger,"error_indicator");
+        let main_logger = Logger::new_sub(&logger, "main_area");
+        let drag_logger = Logger::new_sub(&logger, "drag_area");
+        let error_indicator_logger = Logger::new_sub(&logger, "error_indicator");
 
         let error_indicator = error_shape::View::new(&error_indicator_logger);
         let profiling_label = ProfilingLabel::new(app);
-        let backdrop        = backdrop::View::new(&main_logger);
-        let background      = background::View::new(&main_logger);
-        let drag_area       = drag_area::View::new(&drag_logger);
-        let vcs_indicator   = vcs::StatusIndicator::new(app);
-        let display_object  = display::object::Instance::new(&logger);
+        let backdrop = backdrop::View::new(&main_logger);
+        let background = background::View::new(&main_logger);
+        let drag_area = drag_area::View::new(&drag_logger);
+        let vcs_indicator = vcs::StatusIndicator::new(app);
+        let display_object = display::object::Instance::new(&logger);
 
         display_object.add_child(&profiling_label);
         display_object.add_child(&drag_area);
@@ -456,25 +459,28 @@ impl NodeModel {
         display_object.add_child(&vcs_indicator);
 
         // Disable shadows to allow interaction with the output port.
-        let shape_system = scene.layers.main.shape_system_registry.shape_system
-            (scene,PhantomData::<backdrop::DynamicShape>);
+        let shape_system = scene
+            .layers
+            .main
+            .shape_system_registry
+            .shape_system(scene, PhantomData::<backdrop::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
-        let input = input::Area::new(&logger,app);
-        let visualization = visualization::Container::new(&logger,app,registry);
+        let input = input::Area::new(&logger, app);
+        let visualization = visualization::Container::new(&logger, app, registry);
 
         display_object.add_child(&visualization);
         display_object.add_child(&input);
 
         let error_visualization = error::Container::new(scene);
-        let (x,y)               = ERROR_VISUALIZATION_SIZE;
-        error_visualization.set_size.emit(Vector2(x,y));
+        let (x, y) = ERROR_VISUALIZATION_SIZE;
+        error_visualization.set_size.emit(Vector2(x, y));
 
-        let action_bar = action_bar::ActionBar::new(&logger,app);
+        let action_bar = action_bar::ActionBar::new(&logger, app);
         display_object.add_child(&action_bar);
         scene.layers.above_nodes.add_exclusive(&action_bar);
 
-        let output = output::Area::new(&logger,app);
+        let output = output::Area::new(&logger, app);
         display_object.add_child(&output);
 
         let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
@@ -483,14 +489,30 @@ impl NodeModel {
         display_object.add_child(&comment);
 
         let app = app.clone_ref();
-        Self {app,display_object,logger,backdrop,background,drag_area,error_indicator
-             ,profiling_label,input,output,visualization,error_visualization,action_bar
-             ,vcs_indicator,style,comment}.init()
+        Self {
+            app,
+            display_object,
+            logger,
+            backdrop,
+            background,
+            drag_area,
+            error_indicator,
+            profiling_label,
+            input,
+            output,
+            visualization,
+            error_visualization,
+            action_bar,
+            vcs_indicator,
+            style,
+            comment,
+        }
+        .init()
     }
 
-    pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
+    pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
-        input_crumbs.or_else(||self.output.get_crumbs_by_id(id).map(Crumbs::output))
+        input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
     }
 
     fn init(self) -> Self {
@@ -506,39 +528,39 @@ impl NodeModel {
         HEIGHT
     }
 
-    fn set_expression(&self, expr:impl Into<Expression>) {
+    fn set_expression(&self, expr: impl Into<Expression>) {
         let expr = expr.into();
         self.output.set_expression(&expr);
         self.input.set_expression(&expr);
     }
 
-    fn set_expression_usage_type(&self, crumbs:&Crumbs, tp:&Option<Type>) {
+    fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         match crumbs.endpoint {
-            Endpoint::Input  => self.input.set_expression_usage_type(&crumbs.crumbs,tp),
-            Endpoint::Output => self.output.set_expression_usage_type(&crumbs.crumbs,tp),
+            Endpoint::Input => self.input.set_expression_usage_type(&crumbs.crumbs, tp),
+            Endpoint::Output => self.output.set_expression_usage_type(&crumbs.crumbs, tp),
         }
     }
 
-    fn set_width(&self, width:f32) -> Vector2 {
-        let height      = self.height();
-        let size        = Vector2(width,height);
-        let padded_size = size + Vector2(PADDING,PADDING) * 2.0;
+    fn set_width(&self, width: f32) -> Vector2 {
+        let height = self.height();
+        let size = Vector2(width, height);
+        let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
         self.backdrop.size.set(padded_size);
         self.background.size.set(padded_size);
         self.drag_area.size.set(padded_size);
         self.error_indicator.size.set(padded_size);
         self.vcs_indicator.set_size(padded_size);
-        self.backdrop.mod_position(|t| t.x = width/2.0);
-        self.background.mod_position(|t| t.x = width/2.0);
-        self.drag_area.mod_position(|t| t.x = width/2.0);
-        self.error_indicator.set_position_x(width/2.0);
-        self.vcs_indicator.set_position_x(width/2.0);
+        self.backdrop.mod_position(|t| t.x = width / 2.0);
+        self.background.mod_position(|t| t.x = width / 2.0);
+        self.drag_area.mod_position(|t| t.x = width / 2.0);
+        self.error_indicator.set_position_x(width / 2.0);
+        self.vcs_indicator.set_position_x(width / 2.0);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
             t.x = width + CORNER_RADIUS + action_bar_width / 2.0;
         });
-        self.action_bar.frp.set_size(Vector2::new(action_bar_width,ACTION_BAR_HEIGHT));
+        self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         let visualization_pos = Vector2(width / 2.0, VISUALIZATION_OFFSET_Y);
         self.error_visualization.set_position_xy(visualization_pos);
@@ -551,7 +573,7 @@ impl NodeModel {
         &self.visualization
     }
 
-    fn set_error(&self, error:Option<&Error>) {
+    fn set_error(&self, error: Option<&Error>) {
         if let Some(error) = error {
             self.error_visualization.display_kind(*error.kind);
             if let Some(error_data) = error.visualization_data() {
@@ -563,7 +585,7 @@ impl NodeModel {
         }
     }
 
-    fn set_error_color(&self, color:&color::Lcha) {
+    fn set_error_color(&self, color: &color::Lcha) {
         self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
         if color.alpha < EPSILON {
             self.error_indicator.unset_parent();
@@ -574,20 +596,20 @@ impl NodeModel {
 }
 
 impl Node {
-    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
-        let frp       = Frp::new();
-        let network   = &frp.network;
-        let out       = &frp.output;
-        let model     = Rc::new(NodeModel::new(app,registry));
+    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
+        let frp = Frp::new();
+        let network = &frp.network;
+        let out = &frp.output;
+        let model = Rc::new(NodeModel::new(app, registry));
         let selection = Animation::<f32>::new(network);
 
         // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
         //      in https://github.com/enso-org/ide/issues/1031
         // let comment_color    = color::Animation::new(network);
         let error_color_anim = color::Animation::new(network);
-        let style            = StyleWatch::new(&app.display.scene().style_sheet);
-        let style_frp        = &model.style;
-        let action_bar       = &model.action_bar.frp;
+        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let style_frp = &model.style;
+        let action_bar = &model.action_bar.frp;
         // Hook up the display object position updates to the node's FRP. Required to calculate the
         // bounding box.
         frp::extend! { network
@@ -638,11 +660,11 @@ impl Node {
 
 
             // === Comment ===
-            
+
             let comment_base_color = style_frp.get_color(theme::graph_editor::node::text);
             // comment_color.target <+ all_with(
             comment_color <- all_with(
-                &comment_base_color, &model.output.expression_label_visibility, 
+                &comment_base_color, &model.output.expression_label_visibility,
                 |&base_color,&expression_visible| {
                     let mut color = color::Lcha::from(base_color);
                     color.mod_alpha(|alpha| {
@@ -652,7 +674,7 @@ impl Node {
                     color
             });
             eval comment_color ((value) model.comment.set_color_all(color::Rgba::from(value)));
-            
+
             eval model.comment.width ([model](width)
                 model.comment.set_position_x(-*width - COMMENT_MARGIN));
             eval model.comment.height ([model](height)
@@ -861,15 +883,15 @@ impl Node {
         frp.set_disabled.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
-        Self {model,frp}
+        Self { model, frp }
     }
 
-    fn error_color(error:&Option<Error>, style:&StyleWatch) -> color::Lcha {
+    fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
         use ensogl_theme::graph_editor::node::error as error_theme;
 
         if let Some(error) = error {
             let path = match *error.kind {
-                error::Kind::Panic    => error_theme::panic,
+                error::Kind::Panic => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
             };
             style.get_color(path).into()

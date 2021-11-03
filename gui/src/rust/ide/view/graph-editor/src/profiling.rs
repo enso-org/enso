@@ -7,8 +7,8 @@ use crate::prelude::*;
 use crate::node;
 use crate::NodeId;
 
-use enso_frp as frp;
 use bimap::BiBTreeMap;
+use enso_frp as frp;
 use ordered_float::OrderedFloat;
 
 
@@ -44,10 +44,10 @@ ensogl::define_endpoints! {
 
 /// Can be used to track the execution statuses of all nodes in the graph editor. Exposes the
 /// minimum and maximum running time through FRP endpoints.
-#[derive(Debug,Clone,CloneRef,Default)]
+#[derive(Debug, Clone, CloneRef, Default)]
 pub struct Statuses {
-    frp       : Frp,
-    durations : Rc<RefCell<BiBTreeMap<NodeId,OrderedFloat<f32>>>>
+    frp:       Frp,
+    durations: Rc<RefCell<BiBTreeMap<NodeId, OrderedFloat<f32>>>>,
 }
 
 impl Deref for Statuses {
@@ -61,9 +61,9 @@ impl Deref for Statuses {
 impl Statuses {
     /// Creates a new `Statuses` collection.
     pub fn new() -> Self {
-        let frp       = Frp::new();
-        let durations = Rc::new(RefCell::new(BiBTreeMap::<NodeId,OrderedFloat<f32>>::new()));
-        let network   = &frp.network;
+        let frp = Frp::new();
+        let durations = Rc::new(RefCell::new(BiBTreeMap::<NodeId, OrderedFloat<f32>>::new()));
+        let network = &frp.network;
 
         frp::extend! { network
             min_and_max_from_set <- frp.set.map(f!([durations]((node,status)) {
@@ -91,10 +91,10 @@ impl Statuses {
         frp.source.min_duration.emit(Self::min_and_max(durations.borrow().deref()).0);
         frp.source.max_duration.emit(Self::min_and_max(durations.borrow().deref()).1);
 
-        Self {frp,durations}
+        Self { frp, durations }
     }
 
-    fn min_and_max(durations:&BiBTreeMap<NodeId,OrderedFloat<f32>>) -> (f32,f32) {
+    fn min_and_max(durations: &BiBTreeMap<NodeId, OrderedFloat<f32>>) -> (f32, f32) {
         let mut durations = durations.right_values().copied();
 
         let min = durations.next().map(OrderedFloat::into_inner).unwrap_or(f32::INFINITY);

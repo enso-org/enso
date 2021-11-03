@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use ensogl_core::system::web;
 use ensogl_core::application::Application;
+use ensogl_core::system::web;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_text_msdf_sys::run_once_initialized;
 use logger::TraceLogger as Logger;
@@ -34,8 +34,7 @@ pub fn entry_point_animation() {
 // ========================
 
 fn init() {
-
-    let logger : Logger = Logger::new("AnimationTest");
+    let logger: Logger = Logger::new("AnimationTest");
     let network = enso_frp::Network::new("test");
     let animation = DEPRECATED_Animation::<f32>::new(&network);
     animation.set_target_value(-259_830.0);

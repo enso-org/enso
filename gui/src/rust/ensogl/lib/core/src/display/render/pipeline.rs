@@ -30,9 +30,9 @@ impl {
     }
 }}
 
-impl<Pass:pass::Definition> Add<Pass> for Pipeline {
+impl<Pass: pass::Definition> Add<Pass> for Pipeline {
     type Output = Self;
-    fn add(self, pass:Pass) -> Self::Output {
+    fn add(self, pass: Pass) -> Self::Output {
         let pass = Box::new(pass);
         self.rc.borrow_mut().passes.push(pass);
         self

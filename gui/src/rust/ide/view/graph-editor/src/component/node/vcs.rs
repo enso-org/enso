@@ -1,13 +1,13 @@
 //! Functionality related to visualising the version control system status of a node.
 
-use crate::component::node as node;
+use crate::component::node;
 use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
-use ensogl::display::shape::*;
 use ensogl::display;
+use ensogl::display::shape::*;
 
 
 
@@ -16,7 +16,7 @@ use ensogl::display;
 // ==============
 
 /// The version control system status of a node.
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 #[allow(missing_docs)]
 pub enum Status {
     Unchanged,
@@ -25,11 +25,12 @@ pub enum Status {
 }
 
 impl Status {
-    fn get_highlight_color_from_style(self, style:&StyleWatch) -> color::Lcha {
+    fn get_highlight_color_from_style(self, style: &StyleWatch) -> color::Lcha {
         match self {
-            Status::Unchanged => style.get_color(ensogl_theme::graph_editor::node::vcs::unchanged).into(),
-            Status::Added     => style.get_color(ensogl_theme::graph_editor::node::vcs::added).into(),
-            Status::Edited    => style.get_color(ensogl_theme::graph_editor::node::vcs::edited).into(),
+            Status::Unchanged =>
+                style.get_color(ensogl_theme::graph_editor::node::vcs::unchanged).into(),
+            Status::Added => style.get_color(ensogl_theme::graph_editor::node::vcs::added).into(),
+            Status::Edited => style.get_color(ensogl_theme::graph_editor::node::vcs::edited).into(),
         }
     }
 }
@@ -50,8 +51,8 @@ impl Default for Status {
 mod status_indicator_shape {
     use super::*;
 
-    const INDICATOR_WIDTH_OUTER : f32 = 15.0;
-    const INDICATOR_WIDTH_INNER : f32 = 10.0;
+    const INDICATOR_WIDTH_OUTER: f32 = 15.0;
+    const INDICATOR_WIDTH_INNER: f32 = 10.0;
 
     ensogl::define_shape_system! {
         (style:Style,color_rgba:Vector4<f32>) {
@@ -77,10 +78,10 @@ mod status_indicator_shape {
 // ==============================
 
 /// Internal data of `StatusIndicator`.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 struct StatusIndicatorModel {
-    shape : status_indicator_shape::View,
-    root  : display::object::Instance,
+    shape: status_indicator_shape::View,
+    root:  display::object::Instance,
 }
 
 impl StatusIndicatorModel {
@@ -88,7 +89,7 @@ impl StatusIndicatorModel {
         let shape = status_indicator_shape::View::new(logger);
         let root = display::object::Instance::new(&logger);
         root.add_child(&shape);
-        StatusIndicatorModel{shape, root}
+        StatusIndicatorModel { shape, root }
     }
 
     fn hide(&self) {
@@ -99,7 +100,7 @@ impl StatusIndicatorModel {
         self.root.add_child(&self.shape);
     }
 
-    fn set_visibility(&self, visibility:bool) {
+    fn set_visibility(&self, visibility: bool) {
         if visibility {
             self.show()
         } else {
@@ -131,26 +132,26 @@ ensogl::define_endpoints! {
     }
 }
 
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct StatusIndicator {
-        model : Rc<StatusIndicatorModel>,
-    pub frp   : Frp,
+    model:   Rc<StatusIndicatorModel>,
+    pub frp: Frp,
 }
 
 impl StatusIndicator {
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
+    pub fn new(app: &Application) -> Self {
         let logger = Logger::new("status_indicator");
-        let model  = Rc::new(StatusIndicatorModel::new(&logger));
-        let frp    = Frp::new();
-        Self {model,frp}.init_frp(app)
+        let model = Rc::new(StatusIndicatorModel::new(&logger));
+        let frp = Frp::new();
+        Self { model, frp }.init_frp(app)
     }
 
-    fn init_frp(self, app:&Application) -> Self {
-        let frp             = &self.frp;
-        let model           = &self.model;
-        let network         = &frp.network;
+    fn init_frp(self, app: &Application) -> Self {
+        let frp = &self.frp;
+        let model = &self.model;
+        let network = &frp.network;
         let indicator_color = color::Animation::new(network);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -182,8 +183,6 @@ impl StatusIndicator {
         frp.set_visibility.emit(true);
         self
     }
-
-
 }
 
 impl display::Object for StatusIndicator {

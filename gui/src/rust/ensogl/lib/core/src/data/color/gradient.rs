@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::system::gpu::shader::glsl::Glsl;
 use crate::system::gpu::shader::glsl::traits::*;
+use crate::system::gpu::shader::glsl::Glsl;
 
 
 
@@ -13,18 +13,18 @@ use crate::system::gpu::shader::glsl::traits::*;
 
 /// Control point of the gradient. It defines a color at a specific gradient offset. The offset
 /// of `0` means the beginning of the gradient. The offset of `1` means its end.
-#[derive(Clone,Debug,Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ControlPoint<Color> {
     /// Offset of the control point in [0..1] range.
-    pub offset : f32,
+    pub offset: f32,
     /// Color of this control point.
-    pub color  : Color
+    pub color:  Color,
 }
 
 impl<Color> ControlPoint<Color> {
     /// Constructor.
-    pub fn new(offset:f32, color:Color) -> Self {
-        Self {offset,color}
+    pub fn new(offset: f32, color: Color) -> Self {
+        Self { offset, color }
     }
 }
 
@@ -36,10 +36,10 @@ impl<Color> ControlPoint<Color> {
 
 /// A range of position-dependent colors encoded as control points. Control points do not contain
 /// any information about incoming or outgoing slope, so the interpolation between them is linear.
-#[derive(Clone,Debug,Derivative)]
-#[derivative(Default(bound=""))]
+#[derive(Clone, Debug, Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct Linear<Color> {
-    control_points : Vec<ControlPoint<Color>>,
+    control_points: Vec<ControlPoint<Color>>,
 }
 
 impl<Color> Linear<Color> {
@@ -49,14 +49,14 @@ impl<Color> Linear<Color> {
     }
 
     /// Constructor.
-    pub fn new(start:impl Into<Color>, end:impl Into<Color>) -> Self {
+    pub fn new(start: impl Into<Color>, end: impl Into<Color>) -> Self {
         let this = Self::empty();
-        this.add(0.0,start).add(1.0,end)
+        this.add(0.0, start).add(1.0, end)
     }
 
     /// Add a new control point. The offset needs to be in range [0..1].
-    pub fn add(mut self, offset:f32, color:impl Into<Color>) -> Self {
-        self.control_points.push(ControlPoint::new(offset,color.into()));
+    pub fn add(mut self, offset: f32, color: impl Into<Color>) -> Self {
+        self.control_points.push(ControlPoint::new(offset, color.into()));
         self
     }
 
@@ -85,50 +85,50 @@ where [Color:RefInto<Glsl>] {
 // ==================
 
 /// Default start distance of the distance gradient.
-pub const DEFAULT_DISTANCE_GRADIENT_SPREAD : f32 = 0.0;
+pub const DEFAULT_DISTANCE_GRADIENT_SPREAD: f32 = 0.0;
 
 /// Default end distance of the distance gradient.
-pub const DEFAULT_DISTANCE_GRADIENT_SIZE : f32 = 10.0;
+pub const DEFAULT_DISTANCE_GRADIENT_SIZE: f32 = 10.0;
 
 /// A gradient which transforms a linear gradient to a gradient along the signed distance field.
 /// The slope parameter modifies how fast the gradient values are changed, allowing for nice,
 /// smooth transitions.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct SdfSampler<Gradient> {
     /// The distance from the shape border at which the gradient should start.
-    pub spread : f32,
+    pub spread:   f32,
     /// The size of the gradient in the SDF space.
-    pub size : f32,
+    pub size:     f32,
     /// The gradient slope modifier. Defines how fast the gradient values change.
-    pub slope : Slope,
+    pub slope:    Slope,
     /// The underlying gradient.
-    pub gradient : Gradient
+    pub gradient: Gradient,
 }
 
 impl<Gradient> SdfSampler<Gradient> {
     /// Constructs a new gradient with `spread` and `size` set to
     /// `DEFAULT_DISTANCE_GRADIENT_SPREAD` and `DEFAULT_DISTANCE_GRADIENT_SIZE` respectively.
-    pub fn new(gradient:Gradient) -> Self {
+    pub fn new(gradient: Gradient) -> Self {
         let spread = DEFAULT_DISTANCE_GRADIENT_SPREAD;
-        let size   = DEFAULT_DISTANCE_GRADIENT_SIZE;
-        let slope  = Slope::Smooth;
-        Self {spread,size,slope,gradient}
+        let size = DEFAULT_DISTANCE_GRADIENT_SIZE;
+        let slope = Slope::Smooth;
+        Self { spread, size, slope, gradient }
     }
 
     /// Constructor setter for the `spread` field.
-    pub fn spread(mut self, t:f32) -> Self {
+    pub fn spread(mut self, t: f32) -> Self {
         self.spread = t;
         self
     }
 
     /// Constructor setter for the `size` field.
-    pub fn size(mut self, t:f32) -> Self {
+    pub fn size(mut self, t: f32) -> Self {
         self.size = t;
         self
     }
 
     /// Constructor setter for the `slope` field.
-    pub fn slope(mut self, t:Slope) -> Self {
+    pub fn slope(mut self, t: Slope) -> Self {
         self.slope = t;
         self
     }

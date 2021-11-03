@@ -30,36 +30,37 @@
 /// For the input of `[mut] FnMut FnMut1<T1>`, the following code will be generated:
 ///
 /// ```
-///     pub trait FnMut1<T1> {
-///         type Output;
-///         fn call(&mut self, T1: T1) -> Self::Output;
-///     }
+/// pub trait FnMut1<T1> {
+///     type Output;
+///     fn call(&mut self, T1: T1) -> Self::Output;
+/// }
 ///
-///     impl<T1> FnMut1<T1> for () {
-///         type Output = ();
-///         fn call(&mut self, _: T1) {}
-///     }
+/// impl<T1> FnMut1<T1> for () {
+///     type Output = ();
+///     fn call(&mut self, _: T1) {}
+/// }
 ///
-///     impl<T,T1> FnMut1<T1> for Option<T>
-///         where T: FnMut1<T1> {
-///         type Output = Option<T::Output>;
-///         fn call(&mut self, t1:T1) -> Self::Output {
-///             match self {
-///                 Some(f) => Some(f.call(t1)),
-///                 None => None,
-///             }
+/// impl<T, T1> FnMut1<T1> for Option<T>
+/// where T: FnMut1<T1>
+/// {
+///     type Output = Option<T::Output>;
+///     fn call(&mut self, t1: T1) -> Self::Output {
+///         match self {
+///             Some(f) => Some(f.call(t1)),
+///             None => None,
 ///         }
 ///     }
+/// }
 ///
-///     impl<F,T,T1> FnMut1<T1> for F
-///         where F: FnMut(T1) -> T {
-///         type Output = T;
-///         fn call(&mut self, t1:T1) -> Self::Output {
-///             self(t1)
-///         }
+/// impl<F, T, T1> FnMut1<T1> for F
+/// where F: FnMut(T1) -> T
+/// {
+///     type Output = T;
+///     fn call(&mut self, t1: T1) -> Self::Output {
+///         self(t1)
 ///     }
+/// }
 /// ```
-///
 
 macro_rules! define_fn {
     ($( [$($mut:ident)?] $fn_name:ident $name:ident $(<$($arg:ident),*>)?; )*) => {$(

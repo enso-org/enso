@@ -3,16 +3,16 @@
 use crate::prelude::*;
 
 use crate::control::callback::CallbackFn;
-use crate::data::OptVec;
 use crate::data::dirty;
+use crate::data::OptVec;
 use crate::debug::Stats;
 use crate::system::gpu::Context;
 
 use crate::data::dirty::traits::*;
 use crate::system::gpu::types::*;
 
-use std::collections::BTreeSet;
 use enso_shapely::newtype_prim;
+use std::collections::BTreeSet;
 
 
 
@@ -29,7 +29,7 @@ newtype_prim! {
 }
 
 /// Dirty flag collecting information which buffers were mutated.
-pub type BufferDirty = dirty::SharedBitField<u64,Box<dyn Fn()>>;
+pub type BufferDirty = dirty::SharedBitField<u64, Box<dyn Fn()>>;
 
 /// Dirty flag indicating that the shape of the attribute (all buffers) was changed.
 pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
@@ -224,17 +224,17 @@ impl {
 /// Interface for a particular [`Buffer`] element. It allows reading and writing the buffer value.
 /// Attributes are used to bind geometric specific, like sprite positions, to specific [`Buffer`]
 /// indexes.
-#[derive(CloneRef,Debug,Derivative)]
-#[derivative(Clone(bound=""))]
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
 pub struct Attribute<T> {
-    index  : InstanceIndex,
-    buffer : Buffer<T>
+    index:  InstanceIndex,
+    buffer: Buffer<T>,
 }
 
 impl<T> Attribute<T> {
     /// Create a new variable as an indexed view over provided buffer.
-    pub fn new(index:InstanceIndex, buffer:Buffer<T>) -> Self {
-        Self {index,buffer}
+    pub fn new(index: InstanceIndex, buffer: Buffer<T>) -> Self {
+        Self { index, buffer }
     }
 }
 
@@ -242,14 +242,14 @@ impl<T> HasItem for Attribute<T> {
     type Item = T;
 }
 
-impl<T:Storable> CellGetter for Attribute<T> {
+impl<T: Storable> CellGetter for Attribute<T> {
     fn get(&self) -> Self::Item {
         self.buffer.get(self.index.into())
     }
 }
 
-impl<T:Storable> CellSetter for Attribute<T> {
-    fn set(&self, value:Self::Item) {
-        self.buffer.set(self.index.into(),value);
+impl<T: Storable> CellSetter for Attribute<T> {
+    fn set(&self, value: Self::Item) {
+        self.buffer.set(self.index.into(), value);
     }
 }

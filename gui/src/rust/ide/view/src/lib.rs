@@ -11,7 +11,7 @@
 #![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
-#![feature(min_type_alias_impl_trait)]
+#![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
@@ -22,11 +22,9 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-
-#![recursion_limit="1024"]
+#![recursion_limit = "1024"]
 
 #[allow(clippy::option_map_unit_fn)]
-
 pub mod code_editor;
 pub mod debug_scenes;
 pub mod documentation;

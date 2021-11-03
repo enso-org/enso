@@ -2,21 +2,21 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::data::color;
 use ensogl_core::application::Application;
-use ensogl_core::display::shape::*;
+use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::display::shape::*;
 use ensogl_theme as theme;
 
-use crate::component;
-use crate::selector::shape::*;
-use super::Bounds;
 use super::bounds::absolute_value;
 use super::bounds::clamp_with_overflow;
 use super::bounds::normalise_value;
 use super::bounds::position_to_normalised_value;
-use super::shape::relative_shape_down_position;
 use super::model::Model;
+use super::shape::relative_shape_down_position;
+use super::Bounds;
+use crate::component;
+use crate::selector::shape::*;
 
 
 
@@ -43,23 +43,23 @@ ensogl_core::define_endpoints! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(&self, app:&Application, model:&Model, style:&StyleWatchFrp){
-        let frp     = &self;
+    fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
+        let frp = &self;
         let network = &frp.network;
-        let scene   = app.display.scene();
-        let mouse   = &scene.mouse.frp;
+        let scene = app.display.scene();
+        let mouse = &scene.mouse.frp;
 
         model.show_background(true);
 
-        let base_frp = super::Frp::new(model,style,network,frp.resize.clone().into(),mouse);
+        let base_frp = super::Frp::new(model, style, network, frp.resize.clone().into(), mouse);
 
         let track_shape_system = scene.shapes.shape_system(PhantomData::<track::Shape>);
         track_shape_system.shape_system.set_pointer_events(false);
 
-        let background_click = relative_shape_down_position(
-            network,model.app.display.scene(),&model.background);
-        let track_click   = relative_shape_down_position(
-            network,model.app.display.scene(),&model.track);
+        let background_click =
+            relative_shape_down_position(network, model.app.display.scene(), &model.background);
+        let track_click =
+            relative_shape_down_position(network, model.app.display.scene(), &model.track);
 
         let style_track_color = style.get_color(theme::component::slider::track::color);
 
@@ -123,7 +123,7 @@ impl component::Frp<Model> for Frp {
         }
 
         // Init defaults.
-        frp.set_bounds(Bounds::new(0.0,1.0));
+        frp.set_bounds(Bounds::new(0.0, 1.0));
         frp.allow_click_selection(false);
         frp.use_overflow_bounds(None);
         frp.set_value(0.5);

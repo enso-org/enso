@@ -13,19 +13,19 @@ pub mod response;
 mod tests;
 pub mod types;
 
-pub use types::*;
 pub use connection::Connection;
+pub use types::*;
 
 use crate::prelude::*;
 
-use crate::types::UTCDateTime;
 use crate::types::Sha3_224;
+use crate::types::UTCDateTime;
 
 use json_rpc::api::Result;
-use json_rpc::Handler;
 use json_rpc::make_rpc_methods;
-use serde::Serialize;
+use json_rpc::Handler;
 use serde::Deserialize;
+use serde::Serialize;
 use std::future::Future;
 use uuid::Uuid;
 
@@ -173,11 +173,12 @@ trait API {
 /// Check if the given `Error` value corresponds to an RPC call timeout.
 /// 
 /// Recognizes both client- and server-side timeouts.
-pub fn is_timeout_error(error:&failure::Error) -> bool {
+#[rustfmt::skip]
+pub fn is_timeout_error(error: &failure::Error) -> bool {
     use json_rpc::messages;
     use json_rpc::RpcError;
     use json_rpc::RpcError::*;
-    const  TIMEOUT:i64 = constants::ErrorCodes::Timeout as i64;
+    const TIMEOUT: i64 = constants::ErrorCodes::Timeout as i64;
     matches!(error.downcast_ref::<RpcError>()
       , Some(TimeoutError{..})
       | Some(RemoteError(messages::Error{code:TIMEOUT,..})))
@@ -192,27 +193,27 @@ pub fn is_timeout_error(error:&failure::Error) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    
+
     #[test]
     fn recognize_timeout_errors() {
-        type RpcError = json_rpc::RpcError::<serde_json::Value>;
-        
+        type RpcError = json_rpc::RpcError<serde_json::Value>;
+
         // Server-side errors.
-        let text  = r#"{"code":11,"message":"Request timeout"}"#;
-        let msg   = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
+        let text = r#"{"code":11,"message":"Request timeout"}"#;
+        let msg = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
         let error = RpcError::RemoteError(msg).into();
         assert!(is_timeout_error(&error));
-        
-        let text  = r#"{"code":2007,"message":"Evaluation of the visualisation expression failed"}"#;
-        let msg   = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
+
+        let text = r#"{"code":2007,"message":"Evaluation of the visualisation expression failed"}"#;
+        let msg = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
         let error = RpcError::RemoteError(msg).into();
         assert!(!is_timeout_error(&error));
-        
-        
+
+
         // Client-side errors.
-        let error = RpcError::TimeoutError {millis:500}.into();
+        let error = RpcError::TimeoutError { millis: 500 }.into();
         assert!(is_timeout_error(&error));
-        
+
         let error = RpcError::LostConnection.into();
         assert!(!is_timeout_error(&error));
     }

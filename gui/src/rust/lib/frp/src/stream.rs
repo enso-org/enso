@@ -1,9 +1,9 @@
 //! FRP event stream implementation.
 
-use crate::prelude::*;
+use crate::data::watch;
 use crate::network::*;
 use crate::node::*;
-use crate::data::watch;
+use crate::prelude::*;
 
 
 
@@ -12,11 +12,11 @@ use crate::data::watch;
 // =================
 
 /// Owned call stack type.
-#[cfg(feature="stack-trace")]
+#[cfg(feature = "stack-trace")]
 pub type OwnedCallStack = EnabledCallStack;
 
 /// Owned call stack type.
-#[cfg(not(feature="stack-trace"))]
+#[cfg(not(feature = "stack-trace"))]
 pub type OwnedCallStack = DisabledCallStack;
 
 /// A call stack trace for FRP events.
@@ -26,32 +26,32 @@ pub type CallStack<'a> = &'a OwnedCallStack;
 // === Ops ===
 
 /// Call stack operations available on both enabled and disabled stack implementations.
-pub trait CallStackOps : Default + Display {
+pub trait CallStackOps: Default + Display {
     /// Create a sub stack trace.
-    fn sub(&self, label:Label) -> Self;
+    fn sub(&self, label: Label) -> Self;
 }
 
 
 // === Enabled ===
 
 /// A call stack trace for FRP events.
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct EnabledCallStack {
-    stack: Vec<Label>
+    stack: Vec<Label>,
 }
 
 impl CallStackOps for EnabledCallStack {
-    fn sub(&self, label:Label) -> Self {
+    fn sub(&self, label: Label) -> Self {
         let stack = self.stack.to_vec().pushed(label);
-        Self {stack}
+        Self { stack }
     }
 }
 
 impl Display for EnabledCallStack {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let indent = "\n    ";
-        let trace  = indent.to_string() + &self.stack.join(indent);
-        write!(f,"Call stack trace:{}",trace)
+        let trace = indent.to_string() + &self.stack.join(indent);
+        write!(f, "Call stack trace:{}", trace)
     }
 }
 
@@ -59,18 +59,18 @@ impl Display for EnabledCallStack {
 // === Disabled ===
 
 /// A call stack trace for FRP events.
-#[derive(Debug,Clone,Copy,Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct DisabledCallStack;
 
 impl CallStackOps for DisabledCallStack {
-    fn sub(&self, _label:Label) -> Self {
+    fn sub(&self, _label: Label) -> Self {
         *self
     }
 }
 
 impl Display for DisabledCallStack {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"Compile time disabled call stack trace.")
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Compile time disabled call stack trace.")
     }
 }
 
@@ -115,11 +115,11 @@ pub trait EventOutput = 'static + ValueProvider + EventEmitter + CloneRef + HasI
 
 /// Implementors of this trait have to know how to emit events to subsequent nodes and how to
 /// register new event receivers.
-pub trait EventEmitter : HasOutput {
+pub trait EventEmitter: HasOutput {
     /// Emit a new event.
-    fn emit_event(&self, stack:CallStack, value:&Self::Output);
+    fn emit_event(&self, stack: CallStack, value: &Self::Output);
     /// Register new event target. All emitted events will be send to every registered target.
-    fn register_target(&self, target:EventInput<Output<Self>>);
+    fn register_target(&self, target: EventInput<Output<Self>>);
     /// Register that someone is watching value of this node.
     fn register_watch(&self) -> watch::Handle;
 }
@@ -133,7 +133,7 @@ pub trait EventEmitter : HasOutput {
 /// Implementors of this trait have to know how to consume incoming events.
 pub trait EventConsumer<T> {
     /// Callback for a new incoming event.
-    fn on_event(&self, stack:CallStack, value:&T);
+    fn on_event(&self, stack: CallStack, value: &T);
 }
 
 /// Implementors of this trait have to know how to consume incoming events. However, it is allowed
@@ -144,7 +144,7 @@ pub trait WeakEventConsumer<T> {
 
     /// Callback for a new incoming event. Returns true if the event was consumed or false if it was
     /// not. Not consuming an event means that the event receiver was already dropped.
-    fn on_event_if_exists(&self, stack:CallStack, value:&T) -> bool;
+    fn on_event_if_exists(&self, stack: CallStack, value: &T) -> bool;
 }
 
 
@@ -154,7 +154,7 @@ pub trait WeakEventConsumer<T> {
 // =====================
 
 /// Implementors of this trait have to be able to return their current output value.
-pub trait ValueProvider : HasOutput {
+pub trait ValueProvider: HasOutput {
     /// The current output value of the FRP node.
     fn value(&self) -> Self::Output;
 }
@@ -170,26 +170,32 @@ pub trait ValueProvider : HasOutput {
 /// in the future to an enum-based trait if needed.
 #[derive(Clone)]
 pub struct EventInput<Input> {
-    data : Rc<dyn WeakEventConsumer<Input>>
+    data: Rc<dyn WeakEventConsumer<Input>>,
 }
 
-impl<Def,Input> From<WeakNode<Def>> for EventInput<Input>
-where Def:HasOutputStatic, Node<Def>:EventConsumer<Input> {
-    fn from(node:WeakNode<Def>) -> Self {
-        Self {data:Rc::new(node)}
+impl<Def, Input> From<WeakNode<Def>> for EventInput<Input>
+where
+    Def: HasOutputStatic,
+    Node<Def>: EventConsumer<Input>,
+{
+    fn from(node: WeakNode<Def>) -> Self {
+        Self { data: Rc::new(node) }
     }
 }
 
-impl<Def,Input> From<&WeakNode<Def>> for EventInput<Input>
-where Def:HasOutputStatic, Node<Def>:EventConsumer<Input> {
-    fn from(node:&WeakNode<Def>) -> Self {
-        Self {data:Rc::new(node.clone_ref())}
+impl<Def, Input> From<&WeakNode<Def>> for EventInput<Input>
+where
+    Def: HasOutputStatic,
+    Node<Def>: EventConsumer<Input>,
+{
+    fn from(node: &WeakNode<Def>) -> Self {
+        Self { data: Rc::new(node.clone_ref()) }
     }
 }
 
 impl<Input> Debug for EventInput<Input> {
-    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,"EventInput")
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EventInput")
     }
 }
 
@@ -199,7 +205,7 @@ impl<Input> Debug for EventInput<Input> {
 // === NodeData ===
 // ================
 
-const EVALUATIONS_LIMIT:usize = 100;
+const EVALUATIONS_LIMIT: usize = 100;
 
 /// Internal structure of every stream FRP node.
 ///
@@ -212,28 +218,35 @@ const EVALUATIONS_LIMIT:usize = 100;
 /// not need to be cached, and it will not be cloned. This minimizes the amount of clones in FRP
 /// networks drastically.
 #[derive(Debug)]
-pub struct NodeData<Out=()> {
+pub struct NodeData<Out = ()> {
     /// Please be very careful when working with this field. When an event is emitted, this field
     /// is borrowed mutable. You should always borrow it only if `during_call` is false. Otherwise,
     /// if you want to register new outputs during a call, use `new_targets` field instead. It will
     /// be merged into `targets` directly after the call.
-    targets             : RefCell<Vec<EventInput<Out>>>,
-    new_targets         : RefCell<Vec<EventInput<Out>>>,
-    value_cache         : RefCell<Out>,
-    ongoing_evaluations : Cell<usize>,
-    watch_counter       : watch::Counter,
-    label               : Label,
+    targets:             RefCell<Vec<EventInput<Out>>>,
+    new_targets:         RefCell<Vec<EventInput<Out>>>,
+    value_cache:         RefCell<Out>,
+    ongoing_evaluations: Cell<usize>,
+    watch_counter:       watch::Counter,
+    label:               Label,
 }
 
-impl<Out:Default> NodeData<Out> {
+impl<Out: Default> NodeData<Out> {
     /// Constructor.
-    pub fn new(label:Label) -> Self {
-        let targets       = default();
-        let new_targets   = default();
-        let value_cache   = default();
-        let evaluations   = default();
+    pub fn new(label: Label) -> Self {
+        let targets = default();
+        let new_targets = default();
+        let value_cache = default();
+        let evaluations = default();
         let watch_counter = default();
-        Self {targets,new_targets,value_cache, ongoing_evaluations: evaluations,watch_counter,label}
+        Self {
+            targets,
+            new_targets,
+            value_cache,
+            ongoing_evaluations: evaluations,
+            watch_counter,
+            label,
+        }
     }
 
     fn use_caching(&self) -> bool {
@@ -241,17 +254,17 @@ impl<Out:Default> NodeData<Out> {
     }
 }
 
-impl<Out:Data> HasOutput for NodeData<Out> {
+impl<Out: Data> HasOutput for NodeData<Out> {
     type Output = Out;
 }
 
-impl<Out:Data> EventEmitter for NodeData<Out> {
-    fn emit_event(&self, stack:CallStack, value:&Out) {
+impl<Out: Data> EventEmitter for NodeData<Out> {
+    fn emit_event(&self, stack: CallStack, value: &Out) {
         let new_stack = stack.sub(self.label);
         if self.ongoing_evaluations.get() > EVALUATIONS_LIMIT {
-            let logger : Logger = Logger::new("frp");
-            warning!(logger,"The recursive evaluations limit exceeded.", || {
-                warning!(logger,"{new_stack}");
+            let logger: Logger = Logger::new("frp");
+            warning!(logger, "The recursive evaluations limit exceeded.", || {
+                warning!(logger, "{new_stack}");
             });
             WARNING!("{backtrace()}")
         } else {
@@ -263,7 +276,7 @@ impl<Out:Data> EventEmitter for NodeData<Out> {
                 targets.retain(|target| !target.data.is_dropped());
             }
             for target in self.targets.borrow().iter() {
-                target.data.on_event_if_exists(&new_stack,value);
+                target.data.on_event_if_exists(&new_stack, value);
             }
             let mut new_targets = self.new_targets.borrow_mut();
             if !new_targets.is_empty() {
@@ -276,7 +289,7 @@ impl<Out:Data> EventEmitter for NodeData<Out> {
         }
     }
 
-    fn register_target(&self,target:EventInput<Out>) {
+    fn register_target(&self, target: EventInput<Out>) {
         if self.ongoing_evaluations.get() > 0 {
             self.new_targets.borrow_mut().push(target);
         } else {
@@ -289,7 +302,7 @@ impl<Out:Data> EventEmitter for NodeData<Out> {
     }
 }
 
-impl<Out:Data> ValueProvider for NodeData<Out> {
+impl<Out: Data> ValueProvider for NodeData<Out> {
     fn value(&self) -> Out {
         if !self.use_caching() {
             panic!("Trying to read not cached value.")
@@ -309,57 +322,74 @@ impl<Out:Data> ValueProvider for NodeData<Out> {
 /// Strong reference to FRP stream node with limited functionality and parametrized only by the
 /// output type. This should be the main type used in public FRP APIs. See the docs of `NodeData`
 /// to learn more about its internal design.
-#[derive(CloneRef,Debug,Derivative)]
-#[derivative(Clone(bound=""))]
-pub struct OwnedStream<Out=()> {
-    data : Rc<NodeData<Out>>,
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct OwnedStream<Out = ()> {
+    data: Rc<NodeData<Out>>,
 }
 
 /// Weak reference to FRP stream node with limited functionality and parametrized only by the
 /// output type. This should be the main type used in public FRP APIs. See the docs of `NodeData`
 /// to learn more about its internal design.
-#[derive(CloneRef,Derivative)]
-#[derivative(Clone(bound=""))]
-pub struct Stream<Out=()> {
-    data : Weak<NodeData<Out>>,
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct Stream<Out = ()> {
+    data: Weak<NodeData<Out>>,
 }
 
 /// A strong reference to FRP stream node. See the docs of `NodeData` to learn more about its
 /// internal design.
-#[derive(CloneRef,Debug,Derivative)]
-#[derivative(Clone(bound=""))]
-pub struct Node<Def:HasOutputStatic> {
-    stream     : OwnedStream<Output<Def>>,
-    definition : Rc<Def>,
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct Node<Def: HasOutputStatic> {
+    stream:     OwnedStream<Output<Def>>,
+    definition: Rc<Def>,
 }
 
 /// Weak reference to FRP stream node. See the docs of `NodeData` to learn more about its
 /// internal design.
-#[derive(CloneRef,Debug,Derivative)]
-#[derivative(Clone(bound=""))]
-pub struct WeakNode<Def:HasOutputStatic> {
-    stream     : Stream<Output<Def>>,
-    definition : Weak<Def>,
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct WeakNode<Def: HasOutputStatic> {
+    stream:     Stream<Output<Def>>,
+    definition: Weak<Def>,
 }
 
 
 // === Output ===
 
-impl<Out:Data>            HasOutput for OwnedStream <Out> { type Output = Out; }
-impl<Out:Data>            HasOutput for Stream      <Out> { type Output = Out; }
-impl<Def:HasOutputStatic> HasOutput for Node        <Def> { type Output = Output<Def>; }
-impl<Def:HasOutputStatic> HasOutput for WeakNode    <Def> { type Output = Output<Def>; }
+impl<Out: Data> HasOutput for OwnedStream<Out> {
+    type Output = Out;
+}
+impl<Out: Data> HasOutput for Stream<Out> {
+    type Output = Out;
+}
+impl<Def: HasOutputStatic> HasOutput for Node<Def> {
+    type Output = Output<Def>;
+}
+impl<Def: HasOutputStatic> HasOutput for WeakNode<Def> {
+    type Output = Output<Def>;
+}
 
-impl<Out:Data>            HasOutput for &OwnedStream <Out> { type Output = Out; }
-impl<Out:Data>            HasOutput for &Stream      <Out> { type Output = Out; }
-impl<Def:HasOutputStatic> HasOutput for &Node        <Def> { type Output = Output<Def>; }
-impl<Def:HasOutputStatic> HasOutput for &WeakNode    <Def> { type Output = Output<Def>; }
+impl<Out: Data> HasOutput for &OwnedStream<Out> {
+    type Output = Out;
+}
+impl<Out: Data> HasOutput for &Stream<Out> {
+    type Output = Out;
+}
+impl<Def: HasOutputStatic> HasOutput for &Node<Def> {
+    type Output = Output<Def>;
+}
+impl<Def: HasOutputStatic> HasOutput for &WeakNode<Def> {
+    type Output = Output<Def>;
+}
 
 
 // === Derefs ===
 
 impl<Def> Deref for Node<Def>
-where Def:HasOutputStatic {
+where Def: HasOutputStatic
+{
     type Target = Def;
     fn deref(&self) -> &Self::Target {
         &self.definition
@@ -369,48 +399,55 @@ where Def:HasOutputStatic {
 
 // === Constructors ===
 
-impl<Def:HasOutputStatic> Node<Def> {
+impl<Def: HasOutputStatic> Node<Def> {
     /// Constructor.
-    pub fn construct(label:Label, definition:Def) -> Self {
-        let data       = Rc::new(NodeData::new(label));
-        let stream     = OwnedStream {data};
+    pub fn construct(label: Label, definition: Def) -> Self {
+        let data = Rc::new(NodeData::new(label));
+        let stream = OwnedStream { data };
         let definition = Rc::new(definition);
-        Self {stream,definition}
+        Self { stream, definition }
     }
 
     /// Constructor which registers the newly created node as the event target of the argument.
-    pub fn construct_and_connect<S>(label:Label, stream:&S, definition:Def) -> Self
-    where S:EventOutput, Self:EventConsumer<Output<S>> {
-        let this = Self::construct(label,definition);
+    pub fn construct_and_connect<S>(label: Label, stream: &S, definition: Def) -> Self
+    where
+        S: EventOutput,
+        Self: EventConsumer<Output<S>>, {
+        let this = Self::construct(label, definition);
         let weak = this.downgrade();
         stream.register_target(weak.into());
         this
     }
 
     /// Just like `construct_and_connect` but also allows setting the default initial value.
-    pub fn construct_and_connect_with_init_value<S>
-    (label:Label, stream:&S, definition:Def, init:Output<Def>) -> Self
-    where S:EventOutput, Self:EventConsumer<Output<S>> {
-        let this = Self::construct_and_connect(label,stream,definition);
+    pub fn construct_and_connect_with_init_value<S>(
+        label: Label,
+        stream: &S,
+        definition: Def,
+        init: Output<Def>,
+    ) -> Self
+    where
+        S: EventOutput,
+        Self: EventConsumer<Output<S>>,
+    {
+        let this = Self::construct_and_connect(label, stream, definition);
         *this.stream.data.value_cache.borrow_mut() = init;
         this
     }
 
     /// Downgrades to the weak version.
     pub fn downgrade(&self) -> WeakNode<Def> {
-        let stream     = self.stream.downgrade();
+        let stream = self.stream.downgrade();
         let definition = Rc::downgrade(&self.definition);
-        WeakNode {stream,definition}
+        WeakNode { stream, definition }
     }
 }
 
-impl<T:HasOutputStatic> WeakNode<T> {
+impl<T: HasOutputStatic> WeakNode<T> {
     /// Upgrades to the strong version.
     pub fn upgrade(&self) -> Option<Node<T>> {
         self.stream.upgrade().and_then(|stream| {
-            self.definition.upgrade().map(|definition| {
-                Node{stream,definition}
-            })
+            self.definition.upgrade().map(|definition| Node { stream, definition })
         })
     }
 }
@@ -418,55 +455,61 @@ impl<T:HasOutputStatic> WeakNode<T> {
 impl<Out> OwnedStream<Out> {
     /// Downgrades to the weak version.
     pub fn downgrade(&self) -> Stream<Out> {
-        Stream {data:Rc::downgrade(&self.data)}
+        Stream { data: Rc::downgrade(&self.data) }
     }
 }
 
 impl<Out> Stream<Out> {
     /// Upgrades to the strong version.
     pub fn upgrade(&self) -> Option<OwnedStream<Out>> {
-        self.data.upgrade().map(|data| OwnedStream {data})
+        self.data.upgrade().map(|data| OwnedStream { data })
     }
 }
 
 impl<Def> From<WeakNode<Def>> for Stream<Def::Output>
-where Def:HasOutputStatic {
-    fn from(node:WeakNode<Def>) -> Self {
+where Def: HasOutputStatic
+{
+    fn from(node: WeakNode<Def>) -> Self {
         node.stream
     }
 }
 
 impl<Def> From<&WeakNode<Def>> for Stream<Def::Output>
-    where Def:HasOutputStatic {
-    fn from(node:&WeakNode<Def>) -> Self {
+where Def: HasOutputStatic
+{
+    fn from(node: &WeakNode<Def>) -> Self {
         node.stream.clone_ref()
     }
 }
 
 impl<Def> From<Node<Def>> for OwnedStream<Def::Output>
-    where Def:HasOutputStatic {
-    fn from(node:Node<Def>) -> Self {
+where Def: HasOutputStatic
+{
+    fn from(node: Node<Def>) -> Self {
         node.stream.clone_ref()
     }
 }
 
 impl<Def> From<&Node<Def>> for OwnedStream<Def::Output>
-    where Def:HasOutputStatic {
-    fn from(node:&Node<Def>) -> Self {
+where Def: HasOutputStatic
+{
+    fn from(node: &Node<Def>) -> Self {
         node.stream.clone_ref()
     }
 }
 
 impl<Def> From<Node<Def>> for Stream<Def::Output>
-where Def:HasOutputStatic {
-    fn from(node:Node<Def>) -> Self {
+where Def: HasOutputStatic
+{
+    fn from(node: Node<Def>) -> Self {
         node.stream.downgrade()
     }
 }
 
 impl<Def> From<&Node<Def>> for Stream<Def::Output>
-where Def:HasOutputStatic {
-    fn from(node:&Node<Def>) -> Self {
+where Def: HasOutputStatic
+{
+    fn from(node: &Node<Def>) -> Self {
         node.clone_ref().into()
     }
 }
@@ -474,12 +517,12 @@ where Def:HasOutputStatic {
 
 // === EventEmitter ===
 
-impl<Out:Data> EventEmitter for OwnedStream<Out> {
-    fn emit_event(&self, stack:CallStack, value:&Self::Output) {
-        self.data.emit_event(stack,value)
+impl<Out: Data> EventEmitter for OwnedStream<Out> {
+    fn emit_event(&self, stack: CallStack, value: &Self::Output) {
+        self.data.emit_event(stack, value)
     }
 
-    fn register_target(&self,target:EventInput<Output<Self>>) {
+    fn register_target(&self, target: EventInput<Output<Self>>) {
         self.data.register_target(target)
     }
 
@@ -488,12 +531,12 @@ impl<Out:Data> EventEmitter for OwnedStream<Out> {
     }
 }
 
-impl<Out:Data> EventEmitter for Stream<Out> {
-    fn emit_event(&self, stack:CallStack, value:&Self::Output) {
-        self.upgrade().for_each(|t| t.emit_event(stack,value))
+impl<Out: Data> EventEmitter for Stream<Out> {
+    fn emit_event(&self, stack: CallStack, value: &Self::Output) {
+        self.upgrade().for_each(|t| t.emit_event(stack, value))
     }
 
-    fn register_target(&self,target:EventInput<Output<Self>>) {
+    fn register_target(&self, target: EventInput<Output<Self>>) {
         self.upgrade().for_each(|t| t.register_target(target))
     }
 
@@ -502,54 +545,73 @@ impl<Out:Data> EventEmitter for Stream<Out> {
     }
 }
 
-impl<Def:HasOutputStatic> EventEmitter for Node<Def>  {
-    fn emit_event (&self, stack:CallStack, value:&Output<Def>) {self.stream.emit_event(stack,value)}
-    fn register_target (&self,tgt:EventInput<Output<Self>>)    {self.stream.register_target(tgt)}
-    fn register_watch  (&self) -> watch::Handle                {self.stream.register_watch()}
+impl<Def: HasOutputStatic> EventEmitter for Node<Def> {
+    fn emit_event(&self, stack: CallStack, value: &Output<Def>) {
+        self.stream.emit_event(stack, value)
+    }
+    fn register_target(&self, tgt: EventInput<Output<Self>>) {
+        self.stream.register_target(tgt)
+    }
+    fn register_watch(&self) -> watch::Handle {
+        self.stream.register_watch()
+    }
 }
 
-impl<Def:HasOutputStatic> EventEmitter for WeakNode<Def> {
-    fn emit_event (&self, stack:CallStack, value:&Output<Def>) {self.stream.emit_event(stack,value)}
-    fn register_target (&self,tgt:EventInput<Output<Self>>)    {self.stream.register_target(tgt)}
-    fn register_watch  (&self) -> watch::Handle                {self.stream.register_watch()}
+impl<Def: HasOutputStatic> EventEmitter for WeakNode<Def> {
+    fn emit_event(&self, stack: CallStack, value: &Output<Def>) {
+        self.stream.emit_event(stack, value)
+    }
+    fn register_target(&self, tgt: EventInput<Output<Self>>) {
+        self.stream.register_target(tgt)
+    }
+    fn register_watch(&self) -> watch::Handle {
+        self.stream.register_watch()
+    }
 }
 
 
 // === WeakEventConsumer ===
 
-impl<Def,T> WeakEventConsumer<T> for WeakNode<Def>
-where Def:HasOutputStatic, Node<Def>:EventConsumer<T> {
+impl<Def, T> WeakEventConsumer<T> for WeakNode<Def>
+where
+    Def: HasOutputStatic,
+    Node<Def>: EventConsumer<T>,
+{
     fn is_dropped(&self) -> bool {
         self.definition.is_expired()
     }
 
-    fn on_event_if_exists(&self, stack:CallStack, value:&T) -> bool {
-        self.upgrade().map(|node| {node.on_event(stack,value);}).is_some()
+    fn on_event_if_exists(&self, stack: CallStack, value: &T) -> bool {
+        self.upgrade()
+            .map(|node| {
+                node.on_event(stack, value);
+            })
+            .is_some()
     }
 }
 
 
 // === ValueProvider ===
 
-impl<Out:Data> ValueProvider for OwnedStream<Out> {
+impl<Out: Data> ValueProvider for OwnedStream<Out> {
     fn value(&self) -> Self::Output {
         self.data.value()
     }
 }
 
-impl<Out:Data> ValueProvider for Stream<Out> {
+impl<Out: Data> ValueProvider for Stream<Out> {
     fn value(&self) -> Self::Output {
         self.upgrade().map(|t| t.value()).unwrap_or_default()
     }
 }
 
-impl<Def:HasOutputStatic> ValueProvider for Node<Def> {
+impl<Def: HasOutputStatic> ValueProvider for Node<Def> {
     fn value(&self) -> Self::Output {
         self.stream.value()
     }
 }
 
-impl<Def:HasOutputStatic> ValueProvider for WeakNode<Def> {
+impl<Def: HasOutputStatic> ValueProvider for WeakNode<Def> {
     fn value(&self) -> Self::Output {
         self.stream.value()
     }
@@ -560,18 +622,18 @@ impl<Def:HasOutputStatic> ValueProvider for WeakNode<Def> {
 
 impl<Out> HasId for Stream<Out> {
     fn id(&self) -> Id {
-        let raw = self.data.as_ptr() as *const() as usize;
+        let raw = self.data.as_ptr() as *const () as usize;
         raw.into()
     }
 }
 
-impl<Def:HasOutputStatic> HasId for Node<Def> {
+impl<Def: HasOutputStatic> HasId for Node<Def> {
     fn id(&self) -> Id {
         self.downgrade().id()
     }
 }
 
-impl<Def:HasOutputStatic> HasId for WeakNode<Def> {
+impl<Def: HasOutputStatic> HasId for WeakNode<Def> {
     fn id(&self) -> Id {
         self.stream.id()
     }
@@ -580,8 +642,9 @@ impl<Def:HasOutputStatic> HasId for WeakNode<Def> {
 
 // === HasLabel ===
 
-impl<Def:HasOutputStatic> HasLabel for Node<Def>
-    where Def:InputBehaviors {
+impl<Def: HasOutputStatic> HasLabel for Node<Def>
+where Def: InputBehaviors
+{
     fn label(&self) -> Label {
         self.stream.data.label
     }
@@ -589,7 +652,8 @@ impl<Def:HasOutputStatic> HasLabel for Node<Def>
 
 // FIXME code quality below:
 impl<Def> HasOutputTypeLabel for Node<Def>
-    where Def:HasOutputStatic+InputBehaviors {
+where Def: HasOutputStatic + InputBehaviors
+{
     fn output_type_label(&self) -> String {
         let label = type_name::<Def>().to_string();
         let label = label.split(|c| c == '<').collect::<Vec<_>>()[0];
@@ -598,7 +662,7 @@ impl<Def> HasOutputTypeLabel for Node<Def>
         let mut label = label[0];
         let sfx = "Data";
         if label.ends_with(sfx) {
-            label = &label[0..label.len()-sfx.len()];
+            label = &label[0..label.len() - sfx.len()];
         }
         label.into()
     }
@@ -607,16 +671,18 @@ impl<Def> HasOutputTypeLabel for Node<Def>
 
 // === InputBehaviors ===
 
-impl<Def:HasOutputStatic> InputBehaviors for Node<Def>
-where Def:InputBehaviors {
+impl<Def: HasOutputStatic> InputBehaviors for Node<Def>
+where Def: InputBehaviors
+{
     fn input_behaviors(&self) -> Vec<Link> {
         vec![] // FIXME
-//        self.data.input_behaviors()
+               //        self.data.input_behaviors()
     }
 }
 
-impl<Def:HasOutputStatic> InputBehaviors for WeakNode<Def>
-    where Def:InputBehaviors {
+impl<Def: HasOutputStatic> InputBehaviors for WeakNode<Def>
+where Def: InputBehaviors
+{
     fn input_behaviors(&self) -> Vec<Link> {
         self.stream.input_behaviors()
     }
@@ -626,11 +692,10 @@ impl<Def:HasOutputStatic> InputBehaviors for WeakNode<Def>
 // === Debug ===
 
 impl<Out> Debug for Stream<Out> {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.data.upgrade() {
-            None    => write!(f,"Stream(Dropped)"),
-            Some(_) => write!(f,"Stream"),
+            None => write!(f, "Stream(Dropped)"),
+            Some(_) => write!(f, "Stream"),
         }
-
     }
 }

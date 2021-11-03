@@ -79,7 +79,9 @@ macro_rules! apply_result {
 // ============
 
 #[macro_export]
-macro_rules! drop {($($toks:tt)*) => {}}
+macro_rules! drop {
+    ($($toks:tt)*) => {};
+}
 
 // ==================
 // === SplitComma ===
@@ -145,4 +147,4 @@ macro_rules! split_comma_helper {
 // === Examples ===
 // ================
 
-eval!{ drop(1,split_comma([a,b,c]),3) }
+eval! { drop(1,split_comma([a,b,c]),3) }

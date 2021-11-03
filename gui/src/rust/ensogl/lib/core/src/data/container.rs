@@ -11,7 +11,7 @@
 /// automatically used as mutable reference while using this trait.
 pub trait AddMut<T> {
     type Output = ();
-    fn add(&mut self, component:T) -> Self::Output;
+    fn add(&mut self, component: T) -> Self::Output;
 }
 
 
@@ -26,12 +26,12 @@ pub trait AddMut<T> {
 /// a current value and first element is a previous one `None` on the first
 /// iteration.
 #[derive(Debug)]
-pub struct CachingIterator<T:Clone, It:Iterator<Item=T>> {
-    last : Option<T>,
-    iter : It
+pub struct CachingIterator<T: Clone, It: Iterator<Item = T>> {
+    last: Option<T>,
+    iter: It,
 }
 
-impl<T:Clone, It:Iterator<Item=T>> Iterator for CachingIterator<T, It> {
+impl<T: Clone, It: Iterator<Item = T>> Iterator for CachingIterator<T, It> {
     type Item = (Option<T>, T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -47,21 +47,18 @@ impl<T:Clone, It:Iterator<Item=T>> Iterator for CachingIterator<T, It> {
 ///
 /// It is implemented for each iterator over cloneable items.
 pub trait IntoCachingIterator {
-    type Item : Clone;
-    type Iter : Iterator<Item = Self::Item>;
+    type Item: Clone;
+    type Iter: Iterator<Item = Self::Item>;
 
-    fn cache_last_value(self) -> CachingIterator<Self::Item,Self::Iter>;
+    fn cache_last_value(self) -> CachingIterator<Self::Item, Self::Iter>;
 }
 
-impl<T : Clone, It : Iterator<Item=T>> IntoCachingIterator for It {
+impl<T: Clone, It: Iterator<Item = T>> IntoCachingIterator for It {
     type Item = T;
     type Iter = Self;
 
-    fn cache_last_value(self) -> CachingIterator<Self::Item,Self::Iter> {
-        CachingIterator {
-            last : None,
-            iter : self
-        }
+    fn cache_last_value(self) -> CachingIterator<Self::Item, Self::Iter> {
+        CachingIterator { last: None, iter: self }
     }
 }
 
@@ -71,18 +68,18 @@ mod tests {
 
     #[test]
     fn caching_iterator_on_empty() {
-        let data   = Vec::<i32>::new();
+        let data = Vec::<i32>::new();
         let result = data.iter().cache_last_value().next();
         assert_eq!(None, result);
     }
 
     #[test]
     fn caching_iterator() {
-        let data                 = vec![2, 3, 5];
+        let data = vec![2, 3, 5];
         let mut caching_iterator = data.iter().cloned().cache_last_value();
-        assert_eq!(Some((None   ,2)), caching_iterator.next());
-        assert_eq!(Some((Some(2),3)), caching_iterator.next());
-        assert_eq!(Some((Some(3),5)), caching_iterator.next());
-        assert_eq!(None             , caching_iterator.next());
+        assert_eq!(Some((None, 2)), caching_iterator.next());
+        assert_eq!(Some((Some(2), 3)), caching_iterator.next());
+        assert_eq!(Some((Some(3), 5)), caching_iterator.next());
+        assert_eq!(None, caching_iterator.next());
     }
 }

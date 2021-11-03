@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use enso_frp::io::mouse;
 use crate::system::web::dom::Shape;
+use enso_frp::io::mouse;
 
 use wasm_bindgen::JsCast;
 
