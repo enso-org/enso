@@ -39,7 +39,10 @@ async function get_build_config() {
 // === Project Manager ===
 // =======================
 
-interface BuildInfo { version: string, target: string }
+interface BuildInfo {
+    version: string
+    target: string
+}
 
 function get_project_manager_url({ version, target }: BuildInfo): string {
     console.log('webpack target ' + target)
@@ -130,7 +133,7 @@ async function download_project_manager(file_url: string, overwrite: boolean): P
     if (fss.existsSync(file_path) && !overwrite) {
         console.log(
             `The file ${file_path} exists. ` +
-            'Project manager executable does not need to be downloaded.'
+                'Project manager executable does not need to be downloaded.'
         )
     } else {
         await fs.mkdir(download_dir, { recursive: true })
@@ -145,20 +148,22 @@ async function download_project_manager(file_url: string, overwrite: boolean): P
         const target_file = fss.createWriteStream(file_path)
         const progress_indicator = new DownloadProgressIndicator()
         await new Promise((resolve, reject) =>
-            http.get(options, (res: IncomingMessage) => {
-                res.on('data', (data: string) => {
-                    target_file.write(data)
-                    progress_indicator.add_progress_bytes(data.length)
-                }).on('end', () => {
-                    target_file.end()
-                    console.log(`${file_url} downloaded to "${file_path}".`)
-                    resolve(undefined)
+            http
+                .get(options, (res: IncomingMessage) => {
+                    res.on('data', (data: string) => {
+                        target_file.write(data)
+                        progress_indicator.add_progress_bytes(data.length)
+                    }).on('end', () => {
+                        target_file.end()
+                        console.log(`${file_url} downloaded to "${file_path}".`)
+                        resolve(undefined)
+                    })
                 })
-            }).on('error', async (e: http.ClientRequest) => {
-                target_file.end()
-                await fs.rm(file_path)
-                reject('Error: The download of the project manager was interrupted:\n' + e)
-            })
+                .on('error', async (e: http.ClientRequest) => {
+                    target_file.end()
+                    await fs.rm(file_path)
+                    reject('Error: The download of the project manager was interrupted:\n' + e)
+                })
         )
     }
 
@@ -185,7 +190,7 @@ async function main() {
         const build_info_file_content = await fs.readFile(build_info_file)
         existing_build_info = JSON.parse(build_info_file_content.toString())
     } catch (error) {
-        const file_does_not_exist = error.code === 'ENOENT'  // Standing for "Error NO ENTry"
+        const file_does_not_exist = error.code === 'ENOENT' // Standing for "Error NO ENTry"
         if (file_does_not_exist) {
             existing_build_info = null
         } else {
@@ -193,9 +198,10 @@ async function main() {
             process.exit(1)
         }
     }
-    if (buildInfo.version !== existing_build_info?.version ||
-        buildInfo.target !== existing_build_info?.target) {
-
+    if (
+        buildInfo.version !== existing_build_info?.version ||
+        buildInfo.target !== existing_build_info?.target
+    ) {
         // We remove the build info file to avoid misinformation if the build is interrupted during
         // the call to `download_project_manager`.
         // We use `force: true` because the file might not exist.
@@ -211,7 +217,7 @@ async function main() {
     } else {
         console.log(
             `The right version of the project manager is already installed, ` +
-            `according to ${build_info_file}.`
+                `according to ${build_info_file}.`
         )
     }
 }

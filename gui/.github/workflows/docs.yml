@@ -5,7 +5,7 @@ on:
     branches:
       - develop
     paths:
-      - 'docs/**'
+      - "docs/**"
 
 jobs:
   checkout:
@@ -13,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          repository: 'enso-org/enso-org.github.io'
-          ref: 'sources'
+          repository: "enso-org/enso-org.github.io"
+          ref: "sources"
           token: ${{ secrets.ENSO_PAT }}
       - name: set identity email
         run: git config --global user.email "actions@github.com"

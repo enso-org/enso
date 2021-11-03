@@ -129,8 +129,8 @@ let installClippy = {
 }
 
 let installFmt = {
-    name: "Install Clippy",
-    run: "rustup component add rustfmt"
+    name: 'Install Clippy',
+    run: 'rustup component add rustfmt',
 }
 
 // Install fixed version to avoid upgrading to a breaking version.
@@ -424,8 +424,7 @@ let assertReleaseDoNotExists = [
 
 assertNoSquashCommitForRelease = {
     name: `Fail if squash commit to the 'unstable' or the 'stable' branch.`,
-    run:
-        'if [[ "${{ github.base_ref }}" == "unstable" || "${{ github.base_ref }}" == "stable" ]]; then exit 1; fi',
+    run: 'if [[ "${{ github.base_ref }}" == "unstable" || "${{ github.base_ref }}" == "stable" ]]; then exit 1; fi',
 }
 
 let assertions = list(

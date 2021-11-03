@@ -11,11 +11,7 @@ const CARD_SPREADSHEETS = 'card-spreadsheets'
 const CARD_GEO = 'card-geo'
 const CARD_VISUALIZE = 'card-visualize'
 
-const ALL_CARDS = [
-    CARD_SPREADSHEETS,
-    CARD_GEO,
-    CARD_VISUALIZE,
-]
+const ALL_CARDS = [CARD_SPREADSHEETS, CARD_GEO, CARD_VISUALIZE]
 
 /**
  * The sore for hidden elements.
@@ -46,7 +42,7 @@ async function loadTemplatesView(openProject: (project: string) => void): Promis
     try {
         await loadProjectsList(openProject)
     } catch (error) {
-        displayStatusBox("Failed to load projects.")
+        displayStatusBox('Failed to load projects.')
     }
 
     setTemplateCardHandlers(openProject)
@@ -118,15 +114,14 @@ async function loadProjectsList(openProject: (project: string) => void): Promise
             })
             .catch((error: any) => {
                 console.error('onclick', PROJECTS_LIST_NEW_PROJECT, error)
-                displayStatusBox("Failed to create a new project.")
+                displayStatusBox('Failed to create a new project.')
             })
     }
 
     const projectsListResult = await PM.listProjects()
-    const projectsList = projectsListResult
-        .result
-        .projects
-        .map((project: any) => buildProjectListNode(project.name, openProject))
+    const projectsList = projectsListResult.result.projects.map((project: any) =>
+        buildProjectListNode(project.name, openProject)
+    )
 
     projectsList.forEach((element: any) => {
         projectsListNode.insertBefore(element, newProjectNode)
@@ -139,7 +134,10 @@ async function loadProjectsList(openProject: (project: string) => void): Promise
  * @param projectName the name of the project
  * @param openProject the callback that opens IDE with the provided project
  */
-function buildProjectListNode(projectName: string, openProject: (project: string) => void): HTMLLIElement {
+function buildProjectListNode(
+    projectName: string,
+    openProject: (project: string) => void
+): HTMLLIElement {
     const li = document.createElement('li')
     li.setAttribute('style', 'cursor: pointer;')
     li.onclick = () => {
@@ -176,7 +174,10 @@ function setTemplateCardHandlers(openProject: (project: String) => void): void {
  * @param element the HTML element of the template card
  * @param openProject the callback that opens IDE with the provided project
  */
-function setTemplateCardHandler(element: HTMLElement, openProject: (project: string) => void): void {
+function setTemplateCardHandler(
+    element: HTMLElement,
+    openProject: (project: string) => void
+): void {
     element.setAttribute('style', 'cursor: pointer;')
     element.onclick = () => {
         const projectName = getProjectName(element.id)
@@ -186,7 +187,7 @@ function setTemplateCardHandler(element: HTMLElement, openProject: (project: str
         PM.createProject(projectName, templateName)
             .then((response: any) => {
                 if (response.error !== undefined) {
-                    console.error("Project manager createProject failed", response)
+                    console.error('Project manager createProject failed', response)
                     displayStatusBox(response.error.message)
                 } else {
                     restoreRootHtml()
@@ -195,7 +196,7 @@ function setTemplateCardHandler(element: HTMLElement, openProject: (project: str
             })
             .catch((error: any) => {
                 console.error('onclick', element.id, error)
-                displayStatusBox("Failed to open a template.")
+                displayStatusBox('Failed to open a template.')
             })
     }
 }

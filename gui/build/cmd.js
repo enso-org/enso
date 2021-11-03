@@ -1,14 +1,16 @@
 const https = require('https')
 const spawn = require('child_process').spawn
-const exec  = require('child_process').exec
+const exec = require('child_process').exec
 
 function download(url) {
-    return new Promise((resolve,reject) => {
-        https.get(url,(res) => {
-            let data = ""
-            res.on("data", (chunk) => data += chunk)
-            res.on("end", () => resolve(data))
-        }).on("error", (error) => reject(error))
+    return new Promise((resolve, reject) => {
+        https
+            .get(url, res => {
+                let data = ''
+                res.on('data', chunk => (data += chunk))
+                res.on('end', () => resolve(data))
+            })
+            .on('error', error => reject(error))
     })
 }
 
@@ -24,7 +26,7 @@ function section(title) {
     console.log()
 }
 
-async function with_cwd(dir,fn) {
+async function with_cwd(dir, fn) {
     let cwd = process.cwd()
     process.chdir(dir)
     let out = await fn()
@@ -32,36 +34,42 @@ async function with_cwd(dir,fn) {
     return out
 }
 
-function run(cmd,args) {
+function run(cmd, args) {
     let out = ''
     return new Promise((resolve, reject) => {
         console.log(`Calling '${cmd} ${args.join(' ')}'`)
-        let proc = spawn(cmd,args,{stdio:'inherit', shell:true})
-        proc.on('exit', (code) => {
+        let proc = spawn(cmd, args, { stdio: 'inherit', shell: true })
+        proc.on('exit', code => {
             if (code) process.exit(code)
             resolve(out)
         })
     })
 }
 
-function run_read(cmd,args) {
+function run_read(cmd, args) {
     let out = ''
     return new Promise((resolve, reject) => {
-        let proc = spawn(cmd,args,{shell:true})
+        let proc = spawn(cmd, args, { shell: true })
         proc.stderr.pipe(process.stderr)
-        proc.stdout.on('data', (data) => { out += data })
-        proc.on('exit', (code) => {
-            if (code) process.exit(code);
+        proc.stdout.on('data', data => {
+            out += data
+        })
+        proc.on('exit', code => {
+            if (code) process.exit(code)
             resolve(out)
         })
     })
 }
 
-async function check_version (name,required,cfg) {
-    if (!cfg) { cfg = {} }
-    let version = await run_read(name,['--version'])
-    version     = version.trim()
-    if (cfg.preprocess) { version = cfg.preprocess(version) }
+async function check_version(name, required, cfg) {
+    if (!cfg) {
+        cfg = {}
+    }
+    let version = await run_read(name, ['--version'])
+    version = version.trim()
+    if (cfg.preprocess) {
+        version = cfg.preprocess(version)
+    }
     if (cfg.silent !== true) {
         console.log(`Checking if '${name}' version is '${required}'.`)
     }
@@ -70,14 +78,14 @@ async function check_version (name,required,cfg) {
     }
 }
 
-async function get_npm_info (name) {
-    let info = await run_read('npm',['info',name,'--json'])
+async function get_npm_info(name) {
+    let info = await run_read('npm', ['info', name, '--json'])
     return JSON.parse(info)
 }
 
-async function get_npm_lts_version_of (name) {
+async function get_npm_lts_version_of(name) {
     let info = await get_npm_info(name)
-    version  = info['dist-tags'].lts
+    version = info['dist-tags'].lts
     return version
 }
 
@@ -96,12 +104,21 @@ async function get_node_lts_version() {
         }
     }
     if (!newest) {
-        throw "Cannot fetch the info about node LTS version."
+        throw 'Cannot fetch the info about node LTS version.'
     }
     let node = newest.version
-    let npm  = newest.npm
-    return [node,npm]
+    let npm = newest.npm
+    return [node, npm]
 }
 
-module.exports = {section,run,run_read,check_version,get_npm_info,get_npm_lts_version_of,with_cwd,
-    get_node_dist_index,get_node_lts_version}
+module.exports = {
+    section,
+    run,
+    run_read,
+    check_version,
+    get_npm_info,
+    get_npm_lts_version_of,
+    with_cwd,
+    get_node_dist_index,
+    get_node_lts_version,
+}

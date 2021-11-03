@@ -12,27 +12,27 @@ function get_build_config() {
 const build = get_build_config()
 
 let config = {
-    name: "Enso",
-    description: "Enso Data Processing Environment.",
-    main: "index.js",
+    name: 'Enso',
+    description: 'Enso Data Processing Environment.',
+    main: 'index.js',
 
     dependencies: {
-        "create-servers": "^3.1.0",
-        "electron-is-dev": "^1.1.0",
-        "enso-studio-common": "1.0.0",
-        "enso-studio-content": "1.0.0",
-        "enso-studio-icons": "1.0.0",
-        "yargs": "^15.3.0"
+        'create-servers': '^3.1.0',
+        'electron-is-dev': '^1.1.0',
+        'enso-studio-common': '1.0.0',
+        'enso-studio-content': '1.0.0',
+        'enso-studio-icons': '1.0.0',
+        yargs: '^15.3.0',
     },
 
     devDependencies: {
-        "compression-webpack-plugin": "^3.1.0",
-        "copy-webpack-plugin": "^5.1.1",
-        "devtron": "^1.4.0",
-        "electron": "11.1.1",
-        "electron-builder": "^22.10.5",
-        "crypto-js": "4.0.0",
-        "electron-notarize" : "1.0.0",
+        'compression-webpack-plugin': '^3.1.0',
+        'copy-webpack-plugin': '^5.1.1',
+        devtron: '^1.4.0',
+        electron: '11.1.1',
+        'electron-builder': '^22.10.5',
+        'crypto-js': '4.0.0',
+        'electron-notarize': '1.0.0',
     },
 
     scripts: {
@@ -76,18 +76,14 @@ config.build = {
         icon: `${paths.dist.root}/icons/png`,
         category: 'Development',
     },
-    files: [
-        { from: paths.dist.content, to: '.' }
-    ],
-    extraResources: [
-        { from: paths.dist.bin, to: '.' , filter: ["!**.tar.gz", "!**.zip"]}
-    ],
+    files: [{ from: paths.dist.content, to: '.' }],
+    extraResources: [{ from: paths.dist.bin, to: '.', filter: ['!**.tar.gz', '!**.zip'] }],
     fileAssociations: [
         {
             ext: 'enso',
             name: 'Enso Source File',
             role: 'Editor',
-        }
+        },
     ],
     directories: {
         output: paths.dist.client,
@@ -100,7 +96,7 @@ config.build = {
         // are handled by us. More info:
         // https://github.com/electron-userland/electron-builder/issues/2851
         // https://github.com/electron-userland/electron-builder/issues/2900
-        differentialPackage: false
+        differentialPackage: false,
     },
     dmg: {
         // Disables "block map" generation during electron building. Block maps
@@ -116,7 +112,7 @@ config.build = {
         // notarised application it will still be detected as trusted.
         // For more details see step (4) at
         // https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
-        sign: false
+        sign: false,
     },
     publish: [],
     afterAllArtifactBuild: 'tasks/computeHashes.js',
@@ -126,4 +122,4 @@ config.build = {
     // afterSign: "tasks/notarize.js",
 }
 
-module.exports = {config}
+module.exports = { config }
