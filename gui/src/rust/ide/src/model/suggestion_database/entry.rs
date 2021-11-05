@@ -8,9 +8,9 @@ use ast::constants::keywords;
 use data::text::TextLocation;
 use double_representation::module;
 use double_representation::tp;
-use enso_protocol::language_server;
-use enso_protocol::language_server::FieldUpdate;
-use enso_protocol::language_server::SuggestionsDatabaseModification;
+use engine_protocol::language_server;
+use engine_protocol::language_server::FieldUpdate;
+use engine_protocol::language_server::SuggestionsDatabaseModification;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
 

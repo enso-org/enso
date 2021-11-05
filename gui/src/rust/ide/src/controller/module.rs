@@ -10,8 +10,8 @@ use data::text::*;
 use double_representation::module;
 use double_representation::project;
 use double_representation::text::apply_code_change_to_id_map;
-use enso_protocol::language_server;
-use enso_protocol::types::Sha3_224;
+use engine_protocol::language_server;
+use engine_protocol::types::Sha3_224;
 use parser::Parser;
 
 

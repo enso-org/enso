@@ -10,12 +10,12 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 analytics = { version = "0.1.0", path = "../../lib/analytics" }
 ast = { version = "0.1.0", path = "../../lib/ast/impl" }
-bimap = { version = "0.4.0"}
+bimap = { version = "0.4.0" }
 enso-args = { version = "0.1.0", path = "../../lib/args" }
 enso-frp = { version = "0.1.0", path = "../../../lib/frp" }
 enso-logger = { path = "../../../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../../../lib/rust/prelude"}
-enso-protocol = { version = "0.1.0", path = "../../lib/enso-protocol" }
+engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol" }
 enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
 ensogl = { version = "0.1.0", path = "../../../ensogl" }
 ensogl-gui-components = { version = "0.1.0", path = "../../../ensogl/lib/components" }

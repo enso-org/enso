@@ -18,7 +18,7 @@ use data::text::TextLocation;
 use double_representation::definition::DefinitionInfo;
 use double_representation::identifier::ReferentName;
 use double_representation::project;
-use enso_protocol::language_server::MethodPointer;
+use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
 use parser::api::ParsedSourceFile;
 use parser::api::SourceFile;

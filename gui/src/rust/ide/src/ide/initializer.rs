@@ -7,8 +7,8 @@ use crate::controller::project::CONFIG;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
 
-use enso_protocol::project_manager;
-use enso_protocol::project_manager::ProjectName;
+use engine_protocol::project_manager;
+use engine_protocol::project_manager::ProjectName;
 use ensogl::application::Application;
 use ensogl::system::web;
 use uuid::Uuid;

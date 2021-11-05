@@ -2,8 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::connection;
 use crate::connection::Connection;
-use crate::{connection, definition};
+use crate::definition;
 use crate::definition::DefinitionInfo;
 use crate::definition::DefinitionProvider;
 use crate::node;

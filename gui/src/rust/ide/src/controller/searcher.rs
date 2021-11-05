@@ -20,7 +20,7 @@ use double_representation::module::QualifiedName;
 use double_representation::node::NodeInfo;
 use double_representation::project;
 use double_representation::tp;
-use enso_protocol::language_server;
+use engine_protocol::language_server;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -1173,8 +1173,8 @@ pub mod test {
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;
 
-    use enso_protocol::language_server::types::test::value_update_with_type;
-    use enso_protocol::language_server::SuggestionId;
+    use engine_protocol::language_server::types::test::value_update_with_type;
+    use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
     use utils::test::traits::*;
 
@@ -1199,7 +1199,7 @@ pub mod test {
         /// If the node in `main` function will be selected while opening searcher.
         selected_node: bool,
         #[derivative(Default(value = "MAIN_FINISH"))]
-        code_location: enso_protocol::language_server::Position,
+        code_location: engine_protocol::language_server::Position,
     }
 
     impl MockData {

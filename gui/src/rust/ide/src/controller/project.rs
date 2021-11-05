@@ -7,10 +7,10 @@ use crate::model::module::QualifiedName;
 use crate::model::traits::*;
 
 use double_representation::project;
+use engine_protocol::language_server::MethodPointer;
+use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use enso_protocol::language_server::MethodPointer;
-use enso_protocol::language_server::Path;
 use parser::Parser;
 use semver::Version;
 use semver::VersionReq;

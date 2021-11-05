@@ -2,7 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::{INDENT, LineKind};
+use crate::LineKind;
+use crate::INDENT;
 
 use ast::crumbs::ChildAst;
 use ast::crumbs::Crumbable;

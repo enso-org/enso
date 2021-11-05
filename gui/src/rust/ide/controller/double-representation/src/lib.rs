@@ -4,7 +4,6 @@
 #![feature(drain_filter)]
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
-
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -51,8 +50,8 @@ pub mod test_utils;
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {
     pub use ast::prelude::*;
-    pub use enso_prelude::*;
     pub use enso_logger::*;
+    pub use enso_prelude::*;
     pub use utils::prelude::*;
 
     pub use enso_logger::DefaultTraceLogger as Logger;

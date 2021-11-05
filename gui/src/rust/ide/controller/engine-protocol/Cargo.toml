@@ -1,5 +1,5 @@
 [package]
-name = "enso-protocol"
+name = "engine-protocol"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
@@ -12,8 +12,8 @@ enso-data = { path = "../../../../../../lib/rust/data"}
 enso-logger = { path = "../../../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
-json-rpc = { path = "../json-rpc" }
-utils = { path = "../utils" }
+json-rpc = { path = "../../lib/json-rpc" }
+utils = { path = "../../lib/utils" }
 chrono = { version = "0.4", features = ["serde"] }
 failure = { version = "0.1.8" }
 flatbuffers = { version = "0.5" }

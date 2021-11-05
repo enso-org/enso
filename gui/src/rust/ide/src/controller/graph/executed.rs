@@ -11,7 +11,7 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
-use enso_protocol::language_server::MethodPointer;
+use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
 
@@ -342,8 +342,8 @@ pub mod tests {
     use crate::model::module::NodeMetadata;
     use crate::test;
 
-    use enso_protocol::language_server::types::test::value_update_with_method_ptr;
-    use enso_protocol::language_server::types::test::value_update_with_type;
+    use engine_protocol::language_server::types::test::value_update_with_method_ptr;
+    use engine_protocol::language_server::types::test::value_update_with_type;
     use utils::test::traits::*;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;

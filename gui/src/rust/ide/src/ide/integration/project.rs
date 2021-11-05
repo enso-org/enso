@@ -30,9 +30,9 @@ use crate::model::traits::*;
 
 use analytics;
 use bimap::BiMap;
+use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_data::text::TextChange;
 use enso_frp as frp;
-use enso_protocol::language_server::ExpressionUpdatePayload;
 use ensogl::display::traits::*;
 use ensogl_gui_components::file_browser::model::AnyFolderContent;
 use ensogl_gui_components::list_view;

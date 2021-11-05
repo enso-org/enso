@@ -321,11 +321,6 @@ mod tests {
 
     #[test]
     fn test_response_deserialization() {
-        #[derive(Debug, Deserialize)]
-        struct MockResponse {
-            exists: bool,
-        }
-
         let response = r#"{"jsonrpc":"2.0","id":0,"result":{"exists":true}}"#;
         let msg = serde_json::from_str(&response).unwrap();
         if let IncomingMessage::Response(resp) = msg {

@@ -2,7 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::{alias_analysis, definition};
+use crate::alias_analysis;
+use crate::definition;
 use crate::definition::DefinitionProvider;
 use crate::identifier;
 use crate::identifier::Identifier;
@@ -17,7 +18,7 @@ use ast::crumbs::ChildAst;
 use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
-use enso_protocol::language_server;
+use engine_protocol::language_server;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -192,7 +193,8 @@ impl QualifiedName {
     ///
     /// ```
     /// # use enso_prelude::*;
-    /// # use ide::model::module::QualifiedName;
+    /// #
+    /// # use double_representation::module::QualifiedName;
     ///
     /// let name =
     ///     QualifiedName::from_segments("local.Project".try_into().unwrap(), &["Main"]).unwrap();
@@ -213,7 +215,7 @@ impl QualifiedName {
     /// Build a module's full qualified name from its name segments and the project name.
     ///
     /// ```
-    /// use ide::model::module::QualifiedName;
+    /// # use double_representation::module::QualifiedName;
     ///
     /// let name = QualifiedName::from_all_segments(&["Project", "Main"]).unwrap();
     /// assert_eq!(name.to_string(), "Project.Main");
@@ -261,7 +263,7 @@ impl QualifiedName {
     /// still identify the same entity.
     ///
     /// ```
-    /// # use ide::model::module::QualifiedName;
+    /// # use double_representation::module::QualifiedName;
     /// let mut name_with_main = QualifiedName::from_text("ns.Proj.Main").unwrap();
     /// let mut name_without_main = QualifiedName::from_text("ns.Proj.Foo.Bar").unwrap();
     /// let mut main_but_not_project_main = QualifiedName::from_text("ns.Proj.Foo.Main").unwrap();
@@ -297,21 +299,21 @@ impl TryFrom<String> for QualifiedName {
     }
 }
 
-impl TryFrom<enso_protocol::language_server::MethodPointer> for QualifiedName {
+impl TryFrom<engine_protocol::language_server::MethodPointer> for QualifiedName {
     type Error = failure::Error;
 
     fn try_from(
-        method: enso_protocol::language_server::MethodPointer,
+        method: engine_protocol::language_server::MethodPointer,
     ) -> Result<Self, Self::Error> {
         Self::try_from(method.module)
     }
 }
 
-impl TryFrom<&enso_protocol::language_server::MethodPointer> for QualifiedName {
+impl TryFrom<&engine_protocol::language_server::MethodPointer> for QualifiedName {
     type Error = failure::Error;
 
     fn try_from(
-        method: &enso_protocol::language_server::MethodPointer,
+        method: &engine_protocol::language_server::MethodPointer,
     ) -> Result<Self, Self::Error> {
         Self::try_from(method.module.clone())
     }
@@ -783,7 +785,7 @@ mod tests {
 
     use crate::definition::DefinitionName;
 
-    use enso_protocol::language_server::MethodPointer;
+    use engine_protocol::language_server::MethodPointer;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

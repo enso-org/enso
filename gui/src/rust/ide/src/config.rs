@@ -3,9 +3,9 @@ use crate::prelude::*;
 
 use crate::constants;
 
+use engine_protocol::project_manager::ProjectName;
 use enso_args::Args;
 use enso_args::ARGS;
-use enso_protocol::project_manager::ProjectName;
 
 
 

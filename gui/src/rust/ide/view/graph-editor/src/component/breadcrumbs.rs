@@ -12,8 +12,8 @@ pub use project_name::ProjectName;
 use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::LocalCall;
 
+use engine_protocol::language_server::MethodPointer;
 use enso_frp as frp;
-use enso_protocol::language_server::MethodPointer;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;

@@ -296,7 +296,7 @@ use crate::graph_editor::component::node::Expression;
 
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
-use enso_protocol::prelude::Uuid;
+use engine_protocol::prelude::Uuid;
 use ensogl_text_msdf_sys::run_once_initialized;
 use span_tree::traits::*;
 

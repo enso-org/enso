@@ -10,8 +10,8 @@ use crate::notification;
 
 use data::text::TextLocation;
 use double_representation::module::QualifiedName;
-use enso_protocol::language_server;
-use enso_protocol::language_server::SuggestionId;
+use engine_protocol::language_server;
+use engine_protocol::language_server::SuggestionId;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -273,14 +273,14 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::suggestion_database::entry::Scope;
 
+    use engine_protocol::language_server::FieldUpdate;
+    use engine_protocol::language_server::Position;
+    use engine_protocol::language_server::SuggestionArgumentUpdate;
+    use engine_protocol::language_server::SuggestionEntryArgument;
+    use engine_protocol::language_server::SuggestionEntryScope;
+    use engine_protocol::language_server::SuggestionsDatabaseEntry;
+    use engine_protocol::language_server::SuggestionsDatabaseModification;
     use enso_data::text::TextLocation;
-    use enso_protocol::language_server::FieldUpdate;
-    use enso_protocol::language_server::Position;
-    use enso_protocol::language_server::SuggestionArgumentUpdate;
-    use enso_protocol::language_server::SuggestionEntryArgument;
-    use enso_protocol::language_server::SuggestionEntryScope;
-    use enso_protocol::language_server::SuggestionsDatabaseEntry;
-    use enso_protocol::language_server::SuggestionsDatabaseModification;
     use utils::test::stream::StreamTestExt;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 

@@ -9,12 +9,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { version = "0.1.0", path = "../../lib/ast/impl" }
-enso-protocol = { version = "0.1.0", path = "../../lib/enso-protocol" }
+engine-protocol = { version = "0.1.0", path = "../engine-protocol" }
 parser = { version = "0.1.0", path = "../../lib/parser" }
 utils = { version = "0.1.0", path = "../../lib/utils" }
-enso-data = { version = "0.2.0" }
-enso-logger  = { version = "0.3.1" }
-enso-prelude = { version = "0.2.6" }
+enso-data = { path = "../../../../../../lib/rust/data"}
+enso-logger = { path = "../../../../../../lib/rust/logger"}
+enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 failure = { version = "0.1.6" }
 itertools = { version = "0.10.0" }
 serde = { version = "1.0", features = ["derive"] }
