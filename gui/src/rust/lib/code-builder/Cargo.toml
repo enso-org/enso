@@ -9,4 +9,4 @@ edition = "2018"
 [features]
 
 [dependencies]
-enso-prelude = { version = "0.2.6" }
+enso-prelude = { path = "../../../../../lib/rust/prelude" }

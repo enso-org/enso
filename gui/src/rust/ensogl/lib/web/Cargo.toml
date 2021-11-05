@@ -7,8 +7,8 @@ edition = "2018"
 [dependencies]
 ensogl-system-web = { path = "../../../lib/system/web" }
 enso-frp = { path = "../../../lib/frp" }
-enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.6" }
+enso-logger = { path = "../../../../../../lib/rust/logger"}
+enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 js-sys = { version = "0.3.28" }
 wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
 wasm-bindgen-futures = { version = "0.4.8" }
