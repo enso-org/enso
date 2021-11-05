@@ -1,37 +1,42 @@
 @font-face {
-  font-family: 'Source Code Pro';
+  font-family: "Source Code Pro";
   font-style: normal;
   font-weight: 300;
   font-display: swap;
-  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7PqtlsnztA.ttf) format('truetype');
+  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7PqtlsnztA.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'Source Code Pro';
+  font-family: "Source Code Pro";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_SiYsKILxRpg3hIP6sJ7fM7PqVOg.ttf) format('truetype');
+  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_SiYsKILxRpg3hIP6sJ7fM7PqVOg.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'Source Code Pro';
+  font-family: "Source Code Pro";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7PqtzsjztA.ttf) format('truetype');
+  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7PqtzsjztA.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'Source Code Pro';
+  font-family: "Source Code Pro";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7Pqt4s_ztA.ttf) format('truetype');
+  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7Pqt4s_ztA.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'Source Code Pro';
+  font-family: "Source Code Pro";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7Pqths7ztA.ttf) format('truetype');
+  src: url(https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7Pqths7ztA.ttf)
+    format("truetype");
 }
 .enso.docs {
   font-family: Causten, DejaVuSansMonoBook, sans-serif;
@@ -60,7 +65,7 @@
   font-size: 14px;
   padding: 1px 0px 2px;
   margin-top: 10px;
-  color: #4EA5FD;
+  color: #4ea5fd;
   -webkit-box-decoration-break: clone;
 }
 .enso.docs .doc-copy-btn {
@@ -164,7 +169,7 @@
   line-height: 1.35;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-  background-color: #E7E9EB;
+  background-color: #e7e9eb;
 }
 .light-theme .enso.docs .tag .details {
   font-weight: 700;
@@ -172,7 +177,7 @@
 .light-theme .enso.docs .important,
 .light-theme .enso.docs .info,
 .light-theme .enso.docs .example {
-  background-color: #E7E9EB;
+  background-color: #e7e9eb;
   border-radius: 12px;
   padding: 15px;
 }

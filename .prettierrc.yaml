@@ -1,5 +1,4 @@
 overrides:
-
   - files: "*.[j|t]s"
     options:
       printWidth: 100

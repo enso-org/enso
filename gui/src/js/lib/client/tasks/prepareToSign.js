@@ -1,7 +1,5 @@
 const { beforeSign } = require('./signArchives')
 
-
-
 // ================
 // === Callback ===
 // ================
