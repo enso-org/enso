@@ -6,11 +6,7 @@ const path = require('path')
 
 const { startServer } = require('../server')
 
-
-
-
 describe('Logging Server', function () {
-
     let server
     let serverUrl
 
@@ -18,20 +14,20 @@ describe('Logging Server', function () {
     const goodConfig = {
         headers: {
             'Content-Type': 'text/plain',
-            'Origin': 'http://localhost/'
-        }
+            Origin: 'http://localhost/',
+        },
     }
     const wrongOriginConfig = {
         headers: {
             'Content-Type': 'text/plain',
-            'Origin': 'http://attacker/'
-        }
+            Origin: 'http://attacker/',
+        },
     }
     const wrongContentTypeConfig = {
         headers: {
             'Content-Type': 'image/jpeg',
-            'Origin': 'http://localhost/'
-        }
+            Origin: 'http://localhost/',
+        },
     }
 
     beforeEach(function (done) {
@@ -41,10 +37,10 @@ describe('Logging Server', function () {
 
         // We mock the file system so the server does not actually write logs to disk.
         mockFs({
-            [rawBodyDir]: mockFs.load(rawBodyDir)
+            [rawBodyDir]: mockFs.load(rawBodyDir),
         })
 
-        const port = 0  // Choose an arbitrary available port
+        const port = 0 // Choose an arbitrary available port
         server = startServer(port)
         server.on('listening', function () {
             serverUrl = `http://localhost:${server.address().port}/`
@@ -74,12 +70,11 @@ describe('Logging Server', function () {
         await Promise.allSettled([
             axios.post(serverUrl, '', goodConfig),
             axios.post(serverUrl, '', wrongOriginConfig),
-            axios.post(serverUrl, '', wrongContentTypeConfig)
+            axios.post(serverUrl, '', wrongContentTypeConfig),
         ])
 
         await axios.post(serverUrl, dummyMessage, goodConfig)
         const log_files = fs.readdirSync('log/')
-        assert(log_files.some(file =>
-            fs.readFileSync(`log/${file}`).toString() === dummyMessage))
+        assert(log_files.some(file => fs.readFileSync(`log/${file}`).toString() === dummyMessage))
     })
 })

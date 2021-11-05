@@ -2,8 +2,6 @@
 
 import * as math from './math'
 
-
-
 // ===========
 // === SVG ===
 // ===========
@@ -19,14 +17,14 @@ export function new_svg(width, height, str) {
 }
 
 /// Returns SVG code for an arc with a defined radius and angle.
-export function arc(radius, end_angle){
+export function arc(radius, end_angle) {
     let start_angle = 0
     if (end_angle < 0) {
         start_angle = end_angle
-        end_angle   = 0
+        end_angle = 0
     }
-    let start       = math.polar_to_cartesian(radius, end_angle)
-    let end         = math.polar_to_cartesian(radius, start_angle)
-    let large_arc   = end_angle - start_angle <= 180 ? "0" : "1"
+    let start = math.polar_to_cartesian(radius, end_angle)
+    let end = math.polar_to_cartesian(radius, start_angle)
+    let large_arc = end_angle - start_angle <= 180 ? '0' : '1'
     return `M 0 0 L ${start.x} ${start.y} A ${radius} ${radius} 0 ${large_arc} 0 ${end.x} ${end.y}`
 }

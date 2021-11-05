@@ -18,7 +18,7 @@ class IxPool {
 
     reserve() {
         let ix
-        if(this.free.length == 0) {
+        if (this.free.length == 0) {
             ix = this.next
             this.next += 1
         } else {
@@ -32,19 +32,18 @@ class IxPool {
     }
 }
 
-
 // ============
 // === Pool ===
 // ============
 
 class Pool {
     constructor(cons) {
-        this.cons  = cons
-        this.ixs   = new IxPool
+        this.cons = cons
+        this.ixs = new IxPool()
     }
 
     reserve(...args) {
-        let ix   = this.ixs.reserve()
+        let ix = this.ixs.reserve()
         this[ix] = this.cons(...args)
         return ix
     }
@@ -55,13 +54,11 @@ class Pool {
     }
 }
 
-
 // ============================
 // === IntersectionObserver ===
 // ============================
 
-let intersectionObserverPool =
-    new Pool((...args) => new IntersectionObserver(...args))
+let intersectionObserverPool = new Pool((...args) => new IntersectionObserver(...args))
 
 export function intersection_observe(target, f) {
     let id = intersectionObserverPool.reserve(intersection_observer_update(f))
@@ -76,7 +73,7 @@ export function intersection_unobserve(id) {
 
 function intersection_observer_update(f) {
     return entries => {
-        let rect = entries[0].boundingClientRect;
-        f(rect.x, rect.y, rect.width, rect.height);
+        let rect = entries[0].boundingClientRect
+        f(rect.x, rect.y, rect.width, rect.height)
     }
 }

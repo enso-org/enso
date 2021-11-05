@@ -26,7 +26,7 @@ const ID = '"Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)"'
 // Placeholder name for temporary archives.
 const tmpArchive = 'temporary_archive.zip'
 
-const GRAALVM = 'graalvm-ce-java11-21.1.0';
+const GRAALVM = 'graalvm-ce-java11-21.1.0'
 
 // Helper to execute a command in a given directory and return the output.
 const run = (cmd, cwd) => child_process.execSync(cmd, { shell: true, cwd }).toString()
@@ -36,8 +36,8 @@ function sign(targetPath, cwd) {
     console.log(`Signing ${targetPath} in ${cwd}`)
     const entitlements_path = path.resolve('./', 'entitlements.mac.plist')
     return run(
-        `codesign -vvv --entitlements ${entitlements_path} --force --options=runtime `
-         + `--sign ${ID} ${targetPath}`,
+        `codesign -vvv --entitlements ${entitlements_path} --force --options=runtime ` +
+            `--sign ${ID} ${targetPath}`,
         cwd
     )
 }
@@ -108,8 +108,7 @@ function signArchive(archivePath, archiveName, binPaths) {
 // message provided by Apple and can then be added here.
 const toSign = [
     {
-        jarDir:
-            `enso/dist/${ENGINE_VERSION}/lib/Standard/Database/${ENGINE_VERSION}/polyglot/java`,
+        jarDir: `enso/dist/${ENGINE_VERSION}/lib/Standard/Database/${ENGINE_VERSION}/polyglot/java`,
         jarName: 'sqlite-jdbc-3.34.0.jar',
         jarContent: [
             'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
@@ -117,8 +116,7 @@ const toSign = [
         ],
     },
     {
-        jarDir:
-            `enso/dist/${ENGINE_VERSION}/component`,
+        jarDir: `enso/dist/${ENGINE_VERSION}/component`,
         jarName: 'runner.jar',
         jarContent: [
             'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
@@ -126,116 +124,97 @@ const toSign = [
         ],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jartool.jmod',
         jarContent: ['bin/jarsigner', 'bin/jar'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jdeps.jmod',
         jarContent: ['bin/javap', 'bin/jdeprscan', 'bin/jdeps'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jstatd.jmod',
         jarContent: ['bin/jstatd'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.pack.jmod',
         jarContent: ['bin/unpack200', 'bin/pack200'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.hotspot.agent.jmod',
         jarContent: ['bin/jhsdb'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jfr.jmod',
         jarContent: ['bin/jfr'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.rmic.jmod',
         jarContent: ['bin/rmic'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'java.rmi.jmod',
         jarContent: ['bin/rmid', 'bin/rmiregistry'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'java.base.jmod',
         jarContent: ['bin/java', 'bin/keytool', 'lib/jspawnhelper'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jlink.jmod',
         jarContent: ['bin/jmod', 'bin/jlink', 'bin/jimage'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.scripting.nashorn.shell.jmod',
         jarContent: ['bin/jjs'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jcmd.jmod',
         jarContent: ['bin/jstack', 'bin/jcmd', 'bin/jps', 'bin/jmap', 'bin/jstat', 'bin/jinfo'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jshell.jmod',
         jarContent: ['bin/jshell'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.compiler.jmod',
         jarContent: ['bin/javac', 'bin/serialver'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'java.scripting.jmod',
         jarContent: ['bin/jrunscript'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jdi.jmod',
         jarContent: ['bin/jdb'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.javadoc.jmod',
         jarContent: ['bin/javadoc'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.jconsole.jmod',
         jarContent: ['bin/jconsole'],
     },
     {
-        jarDir:
-            `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
+        jarDir: `enso/runtime/${GRAALVM}/Contents/Home/jmods`,
         jarName: 'jdk.javadoc.jmod',
         jarContent: ['bin/javadoc'],
     },
@@ -260,9 +239,7 @@ const extra = [
 ]
 
 // The list of readonly files in the GraalVM distribution.
-const readonly = [
-    `enso/runtime/${GRAALVM}/Contents/Home/lib/server/classes.jsa`,
-]
+const readonly = [`enso/runtime/${GRAALVM}/Contents/Home/lib/server/classes.jsa`]
 
 function beforeSign() {
     for (let file of readonly) {
