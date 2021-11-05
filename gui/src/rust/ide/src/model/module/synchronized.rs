@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionInfo;
-use crate::double_representation::graph::Id;
 use crate::model::module::Content;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Notification;
@@ -15,6 +13,8 @@ use crate::model::module::API;
 use ast::IdMap;
 use data::text::TextChange;
 use data::text::TextLocation;
+use double_representation::definition::DefinitionInfo;
+use double_representation::graph::Id;
 use enso_protocol::language_server;
 use enso_protocol::language_server::TextEdit;
 use enso_protocol::types::Sha3_224;

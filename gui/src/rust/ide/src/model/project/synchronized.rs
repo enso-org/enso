@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::identifier::ReferentName;
-use crate::double_representation::project::QualifiedName;
 use crate::model::execution_context;
 use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -13,6 +11,8 @@ use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;
 
+use double_representation::identifier::ReferentName;
+use double_representation::project::QualifiedName;
 use enso_protocol::binary;
 use enso_protocol::binary::message::VisualisationContext;
 use enso_protocol::language_server;

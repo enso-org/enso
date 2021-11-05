@@ -4,12 +4,12 @@ pub mod example;
 
 use crate::prelude::*;
 
-use crate::double_representation::module::QualifiedName;
 use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::Kind;
 use crate::notification;
 
 use data::text::TextLocation;
+use double_representation::module::QualifiedName;
 use enso_protocol::language_server;
 use enso_protocol::language_server::SuggestionId;
 use flo_stream::Subscriber;

@@ -3,12 +3,12 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::module;
-use crate::double_representation::project;
 use crate::executor::test_utils::TestWithLocalPoolExecutor;
 use crate::model::suggestion_database;
 use crate::model::undo_redo;
 
+use double_representation::module;
+use double_representation::project;
 use enso_frp::data::bitfield::BitField;
 use enso_frp::data::bitfield::BitField32;
 use enso_protocol::binary;
@@ -56,12 +56,12 @@ pub mod mock {
             module_path().qualified_module_name(project_qualified_name())
         }
 
-        pub fn definition_name() -> crate::double_representation::definition::DefinitionName {
-            crate::double_representation::definition::DefinitionName::new_plain(DEFINITION_NAME)
+        pub fn definition_name() -> double_representation::definition::DefinitionName {
+            double_representation::definition::DefinitionName::new_plain(DEFINITION_NAME)
         }
 
-        pub fn graph_id() -> crate::double_representation::graph::Id {
-            crate::double_representation::graph::Id::new_plain_name(DEFINITION_NAME)
+        pub fn graph_id() -> double_representation::graph::Id {
+            double_representation::graph::Id::new_plain_name(DEFINITION_NAME)
         }
 
         pub fn foo_method_parameter() -> suggestion_database::entry::Argument {

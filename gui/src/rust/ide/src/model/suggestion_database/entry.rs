@@ -2,12 +2,12 @@
 
 use crate::prelude::*;
 
-use crate::constants::keywords;
-use crate::double_representation::module;
-use crate::double_representation::tp;
 use crate::model::module::MethodId;
 
+use ast::constants::keywords;
 use data::text::TextLocation;
+use double_representation::module;
+use double_representation::tp;
 use enso_protocol::language_server;
 use enso_protocol::language_server::FieldUpdate;
 use enso_protocol::language_server::SuggestionsDatabaseModification;

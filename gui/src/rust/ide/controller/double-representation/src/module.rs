@@ -2,17 +2,17 @@
 
 use crate::prelude::*;
 
-use crate::constants::keywords::HERE;
-use crate::constants::PROJECTS_MAIN_MODULE;
-use crate::double_representation::definition;
-use crate::double_representation::definition::DefinitionProvider;
-use crate::double_representation::identifier;
-use crate::double_representation::identifier::Identifier;
-use crate::double_representation::identifier::LocatedName;
-use crate::double_representation::identifier::ReferentName;
-use crate::double_representation::project;
-use crate::double_representation::tp;
+use crate::{alias_analysis, definition};
+use crate::definition::DefinitionProvider;
+use crate::identifier;
+use crate::identifier::Identifier;
+use crate::identifier::LocatedName;
+use crate::identifier::ReferentName;
+use crate::project;
+use crate::tp;
 
+use ast::constants::keywords::HERE;
+use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::crumbs::ChildAst;
 use ast::crumbs::ModuleCrumb;
 use ast::known;
@@ -437,7 +437,7 @@ impl Info {
     /// Introducing identifier not included on this list should have no side-effects on the name
     /// resolution in the code in this graph.
     pub fn used_names(&self) -> Vec<LocatedName> {
-        let usage = double_representation::alias_analysis::analyze_crumbable(self.ast.shape());
+        let usage = alias_analysis::analyze_crumbable(self.ast.shape());
         usage.all_identifiers()
     }
 
@@ -752,7 +752,7 @@ pub fn lookup_method(
 pub fn definition_span(
     ast: &known::Module,
     id: &definition::Id,
-) -> FallibleResult<data::text::Span> {
+) -> FallibleResult<enso_data::text::Span> {
     let location = locate(ast, id)?;
     ast.span_of_descendent_at(&location.crumbs)
 }
@@ -781,7 +781,7 @@ impl DefinitionProvider for known::Module {
 mod tests {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionName;
+    use crate::definition::DefinitionName;
 
     use enso_protocol::language_server::MethodPointer;
     use wasm_bindgen_test::wasm_bindgen_test;

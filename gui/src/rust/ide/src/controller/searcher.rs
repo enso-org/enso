@@ -6,12 +6,6 @@ use crate::prelude::*;
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
 
-use crate::double_representation::graph::GraphInfo;
-use crate::double_representation::graph::LocationHint;
-use crate::double_representation::module::QualifiedName;
-use crate::double_representation::node::NodeInfo;
-use crate::double_representation::project;
-use crate::double_representation::tp;
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
@@ -20,6 +14,12 @@ use crate::model::traits::*;
 use crate::notification;
 
 use data::text::TextLocation;
+use double_representation::graph::GraphInfo;
+use double_representation::graph::LocationHint;
+use double_representation::module::QualifiedName;
+use double_representation::node::NodeInfo;
+use double_representation::project;
+use double_representation::tp;
 use enso_protocol::language_server;
 use flo_stream::Subscriber;
 use parser::Parser;
@@ -782,7 +782,7 @@ impl Searcher {
 
 
         // === Add new node ===
-        let here = Ast::var(constants::keywords::HERE);
+        let here = Ast::var(ast::constants::keywords::HERE);
         let args = std::iter::empty();
         let node_expression = ast::prefix::Chain::new_with_this(new_definition_name, here, args);
         let node_expression = node_expression.into_ast();
@@ -1006,7 +1006,9 @@ impl Searcher {
             self.database.lookup_locals_by_name_and_location(this_name, &module_name, position);
         let not_local_name = matching_locals.is_empty();
         not_local_name.and_option_from(|| {
-            if this_name == constants::keywords::HERE || this_name == module_name.name().deref() {
+            if this_name == ast::constants::keywords::HERE
+                || this_name == module_name.name().deref()
+            {
                 Some(module_name)
             } else {
                 self.module().iter_imports().find_map(|import| {

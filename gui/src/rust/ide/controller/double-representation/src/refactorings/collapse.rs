@@ -4,17 +4,17 @@
 
 use crate::prelude::*;
 
-use crate::constants::keywords::HERE;
-use crate::double_representation::connection::Connection;
-use crate::double_representation::connection::Endpoint;
-use crate::double_representation::definition;
-use crate::double_representation::definition::DefinitionInfo;
-use crate::double_representation::graph::GraphInfo;
-use crate::double_representation::identifier::Identifier;
-use crate::double_representation::node;
-use crate::double_representation::node::MainLine;
-use crate::double_representation::node::NodeInfo;
+use crate::connection::Connection;
+use crate::connection::Endpoint;
+use crate::definition;
+use crate::definition::DefinitionInfo;
+use crate::graph::GraphInfo;
+use crate::identifier::Identifier;
+use crate::node;
+use crate::node::MainLine;
+use crate::node::NodeInfo;
 
+use ast::constants::keywords::HERE;
 use ast::crumbs::Located;
 use ast::BlockLine;
 use parser::Parser;
@@ -382,9 +382,9 @@ impl Collapser {
 mod tests {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionName;
-    use crate::double_representation::graph;
-    use crate::double_representation::module;
+    use crate::definition::DefinitionName;
+    use crate::graph;
+    use crate::module;
 
     use ast::crumbs::Crumb;
 

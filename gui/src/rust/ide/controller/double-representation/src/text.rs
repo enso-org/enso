@@ -3,8 +3,8 @@
 use crate::prelude::*;
 
 use ast::IdMap;
-use data::text::Size;
-use data::text::Span;
+use enso_data::text::Size;
+use enso_data::text::Span;
 
 
 
@@ -15,7 +15,7 @@ use data::text::Span;
 /// Update IdMap to reflect the recent code change.
 pub fn apply_code_change_to_id_map(
     id_map: &mut IdMap,
-    change: &data::text::TextChange,
+    change: &enso_data::text::TextChange,
     code: &str,
 ) {
     // TODO [mwu]
@@ -31,7 +31,7 @@ pub fn apply_code_change_to_id_map(
     let inserted = change.inserted.as_str();
     let new_code = change.applied(code);
     let non_white = |c: char| !c.is_whitespace();
-    let logger = logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
+    let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
     let inserted_size = Size::from_text(inserted);
 
@@ -183,11 +183,11 @@ fn all_spaces(text: &str) -> bool {
 mod test {
     use super::*;
 
-    use crate::double_representation::module;
+    use crate::module;
 
     use ast::HasIdMap;
-    use data::text::Index;
-    use data::text::TextChange;
+    use enso_data::text::Index;
+    use enso_data::text::TextChange;
     use enso_prelude::default;
     use parser::Parser;
     use uuid::Uuid;
@@ -270,8 +270,8 @@ mod test {
 
     /// Returns the IDs of nodes in the `main` function in their order of line appearance.
     fn main_nodes(module: &ast::known::Module) -> Vec<Uuid> {
-        use double_representation::definition::*;
-        use double_representation::graph::GraphInfo;
+        use crate::definition::*;
+        use crate::graph::GraphInfo;
         let id = Id::new_plain_name("main");
         let definition = module::get_definition(module, &id).unwrap();
         let graph = GraphInfo::from_definition(definition);

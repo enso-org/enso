@@ -244,8 +244,8 @@ impl model::execution_context::API for ExecutionContext {
 pub mod test {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionName;
-    use crate::double_representation::project;
+    use double_representation::definition::DefinitionName;
+    use double_representation::project;
 
     #[derive(Clone, Derivative)]
     #[derivative(Debug)]

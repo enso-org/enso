@@ -9,10 +9,10 @@ pub mod synchronized;
 
 use crate::prelude::*;
 
-use crate::double_representation::identifier::ReferentName;
-use crate::double_representation::project::QualifiedName;
 use crate::model::module::ProjectMetadata;
 
+use double_representation::identifier::ReferentName;
+use double_representation::project::QualifiedName;
 use enso_protocol::binary;
 use enso_protocol::language_server;
 use enso_protocol::language_server::ContentRoot;

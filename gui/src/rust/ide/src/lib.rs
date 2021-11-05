@@ -29,7 +29,6 @@
 pub mod config;
 pub mod constants;
 pub mod controller;
-pub mod double_representation;
 pub mod executor;
 pub mod ide;
 pub mod model;
@@ -60,7 +59,6 @@ pub mod prelude {
 
     pub use crate::constants;
     pub use crate::controller;
-    pub use crate::double_representation;
     pub use crate::executor;
     pub use crate::model;
     pub use crate::model::traits::*;
@@ -76,9 +74,6 @@ pub mod prelude {
     pub use futures::StreamExt;
 
     pub use std::ops::Range;
-
-    pub use utils::fail::FallibleResult;
-    pub use utils::vec::VecExt;
 
     pub use uuid::Uuid;
 

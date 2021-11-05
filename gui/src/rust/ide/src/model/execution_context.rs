@@ -29,7 +29,7 @@ use uuid::Uuid;
 // ===============
 
 /// An identifier of called definition in module.
-pub type DefinitionId = crate::double_representation::definition::Id;
+pub type DefinitionId = double_representation::definition::Id;
 
 /// An identifier of expression.
 pub type ExpressionId = ast::Id;

@@ -388,6 +388,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "controller"
+version = "0.1.0"
+
+[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -528,6 +532,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "double-representation"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "enso-data",
+ "enso-logger",
+ "enso-prelude",
+ "enso-protocol",
+ "failure",
+ "itertools 0.10.1",
+ "parser",
+ "regex",
+ "serde",
+ "utils",
+ "uuid",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "downcast"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -559,6 +582,10 @@ checksum = "80df024fbc5ac80f87dfef0d9f5209a252f2a497f7f42944cff24d8253cac065"
 dependencies = [
  "cfg-if 1.0.0",
 ]
+
+[[package]]
+name = "engine-model"
+version = "0.1.0"
 
 [[package]]
 name = "enso-args"
@@ -1449,6 +1476,7 @@ dependencies = [
  "ast",
  "bimap",
  "console_error_panic_hook",
+ "double-representation",
  "enso-args",
  "enso-callback",
  "enso-data",

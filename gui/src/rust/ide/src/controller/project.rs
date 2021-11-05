@@ -3,10 +3,10 @@
 use crate::prelude::*;
 
 use crate::controller::ide::StatusNotificationPublisher;
-use crate::double_representation::project;
 use crate::model::module::QualifiedName;
 use crate::model::traits::*;
 
+use double_representation::project;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
 use enso_protocol::language_server::MethodPointer;
