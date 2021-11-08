@@ -17,7 +17,8 @@ import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach, Inside}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-/** Test kit for testing JSON RPC servers. */
+/** Test kit for testing JSON RPC servers.
+  */
 abstract class JsonRpcServerTestKit
     extends TestKit(ActorSystem("TestSystem"))
     with ImplicitSender
@@ -58,7 +59,7 @@ abstract class JsonRpcServerTestKit
   }
 
   override def afterEach(): Unit = {
-    Await.ready(binding.unbind(), 5.seconds.dilated)
+    val _ = binding.unbind()
     super.afterEach()
   }
 
