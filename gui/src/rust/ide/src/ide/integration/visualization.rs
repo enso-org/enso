@@ -679,10 +679,6 @@ mod tests {
         if let ExecutionContextRequest::Modify { id, expression, module } = requests.expect_one() {
             assert!(expression.contains(&desired_vis_1.preprocessor.code.to_string()));
             assert_eq!(id, attached_id);
-            // let get_main_module = || inner.inner.project.main_module();
-            // let expected_module =
-            //     resolve_context_module(&desired_vis_1.preprocessor.module, get_main_module);
-            // assert_eq!(module, expected_module);
             assert!(module.is_none());
         }
 
