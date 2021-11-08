@@ -8,8 +8,8 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude = { version = "0.2.6" }
-enso-shapely = { version = "0.2.0 " }
+enso-prelude = { path = "../../../../../../lib/rust/prelude"}
+enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 

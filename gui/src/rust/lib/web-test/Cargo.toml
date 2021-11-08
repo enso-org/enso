@@ -6,7 +6,7 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-enso-prelude = { version = "0.2.6" }
+enso-prelude = { path = "../../../../../lib/rust/prelude"}
 ensogl = { path = "../../ensogl" }
 ensogl-system-web = { path = "../system/web" }
 web-test-proc-macro = { path = "../web-test-proc-macro" }

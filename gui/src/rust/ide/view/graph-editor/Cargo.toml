@@ -13,10 +13,10 @@ ast = { version = "0.1.0", path = "../../lib/ast/impl" }
 bimap = { version = "0.4.0"}
 enso-args = { version = "0.1.0", path = "../../lib/args" }
 enso-frp = { version = "0.1.0", path = "../../../lib/frp" }
-enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.6" }
+enso-logger = { path = "../../../../../../lib/rust/logger"}
+enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 enso-protocol = { version = "0.1.0", path = "../../lib/enso-protocol" }
-enso-shapely = { version = "0.2.0" }
+enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
 ensogl = { version = "0.1.0", path = "../../../ensogl" }
 ensogl-gui-components = { version = "0.1.0", path = "../../../ensogl/lib/components" }
 ensogl-text = { version = "0.1.0", path = "../../../ensogl/lib/text" }

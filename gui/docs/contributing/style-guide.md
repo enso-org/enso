@@ -4,16 +4,16 @@ layout: style-guide title: Rust Style Guide category: style-guide tags: [style-g
 
 # Rust Style Guide
 
-We are using `rustfmt` for the basic formatting of our rust code, which is also checked on CI. We
-have some additional guidelines for imports, naming, sections within files and naming which are
-documented here.
+We are using `rustfmt` for the basic formatting of our rust code, which is also
+checked on CI. We have some additional guidelines for imports, naming, sections
+within files and naming which are documented here.
 
 ## Styling rules
 
 ### Imports
 
-Imports should be divided into 4 groups separated by blank lines. Items in the groups should be
-sorted alphabetically.
+Imports should be divided into 4 groups separated by blank lines. Items in the
+groups should be sorted alphabetically.
 
 ```rust
 // Group 1: sub-module definitions.
@@ -40,12 +40,14 @@ use nalgebra::Vector3;
 
 ### Sections
 
-Source files should be divided into sections. Section headers should be placed before each new "
-concept" defined in a file. By "concept" we normally mean a structure with related implementations.
-In case related implementations use some helper structs with very small implementations, these
-helper structs may be defined in the same section. Moreover, the code in each section should be
-divided into sub-sections, grouping related definitions. At least one section should be defined in a
-file (if there is at least one struct definition as well). For example:
+Source files should be divided into sections. Section headers should be placed
+before each new " concept" defined in a file. By "concept" we normally mean a
+structure with related implementations. In case related implementations use some
+helper structs with very small implementations, these helper structs may be
+defined in the same section. Moreover, the code in each section should be
+divided into sub-sections, grouping related definitions. At least one section
+should be defined in a file (if there is at least one struct definition as
+well). For example:
 
 ```rust
 // =================
@@ -141,10 +143,11 @@ impl<OnChange: Callback0> HierarchicalTransform<OnChange> {
 
 ### Multiline Expressions
 
-Most (preferably all) expressions should be single line. Multiline expressions are hard to read and
-introduce noise in the code. Often, it is also an indicator of code that is not properly refactored.
-Try to refactor parts of multiline expressions to well-named variables, and divide them to several
-single-line expressions.
+Most (preferably all) expressions should be single line. Multiline expressions
+are hard to read and introduce noise in the code. Often, it is also an indicator
+of code that is not properly refactored. Try to refactor parts of multiline
+expressions to well-named variables, and divide them to several single-line
+expressions.
 
 Example of poorly formatted code:
 
@@ -172,9 +175,9 @@ pub fn new() -> Self {
 
 ### Getters and Setters
 
-Getters do not have the `get_` prefix, while setters do. If a setter is provided (method with
-the `set_` prefix), a `mut` accessor should be provided as well. The correct way of defining getters
-and setters is presented below:
+Getters do not have the `get_` prefix, while setters do. If a setter is provided
+(method with the `set_` prefix), a `mut` accessor should be provided as well.
+The correct way of defining getters and setters is presented below:
 
 ```rust
 fn field(&self) -> &Type {
@@ -192,13 +195,14 @@ fn set_field(&mut self, val: Type) {
 
 ### Trait exporting
 
-All names should be designed to be used in a qualified fashion. However, this makes one situation
-tricky. In order to use methods defined in a trait, it has to be in scope. Consider a trait
-`display::Object`. We want to use it as function bound like `fn test<T:display::Object>(t:T) {...}`,
-and we also want to use methods defined in this trait (so it has to be in scope). In such a case,
-`Clippy` warns that `display::Object` is unnecessary qualification and could be replaced simply by
-`Object`, which is not what we want. Thus, in order to export traits, please always rename them
-using the following convention:
+All names should be designed to be used in a qualified fashion. However, this
+makes one situation tricky. In order to use methods defined in a trait, it has
+to be in scope. Consider a trait `display::Object`. We want to use it as
+function bound like `fn test<T:display::Object>(t:T) {...}`, and we also want to
+use methods defined in this trait (so it has to be in scope). In such a case,
+`Clippy` warns that `display::Object` is unnecessary qualification and could be
+replaced simply by `Object`, which is not what we want. Thus, in order to export
+traits, please always rename them using the following convention:
 
 ```rust
 /// Common traits.
@@ -209,5 +213,6 @@ pub mod traits {
 }
 ```
 
-Having such a definition, we can import traits to scope using `use display::object::traits::*`, and
-we would not have any warning about unnecessary qualification anymore.
+Having such a definition, we can import traits to scope using
+`use display::object::traits::*`, and we would not have any warning about
+unnecessary qualification anymore.

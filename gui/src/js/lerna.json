@@ -4,8 +4,6 @@
       "hoist": true
     }
   },
-  "packages": [
-    "lib/*"
-  ],
+  "packages": ["lib/*"],
   "version": "0.0.0"
 }

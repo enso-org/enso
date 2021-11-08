@@ -10,7 +10,7 @@ class IxPool {
 
     reserve() {
         let ix
-        if(this.free.length == 0) {
+        if (this.free.length == 0) {
             ix = this.next
             this.next += 1
         } else {
@@ -24,19 +24,18 @@ class IxPool {
     }
 }
 
-
 // ============
 // === Pool ===
 // ============
 
 class Pool {
     constructor(cons) {
-        this.cons  = cons
-        this.ixs   = new IxPool
+        this.cons = cons
+        this.ixs = new IxPool()
     }
 
     reserve(...args) {
-        let ix   = this.ixs.reserve()
+        let ix = this.ixs.reserve()
         this[ix] = this.cons(...args)
         return ix
     }
@@ -46,7 +45,6 @@ class Pool {
         this[ix] = null
     }
 }
-
 
 // ======================
 // === ResizeObserver ===
@@ -67,7 +65,7 @@ export function resize_unobserve(id) {
 
 function resize_observer_update(f) {
     return entries => {
-        let rect = entries[0].contentRect;
-        f(rect.width, rect.height);
+        let rect = entries[0].contentRect
+        f(rect.width, rect.height)
     }
 }

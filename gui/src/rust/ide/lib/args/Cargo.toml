@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 ensogl = { path = "../../../ensogl" }
 enso-config = { path = "../../../lib/config" }
-enso-prelude = { version = "0.2.6" }
-enso-logger = { version = "0.3.1" }
+enso-prelude = { path = "../../../../../../lib/rust/prelude"}
+enso-logger = { path = "../../../../../../lib/rust/logger" }
