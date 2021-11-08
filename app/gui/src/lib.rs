@@ -89,7 +89,6 @@ pub mod prelude {
 pub fn entry_point_ide() {
     web::forward_panic_hook_to_error();
 
-    // FIXME: This code is temporary. It's used to remove the loader UI.
     ensogl_text_msdf_sys::run_once_initialized(|| {
         // Logging of build information.
         #[cfg(debug_assertions)]
