@@ -244,7 +244,7 @@ main =
         // Single line case with a single trailing space after `##`.
         let code = r#"
 main =
-    ##
+    ## 
     node"#;
         let expected = " ";
         run_case(&parser, code, expected);

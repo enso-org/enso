@@ -679,7 +679,12 @@ mod tests {
         if let ExecutionContextRequest::Modify { id, expression, module } = requests.expect_one() {
             assert!(expression.contains(&desired_vis_1.preprocessor.code.to_string()));
             assert_eq!(id, attached_id);
-            assert!(module.is_none());
+            let get_main_module = || inner.inner.project.main_module();
+            let expected_module =
+                resolve_context_module(&desired_vis_1.preprocessor.module, get_main_module)
+                    .unwrap();
+            assert_eq!(module, Some(expected_module));
+            // assert!(module.is_none());
         }
 
         // If visualization changes ID, then we need to use detach-attach API.
