@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils
 import org.enso.editions.SemVerJson._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
+import org.scalatest.Ignore
 
 import java.io.File
 import java.nio.file.{Files, Paths}
@@ -14,6 +15,9 @@ import java.util.UUID
 import scala.concurrent.duration._
 import scala.io.Source
 
+// TODO [DB] The suite became quite flaky and frequently fails the CI.
+// Disabled until #479 is implemented.
+@Ignore
 class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
