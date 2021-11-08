@@ -8,9 +8,9 @@ edition = "2018"
 
 [dependencies]
 enso-callback = { path = "../../lib/callback" }
-enso-generics = { version = "0.2.0" }
-enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.6" }
+enso-generics = { path = "../../../../../lib/rust/generics"}
+enso-logger = { path = "../../../../../lib/rust/logger"}
+enso-prelude = { path = "../../../../../lib/rust/prelude"}
 ensogl-system-web = { path = "../system/web" }
 Inflector = { version = "0.11.4" }
 keyboard-types = { version = "0.5.0" }

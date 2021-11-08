@@ -1,30 +1,30 @@
 const remote = require('electron').remote
 
-let win;
-if (remote !== undefined){
+let win
+if (remote !== undefined) {
     win = remote.getCurrentWindow()
 }
 
 if (win === undefined) {
-    console.warn("Could not get current window object for window startup animation.")
+    console.warn('Could not get current window object for window startup animation.')
 }
-
-
 
 // =============================
 // === Window Show Animation ===
 // =============================
 
 function ease_in_out_quad(t) {
-    return t<.5 ? 2*t*t : 1 - (-2*t+2)*(-2*t+2) / 2
+    return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) * (-2 * t + 2)) / 2
 }
 
 function animate_show(target) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         let opacity = 0
         function show_step(timestamp) {
             opacity += 0.02
-            if (opacity > 1) { opacity = 1 }
+            if (opacity > 1) {
+                opacity = 1
+            }
             target.setOpacity(ease_in_out_quad(opacity))
             if (opacity < 1) {
                 window.requestAnimationFrame(show_step)
@@ -39,8 +39,6 @@ function animate_show(target) {
 if (win !== undefined) {
     window.showAnimation = animate_show(win)
 }
-
-
 
 // ===================
 // === Debug Tools ===

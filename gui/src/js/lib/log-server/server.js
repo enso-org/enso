@@ -9,17 +9,13 @@ const yargs = require('yargs')
 
 const defaultPort = require('../../config.js').defaultLogServerPort
 
-
 module.exports = {
-    startServer
+    startServer,
 }
-
 
 function main(argv) {
     startServer(parse_args(argv).port)
 }
-
-
 
 // =================
 // === Constants ===
@@ -31,8 +27,6 @@ const httpStatusCodes = {
     badRequest: 400,
     internalServerError: 500,
 }
-
-
 
 // ========================
 // === Argument Parsing ===
@@ -46,14 +40,11 @@ function parse_args(argv) {
                 'The number of the port that this server will listen on. ' +
                 'If the the number is 0 then an arbitrary free port will be chosen.',
             type: 'number',
-            default: defaultPort
+            default: defaultPort,
         })
         .help()
-        .alias('help', 'h')
-        .argv
+        .alias('help', 'h').argv
 }
-
-
 
 // ==============
 // === Server ===
@@ -63,9 +54,11 @@ function startServer(port) {
     const app = express()
     app.use(express.text())
 
-    app.post("/", async (req, res) => {
-        if (typeof req.headers.origin === 'undefined' ||
-                (new URL(req.headers.origin).hostname) !== 'localhost') {
+    app.post('/', async (req, res) => {
+        if (
+            typeof req.headers.origin === 'undefined' ||
+            new URL(req.headers.origin).hostname !== 'localhost'
+        ) {
             res.sendStatus(httpStatusCodes.forbidden)
         } else if (typeof req.body !== 'string') {
             res.sendStatus(httpStatusCodes.badRequest)
@@ -75,9 +68,7 @@ function startServer(port) {
                 console.log(`Saved log from origin ${req.headers.origin}`)
                 res.sendStatus(httpStatusCodes.noContent)
             } catch (e) {
-                console.error(
-                    'Could not write log file:\n' +
-                    e.message)
+                console.error('Could not write log file:\n' + e.message)
                 res.sendStatus(httpStatusCodes.internalServerError)
             }
         }
@@ -89,8 +80,6 @@ function startServer(port) {
     })
     return server
 }
-
-
 
 // ==================
 // === File Utils ===
@@ -107,7 +96,6 @@ async function writeLog(message) {
     await fs.promises.writeFile(`${dir}/${file}`, message)
 }
 
-
 /**
  * Returns the current UTC date and time in the format "yyy-MM-dd_HH:mm:ss.".
  */
@@ -115,18 +103,15 @@ function timestamp() {
     const d = new Date()
 
     const year = d.getUTCFullYear().toString()
-    const month = d.getUTCMonth().toString().padStart(2, "0")
-    const day = d.getUTCDate().toString().padStart(2, "0")
+    const month = d.getUTCMonth().toString().padStart(2, '0')
+    const day = d.getUTCDate().toString().padStart(2, '0')
 
-    const hour = d.getUTCHours().toString().padStart(2, "0")
-    const minute = d.getUTCMinutes().toString().padStart(2, "0")
-    const second = d.getUTCSeconds().toString().padStart(2, "0")
+    const hour = d.getUTCHours().toString().padStart(2, '0')
+    const minute = d.getUTCMinutes().toString().padStart(2, '0')
+    const second = d.getUTCSeconds().toString().padStart(2, '0')
 
     return `${year}-${month}-${day}_${hour}:${minute}:${second}`
 }
-
-
-
 
 if (require.main === module) {
     const command_line_args = process.argv.slice(2)
