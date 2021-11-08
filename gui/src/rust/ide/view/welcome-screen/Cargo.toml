@@ -1,0 +1,16 @@
+[package]
+name = "welcome-screen"
+version = "0.1.0"
+edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ensogl = { path = "../../../ensogl" }
+enso-frp = { path = "../../../lib/frp" }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []

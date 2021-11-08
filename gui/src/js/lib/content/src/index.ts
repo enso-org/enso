@@ -963,14 +963,7 @@ async function mainEntryPoint(config: Config) {
 }
 
 async function runEntryPoint(config: Config) {
-    if (ok(config.project)) {
-        await mainEntryPoint(config)
-    } else {
-        await templates.loadTemplatesView((name: string) => {
-            config.project = name
-            mainEntryPoint(config)
-        })
-    }
+    await mainEntryPoint(config)
 }
 
 API.main = async function (inputConfig: any) {

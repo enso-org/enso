@@ -22,6 +22,7 @@ members = [
   "ide/lib/utils",
   "ide/view",
   "ide/view/graph-editor",
+  "ide/view/welcome-screen",
   "lib/callback",
   "lib/code-builder",
   "lib/config",
