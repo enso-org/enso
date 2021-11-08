@@ -16,5 +16,5 @@ THIRD-PARTY
 # GUI
 gui/dist/
 **/scala-parser.js
-package-lock.json
-msdfgen_wasm.js
+**/package-lock.json
+**/msdfgen_wasm.js
