@@ -13,5 +13,8 @@ distribution/lib/Standard/Database/*/THIRD-PARTY
 built-distribution/
 THIRD-PARTY
 
+# GUI
 gui/dist/
 **/scala-parser.js
+**/package-lock.json
+**/msdfgen_wasm.js
