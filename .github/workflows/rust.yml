@@ -9,7 +9,7 @@ on:
 env:
   wasmpackVersion: 0.8.1
   nodeVersion: 14.16.1
-  rustToolchain: nightly-2021-10-29
+  rustToolchain: nightly-2021-11-08
 
 jobs:
   check:
