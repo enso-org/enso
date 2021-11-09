@@ -2,10 +2,10 @@
 //! that the verbosity level mechanism is completely user-extensible and this implementation can be
 //! completely redefined by the user.
 
+use crate::entry::level;
+use crate::entry::Entry;
 use crate::prelude::*;
 use crate::processor::formatter;
-use crate::entry::Entry;
-use crate::entry::level;
 
 
 
@@ -138,8 +138,8 @@ macro_rules! define_levels_group {
 // === Built-in Levels ===
 // =======================
 
-define_levels!(Trace,Debug,Info,Warning,Error);
-define_levels_group!(DefaultLevels {Trace,Debug,Info,Warning,Error});
+define_levels!(Trace, Debug, Info, Warning, Error);
+define_levels_group!(DefaultLevels { Trace, Debug, Info, Warning, Error });
 
 
 

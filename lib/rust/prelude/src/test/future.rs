@@ -58,18 +58,13 @@ where
 
 /// Convenience extensions for testing `Future`s that yields `Result` type.
 pub trait FutureResultTestExt<F, R, E>: FutureTestExt<F>
-where
-    F: ?Sized + Future<Output = Result<R, E>>,
-{
+where F: ?Sized + Future<Output = Result<R, E>> {
     /// Polls the future and asserts that the result is Ok(_) - and returns it after unwrapping.
     ///
     /// Same caveats apply as for `manual_poll`.
     fn expect_ok(&mut self) -> R
-    where
-        E: Debug,
-    {
-        self.expect_ready()
-            .expect("Expected future to yield an Ok(_) result.")
+    where E: Debug {
+        self.expect_ready().expect("Expected future to yield an Ok(_) result.")
     }
 
     /// Polls the future and asserts that the result is Err(_) - and returns the error after
@@ -77,11 +72,8 @@ where
     ///
     /// Same caveats apply as for `manual_poll`.
     fn expect_err(&mut self) -> E
-    where
-        R: Debug,
-    {
-        self.expect_ready()
-            .expect_err("Expected future to yield an Err(_) result.")
+    where R: Debug {
+        self.expect_ready().expect_err("Expected future to yield an Err(_) result.")
     }
 }
 

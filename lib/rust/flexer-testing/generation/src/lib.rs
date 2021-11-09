@@ -16,4 +16,5 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+#[rustfmt::skip]
 pub mod generated;

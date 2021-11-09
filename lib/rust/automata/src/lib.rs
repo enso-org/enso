@@ -9,7 +9,6 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 #![warn(missing_docs)]
-
 #![feature(test)]
 
 pub mod alphabet;

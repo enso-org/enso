@@ -27,8 +27,7 @@ pub trait VecOps<T>: AsMut<Vec<T>> + Sized {
         let item_ix = vec.len() - 1;
         #[allow(unsafe_code)]
         unsafe {
-            vec.get_mut(item_ix)
-                .unwrap_or_else(|| unreachable_unchecked())
+            vec.get_mut(item_ix).unwrap_or_else(|| unreachable_unchecked())
         }
     }
 
@@ -52,9 +51,7 @@ pub trait VecOps<T>: AsMut<Vec<T>> + Sized {
 
     /// Remove first element equal to `item` and returns it if any.
     fn remove_item(&mut self, item: &T) -> Option<T>
-    where
-        T: PartialEq<T>,
-    {
+    where T: PartialEq<T> {
         let vec = self.as_mut();
         let index = vec.iter().position(|x| *x == *item);
         index.map(|i| vec.remove(i))

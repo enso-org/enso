@@ -5,19 +5,19 @@ use crate::prelude::*;
 use quote::*;
 use syn::*;
 
+use crate::automata::dfa;
 use crate::automata::dfa::Dfa;
 use crate::automata::nfa;
-use crate::automata::dfa;
 use crate::automata::state::State;
-use crate::group::Group;
-use crate::group::AutomatonData;
 use crate::group;
+use crate::group::AutomatonData;
+use crate::group::Group;
 
 use enso_macro_utils::repr;
 use proc_macro2::Literal;
+use std::fmt;
 use std::hash::BuildHasher;
 use std::result::Result;
-use std::fmt;
 
 use crate as flexer;
 
@@ -32,22 +32,19 @@ use crate as flexer;
 /// This specialized code is a highly-optimised and tailored lexer that dispatches based on simple
 /// code-point switches, with no dynamic lookup. This means that it is very fast, and very low
 /// overhead.
-pub fn specialize
-( definition       : &impl flexer::State
-, state_type_name  : impl Str
-, output_type_name : impl Str
-) -> Result<String,GenError> {
+pub fn specialize(
+    definition: &impl flexer::State,
+    state_type_name: impl Str,
+    output_type_name: impl Str,
+) -> Result<String, GenError> {
     let group_registry = definition.groups();
-    let mut body_items = vec![
-        run_function(output_type_name)?,
-        run_current_state_function(),
-        step(group_registry),
-    ];
+    let mut body_items =
+        vec![run_function(output_type_name)?, run_current_state_function(), step(group_registry)];
     for group in group_registry.all().iter() {
-        body_items.extend(automaton_for_group(group,group_registry)?)
+        body_items.extend(automaton_for_group(group, group_registry)?)
     }
-    let result = wrap_in_impl_for(state_type_name,body_items)?;
-    let code   = show_code(&result);
+    let result = wrap_in_impl_for(state_type_name, body_items)?;
+    let code = show_code(&result);
     Ok(code)
 }
 
@@ -55,12 +52,12 @@ pub fn specialize
 // === Whole-Lexer Codegen Utilities ===
 
 /// Wrap the provided implementation items into an `impl` block for the provided `state_name` type.
-pub fn wrap_in_impl_for
-( state_name : impl Into<String>
-, body       : Vec<ImplItem>
-) -> Result<ItemImpl,GenError> {
-    let state_name:Ident  = str_to_ident(state_name.into().as_str())?;
-    let mut tree:ItemImpl = parse_quote! {
+pub fn wrap_in_impl_for(
+    state_name: impl Into<String>,
+    body: Vec<ImplItem>,
+) -> Result<ItemImpl, GenError> {
+    let state_name: Ident = str_to_ident(state_name.into().as_str())?;
+    let mut tree: ItemImpl = parse_quote! {
         #[allow(missing_docs,dead_code,clippy::all)]
         impl #state_name {}
     };
@@ -71,9 +68,9 @@ pub fn wrap_in_impl_for
 /// Generate the `run` function for the specialized lexer.
 ///
 /// This function is what the user of the lexer will call to begin execution.
-pub fn run_function(output_type_name:impl Str) -> Result<ImplItem,GenError> {
+pub fn run_function(output_type_name: impl Str) -> Result<ImplItem, GenError> {
     let output_type_name = str_to_path(output_type_name)?;
-    let tree:ImplItem    = parse_quote! {
+    let tree: ImplItem = parse_quote! {
         pub fn run<R:ReaderOps>(&mut self, mut reader:R) -> LexingResult<#output_type_name> {
             self.set_up();
             reader.advance_char(&mut self.bookmarks);
@@ -96,7 +93,7 @@ pub fn run_function(output_type_name:impl Str) -> Result<ImplItem,GenError> {
 
 /// Generate the function responsible for executing the lexer in its current state.
 pub fn run_current_state_function() -> ImplItem {
-    let tree:ImplItem = parse_quote! {
+    let tree: ImplItem = parse_quote! {
         fn run_current_state<R:ReaderOps>(&mut self, reader:&mut R) -> StageStatus {
             self.status = StageStatus::Initial;
             let mut finished = false;
@@ -145,7 +142,7 @@ pub fn run_current_state_function() -> ImplItem {
 ///
 /// This function is responsible for dispatching based on the current state, consuming a character,
 /// and returning the state to transition to.
-pub fn step(groups:&group::Registry) -> ImplItem {
+pub fn step(groups: &group::Registry) -> ImplItem {
     let arms = groups.all().iter().map(|g| step_match_arm(g.id.into())).collect_vec();
     parse_quote! {
         fn step<R:ReaderOps>(&mut self, next_state:SubStateId, reader:&mut R) -> StageStatus {
@@ -161,11 +158,11 @@ pub fn step(groups:&group::Registry) -> ImplItem {
 /// Generate a match arm for the step function.
 ///
 /// There is one match arm per lexer state.
-pub fn step_match_arm(number:usize) -> Arm {
-    let literal           = Literal::usize_unsuffixed(number);
-    let function_name_str = format!("dispatch_in_state_{}",number);
-    let func_name:Ident   = parse_str(function_name_str.as_str()).unwrap();
-    let arm:Arm = parse_quote! {
+pub fn step_match_arm(number: usize) -> Arm {
+    let literal = Literal::usize_unsuffixed(number);
+    let function_name_str = format!("dispatch_in_state_{}", number);
+    let func_name: Ident = parse_str(function_name_str.as_str()).unwrap();
+    let arm: Arm = parse_quote! {
         #literal => self.#func_name(next_state,reader),
     };
     arm
@@ -175,52 +172,53 @@ pub fn step_match_arm(number:usize) -> Arm {
 // === Generation for a Specific Lexer State ===
 
 /// Generate the functions that implement the lexer automaton for a given lexer state.
-pub fn automaton_for_group
-( group    : &Group
-, registry : &group::Registry
-) -> Result<Vec<ImplItem>,GenError> {
-    let mut nfa       = registry.to_nfa_from(group.id);
+pub fn automaton_for_group(
+    group: &Group,
+    registry: &group::Registry,
+) -> Result<Vec<ImplItem>, GenError> {
+    let mut nfa = registry.to_nfa_from(group.id);
     let mut rules = Vec::with_capacity(nfa.states().len());
     for state in nfa.public_states().iter() {
         if nfa.name(*state).is_some() {
-            rules.push(rule_for_state(*state,&nfa)?);
+            rules.push(rule_for_state(*state, &nfa)?);
         }
     }
-    let mut dfa             = Dfa::from(nfa.automaton());
-    let dispatch_for_dfa    = dispatch_in_state(&dfa,group.id.into())?;
-    let mut dfa_transitions = transitions_for_dfa(&mut dfa,&mut nfa,group.id.into())?;
+    let mut dfa = Dfa::from(nfa.automaton());
+    let dispatch_for_dfa = dispatch_in_state(&dfa, group.id.into())?;
+    let mut dfa_transitions = transitions_for_dfa(&mut dfa, &mut nfa, group.id.into())?;
     dfa_transitions.push(dispatch_for_dfa);
     dfa_transitions.extend(rules);
     Ok(dfa_transitions)
 }
 
 /// Generate a set of transition functions for the provided `dfa`, with identifier `id`.
-pub fn transitions_for_dfa
-( dfa  : &mut Dfa
-, data : &mut AutomatonData
-, id   : usize
-) -> Result<Vec<ImplItem>,GenError> {
-    let mut state_has_overlapping_rules:HashMap<usize,bool> = HashMap::new();
-    state_has_overlapping_rules.insert(0,false);
-    let state_names:Vec<_> = dfa.links.row_indices().map(|ix| (ix,name_for_step(id,ix))).collect();
-    let mut transitions    = Vec::with_capacity(state_names.len());
-    for (ix,name) in state_names.into_iter() {
-        transitions.push(transition_for_dfa(dfa,name,data,ix,&mut state_has_overlapping_rules)?)
+pub fn transitions_for_dfa(
+    dfa: &mut Dfa,
+    data: &mut AutomatonData,
+    id: usize,
+) -> Result<Vec<ImplItem>, GenError> {
+    let mut state_has_overlapping_rules: HashMap<usize, bool> = HashMap::new();
+    state_has_overlapping_rules.insert(0, false);
+    let state_names: Vec<_> =
+        dfa.links.row_indices().map(|ix| (ix, name_for_step(id, ix))).collect();
+    let mut transitions = Vec::with_capacity(state_names.len());
+    for (ix, name) in state_names.into_iter() {
+        transitions.push(transition_for_dfa(dfa, name, data, ix, &mut state_has_overlapping_rules)?)
     }
     Ok(transitions)
 }
 
 /// Generate a specific transition function for
 #[allow(clippy::implicit_hasher)]
-pub fn transition_for_dfa<S:BuildHasher>
-( dfa             : &mut Dfa
-, transition_name : Ident
-, data            : &mut AutomatonData
-, state_ix        : usize
-, has_overlaps    : &mut HashMap<usize,bool,S>
-) -> Result<ImplItem,GenError> {
-    let match_expr:Expr   = match_for_transition(dfa,state_ix,data,has_overlaps)?;
-    let function:ImplItem = parse_quote! {
+pub fn transition_for_dfa<S: BuildHasher>(
+    dfa: &mut Dfa,
+    transition_name: Ident,
+    data: &mut AutomatonData,
+    state_ix: usize,
+    has_overlaps: &mut HashMap<usize, bool, S>,
+) -> Result<ImplItem, GenError> {
+    let match_expr: Expr = match_for_transition(dfa, state_ix, data, has_overlaps)?;
+    let function: ImplItem = parse_quote! {
         fn #transition_name<R:ReaderOps>(&mut self, reader:&mut R) -> StageStatus {
             #match_expr
         }
@@ -229,35 +227,37 @@ pub fn transition_for_dfa<S:BuildHasher>
 }
 
 /// Generate the pattern match for a given transition function.
-pub fn match_for_transition<S:BuildHasher>
-( dfa          : &mut Dfa
-, state_ix     : usize
-, data         : &mut AutomatonData
-, has_overlaps : &mut HashMap<usize,bool,S>
-) -> Result<Expr,GenError> {
-    let overlaps          = *has_overlaps.get(&state_ix).unwrap_or(&false);
-    let mut trigger_state = dfa.links[(state_ix,0)];
-    let mut range_start   = enso_automata::symbol::SymbolIndex::min_value();
-    let divisions         = dfa.alphabet.division_map.clone();
-    let mut branches      = Vec::with_capacity(divisions.len());
+pub fn match_for_transition<S: BuildHasher>(
+    dfa: &mut Dfa,
+    state_ix: usize,
+    data: &mut AutomatonData,
+    has_overlaps: &mut HashMap<usize, bool, S>,
+) -> Result<Expr, GenError> {
+    let overlaps = *has_overlaps.get(&state_ix).unwrap_or(&false);
+    let mut trigger_state = dfa.links[(state_ix, 0)];
+    let mut range_start = enso_automata::symbol::SymbolIndex::min_value();
+    let divisions = dfa.alphabet.division_map.clone();
+    let mut branches = Vec::with_capacity(divisions.len());
     for (sym, ix) in divisions.into_iter() {
-        let new_trigger_state = dfa.links[(state_ix,ix)];
+        let new_trigger_state = dfa.links[(state_ix, ix)];
         if new_trigger_state != trigger_state {
-            let range_end             = if sym.index != 0 { sym.index - 1 } else { sym.index };
+            let range_end = if sym.index != 0 { sym.index - 1 } else { sym.index };
             let current_trigger_state = trigger_state;
-            let current_range_start   = range_start;
-            trigger_state             = new_trigger_state;
-            range_start               = sym.index;
+            let current_range_start = range_start;
+            trigger_state = new_trigger_state;
+            range_start = sym.index;
             let body =
-                branch_body(dfa,current_trigger_state,state_ix,data,has_overlaps,overlaps)?;
-            branches.push(Branch::new(Some(current_range_start..=range_end),body));
-        } else {}
+                branch_body(dfa, current_trigger_state, state_ix, data, has_overlaps, overlaps)?;
+            branches.push(Branch::new(Some(current_range_start..=range_end), body));
+        } else {
+        }
     }
-    let catch_all_branch_body = branch_body(dfa,trigger_state,state_ix,data,has_overlaps,overlaps)?;
-    let catch_all_branch      = Branch::new(None,catch_all_branch_body);
+    let catch_all_branch_body =
+        branch_body(dfa, trigger_state, state_ix, data, has_overlaps, overlaps)?;
+    let catch_all_branch = Branch::new(None, catch_all_branch_body);
     branches.push(catch_all_branch);
-    let arms:Vec<Arm> = branches.into_iter().map(Into::into).collect();
-    let mut match_expr:ExprMatch = parse_quote! {
+    let arms: Vec<Arm> = branches.into_iter().map(Into::into).collect();
+    let mut match_expr: ExprMatch = parse_quote! {
         match u64::from(reader.character()) {
             #(#arms)*
         }
@@ -267,27 +267,25 @@ pub fn match_for_transition<S:BuildHasher>
 }
 
 /// Generate the branch body for a transition in the DFA.
-pub fn branch_body<S:BuildHasher>
-( dfa           : &mut Dfa
-, target_state  : State<Dfa>
-, state_ix      : usize
-, data          : &mut AutomatonData
-, has_overlaps  : &mut HashMap<usize,bool,S>
-, rules_overlap : bool
-) -> Result<Block,GenError> {
-    let sources             = dfa.sources.get(state_ix).expect("Internal error.");
+pub fn branch_body<S: BuildHasher>(
+    dfa: &mut Dfa,
+    target_state: State<Dfa>,
+    state_ix: usize,
+    data: &mut AutomatonData,
+    has_overlaps: &mut HashMap<usize, bool, S>,
+    rules_overlap: bool,
+) -> Result<Block, GenError> {
+    let sources = dfa.sources.get(state_ix).expect("Internal error.");
     let rule_name_for_state = data.name_for_dfa_state(sources);
     if target_state == State::<Dfa>::INVALID {
         match rule_name_for_state {
-            None => {
-                Ok(parse_quote! {{
-                    StageStatus::ExitFail
-                }})
-            },
+            None => Ok(parse_quote! {{
+                StageStatus::ExitFail
+            }}),
             Some(rule) => {
-                let rule:Expr = match parse_str(rule) {
+                let rule: Expr = match parse_str(rule) {
                     Ok(rule) => rule,
-                    Err(_) => return Err(GenError::BadExpression(rule.to_string()))
+                    Err(_) => return Err(GenError::BadExpression(rule.to_string())),
                 };
                 if rules_overlap {
                     Ok(parse_quote! {{
@@ -312,18 +310,19 @@ pub fn branch_body<S:BuildHasher>
         }
     } else {
         let target_state_has_no_rule = match rule_name_for_state {
-            Some(_) => if !dfa_has_rule_name_for(data, dfa, target_state) {
-                dfa.sources[target_state.id()] = (*sources).clone();
-                has_overlaps.insert(target_state.id(),true);
-                true
-            } else {
-                false
-            },
-            None => false
+            Some(_) =>
+                if !dfa_has_rule_name_for(data, dfa, target_state) {
+                    dfa.sources[target_state.id()] = (*sources).clone();
+                    has_overlaps.insert(target_state.id(), true);
+                    true
+                } else {
+                    false
+                },
+            None => false,
         };
 
         let state_id = Literal::usize_unsuffixed(target_state.id());
-        let ret:Expr = parse_quote! {
+        let ret: Expr = parse_quote! {
             StageStatus::ContinueWith(#state_id.into())
         };
 
@@ -345,25 +344,25 @@ pub fn branch_body<S:BuildHasher>
 ///
 /// This dispatch function is responsible for dispatching based on the sub-state of any given lexer
 /// state, and is the main part of implementing the actual lexer transitions.
-pub fn dispatch_in_state(dfa:&Dfa, id:usize) -> Result<ImplItem,GenError> {
-    let dispatch_name:Ident = str_to_ident(format!("dispatch_in_state_{}",id))?;
-    let state_names  = dfa.links.row_indices().map(|ix| (ix, name_for_step(id,ix))).collect_vec();
+pub fn dispatch_in_state(dfa: &Dfa, id: usize) -> Result<ImplItem, GenError> {
+    let dispatch_name: Ident = str_to_ident(format!("dispatch_in_state_{}", id))?;
+    let state_names = dfa.links.row_indices().map(|ix| (ix, name_for_step(id, ix))).collect_vec();
     let mut branches = Vec::with_capacity(state_names.len());
-    for (ix,name) in state_names.into_iter() {
+    for (ix, name) in state_names.into_iter() {
         let literal = Literal::usize_unsuffixed(ix);
-        let arm:Arm = parse_quote! {
+        let arm: Arm = parse_quote! {
             #literal => self.#name(reader),
         };
         branches.push(arm);
     }
 
-    let pattern_match:ExprMatch = parse_quote! {
+    let pattern_match: ExprMatch = parse_quote! {
         match new_state_index.into() {
             #(#branches)*
             _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     };
-    let func:ImplItem = parse_quote! {
+    let func: ImplItem = parse_quote! {
         fn #dispatch_name<R:ReaderOps>
         ( &mut self
         , new_state_index:SubStateId
@@ -377,27 +376,27 @@ pub fn dispatch_in_state(dfa:&Dfa, id:usize) -> Result<ImplItem,GenError> {
 }
 
 /// Generate a name for a given step function.
-pub fn name_for_step(in_state:usize, to_state:usize) -> Ident {
-    let name_str = format!("state_{}_to_{}",in_state,to_state);
+pub fn name_for_step(in_state: usize, to_state: usize) -> Ident {
+    let name_str = format!("state_{}_to_{}", in_state, to_state);
     parse_str(name_str.as_str()).expect("Impossible to not be a valid identifier.")
 }
 
 /// Generate an executable rule function for a given lexer state.
-pub fn rule_for_state(state:nfa::State, automaton:&AutomatonData) -> Result<ImplItem,GenError> {
+pub fn rule_for_state(state: nfa::State, automaton: &AutomatonData) -> Result<ImplItem, GenError> {
     let state_name = automaton.name(state);
     match state_name {
         None => unreachable_panic!("Rule for state requested, but state has none."),
         Some(name) => {
             let rule_name = str_to_ident(name)?;
-            let callback  = automaton.code(state).expect("If it is named it has a callback.");
-            let code:Expr = match parse_str(callback) {
+            let callback = automaton.code(state).expect("If it is named it has a callback.");
+            let code: Expr = match parse_str(callback) {
                 Ok(expr) => expr,
-                Err(_)   => return Err(GenError::BadExpression(callback.into()))
+                Err(_) => return Err(GenError::BadExpression(callback.into())),
             };
             if !has_reader_arg(&code) {
-                return Err(GenError::BadCallbackArgument)
+                return Err(GenError::BadCallbackArgument);
             }
-            let tree:ImplItem = parse_quote! {
+            let tree: ImplItem = parse_quote! {
                 fn #rule_name<R:ReaderOps>(&mut self, reader:&mut R) {
                     #code
                 }
@@ -409,31 +408,23 @@ pub fn rule_for_state(state:nfa::State, automaton:&AutomatonData) -> Result<Impl
 
 /// Checks if the given `expr` is a  call with a single argument "reader" being passed.
 #[allow(clippy::cmp_owned)]
-pub fn has_reader_arg(expr:&Expr) -> bool {
+pub fn has_reader_arg(expr: &Expr) -> bool {
     match expr {
         Expr::MethodCall(expr) => match expr.args.first() {
-            Some(Expr::Path(path)) => {
-                match path.path.segments.first() {
-                    Some(segment) => {
-                        segment.ident.to_string() == "reader"
-                    }
-                    _ => false
-                }
-            }
-            _ => false
+            Some(Expr::Path(path)) => match path.path.segments.first() {
+                Some(segment) => segment.ident.to_string() == "reader",
+                _ => false,
+            },
+            _ => false,
         },
         Expr::Call(expr) => match expr.args.last() {
-            Some(Expr::Path(path)) => {
-                match path.path.segments.first() {
-                    Some(segment) => {
-                        segment.ident.to_string() == "reader"
-                    }
-                    _ => false
-                }
-            }
-            _ => false
-        }
-        _ => false
+            Some(Expr::Path(path)) => match path.path.segments.first() {
+                Some(segment) => segment.ident.to_string() == "reader",
+                _ => false,
+            },
+            _ => false,
+        },
+        _ => false,
     }
 }
 
@@ -444,7 +435,7 @@ pub fn has_reader_arg(expr:&Expr) -> bool {
 // ================
 
 /// Errors that arise during code generation.
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum GenError {
     /// The callback function does not take a single argument `reader`.
     BadCallbackArgument,
@@ -462,15 +453,16 @@ pub enum GenError {
 // === Trait Impls ===
 
 impl Display for GenError {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GenError::BadCallbackArgument => write!(f,
+            GenError::BadCallbackArgument => write!(
+                f,
                 "Bad argument to a callback function. It must take a single argument `reader`."
             ),
-            GenError::BadIdentifier(str) => write!(f,"`{}` is not a valid rust identifier.",str),
-            GenError::BadExpression(str) => write!(f,"`{}` is not a valid rust expression.",str),
-            GenError::BadLiteral(str)    => write!(f,"`{}` is not a valid rust literal.",str),
-            GenError::BadPath(str)       => write!(f,"`{}` is not a valid rust path.",str),
+            GenError::BadIdentifier(str) => write!(f, "`{}` is not a valid rust identifier.", str),
+            GenError::BadExpression(str) => write!(f, "`{}` is not a valid rust expression.", str),
+            GenError::BadLiteral(str) => write!(f, "`{}` is not a valid rust literal.", str),
+            GenError::BadPath(str) => write!(f, "`{}` is not a valid rust path.", str),
         }
     }
 }
@@ -483,19 +475,19 @@ impl Display for GenError {
 
 /// A representation of a dispatch branch for helping to generate pattern arms.
 #[allow(missing_docs)]
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct Branch {
-    pub range : Option<RangeInclusive<enso_automata::symbol::SymbolIndex>>,
-    pub body  : Block
+    pub range: Option<RangeInclusive<enso_automata::symbol::SymbolIndex>>,
+    pub body:  Block,
 }
 
 impl Branch {
     /// Create a new branch, from the provided `range` and with `body` as the code it executes.
-    pub fn new
-    ( range : Option<RangeInclusive<enso_automata::symbol::SymbolIndex>>
-    , body  : Block
+    pub fn new(
+        range: Option<RangeInclusive<enso_automata::symbol::SymbolIndex>>,
+        body: Block,
     ) -> Branch {
-        Branch {range,body}
+        Branch { range, body }
     }
 }
 
@@ -503,12 +495,12 @@ impl Branch {
 // === Trait Impls ===
 
 impl From<Branch> for Arm {
-    fn from(value:Branch) -> Self {
+    fn from(value: Branch) -> Self {
         let body = value.body;
         match value.range {
             Some(range) => {
                 let range_start = Literal::u64_unsuffixed(*range.start());
-                let range_end   = Literal::u64_unsuffixed(*range.end());
+                let range_end = Literal::u64_unsuffixed(*range.end());
                 if range.start() == range.end() {
                     parse_quote! {
                         #range_start => #body,
@@ -521,7 +513,7 @@ impl From<Branch> for Arm {
             }
             None => parse_quote! {
                 _ => #body,
-            }
+            },
         }
     }
 }
@@ -533,21 +525,21 @@ impl From<Branch> for Arm {
 // =================
 
 /// Check if the DFA has a rule name for the provided target `state`.
-pub fn dfa_has_rule_name_for(nfa:&AutomatonData, dfa:&Dfa, state:dfa::State) -> bool {
+pub fn dfa_has_rule_name_for(nfa: &AutomatonData, dfa: &Dfa, state: dfa::State) -> bool {
     nfa.name_for_dfa_state(&dfa.sources[state.id()]).is_some()
 }
 
 /// Convert a string to an identifier.
-pub fn str_to_ident(str:impl Str) -> Result<Ident,GenError> {
+pub fn str_to_ident(str: impl Str) -> Result<Ident, GenError> {
     parse_str(str.as_ref()).map_err(|_| GenError::BadIdentifier(str.into()))
 }
 
 /// Convert a string to a path.
-pub fn str_to_path(str:impl Str) -> Result<Path,GenError> {
+pub fn str_to_path(str: impl Str) -> Result<Path, GenError> {
     parse_str(str.as_ref()).map_err(|_| GenError::BadPath(str.into()))
 }
 
 /// Convert the syntax tree into a string.
-pub fn show_code(tokens:&impl ToTokens) -> String {
+pub fn show_code(tokens: &impl ToTokens) -> String {
     repr(tokens)
 }

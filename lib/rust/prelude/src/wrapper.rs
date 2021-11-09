@@ -10,23 +10,23 @@ use crate::std_reexports::*;
 
 /// Trait for any type which wraps other type. See docs of `Wrapper` to learn more.
 pub trait HasContent {
-    type Content : ?Sized;
+    type Content: ?Sized;
 }
 
 /// Accessor for the wrapped value.
 pub type Content<T> = <T as HasContent>::Content;
 
 /// Trait which enables `Sized` super-bound on the `Content` type.
-pub trait HasSizedContent = HasContent where Content<Self> : Sized;
+pub trait HasSizedContent = HasContent where Content<Self>: Sized;
 
 /// Trait for objects which wrap values. Please note that this implements safe wrappers, so the
 /// object - value relation must be bijective.
 pub trait Wrapper = Wrap + ContentRef;
 
 /// Wrapping utility for values.
-pub trait Wrap : HasSizedContent {
+pub trait Wrap: HasSizedContent {
     /// Wraps the value and returns the wrapped type.
-    fn wrap(t:Self::Content) -> Self;
+    fn wrap(t: Self::Content) -> Self;
 }
 
 /// Unwrapping utility for wrapped types.
@@ -66,19 +66,20 @@ pub trait Wrap : HasSizedContent {
 /// ```
 ///
 /// Both versions compile fine, but the former loops for ever.
-pub trait ContentRef : HasContent {
+pub trait ContentRef: HasContent {
     /// Unwraps this type to get the inner value.
     fn content(&self) -> &Self::Content;
 }
 
 /// Runs a function on the reference to the content.
-pub trait WithContent : HasSizedContent {
+pub trait WithContent: HasSizedContent {
     /// Runs a function on the reference to the content.
-    fn with_content<F,T>(&self,f:F) -> T where F : FnOnce(&Content<Self>) -> T;
+    fn with_content<F, T>(&self, f: F) -> T
+    where F: FnOnce(&Content<Self>) -> T;
 }
 
 /// Unwraps the content by consuming this value.
-pub trait Unwrap : HasSizedContent {
+pub trait Unwrap: HasSizedContent {
     /// Unwraps the content by consuming this value.
     fn unwrap(self) -> Self::Content;
 }
@@ -87,26 +88,26 @@ pub trait Unwrap : HasSizedContent {
 // === Utils ===
 
 /// Wraps the value and returns the wrapped type.
-pub fn wrap<T:Wrap>(t:T::Content) -> T {
+pub fn wrap<T: Wrap>(t: T::Content) -> T {
     T::wrap(t)
 }
 
 /// Provides reference to the content of this value.
-pub fn content<T:ContentRef>(t:&T) -> &T::Content {
+pub fn content<T: ContentRef>(t: &T) -> &T::Content {
     T::content(t)
 }
 
 /// Unwrap the content by consuming this value.
-pub fn unwrap<T:Unwrap>(t:T) -> T::Content {
+pub fn unwrap<T: Unwrap>(t: T) -> T::Content {
     T::unwrap(t)
 }
 
 
 // === Default Impls ===
 
-impl<T:ContentRef + HasSizedContent> WithContent for T {
-    fn with_content<F,S>(&self,f:F) -> S
-        where F : FnOnce(&Content<Self>) -> S {
+impl<T: ContentRef + HasSizedContent> WithContent for T {
+    fn with_content<F, S>(&self, f: F) -> S
+    where F: FnOnce(&Content<Self>) -> S {
         f(self.content())
     }
 }
@@ -122,12 +123,34 @@ impl<T:ContentRef + HasSizedContent> WithContent for T {
 
 // === Impls ===
 
-impl<T:?Sized> HasContent for Rc<T> { type Content = T; }
-impl<T>        Wrap       for Rc<T> { fn wrap(t:T) -> Self { Rc::new(t) } }
-impl<T:?Sized> ContentRef for Rc<T> { fn content(&self) -> &Self::Content { self.deref() }}
+impl<T: ?Sized> HasContent for Rc<T> {
+    type Content = T;
+}
+impl<T> Wrap for Rc<T> {
+    fn wrap(t: T) -> Self {
+        Rc::new(t)
+    }
+}
+impl<T: ?Sized> ContentRef for Rc<T> {
+    fn content(&self) -> &Self::Content {
+        self.deref()
+    }
+}
 
-impl HasContent for String { type Content = char; }
-impl Wrap       for String { fn wrap(t:char) -> Self { t.to_string() } }
+impl HasContent for String {
+    type Content = char;
+}
+impl Wrap for String {
+    fn wrap(t: char) -> Self {
+        t.to_string()
+    }
+}
 
-impl<T> HasContent for Vec<T> { type Content = T; }
-impl<T> Wrap       for Vec<T> { fn wrap(t:T) -> Self { vec![t] } }
+impl<T> HasContent for Vec<T> {
+    type Content = T;
+}
+impl<T> Wrap for Vec<T> {
+    fn wrap(t: T) -> Self {
+        vec![t]
+    }
+}
