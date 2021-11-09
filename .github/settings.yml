@@ -81,8 +81,7 @@ labels:
     description: A change that will break a public API or user-facing behaviour
   - name: "Change: Non-Breaking"
     color: "#ffdce5"
-    description:
-      A change that will not break a public API or user-facing behaviour
+    description: A change that will not break a public API or user-facing behaviour
 
   - name: "Difficulty: Beginner"
     color: "#d1e9c4"

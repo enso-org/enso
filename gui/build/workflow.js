@@ -118,11 +118,6 @@ let installNode = {
     },
 }
 
-let installPrettier = {
-    name: 'Install Prettier',
-    run: 'npm install --save-dev --save-exact prettier',
-}
-
 let installClippy = {
     name: 'Install Clippy',
     run: 'rustup component add clippy',
@@ -190,16 +185,6 @@ let buildPackage = {
         WIN_CSC_LINK: '${{secrets.MICROSOFT_CODE_SIGNING_CERT}}',
         WIN_CSC_KEY_PASSWORD: '${{secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD}}',
     },
-}
-
-let lintMarkdown = {
-    name: 'Lint Markdown sources',
-    run: "npx prettier --check '*.md'",
-}
-
-let lintJavaScript = {
-    name: 'Lint JavaScript sources',
-    run: "npx prettier --check 'src/**/*.js'",
 }
 
 let lintRust = {
@@ -328,11 +313,6 @@ let assertChangelogWasUpdated = [
 // ======================
 
 let uploadGitHubRelease = [
-    installPrettier,
-    {
-        name: `Pretty print changelog.`,
-        run: 'npx prettier --prose-wrap never CHANGELOG.md --write',
-    },
     {
         name: `Upload GitHub Release`,
         uses: 'softprops/action-gh-release@v1',
@@ -467,11 +447,8 @@ let workflow = {
             installNode,
             installTypeScript,
             installRust,
-            installPrettier,
             installClippy,
             installFmt,
-            lintMarkdown,
-            lintJavaScript,
             lintRust,
         ]),
         test: job_on_linux_cached('test_native', 'Native Tests', [

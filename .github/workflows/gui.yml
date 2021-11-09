@@ -118,16 +118,10 @@ jobs:
         with:
           toolchain: nightly-2021-10-29
           override: true
-      - name: Install Prettier
-        run: npm install --save-dev --save-exact prettier
       - name: Install Clippy
         run: rustup component add clippy
       - name: Install Clippy
         run: rustup component add rustfmt
-      - name: Lint Markdown sources
-        run: npx prettier --check '*.md'
-      - name: Lint JavaScript sources
-        run: npx prettier --check 'src/**/*.js'
       - name: Lint Rust sources
         run: node ./run lint --skip-version-validation
   test:
@@ -462,10 +456,6 @@ jobs:
           if [[ ${{ steps.checkCurrentReleaseTag.outputs.exists }} == true ]];
           then exit 1; fi
         if: github.base_ref == 'unstable' || github.base_ref == 'stable'
-      - name: Install Prettier
-        run: npm install --save-dev --save-exact prettier
-      - name: Pretty print changelog.
-        run: npx prettier --prose-wrap never CHANGELOG.md --write
       - name: Upload GitHub Release
         uses: softprops/action-gh-release@v1
         env:

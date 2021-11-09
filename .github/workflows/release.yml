@@ -466,8 +466,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
           asset_name: enso-engine-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -477,8 +476,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
           asset_name: enso-engine-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -488,8 +486,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
             }}-windows-amd64.zip
           asset_name: enso-engine-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip
@@ -500,8 +497,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
           asset_name: enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -511,8 +507,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
           asset_name: enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -522,8 +517,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
             }}-windows-amd64.zip
           asset_name: enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip
@@ -537,8 +531,7 @@ jobs:
           asset_path:
             repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
-          asset_name:
-            enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
       - name: Publish the Project Manager (MacOS)
         uses: actions/upload-release-asset@v1
@@ -549,8 +542,7 @@ jobs:
           asset_path:
             repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
-          asset_name:
-            enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
       - name: Publish the Project Manager (Windows)
         uses: actions/upload-release-asset@v1
@@ -561,8 +553,7 @@ jobs:
           asset_path:
             repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
             }}-windows-amd64.zip
-          asset_name:
-            enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip
 
       - name: Publish the Bundle (Linux)
@@ -571,8 +562,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
           asset_name: enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -582,8 +572,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
           asset_name: enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -593,8 +582,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
             }}-windows-amd64.zip
           asset_name: enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip
