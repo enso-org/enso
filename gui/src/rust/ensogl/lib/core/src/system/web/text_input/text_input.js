@@ -13,7 +13,6 @@ export class TextInputHandlers {
         this.text_area.focus()
         this.bind_text_area_events()
         this.bind_window_events()
-
     }
 
     // Set event handler. The name can be 'keyup' or 'keydown'.
@@ -46,11 +45,15 @@ export class TextInputHandlers {
     bind_text_area_events() {
         this.text_area.addEventListener('cut', e => {
             // Clear textarea in next frame (after cutting).
-            setTimeout(_ => {this.text_area.value = "";}, 0)
+            setTimeout(_ => {
+                this.text_area.value = ''
+            }, 0)
         })
         this.text_area.addEventListener('copy', e => {
             // Clear textarea in next frame (after copying).
-            setTimeout(_ => {this.text_area.value = "";}, 0)
+            setTimeout(_ => {
+                this.text_area.value = ''
+            }, 0)
         })
         this.text_area.addEventListener('paste', e => {
             if (typeof this.paste_handler !== 'undefined') {
@@ -67,16 +70,16 @@ export class TextInputHandlers {
             this.text_area.focus()
         })
         this.text_area.addEventListener('keydown', e => {
-            let code = e.keyCode;
+            let code = e.keyCode
 
-            let is_cut   = code === 88 && (e.metaKey || e.ctrlKey)
-            let is_copy  = code === 67 && (e.metaKey || e.ctrlKey)
+            let is_cut = code === 88 && (e.metaKey || e.ctrlKey)
+            let is_copy = code === 67 && (e.metaKey || e.ctrlKey)
             let is_paste = code === 86 && (e.metaKey || e.ctrlKey)
             if (is_copy || is_cut) {
                 if (typeof this.copy_handler !== 'undefined') {
                     this.text_area.value = this.copy_handler(is_cut)
-                    this.text_area.selectionStart = 0;
-                    this.text_area.selectionEnd = this.text_area.value.length;
+                    this.text_area.selectionStart = 0
+                    this.text_area.selectionEnd = this.text_area.value.length
                 } else {
                     e.preventDefault()
                 }
@@ -107,7 +110,7 @@ export class TextInputHandlers {
 
 // Creates invisible textarea.
 function create_invisible_text_area() {
-    const css_class_name = "enso";
+    const css_class_name = 'enso'
 
     let text_area = document.createElement('textarea')
     text_area.className = css_class_name

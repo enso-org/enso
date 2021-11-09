@@ -1,432 +1,417 @@
 /* Fonts */
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenThin/font.woff2") format("woff2"),
-        url("/assets/fonts/CaustenThin/font.woff") format("woff");
-    font-style: normal;
-    font-weight: 100;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenThin/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenThin/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 100;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenExtraLight/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenExtraLight/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 200;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenExtraLight/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenExtraLight/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 200;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenLight/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenLight/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 300;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenLight/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenLight/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 300;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenRegular/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenRegular/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 400;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenRegular/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenRegular/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenMedium/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenMedium/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 500;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenMedium/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenMedium/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenSemiBold/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenSemiBold/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 600;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenSemiBold/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenSemiBold/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenBold/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenBold/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 700;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenBold/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenBold/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenExtraBold/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenExtraBold/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 800;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenExtraBold/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenExtraBold/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
 }
 
 @font-face {
-    font-family: "Causten";
-    src: url("/assets/fonts/CaustenBlack/font.woff2")
-        format("woff2"),
-        url("/assets/fonts/CaustenBlack/font.woff")
-        format("woff");
-    font-style: normal;
-    font-weight: 900;
-    font-display: block;
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenBlack/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenBlack/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
 }
 
 /* End of fonts */
 
-html, body {
-    height : 100vh;
+html,
+body {
+  height: 100vh;
 }
 
 body {
-    margin : 0;
+  margin: 0;
 }
 
 #root {
-    height   : 100vh;
-    width    : 100vw;
-    margin   : 0;
-    position : absolute;
-    overflow : hidden;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  position: absolute;
+  overflow: hidden;
 }
 
 .titlebar {
-    width    : 100vw;
-    height   : 36px;
-    margin   : 0;
-    position : absolute;
-    z-index  : 10;
-    cursor   : none;
-    -webkit-app-region  : drag;
-    -webkit-user-select : none;
+  width: 100vw;
+  height: 36px;
+  margin: 0;
+  position: absolute;
+  z-index: 10;
+  cursor: none;
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
 }
 
 .visualization {
-    z-index: 2;
-    border-radius: 14px;
-    /* visualizations may be put into the fullscreen-vis layer which has pointer-events set to none, so we need to
+  z-index: 2;
+  border-radius: 14px;
+  /* visualizations may be put into the fullscreen-vis layer which has pointer-events set to none, so we need to
        override it */
-    pointer-events: auto;
+  pointer-events: auto;
 }
 
 .auth-header {
-    font-family: sans-serif;
-    text-align: center;
-    margin: 24px auto;
+  font-family: sans-serif;
+  text-align: center;
+  margin: 24px auto;
 }
 
 .auth-text {
-    text-align: justify;
-    font-family: sans-serif;
-    color: #454545;
-    width: 50%;
-    margin: 12px auto;
+  text-align: justify;
+  font-family: sans-serif;
+  color: #454545;
+  width: 50%;
+  margin: 12px auto;
 }
 
 .auth-info {
-    text-align: center;
-    font-family: sans-serif;
-    color: #454545;
-    margin: 24px auto;
-    display: none;
+  text-align: center;
+  font-family: sans-serif;
+  color: #454545;
+  margin: 24px auto;
+  display: none;
 }
 
 #crash-banner {
-    background: DarkSalmon;
-    color: #2c1007;
+  background: DarkSalmon;
+  color: #2c1007;
 
-    font-family: sans-serif;
-    line-height: 1.5;
+  font-family: sans-serif;
+  line-height: 1.5;
 
-    position: absolute;
+  position: absolute;
 
-    /* Put the banner in front of the "root" node which has index 1 */
-    z-index: 2;
+  /* Put the banner in front of the "root" node which has index 1 */
+  z-index: 2;
 
-    /* Center the banner horizontally */
-    left: 0;
-    right: 0;
-    margin: auto;
+  /* Center the banner horizontally */
+  left: 0;
+  right: 0;
+  margin: auto;
 
-    width: fit-content;
-    padding: 1em;
+  width: fit-content;
+  padding: 1em;
 
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 #crash-banner button {
-    border-radius: 4px;
-    border: none;
-    font: inherit;
+  border-radius: 4px;
+  border: none;
+  font: inherit;
 
-    /* Balance padding with negative margin to make the label fit with other text */
-    padding: 2px;
-    margin: -2px;
+  /* Balance padding with negative margin to make the label fit with other text */
+  padding: 2px;
+  margin: -2px;
 
-    padding-left: 0.5em;
-    padding-right: 0.5em;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
 }
 #crash-banner button:focus {
-    /* Show a 2px outline, following the button's shape, instead of the standard
+  /* Show a 2px outline, following the button's shape, instead of the standard
     rectangular outline */
-    outline: none;
-    box-shadow: 0 0 0 2px #fbeee9;
+  outline: none;
+  box-shadow: 0 0 0 2px #fbeee9;
 }
 
 #crash-banner #crash-banner-close-button {
-    float: right;
-    margin-left: 0.75em;
+  float: right;
+  margin-left: 0.75em;
 
-    color: #2c1007;
-    background: none;
+  color: #2c1007;
+  background: none;
 }
 #crash-banner #crash-banner-close-button:hover {
-    color: #58210e;
+  color: #58210e;
 }
 #crash-banner #crash-banner-close-button:active {
-    color: #843115;
+  color: #843115;
 }
 
 #crash-banner #crash-report-button {
-    float: right;
-    margin-left: 1em;
+  float: right;
+  margin-left: 1em;
 
-    color: DarkSalmon;
-    background: #2c1007;
+  color: DarkSalmon;
+  background: #2c1007;
 }
 #crash-banner #crash-report-button:hover {
-    background-color: #58210e;
+  background-color: #58210e;
 }
 #crash-banner #crash-report-button:active {
-    background-color: #843115;
+  background-color: #843115;
 }
 
 #crash-banner-content {
-    display: inline;
+  display: inline;
 }
 
 #crash-banner hr {
-    height: 1px;
-    border: none;
-    background: #b96a50;
-    margin: 0.8em -1em;
+  height: 1px;
+  border: none;
+  background: #b96a50;
+  margin: 0.8em -1em;
 }
 
 .templates-view {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 50px;
-    font-family: "Causten";
-    font-size: 15px;
-    line-height: 1.4;
-    color: #434343;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 50px;
+  font-family: "Causten";
+  font-size: 15px;
+  line-height: 1.4;
+  color: #434343;
 }
 
 .templates-view .container {
-    display: flex;
+  display: flex;
 }
 
 .templates-view .side-menu {
-    flex: 0 0 292px;
+  flex: 0 0 292px;
 }
 
 .templates-view .side-menu ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    font-size: 14.5px;
-    font-weight: 400;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14.5px;
+  font-weight: 400;
 }
 
 .templates-view .side-menu ul li {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin: 10px 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
 }
 
 .templates-view .side-menu ul img {
-    width: 14px;
-    padding: 8px;
-    background-color: #4180F1;
-    border-radius: 5px;
+  width: 14px;
+  padding: 8px;
+  background-color: #4180f1;
+  border-radius: 5px;
 }
 
 .templates-view .side-menu li#projects-list-new-project img {
-    background-color: #EFEFEF;
+  background-color: #efefef;
 }
 
 .templates-view .content {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .templates-view h2 {
-    font-size: 24px;
-    font-weight: 300;
-    margin: 23px 0;
+  font-size: 24px;
+  font-weight: 300;
+  margin: 23px 0;
 }
 
 .templates-view h3 {
-    font-size: 16px;
-    font-weight: 650;
+  font-size: 16px;
+  font-weight: 650;
 }
 
 .templates-view .cards .row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .templates-view .card,
 .templates-view .vid {
-    border-radius: 20px;
-    color: #fcfeff;
-    box-shadow: 0px 36px 51px rgba(0, 0, 0, 0.03),
-        0px 15.0399px 21.3066px rgba(0, 0, 0, 0.0232911),
-        0px 8.04107px 11.3915px rgba(0, 0, 0, 0.0197608),
-        0px 4.50776px 6.38599px rgba(0, 0, 0, 0.0166035),
-        0px 2.39404px 3.39155px rgba(0, 0, 0, 0.0132306),
-        0px 0.996212px 1.4113px rgba(0, 0, 0, 0.00894732);
+  border-radius: 20px;
+  color: #fcfeff;
+  box-shadow: 0px 36px 51px rgba(0, 0, 0, 0.03),
+    0px 15.0399px 21.3066px rgba(0, 0, 0, 0.0232911),
+    0px 8.04107px 11.3915px rgba(0, 0, 0, 0.0197608),
+    0px 4.50776px 6.38599px rgba(0, 0, 0, 0.0166035),
+    0px 2.39404px 3.39155px rgba(0, 0, 0, 0.0132306),
+    0px 0.996212px 1.4113px rgba(0, 0, 0, 0.00894732);
 }
 
 .templates-view .card {
-    height: 165px;
-    padding: 15px 20px;
+  height: 165px;
+  padding: 15px 20px;
 }
 
 .templates-view .card h3 {
-    margin-bottom: 5px;
+  margin-bottom: 5px;
 }
 
 .templates-view .card p {
-    margin: 0;
-    padding: 0;
-    font-size: 13.5px;
-    font-weight: 600;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  font-weight: 600;
 }
 
 .templates-view .card-spreadsheets {
-    flex: 0 0 240px;
-    background-color: #479366;
+  flex: 0 0 240px;
+  background-color: #479366;
 }
 
 .templates-view .card-spreadsheets img {
-    display: block;
-    height: 63px;
-    margin: 15px auto;
+  display: block;
+  height: 63px;
+  margin: 15px auto;
 }
 
 .templates-view .card-spreadsheets h3 {
-    margin-top: 24px;
+  margin-top: 24px;
 }
 
 .templates-view .card-geo {
-    flex: 0 0 530px;
-    background-image: url("/assets/geo.png");
-    background-size: 100%;
+  flex: 0 0 530px;
+  background-image: url("/assets/geo.png");
+  background-size: 100%;
 }
 
 .templates-view .card-geo h3,
 .templates-view .card-visualize h3 {
-    margin-top: 104px;
+  margin-top: 104px;
 }
 
 .templates-view .card-spreadsheets p,
 .templates-view .card-geo p {
-    color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .templates-view .card-geo p,
 .templates-view .card-visualize p {
-    width: 220px;
+  width: 220px;
 }
 
 .templates-view .card-visualize {
-    flex: 0 0 820px;
-    background-image: url("/assets/visualize.png");
-    background-size: 100% 100%;
+  flex: 0 0 820px;
+  background-image: url("/assets/visualize.png");
+  background-size: 100% 100%;
 }
 
 .templates-view .text {
-    width: 140px;
+  width: 140px;
 }
 
 .tutorials {
-    margin-top: 93px;
+  margin-top: 93px;
 }
 
 .templates-view .videos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .templates-view .vid {
-    flex: 0 0 280px;
-    height: 195px;
-    position: relative;
-    overflow: hidden;
-    background-size: 317px;
+  flex: 0 0 280px;
+  height: 195px;
+  position: relative;
+  overflow: hidden;
+  background-size: 317px;
 }
 
 .templates-view .vid img {
-    width: 35px;
-    margin: 0 10px;
+  width: 35px;
+  margin: 0 10px;
 }
 
 .templates-view .vid h3 {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    margin: 0;
-    padding: 12px 0;
-    position: absolute;
-    bottom: 0px;
-    background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 12px 0;
+  position: absolute;
+  bottom: 0px;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .templates-view .vid-intro {
-    background-image: url("/assets/intro.png");
-    background-position: top -5px left -15px;
+  background-image: url("/assets/intro.png");
+  background-position: top -5px left -15px;
 }
 
 .templates-view .vid-enso2 {
-    background-image: url("/assets/enso2.png");
-    background-position: top -12px left 0;
+  background-image: url("/assets/enso2.png");
+  background-position: top -12px left 0;
 }
 
 .templates-view .vid-java {
-    background-image: url("/assets/java.png");
-    background-position: top -10px left -15px;
+  background-image: url("/assets/java.png");
+  background-position: top -10px left -15px;
 }
 
 .templates-view .vid-compiler {
-    background-image: url("/assets/compiler.png");
-    background-position: top -10px left -15px;
+  background-image: url("/assets/compiler.png");
+  background-position: top -10px left -15px;
 }

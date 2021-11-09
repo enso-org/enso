@@ -8,10 +8,10 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-automata = { version = "0.2.0" }
+enso-automata = { path = "../../../../../lib/rust/automata" }
 enso-frp = { path = "../frp" }
-enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.6" }
+enso-logger = { path = "../../../../../lib/rust/logger" }
+enso-prelude = { path = "../../../../../lib/rust/prelude" }
 ensogl-system-web = { path = "../../lib/system/web" }
 wasm-bindgen = { version = "=0.2.58", features = [
   "nightly",

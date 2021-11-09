@@ -2,8 +2,7 @@
 /// which scans the GLSL code and mangles all names of primitive functions. This way we can define
 /// overloaded functions the same way as we did in GLSL 100.
 
-let builtins =
-`float radians(float degrees)
+let builtins = `float radians(float degrees)
 vec2 radians(vec2 degrees)
 vec3 radians(vec3 degrees)
 vec4 radians(vec4 degrees)
@@ -209,32 +208,33 @@ bvec2 not(bvec2 x)
 bvec3 not(bvec3 x)
 bvec4 not(bvec4 x)`
 
-let reserved_builtins = ['union','sample']
-let builtin_pattern   = /([^ ]+) ([^(]+)\(([^)]*)\)/
+let reserved_builtins = ['union', 'sample']
+let builtin_pattern = /([^ ]+) ([^(]+)\(([^)]*)\)/
 
 function redirect_builtins() {
-    let lines        = builtins.split(/\r?\n/)
-    let names        = []
+    let lines = builtins.split(/\r?\n/)
+    let names = []
     let redirections = []
     for (let line of lines) {
-        let match       = line.match(builtin_pattern)
-        let outType     = match[1]
-        let fname       = match[2]
-        let argsStr     = match[3]
-        let args        = argsStr.split(', ').map(v => v.split(' '))
-        let argNames    = args.map(a => a[1])
-        let redirection =
-            `${outType} overloaded_${fname} (${argsStr}) {return ${fname}(${argNames.join(',')});}`
+        let match = line.match(builtin_pattern)
+        let outType = match[1]
+        let fname = match[2]
+        let argsStr = match[3]
+        let args = argsStr.split(', ').map(v => v.split(' '))
+        let argNames = args.map(a => a[1])
+        let redirection = `${outType} overloaded_${fname} (${argsStr}) {return ${fname}(${argNames.join(
+            ','
+        )});}`
         names.push(fname)
         redirections.push(redirection)
     }
     let code = redirections.join('\n')
-    return {code, names}
+    return { code, names }
 }
 
 let redirections = redirect_builtins()
 let builtins_map = new Set(redirections.names.concat(reserved_builtins))
-let any_var      = /([a-zA-Z_])[a-zA-Z_0-9]* *\(/gm
+let any_var = /([a-zA-Z_])[a-zA-Z_0-9]* *\(/gm
 
 export function builtin_redirections() {
     return redirections.code
@@ -242,7 +242,7 @@ export function builtin_redirections() {
 
 export function allow_overloading(src) {
     let out = src.replace(any_var, v => {
-        let vv = v.slice(0,-1).trim()
+        let vv = v.slice(0, -1).trim()
         if (builtins_map.has(vv)) {
             return `overloaded_${v}`
         } else {
