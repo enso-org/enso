@@ -5,9 +5,10 @@ use crate::prelude::*;
 
 use crate::controller::searcher::action;
 use crate::controller::searcher::action::ListBuilder;
-use crate::double_representation::module;
-use crate::double_representation::tp;
 use crate::model::module::MethodId;
+
+use double_representation::module;
+use double_representation::tp;
 
 
 

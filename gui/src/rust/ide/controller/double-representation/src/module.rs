@@ -2,22 +2,23 @@
 
 use crate::prelude::*;
 
-use crate::constants::keywords::HERE;
-use crate::constants::PROJECTS_MAIN_MODULE;
-use crate::double_representation::definition;
-use crate::double_representation::definition::DefinitionProvider;
-use crate::double_representation::identifier;
-use crate::double_representation::identifier::Identifier;
-use crate::double_representation::identifier::LocatedName;
-use crate::double_representation::identifier::ReferentName;
-use crate::double_representation::project;
-use crate::double_representation::tp;
+use crate::alias_analysis;
+use crate::definition;
+use crate::definition::DefinitionProvider;
+use crate::identifier;
+use crate::identifier::Identifier;
+use crate::identifier::LocatedName;
+use crate::identifier::ReferentName;
+use crate::project;
+use crate::tp;
 
+use ast::constants::keywords::HERE;
+use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::crumbs::ChildAst;
 use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
-use enso_protocol::language_server;
+use engine_protocol::language_server;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -192,7 +193,8 @@ impl QualifiedName {
     ///
     /// ```
     /// # use enso_prelude::*;
-    /// # use ide::model::module::QualifiedName;
+    /// #
+    /// # use double_representation::module::QualifiedName;
     ///
     /// let name =
     ///     QualifiedName::from_segments("local.Project".try_into().unwrap(), &["Main"]).unwrap();
@@ -213,7 +215,7 @@ impl QualifiedName {
     /// Build a module's full qualified name from its name segments and the project name.
     ///
     /// ```
-    /// use ide::model::module::QualifiedName;
+    /// # use double_representation::module::QualifiedName;
     ///
     /// let name = QualifiedName::from_all_segments(&["Project", "Main"]).unwrap();
     /// assert_eq!(name.to_string(), "Project.Main");
@@ -261,7 +263,7 @@ impl QualifiedName {
     /// still identify the same entity.
     ///
     /// ```
-    /// # use ide::model::module::QualifiedName;
+    /// # use double_representation::module::QualifiedName;
     /// let mut name_with_main = QualifiedName::from_text("ns.Proj.Main").unwrap();
     /// let mut name_without_main = QualifiedName::from_text("ns.Proj.Foo.Bar").unwrap();
     /// let mut main_but_not_project_main = QualifiedName::from_text("ns.Proj.Foo.Main").unwrap();
@@ -297,21 +299,21 @@ impl TryFrom<String> for QualifiedName {
     }
 }
 
-impl TryFrom<enso_protocol::language_server::MethodPointer> for QualifiedName {
+impl TryFrom<engine_protocol::language_server::MethodPointer> for QualifiedName {
     type Error = failure::Error;
 
     fn try_from(
-        method: enso_protocol::language_server::MethodPointer,
+        method: engine_protocol::language_server::MethodPointer,
     ) -> Result<Self, Self::Error> {
         Self::try_from(method.module)
     }
 }
 
-impl TryFrom<&enso_protocol::language_server::MethodPointer> for QualifiedName {
+impl TryFrom<&engine_protocol::language_server::MethodPointer> for QualifiedName {
     type Error = failure::Error;
 
     fn try_from(
-        method: &enso_protocol::language_server::MethodPointer,
+        method: &engine_protocol::language_server::MethodPointer,
     ) -> Result<Self, Self::Error> {
         Self::try_from(method.module.clone())
     }
@@ -437,7 +439,7 @@ impl Info {
     /// Introducing identifier not included on this list should have no side-effects on the name
     /// resolution in the code in this graph.
     pub fn used_names(&self) -> Vec<LocatedName> {
-        let usage = double_representation::alias_analysis::analyze_crumbable(self.ast.shape());
+        let usage = alias_analysis::analyze_crumbable(self.ast.shape());
         usage.all_identifiers()
     }
 
@@ -752,7 +754,7 @@ pub fn lookup_method(
 pub fn definition_span(
     ast: &known::Module,
     id: &definition::Id,
-) -> FallibleResult<data::text::Span> {
+) -> FallibleResult<enso_data::text::Span> {
     let location = locate(ast, id)?;
     ast.span_of_descendent_at(&location.crumbs)
 }
@@ -781,9 +783,9 @@ impl DefinitionProvider for known::Module {
 mod tests {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionName;
+    use crate::definition::DefinitionName;
 
-    use enso_protocol::language_server::MethodPointer;
+    use engine_protocol::language_server::MethodPointer;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

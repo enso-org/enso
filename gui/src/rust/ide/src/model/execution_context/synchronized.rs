@@ -9,7 +9,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
 
-use enso_protocol::language_server;
+use engine_protocol::language_server;
 
 
 
@@ -282,9 +282,9 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use enso_protocol::language_server::response::CreateExecutionContext;
-    use enso_protocol::language_server::CapabilityRegistration;
-    use enso_protocol::language_server::ExpressionUpdates;
+    use engine_protocol::language_server::response::CreateExecutionContext;
+    use engine_protocol::language_server::CapabilityRegistration;
+    use engine_protocol::language_server::ExpressionUpdates;
     use json_rpc::expect_call;
     use utils::test::stream::StreamTestExt;
     use utils::test::ExpectTuple;
@@ -357,7 +357,7 @@ pub mod test {
         ///
         /// It will set the typename of the expression to mock typename.
         pub fn mock_expression_update() -> language_server::ExpressionUpdate {
-            use enso_protocol::language_server::types::test::value_update_with_type;
+            use engine_protocol::language_server::types::test::value_update_with_type;
             let expression_id = model::execution_context::ExpressionId::new_v4();
             value_update_with_type(expression_id, crate::test::mock::data::TYPE_NAME)
         }

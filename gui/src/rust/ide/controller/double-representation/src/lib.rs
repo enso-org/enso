@@ -1,10 +1,22 @@
-//! A module with all functions used to synchronize different representations of our language
-//! module.
+//! A crate with all functions used to synchronize different representations of our language
+
+#![feature(associated_type_bounds)]
+#![feature(drain_filter)]
+#![feature(iter_order_by)]
+#![feature(option_result_contains)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionName;
-use crate::double_representation::definition::ScopeKind;
+use crate::definition::DefinitionName;
+use crate::definition::ScopeKind;
 
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
@@ -28,6 +40,29 @@ pub mod tp;
 
 #[cfg(test)]
 pub mod test_utils;
+
+
+
+// ===============
+// === Prelude ===
+// ===============
+
+/// Common types that should be visible across the whole IDE crate.
+pub mod prelude {
+    pub use ast::prelude::*;
+    pub use enso_logger::*;
+    pub use enso_prelude::*;
+    pub use utils::prelude::*;
+
+    pub use enso_logger::DefaultTraceLogger as Logger;
+    pub use utils::fail::FallibleResult;
+    pub use utils::vec::VecExt;
+
+    #[cfg(test)]
+    pub use wasm_bindgen_test::wasm_bindgen_test;
+    #[cfg(test)]
+    pub use wasm_bindgen_test::wasm_bindgen_test_configure;
+}
 
 
 
@@ -159,7 +194,9 @@ impl LineKind {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::double_representation::definition::DefinitionProvider;
+
+    use crate::definition::DefinitionProvider;
+
     use ast::macros::DocumentationCommentInfo;
     use parser::Parser;
 
@@ -168,8 +205,8 @@ mod tests {
     /// The text of this comment should match the expected one.
     fn run_case(parser: &Parser, code: &str, expected_comment_text: &str) {
         let ast = parser.parse_module(code, default()).unwrap();
-        let main_id = double_representation::definition::Id::new_plain_name("main");
-        let main = double_representation::module::get_definition(&ast, &main_id).unwrap();
+        let main_id = definition::Id::new_plain_name("main");
+        let main = module::get_definition(&ast, &main_id).unwrap();
         let lines = main.block_lines();
         let first_line = lines[0].transpose_ref().unwrap();
         let doc = DocumentationCommentInfo::new(&first_line, main.indent()).unwrap();

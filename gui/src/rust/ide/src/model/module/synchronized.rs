@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionInfo;
-use crate::double_representation::graph::Id;
 use crate::model::module::Content;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Notification;
@@ -15,9 +13,11 @@ use crate::model::module::API;
 use ast::IdMap;
 use data::text::TextChange;
 use data::text::TextLocation;
-use enso_protocol::language_server;
-use enso_protocol::language_server::TextEdit;
-use enso_protocol::types::Sha3_224;
+use double_representation::definition::DefinitionInfo;
+use double_representation::graph::Id;
+use engine_protocol::language_server;
+use engine_protocol::language_server::TextEdit;
+use engine_protocol::types::Sha3_224;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
@@ -477,10 +477,10 @@ pub mod test {
 
     use data::text;
     use data::text::TextChange;
-    use enso_protocol::language_server::FileEdit;
-    use enso_protocol::language_server::MockClient;
-    use enso_protocol::language_server::Position;
-    use enso_protocol::language_server::TextRange;
+    use engine_protocol::language_server::FileEdit;
+    use engine_protocol::language_server::MockClient;
+    use engine_protocol::language_server::Position;
+    use engine_protocol::language_server::TextRange;
     use json_rpc::error::RpcError;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;

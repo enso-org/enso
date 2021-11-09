@@ -12,8 +12,8 @@
 
 use ide::prelude::*;
 
-use enso_protocol::language_server::*;
-use enso_protocol::types::*;
+use engine_protocol::language_server::*;
+use engine_protocol::types::*;
 use ide::model::execution_context::Visualization;
 use ide::model::module;
 use ide::transport::web::WebSocket;

@@ -8,12 +8,12 @@ use crate::prelude::*;
 use crate::model::module::QualifiedName as ModuleQualifiedName;
 use crate::notification::Publisher;
 
-use enso_protocol::language_server;
-use enso_protocol::language_server::ExpressionUpdate;
-use enso_protocol::language_server::ExpressionUpdatePayload;
-use enso_protocol::language_server::MethodPointer;
-use enso_protocol::language_server::SuggestionId;
-use enso_protocol::language_server::VisualisationConfiguration;
+use engine_protocol::language_server;
+use engine_protocol::language_server::ExpressionUpdate;
+use engine_protocol::language_server::ExpressionUpdatePayload;
+use engine_protocol::language_server::MethodPointer;
+use engine_protocol::language_server::SuggestionId;
+use engine_protocol::language_server::VisualisationConfiguration;
 use flo_stream::Subscriber;
 use mockall::automock;
 use serde::Deserialize;
@@ -29,7 +29,7 @@ use uuid::Uuid;
 // ===============
 
 /// An identifier of called definition in module.
-pub type DefinitionId = crate::double_representation::definition::Id;
+pub type DefinitionId = double_representation::definition::Id;
 
 /// An identifier of expression.
 pub type ExpressionId = ast::Id;
@@ -388,9 +388,9 @@ mod tests {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use enso_protocol::language_server::types::test::value_update_with_dataflow_error;
-    use enso_protocol::language_server::types::test::value_update_with_dataflow_panic;
-    use enso_protocol::language_server::types::test::value_update_with_type;
+    use engine_protocol::language_server::types::test::value_update_with_dataflow_error;
+    use engine_protocol::language_server::types::test::value_update_with_dataflow_panic;
+    use engine_protocol::language_server::types::test::value_update_with_type;
 
     #[test]
     fn getting_future_type_from_registry() {

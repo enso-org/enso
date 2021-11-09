@@ -6,24 +6,24 @@ pub mod executed;
 
 use crate::prelude::*;
 
-use crate::double_representation::connection;
-use crate::double_representation::definition;
-use crate::double_representation::definition::DefinitionProvider;
-use crate::double_representation::graph::GraphInfo;
-use crate::double_representation::identifier::generate_name;
-use crate::double_representation::identifier::LocatedName;
-use crate::double_representation::identifier::NormalizedName;
-use crate::double_representation::module;
-use crate::double_representation::node;
-use crate::double_representation::node::MainLine;
-use crate::double_representation::node::NodeInfo;
-use crate::double_representation::node::NodeLocation;
 use crate::model::module::NodeMetadata;
 use crate::model::traits::*;
 
 use ast::crumbs::InfixCrumb;
 use ast::macros::DocumentationCommentInfo;
-use enso_protocol::language_server;
+use double_representation::connection;
+use double_representation::definition;
+use double_representation::definition::DefinitionProvider;
+use double_representation::graph::GraphInfo;
+use double_representation::identifier::generate_name;
+use double_representation::identifier::LocatedName;
+use double_representation::identifier::NormalizedName;
+use double_representation::module;
+use double_representation::node;
+use double_representation::node::MainLine;
+use double_representation::node::NodeInfo;
+use double_representation::node::NodeLocation;
+use engine_protocol::language_server;
 use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
@@ -31,8 +31,8 @@ use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::Context as SpanTreeContext;
 use span_tree::SpanTree;
 
-pub use crate::double_representation::graph::Id;
-pub use crate::double_representation::graph::LocationHint;
+pub use double_representation::graph::Id;
+pub use double_representation::graph::LocationHint;
 
 
 
@@ -959,8 +959,6 @@ impl model::undo_redo::Aware for Handle {
 pub mod tests {
     use super::*;
 
-    use crate::double_representation::identifier::NormalizedName;
-    use crate::double_representation::project;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::module::Position;
     use crate::model::suggestion_database;
@@ -968,9 +966,11 @@ pub mod tests {
 
     use ast::crumbs;
     use ast::test_utils::expect_shape;
+    use double_representation::identifier::NormalizedName;
+    use double_representation::project;
+    use engine_protocol::language_server::MethodPointer;
     use enso_data::text::Index;
     use enso_data::text::TextChange;
-    use enso_protocol::language_server::MethodPointer;
     use parser::Parser;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;

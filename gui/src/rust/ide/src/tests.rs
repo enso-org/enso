@@ -4,8 +4,8 @@ use crate::controller::graph::NodeTrees;
 use crate::ide;
 use crate::transport::test_utils::TestWithMockedTransport;
 
-use enso_protocol::project_manager;
-use enso_protocol::project_manager::ProjectName;
+use engine_protocol::project_manager;
+use engine_protocol::project_manager::ProjectName;
 use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
 use span_tree::node;

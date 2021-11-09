@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 analytics = { version = "0.1.0", path = "lib/analytics" }
+double-representation = { version = "0.1.0", path = "controller/double-representation" }
 enso-args = { path = "lib/args" }
 enso-callback = { path = "../lib/callback" }
 enso-data = { path = "../../../../lib/rust/data"}
@@ -27,7 +28,7 @@ ensogl-web = { path = "../ensogl/lib/web" }
 fuzzly = { path = "../lib/fuzzly" }
 ast = { path = "lib/ast/impl" }
 ide-view = { path = "view" }
-enso-protocol = { path = "lib/enso-protocol" }
+engine-protocol = { path = "controller/engine-protocol" }
 json-rpc = { path = "lib/json-rpc" }
 parser = { path = "lib/parser" }
 utils = { path = "lib/utils" }

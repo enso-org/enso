@@ -8,7 +8,7 @@ use crate::prelude::*;
 use crate::controller::FilePath;
 
 use data::text::TextChange;
-use enso_protocol::language_server;
+use engine_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
 
@@ -178,7 +178,7 @@ mod test {
 
     fn setup_mock_project(setup: impl FnOnce(&mut model::project::MockAPI)) -> model::Project {
         let json_client = language_server::MockClient::default();
-        let ls = enso_protocol::language_server::Connection::new_mock_rc(json_client);
+        let ls = engine_protocol::language_server::Connection::new_mock_rc(json_client);
         let ls_clone = ls.clone_ref();
         let mut project = model::project::MockAPI::new();
         setup(&mut project);

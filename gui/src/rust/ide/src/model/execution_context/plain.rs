@@ -10,8 +10,8 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
 
-use enso_protocol::language_server::MethodPointer;
-use enso_protocol::language_server::VisualisationConfiguration;
+use engine_protocol::language_server::MethodPointer;
+use engine_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
 
 
@@ -244,8 +244,8 @@ impl model::execution_context::API for ExecutionContext {
 pub mod test {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionName;
-    use crate::double_representation::project;
+    use double_representation::definition::DefinitionName;
+    use double_representation::project;
 
     #[derive(Clone, Derivative)]
     #[derivative(Debug)]

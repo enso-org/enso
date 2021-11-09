@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::ScopeKind;
-use crate::double_representation::LineKind;
+use crate::definition::ScopeKind;
+use crate::LineKind;
 
 use ast::crumbs::Crumbable;
 use ast::enumerate_non_empty_lines;

@@ -517,7 +517,7 @@ impl TextEdit {
     ///
     /// Example:
     /// ```
-    /// # use enso_protocol::language_server::{TextEdit, Position, TextRange};
+    /// # use engine_protocol::language_server::{TextEdit, Position, TextRange};
     /// # use enso_data::text::TextLocation;
     /// let source = "\n333<->🌊12345\n";
     /// let target = "\n333x🔥12345\n";
@@ -577,7 +577,7 @@ impl TextEdit {
     ///
     /// Example:
     /// ```
-    /// # use enso_protocol::language_server::{Position, TextRange, TextEdit};
+    /// # use engine_protocol::language_server::{Position, TextRange, TextEdit};
     /// let start = Position { line: 0, character: 4 };
     /// let end = Position { line: 23, character: 7 };
     /// let range = TextRange { start, end };

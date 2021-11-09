@@ -388,6 +388,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "controller"
+version = "0.1.0"
+
+[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -528,6 +532,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "double-representation"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "engine-protocol",
+ "enso-data",
+ "enso-logger",
+ "enso-prelude",
+ "failure",
+ "itertools 0.10.1",
+ "parser",
+ "regex",
+ "serde",
+ "utils",
+ "uuid",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "downcast"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -558,6 +581,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80df024fbc5ac80f87dfef0d9f5209a252f2a497f7f42944cff24d8253cac065"
 dependencies = [
  "cfg-if 1.0.0",
+]
+
+[[package]]
+name = "engine-model"
+version = "0.1.0"
+
+[[package]]
+name = "engine-protocol"
+version = "0.1.0"
+dependencies = [
+ "bytes 0.5.6",
+ "chrono",
+ "enso-data",
+ "enso-logger",
+ "enso-prelude",
+ "enso-shapely",
+ "ensogl-build-utilities",
+ "ensogl-system-web",
+ "failure",
+ "flatbuffers",
+ "flatc-rust",
+ "futures 0.3.15",
+ "hex",
+ "json-rpc",
+ "mockall",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha3",
+ "tokio",
+ "utils",
+ "uuid",
+ "wasm-bindgen-test",
+ "zip",
+ "zip-extensions",
 ]
 
 [[package]]
@@ -684,37 +742,6 @@ dependencies = [
  "wasm-bindgen",
  "weak-table",
  "web-sys",
-]
-
-[[package]]
-name = "enso-protocol"
-version = "0.1.0"
-dependencies = [
- "bytes 0.5.6",
- "chrono",
- "enso-data",
- "enso-logger",
- "enso-prelude",
- "enso-shapely",
- "ensogl-build-utilities",
- "ensogl-system-web",
- "failure",
- "flatbuffers",
- "flatc-rust",
- "futures 0.3.15",
- "hex",
- "json-rpc",
- "mockall",
- "reqwest",
- "serde",
- "serde_json",
- "sha3",
- "tokio",
- "utils",
- "uuid",
- "wasm-bindgen-test",
- "zip",
- "zip-extensions",
 ]
 
 [[package]]
@@ -1449,13 +1476,14 @@ dependencies = [
  "ast",
  "bimap",
  "console_error_panic_hook",
+ "double-representation",
+ "engine-protocol",
  "enso-args",
  "enso-callback",
  "enso-data",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
- "enso-protocol",
  "enso-shapely",
  "ensogl",
  "ensogl-examples",
@@ -1495,12 +1523,12 @@ name = "ide-view"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "engine-protocol",
  "enso-args",
  "enso-config",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
- "enso-protocol",
  "enso-shapely",
  "ensogl",
  "ensogl-gui-components",
@@ -1527,11 +1555,11 @@ dependencies = [
  "analytics",
  "ast",
  "bimap",
+ "engine-protocol",
  "enso-args",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
- "enso-protocol",
  "enso-shapely",
  "ensogl",
  "ensogl-gui-components",

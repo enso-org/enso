@@ -36,6 +36,33 @@ pub mod prelude {
     pub use utils::fail::FallibleResult;
 }
 
+/// The module containing constants related to the language AST describes.
+// TODO[ao] not all constants are related to AST itself. Consider creating another "language" crate.
+pub mod constants {
+
+    /// A name of language this IDE supports
+    pub const LANGUAGE_NAME: &str = "Enso";
+
+    /// A file extension of modules of language this IDE supports without leading dot.
+    pub const LANGUAGE_FILE_EXTENSION: &str = "enso";
+
+    /// The directory in the project that contains all the source files.
+    pub const SOURCE_DIRECTORY: &str = "src";
+
+    /// The name of the main module in each project. The main module is explicitly imported when the
+    /// import statement has the project name only.
+    pub const PROJECTS_MAIN_MODULE: &str = "Main";
+
+    /// A module with language-specific constants.
+    pub mod keywords {
+        /// A keyword indicating current module.
+        pub const HERE: &str = "here";
+
+        /// The "void" atom returned by function meant to not return any argument.
+        pub const NOTHING: &str = "Nothing";
+    }
+}
+
 use crate::prelude::*;
 
 pub use crumbs::Crumb;
