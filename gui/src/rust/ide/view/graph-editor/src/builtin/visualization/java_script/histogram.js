@@ -227,10 +227,12 @@ class Histogram extends Visualization {
             .attr('width', this.canvas.inner.width)
             .attr('height', this.canvas.inner.height)
 
+        // Vertical gradient from top to bottom. See https://www.w3schools.com/graphics/svg_grad_linear.asp.
+        // Colors of the gradient are set later, in `updateColorLegend`.
         this.colorLegendGradient = defs
             .append('linearGradient')
             .attr('id', 'color-legend-gradient')
-            .attr('x1', '0%') // Vertical gradient
+            .attr('x1', '0%')
             .attr('y1', '100%')
             .attr('x2', '0%')
             .attr('y2', '0%')
@@ -587,7 +589,9 @@ class Histogram extends Visualization {
     }
 
     /**
-     * Updates position and gradient of a color legend
+     * Update height of the color legend to match the height of the canvas.
+     * Set up `stop` attributes on color legend gradient to match `colorScale`, so color legend shows correct colors
+     * used by histogram.
      */
     updateColorLegend(colorScale) {
         const colorScaleToGradient = (t, i, n) => ({
@@ -605,7 +609,7 @@ class Histogram extends Visualization {
     }
 
     /**
-     * Creates labels on axes if they are defined.
+     * Create labels on axes if they are defined.
      */
     initLabels() {
         this.yAxisLabel = this.svg
