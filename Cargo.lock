@@ -114,7 +114,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ast2"
+name = "ast-new"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -2596,12 +2596,12 @@ dependencies = [
 name = "parser-jni"
 version = "0.1.0"
 dependencies = [
- "ast2",
+ "ast-new",
  "jni",
 ]
 
 [[package]]
-name = "parser2"
+name = "parser-new"
 version = "0.1.0"
 dependencies = [
  "criterion",

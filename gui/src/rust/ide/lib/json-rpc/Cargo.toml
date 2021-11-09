@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude = { path = "../../../../../../lib/rust/prelude"}
+enso-prelude = { path = "../../../../../../lib/rust/prelude", features = ["futures"]}
 enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
 ensogl-system-web = { path = "../../../lib/system/web" }
 futures = { version = "0.3.1" }

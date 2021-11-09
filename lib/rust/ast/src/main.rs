@@ -1,4 +1,4 @@
-use ast2::generation::ScalaGenerator;
+use ast_new::generation::ScalaGenerator;
 
 use std::fs::File;
 use std::io::Write;

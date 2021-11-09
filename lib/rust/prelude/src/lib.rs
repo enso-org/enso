@@ -11,6 +11,7 @@
 #![warn(missing_debug_implementations)]
 #![warn(unsafe_code)]
 
+#[cfg(feature = "futures")]
 pub mod channel;
 mod clone;
 mod collections;
@@ -18,6 +19,7 @@ mod data;
 pub mod debug;
 pub mod env;
 mod fail;
+#[cfg(feature = "futures")]
 pub mod future;
 mod macros;
 mod option;
@@ -25,6 +27,7 @@ mod phantom;
 mod rc;
 mod reference;
 mod result;
+#[cfg(feature = "serde")]
 mod serde;
 mod smallvec;
 mod std_reexports;
@@ -35,6 +38,7 @@ mod tp;
 mod vec;
 mod wrapper;
 
+#[cfg(feature = "serde")]
 pub use crate::serde::*;
 pub use crate::smallvec::*;
 pub use clone::*;
@@ -83,6 +87,7 @@ use std::cell::UnsafeCell;
 ///
 /// They cannot be directly reexported from prelude, as the methods `serialize` and `deserialize`
 /// that would be brought into scope by this, would collide with the other IDE-defined traits.
+#[cfg(feature = "serde")]
 pub mod serde_reexports {
     pub use serde::Deserialize;
     pub use serde::Serialize;
@@ -121,9 +126,7 @@ impl<T: Display> Display for Immutable<T> {
 
 impl<T: Clone> CloneRef for Immutable<T> {
     fn clone_ref(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-        }
+        Self { data: self.data.clone() }
     }
 }
 
@@ -153,16 +156,13 @@ impl<T> Deref for Immutable<T> {
 /// Provides method `to`, which is just like `into` but allows fo superfish syntax.
 pub trait ToImpl: Sized {
     fn to<P>(self) -> P
-    where
-        Self: Into<P>,
-    {
+    where Self: Into<P> {
         self.into()
     }
 }
 impl<T> ToImpl for T {}
 
-// TODO
-// This impl should be hidden behind a flag. Not everybody using prelude want to import nalgebra.
+#[cfg(feature = "nalgebra")]
 impl<T, R, C, S> TypeDisplay for nalgebra::Matrix<T, R, C, S>
 where
     T: nalgebra::Scalar,
@@ -218,16 +218,12 @@ pub struct CloneCell<T> {
 
 impl<T> CloneCell<T> {
     pub fn new(elem: T) -> CloneCell<T> {
-        CloneCell {
-            data: UnsafeCell::new(elem),
-        }
+        CloneCell { data: UnsafeCell::new(elem) }
     }
 
     #[allow(unsafe_code)]
     pub fn get(&self) -> T
-    where
-        T: Clone,
-    {
+    where T: Clone {
         unsafe { (*self.data.get()).clone() }
     }
 
@@ -240,9 +236,7 @@ impl<T> CloneCell<T> {
 
     #[allow(unsafe_code)]
     pub fn take(&self) -> T
-    where
-        T: Default,
-    {
+    where T: Default {
         let ptr: &mut T = unsafe { &mut *self.data.get() };
         std::mem::take(ptr)
     }
@@ -271,16 +265,12 @@ pub struct CloneRefCell<T: ?Sized> {
 
 impl<T> CloneRefCell<T> {
     pub fn new(elem: T) -> CloneRefCell<T> {
-        CloneRefCell {
-            data: UnsafeCell::new(elem),
-        }
+        CloneRefCell { data: UnsafeCell::new(elem) }
     }
 
     #[allow(unsafe_code)]
     pub fn get(&self) -> T
-    where
-        T: CloneRef,
-    {
+    where T: CloneRef {
         unsafe { (*self.data.get()).clone_ref() }
     }
 
@@ -293,9 +283,7 @@ impl<T> CloneRefCell<T> {
 
     #[allow(unsafe_code)]
     pub fn take(&self) -> T
-    where
-        T: Default,
-    {
+    where T: Default {
         let ptr: &mut T = unsafe { &mut *self.data.get() };
         std::mem::take(ptr)
     }
@@ -377,9 +365,7 @@ pub trait CellSetter: HasItem {
 pub trait CellProperty: CellGetter + CellSetter + ItemClone {
     /// Updates the contained value using a function and returns the new value.
     fn update<F>(&self, f: F) -> Self::Item
-    where
-        F: FnOnce(Self::Item) -> Self::Item,
-    {
+    where F: FnOnce(Self::Item) -> Self::Item {
         let new_val = f(self.get());
         self.set(new_val.clone());
         new_val
@@ -387,9 +373,7 @@ pub trait CellProperty: CellGetter + CellSetter + ItemClone {
 
     /// Modifies the contained value using a function and returns the new value.
     fn modify<F>(&self, f: F) -> Self::Item
-    where
-        F: FnOnce(&mut Self::Item),
-    {
+    where F: FnOnce(&mut Self::Item) {
         let mut new_val = self.get();
         f(&mut new_val);
         self.set(new_val.clone());

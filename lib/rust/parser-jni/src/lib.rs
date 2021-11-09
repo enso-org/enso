@@ -14,8 +14,8 @@ mod jni;
 
 pub use crate::jni::*;
 
-use ast2::AnyAst;
-use ast2::Ast;
+use ast_new::AnyAst;
+use ast_new::Ast;
 
 
 
@@ -25,7 +25,7 @@ use ast2::Ast;
 
 /// Parse a content of a single source file.
 pub fn parse_str(input: String) -> AnyAst {
-    Ast::new(ast2::txt::Text { text: input })
+    Ast::new(ast_new::txt::Text { text: input })
 }
 
 /// Parse a single source file.

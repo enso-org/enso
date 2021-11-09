@@ -6,7 +6,9 @@ use crate::clone::*;
 use crate::impls;
 use derive_more::*;
 use itertools::*;
+#[cfg(feature = "serde")]
 use serde::Deserialize;
+#[cfg(feature = "serde")]
 use serde::Serialize;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -95,7 +97,8 @@ impl AsRef<str> for CowString {
 // ================
 
 /// Immutable string implementation with a fast clone implementation.
-#[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ImString {
     content: Rc<String>,
 }
