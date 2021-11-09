@@ -22,6 +22,8 @@ target/
 **/*.rs.bk
 wasm-pack.log
 generated/
+/target
+/build/rust/target/
 
 #############
 ## Haskell ##
@@ -135,4 +137,3 @@ test/Database_Tests/data/redshift_credentials.json
 
 *.ir
 *.meta
-

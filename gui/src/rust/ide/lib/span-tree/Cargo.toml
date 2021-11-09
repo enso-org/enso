@@ -9,7 +9,6 @@ ast = { path = "../ast/impl" }
 enso-data = { path = "../../../../../../lib/rust/data"}
 enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 failure = { version = "0.1.6" }
-utils = { path = "../utils" }
 
 [dev-dependencies]
 parser = { path = "../parser" }

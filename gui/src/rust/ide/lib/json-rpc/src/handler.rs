@@ -22,7 +22,6 @@ use futures::Stream;
 use futures::StreamExt;
 use serde::de::DeserializeOwned;
 use std::future::Future;
-use utils::channel;
 
 
 

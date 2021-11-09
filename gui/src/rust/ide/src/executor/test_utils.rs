@@ -6,7 +6,6 @@ use crate::executor::global::set_spawner;
 use crate::executor::global::spawn;
 
 use futures::executor;
-use utils::test::traits::*;
 
 
 

@@ -141,7 +141,7 @@ pub struct ParsedSourceFile<Metadata> {
     pub ast:      ast::known::Module,
     /// Raw metadata in json.
     #[serde(bound(deserialize = "Metadata:Default+DeserializeOwned"))]
-    #[serde(deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     pub metadata: Metadata,
 }
 

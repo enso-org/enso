@@ -286,8 +286,6 @@ pub mod test {
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
     use json_rpc::expect_call;
-    use utils::test::stream::StreamTestExt;
-    use utils::test::ExpectTuple;
 
     #[derive(Debug)]
     pub struct Fixture {

@@ -1,6 +1,6 @@
 //! General purpose code for dealing with environment variables.
 
-use enso_prelude::*;
+use crate::*;
 
 use std::str::FromStr;
 
@@ -15,5 +15,7 @@ pub fn env_var_or(varname: &str, default_value: &str) -> String {
 /// returned.
 pub fn parse_var_or<T: FromStr>(varname: &str, default_value: T) -> T {
     let value_opt = std::env::var(varname).ok();
-    value_opt.and_then(|value| value.parse().ok()).unwrap_or(default_value)
+    value_opt
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(default_value)
 }

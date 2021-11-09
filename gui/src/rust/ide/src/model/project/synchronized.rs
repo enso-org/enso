@@ -640,7 +640,6 @@ mod test {
     use engine_protocol::types::Sha3_224;
     use futures::SinkExt;
     use json_rpc::expect_call;
-    use utils::test::traits::*;
 
 
     #[allow(unused)]

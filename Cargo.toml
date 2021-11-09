@@ -1,6 +1,40 @@
 [workspace]
 
 members = [
+    "gui/src/rust/build",
+    "gui/src/rust/ensogl",
+    "gui/src/rust/ensogl/example",
+    "gui/src/rust/ensogl/lib/core",
+    "gui/src/rust/ensogl/lib/components",
+    "gui/src/rust/ensogl/lib/theme",
+    "gui/src/rust/ensogl/lib/text/embedded-fonts",
+    "gui/src/rust/ensogl/lib/text/msdf-sys",
+    "gui/src/rust/ensogl/lib/text",
+    "gui/src/rust/ensogl/lib/web",
+    "gui/src/rust/ide",
+    "gui/src/rust/ide/controller",
+    "gui/src/rust/ide/controller/double-representation",
+    "gui/src/rust/ide/controller/engine-model",
+    "gui/src/rust/ide/controller/engine-protocol",
+    "gui/src/rust/ide/lib/args",
+    "gui/src/rust/ide/lib/ast/impl",
+    "gui/src/rust/ide/lib/ast/macros",
+    "gui/src/rust/ide/lib/json-rpc",
+    "gui/src/rust/ide/lib/parser",
+    "gui/src/rust/ide/lib/span-tree",
+    "gui/src/rust/ide/lib/span-tree/example",
+    "gui/src/rust/ide/view",
+    "gui/src/rust/ide/view/graph-editor",
+    "gui/src/rust/lib/callback",
+    "gui/src/rust/lib/code-builder",
+    "gui/src/rust/lib/config",
+    "gui/src/rust/lib/eval-tt",
+    "gui/src/rust/lib/frp",
+    "gui/src/rust/lib/fuzzly",
+    "gui/src/rust/lib/shortcuts",
+    "gui/src/rust/lib/shortcuts/example",
+    "gui/src/rust/lib/system/web",
+    "gui/src/rust/lib/types",
     "lib/rust/ast",
     "lib/rust/launcher-shims",
     "lib/rust/lexer/definition",
@@ -23,25 +57,25 @@ members = [
 ]
 
 [profile.dev]
-opt-level        = 0
-lto              = false
-debug            = true
+opt-level = 0
+lto = false
+debug = true
 debug-assertions = true
 
 [profile.release]
-opt-level        = 3
-lto              = true
-debug            = false
+opt-level = 3
+lto = true
+debug = false
 debug-assertions = false
 
 [profile.bench]
-opt-level        = 3
-lto              = true
-debug            = false
+opt-level = 3
+lto = true
+debug = false
 debug-assertions = false
 
 [profile.test]
-opt-level        = 0
-lto              = false
-debug            = true
+opt-level = 0
+lto = false
+debug = true
 debug-assertions = true

@@ -140,8 +140,8 @@ impl Config {
     /// using environment variables or, if they are not set, hardcoded
     /// defaults.
     pub fn from_env() -> Config {
-        let host = utils::env::env_var_or(HOSTNAME_VAR, DEFAULT_HOSTNAME);
-        let port = utils::env::parse_var_or(PORT_VAR, DEFAULT_PORT);
+        let host = env::env_var_or(HOSTNAME_VAR, DEFAULT_HOSTNAME);
+        let port = env::parse_var_or(PORT_VAR, DEFAULT_PORT);
         Config { host, port }
     }
 }

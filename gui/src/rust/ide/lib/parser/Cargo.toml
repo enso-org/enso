@@ -12,7 +12,6 @@ crate-type = ["cdylib", "rlib"]
 ast = { path = "../ast/impl" }
 enso-data = { path = "../../../../../../lib/rust/data"}
 enso-prelude = { path = "../../../../../../lib/rust/prelude"}
-utils = { path = "../utils" }
 console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1" }
 js-sys = { version = "0.3.28" }

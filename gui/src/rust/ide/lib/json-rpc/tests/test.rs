@@ -18,7 +18,6 @@ use serde::Serialize;
 use std::future::Future;
 use std::pin::Pin;
 use std::thread::sleep;
-use utils::test::traits::*;
 
 type MockEvent = json_rpc::handler::Event<MockNotification>;
 

@@ -518,7 +518,6 @@ impl Manager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use utils::test::traits::*;
 
     use futures::future::ready;
     use ide_view::graph_editor::component::visualization::instance::ContextModule;

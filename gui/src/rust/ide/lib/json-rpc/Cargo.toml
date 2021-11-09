@@ -16,4 +16,3 @@ failure = { version = "0.1.6" }
 serde = { version = "1.0.0", features = ["derive"] }
 serde_json = { version = "1.0.0" }
 shrinkwraprs = { version = "0.3.0" }
-utils = { path = "../utils" }

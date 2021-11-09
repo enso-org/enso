@@ -7,7 +7,6 @@ use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
 use serde_json::Value;
 use std::future::Future;
-use utils::test::traits::*;
 
 
 
@@ -314,7 +313,6 @@ fn test_acquire_capability() {
 fn test_computed_value_update() {
     use crate::language_server::Notification;
     use json_rpc::Event;
-    use utils::test::traits::*;
 
     let context_id = Uuid::parse_str("b36dea0b-b75a-40cf-aaad-5fcdf29a0573").unwrap();
     let id = Uuid::parse_str("d4b540c0-3ef5-487c-9453-df9d3efd351c").unwrap();
