@@ -19,8 +19,6 @@ use crate::SectionRight;
 use crate::SectionSides;
 use crate::Shape;
 
-use utils::vec::VecExt;
-
 
 
 // =================

@@ -1,6 +1,6 @@
 //! Utilities for dealing with `Stream` values in test code.
 
-use crate::prelude::*;
+use crate::*;
 
 use futures::Stream;
 use std::pin::Pin;
@@ -62,8 +62,9 @@ pub trait StreamTestExt<S: ?Sized + Stream> {
             Poll::Pending => {}
             Poll::Ready(Some(item)) =>
                 panic!("There should be no value ready, yet the stream yielded {:?}", item),
-            Poll::Ready(None) =>
-                panic!("Stream has terminated, while it should be waiting for the next value."),
+            Poll::Ready(None) => {
+                panic!("Stream has terminated, while it should be waiting for the next value.")
+            }
         }
     }
 

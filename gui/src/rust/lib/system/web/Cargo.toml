@@ -12,7 +12,7 @@ default = ["console_error_panic_hook"]
 [dependencies]
 enso-data = { path = "../../../../../../lib/rust/data" }
 enso-logger = { path = "../../../../../../lib/rust/logger" }
-enso-prelude = { path = "../../../../../../lib/rust/prelude" }
+enso-prelude = { path = "../../../../../../lib/rust/prelude", features = ["wasm-bindgen"] }
 console_error_panic_hook = { version = "0.1.1", optional = true }
 failure = { version = "0.1.5" }
 gloo-timers = { version = "0.2.1", features = ["futures"] }

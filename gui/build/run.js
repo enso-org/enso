@@ -234,10 +234,12 @@ commands.test.rust = async function (argv) {
     }
 
     if (argv.wasm) {
+        // test-all script requires to be run in the same directory as workspace's Cargo.toml
+        process.chdir(paths.repo)
         console.log(`Running Rust WASM test suite.`)
         let args = [
             'run',
-            '--manifest-path=test/Cargo.toml',
+            '--manifest-path=gui/src/rust/test/Cargo.toml',
             '--bin',
             'test_all',
             '--',
@@ -252,6 +254,8 @@ commands.test.rust = async function (argv) {
 
 commands.lint = command(`Lint the codebase`)
 commands.lint.rust = async function () {
+    // Cargo fmt must be in the same directory as Cargo.toml
+    process.chdir(paths.repo)
     await run_cargo('cargo', ['clippy', '--', '-D', 'warnings'])
     await run_cargo('cargo', ['fmt', '--', '--check'])
 }

@@ -301,7 +301,7 @@ pub struct Notification {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Metadata {
     /// Metadata used within ide.
-    #[serde(default, deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     pub ide: IdeMetadata,
     #[serde(flatten)]
     /// Metadata of other users of ParsedSourceFile<Metadata> API.
@@ -326,7 +326,7 @@ impl Default for Metadata {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct ProjectMetadata {
     /// The execution context of the displayed graph editor.
-    #[serde(default, deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     pub call_stack: Vec<model::execution_context::LocalCall>,
 }
 
@@ -334,10 +334,10 @@ pub struct ProjectMetadata {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
-    #[serde(deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     node:    HashMap<ast::Id, NodeMetadata>,
     /// The project metadata. This is stored only in the main module's metadata.
-    #[serde(default, deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     project: Option<ProjectMetadata>,
 }
 
@@ -345,19 +345,19 @@ pub struct IdeMetadata {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct NodeMetadata {
     /// Position in x,y coordinates.
-    #[serde(default, deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     pub position:        Option<Position>,
     /// A method which user intends this node to be, e.g. by picking specific suggestion in
     /// Searcher Panel.
     ///
     /// The methods may be defined for different types, so the name alone don't specify them.
-    #[serde(default, deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     pub intended_method: Option<MethodId>,
     /// Information about uploading file.
     ///
     /// Designed to be present in nodes created by dragging and dropping files in IDE. Contains
     /// information about file and upload progress.
-    #[serde(default, deserialize_with = "utils::serde::deserialize_or_default")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     pub uploading_file:  Option<UploadingFile>,
     /// Was node selected in the view.
     #[serde(default)]

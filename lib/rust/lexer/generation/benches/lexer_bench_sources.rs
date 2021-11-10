@@ -1,7 +1,9 @@
 //! This file contains the sources that are replicated many times over for the purposes of
 //! benchmarking the Enso lexer.
 
-use criterion::{black_box, Criterion, Throughput};
+use criterion::black_box;
+use criterion::Criterion;
+use criterion::Throughput;
 use std::time::Duration;
 
 
@@ -26,12 +28,8 @@ pub fn bench_config() -> Criterion {
 // =======================
 
 /// The sizes of text to run the benchmarks over.
-pub const SIZES:[(usize,&str);4] = [
-    (1024         , "1KB"  ),
-    (1024*100     , "100KB"),
-    (1024*1024    , "1MB"  ),
-    (1024*1024*10 , "10MB" ),
-];
+pub const SIZES: [(usize, &str); 4] =
+    [(1024, "1KB"), (1024 * 100, "100KB"), (1024 * 1024, "1MB"), (1024 * 1024 * 10, "10MB")];
 
 
 
@@ -40,17 +38,16 @@ pub const SIZES:[(usize,&str);4] = [
 // ==============================
 
 /// Execute the provided benchmark for each of the [`SIZES`] above.
-pub fn run_bench_sizes(name:&str, input:&str, add_newline:bool, c:&mut Criterion) {
+pub fn run_bench_sizes(name: &str, input: &str, add_newline: bool, c: &mut Criterion) {
     let mut group = c.benchmark_group(name);
-    SIZES.iter().for_each(|(size,size_name)| {
+    SIZES.iter().for_each(|(size, size_name)| {
         group.throughput(Throughput::Bytes(*size as u64));
-        let input = replicate_to_size(input,*size,add_newline);
-        group.bench_function(
-            *size_name,
-            |b| b.iter(|| {
+        let input = replicate_to_size(input, *size, add_newline);
+        group.bench_function(*size_name, |b| {
+            b.iter(|| {
                 lexer::run(black_box(input.as_str()));
             })
-        );
+        });
     })
 }
 
@@ -59,18 +56,18 @@ pub fn run_bench_sizes(name:&str, input:&str, add_newline:bool, c:&mut Criterion
 /// If this cannot be done exactly, it will err on the side of over-replication,
 /// meaning that the output will be _larger_ than `size` bytes. If the size of
 /// the input already exceeds `size`, it is returned unchanged.
-pub fn replicate_to_size(input:&str, size:usize, add_newline:bool) -> String {
-    let input_size        = input.len();
-    let times             = 1 + (size / input_size);
+pub fn replicate_to_size(input: &str, size: usize, add_newline: bool) -> String {
+    let input_size = input.len();
+    let times = 1 + (size / input_size);
     let mut input_newline = input.to_string();
-    let to_add            = if add_newline { '\n' } else { ' ' };
+    let to_add = if add_newline { '\n' } else { ' ' };
     input_newline.push(to_add);
     input_newline.repeat(times)
 }
 
 /// Replace any windows-style line-endings in `input` with unix-style line-endings.
-fn preprocess(input:&str) -> String {
-    input.replace("\r\n","\n")
+fn preprocess(input: &str) -> String {
+    input.replace("\r\n", "\n")
 }
 
 
@@ -82,15 +79,10 @@ fn preprocess(input:&str) -> String {
 #[macro_export]
 macro_rules! bench {
     (bench_name = $bench_name:literal; fun_name = $fun_name:ident; bench_input = $bench_input:expr;) => {
-        pub fn $fun_name(c:&mut Criterion) {
-            src::run_bench_sizes(
-                $bench_name,
-                $bench_input.as_str(),
-                true,
-                c
-            )
+        pub fn $fun_name(c: &mut Criterion) {
+            src::run_bench_sizes($bench_name, $bench_input.as_str(), true, c)
         }
-    }
+    };
 }
 
 
@@ -140,11 +132,12 @@ pub mod literal {
 
         pub fn format_block() -> String {
             preprocess(
-r#"''' Here is my block of format text. I can `interpolate + things` like that.
+                r#"''' Here is my block of format text. I can `interpolate + things` like that.
     It goes on and on and on for `times` times because I feel like it.
 
     Complex interpolated expression `x -> y ~> x | y` woo!
-"#)
+"#,
+            )
         }
 
         pub fn raw_line() -> String {
@@ -157,11 +150,12 @@ r#"''' Here is my block of format text. I can `interpolate + things` like that.
 
         pub fn raw_block() -> String {
             preprocess(
-r#"""" Here is my block of raw text. `Interpolations` are nothing special here.
+                r#"""" Here is my block of raw text. `Interpolations` are nothing special here.
     It goes on and on and on for I can escape \" though.
 
     It also supports blank lines!
-"#)
+"#,
+            )
         }
     }
 }
@@ -177,9 +171,7 @@ pub mod name {
     use super::*;
 
     pub fn line_of() -> String {
-        preprocess(
-            "Referent_Ident var_ident JavaType _ @annotation ticked_ident' number_1"
-        )
+        preprocess("Referent_Ident var_ident JavaType _ @annotation ticked_ident' number_1")
     }
 
     pub fn invalid_suffix() -> String {
@@ -230,7 +222,7 @@ pub mod block {
 
     pub fn deeply_nested() -> String {
         preprocess(
-r#"foo
+            r#"foo
 bar
     baz
     quux
@@ -238,7 +230,8 @@ bar
             bam
     oh
 no
-"#)
+"#,
+        )
     }
 }
 
@@ -262,7 +255,7 @@ pub mod comment {
 
     pub fn doc() -> String {
         preprocess(
-r#"##  I have a really big doc comment here
+            r#"##  I have a really big doc comment here
     That just keeps prattling on and on and on.
 
     With blank lines
@@ -279,7 +272,8 @@ r#"##  I have a really big doc comment here
 
     ever
 documented
-"#)
+"#,
+        )
     }
 }
 
@@ -294,7 +288,7 @@ pub mod combined {
 
     pub fn simple() -> String {
         preprocess(
-r#"
+            r#"
 import Base.Meta
 
 ##  Decompose the value using runtime reflection and print its decomposition.
@@ -302,12 +296,13 @@ Main.print_decomp a b =
     y      = a + b
     decomp = Meta.decompose y
     Io.println decomp
-"#)
+"#,
+        )
     }
 
     pub fn complex() -> String {
         preprocess(
-r#"
+            r#"
 import Base.Meta
 
 ##  Frobnicate the doodads by constructing a new type operator through runtime reflection such that
@@ -327,6 +322,7 @@ Main.foo a b =
 main =
     func = Meta.reify (here.foo "My_Name" "my_field")
     Io.println(func)
-"#)
+"#,
+        )
     }
 }

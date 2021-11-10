@@ -58,16 +58,16 @@
 //!     /// A word from the input, consisting of a sequence of all `a` or all `b`.
 //!     Word(String),
 //!     /// A token that the lexer is unable to recognise.
-//!     Unrecognized(String)
+//!     Unrecognized(String),
 //! }
 //!
-//! #[derive(Clone,Default)]
+//! #[derive(Clone, Default)]
 //! pub struct TokenStream {
-//!     tokens:Vec<Token>
+//!     tokens: Vec<Token>,
 //! }
 //!
 //! impl TokenStream {
-//!     pub fn push(&mut self,token:Token) {
+//!     pub fn push(&mut self, token: Token) {
 //!         self.tokens.push(token)
 //!     }
 //! }
@@ -123,13 +123,13 @@
 //! #[derive(Debug)]
 //! pub struct LexerState {
 //!     /// The registry for groups in the lexer.
-//!     lexer_states:group::Registry,
+//!     lexer_states:          group::Registry,
 //!     /// The initial state of the lexer.
-//!     initial_state:group::Identifier,
+//!     initial_state:         group::Identifier,
 //!     /// The state entered when the first word has been seen.
-//!     seen_first_word_state:group::Identifier,
+//!     seen_first_word_state: group::Identifier,
 //!     /// The bookmarks for this lexer.
-//!     bookmarks:BookmarkManager
+//!     bookmarks:             BookmarkManager,
 //! }
 //! ```
 //!
@@ -196,14 +196,14 @@
 //! # }
 //!
 //! impl enso_flexer::State for LexerState {
-//!     fn new(_logger:&impl AnyLogger) -> Self {
+//!     fn new(_logger: &impl AnyLogger) -> Self {
 //!         // Here we construct all of the elements needed for our lexer state. This function can
 //!         // contain arbitrarily complex logic and is only called once at initialization time.
-//!         let mut lexer_states      = group::Registry::default();
-//!         let initial_state         = lexer_states.define_group("ROOT",None);
-//!         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD",None);
-//!         let bookmarks             = BookmarkManager::new();
-//!         Self{lexer_states,initial_state,seen_first_word_state,bookmarks}
+//!         let mut lexer_states = group::Registry::default();
+//!         let initial_state = lexer_states.define_group("ROOT", None);
+//!         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD", None);
+//!         let bookmarks = BookmarkManager::new();
+//!         Self { lexer_states, initial_state, seen_first_word_state, bookmarks }
 //!     }
 //!
 //!     fn initial_state(&self) -> group::Identifier {
@@ -226,11 +226,11 @@
 //!         &mut self.bookmarks
 //!     }
 //!
-//!     fn specialize(&self) -> Result<String,GenError> {
+//!     fn specialize(&self) -> Result<String, GenError> {
 //!         // It is very important to pass both the type name of your lexer and your output
 //!         // correctly here. This function should always be implemented as a call to the
 //!         // below-used function.
-//!         generate::specialize(self,"TestLexer","Token")
+//!         generate::specialize(self, "TestLexer", "Token")
 //!     }
 //! }
 //! ```
@@ -1033,10 +1033,10 @@ pub mod group;
 pub mod prelude {
     pub use crate::generate::GenError;
     pub use enso_prelude::*;
-    pub use lazy_reader::ReaderOps;
     pub use lazy_reader::Reader;
-    pub use logger::AnyLogger;
+    pub use lazy_reader::ReaderOps;
     pub use logger::macros::*;
+    pub use logger::AnyLogger;
 
     /// The lazy reader library.
     pub mod reader {
@@ -1045,9 +1045,9 @@ pub mod prelude {
 
     /// The Enso logging library.
     pub mod logger {
-        pub use enso_logger::*;
-        pub use enso_logger::WarningLogger as Disabled;
         pub use enso_logger::TraceLogger as Enabled;
+        pub use enso_logger::WarningLogger as Disabled;
+        pub use enso_logger::*;
     }
 }
 
@@ -1060,7 +1060,7 @@ pub mod prelude {
 mod constants {
     /// The number of 'frames' to reserve in the state stack, aiming to avoid re-allocation in hot
     /// code paths.
-    pub const STATE_STACK_RESERVATION:usize = 1024;
+    pub const STATE_STACK_RESERVATION: usize = 1024;
 }
 
 
@@ -1080,45 +1080,49 @@ mod constants {
 /// `state_stack`) means that the flexer can match a certain set of rules associated with that
 /// state. The user may cause the lexer to transition between states by pushing and popping states
 /// on the stack, thus allowing a much more flexible lexing engine than pure regular grammars.
-#[derive(Clone,Debug)]
-pub struct Flexer<Definition,Output,Logger> {
+#[derive(Clone, Debug)]
+pub struct Flexer<Definition, Output, Logger> {
     /// The stack of states that are active during lexer execution.
-    pub state_stack:NonEmptyVec<group::Identifier>,
+    pub state_stack:   NonEmptyVec<group::Identifier>,
     /// The result of the current stage of the DFA.
-    pub status:StageStatus,
+    pub status:        StageStatus,
     /// The tokens that have been lexed.
-    pub output:Output,
+    pub output:        Output,
     /// The text of the current match of the lexer.
-    pub current_match:String,
+    pub current_match: String,
     /// A logger for the flexer, accessible in user definitions.
-    pub logger:Logger,
+    pub logger:        Logger,
     /// The definition of the user-provided state for the lexer.
-    definition:Definition,
+    definition:        Definition,
 }
 
-impl<Definition,Output,Logger> Flexer<Definition,Output,Logger>
-where Definition : State,
-      Logger     : AnyLogger<Owned=Logger>,
-      Output     : Default {
+impl<Definition, Output, Logger> Flexer<Definition, Output, Logger>
+where
+    Definition: State,
+    Logger: AnyLogger<Owned = Logger>,
+    Output: Default,
+{
     /// Create a new lexer instance.
-    pub fn new(parent_logger:impl AnyLogger) -> Flexer<Definition,Output,Logger> {
-        let logger           = <Logger>::new_sub(&parent_logger,"Flexer");
-        let status           = default();
-        let output           = default();
-        let definition       = Definition::new(&logger);
+    pub fn new(parent_logger: impl AnyLogger) -> Flexer<Definition, Output, Logger> {
+        let logger = <Logger>::new_sub(&parent_logger, "Flexer");
+        let status = default();
+        let output = default();
+        let definition = Definition::new(&logger);
         let initial_state_id = definition.initial_state();
-        let mut state_stack  = NonEmptyVec::singleton(initial_state_id);
-        let current_match    = default();
+        let mut state_stack = NonEmptyVec::singleton(initial_state_id);
+        let current_match = default();
 
         state_stack.reserve(constants::STATE_STACK_RESERVATION);
-        Flexer{state_stack,status,output,current_match,logger,definition}
+        Flexer { state_stack, status, output, current_match, logger, definition }
     }
 }
 
-impl<Definition,Output,Logger> Flexer<Definition,Output,Logger>
-where Definition : State,
-      Output     : Clone,
-      Logger     : AnyLogger<Owned=Logger> + LoggerOps<logger::entry::level::Debug> {
+impl<Definition, Output, Logger> Flexer<Definition, Output, Logger>
+where
+    Definition: State,
+    Output: Clone,
+    Logger: AnyLogger<Owned = Logger> + LoggerOps<logger::entry::level::Debug>,
+{
     /// Get the lexer result.
     pub fn result(&mut self) -> &Output {
         &self.output
@@ -1135,10 +1139,10 @@ where Definition : State,
     }
 
     /// Tell the lexer to enter the state described by `state`.
-    pub fn push_state(&mut self, state:group::Identifier) {
-        self.logger.group_begin(logger::entry::level::Debug,false,
-            ||format!("Enter State: {}",self.groups().group(state).name.as_str())
-        );
+    pub fn push_state(&mut self, state: group::Identifier) {
+        self.logger.group_begin(logger::entry::level::Debug, false, || {
+            format!("Enter State: {}", self.groups().group(state).name.as_str())
+        });
         self.state_stack.push(state);
     }
 
@@ -1148,8 +1152,8 @@ where Definition : State,
     pub fn pop_state(&mut self) -> Option<group::Identifier> {
         let result = self.state_stack.pop();
         match result {
-            None        => (),
-            Some(ident) => debug!(self.logger,"Leave State: {self.groups().group(ident).name}"),
+            None => (),
+            Some(ident) => debug!(self.logger, "Leave State: {self.groups().group(ident).name}"),
         };
         self.logger.group_end(logger::entry::level::Debug);
         result
@@ -1159,7 +1163,7 @@ where Definition : State,
     ///
     /// If `state` does not exist on the lexer's stack, then the lexer will be left in the root
     /// state. Additionally, this function cannot pop the final occurrence of the root state.
-    pub fn pop_states_until(&mut self, state:group::Identifier) -> group::Identifier {
+    pub fn pop_states_until(&mut self, state: group::Identifier) -> group::Identifier {
         while self.current_state() != state && self.current_state() != self.initial_state() {
             self.pop_state();
         }
@@ -1171,7 +1175,7 @@ where Definition : State,
     ///
     /// If `state` does not exist on the lexer's stack, the lexer will be left in the root state.
     /// Additionally, this function cannot pop the final occurrence of the root state.
-    pub fn pop_states_including(&mut self, state:group::Identifier) -> group::Identifier {
+    pub fn pop_states_including(&mut self, state: group::Identifier) -> group::Identifier {
         while self.current_state() != state && self.current_state() != self.initial_state() {
             self.pop_state();
         }
@@ -1180,26 +1184,26 @@ where Definition : State,
     }
 
     /// Check if the lexer is currently in the state described by `state`.
-    pub fn is_in_state(&self, state:group::Identifier) -> bool {
+    pub fn is_in_state(&self, state: group::Identifier) -> bool {
         self.current_state() == state
     }
 
     /// Check if the lexer is currently inside `state` at some point in the state stack.
-    pub fn is_inside_state(&self, state:group::Identifier) -> bool {
+    pub fn is_inside_state(&self, state: group::Identifier) -> bool {
         self.state_stack.iter().rev().any(|s| *s == state)
     }
 }
 
 // === Trait Impls ===
 
-impl<Definition,Output,Logger> Deref for Flexer<Definition,Output,Logger> {
+impl<Definition, Output, Logger> Deref for Flexer<Definition, Output, Logger> {
     type Target = Definition;
     fn deref(&self) -> &Self::Target {
         &self.definition
     }
 }
 
-impl<Definition,Output,Logger> DerefMut for Flexer<Definition,Output,Logger> {
+impl<Definition, Output, Logger> DerefMut for Flexer<Definition, Output, Logger> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.definition
     }
@@ -1212,12 +1216,12 @@ impl<Definition,Output,Logger> DerefMut for Flexer<Definition,Output,Logger> {
 // ==================
 
 /// An identifier for a sub-state of the lexer to transition to.
-#[derive(Copy,Clone,Debug,Default,PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct SubStateId(usize);
 
 impl SubStateId {
     /// Create a new `SubStateId` with the specified value.
-    pub fn new(val:usize) -> SubStateId {
+    pub fn new(val: usize) -> SubStateId {
         SubStateId(val)
     }
 }
@@ -1226,19 +1230,19 @@ impl SubStateId {
 // === Trait Impls ===
 
 impl From<usize> for SubStateId {
-    fn from(val:usize) -> Self {
+    fn from(val: usize) -> Self {
         SubStateId::new(val)
     }
 }
 
 impl From<&usize> for SubStateId {
-    fn from(val:&usize) -> Self {
+    fn from(val: &usize) -> Self {
         SubStateId::new(*val)
     }
 }
 
 impl From<SubStateId> for usize {
-    fn from(value:SubStateId) -> Self {
+    fn from(value: SubStateId) -> Self {
         value.0
     }
 }
@@ -1250,7 +1254,7 @@ impl From<SubStateId> for usize {
 // ===================
 
 /// The result of executing a single step of the DFA.
-#[derive(Clone,Copy,Debug,PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum StageStatus {
     /// The initial state of a lexer stage.
     Initial,
@@ -1261,7 +1265,7 @@ pub enum StageStatus {
     /// A single step of the DFA has executed successfully.
     ExitFinished,
     /// The lexer should continue, transitioning to the included state.
-    ContinueWith(SubStateId)
+    ContinueWith(SubStateId),
 }
 
 impl StageStatus {
@@ -1273,9 +1277,9 @@ impl StageStatus {
     /// Obtain the state to which the lexer should transition, iff the lexer should continue.
     pub fn continue_as(&self) -> Option<SubStateId> {
         match self {
-            StageStatus::Initial           => Some(SubStateId::new(0)),
+            StageStatus::Initial => Some(SubStateId::new(0)),
             StageStatus::ContinueWith(val) => Some(*val),
-            _                              => None
+            _ => None,
         }
     }
 }
@@ -1296,45 +1300,45 @@ impl Default for StageStatus {
 // ==============
 
 /// The result of executing the lexer on a given input.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct LexingResult<T> {
     /// The kind of the result, representing _how_ the lexer completed.
-    pub kind:ResultKind,
+    pub kind:   ResultKind,
     /// The tokens that the lexer was able to process.
-    pub tokens:T
+    pub tokens: T,
 }
 
 impl<T> LexingResult<T> {
     /// Create a new lexer result using the provided `kind` and `tokens`.
-    pub fn new(kind:ResultKind,tokens:T) -> LexingResult<T> {
-        LexingResult {kind,tokens}
+    pub fn new(kind: ResultKind, tokens: T) -> LexingResult<T> {
+        LexingResult { kind, tokens }
     }
 
     /// Create a new success result, with the provided `tokens`.
-    pub fn success(tokens:T) -> LexingResult<T> {
+    pub fn success(tokens: T) -> LexingResult<T> {
         LexingResult::new(ResultKind::Success, tokens)
     }
 
     /// Create a new partial lex result, with the provided `tokens`.
-    pub fn partial(tokens:T) -> LexingResult<T> {
+    pub fn partial(tokens: T) -> LexingResult<T> {
         LexingResult::new(ResultKind::Partial, tokens)
     }
 
     /// Create a failure result, with the `tokens` it _did_ manage to consume.
-    pub fn failure(tokens:T) -> LexingResult<T> {
+    pub fn failure(tokens: T) -> LexingResult<T> {
         LexingResult::new(ResultKind::Failure, tokens)
     }
 }
 
 /// The kind of lexer result.
-#[derive(Copy,Clone,Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ResultKind {
     /// The lexer succeeded, returning the contained token stream.
     Success,
     /// The lexer succeeded on part of the input, returning the contained token stream.
     Partial,
     /// The lexer failed on the input, returning any tokens it _did_ manage to consume.
-    Failure
+    Failure,
 }
 
 
@@ -1351,7 +1355,7 @@ pub trait State {
     /// Create a new instance of the lexer's state.
     ///
     /// This function is guaranteed to be called at most once per run of the lexer.
-    fn new(parent_logger:&impl AnyLogger) -> Self;
+    fn new(parent_logger: &impl AnyLogger) -> Self;
     /// Return the _initial_ lexing state.
     fn initial_state(&self) -> group::Identifier;
     /// Return a reference to the group registry for a given lexer.
@@ -1366,7 +1370,7 @@ pub trait State {
     ///
     /// This function should be implemented as a call to [`generate::specialize`], passing
     /// the name of your lexer, and the name of your lexer's output type as a string.
-    fn specialize(&self) -> Result<String,GenError>;
+    fn specialize(&self) -> Result<String, GenError>;
 }
 
 

@@ -10,7 +10,7 @@
 
 //! This module exports the implementation of the enso abstract syntax tree.
 
-pub mod generation;
 mod ast;
+pub mod generation;
 
 pub use crate::ast::*;

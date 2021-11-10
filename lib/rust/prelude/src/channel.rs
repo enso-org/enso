@@ -1,15 +1,14 @@
 //! General-purpose code for dealing with futures channels, sinks and streams.
-use crate::prelude::*;
+use crate::*;
 
 use futures::channel::mpsc::UnboundedSender;
 use futures::StreamExt;
-
 
 /// Emit message using `UnboundedSender`. Does not care if there are listeners.
 pub fn emit<T>(sender: &UnboundedSender<T>, message: T) {
     match sender.unbounded_send(message) {
         Ok(()) => {}
-        Err(e) =>
+        Err(e) => {
             if e.is_full() {
                 // Impossible, as per `futures` library docs.
                 panic!("Unbounded channel should never be full.")
@@ -19,7 +18,8 @@ pub fn emit<T>(sender: &UnboundedSender<T>, message: T) {
             } else {
                 // Never happens unless `futures` library changes API.
                 panic!("Unrecognized error when sending event.")
-            },
+            }
+        }
     }
 }
 

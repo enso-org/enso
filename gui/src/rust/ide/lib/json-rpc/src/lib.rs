@@ -30,9 +30,6 @@ pub use handler::Handler;
 pub use transport::Transport;
 pub use transport::TransportEvent;
 
-#[cfg(test)]
-pub use utils::test::traits::*;
-
 #[allow(missing_docs)]
 pub mod constants {
     use std::time::Duration;

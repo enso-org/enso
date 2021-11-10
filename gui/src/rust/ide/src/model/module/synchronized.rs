@@ -482,7 +482,6 @@ pub mod test {
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::TextRange;
     use json_rpc::error::RpcError;
-    use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
 

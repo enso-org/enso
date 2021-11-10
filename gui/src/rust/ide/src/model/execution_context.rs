@@ -19,7 +19,6 @@ use mockall::automock;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use utils::future::ready_boxed;
 use uuid::Uuid;
 
 
@@ -131,7 +130,7 @@ impl ComputedValueInfoRegistry {
     {
         let weak = Rc::downgrade(self);
         if let Some(ret) = self.get(&id).and_then(&mut f) {
-            ready_boxed(Some(ret))
+            future::ready_boxed(Some(ret))
         } else {
             let info_updates = self.subscribe().filter_map(move |update| {
                 let result = update.contains(&id).and_option_from(|| {
@@ -396,7 +395,6 @@ mod tests {
     fn getting_future_type_from_registry() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
 
-        use utils::test::traits::*;
         let registry = Rc::new(ComputedValueInfoRegistry::default());
         let weak = Rc::downgrade(&registry);
         let id1 = Id::new_v4();

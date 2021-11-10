@@ -59,8 +59,12 @@ macro_rules! log_template_group {
 /// Internal utility for logging macros.
 #[macro_export]
 macro_rules! collapsed_to_bool {
-    (collapsed) => { true };
-    (expanded)  => { false };
+    (collapsed) => {
+        true
+    };
+    (expanded) => {
+        false
+    };
 }
 
 
@@ -95,7 +99,7 @@ macro_rules! define_log_macros {
     )*};
 }
 
-define_log_macros!{
+define_log_macros! {
     $ trace   Trace   expanded;
     $ debug   Debug   expanded;
     $ info    Info    expanded;
