@@ -12,11 +12,11 @@ test       = true
 bench      = true
 
 [dependencies]
-enso-data    = { version = "0.2.0", path = "../data" }
-enso-logger  = { version = "0.3.0", path = "../logger" }
+enso-data = { version = "0.2.0", path = "../data" }
+enso-logger = { version = "0.3.0", path = "../logger" }
 enso-prelude = { version = "0.2.0", path = "../prelude" }
-lexer        = { version = "0.1.0", path = "../lexer/generation" }
-itertools    = { version = "0.10.0"                              }
+lexer = { version = "0.1.0", path = "lexer/generation" }
+itertools = { version = "0.10.0" }
 
 [build-dependencies]
 

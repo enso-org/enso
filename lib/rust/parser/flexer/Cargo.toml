@@ -22,11 +22,11 @@ test       = true
 bench      = true
 
 [dependencies]
-enso-automata = { version = "^0.2.0", path = "../automata" }
-enso-logger = { version = "^0.3.0", path = "../logger" }
-enso-prelude = { version = "^0.2.1", path = "../prelude" }
+enso-automata = { version = "^0.2.0", path = "../../automata" }
+enso-logger = { version = "^0.3.0", path = "../../logger" }
+enso-prelude = { version = "^0.2.1", path = "../../prelude" }
 enso-lazy-reader = { version = "^0.2.0", path = "../lazy-reader" }
-enso-macro-utils = { version = "^0.2.0", path = "../macro-utils" }
+enso-macro-utils = { version = "^0.2.0", path = "../../macro-utils" }
 
 itertools            = "0.8"
 proc-macro2          = "1.0.19"
