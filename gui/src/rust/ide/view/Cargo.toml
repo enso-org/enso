@@ -10,16 +10,16 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ast = { path = "../lib/ast/impl" }
 enso-config = { path = "../lib/config" }
-enso-frp = { path = "../../lib/frp" }
+enso-frp = { path = "../../../../../lib/rust/frp" }
 enso-logger = { path = "../../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../../lib/rust/prelude"}
 enso-shapely = { path = "../../../../../lib/rust/shapely/impl"}
 engine-protocol = { path = "../controller/engine-protocol" }
-ensogl = { path = "../../ensogl" }
-ensogl-gui-components = { path = "../../ensogl/lib/components" }
-ensogl-text = { path = "../../ensogl/lib/text" }
-ensogl-text-msdf-sys = { path = "../../ensogl/lib/text/msdf-sys" }
-ensogl-theme = { path = "../../ensogl/lib/theme" }
+ensogl = { path = "../../../../../lib/rust/ensogl" }
+ensogl-gui-components = { path = "../../../../../lib/rust/ensogl/lib/components" }
+ensogl-text = { path = "../../../../../lib/rust/ensogl/lib/text" }
+ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/lib/text/msdf-sys" }
+ensogl-theme = { path = "../../../../../lib/rust/ensogl/lib/theme" }
 ide-view-graph-editor = { path = "graph-editor" }
 parser = { path = "../lib/parser" }
 span-tree = { path = "../lib/span-tree" }

@@ -1059,7 +1059,6 @@ dependencies = [
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "enum_dispatch",
- "eval-tt",
  "failure",
  "itertools 0.10.1",
  "js-sys",
@@ -1074,7 +1073,6 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test 0.3.8",
  "web-sys",
- "web-test",
 ]
 
 [[package]]
@@ -4117,31 +4115,6 @@ dependencies = [
  "sourcefile",
  "wasm-bindgen",
  "wasm-bindgen-webidl",
-]
-
-[[package]]
-name = "web-test"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "ensogl",
- "ensogl-system-web",
- "js-sys",
- "shrinkwraprs 0.3.0",
- "wasm-bindgen",
- "wasm-bindgen-test 0.3.8",
- "web-sys",
- "web-test-proc-macro",
-]
-
-[[package]]
-name = "web-test-proc-macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2 1.0.32",
- "quote 1.0.10",
- "syn",
- "wasm-bindgen-test 0.3.8",
 ]
 
 [[package]]

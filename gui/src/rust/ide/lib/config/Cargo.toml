@@ -5,7 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [dependencies]
-ensogl = { path = "../../../ensogl" }
+ensogl = { path = "../../../../../../lib/rust/ensogl" }
 enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 enso-logger = { path = "../../../../../../lib/rust/logger" }
 
