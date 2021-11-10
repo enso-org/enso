@@ -1,5 +1,5 @@
 [package]
-name    = "ast"
+name    = "ast-new"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
@@ -16,7 +16,6 @@ categories = ["parsing"]
 publish = false
 
 [lib]
-name       = "ast"
 crate-type = ["cdylib", "rlib"]
 test       = true
 bench      = true

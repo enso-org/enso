@@ -395,7 +395,6 @@ mod test {
     use futures::future;
     use futures::SinkExt;
     use mockall::Sequence;
-    use utils::test::traits::*;
 
 
     // === Test Providers ===

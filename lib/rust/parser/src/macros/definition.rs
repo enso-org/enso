@@ -1,7 +1,7 @@
 //! Macro definitions in Enso.
 
-use crate::prelude::*;
 use crate::macros::literal::Literal;
+use crate::prelude::*;
 use itertools::Itertools;
 
 
@@ -15,18 +15,18 @@ use itertools::Itertools;
 /// A macro definition consists of a name, which identifies the macro to users, and a list of
 /// [sections](`Section`). The sections are the most important portion of the macro definition, as
 /// they define the literal portions of the token stream on which the macro will match.
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Definition {
-    pub name     : String,
-    pub sections : Vec<Section>
+    pub name:     String,
+    pub sections: Vec<Section>,
 }
 
 impl Definition {
     /// Constructor.
-    pub fn new(name:impl Str, sections:Vec<Section>) -> Self {
+    pub fn new(name: impl Str, sections: Vec<Section>) -> Self {
         let name = name.into();
-        Self{name,sections}
+        Self { name, sections }
     }
 
     /// Get the path for the definition.
@@ -49,17 +49,16 @@ impl Definition {
 ///
 /// The literal is the _most_ important portion of a section, as they are constants that allow the
 /// macro resolver to divide up the input token stream based on these constants.
-#[derive(Clone,Debug,Eq,PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Section {
-    start_symbol : Literal
-    // TODO Pattern
+    start_symbol: Literal, // TODO Pattern
 }
 
 impl Section {
     /// Constructor.
-    pub fn new(symbol:Literal) -> Self {
-        Self{ start_symbol: symbol }
+    pub fn new(symbol: Literal) -> Self {
+        Self { start_symbol: symbol }
     }
 
     /// Get a reference to the literal that heads the section.

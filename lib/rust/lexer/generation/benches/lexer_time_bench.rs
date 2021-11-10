@@ -2,7 +2,11 @@
 
 mod lexer_bench_sources;
 
-use criterion::{criterion_group, criterion_main, Criterion, Throughput, black_box};
+use criterion::black_box;
+use criterion::criterion_group;
+use criterion::criterion_main;
+use criterion::Criterion;
+use criterion::Throughput;
 use lexer_bench_sources as src;
 
 
@@ -77,7 +81,7 @@ bench! {
     bench_input = src::literal::text::raw_block();
 }
 
-criterion_group!{
+criterion_group! {
     name    = literal_benchmarks;
     config  = src::bench_config();
     targets =
@@ -251,14 +255,13 @@ criterion_group! {
 // === Comparisons ===
 // ===================
 
-fn bench_rust_reader(c:&mut Criterion) {
+fn bench_rust_reader(c: &mut Criterion) {
     let mut group = c.benchmark_group("Rust Vector");
-    src::SIZES.iter().for_each(|(size,name)| {
+    src::SIZES.iter().for_each(|(size, name)| {
         group.throughput(Throughput::Bytes(*size as u64));
         let input = "abcdefghijklmnopqrstuvwxyz".repeat(1 + size / 26);
-        group.bench_function(
-            *name,
-            |b| b.iter(|| {
+        group.bench_function(*name, |b| {
+            b.iter(|| {
                 let mut counter = 0usize;
                 for c in black_box(input.as_str()).chars() {
                     if c == 'f' {
@@ -267,7 +270,7 @@ fn bench_rust_reader(c:&mut Criterion) {
                 }
                 counter
             })
-        );
+        });
     })
 }
 

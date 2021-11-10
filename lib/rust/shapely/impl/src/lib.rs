@@ -1,8 +1,8 @@
-// README README README README README README README README README README README 
-// README README README README README README README README README README README 
-// README README README README README README README README README README README 
+// README README README README README README README README README README README
+// README README README README README README README README README README README
+// README README README README README README README README README README README
 
-// This library is in a very early stage. It will be refactored and improved 
+// This library is in a very early stage. It will be refactored and improved
 // soon. It should not be reviewed now.
 
 #![warn(unsafe_code)]
@@ -12,10 +12,10 @@
 #![feature(type_ascription)]
 #![feature(marker_trait_attr)]
 
+pub mod cartesian;
 pub mod generator;
 pub mod shared;
 pub mod singleton;
-pub mod cartesian;
 
 pub use enso_shapely_macros::*;
 pub use generator::GeneratingIterator;
@@ -160,10 +160,10 @@ macro_rules! newtype_prim_no_default_no_display {
 #[macro_export]
 macro_rules! derive_clone_plus {
     ($name:ident) => {
-        impl<T:Clone+Into<$name>> From<&T> for $name {
+        impl<T: Clone + Into<$name>> From<&T> for $name {
             fn from(t: &T) -> Self {
                 t.clone().into()
             }
         }
-    }
+    };
 }

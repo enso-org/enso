@@ -546,7 +546,6 @@ mod tests {
     use crate::module;
     use crate::INDENT;
 
-    use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

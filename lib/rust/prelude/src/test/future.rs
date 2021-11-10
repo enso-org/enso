@@ -1,6 +1,6 @@
 //! Utilities for dealing with `Future` values in test code.
 
-use crate::prelude::*;
+use crate::*;
 
 use std::future::Future;
 use std::pin::Pin;

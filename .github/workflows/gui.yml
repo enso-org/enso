@@ -50,7 +50,6 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-
         shell: bash
       - name: Assert Version Unstable
         run: node ./run assert-version-unstable --skip-version-validation
@@ -76,7 +75,6 @@ jobs:
                   list=`git diff --name-only origin/${{github.base_ref}} HEAD | tr '\n' ' '`
                   echo $list
                   echo "::set-output name=list::'$list'"
-
         shell: bash
         if: >-
           github.base_ref == 'develop' || github.base_ref == 'unstable' ||
@@ -116,7 +114,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-29
+          toolchain: nightly-2021-11-08
           override: true
       - name: Install Clippy
         run: rustup component add clippy
@@ -146,7 +144,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-29
+          toolchain: nightly-2021-11-08
           override: true
       - name: Run tests (no WASM)
         run: node ./run test --no-wasm --skip-version-validation
@@ -172,7 +170,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-29
+          toolchain: nightly-2021-11-08
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -231,7 +229,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-29
+          toolchain: nightly-2021-11-08
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -299,7 +297,6 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-
         shell: bash
       - name: Install Node
         uses: actions/setup-node@v1
@@ -310,7 +307,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-29
+          toolchain: nightly-2021-11-08
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -443,7 +440,6 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-
         shell: bash
       - id: checkCurrentReleaseTag
         uses: mukunku/tag-exists-action@v1.0.0
@@ -496,7 +492,6 @@ jobs:
                   node ./run ci-gen --skip-version-validation
                   content=`cat CURRENT_RELEASE_CHANGELOG.json`
                   echo "::set-output name=content::$content"
-
         shell: bash
       - shell: bash
         run: |2-
@@ -507,7 +502,6 @@ jobs:
                   us-west-1
                   text
                   EOF
-
       - name: Upload 'index.js.gz' to CDN
         shell: bash
         run: >-

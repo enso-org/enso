@@ -12,7 +12,6 @@ use futures::channel::mpsc::UnboundedSender;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::VecDeque;
-use utils::channel;
 
 
 

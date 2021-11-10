@@ -108,7 +108,6 @@ impl<T> Synchronized<T> {
 mod tests {
     use super::*;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use utils::test::traits::*;
 
     #[test]
     fn synchronized() {

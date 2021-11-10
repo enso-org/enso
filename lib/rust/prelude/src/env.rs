@@ -1,6 +1,6 @@
 //! General purpose code for dealing with environment variables.
 
-use enso_prelude::*;
+use crate::*;
 
 use std::str::FromStr;
 

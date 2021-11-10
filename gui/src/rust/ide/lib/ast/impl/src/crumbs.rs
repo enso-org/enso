@@ -15,7 +15,7 @@ use crate::TokenConsumer;
 use enso_data::text::Index;
 use enso_data::text::Size;
 use enso_data::text::Span;
-use utils::fail::FallibleResult;
+
 
 
 // ==============
@@ -1611,8 +1611,6 @@ pub type ChildAst<'a> = Located<&'a Ast>;
 mod tests {
     use super::*;
     use crate::*;
-
-    use utils::test::ExpectTuple;
 
     /// Gets item under given crumb and checks if its representation is as expected.
     fn expect_repr<C: Crumbable>(item: &C, crumb: &C::Crumb, expected_repr: impl Str) {

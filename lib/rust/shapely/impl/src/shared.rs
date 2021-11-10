@@ -1,14 +1,13 @@
 /// This module implements the `shared` macro, an utility allowing for easy definition of
 /// `Rc<RefCell<...>>` wrappers.
 
-
 /// This macro provides an easy way to define secure `Rc<RefCell<...>>` wrappers for a given struct.
 ///
 /// This macro accepts a body which is very similar to normal struct definition. There are a few
 /// notable differences:
 ///   - The first token this macro accepts should be the name of the wrapped structure.
-///   - The implementation block does not have a name. It is always implemented for the struct.
-///     You are allowed to provide multiple impl blocks.
+///   - The implementation block does not have a name. It is always implemented for the struct. You
+///     are allowed to provide multiple impl blocks.
 ///
 /// This macro traverses the definition and for each function, it generates a borrowing counterpart.
 /// It also handles the `new` function in a special way. Please note, that this macro generates

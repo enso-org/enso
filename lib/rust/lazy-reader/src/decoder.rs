@@ -11,30 +11,30 @@ use std::fmt::Debug;
 // ===============
 
 /// The error for an invalid character.
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct InvalidChar();
 
 /// Trait for decoding UTF32 characters.
 pub trait Decoder {
     /// The input of the decoder.
-    type Word : Default + Copy + Debug;
+    type Word: Default + Copy + Debug;
     /// The maximum amount of words needed to decode one symbol.
     const MAX_CODEPOINT_LEN: usize;
 
     /// Decodes the first symbol from the slice and returns it with its length (in words).
     ///
     /// This function can panic if `words.len() < MAX_CODEPOINT_LEN`.
-    fn decode(words:&[Self::Word]) -> Char<InvalidChar>;
+    fn decode(words: &[Self::Word]) -> Char<InvalidChar>;
 }
 
 
 // === Char ===
 
 /// The result of `decoder.decode`.
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Char<Error> {
     /// The decoded character.
-    pub char: Result<char,Error>,
+    pub char: Result<char, Error>,
     /// The number of words read.
     pub size: usize,
 }
@@ -43,9 +43,9 @@ impl Char<crate::Error> {
     /// Check if the character represents the end of file.
     pub fn is_eof(&self) -> bool {
         match self.char {
-            Ok(_)                  => false,
+            Ok(_) => false,
             Err(crate::Error::EOF) => true,
-            Err(_)                 => false
+            Err(_) => false,
         }
     }
 }
@@ -59,7 +59,7 @@ impl Char<crate::Error> {
 /// Decoder for UTF-8.
 ///
 /// For more info on UTF-8 and the algorithm used see [UTF-8](https://en.wikipedia.org/wiki/UTF-8).
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct DecoderUTF8();
 
 
@@ -72,10 +72,10 @@ impl Decoder for DecoderUTF8 {
 
     fn decode(words: &[u8]) -> Char<InvalidChar> {
         let size = match !words[0] >> 4 {
-            0     => 4,
-            1     => 3,
+            0 => 4,
+            1 => 3,
             2 | 3 => 2,
-            _     => 1,
+            _ => 1,
         };
 
         let mut char = (words[0] << size >> size) as u32;
@@ -83,7 +83,7 @@ impl Decoder for DecoderUTF8 {
             char = char << 6 | (word & 0b_0011_1111) as u32;
         }
 
-        Char{char:std::char::from_u32(char).ok_or_else(InvalidChar),size}
+        Char { char: std::char::from_u32(char).ok_or_else(InvalidChar), size }
     }
 }
 
@@ -96,7 +96,7 @@ impl Decoder for DecoderUTF8 {
 /// Decoder for UTF-16.
 ///
 /// For more info on UTF-16 and the algorithm used see [UTF-16](https://en.wikipedia.org/wiki/UTF-16).
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct DecoderUTF16();
 
 
@@ -109,12 +109,12 @@ impl Decoder for DecoderUTF16 {
 
     fn decode(words: &[u16]) -> Char<InvalidChar> {
         if words[0] < 0xD800 || 0xDFFF < words[0] {
-            let char = Ok(unsafe{std::char::from_u32_unchecked(words[0] as u32)});
-            return Char{char,size:1};
+            let char = Ok(unsafe { std::char::from_u32_unchecked(words[0] as u32) });
+            return Char { char, size: 1 };
         }
         let char = (((words[0] - 0xD800) as u32) << 10 | (words[1] - 0xDC00) as u32) + 0x1_0000;
 
-        Char{char:std::char::from_u32(char).ok_or_else(InvalidChar), size:2}
+        Char { char: std::char::from_u32(char).ok_or_else(InvalidChar), size: 2 }
     }
 }
 
@@ -125,7 +125,7 @@ impl Decoder for DecoderUTF16 {
 // ======================
 
 /// Trivial decoder for UTF-32 (`char`).
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct DecoderUTF32();
 
 
@@ -137,7 +137,7 @@ impl Decoder for DecoderUTF32 {
     const MAX_CODEPOINT_LEN: usize = 1;
 
     fn decode(words: &[char]) -> Char<InvalidChar> {
-        Char{char:Ok(words[0]), size:1}
+        Char { char: Ok(words[0]), size: 1 }
     }
 }
 
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_utf8() {
-        let string  = "a.b^c! #𤭢界んにち𤭢#𤭢";
+        let string = "a.b^c! #𤭢界んにち𤭢#𤭢";
         let mut buf = string.as_bytes();
         let mut str = String::from("");
         while !buf.is_empty() {
@@ -169,8 +169,8 @@ mod tests {
 
     #[test]
     fn test_utf16() {
-        let string  = "a.b^c! #𤭢界んにち𤭢#𤭢";
-        let buffer  = string.encode_utf16().collect_vec();
+        let string = "a.b^c! #𤭢界んにち𤭢#𤭢";
+        let buffer = string.encode_utf16().collect_vec();
         let mut buf = &buffer[..];
         let mut str = String::from("");
         while !buf.is_empty() {
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_utf32() {
-        let string  = "a.b^c! #𤭢界んにち𤭢#𤭢".chars().collect_vec();
+        let string = "a.b^c! #𤭢界んにち𤭢#𤭢".chars().collect_vec();
         let mut buf = &string[..];
         let mut str = vec![];
         while !buf.is_empty() {

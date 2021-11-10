@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-use enso_flexer::LexingResult;
-use crate::library::token;
 use crate::generated::engine::EnsoLexer;
+use crate::library::token;
 use crate::prelude::reader::decoder::DecoderUTF8;
+use enso_flexer::LexingResult;
 
 
 
@@ -14,8 +14,8 @@ use crate::prelude::reader::decoder::DecoderUTF8;
 // ====================
 
 /// Execute the lexer on the provided `input`, assuming utf-8 encoding.
-pub fn run(input:impl AsRef<str>) -> LexingResult<token::Stream> {
+pub fn run(input: impl AsRef<str>) -> LexingResult<token::Stream> {
     let mut lexer = EnsoLexer::new();
-    let reader    = Reader::new(input.as_ref().as_bytes(),DecoderUTF8());
+    let reader = Reader::new(input.as_ref().as_bytes(), DecoderUTF8());
     lexer.run(reader)
 }

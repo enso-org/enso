@@ -44,9 +44,9 @@
 //!    It will be generated into `target/rust/debug/`.
 //!    This step is done automatically by `sbt`.
 
-use jni::JNIEnv;
 use jni::objects::*;
 use jni::sys::*;
+use jni::JNIEnv;
 
 
 
@@ -58,27 +58,31 @@ use jni::sys::*;
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_parseStr(
-    env   : JNIEnv,
-    _this : JClass,
-    input : JString,
+    env: JNIEnv,
+    _this: JClass,
+    input: JString,
 ) -> jweak {
-    let txt = env.new_object(
-        env.find_class("org/enso/ast/Ast$Txt$Text").unwrap(),
-        "(Ljava/lang/String;)V",
-        &[input.into()],
-    ).unwrap();
+    let txt = env
+        .new_object(
+            env.find_class("org/enso/ast/Ast$Txt$Text").unwrap(),
+            "(Ljava/lang/String;)V",
+            &[input.into()],
+        )
+        .unwrap();
 
-    let non = env.get_static_field(
-        env.find_class("scala/None$").unwrap(),
-        "MODULE$",
-        "Lscala/None$;",
-    ).unwrap().l().unwrap();
+    let non = env
+        .get_static_field(env.find_class("scala/None$").unwrap(), "MODULE$", "Lscala/None$;")
+        .unwrap()
+        .l()
+        .unwrap();
 
-    let ast = env.new_object(
-        env.find_class("org/enso/ast/Ast$Ast").unwrap(),
-        "(Lscala/Option;JJLjava/lang/Object;)V",
-        &[non.into(), 0i64.into(), 0i64.into(), txt.into()],
-    ).unwrap();
+    let ast = env
+        .new_object(
+            env.find_class("org/enso/ast/Ast$Ast").unwrap(),
+            "(Lscala/Option;JJLjava/lang/Object;)V",
+            &[non.into(), 0i64.into(), 0i64.into(), txt.into()],
+        )
+        .unwrap();
 
     ast.into_inner()
 }
@@ -87,9 +91,9 @@ pub extern "system" fn Java_org_enso_parser_Parser_parseStr(
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_parseFile(
-    env      : JNIEnv,
-    this     : JClass,
-    filename : JString,
+    env: JNIEnv,
+    this: JClass,
+    filename: JString,
 ) -> jweak {
     Java_org_enso_parser_Parser_parseStr(env, this, filename)
 }
@@ -101,9 +105,9 @@ pub extern "system" fn Java_org_enso_parser_Parser_parseFile(
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_lexStr(
-    env   : JNIEnv,
-    this  : JClass,
-    input : JString,
+    env: JNIEnv,
+    this: JClass,
+    input: JString,
 ) -> jweak {
     Java_org_enso_parser_Parser_parseStr(env, this, input)
 }
@@ -112,9 +116,9 @@ pub extern "system" fn Java_org_enso_parser_Parser_lexStr(
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_lexFile(
-    env      : JNIEnv,
-    this     : JClass,
-    filename : JString,
+    env: JNIEnv,
+    this: JClass,
+    filename: JString,
 ) -> jweak {
     Java_org_enso_parser_Parser_parseStr(env, this, filename)
 }

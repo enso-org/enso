@@ -10,29 +10,29 @@ use super::semigroup::Semigroup;
 // ===============
 
 /// Mutable Monoid definition.
-pub trait Monoid : Default + Semigroup {
+pub trait Monoid: Default + Semigroup {
     /// Repeat a value n times. Given that this works on a Monoid it will not fail if you request 0
     /// or fewer repetitions.
-    fn times_mut(&mut self, n:usize) {
+    fn times_mut(&mut self, n: usize) {
         if n == 0 {
             *self = Default::default()
         } else {
             let val = self.clone();
-            for _ in 0..n-1 {
+            for _ in 0..n - 1 {
                 self.concat_mut(&val)
             }
         }
     }
 
-    fn times(&self, n:usize) -> Self {
-        std::iter::repeat(self).take(n).fold(Default::default(),|l,r| l.concat_ref(r))
+    fn times(&self, n: usize) -> Self {
+        std::iter::repeat(self).take(n).fold(Default::default(), |l, r| l.concat_ref(r))
     }
 }
 
 
 // === Default Impls ===
 
-impl<T> Monoid for T where T : Default + Semigroup {}
+impl<T> Monoid for T where T: Default + Semigroup {}
 
 
 
@@ -46,12 +46,12 @@ mod tests {
 
     #[test]
     fn option() {
-        let vec_nop         : Vec<usize> = vec![];
-        let vec_1_2         : Vec<usize> = vec![1,2];
-        let vec_1_2_times_3 : Vec<usize> = vec![1,2,1,2,1,2];
-        assert_eq!(vec_1_2.times(0) , vec_nop);
-        assert_eq!(vec_1_2.times(1) , vec_1_2);
-        assert_eq!(vec_1_2.times(3) , vec_1_2_times_3);
+        let vec_nop: Vec<usize> = vec![];
+        let vec_1_2: Vec<usize> = vec![1, 2];
+        let vec_1_2_times_3: Vec<usize> = vec![1, 2, 1, 2, 1, 2];
+        assert_eq!(vec_1_2.times(0), vec_nop);
+        assert_eq!(vec_1_2.times(1), vec_1_2);
+        assert_eq!(vec_1_2.times(3), vec_1_2_times_3);
     }
 }
 

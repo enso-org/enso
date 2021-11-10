@@ -278,8 +278,7 @@ let getListOfChangedFiles = {
     run: `
         list=\`git diff --name-only origin/\${{github.base_ref}} HEAD | tr '\\n' ' '\`
         echo $list
-        echo "::set-output name=list::'$list'"
-    `,
+        echo "::set-output name=list::'$list'"`,
     shell: 'bash',
     if: `github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'`,
 }
@@ -294,8 +293,7 @@ let getCurrentReleaseChangelogInfo = {
     run: `
         node ./run ci-gen --skip-version-validation
         content=\`cat CURRENT_RELEASE_CHANGELOG.json\`
-        echo "::set-output name=content::$content"
-    `,
+        echo "::set-output name=content::$content"`,
     shell: 'bash',
 }
 
@@ -342,8 +340,7 @@ prepareAwsSessionCDN = {
         \${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
         us-west-1
         text
-        EOF
-    `,
+        EOF`,
 }
 
 function uploadToCDN(...names) {
@@ -523,15 +520,14 @@ let workflow = {
     },
 }
 
-let header = `
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+let header = `# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # DO NOT CHANGE THIS FILE. IT WAS GENERATED FROM 'build/workflow.js'. READ DOCS THERE TO LEARN MORE.
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 `
 
 /// Generates a new GitHub workflow file (in .github/workflow/...).
 function generate() {
-    let workflow_script = header + '\n' + yaml.dump(workflow, { noRefs: true })
+    let workflow_script = header + '\n' + yaml.dump(workflow, { noRefs: true, quotingType: '"' })
     fss.writeFileSync(path.join(paths.github.workflows, 'gui.yml'), workflow_script)
 }
 

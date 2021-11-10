@@ -2,8 +2,8 @@
 
 use web_sys::console;
 
-use crate::entry::Entry;
 use crate::entry;
+use crate::entry::Entry;
 use crate::processor::consumer;
 use wasm_bindgen::prelude::*;
 
@@ -34,27 +34,27 @@ mod js {
 // ==========================
 
 /// A simple consumer which uses JavaScript console API to print hierarchical logs in a browser.
-#[derive(Clone,Copy,Debug,Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct JsConsole;
 
-impl<Levels> consumer::Definition<Levels,js_sys::Array> for JsConsole
-where Levels:Writer {
-    fn consume(&mut self, event:Entry<Levels>, message:Option<js_sys::Array>) {
+impl<Levels> consumer::Definition<Levels, js_sys::Array> for JsConsole
+where Levels: Writer
+{
+    fn consume(&mut self, event: Entry<Levels>, message: Option<js_sys::Array>) {
         match &event.content {
-            entry::Content::Message(_) => {
+            entry::Content::Message(_) =>
                 if let Some(msg) = message {
                     event.level.write_by_level(&msg)
-                }
-            },
-            entry::Content::GroupBegin(group) => {
+                },
+            entry::Content::GroupBegin(group) =>
                 if let Some(msg) = message {
-                    if group.collapsed { console::group_collapsed(&msg) }
-                    else               { console::group(&msg) }
-                }
-            },
-            entry::Content::GroupEnd => {
-                js::console_group_end()
-            }
+                    if group.collapsed {
+                        console::group_collapsed(&msg)
+                    } else {
+                        console::group(&msg)
+                    }
+                },
+            entry::Content::GroupEnd => js::console_group_end(),
         }
     }
 }
@@ -63,24 +63,24 @@ where Levels:Writer {
 /// Default blanket implementation uses `console.log`.
 pub trait Writer {
     /// Write message using the appropriate console method.
-    fn write_by_level(&self, message:&js_sys::Array);
+    fn write_by_level(&self, message: &js_sys::Array);
 }
 
 impl<T> Writer for T {
-    default fn write_by_level(&self, message:&js_sys::Array) {
+    default fn write_by_level(&self, message: &js_sys::Array) {
         console::log(message)
     }
 }
 
 impl Writer for crate::entry::level::DefaultLevels {
-    fn write_by_level(&self, message:&js_sys::Array) {
+    fn write_by_level(&self, message: &js_sys::Array) {
         use crate::entry::level::DefaultLevels::*;
         match *self {
-            Trace   => console::trace(message),
-            Debug   => console::debug(message),
-            Info    => console::info(message),
+            Trace => console::trace(message),
+            Debug => console::debug(message),
+            Info => console::info(message),
             Warning => console::warn(message),
-            Error   => console::error(message),
+            Error => console::error(message),
         }
     }
 }

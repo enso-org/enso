@@ -214,12 +214,6 @@ branches:
           - "Build and Test (ubuntu-18.04)"
           - "Build and Test (windows-latest)"
           - "Docs Check"
-          - "Rust Check"
-          - "Rust Lint"
-          - "Rust Test Native (macOS-latest)"
-          - "Rust Test Native (ubuntu-latest)"
-          - "Rust Test Native (windows-latest)"
-          - "Rust Test WASM"
           - "Verify Notice Package"
           - "license/cla"
           # GUI jobs

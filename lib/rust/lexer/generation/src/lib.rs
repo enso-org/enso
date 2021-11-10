@@ -10,8 +10,9 @@
 
 //! This module exports the interface to the generated Enso lexer.
 
-pub mod lexer;
+#[rustfmt::skip]
 pub mod generated;
+pub mod lexer;
 
 pub use crate::lexer::*;
 

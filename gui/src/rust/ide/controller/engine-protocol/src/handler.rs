@@ -11,7 +11,6 @@ use futures::channel::mpsc::UnboundedSender;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
 use std::future::Future;
-use utils::fail::FallibleResult;
 
 
 
@@ -295,8 +294,6 @@ mod tests {
     use super::*;
 
     use json_rpc::test_util::transport::mock::MockTransport;
-    use utils::test::future::FutureTestExt;
-    use utils::test::stream::StreamTestExt;
 
     #[test]
     fn test_closed_socked_event_passing() {

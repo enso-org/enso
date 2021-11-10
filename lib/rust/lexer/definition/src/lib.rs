@@ -24,12 +24,12 @@ pub mod token;
 pub mod library {
     pub use crate::escape;
     pub use crate::lexeme;
-    pub use crate::token;
     pub use crate::rules;
+    pub use crate::token;
 }
 
 /// A collection of functionality for working with the lexer definition.
 pub mod prelude {
-    pub use enso_flexer::prelude::*;
     pub use enso_flexer::prelude::logger::*;
+    pub use enso_flexer::prelude::*;
 }

@@ -14,8 +14,8 @@ mod jni;
 
 pub use crate::jni::*;
 
-use ast::AnyAst;
-use ast::Ast;
+use ast_new::AnyAst;
+use ast_new::Ast;
 
 
 
@@ -24,12 +24,12 @@ use ast::Ast;
 // =======================
 
 /// Parse a content of a single source file.
-pub fn parse_str(input:String) -> AnyAst {
-    Ast::new(ast::txt::Text{text:input})
+pub fn parse_str(input: String) -> AnyAst {
+    Ast::new(ast_new::txt::Text { text: input })
 }
 
 /// Parse a single source file.
-pub fn parse_file(filename:String) -> AnyAst {
+pub fn parse_file(filename: String) -> AnyAst {
     parse_str(filename)
 }
 
@@ -37,11 +37,11 @@ pub fn parse_file(filename:String) -> AnyAst {
 // === Tokens ===
 
 /// Parse a content of single source file.
-pub fn lexe_str(input:String) -> AnyAst {
+pub fn lexe_str(input: String) -> AnyAst {
     parse_str(input)
 }
 
 /// Parse a single source file.
-pub fn lexe_file(filename:String) -> AnyAst {
+pub fn lexe_file(filename: String) -> AnyAst {
     parse_str(filename)
 }
