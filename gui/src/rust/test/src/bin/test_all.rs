@@ -87,7 +87,7 @@ fn main() {
     let wasm_pack_args = std::env::args().skip(1).collect::<Vec<_>>();
     let cargo_toml_root = parse_toml("Cargo.toml");
     let all_members = get_workspace_members(cargo_toml_root);
-    let tested_members = all_members.iter().filter(|p| to_be_tested(&p));
+    let tested_members = all_members.iter().filter(|p| to_be_tested(p));
 
     for member in tested_members {
         println!("Running tests for {}", member);
