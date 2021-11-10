@@ -12,5 +12,5 @@ crate-type = ["cdylib", "rlib"]
 enso-prelude = { path = "../../../../prelude"}
 
 [build-dependencies]
-ensogl-build-utilities = { path = "../../../../../../gui/src/rust/build" }
+enso-build-utilities = { path = "../../../../build-utils" }
 zip = { version = "0.5" }

@@ -283,6 +283,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "build-scripts"
+version = "0.1.0"
+dependencies = [
+ "glob",
+ "toml",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -761,12 +769,12 @@ version = "0.1.0"
 dependencies = [
  "bytes 0.5.6",
  "chrono",
+ "enso-build-utilities",
  "enso-data",
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "enso-web",
- "ensogl-build-utilities",
  "failure",
  "flatbuffers",
  "flatc-rust",
@@ -790,6 +798,14 @@ name = "enso-automata"
 version = "0.2.0"
 dependencies = [
  "enso-prelude",
+]
+
+[[package]]
+name = "enso-build-utilities"
+version = "0.1.0"
+dependencies = [
+ "path-clean",
+ "reqwest",
 ]
 
 [[package]]
@@ -1047,14 +1063,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-build-utilities"
-version = "0.1.0"
-dependencies = [
- "path-clean",
- "reqwest",
-]
-
-[[package]]
 name = "ensogl-component"
 version = "0.1.0"
 
@@ -1177,8 +1185,8 @@ dependencies = [
 name = "ensogl-text-embedded-fonts"
 version = "0.1.0"
 dependencies = [
+ "enso-build-utilities",
  "enso-prelude",
- "ensogl-build-utilities",
  "zip",
 ]
 
@@ -1186,8 +1194,8 @@ dependencies = [
 name = "ensogl-text-msdf-sys"
 version = "0.1.0"
 dependencies = [
+ "enso-build-utilities",
  "enso-prelude",
- "ensogl-build-utilities",
  "ensogl-text-embedded-fonts",
  "futures 0.3.17",
  "js-sys",
@@ -1526,6 +1534,12 @@ name = "gimli"
 version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
+
+[[package]]
+name = "glob"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "gloo-timers"
@@ -2575,9 +2589,9 @@ dependencies = [
  "ast",
  "bytes 0.5.6",
  "console_error_panic_hook",
+ "enso-build-utilities",
  "enso-data",
  "enso-prelude",
- "ensogl-build-utilities",
  "failure",
  "futures 0.3.17",
  "js-sys",

@@ -47,7 +47,7 @@ impl FillMapRsFile {
 mod deja_vu {
     use crate::FillMapRsFile;
 
-    use ensogl_build_utilities::GithubRelease;
+    use enso_build_utilities::GithubRelease;
     use std::path;
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {

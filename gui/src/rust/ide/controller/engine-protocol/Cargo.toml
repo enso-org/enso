@@ -29,7 +29,7 @@ wasm-bindgen-test = { version = "0.3.8" }
 enso-web = { path = "../../../../../../lib/rust/web" }
 
 [build-dependencies]
-ensogl-build-utilities = { path = "../../../build" }
+enso-build-utilities = { path = "../../../../../../lib/rust/build-utils" }
 bytes = { version = "0.5.4" }
 flatc-rust = { version = "0.1.2" }
 futures = { version = "0.3.1" }

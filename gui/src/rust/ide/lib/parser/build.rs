@@ -4,9 +4,9 @@
 
 #![feature(option_result_contains)]
 
-use ensogl_build_utilities::absolute_path;
-use ensogl_build_utilities::targeting_wasm;
-use ensogl_build_utilities::PathRef;
+use enso_build_utilities::absolute_path;
+use enso_build_utilities::targeting_wasm;
+use enso_build_utilities::PathRef;
 
 use std::fs;
 use std::fs::create_dir_all;

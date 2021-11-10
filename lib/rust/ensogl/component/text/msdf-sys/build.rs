@@ -1,7 +1,7 @@
 //! Downloader and patch for msdfgen library.
 
 mod msdfgen_wasm {
-    use ensogl_build_utilities::GithubRelease;
+    use enso_build_utilities::GithubRelease;
 
     use std::fs;
     use std::io::Write;

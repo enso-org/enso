@@ -1,3 +1,6 @@
+//! A crate with many utilities for build scripts, for example downloading packages form GitHub or
+//! easier management of env vars and paths.
+
 #![feature(trait_alias)]
 
 use std::fmt::Display;

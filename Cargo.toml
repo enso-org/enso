@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-    "gui/src/rust/build",
     "gui/src/rust/ide",
     "gui/src/rust/ide/controller",
     "gui/src/rust/ide/controller/double-representation",
@@ -15,7 +14,9 @@ members = [
     "gui/src/rust/ide/lib/span-tree/example",
     "gui/src/rust/ide/view",
     "gui/src/rust/ide/view/graph-editor",
+    "gui/src/rust/test",
     "lib/rust/automata",
+    "lib/rust/build-utils",
     "lib/rust/callback",
     "lib/rust/code-builder",
     "lib/rust/config-reader",
