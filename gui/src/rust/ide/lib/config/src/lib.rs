@@ -1,6 +1,5 @@
 //! Startup arguments definition.
 
-#![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
@@ -16,12 +15,22 @@ use ensogl::system::web;
 
 
 
+// ==============
+// === Config ===
+// ==============
+
+include!(concat!(env!("OUT_DIR"), "/config.rs"));
+
+pub use generated::*;
+
+
+
 // ============
 // === Args ===
 // ============
 
 ensogl::read_args! {
-    [enso_config::window_app_scope_name,enso_config::window_app_scope_config_name] {
+    [window_app_scope_name, window_app_scope_config_name] {
         entry                  : String,
         project                : String,
         project_manager        : String,

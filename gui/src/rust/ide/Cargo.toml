@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 analytics = { version = "0.1.0", path = "lib/analytics" }
 double-representation = { version = "0.1.0", path = "controller/double-representation" }
-enso-args = { path = "lib/args" }
+enso-config = { path = "lib/config" }
 enso-callback = { path = "../lib/callback" }
 enso-data = { path = "../../../../lib/rust/data"}
 enso-frp = { path = "../lib/frp" }

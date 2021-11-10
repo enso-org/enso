@@ -12,7 +12,7 @@ use crate::open_dialog::OpenDialog;
 use crate::searcher;
 use crate::status_bar;
 
-use enso_args::ARGS;
+use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::shortcut;
@@ -266,7 +266,7 @@ impl Model {
     }
 
     fn on_close_clicked(&self) {
-        js::close(enso_config::CONFIG.window_app_scope_name);
+        js::close(enso_config::window_app_scope_name);
     }
 
     fn on_fullscreen_clicked(&self) {

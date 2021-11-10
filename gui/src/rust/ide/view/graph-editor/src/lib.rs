@@ -46,7 +46,7 @@ use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
-use enso_args::ARGS;
+use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::shortcut;

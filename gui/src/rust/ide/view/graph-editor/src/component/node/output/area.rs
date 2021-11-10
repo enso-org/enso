@@ -21,7 +21,7 @@ use crate::component::node::output::port;
 use crate::tooltip;
 use crate::view;
 use crate::Type;
-use enso_args::ARGS;
+use enso_config::ARGS;
 
 
 

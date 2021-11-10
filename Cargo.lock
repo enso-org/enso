@@ -449,6 +449,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "config-reader"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "serde",
+ "serde_yaml",
+]
+
+[[package]]
 name = "console_error_panic_hook"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -777,16 +786,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-args"
-version = "0.1.0"
-dependencies = [
- "enso-config",
- "enso-logger",
- "enso-prelude",
- "ensogl",
-]
-
-[[package]]
 name = "enso-automata"
 version = "0.2.0"
 dependencies = [
@@ -804,9 +803,10 @@ dependencies = [
 name = "enso-config"
 version = "0.1.0"
 dependencies = [
- "Inflector",
- "serde",
- "serde_yaml",
+ "config-reader",
+ "enso-logger",
+ "enso-prelude",
+ "ensogl",
 ]
 
 [[package]]
@@ -1693,8 +1693,8 @@ dependencies = [
  "console_error_panic_hook",
  "double-representation",
  "engine-protocol",
- "enso-args",
  "enso-callback",
+ "enso-config",
  "enso-data",
  "enso-frp",
  "enso-logger",
@@ -1738,7 +1738,6 @@ version = "0.1.0"
 dependencies = [
  "ast",
  "engine-protocol",
- "enso-args",
  "enso-config",
  "enso-frp",
  "enso-logger",
@@ -1770,7 +1769,7 @@ dependencies = [
  "ast",
  "bimap",
  "engine-protocol",
- "enso-args",
+ "enso-config",
  "enso-frp",
  "enso-logger",
  "enso-prelude",

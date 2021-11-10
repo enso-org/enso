@@ -9,14 +9,13 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../lib/ast/impl" }
-enso-args = { path = "../lib/args" }
+enso-config = { path = "../lib/config" }
 enso-frp = { path = "../../lib/frp" }
 enso-logger = { path = "../../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../../lib/rust/prelude"}
 enso-shapely = { path = "../../../../../lib/rust/shapely/impl"}
 engine-protocol = { path = "../controller/engine-protocol" }
 ensogl = { path = "../../ensogl" }
-enso-config = { path = "../../lib/config" }
 ensogl-gui-components = { path = "../../ensogl/lib/components" }
 ensogl-text = { path = "../../ensogl/lib/text" }
 ensogl-text-msdf-sys = { path = "../../ensogl/lib/text/msdf-sys" }
