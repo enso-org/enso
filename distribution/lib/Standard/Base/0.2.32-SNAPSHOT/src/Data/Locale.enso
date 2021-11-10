@@ -355,7 +355,7 @@ type Locale
              example_display_language = Locale.default.display_language
     display_language : Text | Nothing
     display_language =
-        disp = this.java_locale.getDisplayLanguage
+        disp = this.java_locale.getDisplayLanguage here.us.java_locale
         if disp.is_empty then Nothing else disp
 
     ## Gets a representation of the country in the locale that can be shown to
@@ -369,7 +369,7 @@ type Locale
              example_display_country = Locale.default.display_country
     display_country : Text | Nothing
     display_country =
-        disp = this.java_locale.getDisplayCountry
+        disp = this.java_locale.getDisplayCountry here.us.java_locale
         if disp.is_empty then Nothing else disp
 
     ## Gets a representation of the variant in the locale that can be shown to
@@ -383,7 +383,7 @@ type Locale
              example_display_variant = Locale.default.display_variant
     display_variant : Text | Nothing
     display_variant =
-        disp = this.java_locale.getDisplayVariant
+        disp = this.java_locale.getDisplayVariant here.us.java_locale
         if disp.is_empty then Nothing else disp
 
     ## Converts the locale to text.
@@ -425,4 +425,3 @@ from_java java = Locale java
 
 ## PRIVATE
 javaLocaleBuilder = JavaLocale.Builder
-
