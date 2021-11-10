@@ -7,7 +7,7 @@ use enso_frp::io::Mouse;
 use enso_frp::Network;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_theme as theme;
+use ensogl_hardcoded_theme as theme;
 
 use crate::shadow;
 

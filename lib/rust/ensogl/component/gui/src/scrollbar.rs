@@ -9,7 +9,7 @@ use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::shape::*;
 use ensogl_core::Animation;
-use ensogl_theme as theme;
+use ensogl_hardcoded_theme as theme;
 
 use crate::component;
 use crate::selector;

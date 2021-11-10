@@ -34,9 +34,8 @@ use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_data::text::TextChange;
 use enso_frp as frp;
 use ensogl::display::traits::*;
-use ensogl_gui_components::file_browser::model::AnyFolderContent;
-use ensogl_gui_components::list_view;
-use ensogl_web::drop;
+use ensogl_gui_component::file_browser::model::AnyFolderContent;
+use ensogl_gui_component::list_view;
 use futures::future::LocalBoxFuture;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node;
@@ -2051,7 +2050,7 @@ impl ide_view::searcher::DocumentationProvider for SuggestionsProviderForView {
     }
 }
 
-impl upload::DataProvider for drop::File {
+impl upload::DataProvider for ensogl_drop_manager::File {
     fn next_chunk(&mut self) -> LocalBoxFuture<FallibleResult<Option<Vec<u8>>>> {
         self.read_chunk().map(|f| f.map_err(|e| e.into())).boxed_local()
     }

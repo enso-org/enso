@@ -19,8 +19,8 @@ use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
 use ensogl::system::web;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_theme as theme;
 use parser::Parser;
 use wasm_bindgen::prelude::*;
 
@@ -242,7 +242,7 @@ fn init(app: &Application) {
             if to_theme_switch == 0 {
                 // println!("THEME SWITCH !!!");
                 // scene.style_sheet.set("application.background",color::Rgba(0.0,0.0,0.0,1.0));
-                // ensogl_theme::builtin::dark::enable(&app);
+                // ensogl_hardcoded_theme::builtin::dark::enable(&app);
                 //
                 // println!(">>> {:?}", "lcha(1,0,0,1)".parse::<color::Lcha>());
             }

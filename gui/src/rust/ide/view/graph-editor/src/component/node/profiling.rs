@@ -99,9 +99,10 @@ pub struct Theme {
 
 impl Theme {
     /// Returns a new `Sampler` exposing the profiling theme, as it is defined in `styles` at path
-    /// `ensogl_theme::graph_editor::node::profiling`. The sampler is registered under `network`.
+    /// `ensogl_hardcoded_theme::graph_editor::node::profiling`. The sampler is registered under
+    /// `network`.
     pub fn from_styles(styles: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Theme> {
-        use ensogl_theme::graph_editor::node::profiling as theme_path;
+        use ensogl_hardcoded_theme::graph_editor::node::profiling as theme_path;
         let lightness = styles.get_number_or(theme_path::lightness, 0.5);
         let chroma = styles.get_number_or(theme_path::chroma, 1.0);
         let min_time_hue = styles.get_number_or(theme_path::min_time_hue, 0.4);

@@ -7,8 +7,8 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl_gui_components::file_browser::FileBrowser;
-use ensogl_theme as theme;
+use ensogl_gui_component::file_browser::FileBrowser;
+use ensogl_hardcoded_theme as theme;
 
 
 

@@ -12,10 +12,10 @@ enso-frp = { path = "../../../frp" }
 enso-prelude = { path = "../../../prelude"}
 enso-shapely = { path = "../../../shapely/impl"}
 enso-types = { path = "../../../types" }
-ensogl-core = { path = "../core" }
+ensogl-core = { path = "../../core" }
 ensogl-text-embedded-fonts = { path = "embedded-fonts" }
 ensogl-text-msdf-sys = { path = "msdf-sys" }
-ensogl-theme = { path = "../theme" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 xi-rope = { version = "0.3.0" }
 
 [dev-dependencies]

@@ -12,7 +12,7 @@ use ensogl_core::display::shape::*;
 use ensogl_core::display::traits::*;
 use ensogl_text as text;
 
-use ensogl_theme::component::label as theme;
+use ensogl_hardcoded_theme::component::label as theme;
 
 
 

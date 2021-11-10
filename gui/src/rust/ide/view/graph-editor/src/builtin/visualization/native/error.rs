@@ -16,7 +16,7 @@ use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::AttributeSetter;
 use ensogl::system::web::StyleSetter;
-use ensogl_theme;
+use ensogl_hardcoded_theme;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -224,8 +224,9 @@ impl Model {
 
     fn display_kind(&self, new: Kind) {
         let color_style = match new {
-            Kind::Panic => ensogl_theme::graph_editor::visualization::error::panic::text,
-            Kind::Dataflow => ensogl_theme::graph_editor::visualization::error::dataflow::text,
+            Kind::Panic => ensogl_hardcoded_theme::graph_editor::visualization::error::panic::text,
+            Kind::Dataflow =>
+                ensogl_hardcoded_theme::graph_editor::visualization::error::dataflow::text,
         };
         let default = "";
         let opt_message = self.messages.get_cloned_ref(&new);

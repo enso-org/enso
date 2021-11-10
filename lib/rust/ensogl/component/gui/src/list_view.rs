@@ -16,7 +16,7 @@ use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
-use ensogl_theme as theme;
+use ensogl_hardcoded_theme as theme;
 
 pub use entry::Entry;
 
@@ -46,11 +46,11 @@ pub mod selection {
         (style:Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
-            let padding_inner_x = style.get_number(ensogl_theme::application::searcher::selection::padding::horizontal);
-            let padding_inner_y = style.get_number(ensogl_theme::application::searcher::selection::padding::vertical);
+            let padding_inner_x = style.get_number(ensogl_hardcoded_theme::application::searcher::selection::padding::horizontal);
+            let padding_inner_y = style.get_number(ensogl_hardcoded_theme::application::searcher::selection::padding::vertical);
             let width         = sprite_width  - 2.0.px() * SHAPE_PADDING + 2.0.px() * padding_inner_x;
             let height        = sprite_height - 2.0.px() * SHAPE_PADDING + 2.0.px() * padding_inner_y;
-            let color         = style.get_color(ensogl_theme::widget::list_view::highlight);
+            let color         = style.get_color(ensogl_hardcoded_theme::widget::list_view::highlight);
             let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
             let shape         = rect.fill(color);
             shape.into()
@@ -130,7 +130,7 @@ impl<E: Entry> Model<E> {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&self.app.display.scene().style_sheet);
-        styles.get_number(ensogl_theme::application::searcher::padding)
+        styles.get_number(ensogl_hardcoded_theme::application::searcher::padding)
     }
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or

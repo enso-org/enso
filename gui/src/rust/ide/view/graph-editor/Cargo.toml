@@ -18,11 +18,11 @@ enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol" }
 enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
 ensogl = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl" }
-ensogl-gui-components = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/lib/components" }
-ensogl-text = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/lib/text" }
-ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/lib/text/msdf-sys" }
-ensogl-theme = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/lib/theme" }
-ensogl-web = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/lib/web" }
+ensogl-gui-component = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/component/gui" }
+ensogl-text = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/component/text" }
+ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-drop-manager = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/component/drop-manager" }
 failure = { version = "0.1.8" }
 ordered-float = {version = "1.0"}
 span-tree = { version = "0.1.0", path = "../../lib/span-tree" }

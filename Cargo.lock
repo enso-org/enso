@@ -1055,6 +1055,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-component"
+version = "0.1.0"
+
+[[package]]
 name = "ensogl-core"
 version = "0.1.0"
 dependencies = [
@@ -1094,6 +1098,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-drop-manager"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-logger",
+ "enso-prelude",
+ "enso-web",
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures 0.4.8",
+ "web-sys",
+]
+
+[[package]]
 name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
@@ -1102,11 +1120,11 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "ensogl-core",
- "ensogl-gui-components",
+ "ensogl-drop-manager",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
- "ensogl-web",
  "js-sys",
  "nalgebra 0.26.2",
  "serde",
@@ -1117,7 +1135,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-gui-components"
+name = "ensogl-gui-component"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
@@ -1126,10 +1144,17 @@ dependencies = [
  "enso-shapely",
  "enso-types",
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
- "ensogl-theme",
  "float_eq",
  "wasm-bindgen-test 0.3.8",
+]
+
+[[package]]
+name = "ensogl-hardcoded-theme"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
 ]
 
 [[package]]
@@ -1141,9 +1166,9 @@ dependencies = [
  "enso-shapely",
  "enso-types",
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
  "wasm-bindgen-test 0.3.8",
  "xi-rope",
 ]
@@ -1169,27 +1194,6 @@ dependencies = [
  "nalgebra 0.26.2",
  "wasm-bindgen",
  "wasm-bindgen-test 0.3.8",
-]
-
-[[package]]
-name = "ensogl-theme"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
-]
-
-[[package]]
-name = "ensogl-web"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-logger",
- "enso-prelude",
- "enso-web",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures 0.4.8",
- "web-sys",
 ]
 
 [[package]]
@@ -1700,12 +1704,12 @@ dependencies = [
  "enso-shapely",
  "enso-web",
  "ensogl",
+ "ensogl-drop-manager",
  "ensogl-examples",
- "ensogl-gui-components",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
- "ensogl-web",
  "failure",
  "flo_stream",
  "futures 0.3.17",
@@ -1742,10 +1746,10 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "ensogl",
- "ensogl-gui-components",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
  "ide-view-graph-editor",
  "js-sys",
  "nalgebra 0.26.2",
@@ -1773,11 +1777,11 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "ensogl",
- "ensogl-gui-components",
+ "ensogl-drop-manager",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
- "ensogl-web",
  "failure",
  "js-sys",
  "nalgebra 0.26.2",

@@ -240,7 +240,8 @@ impl<Shape: ButtonShape> View<Shape> {
         model.set_icon_color(default_background_color);
 
         // Radius initialization
-        let radius_frp = style.get(ensogl_theme::application::window_control_buttons::radius);
+        let radius_frp =
+            style.get(ensogl_hardcoded_theme::application::window_control_buttons::radius);
 
         // Style's relevant color FRP endpoints.
         let background_unconcerned_color =

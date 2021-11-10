@@ -11,7 +11,7 @@ use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::style::data::DataMatch;
 use ensogl::display::DomSymbol;
-use ensogl_theme;
+use ensogl_hardcoded_theme;
 use fmt::Formatter;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlDivElement;
@@ -105,7 +105,7 @@ impl JsTheme {
     /// Takes a qualified type name and returns the color that should be used for foreground
     /// (e.g. text) that is shown on top of the background color returned by getColorForType.
     pub fn getForegroundColorForType(&self, _tp_name: &str) -> JsColor {
-        self.styles.get_color(ensogl_theme::code::types::selected).into()
+        self.styles.get_color(ensogl_hardcoded_theme::code::types::selected).into()
     }
 
     /// Queries style sheet value for a value.

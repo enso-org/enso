@@ -7,8 +7,8 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_theme as theme;
 
 
 

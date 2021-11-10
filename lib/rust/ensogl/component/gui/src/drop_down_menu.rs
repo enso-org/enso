@@ -12,8 +12,8 @@ use ensogl_core::display;
 use ensogl_core::display::shape::primitive::StyleWatch;
 use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_theme as theme;
 
 
 // =================
@@ -42,7 +42,7 @@ pub mod arrow {
             let height           = Var::<Pixels>::from("input_size.y");
             let triangle         = Triangle(width,height);
             let triangle_down    = triangle.rotate(Var::<f32>::from(std::f32::consts::PI));
-            let color_path       = ensogl_theme::graph_editor::visualization::action_bar::icon;
+            let color_path       = ensogl_hardcoded_theme::graph_editor::visualization::action_bar::icon;
             let icon_color       = style.get_color(color_path);
             let triangle_colored = triangle_down.fill(icon_color);
 

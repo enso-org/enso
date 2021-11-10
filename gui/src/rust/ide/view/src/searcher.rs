@@ -16,10 +16,10 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
-use ensogl_gui_components::list_view;
-use ensogl_gui_components::list_view::ListView;
+use ensogl_gui_component::list_view;
+use ensogl_gui_component::list_view::ListView;
 
-pub use ensogl_gui_components::list_view::entry;
+pub use ensogl_gui_component::list_view::entry;
 
 
 
@@ -130,7 +130,7 @@ impl Model {
         // FIXME: StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //  system (#795)
         let style = StyleWatch::new(&app.display.scene().style_sheet);
-        let action_list_gap_path = ensogl_theme::application::searcher::action_list_gap;
+        let action_list_gap_path = ensogl_hardcoded_theme::application::searcher::action_list_gap;
         let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
         list.set_label_layer(scene.layers.above_nodes_text.id());
         list.set_position_y(-action_list_gap);

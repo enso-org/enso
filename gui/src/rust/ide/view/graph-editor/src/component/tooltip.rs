@@ -10,7 +10,7 @@ use ensogl::prelude::*;
 
 use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::display::shape::StyleWatch;
-use ensogl_gui_components::label::Label;
+use ensogl_gui_component::label::Label;
 
 
 
@@ -189,10 +189,14 @@ impl Tooltip {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&app.display.scene().style_sheet);
-        let hide_delay_duration_ms =
-            styles.get_number_or(ensogl_theme::application::tooltip::hide_delay_duration_ms, 0.0);
-        let show_delay_duration_ms =
-            styles.get_number_or(ensogl_theme::application::tooltip::show_delay_duration_ms, 0.0);
+        let hide_delay_duration_ms = styles.get_number_or(
+            ensogl_hardcoded_theme::application::tooltip::hide_delay_duration_ms,
+            0.0,
+        );
+        let show_delay_duration_ms = styles.get_number_or(
+            ensogl_hardcoded_theme::application::tooltip::show_delay_duration_ms,
+            0.0,
+        );
 
         let hysteretic_transition =
             HystereticAnimation::new(network, hide_delay_duration_ms, show_delay_duration_ms);

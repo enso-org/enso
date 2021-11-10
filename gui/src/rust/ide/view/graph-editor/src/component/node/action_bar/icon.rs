@@ -3,7 +3,7 @@ use crate::prelude::*;
 
 use ensogl::data::color;
 use ensogl::display::shape::*;
-use ensogl_gui_components::toggle_button::ColorableShape;
+use ensogl_gui_component::toggle_button::ColorableShape;
 
 
 /// Icon for the visibility button. Looks like an open eye.

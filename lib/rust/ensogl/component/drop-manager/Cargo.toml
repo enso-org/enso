@@ -1,5 +1,5 @@
 [package]
-name = "ensogl-web"
+name = "ensogl-drop-manager"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"

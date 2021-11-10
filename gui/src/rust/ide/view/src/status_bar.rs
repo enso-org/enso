@@ -15,9 +15,9 @@ use ensogl::display::camera::Camera2d;
 use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::Scene;
-use ensogl_gui_components::shadow;
+use ensogl_gui_component::shadow;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_theme as theme;
 use std::future::Future;
 
 
@@ -93,7 +93,7 @@ mod background {
 
     ensogl::define_shape_system! {
         (style:Style) {
-            let theme             = ensogl_theme::application::status_bar::background;
+            let theme             = ensogl_hardcoded_theme::application::status_bar::background;
             let theme             = style::Path::from(theme);
             let width             = Var::<Pixels>::from("input_size.x");
             let height            = Var::<Pixels>::from("input_size.y");

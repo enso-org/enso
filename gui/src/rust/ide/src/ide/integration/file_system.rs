@@ -9,10 +9,10 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ContentRoot;
 use engine_protocol::language_server::FileSystemObject;
 use enso_frp as frp;
-use ensogl_gui_components::file_browser::model::Entry;
-use ensogl_gui_components::file_browser::model::EntryType;
-use ensogl_gui_components::file_browser::model::FolderContent;
-use ensogl_gui_components::file_browser::model::FolderType;
+use ensogl_gui_component::file_browser::model::Entry;
+use ensogl_gui_component::file_browser::model::EntryType;
+use ensogl_gui_component::file_browser::model::FolderContent;
+use ensogl_gui_component::file_browser::model::FolderType;
 use json_rpc::error::RpcError;
 use std::iter::once;
 

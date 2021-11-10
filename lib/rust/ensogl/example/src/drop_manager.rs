@@ -5,11 +5,10 @@ use enso_prelude::*;
 
 use ensogl_core::display::world::World;
 use ensogl_core::frp::web;
-use ensogl_web::drop;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
-fn download_file(file: drop::File) {
+fn download_file(file: ensogl_drop_manager::File) {
     spawn_local(async move {
         INFO!("Received file: {file:?}");
         loop {
@@ -37,7 +36,7 @@ pub fn entry_point_drop_manager() {
     web::forward_panic_hook_to_console();
 
     let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let drop_manager = drop::Manager::new(world.scene().dom.root.as_ref());
+    let drop_manager = ensogl_drop_manager::Manager::new(world.scene().dom.root.as_ref());
     let network = enso_frp::Network::new("Debug Scene");
     enso_frp::extend! { network
         let file_received = drop_manager.files_received().clone_ref();

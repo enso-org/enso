@@ -8,7 +8,7 @@ use ensogl_core::display::style;
 use ensogl_core::display::DomSymbol;
 use ensogl_core::frp;
 use ensogl_core::system::web::StyleSetter;
-use ensogl_theme as theme;
+use ensogl_hardcoded_theme as theme;
 
 
 /// Defines the appearance of a shadow
@@ -24,7 +24,7 @@ pub struct Parameters {
 }
 
 /// Loads shadow parameters from the given style, at the given path. The structure of the style
-/// definition should be analogous to that at `ensogl_theme::shadow`.
+/// definition should be analogous to that at `ensogl_hardcoded_theme::shadow`.
 pub fn parameters_from_style_path(style: &StyleWatch, path: impl Into<style::Path>) -> Parameters {
     let path: style::Path = path.into();
     Parameters {
@@ -102,9 +102,9 @@ pub fn from_shape_with_parameters_and_alpha(
 pub fn add_to_dom_element(element: &DomSymbol, style: &StyleWatch, logger: &Logger) {
     let off_x = style.get_number(theme::shadow::offset_x);
     let off_y = -style.get_number(theme::shadow::offset_y);
-    let alpha = style.get_number(ensogl_theme::shadow::html::alpha);
-    let blur = style.get_number(ensogl_theme::shadow::html::blur);
-    let spread = style.get_number(ensogl_theme::shadow::html::spread);
+    let alpha = style.get_number(ensogl_hardcoded_theme::shadow::html::alpha);
+    let blur = style.get_number(ensogl_hardcoded_theme::shadow::html::blur);
+    let spread = style.get_number(ensogl_hardcoded_theme::shadow::html::spread);
     let shadow = format!("{}px {}px {}px {}px rgba(0,0,0,{})", off_x, off_y, blur, spread, alpha);
     element.dom().set_style_or_warn("box-shadow", shadow, logger);
 }

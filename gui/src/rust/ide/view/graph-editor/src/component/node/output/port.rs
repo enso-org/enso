@@ -478,7 +478,8 @@ impl Model {
         self.shape = Some(shape.clone());
 
         let type_label = app.new_view::<text::Area>();
-        let offset_y = styles.get_number(ensogl_theme::graph_editor::node::type_label::offset_y);
+        let offset_y =
+            styles.get_number(ensogl_hardcoded_theme::graph_editor::node::type_label::offset_y);
         type_label.set_position_y(offset_y);
         self.type_label = Some(type_label.clone());
 
@@ -556,7 +557,7 @@ impl Model {
             normal_color        <- frp.tp.map(f!([styles](t)
                 type_coloring::compute_for_selection(t.as_ref(),&styles)));
             init_color          <- source::<()>();
-            let profiling_color  = styles_frp.get_color(ensogl_theme::code::types::any::selection);
+            let profiling_color  = styles_frp.get_color(ensogl_hardcoded_theme::code::types::any::selection);
             profiling_color     <- all_with(&profiling_color,&init_color,|c,_|color::Lcha::from(c));
             in_profiling_mode   <- frp.set_view_mode.map(|mode| mode.is_profiling());
             color_tgt           <- in_profiling_mode.switch(&normal_color,&profiling_color);

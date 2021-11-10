@@ -32,7 +32,7 @@ use ensogl::Animation;
 
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
-use ensogl_gui_components::shadow;
+use ensogl_gui_component::shadow;
 
 
 
@@ -77,7 +77,7 @@ pub mod overlay {
 //        This should be fixed in https://github.com/enso-org/ide/issues/526
 pub mod background {
     use super::*;
-    use ensogl_theme::graph_editor::visualization as theme;
+    use ensogl_hardcoded_theme::graph_editor::visualization as theme;
 
     ensogl::define_shape_system! {
         (style:Style, radius:f32, roundness:f32, selection:f32) {
@@ -182,7 +182,8 @@ impl View {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
+        let bg_color =
+            styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background);
         let bg_hex = format!(
             "rgba({},{},{},{})",
             bg_color.red * 255.0,

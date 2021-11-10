@@ -16,10 +16,10 @@ enso-prelude = { path = "../../../../../lib/rust/prelude"}
 enso-shapely = { path = "../../../../../lib/rust/shapely/impl"}
 engine-protocol = { path = "../controller/engine-protocol" }
 ensogl = { path = "../../../../../lib/rust/ensogl" }
-ensogl-gui-components = { path = "../../../../../lib/rust/ensogl/lib/components" }
-ensogl-text = { path = "../../../../../lib/rust/ensogl/lib/text" }
-ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/lib/text/msdf-sys" }
-ensogl-theme = { path = "../../../../../lib/rust/ensogl/lib/theme" }
+ensogl-gui-component = { path = "../../../../../lib/rust/ensogl/component/gui" }
+ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
+ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ide-view-graph-editor = { path = "graph-editor" }
 parser = { path = "../lib/parser" }
 span-tree = { path = "../lib/span-tree" }

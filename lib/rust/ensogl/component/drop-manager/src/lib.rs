@@ -1,13 +1,29 @@
 //! The handlers for the files dropped on the web scene. The main object is [`Manager`]:
 //! it notifies about new files, and their metadata and with methods for reading them.
 
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+
+/// Commonly used utilities.
+pub mod prelude {
+    pub use enso_logger::DefaultWarningLogger as Logger;
+    pub use enso_logger::*;
+    pub use enso_prelude::*;
+}
+
 use crate::prelude::*;
 
-use crate::stream::BlobExt;
-use crate::stream::ReadableStreamDefaultReader;
-use crate::Error;
-
 use enso_frp as frp;
+use enso_web::stream::BlobExt;
+use enso_web::stream::ReadableStreamDefaultReader;
+use enso_web::Error;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
