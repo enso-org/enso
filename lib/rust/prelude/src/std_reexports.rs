@@ -18,10 +18,10 @@ pub use std::ops::RangeToInclusive;
 
 pub use core::any::type_name;
 pub use core::fmt::Debug;
-pub use std::fmt::Display;
 pub use std::fmt;
-pub use std::iter::FromIterator;
+pub use std::fmt::Display;
 pub use std::iter;
+pub use std::iter::FromIterator;
 
 
 // === Data Operations ===
@@ -47,8 +47,8 @@ pub use std::cell::RefCell;
 pub use std::cell::RefMut;
 pub use std::rc::Rc;
 pub use std::rc::Weak;
-pub use std::slice::SliceIndex;
 pub use std::slice;
+pub use std::slice::SliceIndex;
 
 
 // === Operators ===
@@ -65,6 +65,6 @@ pub use std::ops::Sub;
 pub use std::mem;
 
 /// Alias for `Default::default()`.
-pub fn default<T:Default>() -> T {
+pub fn default<T: Default>() -> T {
     Default::default()
 }

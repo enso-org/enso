@@ -553,12 +553,12 @@ impl TextEdit {
         let source_length = source.chars().count();
         let target_length = target.chars().count();
 
-        let common_prefix_length = utils::string::common_prefix_length(source, target);
-        let common_postfix_length = utils::string::common_postfix_length(source, target);
-        let common_parts_length = common_prefix_length + common_postfix_length;
-        let overlaping_chars = common_parts_length.saturating_sub(source_length.min(target_length));
-        let prefix_length = common_prefix_length;
-        let postfix_length = common_postfix_length - overlaping_chars;
+        let common_prefix_len = common_prefix_length(source, target);
+        let common_postfix_len = common_postfix_length(source, target);
+        let common_parts_len = common_prefix_len + common_postfix_len;
+        let overlaping_chars = common_parts_len.saturating_sub(source_length.min(target_length));
+        let prefix_length = common_prefix_len;
+        let postfix_length = common_postfix_len - overlaping_chars;
 
         let source_start_index = Index::new(prefix_length);
         let source_end_index = Index::new(source_length - postfix_length);

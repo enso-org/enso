@@ -31,7 +31,6 @@ ide-view = { path = "view" }
 engine-protocol = { path = "controller/engine-protocol" }
 json-rpc = { path = "lib/json-rpc" }
 parser = { path = "lib/parser" }
-utils = { path = "lib/utils" }
 span-tree = { path = "lib/span-tree" }
 bimap = { version = "0.4.0" }
 console_error_panic_hook = { version = "0.1.6" }

@@ -1,13 +1,10 @@
 //! Module for utilities related to serialization/deserialization using the `serde` library.
-
-#[allow(unused_imports)]
-use crate::prelude::*;
-
 use serde::Deserialize;
 use serde::Deserializer;
 
 /// Try to deserialize value of type `Ret`. In case of any error, it is ignored and the default
 /// value is returned instead.
+#[cfg(feature = "serde_json")]
 pub fn deserialize_or_default<'d, Ret, D>(d: D) -> Result<Ret, D::Error>
 where
     for<'e> Ret: Default + Deserialize<'e>,

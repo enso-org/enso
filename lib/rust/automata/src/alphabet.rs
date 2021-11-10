@@ -46,22 +46,22 @@ use std::ops::RangeInclusive;
 ///
 /// This type tracks these divisions explicitly for an input alphabet defined for all automata in
 /// this library as `0u64..=u64::max_value()`.
-#[derive(Clone,Debug,PartialEq,Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct Segmentation {
-    pub divisions : BTreeSet<Symbol>
+    pub divisions: BTreeSet<Symbol>,
 }
 
 impl Segmentation {
     /// Inserts a range of symbols into the alphabet.
-    pub fn insert(&mut self,range:RangeInclusive<Symbol>) {
+    pub fn insert(&mut self, range: RangeInclusive<Symbol>) {
         self.divisions.insert(range.start().clone());
         let end = range.end().clone();
         end.next().for_each(|t| self.divisions.insert(t));
     }
 
     /// Creates a [`Segmentation`] from an input set of divisions.
-    pub fn from_divisions(divisions:&[u64]) -> Self {
+    pub fn from_divisions(divisions: &[u64]) -> Self {
         let mut dict = Self::default();
         for val in divisions {
             dict.divisions.insert(Symbol::from(*val));
@@ -106,33 +106,34 @@ impl Default for Segmentation {
 
 /// An immutable version of `Segmentation` which consists cached information allowing for fast
 /// segmentation analysis.
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct SealedSegmentation {
-    pub division_map : BTreeMap<Symbol,usize>
+    pub division_map: BTreeMap<Symbol, usize>,
 }
 
 impl SealedSegmentation {
     /// The index of the provided symbol. Please note that the index always exists, as the alphabet
     /// spans across all possible symbols.
-    pub fn index_of_symbol(&self, symbol:&Symbol) -> usize {
-        self.range(symbol..).next().map(|(k,v)|{
-            if k == symbol { *v } else { v - 1 }
-        }).unwrap_or_else(|| self.len() - 1)
+    pub fn index_of_symbol(&self, symbol: &Symbol) -> usize {
+        self.range(symbol..)
+            .next()
+            .map(|(k, v)| if k == symbol { *v } else { v - 1 })
+            .unwrap_or_else(|| self.len() - 1)
     }
 }
 
 impl Deref for SealedSegmentation {
-    type Target = BTreeMap<Symbol,usize>;
+    type Target = BTreeMap<Symbol, usize>;
     fn deref(&self) -> &Self::Target {
         &self.division_map
     }
 }
 
 impl From<&Segmentation> for SealedSegmentation {
-    fn from(s:&Segmentation) -> Self {
-        let division_map = s.divisions.iter().cloned().enumerate().map(|(ix,s)|(s,ix)).collect();
-        Self {division_map}
+    fn from(s: &Segmentation) -> Self {
+        let division_map = s.divisions.iter().cloned().enumerate().map(|(ix, s)| (s, ix)).collect();
+        Self { division_map }
     }
 }
 
@@ -165,14 +166,14 @@ mod tests {
         let num_to_insert = 10;
         let mut segmentation = Segmentation::default();
         for ix in 0u64..num_to_insert {
-            segmentation.insert(Symbol::from(100+ix)..=Symbol::from(100+ix))
+            segmentation.insert(Symbol::from(100 + ix)..=Symbol::from(100 + ix))
         }
-        assert_eq!(segmentation.num_divisions(), (num_to_insert+2) as usize);
+        assert_eq!(segmentation.num_divisions(), (num_to_insert + 2) as usize);
     }
 
     #[test]
     fn from_divisions_construction() {
-        let segmentation = Segmentation::from_divisions(&[0,5,10,15,20]);
+        let segmentation = Segmentation::from_divisions(&[0, 5, 10, 15, 20]);
         assert_eq!(segmentation.num_divisions(), 5);
         assert!(segmentation.divisions.contains(&Symbol::from(15u64)));
     }

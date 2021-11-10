@@ -52,11 +52,8 @@ pub mod prelude {
     pub use ast::prelude::*;
     pub use enso_logger::*;
     pub use enso_prelude::*;
-    pub use utils::prelude::*;
 
     pub use enso_logger::DefaultTraceLogger as Logger;
-    pub use utils::fail::FallibleResult;
-    pub use utils::vec::VecExt;
 
     #[cfg(test)]
     pub use wasm_bindgen_test::wasm_bindgen_test;

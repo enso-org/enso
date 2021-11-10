@@ -281,7 +281,6 @@ mod test {
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
     use enso_data::text::TextLocation;
-    use utils::test::stream::StreamTestExt;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
 

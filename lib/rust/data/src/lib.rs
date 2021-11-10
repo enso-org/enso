@@ -3,9 +3,7 @@
 #![feature(associated_type_bounds)]
 #![feature(test)]
 #![feature(trait_alias)]
-
 #![deny(unconditional_recursion)]
-
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -15,9 +13,9 @@
 #![warn(unused_import_braces)]
 
 pub mod dependency_graph;
+pub mod diet;
 pub mod hash_map_tree;
 pub mod index;
-pub mod diet;
 pub mod opt_vec;
 pub mod text;
 

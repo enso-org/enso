@@ -1,4 +1,3 @@
-
 use crate::*;
 pub use enso_shapely::CloneRef;
 
@@ -87,6 +86,7 @@ impl_clone_ref_as_clone_no_from!([T] PhantomData<T>);
 impl_clone_ref_as_clone_no_from!([T:?Sized] Rc<T>);
 impl_clone_ref_as_clone_no_from!([T:?Sized] Weak<T>);
 
+#[cfg(feature = "wasm-bindgen")]
 impl_clone_ref_as_clone_no_from!(wasm_bindgen::JsValue);
 impl_clone_ref_as_clone_no_from!(web_sys::HtmlDivElement);
 impl_clone_ref_as_clone_no_from!(web_sys::HtmlElement);
@@ -105,14 +105,14 @@ pub trait ClonedRef {
     fn cloned_ref(&self) -> Self::Output;
 }
 
-impl<T:CloneRef> ClonedRef for Option<&T> {
+impl<T: CloneRef> ClonedRef for Option<&T> {
     type Output = Option<T>;
     fn cloned_ref(&self) -> Self::Output {
         self.map(|t| t.clone_ref())
     }
 }
 
-impl<T:CloneRef> ClonedRef for Option<&mut T> {
+impl<T: CloneRef> ClonedRef for Option<&mut T> {
     type Output = Option<T>;
     fn cloned_ref(&self) -> Self::Output {
         self.as_ref().map(|t| t.clone_ref())

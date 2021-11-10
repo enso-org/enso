@@ -33,8 +33,8 @@ use crate::derive_iterator::IsMut;
 /// methods.
 ///
 /// The iterators will:
-/// * for structs: go over each field that declared type is same as the
-///   struct's last type parameter.
+/// * for structs: go over each field that declared type is same as the struct's last type
+///   parameter.
 /// * enums: delegate to current constructor's nested value's iterator.
 ///
 /// Enums are required to use only a single element tuple-like variant. This
@@ -54,9 +54,8 @@ use crate::derive_iterator::IsMut;
 /// When used on type that takes no type parameters, like `struct Foo`, does
 /// nothing but yields no errors.
 #[proc_macro_derive(Iterator)]
-pub fn derive_iterator
-(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_iterator::derive(input,IsMut::Immutable)
+pub fn derive_iterator(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_iterator::derive(input, IsMut::Immutable)
 }
 
 /// Same as `derive(Iterator)` but generates mutable iterator.
@@ -64,9 +63,8 @@ pub fn derive_iterator
 /// It is separate, as some types allow deriving immutable iterator but ont the
 /// mutable one.
 #[proc_macro_derive(IteratorMut)]
-pub fn derive_iterator_mut
-(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_iterator::derive(input,IsMut::Mutable)
+pub fn derive_iterator_mut(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_iterator::derive(input, IsMut::Mutable)
 }
 
 /// Derives `CloneRef` implementation for given type. It performs `clone_ref` on every member
@@ -83,16 +81,15 @@ pub fn derive_iterator_mut
 /// Supported inputs are structs (unit, named, unnamed), enums (with unit, named, unnamed and no
 /// variants at all). Unions are currently not supported.
 #[proc_macro_derive(CloneRef, attributes(clone_ref))]
-pub fn derive_clone_ref
-(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn derive_clone_ref(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_clone_ref::derive(input)
 }
 
 #[allow(missing_docs)]
 #[proc_macro_attribute]
-pub fn overlappable
-( attrs : proc_macro::TokenStream
-  , input : proc_macro::TokenStream
+pub fn overlappable(
+    attrs: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    overlappable::overlappable(attrs,input)
+    overlappable::overlappable(attrs, input)
 }

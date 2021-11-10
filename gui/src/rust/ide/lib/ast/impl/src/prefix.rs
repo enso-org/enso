@@ -15,8 +15,6 @@ use crate::Shifted;
 use crate::Token;
 use crate::TokenConsumer;
 
-use utils::vec::VecExt;
-
 
 
 // ================
@@ -219,7 +217,6 @@ impl HasTokens for Chain {
 mod tests {
     use super::*;
 
-    use utils::test::ExpectTuple;
     use uuid::Uuid;
 
     #[test]

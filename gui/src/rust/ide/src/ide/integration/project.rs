@@ -48,7 +48,6 @@ use ide_view::open_dialog;
 use ide_view::searcher::entry::AnyModelProvider;
 use ide_view::searcher::entry::GlyphHighlightedLabel;
 use ide_view::searcher::new::Icon;
-use utils::iter::split_by_predicate;
 
 
 
@@ -787,7 +786,8 @@ impl Model {
         let base_default_position = default_node_position();
         let mut trees = connections_info.trees.clone();
         let nodes = self.graph.graph().nodes()?;
-        let (without_pos, with_pos) = split_by_predicate(&nodes, |n| n.has_position());
+        let (without_pos, with_pos): (Vec<_>, Vec<_>) =
+            nodes.iter().partition(|n| n.has_position());
         let bottommost_node_pos = with_pos
             .iter()
             .filter_map(|node| node.metadata.as_ref()?.position)

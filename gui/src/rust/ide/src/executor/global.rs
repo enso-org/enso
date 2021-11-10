@@ -73,7 +73,7 @@ pub fn spawn_stream_handler<Weak, Stream, Function, Ret>(
     Function: FnMut(Stream::Item, Weak::Strong) -> Ret + 'static,
     Ret: Future<Output = ()> + 'static,
 {
-    let handler = utils::channel::process_stream_with_handle(stream, weak, handler);
+    let handler = channel::process_stream_with_handle(stream, weak, handler);
     spawn(handler);
 }
 

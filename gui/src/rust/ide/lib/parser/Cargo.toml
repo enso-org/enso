@@ -11,8 +11,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ast = { path = "../ast/impl" }
 enso-data = { path = "../../../../../../lib/rust/data"}
-enso-prelude = { path = "../../../../../../lib/rust/prelude"}
-utils = { path = "../utils" }
+enso-prelude = { path = "../../../../../../lib/rust/prelude", features = ["serde", "serde_json"] }
 console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1" }
 js-sys = { version = "0.3.28" }

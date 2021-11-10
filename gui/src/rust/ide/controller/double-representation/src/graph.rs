@@ -14,7 +14,7 @@ use crate::node::NodeInfo;
 use ast::known;
 use ast::Ast;
 use ast::BlockLine;
-use utils::fail::FallibleResult;
+
 
 
 /// Graph uses the same `Id` as the definition which introduces the graph.
@@ -208,7 +208,6 @@ mod tests {
     use ast::macros::DocumentationCommentInfo;
     use ast::test_utils::expect_single_line;
     use ast::HasRepr;
-    use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

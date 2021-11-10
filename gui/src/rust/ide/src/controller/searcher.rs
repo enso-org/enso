@@ -1176,7 +1176,6 @@ pub mod test {
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
-    use utils::test::traits::*;
 
 
 

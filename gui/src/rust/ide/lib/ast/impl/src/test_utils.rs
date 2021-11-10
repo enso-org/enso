@@ -8,7 +8,7 @@ use crate::HasRepr;
 use crate::Module;
 use crate::Shape;
 
-use utils::test::ExpectTuple;
+
 
 /// "Downcasts" given AST's Shape to `T`. Panics if the shape doesn't match.
 pub fn expect_shape<'t, T>(ast: &'t Ast) -> &'t T

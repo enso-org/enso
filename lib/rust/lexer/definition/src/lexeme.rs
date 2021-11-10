@@ -57,14 +57,14 @@ pub mod definition_pattern {
     /// This matches both Unix (LF) and Windows (CRLF) styles of newlines. This is particularly
     /// important so as not to result in incorrect spans on windows clients.
     pub fn newline() -> Pattern {
-        let lf   = into_pattern(literal::LF);
+        let lf = into_pattern(literal::LF);
         let crlf = into_pattern(literal::CRLF);
         lf | crlf
     }
 
     /// The characters that break tokens in Enso.
     pub fn whitespace_break_chars() -> String {
-        [literal::TAB,literal::LF,literal::CR].concat()
+        [literal::TAB, literal::LF, literal::CR].concat()
     }
 
     /// The characters that break token lexing in Enso.
@@ -78,12 +78,13 @@ pub mod definition_pattern {
             literal::DOT,
             literal::OPERATOR_CHARS,
             literal::GROUP_CHARS,
-            &whitespace_break_chars()
-        ].concat()
+            &whitespace_break_chars(),
+        ]
+        .concat()
     }
 
     /// Adds the basic characters not allowed in a raw segment in a format text literal.
-    fn add_base_format_disallows(chars:&mut String) {
+    fn add_base_format_disallows(chars: &mut String) {
         chars.push_str(literal::INTERPOLATE_QUOTE);
         chars.push_str(literal::SLASH);
         chars.push_str(literal::LF);
@@ -106,7 +107,7 @@ pub mod definition_pattern {
     }
 
     /// Adds the basic characters not allowed in a raw segment in a raw text literal.
-    fn add_base_raw_disallows(chars:&mut String) {
+    fn add_base_raw_disallows(chars: &mut String) {
         chars.push_str(literal::SLASH);
         chars.push_str(literal::LF);
         chars.push_str(literal::CR);
@@ -136,8 +137,9 @@ pub mod definition_pattern {
             literal::SLASH,
             literal::LF,
             literal::CR,
-            "{}"
-        ].concat();
+            "{}",
+        ]
+        .concat();
         Pattern::none_of(chars)
     }
 }
@@ -157,121 +159,121 @@ pub mod literal {
     // === The Lexemes ===
 
     /// The space character.
-    pub const SPACE:Literal = " ";
+    pub const SPACE: Literal = " ";
 
     /// The line-feed character.
-    pub const LF:Literal = "\n";
+    pub const LF: Literal = "\n";
 
     /// The carriage-return character.
-    pub const CR:Literal = "\r";
+    pub const CR: Literal = "\r";
 
     /// The crlf windows-style line ending.
-    pub const CRLF:Literal = "\r\n";
+    pub const CRLF: Literal = "\r\n";
 
     /// The tab character.
-    pub const TAB:Literal = "\t";
+    pub const TAB: Literal = "\t";
 
     /// The comment character.
-    pub const COMMENT:Literal = "#";
+    pub const COMMENT: Literal = "#";
 
     /// The doc comment character.
-    pub const DOC_COMMENT:Literal = "##";
+    pub const DOC_COMMENT: Literal = "##";
 
     /// The symbol for beginning an annotation.
-    pub const ANNOTATION_SYMBOL:Literal = "@";
+    pub const ANNOTATION_SYMBOL: Literal = "@";
 
     /// The dot symbol
-    pub const DOT:Literal = ".";
+    pub const DOT: Literal = ".";
 
     /// Two dots.
-    pub const TWO_DOTS:Literal = "..";
+    pub const TWO_DOTS: Literal = "..";
 
     /// Three dots.
-    pub const THREE_DOTS:Literal = "...";
+    pub const THREE_DOTS: Literal = "...";
 
     /// Three dots.
-    pub const COMMA:Literal = ",";
+    pub const COMMA: Literal = ",";
 
     /// The `in` operator.
-    pub const OPERATOR_IN:Literal = "in";
+    pub const OPERATOR_IN: Literal = "in";
 
     /// The tick allowable at the end of an identifier.
-    pub const IDENTIFIER_TICK:Literal = "'";
+    pub const IDENTIFIER_TICK: Literal = "'";
 
     /// The quote used to delimit interpolations in format text literals.
-    pub const INTERPOLATE_QUOTE:Literal = "`";
+    pub const INTERPOLATE_QUOTE: Literal = "`";
 
     /// The quote used to delimit format text literals.
-    pub const FORMAT_QUOTE:Literal = "'";
+    pub const FORMAT_QUOTE: Literal = "'";
 
     /// The quote used to delimit format block literals.
-    pub const FORMAT_BLOCK_QUOTE:Literal = "'''";
+    pub const FORMAT_BLOCK_QUOTE: Literal = "'''";
 
     /// The quote used to delimit raw text literals.
-    pub const RAW_QUOTE:Literal = "\"";
+    pub const RAW_QUOTE: Literal = "\"";
 
     /// The quote used to delimit raw block literals.
-    pub const RAW_BLOCK_QUOTE:Literal = "\"\"\"";
+    pub const RAW_BLOCK_QUOTE: Literal = "\"\"\"";
 
     /// The equals operator.
-    pub const EQUALS:Literal = "=";
+    pub const EQUALS: Literal = "=";
 
     /// The equality comparison operator.
-    pub const EQUALS_COMP:Literal = "==";
+    pub const EQUALS_COMP: Literal = "==";
 
     /// Greater-than or equal.
-    pub const GE_OPERATOR:Literal = ">=";
+    pub const GE_OPERATOR: Literal = ">=";
 
     /// Less-than or equal.
-    pub const LE_OPERATOR:Literal = "<=";
+    pub const LE_OPERATOR: Literal = "<=";
 
     /// Inequality comparison operator.
-    pub const NOT_EQUAL:Literal = "!=";
+    pub const NOT_EQUAL: Literal = "!=";
 
     /// The hash eq operator.
-    pub const HASH_EQ:Literal = "#=";
+    pub const HASH_EQ: Literal = "#=";
 
     /// The wide arrow operator.
-    pub const WIDE_ARROW:Literal = "=>";
+    pub const WIDE_ARROW: Literal = "=>";
 
     /// The blank identifier.
-    pub const BLANK_IDENT:Literal = "_";
+    pub const BLANK_IDENT: Literal = "_";
 
     /// The identifier segment separator.
-    pub const IDENT_SEGMENT_SEPARATOR:Literal = "_";
+    pub const IDENT_SEGMENT_SEPARATOR: Literal = "_";
 
     /// The separator between a number literal's explicit base and the number itself.
-    pub const NUMBER_BASE_SEPARATOR:Literal = "_";
+    pub const NUMBER_BASE_SEPARATOR: Literal = "_";
 
     /// The separator between the integer and fractional parts of the number literal.
-    pub const DECIMAL_SEPARATOR:Literal = ".";
+    pub const DECIMAL_SEPARATOR: Literal = ".";
 
     /// The backslash character.
-    pub const SLASH:Literal = r"\";
+    pub const SLASH: Literal = r"\";
 
     /// An escaped [`SLASH`].
-    pub const ESCAPED_SLASH:Literal = r"\\";
+    pub const ESCAPED_SLASH: Literal = r"\\";
 
     /// The beginning of a byte escape.
-    pub const BYTE_ESCAPE_START:Literal = r"\x";
+    pub const BYTE_ESCAPE_START: Literal = r"\x";
 
     /// The beginning of a u16 escape.
-    pub const U16_ESCAPE_START:Literal = r"\u";
+    pub const U16_ESCAPE_START: Literal = r"\u";
 
     /// The beginning of a u21 escape.
-    pub const U21_ESCAPE_START:Literal = r"\u{";
+    pub const U21_ESCAPE_START: Literal = r"\u{";
 
     /// The end of a u21 escape.
-    pub const U21_ESCAPE_END:Literal = "}";
+    pub const U21_ESCAPE_END: Literal = "}";
 
     /// The beginning of a u32 escape.
-    pub const U32_ESCAPE_START:Literal = r"\U";
+    pub const U32_ESCAPE_START: Literal = r"\U";
 
     /// The allowable group characters in Enso.
-    pub const GROUP_CHARS:Literal = "()[]{}";
+    pub const GROUP_CHARS: Literal = "()[]{}";
 
     /// The allowable operator characters in Enso.
-    pub const OPERATOR_CHARS:Literal = ";!$%&*+-/<>?^~|:\\";
+    pub const OPERATOR_CHARS: Literal = ";!$%&*+-/<>?^~|:\\";
 }
 
 
@@ -281,21 +283,21 @@ pub mod literal {
 // =========================
 
 /// Get the first character of the lexeme, if it exists.
-pub fn char(literal:&'static str) -> Option<char> {
+pub fn char(literal: &'static str) -> Option<char> {
     literal.chars().next()
 }
 
 /// Get the first character of the lexeme, assuming that it exists.
-pub fn unsafe_char(literal:&'static str) -> char {
+pub fn unsafe_char(literal: &'static str) -> char {
     char(literal).expect("The first character of the literal exists.")
 }
 
 /// Convert the lexeme into a pattern.
-pub fn into_pattern(literal:&'static str) -> Pattern {
+pub fn into_pattern(literal: &'static str) -> Pattern {
     literal.into()
 }
 
 /// The proper length of the `literal`.
-pub fn len(literal:&'static str) -> usize {
+pub fn len(literal: &'static str) -> usize {
     literal.chars().count()
 }

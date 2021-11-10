@@ -8,7 +8,6 @@ use failure::Error;
 use futures::channel::mpsc;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
-use utils::channel;
 use wasm_bindgen::JsCast;
 use web_sys::BinaryType;
 
@@ -322,10 +321,10 @@ impl WebSocket {
             // Note [mwu] Ignore argument, `CloseEvent` here contains rubbish
             // anyway, nothing useful to pass to caller. Error code or reason
             // string should not be relied upon.
-            utils::channel::emit(&transmitter_clone, Err(()));
+            channel::emit(&transmitter_clone, Err(()));
         });
         self.set_on_open(move |_| {
-            utils::channel::emit(&transmitter, Ok(()));
+            channel::emit(&transmitter, Ok(()));
         });
 
         match receiver.next().await {
