@@ -1,7 +1,7 @@
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
-use ensogl_system_web as web;
+use enso_web as web;
 
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;

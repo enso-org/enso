@@ -1,6 +1,6 @@
 use json_rpc::prelude::*;
 
-use ensogl_system_web::Duration;
+use enso_web::Duration;
 use futures::task::LocalSpawnExt;
 use futures::FutureExt;
 use futures::Stream;

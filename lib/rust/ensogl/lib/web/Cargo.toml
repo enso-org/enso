@@ -5,7 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [dependencies]
-ensogl-system-web = { path = "../../../../../gui/src/rust/lib/system/web" }
+enso-web = { path = "../../../web" }
 enso-frp = { path = "../../../frp" }
 enso-logger = { path = "../../../logger"}
 enso-prelude = { path = "../../../prelude"}

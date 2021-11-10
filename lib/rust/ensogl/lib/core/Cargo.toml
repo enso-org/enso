@@ -24,10 +24,9 @@ enso-prelude = { path = "../../../prelude"}
 enso-shapely = { path = "../../../shapely/impl"}
 enso-shortcuts = { path = "../../../shortcuts" }
 enso-types = { path = "../../../types" }
-ensogl-system-web = { path = "../../../../../gui/src/rust/lib/system/web" }
+enso-web = { path = "../../../web" }
 ensogl-text-embedded-fonts = { path = "../text/embedded-fonts" }
 ensogl-text-msdf-sys = { path = "../text/msdf-sys" }
-#eval-tt = { path = "../../../eval-tt" }
 bit_field = { version = "0.10.0" }
 console_error_panic_hook = { version = "0.1.6" }
 enum_dispatch = { version = "0.3.6" }
@@ -88,4 +87,3 @@ features = [
 [dev-dependencies]
 assert_approx_eq = { version = "1.1.0" }
 wasm-bindgen-test = { version = "0.3.8" }
-#web-test = { path = "../../../lib/web-test" }

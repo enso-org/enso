@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use ensogl_system_web::event::listener::Slot;
-use ensogl_system_web::js_to_string;
+use enso_web::event::listener::Slot;
+use enso_web::js_to_string;
 use failure::Error;
 use futures::channel::mpsc;
 use json_rpc::Transport;
@@ -108,7 +108,7 @@ impl State {
 /// Description of events that can be emitted by JS WebSocket.
 pub mod event {
     use super::*;
-    use ensogl_system_web::event::Type;
+    use enso_web::event::Type;
 
     /// Represents WebSocket.open event.
     #[derive(Clone, Copy, Debug)]

@@ -171,7 +171,7 @@ pub use network::*;
 pub use node::*;
 pub use nodes::*;
 
-pub use ensogl_system_web as web;
+pub use enso_web as web;
 pub use stream::Stream;
 
 /// Set of often used types and functions.

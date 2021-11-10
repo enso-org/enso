@@ -16,7 +16,7 @@ use crate::display::style::theme;
 use crate::display::world::World;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
-use ensogl_system_web::StyleSetter;
+use enso_web::StyleSetter;
 
 
 

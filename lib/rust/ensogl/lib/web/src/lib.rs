@@ -20,4 +20,4 @@ pub mod prelude {
 }
 
 
-pub use ensogl_system_web::*;
+pub use enso_web::*;

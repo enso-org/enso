@@ -12,7 +12,7 @@ enso-automata = { path = "../automata" }
 enso-frp = { path = "../frp" }
 enso-logger = { path = "../logger" }
 enso-prelude = { path = "../prelude" }
-ensogl-system-web = { path = "../../../gui/src/rust/lib/system/web" }
+enso-web = { path = "../web" }
 wasm-bindgen = { version = "=0.2.58", features = [
   "nightly",
   "serde-serialize"

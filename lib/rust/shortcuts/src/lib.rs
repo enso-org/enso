@@ -15,7 +15,7 @@ extern crate test;
 
 use enso_automata::*;
 use enso_prelude::*;
-use ensogl_system_web as web;
+use enso_web as web;
 
 pub use enso_logger as logger;
 pub use enso_logger::AnyLogger;

@@ -23,7 +23,7 @@ pub mod transport;
 pub use api::RemoteMethodCall;
 pub use api::Result;
 pub use enso_prelude as prelude;
-pub use ensogl_system_web as ensogl;
+pub use enso_web as ensogl;
 pub use error::RpcError;
 pub use handler::Event;
 pub use handler::Handler;

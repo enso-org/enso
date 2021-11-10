@@ -4,7 +4,7 @@
 #![warn(missing_debug_implementations)]
 
 mod system {
-    pub use ensogl_system_web as web;
+    pub use enso_web as web;
 }
 
 use enso_prelude as prelude;
