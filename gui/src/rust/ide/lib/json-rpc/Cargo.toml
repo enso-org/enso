@@ -8,8 +8,8 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude = { version = "0.2.6" }
-enso-shapely = { version = "0.2.0" }
+enso-prelude = { path = "../../../../../../lib/rust/prelude"}
+enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
 ensogl-system-web = { path = "../../../lib/system/web" }
 futures = { version = "0.3.1" }
 failure = { version = "0.1.6" }

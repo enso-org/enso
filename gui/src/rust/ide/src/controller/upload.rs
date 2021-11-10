@@ -10,12 +10,12 @@ use crate::model::module::UploadingFile;
 
 use crate::model::undo_redo;
 use crate::model::undo_redo::Repository;
-use enso_protocol::binary;
-use enso_protocol::common::error::code;
-use enso_protocol::language_server;
-use enso_protocol::language_server::FileSystemObject;
-use enso_protocol::language_server::Path;
-use enso_protocol::types::Sha3_224;
+use engine_protocol::binary;
+use engine_protocol::common::error::code;
+use engine_protocol::language_server;
+use engine_protocol::language_server::FileSystemObject;
+use engine_protocol::language_server::Path;
+use engine_protocol::types::Sha3_224;
 use json_rpc::error::RpcError;
 use sha3::Digest;
 
@@ -389,9 +389,9 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::test::mock;
 
-    use enso_protocol::language_server::response;
-    use enso_protocol::language_server::FileAttributes;
-    use enso_protocol::types::UTCDateTime;
+    use engine_protocol::language_server::response;
+    use engine_protocol::language_server::FileAttributes;
+    use engine_protocol::types::UTCDateTime;
     use futures::future;
     use futures::SinkExt;
     use mockall::Sequence;

@@ -2,12 +2,12 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::alias_analysis::analyze_crumbable;
-use crate::double_representation::definition::DefinitionInfo;
-use crate::double_representation::definition::ScopeKind;
-use crate::double_representation::identifier::NormalizedName;
-use crate::double_representation::node::Id;
-use crate::double_representation::node::MainLine;
+use crate::alias_analysis::analyze_crumbable;
+use crate::definition::DefinitionInfo;
+use crate::definition::ScopeKind;
+use crate::identifier::NormalizedName;
+use crate::node::Id;
+use crate::node::MainLine;
 
 use ast::crumbs::Crumb;
 use ast::crumbs::Crumbs;
@@ -154,8 +154,9 @@ pub fn dependent_nodes_in_def(body: &Ast, node: Id) -> HashSet<Id> {
 mod tests {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionInfo;
-    use crate::double_representation::graph::GraphInfo;
+    use crate::definition::DefinitionInfo;
+    use crate::graph::GraphInfo;
+
     use ast::crumbs;
     use ast::crumbs::InfixCrumb;
     use parser::Parser;

@@ -1,32 +1,28 @@
 'use strict'
 
 import cfg from '../../../config'
-import * as assert    from 'assert'
-import * as buildCfg  from '../../../../../dist/build.json'
-import * as Electron  from 'electron'
-import * as isDev     from 'electron-is-dev'
-import * as path      from 'path'
-import * as pkg       from '../package.json'
-import * as rootCfg   from '../../../package.json'
-import * as Server    from 'enso-studio-common/src/server'
-import * as util      from 'util'
-import * as yargs     from 'yargs'
+import * as assert from 'assert'
+import * as buildCfg from '../../../../../dist/build.json'
+import * as Electron from 'electron'
+import * as isDev from 'electron-is-dev'
+import * as path from 'path'
+import * as pkg from '../package.json'
+import * as rootCfg from '../../../package.json'
+import * as Server from 'enso-studio-common/src/server'
+import * as util from 'util'
+import * as yargs from 'yargs'
 
 import paths from '../../../../../build/paths'
 
 const child_process = require('child_process')
 const fss = require('fs')
 
-
-
 // =============
 // === Paths ===
 // =============
 
 const root = Electron.app.getAppPath()
-const resources = path.join(root, "..")
-
-
+const resources = path.join(root, '..')
 
 // FIXME default options parsed wrong
 // https://github.com/yargs/yargs/issues/1590
@@ -36,22 +32,19 @@ const resources = path.join(root, "..")
 // ================
 
 let windowCfg = {
-    width  : 1380,
-    height : 900,
+    width: 1380,
+    height: 900,
 }
-
-
 
 // =============
 // === Utils ===
 // =============
 
 function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1)
+    return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
-const execFile = util.promisify(child_process.execFile);
-
+const execFile = util.promisify(child_process.execFile)
 
 // The list of hosts that the app can access. They are required for
 // user authentication to work.
@@ -77,56 +70,55 @@ Arguments that follow the two dashes (\`--\`) will be passed to the backend proc
  if IDE spawns backend, i.e. if '--backend false' has not been set.`
 
 let optParser = yargs
-    .scriptName("")
+    .scriptName('')
     .usage(usage)
     .epilogue(epilogue)
     .help()
     .version(false)
-    .parserConfiguration({'populate--':true})
+    .parserConfiguration({ 'populate--': true })
     .strict()
-
 
 // === Config Options ===
 
 let configOptionsGroup = 'Config Options:'
 
 optParser.options('port', {
-    group    : configOptionsGroup,
-    describe : `Port to use [${Server.DEFAULT_PORT}]`,
+    group: configOptionsGroup,
+    describe: `Port to use [${Server.DEFAULT_PORT}]`,
 })
 
 optParser.options('project', {
-    group    : configOptionsGroup,
-    describe : 'Open the specified project on startup',
+    group: configOptionsGroup,
+    describe: 'Open the specified project on startup',
 })
 
 optParser.options('server', {
-    group    : configOptionsGroup,
-    describe : 'Run the server [true]',
-    type     : 'boolean',
+    group: configOptionsGroup,
+    describe: 'Run the server [true]',
+    type: 'boolean',
 })
 
 optParser.options('window', {
-    group    : configOptionsGroup,
-    describe : 'Show the window [true]',
-    type     : 'boolean',
+    group: configOptionsGroup,
+    describe: 'Show the window [true]',
+    type: 'boolean',
 })
 
 optParser.options('background-throttling', {
-    group    : configOptionsGroup,
-    describe : 'Throttle animations when run in background [false]',
-    type     : 'boolean',
+    group: configOptionsGroup,
+    describe: 'Throttle animations when run in background [false]',
+    type: 'boolean',
 })
 
 optParser.options('backend', {
-    group    : configOptionsGroup,
-    describe : 'Start the backend process automatically [true]',
-    type     : 'boolean',
+    group: configOptionsGroup,
+    describe: 'Start the backend process automatically [true]',
+    type: 'boolean',
 })
 
 optParser.options('backend-path', {
-    group    : configOptionsGroup,
-    describe : 'Set the path of a local project manager to use for running projects',
+    group: configOptionsGroup,
+    describe: 'Set the path of a local project manager to use for running projects',
 })
 
 // === Debug Options ===
@@ -134,89 +126,87 @@ optParser.options('backend-path', {
 let debugOptionsGroup = 'Debug Options:'
 
 optParser.options('verbose', {
-    group    : debugOptionsGroup,
-    describe : `Increase logs verbosity. Affects both IDE and the backend.`,
-    default  : false,
-    type     : `boolean`
+    group: debugOptionsGroup,
+    describe: `Increase logs verbosity. Affects both IDE and the backend.`,
+    default: false,
+    type: `boolean`,
 })
 
 optParser.options('entry-point', {
-    group       : debugOptionsGroup,
-    describe    : 'Run an alternative entry point (e.g. one of the debug scenes)',
-//    requiresArg : true
+    group: debugOptionsGroup,
+    describe: 'Run an alternative entry point (e.g. one of the debug scenes)',
+    //    requiresArg : true
 })
 
 optParser.options('dev', {
-    group       : debugOptionsGroup,
-    describe    : 'Run the application in development mode',
+    group: debugOptionsGroup,
+    describe: 'Run the application in development mode',
 })
 
 optParser.options('devtron', {
-    group       : debugOptionsGroup,
-    describe    : 'Install the Devtron Developer Tools extension',
+    group: debugOptionsGroup,
+    describe: 'Install the Devtron Developer Tools extension',
 })
-
 
 // === Style Options ===
 
 let styleOptionsGroup = 'Style Options:'
 
 optParser.options('frame', {
-    group       : styleOptionsGroup,
-    describe    : 'Draw window frame. Defaults to `false` on MacOS and `true` otherwise.',
-    type        : `boolean`
+    group: styleOptionsGroup,
+    describe: 'Draw window frame. Defaults to `false` on MacOS and `true` otherwise.',
+    type: `boolean`,
 })
 
 optParser.options('vibrancy', {
-    group       : styleOptionsGroup,
-    describe    : 'Use the vibrancy effect',
-    default     : false,
-    type        : `boolean`
+    group: styleOptionsGroup,
+    describe: 'Use the vibrancy effect',
+    default: false,
+    type: `boolean`,
 })
 
 optParser.options('window-size', {
-    group       : styleOptionsGroup,
-    describe    : `Set the window size [${windowCfg.width}x${windowCfg.height}]`,
-    requiresArg : true
+    group: styleOptionsGroup,
+    describe: `Set the window size [${windowCfg.width}x${windowCfg.height}]`,
+    requiresArg: true,
 })
 
 optParser.options('theme', {
-    group       : styleOptionsGroup,
-    describe    : 'Use the provided theme. Defaults to `light`.',
-    type        : `string`
+    group: styleOptionsGroup,
+    describe: 'Use the provided theme. Defaults to `light`.',
+    type: `string`,
 })
 
 optParser.options('node-labels', {
-    group       : styleOptionsGroup,
-    describe    : 'Show node labels. Defaults to `true`.',
-    default     : true,
-    type        : `boolean`
+    group: styleOptionsGroup,
+    describe: 'Show node labels. Defaults to `true`.',
+    default: true,
+    type: `boolean`,
 })
-
 
 // === Other Options ===
 
 optParser.options('info', {
-    describe    : `Print the system debug info`,
+    describe: `Print the system debug info`,
 })
 
 optParser.options('version', {
-    describe    : `Print the version`,
+    describe: `Print the version`,
 })
 
 optParser.options('crash-report-host', {
-    describe    : 'The address of the server that will receive crash reports. ' +
-                  'Consists of a hostname, optionally followed by a ":" and a port number',
-    requiresArg : true,
-    default     : cfg.defaultLogServerHost
+    describe:
+        'The address of the server that will receive crash reports. ' +
+        'Consists of a hostname, optionally followed by a ":" and a port number',
+    requiresArg: true,
+    default: cfg.defaultLogServerHost,
 })
 
 optParser.options('data-gathering', {
-    describe    : 'Enable the sharing of any usage data',
-    type        : 'boolean',
-    default     : true
+    describe: 'Enable the sharing of any usage data',
+    type: 'boolean',
+    default: true,
 })
-
 
 // === Parsing ===
 
@@ -232,7 +222,7 @@ let args = parseCmdArgs()
 // borderless on Mac. See https://github.com/enso-org/ide/issues/1101 and
 // https://github.com/electron/electron/issues/3647 for details.
 if (args.frame === undefined) {
-    args.frame = (process.platform !== 'darwin')
+    args.frame = process.platform !== 'darwin'
 }
 
 if (args.theme === undefined) {
@@ -240,18 +230,16 @@ if (args.theme === undefined) {
 }
 
 if (args.windowSize) {
-    let size   = args.windowSize.split('x')
-    let width  = parseInt(size[0])
+    let size = args.windowSize.split('x')
+    let width = parseInt(size[0])
     let height = parseInt(size[1])
     if (isNaN(width) || isNaN(height)) {
         console.error(`Incorrect window size provided '${args.windowSize}'.`)
     } else {
-        windowCfg.width  = width
+        windowCfg.width = width
         windowCfg.height = height
     }
 }
-
-
 
 // ==================
 // === Debug Info ===
@@ -288,11 +276,9 @@ async function getDebugInfo() {
 
 async function printDebugInfo() {
     let info = await getDebugInfo()
-    console.log(JSON.stringify(info,undefined,4))
-    process.exit();
+    console.log(JSON.stringify(info, undefined, 4))
+    process.exit()
 }
-
-
 
 // ================
 // === Security ===
@@ -307,7 +293,9 @@ async function printDebugInfo() {
 /// security features. Follow the link to learn more:
 /// https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation
 function secureWebPreferences(webPreferences) {
-    if(!webPreferences) { webPreferences = {} }
+    if (!webPreferences) {
+        webPreferences = {}
+    }
     delete webPreferences.preload
     delete webPreferences.preloadURL
     delete webPreferences.nodeIntegration
@@ -325,8 +313,8 @@ function secureWebPreferences(webPreferences) {
 }
 
 let urlWhitelist = []
-Electron.app.on('web-contents-created', (event,contents) => {
-    contents.on('will-attach-webview', (event,webPreferences,params) => {
+Electron.app.on('web-contents-created', (event, contents) => {
+    contents.on('will-attach-webview', (event, webPreferences, params) => {
         secureWebPreferences(webPreferences)
         if (!urlWhitelist.includes(params.src)) {
             console.error(`Blocked the creation of WebView pointing to '${params.src}'`)
@@ -335,15 +323,14 @@ Electron.app.on('web-contents-created', (event,contents) => {
     })
 })
 
-
 // === Prevent Navigation ===
 
 /// Navigation is a common attack vector. If an attacker can convince your app to navigate away from
 /// its current page, they can possibly force your app to open web sites on the Internet. Follow the
 /// link to learn more:
 /// https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation
-Electron.app.on('web-contents-created', (event,contents) => {
-    contents.on('will-navigate', (event,navigationUrl) => {
+Electron.app.on('web-contents-created', (event, contents) => {
+    contents.on('will-navigate', (event, navigationUrl) => {
         const parsedUrl = new URL(navigationUrl)
         if (parsedUrl.origin !== origin && !trustedHosts.includes(parsedUrl.host)) {
             event.preventDefault()
@@ -352,7 +339,6 @@ Electron.app.on('web-contents-created', (event,contents) => {
     })
 })
 
-
 // === Disable New Windows Creation ===
 
 /// Much like navigation, the creation of new webContents is a common attack vector. Attackers
@@ -360,14 +346,12 @@ Electron.app.on('web-contents-created', (event,contents) => {
 /// more privileges than they had before or with pages opened that they couldn't open before.
 /// Follow the link to learn more:
 /// https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows
-Electron.app.on('web-contents-created', (event,contents) => {
-    contents.on('new-window', async (event,navigationUrl) => {
+Electron.app.on('web-contents-created', (event, contents) => {
+    contents.on('new-window', async (event, navigationUrl) => {
         event.preventDefault()
         console.error(`Blocking new window creation request to '${navigationUrl}'`)
     })
 })
-
-
 
 // =======================
 // === Project Manager ===
@@ -385,63 +369,63 @@ function projectManagerPath() {
 
 /**
  * Executes the Project Manager with given arguments.
- * 
+ *
  * Note that this function captures all the Project Manager output into a fixed
- * size buffer. If too much output is produced, it will fail and Project 
+ * size buffer. If too much output is produced, it will fail and Project
  * Manager process will prematurely close.
- * 
+ *
  * @param {string[]} args Project Manager command line arguments.
  * @returns Promise with captured standard output and error contents.
  */
 async function execProjectManager(args) {
     let binPath = projectManagerPath()
-    return await execFile(binPath,args).catch(function(err) {throw err})
+    return await execFile(binPath, args).catch(function (err) {
+        throw err
+    })
 }
 
 /**
  * Spawn process with Project Manager,
- * 
+ *
  * The standard output and error handles will be inherited, i.e. will be
  * redirected to the electron's app output and error handles. Input is piped
  * to this process, so it will not be closed, until this process finished.
- * 
- * @param {string[]} args 
+ *
+ * @param {string[]} args
  * @returns Handle to the spawned process.
  */
-function spawnProjectManager(args) { 
+function spawnProjectManager(args) {
     let binPath = projectManagerPath()
     let stdin = 'pipe'
     let stdout = 'inherit'
     let stderr = 'inherit'
     let opts = {
-        stdio: [stdin,stdout,stderr]
+        stdio: [stdin, stdout, stderr],
     }
-    let out = child_process.spawn(binPath,args,opts)
-    console.log(`Project Manager has been spawned, pid = ${out.pid}.`) 
-    out.on('exit', (code) => {
+    let out = child_process.spawn(binPath, args, opts)
+    console.log(`Project Manager has been spawned, pid = ${out.pid}.`)
+    out.on('exit', code => {
         console.log(`Project Manager exited with code ${code}.`)
     })
     return out
 }
 
 function runBackend() {
-    if(args.backend !== false) {
+    if (args.backend !== false) {
         let opts = args['--'] ? args['--'] : []
-        if(args.verbose === true) {
+        if (args.verbose === true) {
             opts.push('-vv')
         }
-        console.log("Starting the backend process with the following options:", opts)
+        console.log('Starting the backend process with the following options:', opts)
         return spawnProjectManager(opts)
     }
 }
 
 async function backendVersion() {
-    if(args.backend !== false) {
-        return await execProjectManager(['--version']).then((t) => t.stdout)
+    if (args.backend !== false) {
+        return await execProjectManager(['--version']).then(t => t.stdout)
     }
 }
-
-
 
 // ============
 // === Main ===
@@ -449,25 +433,25 @@ async function backendVersion() {
 
 let hideInsteadOfQuit = false
 
-let server     = null
+let server = null
 let mainWindow = null
-let origin     = null
+let origin = null
 
 async function main(args) {
     setUserAgent()
     runBackend()
-    console.log("Starting the IDE service.")
-    if(args.server !== false) {
-        let serverCfg      = Object.assign({},args)
-        serverCfg.dir      = root
+    console.log('Starting the IDE service.')
+    if (args.server !== false) {
+        let serverCfg = Object.assign({}, args)
+        serverCfg.dir = root
         serverCfg.fallback = '/assets/index.html'
-        server             = await Server.create(serverCfg)
-        origin             = `http://localhost:${server.port}`
+        server = await Server.create(serverCfg)
+        origin = `http://localhost:${server.port}`
     }
-    if(args.window !== false) {
-        console.log("Starting the IDE client.")
+    if (args.window !== false) {
+        console.log('Starting the IDE client.')
         mainWindow = createWindow()
-        mainWindow.on("close", (evt) => {
+        mainWindow.on('close', evt => {
             if (hideInsteadOfQuit) {
                 evt.preventDefault()
                 mainWindow.hide()
@@ -495,23 +479,23 @@ function urlParamsFromObject(obj) {
         let val = obj[key]
         params.push(`${key}=${val}`)
     }
-    return params.join("&")
+    return params.join('&')
 }
 
 function createWindow() {
-    let webPreferences     = secureWebPreferences()
-    webPreferences.preload = path.join(root,'preload.js')
+    let webPreferences = secureWebPreferences()
+    webPreferences.preload = path.join(root, 'preload.js')
 
-    let windowPreferences  = {
-        webPreferences       : webPreferences,
-        width                : windowCfg.width,
-        height               : windowCfg.height,
-        frame                : args.frame,
-        devTools             : false,
-        sandbox              : true,
-        backgroundThrottling : false,
-        transparent          : false,
-        titleBarStyle        : 'default'
+    let windowPreferences = {
+        webPreferences: webPreferences,
+        width: windowCfg.width,
+        height: windowCfg.height,
+        frame: args.frame,
+        devTools: false,
+        sandbox: true,
+        backgroundThrottling: false,
+        transparent: false,
+        titleBarStyle: 'default',
     }
 
     if (args.dev) {
@@ -539,21 +523,25 @@ function createWindow() {
     }
 
     let urlCfg = {
-        platform          : process.platform,
-        frame             : args.frame,
-        theme             : args.theme,
-        dark_theme        : Electron.nativeTheme.shouldUseDarkColors,
-        high_contrast     : Electron.nativeTheme.shouldUseHighContrastColors,
-        crash_report_host : args.crashReportHost,
-        data_gathering    : args.dataGathering,
-        node_labels       : args.nodeLabels,
-        verbose           : args.verbose,
+        platform: process.platform,
+        frame: args.frame,
+        theme: args.theme,
+        dark_theme: Electron.nativeTheme.shouldUseDarkColors,
+        high_contrast: Electron.nativeTheme.shouldUseHighContrastColors,
+        crash_report_host: args.crashReportHost,
+        data_gathering: args.dataGathering,
+        node_labels: args.nodeLabels,
+        verbose: args.verbose,
     }
 
-    if (args.project)    { urlCfg.project = args.project }
-    if (args.entryPoint) { urlCfg.entry   = args.entryPoint }
+    if (args.project) {
+        urlCfg.project = args.project
+    }
+    if (args.entryPoint) {
+        urlCfg.entry = args.entryPoint
+    }
 
-    let params  = urlParamsFromObject(urlCfg)
+    let params = urlParamsFromObject(urlCfg)
     let address = `${origin}?${params}`
 
     console.log(`Loading the window address ${address}`)
@@ -566,15 +554,13 @@ function createWindow() {
 /// want to assume the very opposite. Follow the link to learn more:
 // https://www.electronjs.org/docs/tutorial/security#4-handle-session-permission-requests-from-remote-content
 function setupPermissions() {
-    Electron.session.defaultSession.setPermissionRequestHandler (
-        (webContents,permission,callback) => {
+    Electron.session.defaultSession.setPermissionRequestHandler(
+        (webContents, permission, callback) => {
             const url = webContents.getURL()
             console.error(`Unhandled permission request '${permission}'.`)
         }
     )
 }
-
-
 
 // ==============
 // === Events ===
@@ -588,7 +574,7 @@ Electron.app.on('activate', () => {
 
 Electron.app.on('ready', () => {
     if (args.version) {
-        let indent     = ' '.repeat(4)
+        let indent = ' '.repeat(4)
         let maxNameLen = 0
         for (let name in versionInfo) {
             if (name.length > maxNameLen) {
@@ -596,16 +582,16 @@ Electron.app.on('ready', () => {
             }
         }
 
-        console.log("Frontend:")
+        console.log('Frontend:')
         for (let name in versionInfo) {
-            let label   = capitalizeFirstLetter(name)
+            let label = capitalizeFirstLetter(name)
             let spacing = ' '.repeat(maxNameLen - name.length)
             console.log(`${indent}${label}:${spacing} ${versionInfo[name]}`)
         }
 
-        console.log("")
-        console.log("Backend:")
-        backendVersion().then((backend) => {
+        console.log('')
+        console.log('Backend:')
+        backendVersion().then(backend => {
             if (!backend) {
                 console.log(`${indent}No backend available.`)
             } else {
@@ -625,12 +611,10 @@ Electron.app.on('ready', () => {
 
 if (process.platform === 'darwin') {
     hideInsteadOfQuit = true
-    Electron.app.on('before-quit', function() {
+    Electron.app.on('before-quit', function () {
         hideInsteadOfQuit = false
     })
 }
-
-
 
 // =================
 // === Shortcuts ===
@@ -638,7 +622,7 @@ if (process.platform === 'darwin') {
 
 Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) => {
     webContents.on('before-input-event', (beforeInputEvent, input) => {
-        const {code,alt,control,shift,meta,type} = input
+        const { code, alt, control, shift, meta, type } = input
         if (type !== 'keyDown') {
             return
         }
@@ -649,19 +633,19 @@ Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) =
             Electron.BrowserWindow.getFocusedWindow().reload()
         }
 
-        let cmd_q       =  meta && !control && !alt && !shift && code === 'KeyQ'
-        let ctrl_q      = !meta &&  control && !alt && !shift && code === 'KeyQ'
-        let alt_f4      = !meta && !control &&  alt && !shift && code === 'F4'
-        let ctrl_w      = !meta &&  control && !alt && !shift && code === 'KeyW'
+        let cmd_q = meta && !control && !alt && !shift && code === 'KeyQ'
+        let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
+        let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
+        let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
         let quit_on_mac = process.platform == 'darwin' && (cmd_q || alt_f4)
-        let quit_on_win = process.platform == 'win32'  && (alt_f4 || ctrl_w)
-        let quit_on_lin = process.platform == 'linux'  && (alt_f4 || ctrl_q || ctrl_w)
-        let quit        = quit_on_mac || quit_on_win || quit_on_lin
-        if (quit) { Electron.app.quit() }
+        let quit_on_win = process.platform == 'win32' && (alt_f4 || ctrl_w)
+        let quit_on_lin = process.platform == 'linux' && (alt_f4 || ctrl_q || ctrl_w)
+        let quit = quit_on_mac || quit_on_win || quit_on_lin
+        if (quit) {
+            Electron.app.quit()
+        }
     })
 })
-
-
 
 // =============================
 // === Deprecations & Fixmes ===

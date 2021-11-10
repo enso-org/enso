@@ -7,7 +7,7 @@ use crate::prelude::*;
 
 use crate::constants::VISUALIZATION_DIRECTORY;
 
-use enso_protocol::language_server;
+use engine_protocol::language_server;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::definition;
 use std::rc::Rc;
@@ -173,8 +173,8 @@ impl Handle {
 mod tests {
     use super::*;
 
-    use enso_protocol::language_server::FileSystemObject;
-    use enso_protocol::language_server::Path;
+    use engine_protocol::language_server::FileSystemObject;
+    use engine_protocol::language_server::Path;
     use ide_view::graph_editor::builtin;
     use ide_view::graph_editor::component::visualization;
     use ide_view::graph_editor::component::visualization::java_script as js_vis;

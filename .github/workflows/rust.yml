@@ -160,8 +160,7 @@ jobs:
           WASMPACKURL:
             https://github.com/rustwasm/wasm-pack/releases/download/v${{
             env.wasmpackVersion }}
-          WASMPACKDIR:
-            wasm-pack-v${{ env.wasmpackVersion }}-x86_64-unknown-linux-musl
+          WASMPACKDIR: wasm-pack-v${{ env.wasmpackVersion }}-x86_64-unknown-linux-musl
         shell: bash
         run: |
           curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .

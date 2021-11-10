@@ -2,13 +2,15 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionInfo;
-use crate::double_representation::definition::DefinitionProvider;
-use crate::double_representation::node;
-use crate::double_representation::node::LocatedNode;
-use crate::double_representation::node::NodeInfo;
+use crate::connection;
+use crate::connection::Connection;
+use crate::definition;
+use crate::definition::DefinitionInfo;
+use crate::definition::DefinitionProvider;
+use crate::node;
+use crate::node::LocatedNode;
+use crate::node::NodeInfo;
 
-use crate::double_representation::connection::Connection;
 use ast::known;
 use ast::Ast;
 use ast::BlockLine;
@@ -16,7 +18,7 @@ use utils::fail::FallibleResult;
 
 
 /// Graph uses the same `Id` as the definition which introduces the graph.
-pub type Id = double_representation::definition::Id;
+pub type Id = definition::Id;
 
 
 
@@ -52,9 +54,9 @@ pub struct GraphInfo {
 
 impl GraphInfo {
     /// Look for a node with given id in the graph.
-    pub fn locate_node(&self, id: double_representation::node::Id) -> FallibleResult<LocatedNode> {
+    pub fn locate_node(&self, id: node::Id) -> FallibleResult<LocatedNode> {
         let lines = self.source.block_lines();
-        double_representation::node::locate(&lines, self.source.context_indent, id)
+        node::locate(&lines, self.source.context_indent, id)
     }
 
     /// Describe graph of the given definition.
@@ -90,7 +92,7 @@ impl GraphInfo {
 
     /// Gets the list of connections between the nodes in this graph.
     pub fn connections(&self) -> Vec<Connection> {
-        double_representation::connection::list(&self.source.ast.rarg)
+        connection::list(&self.source.ast.rarg)
     }
 
     /// Adds a new node to this graph.
@@ -122,7 +124,7 @@ impl GraphInfo {
     /// After removing last node, we want to insert a placeholder value for definition value.
     /// This defines its AST. Currently it is just `Nothing`.
     pub fn empty_graph_body() -> Ast {
-        Ast::cons(constants::keywords::NOTHING).with_new_id()
+        Ast::cons(ast::constants::keywords::NOTHING).with_new_id()
     }
 
     /// Removes the node from graph.
@@ -199,9 +201,9 @@ impl GraphInfo {
 mod tests {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionName;
-    use crate::double_representation::definition::DefinitionProvider;
-    use crate::double_representation::module::get_definition;
+    use crate::definition::DefinitionName;
+    use crate::definition::DefinitionProvider;
+    use crate::module::get_definition;
 
     use ast::macros::DocumentationCommentInfo;
     use ast::test_utils::expect_single_line;
@@ -456,7 +458,7 @@ main =
         DEBUG!("zz");
 
         let (node,) = graph.nodes().expect_tuple();
-        assert_eq!(node.expression().repr(), constants::keywords::NOTHING);
+        assert_eq!(node.expression().repr(), ast::constants::keywords::NOTHING);
         graph.expect_code("main = Nothing");
     }
 

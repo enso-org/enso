@@ -12,10 +12,10 @@ use crate::controller::project::CONFIG;
 use crate::ide::initializer;
 use crate::notification;
 
-use enso_protocol::project_manager;
-use enso_protocol::project_manager::MissingComponentAction;
-use enso_protocol::project_manager::ProjectMetadata;
-use enso_protocol::project_manager::ProjectName;
+use engine_protocol::project_manager;
+use engine_protocol::project_manager::MissingComponentAction;
+use engine_protocol::project_manager::ProjectMetadata;
+use engine_protocol::project_manager::ProjectName;
 use parser::Parser;
 
 

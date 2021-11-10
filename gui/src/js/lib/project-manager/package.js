@@ -1,6 +1,6 @@
 let config = {
     name: 'enso-studio-project-manager',
-    version: "1.0.0",
+    version: '1.0.0',
     scripts: {
         build: 'npx ts-node src/build.ts',
     },

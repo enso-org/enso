@@ -29,7 +29,6 @@
 pub mod config;
 pub mod constants;
 pub mod controller;
-pub mod double_representation;
 pub mod executor;
 pub mod ide;
 pub mod model;
@@ -60,14 +59,13 @@ pub mod prelude {
 
     pub use crate::constants;
     pub use crate::controller;
-    pub use crate::double_representation;
     pub use crate::executor;
     pub use crate::model;
     pub use crate::model::traits::*;
 
-    pub use enso_protocol::prelude::BoxFuture;
-    pub use enso_protocol::prelude::StaticBoxFuture;
-    pub use enso_protocol::prelude::StaticBoxStream;
+    pub use engine_protocol::prelude::BoxFuture;
+    pub use engine_protocol::prelude::StaticBoxFuture;
+    pub use engine_protocol::prelude::StaticBoxStream;
 
     pub use futures::task::LocalSpawnExt;
     pub use futures::Future;
@@ -76,9 +74,6 @@ pub mod prelude {
     pub use futures::StreamExt;
 
     pub use std::ops::Range;
-
-    pub use utils::fail::FallibleResult;
-    pub use utils::vec::VecExt;
 
     pub use uuid::Uuid;
 

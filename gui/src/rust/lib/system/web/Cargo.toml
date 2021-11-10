@@ -10,9 +10,9 @@ edition = "2018"
 default = ["console_error_panic_hook"]
 
 [dependencies]
-enso-data = { version = "0.2.0" }
-enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.6" }
+enso-data = { path = "../../../../../../lib/rust/data" }
+enso-logger = { path = "../../../../../../lib/rust/logger" }
+enso-prelude = { path = "../../../../../../lib/rust/prelude" }
 console_error_panic_hook = { version = "0.1.1", optional = true }
 failure = { version = "0.1.5" }
 gloo-timers = { version = "0.2.1", features = ["futures"] }

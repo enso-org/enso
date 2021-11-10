@@ -4,11 +4,11 @@
 mod tests {
     use ide::prelude::*;
 
-    use enso_protocol::project_manager::Client;
-    use enso_protocol::project_manager::API;
+    use engine_protocol::project_manager::Client;
+    use engine_protocol::project_manager::API;
     use ide::transport::web::WebSocket;
 
-    use enso_protocol::project_manager::MissingComponentAction::Install;
+    use engine_protocol::project_manager::MissingComponentAction::Install;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);

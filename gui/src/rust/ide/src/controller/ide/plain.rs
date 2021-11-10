@@ -7,10 +7,10 @@ use crate::prelude::*;
 use crate::controller::ide::ManagingProjectAPI;
 use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
-use crate::double_representation::project;
 use crate::model::project::synchronized::Properties;
 
-use enso_protocol::project_manager::ProjectName;
+use double_representation::project;
+use engine_protocol::project_manager::ProjectName;
 use parser::Parser;
 
 

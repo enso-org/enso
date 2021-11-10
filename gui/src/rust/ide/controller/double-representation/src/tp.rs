@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::identifier::ReferentName;
-use crate::double_representation::module;
-use crate::double_representation::project;
+use crate::identifier::ReferentName;
+use crate::module;
+use crate::project;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -152,7 +152,7 @@ impl Display for QualifiedName {
 mod test {
     use super::*;
 
-    use crate::double_representation::tp::QualifiedName;
+    use crate::tp::QualifiedName;
 
 
     #[test]

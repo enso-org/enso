@@ -5,10 +5,10 @@ use crate::prelude::*;
 use crate::controller::graph::NewNodeInfo;
 use crate::controller::upload::pick_non_colliding_name;
 
+use engine_protocol::language_server;
+use engine_protocol::language_server::ContentRoot;
+use engine_protocol::language_server::FileSystemObject;
 use enso_frp as frp;
-use enso_protocol::language_server;
-use enso_protocol::language_server::ContentRoot;
-use enso_protocol::language_server::FileSystemObject;
 use ensogl_gui_components::file_browser::model::Entry;
 use ensogl_gui_components::file_browser::model::EntryType;
 use ensogl_gui_components::file_browser::model::FolderContent;

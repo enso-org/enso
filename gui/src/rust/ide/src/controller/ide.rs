@@ -10,8 +10,8 @@ use crate::prelude::*;
 
 use crate::notification;
 
-pub use enso_protocol::project_manager::ProjectMetadata;
-pub use enso_protocol::project_manager::ProjectName;
+pub use engine_protocol::project_manager::ProjectMetadata;
+pub use engine_protocol::project_manager::ProjectName;
 use mockall::automock;
 use parser::Parser;
 

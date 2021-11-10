@@ -827,10 +827,10 @@ impl Display for Type {
 //  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
 //  future, once code organization and emerging patterns are more clear.
 #[derive(Clone, Debug, Shrinkwrap, PartialEq, Eq)]
-pub struct MethodPointer(pub Rc<enso_protocol::language_server::MethodPointer>);
+pub struct MethodPointer(pub Rc<engine_protocol::language_server::MethodPointer>);
 
-impl From<enso_protocol::language_server::MethodPointer> for MethodPointer {
-    fn from(method_pointer: enso_protocol::language_server::MethodPointer) -> Self {
+impl From<engine_protocol::language_server::MethodPointer> for MethodPointer {
+    fn from(method_pointer: engine_protocol::language_server::MethodPointer) -> Self {
         Self(Rc::new(method_pointer))
     }
 }
@@ -847,7 +847,7 @@ impl From<enso_protocol::language_server::MethodPointer> for MethodPointer {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalCall {
     /// An expression being a call to a method.
-    pub call:       enso_protocol::language_server::ExpressionId,
+    pub call:       engine_protocol::language_server::ExpressionId,
     /// A pointer to the called method.
     pub definition: MethodPointer,
 }

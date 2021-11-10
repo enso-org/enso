@@ -3,18 +3,18 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::module;
-use crate::double_representation::project;
 use crate::executor::test_utils::TestWithLocalPoolExecutor;
 use crate::model::suggestion_database;
 use crate::model::undo_redo;
 
+use double_representation::module;
+use double_representation::project;
+use engine_protocol::binary;
+use engine_protocol::language_server;
+use engine_protocol::language_server::CapabilityRegistration;
+use engine_protocol::types::Sha3_224;
 use enso_frp::data::bitfield::BitField;
 use enso_frp::data::bitfield::BitField32;
-use enso_protocol::binary;
-use enso_protocol::language_server;
-use enso_protocol::language_server::CapabilityRegistration;
-use enso_protocol::types::Sha3_224;
 use json_rpc::expect_call;
 use utils::test::traits::*;
 
@@ -31,7 +31,7 @@ pub mod mock {
     pub mod data {
         use super::*;
 
-        use enso_protocol::language_server::Position;
+        use engine_protocol::language_server::Position;
         use uuid::Uuid;
 
         pub const ROOT_ID: Uuid = Uuid::from_u128(100);
@@ -56,12 +56,12 @@ pub mod mock {
             module_path().qualified_module_name(project_qualified_name())
         }
 
-        pub fn definition_name() -> crate::double_representation::definition::DefinitionName {
-            crate::double_representation::definition::DefinitionName::new_plain(DEFINITION_NAME)
+        pub fn definition_name() -> double_representation::definition::DefinitionName {
+            double_representation::definition::DefinitionName::new_plain(DEFINITION_NAME)
         }
 
-        pub fn graph_id() -> crate::double_representation::graph::Id {
-            crate::double_representation::graph::Id::new_plain_name(DEFINITION_NAME)
+        pub fn graph_id() -> double_representation::graph::Id {
+            double_representation::graph::Id::new_plain_name(DEFINITION_NAME)
         }
 
         pub fn foo_method_parameter() -> suggestion_database::entry::Argument {
@@ -202,8 +202,8 @@ pub mod mock {
             double_representation::definition::Id::new_single_crumb(self.root_definition.clone())
         }
 
-        pub fn method_pointer(&self) -> enso_protocol::language_server::MethodPointer {
-            enso_protocol::language_server::MethodPointer {
+        pub fn method_pointer(&self) -> engine_protocol::language_server::MethodPointer {
+            engine_protocol::language_server::MethodPointer {
                 module:          self.module_qualified_name().to_string(),
                 defined_on_type: self.module_qualified_name().to_string(),
                 name:            self.root_definition.to_string(),
@@ -326,7 +326,7 @@ pub mod mock {
         /// Register an expectation that the module described by this mock data will be opened.
         pub fn expect_opening_module(
             &self,
-            client: &mut enso_protocol::language_server::MockClient,
+            client: &mut engine_protocol::language_server::MockClient,
         ) {
             let content = self.code.clone();
             let current_version = Sha3_224::new(content.as_bytes());
@@ -345,7 +345,7 @@ pub mod mock {
         /// Register an expectation that the module described by this mock data will be closed.
         pub fn expect_closing_module(
             &self,
-            client: &mut enso_protocol::language_server::MockClient,
+            client: &mut engine_protocol::language_server::MockClient,
         ) {
             let path = self.module_path.file_path().clone();
             expect_call!(client.close_text_file(path=path) => Ok(()));

@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::identifier::LocatedName;
-use crate::double_representation::identifier::NormalizedName;
-use crate::double_representation::test_utils::MarkdownProcessor;
+use crate::identifier::LocatedName;
+use crate::identifier::NormalizedName;
+use crate::test_utils::MarkdownProcessor;
 
 use regex::Captures;
 use regex::Regex;

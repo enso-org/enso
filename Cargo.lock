@@ -76,7 +76,7 @@ dependencies = [
  "clap",
  "itertools 0.10.0",
  "proc-macro2 1.0.26",
- "syn 1.0.72",
+ "syn",
  "uuid",
 ]
 
@@ -353,7 +353,7 @@ checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
 ]
 
 [[package]]
@@ -364,7 +364,7 @@ checksum = "41cb0e6161ad61ed084a36ba71fbba9e3ac5aee3606fb607fe08da6acbcf3d8c"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
 ]
 
 [[package]]
@@ -383,16 +383,7 @@ checksum = "1056f553da426e9c025a662efa48b52e62e0a3a7648aa2d15aeaaf7f0d329357"
 name = "enso-automata"
 version = "0.2.0"
 dependencies = [
- "enso-prelude 0.2.6",
-]
-
-[[package]]
-name = "enso-automata"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9b028792f442d36cdd2df02a29ef988c219a9ebce952015bb1c2bcb5942d261"
-dependencies = [
- "enso-prelude 0.2.0",
+ "enso-prelude",
 ]
 
 [[package]]
@@ -400,7 +391,7 @@ name = "enso-data"
 version = "0.2.0"
 dependencies = [
  "criterion",
- "enso-prelude 0.2.6",
+ "enso-prelude",
  "itertools 0.9.0",
  "rustversion",
  "serde",
@@ -408,51 +399,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-data"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39dba144366e08671b102fd6feca76be1623e05816a3ba43ab05b2aaa45a625a"
-dependencies = [
- "enso-prelude 0.2.0",
- "rustversion",
- "serde",
- "typenum",
-]
-
-[[package]]
-name = "enso-flexer"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b9c223330c46c505fed7c47894a22930eeacaa71fd914787754ee55baf8dd9a"
-dependencies = [
- "enso-automata 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-lazy-reader 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-logger 0.3.0",
- "enso-macro-utils 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.2.0",
- "itertools 0.8.2",
- "nonempty",
- "proc-macro2 1.0.26",
- "quote 1.0.8",
- "syn 1.0.72",
- "unicode-segmentation",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "enso-flexer"
 version = "0.2.1"
 dependencies = [
- "enso-automata 0.2.0",
- "enso-lazy-reader 0.2.0",
- "enso-logger 0.3.1",
- "enso-macro-utils 0.2.0",
- "enso-prelude 0.2.6",
+ "enso-automata",
+ "enso-lazy-reader",
+ "enso-logger",
+ "enso-macro-utils",
+ "enso-prelude",
  "itertools 0.8.2",
  "nonempty",
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "unicode-segmentation",
  "wasm-bindgen",
  "wasm-bindgen-test",
@@ -470,39 +429,16 @@ dependencies = [
 name = "enso-lazy-reader"
 version = "0.2.0"
 dependencies = [
- "enso-prelude 0.2.6",
+ "enso-prelude",
  "itertools 0.8.2",
-]
-
-[[package]]
-name = "enso-lazy-reader"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b8cd22a53732103872eef4f1acbec0920ced09efb336fb06740a898d9762523"
-dependencies = [
- "enso-prelude 0.2.0",
- "itertools 0.8.2",
-]
-
-[[package]]
-name = "enso-logger"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fed27bf8ac2768a9224fd66863de4384b42bf16e079e02dd507798ce71dd4d2d"
-dependencies = [
- "enso-prelude 0.2.0",
- "enso-shapely 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
 name = "enso-logger"
 version = "0.3.1"
 dependencies = [
- "enso-prelude 0.2.6",
- "enso-shapely 0.2.0",
+ "enso-prelude",
+ "enso-shapely",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
@@ -514,55 +450,15 @@ version = "0.2.0"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "enso-macro-utils"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64e4c3aca9d82b782043ad1378929e03813ee00e444858caddd6ec32580eff08"
-dependencies = [
- "proc-macro2 1.0.26",
- "quote 1.0.8",
- "syn 1.0.72",
 ]
 
 [[package]]
 name = "enso-optics"
 version = "0.2.0"
 dependencies = [
- "enso-prelude 0.2.6",
-]
-
-[[package]]
-name = "enso-prelude"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8db3cd4b9ac308f393eed97f3539b8e81ece4d93a384cdfb10c109e56f1f61e3"
-dependencies = [
- "anyhow",
- "backtrace",
- "boolinator",
- "bumpalo",
- "derivative",
- "derive_more",
- "enclose",
- "enso-shapely 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "failure",
- "ifmt 0.2.0",
- "itertools 0.8.2",
- "lazy_static",
- "nalgebra 0.21.1",
- "num 0.2.1",
- "object 0.21.1",
- "paste 0.1.18",
- "shrinkwraprs",
- "smallvec",
- "wasm-bindgen",
- "weak-table 0.2.4",
- "web-sys",
+ "enso-prelude",
 ]
 
 [[package]]
@@ -578,13 +474,13 @@ dependencies = [
  "derivative",
  "derive_more",
  "enclose",
- "enso-shapely 0.2.0",
+ "enso-shapely",
  "failure",
- "ifmt 0.3.3",
+ "ifmt",
  "itertools 0.10.0",
  "lazy_static",
  "nalgebra 0.26.2",
- "num 0.4.0",
+ "num",
  "object 0.24.0",
  "paste 1.0.5",
  "serde",
@@ -592,7 +488,7 @@ dependencies = [
  "smallvec",
  "wasm-bindgen",
  "wasm-bindgen-test",
- "weak-table 0.3.0",
+ "weak-table",
  "web-sys",
 ]
 
@@ -601,25 +497,12 @@ name = "enso-shapely"
 version = "0.2.0"
 dependencies = [
  "derivative",
- "enso-prelude 0.2.6",
- "enso-shapely-macros 0.2.1",
+ "enso-prelude",
+ "enso-shapely-macros",
  "paste 0.1.18",
  "rustversion",
  "shrinkwraprs",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "enso-shapely"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "061a335e6068e8960a315f62813a7196c3cde2c650ebd0e744f26b479baf3cd8"
-dependencies = [
- "derivative",
- "enso-shapely-macros 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "paste 0.1.18",
- "rustversion",
- "shrinkwraprs",
 ]
 
 [[package]]
@@ -628,27 +511,12 @@ version = "0.2.1"
 dependencies = [
  "Inflector",
  "boolinator",
- "enso-macro-utils 0.2.0",
+ "enso-macro-utils",
  "itertools 0.8.2",
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "enso-shapely-macros"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3362771ca6e5a077479ae310c28e28abb56f4f62f2fe649719292227685dece0"
-dependencies = [
- "Inflector",
- "boolinator",
- "enso-macro-utils 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "itertools 0.8.2",
- "proc-macro2 1.0.26",
- "quote 1.0.8",
- "syn 1.0.72",
 ]
 
 [[package]]
@@ -669,7 +537,7 @@ checksum = "aa4da3c766cd7a0db8242e326e9e4e081edd567072893ed320008189715366a4"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "synstructure",
 ]
 
@@ -689,14 +557,14 @@ dependencies = [
 name = "flexer-test-definition"
 version = "0.1.0"
 dependencies = [
- "enso-flexer 0.2.1",
+ "enso-flexer",
 ]
 
 [[package]]
 name = "flexer-test-generation"
 version = "0.1.0"
 dependencies = [
- "enso-flexer 0.2.1",
+ "enso-flexer",
  "flexer-test-definition",
 ]
 
@@ -760,36 +628,12 @@ dependencies = [
 
 [[package]]
 name = "ifmt"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abec215007c2ef1ccfb17a6bae6a87736fedb573860d2606ddec08b427666164"
-dependencies = [
- "ifmt-impl 0.2.0",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "ifmt"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dd0f8e1404f15475d8a2ca84c2942aa00ac17804ce555294a96f6b5cdf80750"
 dependencies = [
- "ifmt-impl 0.3.3",
+ "ifmt-impl",
  "proc-macro-hack",
-]
-
-[[package]]
-name = "ifmt-impl"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "744691ef283c5d8d4321f75cfa0e3b460b5adf3338bb7dcfd060f33e40300072"
-dependencies = [
- "lazy_static",
- "proc-macro-hack",
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "regex",
- "syn 0.15.44",
 ]
 
 [[package]]
@@ -803,7 +647,7 @@ dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
  "regex",
- "syn 1.0.72",
+ "syn",
 ]
 
 [[package]]
@@ -883,8 +727,8 @@ name = "lexer"
 version = "0.1.0"
 dependencies = [
  "criterion",
- "enso-flexer 0.2.0",
- "enso-prelude 0.2.0",
+ "enso-flexer",
+ "enso-prelude",
  "lexer-definition",
 ]
 
@@ -892,8 +736,8 @@ dependencies = [
 name = "lexer-definition"
 version = "0.1.0"
 dependencies = [
- "enso-flexer 0.2.0",
- "enso-prelude 0.2.0",
+ "enso-flexer",
+ "enso-prelude",
  "uuid",
 ]
 
@@ -1014,40 +858,15 @@ checksum = "4f962080273ac958f790079cfc886b5b9d722969dbd7b03f473902bdfe5c69b1"
 
 [[package]]
 name = "num"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8536030f9fea7127f841b45bb6243b27255787fb4eb83958aa1ef9d2fdc0c36"
-dependencies = [
- "num-bigint 0.2.6",
- "num-complex 0.2.4",
- "num-integer",
- "num-iter",
- "num-rational 0.2.4",
- "num-traits",
-]
-
-[[package]]
-name = "num"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43db66d1170d347f9a065114077f7dccb00c1b9478c89384490a3425279a4606"
 dependencies = [
- "num-bigint 0.4.2",
+ "num-bigint",
  "num-complex 0.4.0",
  "num-integer",
  "num-iter",
  "num-rational 0.4.0",
- "num-traits",
-]
-
-[[package]]
-name = "num-bigint"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "090c7f9998ee0ff65aa5b723e4009f7b217707f1fb5ea551329cc4d6231fb304"
-dependencies = [
- "autocfg",
- "num-integer",
  "num-traits",
 ]
 
@@ -1119,7 +938,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c000134b5dbf44adc5cb772486d335293351644b801551abe8f75c84cfa4aef"
 dependencies = [
  "autocfg",
- "num-bigint 0.2.6",
  "num-integer",
  "num-traits",
 ]
@@ -1142,7 +960,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d41702bd167c2df5520b384281bc111a4b5efcf7fbc4c9c222c815b07e0a6a6a"
 dependencies = [
  "autocfg",
- "num-bigint 0.4.2",
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -1172,10 +990,6 @@ name = "object"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37fd5004feb2ce328a52b0b3d01dbf4ffff72583493900ed15f22d4111c51693"
-dependencies = [
- "flate2",
- "wasmparser",
-]
 
 [[package]]
 name = "object"
@@ -1197,9 +1011,9 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "criterion",
- "enso-data 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-logger 0.3.0",
- "enso-prelude 0.2.0",
+ "enso-data",
+ "enso-logger",
+ "enso-prelude",
  "itertools 0.10.0",
  "lexer",
 ]
@@ -1495,7 +1309,7 @@ checksum = "d7bc1a1ab1961464eae040d96713baa5a724a8152c1222492465b54322ec508b"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
 ]
 
 [[package]]
@@ -1519,7 +1333,7 @@ dependencies = [
  "itertools 0.8.2",
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
 ]
 
 [[package]]
@@ -1566,17 +1380,6 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "0.15.44"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ca4b3b69a77cbe1ffc9e198781b7acb0c7365a883670e8f1c1bc66fba79a5c5"
-dependencies = [
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "unicode-xid 0.1.0",
-]
-
-[[package]]
-name = "syn"
 version = "1.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1e8cdbefb79a9a5a65e0db8b47b723ee907b7c7f8496c76a1770b5c310bab82"
@@ -1594,7 +1397,7 @@ checksum = "b834f2d66f734cb897113e34aaff2f1ab4719ca946f9a7358dba8f8064148701"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "unicode-xid 0.2.1",
 ]
 
@@ -1624,7 +1427,7 @@ checksum = "7765189610d8241a44529806d6fd1f2e0a08734313a35d5b3a556f92b381f3c0"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
 ]
 
 [[package]]
@@ -1736,7 +1539,7 @@ dependencies = [
  "log",
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "wasm-bindgen-shared",
 ]
 
@@ -1771,7 +1574,7 @@ checksum = "e85031354f25eaebe78bb7db1c3d86140312a911a106b2e29f9cc440ce3e7668"
 dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -1818,22 +1621,10 @@ dependencies = [
  "log",
  "proc-macro2 1.0.26",
  "quote 1.0.8",
- "syn 1.0.72",
+ "syn",
  "wasm-bindgen-backend",
  "weedle",
 ]
-
-[[package]]
-name = "wasmparser"
-version = "0.57.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32fddd575d477c6e9702484139cf9f23dcd554b06d185ed0f56c857dd3a47aa6"
-
-[[package]]
-name = "weak-table"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78e37715e810547b2ae9b6980b25bef319cb779d6c42faa8010ba47e83178113"
 
 [[package]]
 name = "weak-table"

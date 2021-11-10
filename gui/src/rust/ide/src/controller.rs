@@ -30,4 +30,4 @@ pub use visualization::Handle as Visualization;
 // ============
 
 /// Path to a file on disc, used across all controllers
-pub type FilePath = enso_protocol::language_server::Path;
+pub type FilePath = engine_protocol::language_server::Path;

@@ -2,7 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::LineKind;
+use crate::LineKind;
+use crate::INDENT;
 
 use ast::crumbs::ChildAst;
 use ast::crumbs::Crumbable;
@@ -431,7 +432,7 @@ impl DefinitionProvider for DefinitionInfo {
             // returned value here is not used anywhere currently. Might matter in the future,
             // when we deal with lambdas. Anyway, whatever block we might introduce, it should
             // be more indented than our current context.
-            _ => self.context_indent + double_representation::INDENT,
+            _ => self.context_indent + INDENT,
         }
     }
 
@@ -511,7 +512,7 @@ impl ToAdd {
             self.body_head.clone_ref()
         } else {
             let mut block = ast::Block::from_lines(&self.body_head, &self.body_tail);
-            block.indent = scope_indent + double_representation::INDENT;
+            block.indent = scope_indent + INDENT;
             Ast::from(block)
         }
     }
@@ -542,8 +543,8 @@ impl ToAdd {
 mod tests {
     use super::*;
 
-    use crate::double_representation::module;
-    use crate::double_representation::INDENT;
+    use crate::module;
+    use crate::INDENT;
 
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;

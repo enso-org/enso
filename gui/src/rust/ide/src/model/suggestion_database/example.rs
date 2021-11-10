@@ -1,10 +1,9 @@
 //! A module with structures related to examples found in Suggestion Database.
 use crate::prelude::*;
 
-use crate::double_representation::definition;
-use crate::double_representation::definition::DefinitionName;
-use crate::double_representation::module;
-
+use double_representation::definition;
+use double_representation::definition::DefinitionName;
+use double_representation::module;
 use parser::Parser;
 
 

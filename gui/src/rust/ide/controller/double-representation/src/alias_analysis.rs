@@ -3,10 +3,10 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionInfo;
-use crate::double_representation::definition::ScopeKind;
-use crate::double_representation::identifier::LocatedName;
-use crate::double_representation::identifier::NormalizedName;
+use crate::definition::DefinitionInfo;
+use crate::definition::ScopeKind;
+use crate::identifier::LocatedName;
+use crate::identifier::NormalizedName;
 
 use ast::crumbs::Crumb;
 use ast::crumbs::InfixCrumb;

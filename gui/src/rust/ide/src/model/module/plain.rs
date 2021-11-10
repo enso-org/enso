@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionInfo;
 use crate::model::module::Content;
 use crate::model::module::Metadata;
 use crate::model::module::NodeMetadata;
@@ -15,6 +14,7 @@ use crate::notification;
 
 use data::text::TextChange;
 use data::text::TextLocation;
+use double_representation::definition::DefinitionInfo;
 use flo_stream::Subscriber;
 use parser::api::ParsedSourceFile;
 use parser::api::SourceFile;

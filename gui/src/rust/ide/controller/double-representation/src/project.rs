@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::identifier::ReferentName;
+use crate::identifier::ReferentName;
 
 use serde::Deserialize;
 use serde::Serialize;

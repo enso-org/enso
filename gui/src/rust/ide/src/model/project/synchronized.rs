@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::identifier::ReferentName;
-use crate::double_representation::project::QualifiedName;
 use crate::model::execution_context;
 use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -13,15 +11,17 @@ use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;
 
-use enso_protocol::binary;
-use enso_protocol::binary::message::VisualisationContext;
-use enso_protocol::language_server;
-use enso_protocol::language_server::CapabilityRegistration;
-use enso_protocol::language_server::ContentRoot;
-use enso_protocol::language_server::ExpressionUpdates;
-use enso_protocol::language_server::MethodPointer;
-use enso_protocol::project_manager;
-use enso_protocol::project_manager::MissingComponentAction;
+use double_representation::identifier::ReferentName;
+use double_representation::project::QualifiedName;
+use engine_protocol::binary;
+use engine_protocol::binary::message::VisualisationContext;
+use engine_protocol::language_server;
+use engine_protocol::language_server::CapabilityRegistration;
+use engine_protocol::language_server::ContentRoot;
+use engine_protocol::language_server::ExpressionUpdates;
+use engine_protocol::language_server::MethodPointer;
+use engine_protocol::project_manager;
+use engine_protocol::project_manager::MissingComponentAction;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -363,14 +363,14 @@ impl Project {
     /// connection handler.
     pub fn binary_event_handler(
         &self,
-    ) -> impl Fn(enso_protocol::binary::Event) -> futures::future::Ready<()> {
+    ) -> impl Fn(engine_protocol::binary::Event) -> futures::future::Ready<()> {
         let logger = self.logger.clone_ref();
         let publisher = self.notifications.clone_ref();
         let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
         move |event| {
             debug!(logger, "Received an event from the binary protocol: {event:?}");
-            use enso_protocol::binary::client::Event;
-            use enso_protocol::binary::Notification;
+            use engine_protocol::binary::client::Event;
+            use engine_protocol::binary::Notification;
             match event {
                 Event::Notification(Notification::VisualizationUpdate { context, data }) => {
                     debug!(
@@ -438,7 +438,7 @@ impl Project {
     /// connection handler.
     pub fn json_event_handler(
         &self,
-    ) -> impl Fn(enso_protocol::language_server::Event) -> futures::future::Ready<()> {
+    ) -> impl Fn(engine_protocol::language_server::Event) -> futures::future::Ready<()> {
         // TODO [mwu]
         //  This handler for JSON-RPC notifications is very similar to the function above that
         // handles  binary protocol notifications. However, it is not practical to
@@ -452,8 +452,8 @@ impl Project {
         let execution_update_handler = self.execution_update_handler();
         move |event| {
             debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
-            use enso_protocol::language_server::Event;
-            use enso_protocol::language_server::Notification;
+            use engine_protocol::language_server::Event;
+            use engine_protocol::language_server::Notification;
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
@@ -635,9 +635,9 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use enso_protocol::language_server::response;
-    use enso_protocol::language_server::Notification::ExpressionUpdates;
-    use enso_protocol::types::Sha3_224;
+    use engine_protocol::language_server::response;
+    use engine_protocol::language_server::Notification::ExpressionUpdates;
+    use engine_protocol::types::Sha3_224;
     use futures::SinkExt;
     use json_rpc::expect_call;
     use utils::test::traits::*;
@@ -654,12 +654,12 @@ mod test {
     impl Fixture {
         fn new(
             setup_mock_json: impl FnOnce(&mut language_server::MockClient),
-            setup_mock_binary: impl FnOnce(&mut enso_protocol::binary::MockClient),
+            setup_mock_binary: impl FnOnce(&mut engine_protocol::binary::MockClient),
         ) -> Self {
             let mut test = TestWithLocalPoolExecutor::set_up();
             let project_manager = project_manager::MockClient::default();
             let mut json_client = language_server::MockClient::default();
-            let mut binary_client = enso_protocol::binary::MockClient::default();
+            let mut binary_client = engine_protocol::binary::MockClient::default();
 
             let (binary_events_sender, binary_events) = futures::channel::mpsc::unbounded();
             binary_client.expect_event_stream().return_once(|| binary_events.boxed_local());

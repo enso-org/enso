@@ -569,6 +569,9 @@ mod tests {
         pub inner:    Fixture,
         pub is_ready: Synchronized<bool>,
         pub manager:  Rc<Manager>,
+        #[allow(dead_code)]
+        //TODO [mwu]: there should be a check that visualization manager notifies about updates
+        //      from the engine
         pub notifier: UnboundedReceiver<Notification>,
         pub requests: StaticBoxStream<ExecutionContextRequest>,
     }
@@ -658,8 +661,11 @@ mod tests {
         is_ready.replace(true);
         inner.run_until_stalled();
         let request = requests.expect_one();
-        assert_matches!(request, ExecutionContextRequest::Attach(vis)
-            if matching_metadata(&manager, &vis, &desired_vis_2));
+        let attached_id = if let ExecutionContextRequest::Attach(vis) = request {
+            vis.id
+        } else {
+            panic!("Expected request to be `ExecutionContextRequest::Attach`, found {:?}", request)
+        };
 
         // Multiple detach-attach requests are collapsed into a single modify request.
         requests.expect_pending();
@@ -670,8 +676,16 @@ mod tests {
         manager.request_visualization(node_id, desired_vis_1.clone());
         manager.request_visualization(node_id, desired_vis_1.clone());
         inner.run_until_stalled();
-        assert_matches!(requests.expect_one(),
-            ExecutionContextRequest::Modify{expression,..} if expression.contains(&desired_vis_1.preprocessor.code.to_string()));
+        if let ExecutionContextRequest::Modify { id, expression, module } = requests.expect_one() {
+            assert!(expression.contains(&desired_vis_1.preprocessor.code.to_string()));
+            assert_eq!(id, attached_id);
+            let get_main_module = || inner.inner.project.main_module();
+            let expected_module =
+                resolve_context_module(&desired_vis_1.preprocessor.module, get_main_module)
+                    .unwrap();
+            assert_eq!(module, Some(expected_module));
+            // assert!(module.is_none());
+        }
 
         // If visualization changes ID, then we need to use detach-attach API.
         // We don't attach it separately, as Manager identifies visualizations by their
