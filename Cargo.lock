@@ -823,6 +823,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "ensogl",
+ "semver 1.0.4",
 ]
 
 [[package]]

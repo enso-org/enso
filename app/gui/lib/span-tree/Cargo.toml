@@ -1,0 +1,15 @@
+[package]
+name = "span-tree"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[dependencies]
+ast = { path = "../ast/impl" }
+enso-data = { path = "../../../../lib/rust/data"}
+enso-prelude = { path = "../../../../lib/rust/prelude"}
+failure = { version = "0.1.6" }
+
+[dev-dependencies]
+parser = { path = "../parser" }
+wasm-bindgen-test = { version = "0.3.8" }
