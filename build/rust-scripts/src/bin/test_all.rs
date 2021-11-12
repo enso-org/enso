@@ -60,11 +60,6 @@ fn blacklisted(memeber: &str) -> bool {
     PACKAGE_BLACKLIST.contains(&memeber)
 }
 
-/// Checks if for the given workspace member wasm-pack test should be run.
-fn to_be_tested(member: &str) -> bool {
-    has_wasm_tests(member) && !blacklisted(member) && !is_proc_macro_crate(member)
-}
-
 /// Checks if given workspace member is a proc-macro crate.
 fn is_proc_macro_crate(member: &str) -> bool {
     let cargo_toml_path = PathBuf::from(member).join("Cargo.toml");

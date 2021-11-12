@@ -10,13 +10,13 @@
 //! sbt "runner/run --server --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 --path $HOME/ensotmp --rpc-port 30616"
 //! ```
 
-use ide::prelude::*;
+use enso_gui::prelude::*;
 
 use engine_protocol::language_server::*;
 use engine_protocol::types::*;
-use ide::model::execution_context::Visualization;
-use ide::model::module;
-use ide::transport::web::WebSocket;
+use enso_gui::model::execution_context::Visualization;
+use enso_gui::model::module;
+use enso_gui::transport::web::WebSocket;
 use std::time::Duration;
 #[allow(unused_imports)]
 use wasm_bindgen_test::wasm_bindgen_test;
@@ -62,7 +62,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
-    let _guard = ide::initializer::setup_global_executor();
+    let _guard = enso_gui::initializer::setup_global_executor();
     let ide = setup_ide().await;
     let project = ide.current_project();
     let client = project.json_rpc();
@@ -232,7 +232,7 @@ async fn file_events() {
     let ws = ws.expect("Couldn't connect to WebSocket server.");
     let client = Client::new(ws);
     let mut stream = client.events();
-    let _executor = ide::initializer::setup_global_executor();
+    let _executor = enso_gui::initializer::setup_global_executor();
 
     executor::global::spawn(client.runner());
 
@@ -280,9 +280,9 @@ async fn file_events() {
 /// * establishing a binary protocol connection with Language Server
 async fn setup_ide() -> controller::Ide {
     let logger = Logger::new("Test");
-    let config = ide::config::Startup::default();
+    let config = enso_gui::config::Startup::default();
     info!(logger, "Setting up the project.");
-    let initializer = ide::Initializer::new(config);
+    let initializer = enso_gui::Initializer::new(config);
     let error_msg = "Couldn't open project.";
     initializer.initialize_ide_controller().await.expect(error_msg)
 }
@@ -292,7 +292,7 @@ async fn setup_ide() -> controller::Ide {
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
     let logger = Logger::new("Test");
-    let _guard = ide::initializer::setup_global_executor();
+    let _guard = enso_gui::initializer::setup_global_executor();
     let ide = setup_ide().await;
     let project = ide.current_project();
     info!(logger, "Got project: {project:?}");
@@ -331,7 +331,7 @@ async fn binary_visualization_updates_test_hlp() {
     use ensogl::system::web::sleep;
 
     let logger = Logger::new("Test");
-    let module_path = ide::initial_module_path(&project).unwrap();
+    let module_path = enso_gui::initial_module_path(&project).unwrap();
     let method = module_path.method_pointer(project.qualified_name(), MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module = project.module(module_path).await.unwrap();
@@ -360,8 +360,8 @@ async fn binary_visualization_updates_test_hlp() {
 #[allow(dead_code)]
 /// This integration test covers attaching visualizations and receiving their updates.
 fn binary_visualization_updates_test() {
-    let executor = ide::executor::web::EventLoopExecutor::new_running();
-    ide::executor::global::set_spawner(executor.spawner.clone());
+    let executor = enso_gui::executor::web::EventLoopExecutor::new_running();
+    enso_gui::executor::global::set_spawner(executor.spawner.clone());
     executor.spawn_local(binary_visualization_updates_test_hlp()).unwrap();
     std::mem::forget(executor);
 }

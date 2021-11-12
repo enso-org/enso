@@ -209,9 +209,9 @@ impl Path {
     /// Obtain a module's full qualified name from the path and the project name.
     ///
     /// ```
-    /// use ide::model::module::Path;
-    /// use ide::model::module::QualifiedName;
-    /// use ide::prelude::*;
+    /// use enso_gui::model::module::Path;
+    /// use enso_gui::model::module::QualifiedName;
+    /// use enso_gui::prelude::*;
     ///
     /// let path = Path::from_name_segments(default(), &["Main"]).unwrap();
     /// assert_eq!(path.to_string(), "//00000000-0000-0000-0000-000000000000/src/Main.enso");
