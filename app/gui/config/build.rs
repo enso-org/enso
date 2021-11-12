@@ -1,4 +1,4 @@
-const CONFIG_PATH: &str = "../../config.yaml";
+const CONFIG_PATH: &str = "../config.yaml";
 
 fn main() {
     println!("cargo:rerun-if-changed={}", CONFIG_PATH);

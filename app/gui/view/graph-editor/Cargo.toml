@@ -8,10 +8,10 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-analytics = { version = "0.1.0", path = "../../lib/analytics" }
-ast = { version = "0.1.0", path = "../../lib/ast/impl" }
+analytics = { version = "0.1.0", path = "../../analytics" }
+ast = { version = "0.1.0", path = "../../language/ast/impl" }
 bimap = { version = "0.4.0" }
-enso-config = { version = "0.1.0", path = "../../lib/config" }
+enso-config = { version = "0.1.0", path = "../../config" }
 enso-frp = { version = "0.1.0", path = "../../../../lib/rust/frp" }
 enso-logger = { path = "../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../lib/rust/prelude"}
@@ -25,7 +25,7 @@ ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../lib/rust/ensog
 ensogl-drop-manager = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/drop-manager" }
 failure = { version = "0.1.8" }
 ordered-float = {version = "1.0"}
-span-tree = { version = "0.1.0", path = "../../lib/span-tree" }
+span-tree = { version = "0.1.0", path = "../../language/span-tree" }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
 serde_json = { version = "1.0" }

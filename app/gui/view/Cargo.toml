@@ -8,8 +8,8 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ast = { path = "../lib/ast/impl" }
-enso-config = { path = "../lib/config" }
+ast = { path = "../language/ast/impl" }
+enso-config = { path = "../config" }
 enso-frp = { path = "../../../lib/rust/frp" }
 enso-logger = { path = "../../../lib/rust/logger"}
 enso-prelude = { path = "../../../lib/rust/prelude"}
@@ -21,8 +21,8 @@ ensogl-text = { path = "../../../lib/rust/ensogl/component/text" }
 ensogl-text-msdf-sys = { path = "../../../lib/rust/ensogl/component/text/msdf-sys" }
 ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded" }
 ide-view-graph-editor = { path = "graph-editor" }
-parser = { path = "../lib/parser" }
-span-tree = { path = "../lib/span-tree" }
+parser = { path = "../language/parser" }
+span-tree = { path = "../language/span-tree" }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
 ordered-float = { version = "2.7.0" }
