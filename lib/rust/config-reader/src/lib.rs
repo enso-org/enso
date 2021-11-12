@@ -122,6 +122,6 @@ pub const CONFIG: Config = Config {{
         inst = inst,
         vars = vars
     );
-    let out_dir = std::env::var("OUT_DIR").expect("missing environment variable OUT_DIR:");
+    let out_dir = std::env::var("OUT_DIR").expect("Missing environment variable OUT_DIR.");
     fs::write(out_dir + "/config.rs", file).ok();
 }
