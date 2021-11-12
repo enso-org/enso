@@ -4,8 +4,6 @@ version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
-[workspace]
-
 [dependencies]
 glob = "0.3.0"
 toml = "0.5.5"

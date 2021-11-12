@@ -13,9 +13,9 @@ use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::gui::cursor;
 use ensogl::Animation;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ensogl_text::buffer::data::unit::traits::*;
-use ensogl_theme as theme;
 use text::Text;
 
 use crate::component::type_coloring;

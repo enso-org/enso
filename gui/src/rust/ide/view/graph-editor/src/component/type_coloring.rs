@@ -8,7 +8,7 @@ use crate::Type;
 use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::style::data::DataMatch;
-use ensogl_theme as theme;
+use ensogl_hardcoded_theme as theme;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 

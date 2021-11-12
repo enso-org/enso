@@ -35,10 +35,10 @@ use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::Animation;
-use ensogl_gui_components::shadow;
+use ensogl_gui_component::shadow;
+use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme;
 use ensogl_text::Text;
-use ensogl_theme as theme;
-use ensogl_theme;
 use std::f32::EPSILON;
 
 use super::edge;
@@ -130,9 +130,9 @@ pub mod backdrop {
 
             // === Selection ===
 
-            let sel_color  = style.get_color(ensogl_theme::graph_editor::node::selection);
-            let sel_size   = style.get_number(ensogl_theme::graph_editor::node::selection::size);
-            let sel_offset = style.get_number(ensogl_theme::graph_editor::node::selection::offset);
+            let sel_color  = style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection);
+            let sel_size   = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size);
+            let sel_offset = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset);
 
             let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
             let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
@@ -198,7 +198,7 @@ pub mod error_shape {
 
     ensogl::define_shape_system! {
         (style:Style,color_rgba:Vector4<f32>) {
-            use ensogl_theme::graph_editor::node as node_theme;
+            use ensogl_hardcoded_theme::graph_editor::node as node_theme;
 
             let width  = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
@@ -818,7 +818,7 @@ impl Node {
 
             // === Color Handling ===
 
-            let bgg = style_frp.get_color(ensogl_theme::graph_editor::node::background);
+            let bgg = style_frp.get_color(ensogl_hardcoded_theme::graph_editor::node::background);
             let profiling_theme = profiling::Theme::from_styles(style_frp,network);
 
             profiling_color <- all_with5
@@ -843,7 +843,7 @@ impl Node {
             // FIXME [WD]: Uncomment when implementing disabled icon.
             // bg_color <- frp.set_disabled.map(f!([model,style](disabled) {
             //     model.input.frp.set_disabled(*disabled);
-            //     let bg_color_path = ensogl_theme::graph_editor::node::background;
+            //     let bg_color_path = ensogl_hardcoded_theme::graph_editor::node::background;
             //     if *disabled { style.get_color_dim(bg_color_path) }
             //     else         { style.get_color(bg_color_path) }
             // }));
@@ -887,7 +887,7 @@ impl Node {
     }
 
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
-        use ensogl_theme::graph_editor::node::error as error_theme;
+        use ensogl_hardcoded_theme::graph_editor::node::error as error_theme;
 
         if let Some(error) = error {
             let path = match *error.kind {

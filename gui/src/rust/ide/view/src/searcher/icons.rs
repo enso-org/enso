@@ -11,7 +11,7 @@ use ensogl::display::shape::*;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
-use ensogl_theme::application::searcher::icons as theme;
+use ensogl_hardcoded_theme::application::searcher::icons as theme;
 use std::f32::consts::PI;
 use wasm_bindgen::prelude::*;
 
@@ -1003,9 +1003,9 @@ pub fn entry_point_searcher_icons() {
 
     let logger = Logger::new("Icons example");
     let app = Application::new(&web::get_html_element_by_id("root").unwrap());
-    ensogl_theme::builtin::dark::register(&app);
-    ensogl_theme::builtin::light::register(&app);
-    ensogl_theme::builtin::light::enable(&app);
+    ensogl_hardcoded_theme::builtin::dark::register(&app);
+    ensogl_hardcoded_theme::builtin::light::register(&app);
+    ensogl_hardcoded_theme::builtin::light::enable(&app);
     let world = app.display.clone();
     mem::forget(app);
     let scene = world.scene();

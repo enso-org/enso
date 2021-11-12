@@ -283,6 +283,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "build-scripts"
+version = "0.1.0"
+dependencies = [
+ "glob",
+ "toml",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -446,6 +454,15 @@ checksum = "b2b2f5d0ee456f3928812dfc8c6d9a1d592b98678f6d56db9b0cd2b7bc6c8db5"
 dependencies = [
  "bytes 1.1.0",
  "memchr",
+]
+
+[[package]]
+name = "config-reader"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "serde",
+ "serde_yaml",
 ]
 
 [[package]]
@@ -752,12 +769,12 @@ version = "0.1.0"
 dependencies = [
  "bytes 0.5.6",
  "chrono",
+ "enso-build-utilities",
  "enso-data",
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
- "ensogl-build-utilities",
- "ensogl-system-web",
+ "enso-web",
  "failure",
  "flatbuffers",
  "flatc-rust",
@@ -777,20 +794,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-args"
-version = "0.1.0"
-dependencies = [
- "enso-config",
- "enso-logger",
- "enso-prelude",
- "ensogl",
-]
-
-[[package]]
 name = "enso-automata"
 version = "0.2.0"
 dependencies = [
  "enso-prelude",
+]
+
+[[package]]
+name = "enso-build-utilities"
+version = "0.1.0"
+dependencies = [
+ "path-clean",
+ "reqwest",
 ]
 
 [[package]]
@@ -804,9 +819,10 @@ dependencies = [
 name = "enso-config"
 version = "0.1.0"
 dependencies = [
- "Inflector",
- "serde",
- "serde_yaml",
+ "config-reader",
+ "enso-logger",
+ "enso-prelude",
+ "ensogl",
 ]
 
 [[package]]
@@ -849,7 +865,7 @@ dependencies = [
  "enso-generics",
  "enso-logger",
  "enso-prelude",
- "ensogl-system-web",
+ "enso-web",
  "keyboard-types",
  "nalgebra 0.26.2",
  "percent-encoding 2.1.0",
@@ -970,7 +986,7 @@ dependencies = [
  "enso-frp",
  "enso-logger",
  "enso-prelude",
- "ensogl-system-web",
+ "enso-web",
  "js-sys",
  "nalgebra 0.26.2",
  "serde",
@@ -988,7 +1004,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "enso-shortcuts",
- "ensogl-system-web",
+ "enso-web",
  "js-sys",
  "nalgebra 0.26.2",
  "serde",
@@ -1004,7 +1020,7 @@ dependencies = [
  "ast",
  "enso-logger",
  "enso-prelude",
- "ensogl-system-web",
+ "enso-web",
  "span-tree",
  "uuid",
  "wasm-bindgen",
@@ -1021,6 +1037,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-web"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "console_error_panic_hook",
+ "enso-data",
+ "enso-logger",
+ "enso-prelude",
+ "failure",
+ "gloo-timers",
+ "js-sys",
+ "nalgebra 0.26.2",
+ "wasm-bindgen",
+ "wasm-bindgen-test 0.3.8",
+ "web-sys",
+]
+
+[[package]]
 name = "ensogl"
 version = "0.1.0"
 dependencies = [
@@ -1029,12 +1063,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-build-utilities"
+name = "ensogl-component"
 version = "0.1.0"
-dependencies = [
- "path-clean",
- "reqwest",
-]
 
 [[package]]
 name = "ensogl-core"
@@ -1055,11 +1085,10 @@ dependencies = [
  "enso-shapely",
  "enso-shortcuts",
  "enso-types",
- "ensogl-system-web",
+ "enso-web",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "enum_dispatch",
- "eval-tt",
  "failure",
  "itertools 0.10.1",
  "js-sys",
@@ -1074,7 +1103,20 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test 0.3.8",
  "web-sys",
- "web-test",
+]
+
+[[package]]
+name = "ensogl-drop-manager"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-logger",
+ "enso-prelude",
+ "enso-web",
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures 0.4.8",
+ "web-sys",
 ]
 
 [[package]]
@@ -1086,11 +1128,11 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "ensogl-core",
- "ensogl-gui-components",
+ "ensogl-drop-manager",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
- "ensogl-web",
  "js-sys",
  "nalgebra 0.26.2",
  "serde",
@@ -1101,7 +1143,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-gui-components"
+name = "ensogl-gui-component"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
@@ -1110,28 +1152,17 @@ dependencies = [
  "enso-shapely",
  "enso-types",
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
- "ensogl-theme",
  "float_eq",
  "wasm-bindgen-test 0.3.8",
 ]
 
 [[package]]
-name = "ensogl-system-web"
+name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
- "async-std",
- "console_error_panic_hook",
- "enso-data",
- "enso-logger",
- "enso-prelude",
- "failure",
- "gloo-timers",
- "js-sys",
- "nalgebra 0.26.2",
- "wasm-bindgen",
- "wasm-bindgen-test 0.3.8",
- "web-sys",
+ "ensogl-core",
 ]
 
 [[package]]
@@ -1143,9 +1174,9 @@ dependencies = [
  "enso-shapely",
  "enso-types",
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
  "wasm-bindgen-test 0.3.8",
  "xi-rope",
 ]
@@ -1154,8 +1185,8 @@ dependencies = [
 name = "ensogl-text-embedded-fonts"
 version = "0.1.0"
 dependencies = [
+ "enso-build-utilities",
  "enso-prelude",
- "ensogl-build-utilities",
  "zip",
 ]
 
@@ -1163,35 +1194,14 @@ dependencies = [
 name = "ensogl-text-msdf-sys"
 version = "0.1.0"
 dependencies = [
+ "enso-build-utilities",
  "enso-prelude",
- "ensogl-build-utilities",
  "ensogl-text-embedded-fonts",
  "futures 0.3.17",
  "js-sys",
  "nalgebra 0.26.2",
  "wasm-bindgen",
  "wasm-bindgen-test 0.3.8",
-]
-
-[[package]]
-name = "ensogl-theme"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
-]
-
-[[package]]
-name = "ensogl-web"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-logger",
- "enso-prelude",
- "ensogl-system-web",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures 0.4.8",
- "web-sys",
 ]
 
 [[package]]
@@ -1526,6 +1536,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
+name = "glob"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
+
+[[package]]
 name = "gloo-timers"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1693,21 +1709,21 @@ dependencies = [
  "console_error_panic_hook",
  "double-representation",
  "engine-protocol",
- "enso-args",
  "enso-callback",
+ "enso-config",
  "enso-data",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
+ "enso-web",
  "ensogl",
+ "ensogl-drop-manager",
  "ensogl-examples",
- "ensogl-gui-components",
- "ensogl-system-web",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
- "ensogl-web",
  "failure",
  "flo_stream",
  "futures 0.3.17",
@@ -1738,17 +1754,16 @@ version = "0.1.0"
 dependencies = [
  "ast",
  "engine-protocol",
- "enso-args",
  "enso-config",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "ensogl",
- "ensogl-gui-components",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
  "ide-view-graph-editor",
  "js-sys",
  "nalgebra 0.26.2",
@@ -1770,17 +1785,17 @@ dependencies = [
  "ast",
  "bimap",
  "engine-protocol",
- "enso-args",
+ "enso-config",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "ensogl",
- "ensogl-gui-components",
+ "ensogl-drop-manager",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-theme",
- "ensogl-web",
  "failure",
  "js-sys",
  "nalgebra 0.26.2",
@@ -1932,7 +1947,7 @@ version = "0.1.0"
 dependencies = [
  "enso-prelude",
  "enso-shapely",
- "ensogl-system-web",
+ "enso-web",
  "failure",
  "futures 0.3.17",
  "serde",
@@ -2574,9 +2589,9 @@ dependencies = [
  "ast",
  "bytes 0.5.6",
  "console_error_panic_hook",
+ "enso-build-utilities",
  "enso-data",
  "enso-prelude",
- "ensogl-build-utilities",
  "failure",
  "futures 0.3.17",
  "js-sys",
@@ -4125,8 +4140,8 @@ name = "web-test"
 version = "0.1.0"
 dependencies = [
  "enso-prelude",
+ "enso-web",
  "ensogl",
- "ensogl-system-web",
  "js-sys",
  "shrinkwraprs 0.3.0",
  "wasm-bindgen",

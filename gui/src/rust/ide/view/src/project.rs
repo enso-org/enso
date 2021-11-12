@@ -12,7 +12,7 @@ use crate::open_dialog::OpenDialog;
 use crate::searcher;
 use crate::status_bar;
 
-use enso_args::ARGS;
+use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::shortcut;
@@ -23,7 +23,7 @@ use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
-use ensogl_theme::Theme;
+use ensogl_hardcoded_theme::Theme;
 
 
 
@@ -85,7 +85,7 @@ mod prompt_background {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
 
-            let corner_radius = style.get_number(ensogl_theme::graph_editor::prompt::background::corner_radius);
+            let corner_radius = style.get_number(ensogl_hardcoded_theme::graph_editor::prompt::background::corner_radius);
             let shape         = Rect((&width,&height));
             let shape         = shape.corners_radius(corner_radius.px());
             let bg            = shape.fill(color_rgba);
@@ -178,12 +178,12 @@ impl Model {
     }
 
     fn set_light_style(&self) {
-        ensogl_theme::builtin::light::enable(&self.app);
+        ensogl_hardcoded_theme::builtin::light::enable(&self.app);
         self.set_html_style("light-theme");
     }
 
     fn set_dark_style(&self) {
-        ensogl_theme::builtin::dark::enable(&self.app);
+        ensogl_hardcoded_theme::builtin::dark::enable(&self.app);
         self.set_html_style("dark-theme");
     }
 
@@ -266,7 +266,7 @@ impl Model {
     }
 
     fn on_close_clicked(&self) {
-        js::close(enso_config::CONFIG.window_app_scope_name);
+        js::close(enso_config::window_app_scope_name);
     }
 
     fn on_fullscreen_clicked(&self) {
@@ -343,15 +343,15 @@ impl Deref for View {
 impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        ensogl_theme::builtin::dark::register(app);
-        ensogl_theme::builtin::light::register(app);
+        ensogl_hardcoded_theme::builtin::dark::register(app);
+        ensogl_hardcoded_theme::builtin::light::register(app);
         let theme = match ARGS.theme.as_deref() {
             Some("dark") => {
-                ensogl_theme::builtin::dark::enable(app);
+                ensogl_hardcoded_theme::builtin::dark::enable(app);
                 Theme::Dark
             }
             _ => {
-                ensogl_theme::builtin::light::enable(app);
+                ensogl_hardcoded_theme::builtin::light::enable(app);
                 Theme::Light
             }
         };
@@ -523,10 +523,10 @@ impl View {
             // === Prompt ===
 
             init <- source::<()>();
-            let prompt_bg_color_path   = ensogl_theme::graph_editor::prompt::background;
-            let prompt_bg_padding_path = ensogl_theme::graph_editor::prompt::background::padding;
-            let prompt_color_path      = ensogl_theme::graph_editor::prompt::text;
-            let prompt_size_path       = ensogl_theme::graph_editor::prompt::text::size;
+            let prompt_bg_color_path   = ensogl_hardcoded_theme::graph_editor::prompt::background;
+            let prompt_bg_padding_path = ensogl_hardcoded_theme::graph_editor::prompt::background::padding;
+            let prompt_color_path      = ensogl_hardcoded_theme::graph_editor::prompt::text;
+            let prompt_size_path       = ensogl_hardcoded_theme::graph_editor::prompt::text::size;
             let prompt_bg_color        = styles.get_color(prompt_bg_color_path);
             prompt_bg_color            <- all(&prompt_bg_color,&init)._0();
             let prompt_bg_padding      = styles.get_number(prompt_bg_padding_path);

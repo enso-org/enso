@@ -1,0 +1,30 @@
+[package]
+name = "enso-frp"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+
+[dependencies]
+enso-callback = { path = "../callback" }
+enso-generics = { path = "../generics"}
+enso-logger = { path = "../logger"}
+enso-prelude = { path = "../prelude"}
+enso-web = { path = "../web" }
+Inflector = { version = "0.11.4" }
+keyboard-types = { version = "0.5.0" }
+nalgebra = { version = "0.26.1" }
+percent-encoding = { version = "2.1.0" }
+unicode-segmentation = { version = "1.6.0" }
+# We require exact version of wasm-bindgen because we do patching final js in our build process,
+# and this is vulnerable to any wasm-bindgen version change.
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = ['KeyboardEvent']
+
+[features]
+stack-trace = []
+default = ["stack-trace"]

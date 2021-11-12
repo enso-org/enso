@@ -12,7 +12,7 @@ enso-data = { path = "../../../../../../lib/rust/data"}
 enso-logger = { path = "../../../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../../../lib/rust/prelude"}
 enso-shapely = { path = "../../../../../../lib/rust/shapely/impl"}
-json-rpc = { path = "../../lib/json-rpc" }
+json-rpc = { path = "../../../../../../lib/rust/json-rpc" }
 chrono = { version = "0.4", features = ["serde"] }
 failure = { version = "0.1.8" }
 flatbuffers = { version = "0.5" }
@@ -26,10 +26,10 @@ uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }
-ensogl-system-web = { path = "../../../lib/system/web" }
+enso-web = { path = "../../../../../../lib/rust/web" }
 
 [build-dependencies]
-ensogl-build-utilities = { path = "../../../build" }
+enso-build-utilities = { path = "../../../../../../lib/rust/build-utils" }
 bytes = { version = "0.5.4" }
 flatc-rust = { version = "0.1.2" }
 futures = { version = "0.3.1" }

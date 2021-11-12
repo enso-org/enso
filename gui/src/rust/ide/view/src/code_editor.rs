@@ -109,7 +109,7 @@ impl View {
             });
             eval position ((pos) model.set_position_xy(*pos));
 
-            let color = styles.get_color(ensogl_theme::code::syntax::base);
+            let color = styles.get_color(ensogl_hardcoded_theme::code::syntax::base);
             eval color ((color) model.set_default_color(color));
         }
         model.set_default_color(color.value());

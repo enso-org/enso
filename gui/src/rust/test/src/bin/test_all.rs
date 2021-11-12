@@ -5,8 +5,8 @@ use std::path::PathBuf;
 
 /// List of workspace members that should not be tested by wasm-pack test.
 /// (e.g. because they do not target wasm at all)
-const PACKAGE_BLACKLIST: [&str; 2] =
-    ["gui/src/rust/test/build", "gui/src/rust/ide/file-manager/mock-server"];
+const PACKAGE_BLACKLIST: [&str; 3] =
+    ["gui/src/rust/test", "gui/src/rust/ide/file-manager/mock-server", "lib/rust/build-utils"];
 
 /// Attributes that denote WASM tests.
 const WASM_TEST_ATTRIBUTES: [&str; 2] = ["#[wasm_bindgen_test]", "#[wasm_bindgen_test(async)]"];
@@ -87,7 +87,7 @@ fn main() {
     let wasm_pack_args = std::env::args().skip(1).collect::<Vec<_>>();
     let cargo_toml_root = parse_toml("Cargo.toml");
     let all_members = get_workspace_members(cargo_toml_root);
-    let tested_members = all_members.iter().filter(|p| to_be_tested(&p));
+    let tested_members = all_members.iter().filter(|p| to_be_tested(p));
 
     for member in tested_members {
         println!("Running tests for {}", member);

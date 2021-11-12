@@ -9,7 +9,7 @@ use ensogl::display::traits::*;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
-use ensogl_theme as theme;
+use ensogl_hardcoded_theme as theme;
 
 
 
@@ -67,7 +67,8 @@ impl Panel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
+        let bg_color =
+            styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background);
         let red = bg_color.red * 255.0;
         let green = bg_color.green * 255.0;
         let blue = bg_color.blue * 255.0;

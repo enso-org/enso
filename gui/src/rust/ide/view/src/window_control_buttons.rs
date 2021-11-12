@@ -80,7 +80,7 @@ impl<T> LayoutParams<T> {
 impl LayoutParams<frp::Sampler<f32>> {
     /// Get layout from theme. Each layout parameter will be an frp sampler.
     pub fn from_theme(style: &StyleWatchFrp) -> Self {
-        use ensogl_theme::application::window_control_buttons as theme;
+        use ensogl_hardcoded_theme::application::window_control_buttons as theme;
         let default = LayoutParams::default();
         let spacing = style.get_number_or(theme::spacing, default.spacing);
         let padding_left = style.get_number_or(theme::padding::left, default.padding_left);
