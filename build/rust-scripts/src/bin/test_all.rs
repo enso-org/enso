@@ -3,9 +3,8 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-/// List of workspace members that should not be tested by wasm-pack test.
-/// (e.g. because they do not target wasm at all)
-const PACKAGE_BLACKLIST: [&str; 2] = ["build/rust-scripts", "lib/rust/build-utils"];
+/// List of workspace members that, despite having  should not be tested by wasm-pack test.
+const PACKAGE_BLACKLIST: [&str; 0] = [];
 
 /// Attributes that denote WASM tests.
 const WASM_TEST_ATTRIBUTES: [&str; 2] = ["#[wasm_bindgen_test]", "#[wasm_bindgen_test(async)]"];
@@ -86,19 +85,26 @@ fn main() {
     let wasm_pack_args = std::env::args().skip(1).collect::<Vec<_>>();
     let cargo_toml_root = parse_toml("Cargo.toml");
     let all_members = get_workspace_members(cargo_toml_root);
-    let tested_members = all_members.iter().filter(|p| to_be_tested(p));
 
-    for member in tested_members {
-        println!("Running tests for {}", member);
-        let mut command = std::process::Command::new("wasm-pack");
-        command.arg("test").args(&wasm_pack_args).arg(&member);
-        println!("{:?}", command);
-        let status = command.status().unwrap();
-        if !status.success() {
-            panic!("Process for {} failed!{}", member, match status.code() {
-                Some(code) => format!(" Code: {}", code),
-                None => String::new(),
-            });
+    for member in all_members {
+        if blacklisted(&member) {
+            println!("Skipping blacklisted crate {}", member);
+        } else if is_proc_macro_crate(&member) {
+            println!("Skipping proc-macro crate {}", member);
+        } else if has_wasm_tests(&member) {
+            println!("Running tests for {}", member);
+            let mut command = std::process::Command::new("wasm-pack");
+            command.arg("test").args(&wasm_pack_args).arg(&member);
+            println!("{:?}", command);
+            let status = command.status().unwrap();
+            if !status.success() {
+                panic!("Process for {} failed!{}", member, match status.code() {
+                    Some(code) => format!(" Code: {}", code),
+                    None => String::new(),
+                });
+            }
+        } else {
+            println!("No wasm tests in {}", member);
         }
     }
 }
