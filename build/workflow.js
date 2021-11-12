@@ -212,7 +212,7 @@ let uploadContentLinux = {
     uses: 'actions/upload-artifact@v2',
     with: {
         name: 'content',
-        path: `gui/dist/content`,
+        path: `dist/content`,
     },
     if: `runner.os == 'Linux'`,
 }
@@ -222,7 +222,7 @@ let uploadWASM = {
     uses: 'actions/upload-artifact@v2',
     with: {
         name: 'ide-wasm',
-        path: `gui/dist/wasm`,
+        path: `dist/wasm`,
     },
 }
 
@@ -231,7 +231,7 @@ let downloadWASM = {
     uses: 'actions/download-artifact@v2',
     with: {
         name: 'ide-wasm',
-        path: `gui/dist/wasm`,
+        path: `dist/wasm`,
     },
 }
 
@@ -245,7 +245,7 @@ function uploadArtifactsFor(name, ext, os) {
         uses: 'actions/upload-artifact@v1',
         with: {
             name: `enso-${os}-\${{fromJson(steps.changelog.outputs.content).version}}.${ext}`,
-            path: `gui/dist/client/enso-${os}-\${{fromJson(steps.changelog.outputs.content).version}}.${ext}`,
+            path: `dist/client/enso-${os}-\${{fromJson(steps.changelog.outputs.content).version}}.${ext}`,
         },
         if: `runner.os == '${name}'`,
     }
@@ -428,11 +428,6 @@ let workflow = {
         },
         pull_request: {},
         workflow_dispatch: {},
-    },
-    defaults: {
-        run: {
-            'working-directory': 'gui',
-        },
     },
     jobs: {
         info: job_on_macos('Build Info', [dumpGitHubContext]),
