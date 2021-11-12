@@ -237,7 +237,7 @@ commands.test.rust = async function (argv) {
         console.log(`Running Rust WASM test suite.`)
         let args = [
             'run',
-            '--manifest-path=gui/src/rust/test/Cargo.toml',
+            '--manifest-path=build/rust-scripts/Cargo.toml',
             '--bin',
             'test_all',
             '--',
