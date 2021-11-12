@@ -466,7 +466,9 @@ function defaultConfig() {
 async function processPackageConfigs() {
     let files = []
     files = files.concat(glob.sync(paths.ide_desktop.root + '/package.js', { cwd: paths.root }))
-    files = files.concat(glob.sync(paths.ide_desktop.root + '/lib/*/package.js', { cwd: paths.root }))
+    files = files.concat(
+        glob.sync(paths.ide_desktop.root + '/lib/*/package.js', { cwd: paths.root })
+    )
     for (file of files) {
         let dirPath = path.dirname(file)
         let outPath = path.join(dirPath, 'package.json')
