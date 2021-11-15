@@ -11,6 +11,7 @@ import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.{LogLevel, TestLogger}
+import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Future
 
