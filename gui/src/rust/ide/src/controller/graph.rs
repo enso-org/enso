@@ -972,7 +972,6 @@ pub mod tests {
     use enso_data::text::Index;
     use enso_data::text::TextChange;
     use parser::Parser;
-    use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
 

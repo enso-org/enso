@@ -17,7 +17,7 @@ use ensogl::system::web;
 use ensogl::system::web::clipboard;
 use ensogl::system::web::AttributeSetter;
 use ensogl::system::web::StyleSetter;
-use ensogl_gui_components::shadow;
+use ensogl_gui_component::shadow;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
@@ -81,7 +81,7 @@ impl Model {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let style_path = ensogl_theme::application::documentation::background;
+        let style_path = ensogl_hardcoded_theme::application::documentation::background;
         let bg_color = styles.get_color(style_path);
         let bg_color = bg_color.to_javascript_string();
 

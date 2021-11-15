@@ -46,7 +46,7 @@ use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
-use enso_args::ARGS;
+use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::shortcut;
@@ -64,8 +64,7 @@ use ensogl::system::web;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
-use ensogl_theme as theme;
-use ensogl_web::drop;
+use ensogl_hardcoded_theme as theme;
 use ordered_float::OrderedFloat;
 
 
@@ -611,7 +610,7 @@ ensogl::define_endpoints! {
         view_mode (view::Mode),
 
         navigator_active (bool),
-        file_dropped     (drop::File,Vector2<f32>),
+        file_dropped     (ensogl_drop_manager::File,Vector2<f32>),
 
         default_x_gap_between_nodes (f32),
         default_y_gap_between_nodes (f32),
@@ -1436,7 +1435,7 @@ pub struct GraphEditorModel {
     pub nodes:            Nodes,
     pub edges:            Edges,
     pub vis_registry:     visualization::Registry,
-    pub drop_manager:     drop::Manager,
+    pub drop_manager:     ensogl_drop_manager::Manager,
     // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
     //  currently work, however, because the `Application` lives in enso-core, and the tooltip
     //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
@@ -1472,7 +1471,7 @@ impl GraphEditorModel {
         let tooltip = Tooltip::new(&app);
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button = component::profiling::Button::new(&app);
-        let drop_manager = drop::Manager::new(&scene.dom.root);
+        let drop_manager = ensogl_drop_manager::Manager::new(&scene.dom.root);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller =
             selection::Controller::new(&frp, &app.cursor, &scene.mouse.frp, &touch_state, &nodes);
@@ -3331,9 +3330,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     let style_sheet = &scene.style_sheet;
     let styles = StyleWatchFrp::new(style_sheet);
-    let default_x_gap_path = ensogl_theme::graph_editor::default_x_gap_between_nodes;
-    let default_y_gap_path = ensogl_theme::graph_editor::default_y_gap_between_nodes;
-    let min_x_spacing_path = ensogl_theme::graph_editor::minimal_x_spacing_for_new_nodes;
+    let default_x_gap_path = ensogl_hardcoded_theme::graph_editor::default_x_gap_between_nodes;
+    let default_y_gap_path = ensogl_hardcoded_theme::graph_editor::default_y_gap_between_nodes;
+    let min_x_spacing_path = ensogl_hardcoded_theme::graph_editor::minimal_x_spacing_for_new_nodes;
     let default_x_gap = styles.get_number_or(default_x_gap_path, 0.0);
     let default_y_gap = styles.get_number_or(default_y_gap_path, 0.0);
     let min_x_spacing = styles.get_number_or(min_x_spacing_path, 0.0);

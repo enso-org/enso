@@ -2,7 +2,7 @@
 
 use crate::window_control_buttons::common::prelude::*;
 
-pub use ensogl_theme::application::window_control_buttons::fullscreen as theme;
+pub use ensogl_hardcoded_theme::application::window_control_buttons::fullscreen as theme;
 
 /// The view component with the fullscreen button.
 pub type View = common::View<shape::DynamicShape>;

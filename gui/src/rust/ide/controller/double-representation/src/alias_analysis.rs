@@ -138,7 +138,7 @@ impl AliasAnalyzer {
 
     /// Temporarily sets contest and invokes `f` within it.
     fn in_context(&mut self, context: Context, f: impl FnOnce(&mut Self)) {
-        self.with_items_added(|this| &mut this.context, std::iter::once(context), f);
+        self.with_items_added(|this| &mut this.context, iter::once(context), f);
     }
 
     /// Enters a new location (relative to the current one), invokes `f`, leaves the location.

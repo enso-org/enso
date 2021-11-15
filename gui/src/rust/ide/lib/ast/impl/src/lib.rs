@@ -33,7 +33,6 @@ pub mod prelude {
 
     pub use crate::traits::*;
     pub use crate::Ast;
-    pub use utils::fail::FallibleResult;
 }
 
 /// The module containing constants related to the language AST describes.
@@ -1718,8 +1717,6 @@ mod tests {
 
     use enso_data::text::Size;
     use serde::de::DeserializeOwned;
-
-    use utils::test::ExpectTuple;
 
     /// Assert that given value round trips JSON serialization.
     fn round_trips<T>(input_val: &T)

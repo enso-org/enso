@@ -2,13 +2,12 @@
 
 use crate::prelude::*;
 
-use ensogl_system_web::event::listener::Slot;
-use ensogl_system_web::js_to_string;
+use enso_web::event::listener::Slot;
+use enso_web::js_to_string;
 use failure::Error;
 use futures::channel::mpsc;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
-use utils::channel;
 use wasm_bindgen::JsCast;
 use web_sys::BinaryType;
 
@@ -109,7 +108,7 @@ impl State {
 /// Description of events that can be emitted by JS WebSocket.
 pub mod event {
     use super::*;
-    use ensogl_system_web::event::Type;
+    use enso_web::event::Type;
 
     /// Represents WebSocket.open event.
     #[derive(Clone, Copy, Debug)]
@@ -322,10 +321,10 @@ impl WebSocket {
             // Note [mwu] Ignore argument, `CloseEvent` here contains rubbish
             // anyway, nothing useful to pass to caller. Error code or reason
             // string should not be relied upon.
-            utils::channel::emit(&transmitter_clone, Err(()));
+            channel::emit(&transmitter_clone, Err(()));
         });
         self.set_on_open(move |_| {
-            utils::channel::emit(&transmitter, Ok(()));
+            channel::emit(&transmitter, Ok(()));
         });
 
         match receiver.next().await {

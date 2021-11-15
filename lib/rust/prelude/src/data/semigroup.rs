@@ -17,32 +17,33 @@ use std::iter::Extend;
 /// Mutable Semigroup definition. Impls should satisfy the associativity law:
 /// `x.concat(y.concat(z)) = x.concat(y).concat(z)`, in symbolic form:
 /// `x <> (y <> z) = (x <> y) <> z`
-pub trait PartialSemigroup<T> : Clone {
+pub trait PartialSemigroup<T>: Clone {
     /// An associative operation.
-    fn concat_mut(&mut self, other:T);
+    fn concat_mut(&mut self, other: T);
 
     /// An associative operation.
-    fn concat_ref(&self, other:T) -> Self where Self:Clone {
+    fn concat_ref(&self, other: T) -> Self
+    where Self: Clone {
         self.clone().concat(other)
     }
 
     /// An associative operation.
-    fn concat(mut self, other:T) -> Self {
+    fn concat(mut self, other: T) -> Self {
         self.concat_mut(other);
         self
     }
 }
 
-impl<T>   Semigroup for T where T : PartialSemigroup<T> + for<'t> PartialSemigroup<&'t T> {}
-pub trait Semigroup : PartialSemigroup<Self> + for<'t> PartialSemigroup<&'t Self> {
-    fn partial_times_mut(&mut self, n:usize) {
+impl<T> Semigroup for T where T: PartialSemigroup<T> + for<'t> PartialSemigroup<&'t T> {}
+pub trait Semigroup: PartialSemigroup<Self> + for<'t> PartialSemigroup<&'t Self> {
+    fn partial_times_mut(&mut self, n: usize) {
         let val = self.clone();
-        for _ in 0..n-1 {
+        for _ in 0..n - 1 {
             self.concat_mut(&val)
         }
     }
 
-    fn partial_times(mut self, n:usize) -> Self {
+    fn partial_times(mut self, n: usize) -> Self {
         self.partial_times_mut(n);
         self
     }
@@ -56,23 +57,23 @@ pub trait Semigroup : PartialSemigroup<Self> + for<'t> PartialSemigroup<&'t Self
 
 // === Option ===
 
-impl<T:Semigroup> PartialSemigroup<&Option<T>> for Option<T> {
-    fn concat_mut(&mut self, other:&Self) {
+impl<T: Semigroup> PartialSemigroup<&Option<T>> for Option<T> {
+    fn concat_mut(&mut self, other: &Self) {
         if let Some(r) = other {
             match self {
-                None    => *self = Some(r.clone()),
-                Some(l) => l.concat_mut(r)
+                None => *self = Some(r.clone()),
+                Some(l) => l.concat_mut(r),
             }
         }
     }
 }
 
-impl<T:Semigroup> PartialSemigroup<Option<T>> for Option<T> {
-    fn concat_mut(&mut self, other:Self) {
+impl<T: Semigroup> PartialSemigroup<Option<T>> for Option<T> {
+    fn concat_mut(&mut self, other: Self) {
         if let Some(r) = other {
             match self {
-                None    => *self = Some(r),
-                Some(l) => l.concat_mut(r)
+                None => *self = Some(r),
+                Some(l) => l.concat_mut(r),
             }
         }
     }
@@ -81,12 +82,14 @@ impl<T:Semigroup> PartialSemigroup<Option<T>> for Option<T> {
 
 // === HashMap ===
 
-impl<K,V,S> PartialSemigroup<&HashMap<K,V,S>> for HashMap<K,V,S>
-where K : Eq + Hash + Clone,
-      V : Semigroup,
-      S : Clone + BuildHasher {
-    fn concat_mut(&mut self, other:&Self) {
-        for (key,new_val) in other {
+impl<K, V, S> PartialSemigroup<&HashMap<K, V, S>> for HashMap<K, V, S>
+where
+    K: Eq + Hash + Clone,
+    V: Semigroup,
+    S: Clone + BuildHasher,
+{
+    fn concat_mut(&mut self, other: &Self) {
+        for (key, new_val) in other {
             let key = key.clone();
             self.entry(key)
                 .and_modify(|val| val.concat_mut(new_val))
@@ -95,15 +98,15 @@ where K : Eq + Hash + Clone,
     }
 }
 
-impl<K,V,S> PartialSemigroup<HashMap<K,V,S>> for HashMap<K,V,S>
-    where K : Eq + Hash + Clone,
-          V : Semigroup,
-          S : Clone + BuildHasher {
-    fn concat_mut(&mut self, other:Self) {
-        for (key,new_val) in other {
-            self.entry(key)
-                .and_modify(|val| val.concat_mut(&new_val))
-                .or_insert(new_val);
+impl<K, V, S> PartialSemigroup<HashMap<K, V, S>> for HashMap<K, V, S>
+where
+    K: Eq + Hash + Clone,
+    V: Semigroup,
+    S: Clone + BuildHasher,
+{
+    fn concat_mut(&mut self, other: Self) {
+        for (key, new_val) in other {
+            self.entry(key).and_modify(|val| val.concat_mut(&new_val)).or_insert(new_val);
         }
     }
 }
@@ -111,14 +114,14 @@ impl<K,V,S> PartialSemigroup<HashMap<K,V,S>> for HashMap<K,V,S>
 
 // === Vec ===
 
-impl<T:Clone> PartialSemigroup<&Vec<T>> for Vec<T> {
-    fn concat_mut(&mut self, other:&Self) {
+impl<T: Clone> PartialSemigroup<&Vec<T>> for Vec<T> {
+    fn concat_mut(&mut self, other: &Self) {
         self.extend(other.iter().cloned())
     }
 }
 
-impl<T:Clone> PartialSemigroup<Vec<T>> for Vec<T> {
-    fn concat_mut(&mut self, other:Self) {
+impl<T: Clone> PartialSemigroup<Vec<T>> for Vec<T> {
+    fn concat_mut(&mut self, other: Self) {
         self.extend(other.into_iter())
     }
 }
@@ -135,9 +138,9 @@ mod tests {
 
     #[test]
     fn option() {
-        assert_eq!(None::<Vec<usize>>.concat(&None)     , None);
-        assert_eq!(Some(vec![1]).concat(&None)          , Some(vec![1]));
-        assert_eq!(None.concat(&Some(vec![1]))          , Some(vec![1]));
-        assert_eq!(Some(vec![1]).concat(&Some(vec![2])) , Some(vec![1,2]));
+        assert_eq!(None::<Vec<usize>>.concat(&None), None);
+        assert_eq!(Some(vec![1]).concat(&None), Some(vec![1]));
+        assert_eq!(None.concat(&Some(vec![1])), Some(vec![1]));
+        assert_eq!(Some(vec![1]).concat(&Some(vec![2])), Some(vec![1, 2]));
     }
 }

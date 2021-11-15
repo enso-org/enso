@@ -235,7 +235,6 @@ mod test {
     use crate::model::module::Position;
 
     use data::text;
-    use utils::test::traits::*;
 
     #[wasm_bindgen_test]
     fn applying_code_change() {

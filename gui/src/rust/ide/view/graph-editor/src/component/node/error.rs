@@ -10,7 +10,7 @@ use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
-use ensogl_gui_components::shadow;
+use ensogl_gui_component::shadow;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -106,7 +106,8 @@ impl Container {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //     system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
+        let bg_color =
+            styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background);
         let bg_red = bg_color.red * 255.0;
         let bg_green = bg_color.green * 255.0;
         let bg_blue = bg_color.blue * 255.0;

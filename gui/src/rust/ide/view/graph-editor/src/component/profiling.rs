@@ -9,8 +9,8 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::*;
-use ensogl_gui_components::toggle_button;
-use ensogl_gui_components::toggle_button::ToggleButton;
+use ensogl_gui_component::toggle_button;
+use ensogl_gui_component::toggle_button::ToggleButton;
 
 
 
@@ -26,7 +26,7 @@ use ensogl_gui_components::toggle_button::ToggleButton;
 /// pointing to the lower right.
 mod icon {
     use super::*;
-    use ensogl_gui_components::toggle_button::ColorableShape;
+    use ensogl_gui_component::toggle_button::ColorableShape;
 
     ensogl::define_shape_system! {
         (color_rgba:Vector4<f32>) {
@@ -174,7 +174,7 @@ impl Button {
 
             // === Color ===
 
-            use ensogl_theme::graph_editor::profiling_button as button_theme;
+            use ensogl_hardcoded_theme::graph_editor::profiling_button as button_theme;
             let non_toggled_color      = styles.get_color(button_theme::non_toggled);
             let toggled_color          = styles.get_color(button_theme::toggled);
             let hovered_color          = styles.get_color(button_theme::hovered);

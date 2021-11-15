@@ -17,8 +17,8 @@ use ensogl::display;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_theme as theme;
 use nalgebra::Vector2;
 use std::f32::consts::PI;
 

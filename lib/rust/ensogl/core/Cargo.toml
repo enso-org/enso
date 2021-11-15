@@ -1,0 +1,89 @@
+[package]
+name = "ensogl-core"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = ["statistics", "no_unboxed_callbacks"]
+statistics = []
+no_unboxed_callbacks = []
+
+[dependencies]
+code-builder = { path = "../../code-builder" }
+enso-callback = { path = "../../callback" }
+enso-data = { path = "../../data"}
+enso-frp = { path = "../../frp" }
+enso-generics = { path = "../../generics"}
+enso-logger = { path = "../../logger"}
+enso-optics = { path = "../../optics"}
+enso-prelude = { path = "../../prelude"}
+enso-shapely = { path = "../../shapely/impl"}
+enso-shortcuts = { path = "../../shortcuts" }
+enso-types = { path = "../../types" }
+enso-web = { path = "../../web" }
+ensogl-text-embedded-fonts = { path = "../component/text/embedded-fonts" }
+ensogl-text-msdf-sys = { path = "../component/text/msdf-sys" }
+bit_field = { version = "0.10.0" }
+console_error_panic_hook = { version = "0.1.6" }
+enum_dispatch = { version = "0.3.6" }
+failure = { version = "0.1.5" }
+Inflector = { version = "0.11.4" }
+itertools = { version = "0.10.0" }
+js-sys = { version = "0.3.28" }
+nalgebra = { version = "0.26.1" }
+num_enum = { version = "0.5.1" }
+num-traits = { version = "0.2" }
+paste = { version = "1.0.5" }
+rustc-hash = { version = "1.0.1" }
+shrinkwraprs = { version = "0.3.0" }
+smallvec = { version = "1.0.0" }
+typenum = { version = "1.11.2" }
+
+# We require exact version of wasm-bindgen because we do patching final js in our build process,
+# and this is vulnerable to any wasm-bindgen version change.
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'CanvasRenderingContext2d',
+  'CssStyleDeclaration',
+  'Document',
+  'Element',
+  'EventTarget',
+  'KeyboardEvent',
+  'HtmlCanvasElement',
+  'HtmlCollection',
+  'HtmlDivElement',
+  'HtmlElement',
+  'HtmlImageElement',
+  'Location',
+  'Node',
+  'Url',
+  'WebGlBuffer',
+  'WebGlFramebuffer',
+  'WebGlProgram',
+  'WebGlRenderingContext',
+  'WebGlShader',
+  'WebGlSync',
+  'WebGlTexture',
+  'WebGlUniformLocation',
+  'WebGlUniformLocation',
+  'WebGlVertexArrayObject',
+  'Window',
+  'console',
+  'EventTarget',
+  'Event',
+  'MouseEvent',
+  'WheelEvent',
+  'DomRect',
+  'AddEventListenerOptions'
+]
+
+[dev-dependencies]
+assert_approx_eq = { version = "1.1.0" }
+wasm-bindgen-test = { version = "0.3.8" }

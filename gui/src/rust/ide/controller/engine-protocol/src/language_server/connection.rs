@@ -6,7 +6,6 @@ use crate::language_server::types::ContentRoot;
 use crate::language_server::MockClient;
 use crate::language_server::API;
 
-use utils::fail::FallibleResult;
 use uuid::Uuid;
 
 

@@ -40,20 +40,20 @@ pub trait Output {
 /// This trait should be implemented automatically. See the macro `define_levels_group` to learn
 /// more.
 #[allow(missing_docs)]
-pub trait GenericDefinition<Level> : Output {
-    fn generic_format(entry:&Entry<Level>) -> Option<Self::Output>;
+pub trait GenericDefinition<Level>: Output {
+    fn generic_format(entry: &Entry<Level>) -> Option<Self::Output>;
 }
 
 /// A formatter narrowed to a specific type. While `Definition` can be parametrized with a generic
 /// type, like `AllPossibleLevels`, this trait is parametrized with a specific level only, like
 /// `level::Error`. Read docs of `Definition` to learn more.
 #[allow(missing_docs)]
-pub trait Definition<Level> : Output {
-    fn format(entry:&GenericEntry) -> Option<Self::Output>;
+pub trait Definition<Level>: Output {
+    fn format(entry: &GenericEntry) -> Option<Self::Output>;
 }
 
 /// Alias to `Definition::format` allowing providing the type parameters on call side.
-pub fn format<Fmt,Level>(entry:&GenericEntry) -> Option<Fmt::Output>
-where Fmt:Definition<Level> {
+pub fn format<Fmt, Level>(entry: &GenericEntry) -> Option<Fmt::Output>
+where Fmt: Definition<Level> {
     <Fmt>::format(entry)
 }

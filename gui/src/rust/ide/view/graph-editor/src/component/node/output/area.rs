@@ -11,8 +11,8 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_theme as theme;
 use span_tree;
 
 use crate::component::node;
@@ -21,7 +21,7 @@ use crate::component::node::output::port;
 use crate::tooltip;
 use crate::view;
 use crate::Type;
-use enso_args::ARGS;
+use enso_config::ARGS;
 
 
 

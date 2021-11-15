@@ -344,7 +344,6 @@ pub mod tests {
 
     use engine_protocol::language_server::types::test::value_update_with_method_ptr;
     use engine_protocol::language_server::types::test::value_update_with_type;
-    use utils::test::traits::*;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 

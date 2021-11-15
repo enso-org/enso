@@ -24,8 +24,8 @@ pub trait SmallVecOps {
     /// # Implementation Details
     /// Please note that the following implementation is a copy-paste from
     /// [`Vec::binary_search_by`].
-    fn binary_search_by<F>(&self, f:F) -> Result<usize,usize>
-    where F:FnMut(&Self::Item) -> Ordering;
+    fn binary_search_by<F>(&self, f: F) -> Result<usize, usize>
+    where F: FnMut(&Self::Item) -> Ordering;
 
     /// Binary searches this sorted slice for a given element.
     ///
@@ -38,16 +38,16 @@ pub trait SmallVecOps {
     /// # Implementation Details
     /// Please note that the following implementation is a copy-paste from
     /// [`Vec::binary_search`].
-    fn binary_search(&self, t:&Self::Item) -> Result<usize, usize>
-    where Self::Item:Ord;
+    fn binary_search(&self, t: &Self::Item) -> Result<usize, usize>
+    where Self::Item: Ord;
 }
 
-impl<T:smallvec::Array> SmallVecOps for SmallVec<T> {
+impl<T: smallvec::Array> SmallVecOps for SmallVec<T> {
     type Item = <T as smallvec::Array>::Item;
 
     #[allow(unsafe_code)]
-    fn binary_search_by<F>(&self, mut f:F) -> Result<usize, usize>
-    where F:FnMut(&Self::Item) -> Ordering {
+    fn binary_search_by<F>(&self, mut f: F) -> Result<usize, usize>
+    where F: FnMut(&Self::Item) -> Ordering {
         let s = self;
         let mut size = s.len();
         if size == 0 {
@@ -66,11 +66,15 @@ impl<T:smallvec::Array> SmallVecOps for SmallVec<T> {
         }
         // SAFETY: base is always in [0, size) because base <= mid.
         let cmp = f(unsafe { s.get_unchecked(base) });
-        if cmp == Ordering::Equal { Ok(base) } else { Err(base + (cmp == Ordering::Less) as usize) }
+        if cmp == Ordering::Equal {
+            Ok(base)
+        } else {
+            Err(base + (cmp == Ordering::Less) as usize)
+        }
     }
 
-    fn binary_search(&self, t:&Self::Item) -> Result<usize, usize>
-    where Self::Item:Ord {
+    fn binary_search(&self, t: &Self::Item) -> Result<usize, usize>
+    where Self::Item: Ord {
         self.binary_search_by(|p| p.cmp(t))
     }
 }
@@ -88,7 +92,7 @@ mod tests {
 
     #[test]
     fn test_binary_search_by() {
-        let v = SmallVec::<[usize;4]>::from_iter([5,10,20,40].iter().copied());
+        let v = SmallVec::<[usize; 4]>::from_iter([5, 10, 20, 40].iter().copied());
         assert_eq!(v.binary_search_by(|probe| probe.cmp(&0)), Err(0));
         assert_eq!(v.binary_search_by(|probe| probe.cmp(&5)), Ok(0));
         assert_eq!(v.binary_search_by(|probe| probe.cmp(&6)), Err(1));
@@ -99,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_binary_search() {
-        let v = SmallVec::<[usize;4]>::from_iter([5,10,20,40].iter().copied());
+        let v = SmallVec::<[usize; 4]>::from_iter([5, 10, 20, 40].iter().copied());
         assert_eq!(v.binary_search(&0), Err(0));
         assert_eq!(v.binary_search(&5), Ok(0));
         assert_eq!(v.binary_search(&6), Err(1));

@@ -15,35 +15,45 @@ use enso_prelude::*;
 
 trait HList {}
 impl HList for Nil {}
-impl<Head,Tail> HList for Cons<Head,Tail> where Head:?Sized, Tail:?Sized {}
+impl<Head, Tail> HList for Cons<Head, Tail>
+where
+    Head: ?Sized,
+    Tail: ?Sized,
+{
+}
 
 struct Nil;
-struct Cons<Head,Tail>(PhantomData2<Head,Tail>) where Head:?Sized, Tail:?Sized;
+struct Cons<Head, Tail>(PhantomData2<Head, Tail>)
+where
+    Head: ?Sized,
+    Tail: ?Sized;
 
 // === Instances ===
 
-impl<Head:?Sized, Tail:?Sized>
-Cons<Head,Tail> {
-    pub fn new() -> Self { Self::default() }
+impl<Head: ?Sized, Tail: ?Sized> Cons<Head, Tail> {
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
-impl<Head:?Sized, Tail:?Sized>
-Default for Cons<Head,Tail> {
-    fn default() -> Self { Self(default()) }
+impl<Head: ?Sized, Tail: ?Sized> Default for Cons<Head, Tail> {
+    fn default() -> Self {
+        Self(default())
+    }
 }
 
 // === Append ===
 
 type Append<El, Els> = <Els as Appendable<El>>::Result;
-trait Appendable<T:?Sized> { type Result; }
+trait Appendable<T: ?Sized> {
+    type Result;
+}
 
-impl<T:?Sized>
-Appendable<T> for Nil {
+impl<T: ?Sized> Appendable<T> for Nil {
     type Result = Cons<T, Nil>;
 }
 
-impl<T:?Sized, Head:?Sized, Tail:?Sized+Appendable<T>>
-Appendable<T> for Cons<Head, Tail> {
+impl<T: ?Sized, Head: ?Sized, Tail: ?Sized + Appendable<T>> Appendable<T> for Cons<Head, Tail> {
     type Result = Cons<Head, Append<T, Tail>>;
 }
 
@@ -52,20 +62,22 @@ Appendable<T> for Cons<Head, Tail> {
 // =============
 
 type Field<T, Field> = <T as HasField<Field>>::Result;
-trait HasField<Field> { type Result; }
+trait HasField<Field> {
+    type Result;
+}
 
 // ==============
 // === Getter ===
 // ==============
 
 trait Getter<T>: HasField<T> {
-    fn get     (&    self) -> &    Field<Self, T>;
-    fn get_mut (&mut self) -> &mut Field<Self, T>;
+    fn get(&self) -> &Field<Self, T>;
+    fn get_mut(&mut self) -> &mut Field<Self, T>;
 }
 
 trait OptGetter<T>: HasField<T> {
-    fn get     (&    self) -> Option <&    Field<Self, T>>;
-    fn get_mut (&mut self) -> Option <&mut Field<Self, T>>;
+    fn get(&self) -> Option<&Field<Self, T>>;
+    fn get_mut(&mut self) -> Option<&mut Field<Self, T>>;
 }
 
 // ================
@@ -75,43 +87,57 @@ trait OptGetter<T>: HasField<T> {
 // === FieldResolver ===
 
 type NestedField<T, Path> = <Path as FieldResolver<T>>::Result;
-trait FieldResolver<T: ?Sized> { type Result; }
+trait FieldResolver<T: ?Sized> {
+    type Result;
+}
 
-impl<T>
-FieldResolver<T> for Nil {
+impl<T> FieldResolver<T> for Nil {
     type Result = T;
 }
 
-impl<Head, Tail, T>
-FieldResolver<T> for Cons<Head, Tail>
-where T: HasField<Head>, Tail: FieldResolver<Field<T, Head>> {
+impl<Head, Tail, T> FieldResolver<T> for Cons<Head, Tail>
+where
+    T: HasField<Head>,
+    Tail: FieldResolver<Field<T, Head>>,
+{
     type Result = NestedField<Field<T, Head>, Tail>;
 }
 
 // === Resolver ===
 
 trait Resolver<T>: FieldResolver<T> {
-    fn resolve     (t: &    T) -> &    NestedField<T, Self>;
-    fn resolve_mut (t: &mut T) -> &mut NestedField<T, Self>;
+    fn resolve(t: &T) -> &NestedField<T, Self>;
+    fn resolve_mut(t: &mut T) -> &mut NestedField<T, Self>;
 }
 
 trait OptResolver<T>: FieldResolver<T> {
-    fn resolve     (t: &    T) -> Option<&    NestedField<T, Self>>;
-    fn resolve_mut (t: &mut T) -> Option<&mut NestedField<T, Self>>;
+    fn resolve(t: &T) -> Option<&NestedField<T, Self>>;
+    fn resolve_mut(t: &mut T) -> Option<&mut NestedField<T, Self>>;
 }
 
 impl<T> Resolver<T> for Nil {
-    fn resolve     (t: &    T) -> &    NestedField<T, Self> { t }
-    fn resolve_mut (t: &mut T) -> &mut NestedField<T, Self> { t }
+    fn resolve(t: &T) -> &NestedField<T, Self> {
+        t
+    }
+    fn resolve_mut(t: &mut T) -> &mut NestedField<T, Self> {
+        t
+    }
 }
 
 impl<T> OptResolver<T> for Nil {
-    fn resolve     (t: &    T) -> Option<&    NestedField<T, Self>> { Some(t) }
-    fn resolve_mut (t: &mut T) -> Option<&mut NestedField<T, Self>> { Some(t) }
+    fn resolve(t: &T) -> Option<&NestedField<T, Self>> {
+        Some(t)
+    }
+    fn resolve_mut(t: &mut T) -> Option<&mut NestedField<T, Self>> {
+        Some(t)
+    }
 }
 
-impl<Head:'static,Tail,T> Resolver<T> for Cons<Head, Tail>
-where T: Getter<Head>, Tail: Resolver<Field<T, Head>> {
+impl<Head: 'static, Tail, T> Resolver<T> for Cons<Head, Tail>
+where
+    T: Getter<Head>,
+    Tail: Resolver<Field<T, Head>>,
+{
     fn resolve(t: &T) -> &NestedField<T, Self> {
         let head = Getter::<Head>::get(t);
         <Tail as Resolver<Field<T, Head>>>::resolve(head)
@@ -122,11 +148,13 @@ where T: Getter<Head>, Tail: Resolver<Field<T, Head>> {
     }
 }
 
-impl<Head:'static,Tail,T> OptResolver<T> for Cons<Head, Tail>
-    where T: OptGetter<Head>, Tail: OptResolver<Field<T, Head>> {
+impl<Head: 'static, Tail, T> OptResolver<T> for Cons<Head, Tail>
+where
+    T: OptGetter<Head>,
+    Tail: OptResolver<Field<T, Head>>,
+{
     fn resolve(t: &T) -> Option<&NestedField<T, Self>> {
-        OptGetter::<Head>::get(t)
-            .and_then(|t| <Tail as OptResolver<Field<T, Head>>>::resolve(t))
+        OptGetter::<Head>::get(t).and_then(|t| <Tail as OptResolver<Field<T, Head>>>::resolve(t))
     }
     fn resolve_mut(t: &mut T) -> Option<&mut NestedField<T, Self>> {
         OptGetter::<Head>::get_mut(t)
@@ -138,20 +166,24 @@ impl<Head:'static,Tail,T> OptResolver<T> for Cons<Head, Tail>
 // === Lens ===
 // ============
 
-struct Lens    <Src,Tgt,Path>(PhantomData3<Src,Tgt,Path>);
-struct OptLens <Src,Tgt,Path>(PhantomData3<Src,Tgt,Path>);
+struct Lens<Src, Tgt, Path>(PhantomData3<Src, Tgt, Path>);
+struct OptLens<Src, Tgt, Path>(PhantomData3<Src, Tgt, Path>);
 
-impl<Src,Tgt,Path> Copy  for Lens<Src,Tgt,Path> {}
-impl<Src,Tgt,Path> Clone for Lens<Src,Tgt,Path> {
-    fn clone(&self) -> Self { Lens::new() }
+impl<Src, Tgt, Path> Copy for Lens<Src, Tgt, Path> {}
+impl<Src, Tgt, Path> Clone for Lens<Src, Tgt, Path> {
+    fn clone(&self) -> Self {
+        Lens::new()
+    }
 }
 
-impl<Src,Tgt,Path> Copy  for OptLens<Src,Tgt,Path> {}
-impl<Src,Tgt,Path> Clone for OptLens<Src,Tgt,Path> {
-    fn clone(&self) -> Self { OptLens::new() }
+impl<Src, Tgt, Path> Copy for OptLens<Src, Tgt, Path> {}
+impl<Src, Tgt, Path> Clone for OptLens<Src, Tgt, Path> {
+    fn clone(&self) -> Self {
+        OptLens::new()
+    }
 }
 
-impl<Src,Tgt,Path> OptLens<Src,Tgt,Path> {
+impl<Src, Tgt, Path> OptLens<Src, Tgt, Path> {
     pub fn resolve(self, t: &Src) -> Option<&NestedField<Src, Path>>
     where Path: OptResolver<Src> {
         <Path as OptResolver<Src>>::resolve(t)
@@ -162,62 +194,70 @@ impl<Src,Tgt,Path> OptLens<Src,Tgt,Path> {
     }
 }
 
-impl<Src,Tgt,Path> Lens<Src,Tgt,Path> {
+impl<Src, Tgt, Path> Lens<Src, Tgt, Path> {
     pub fn resolve(self, t: &Src) -> &NestedField<Src, Path>
     where Path: Resolver<Src> {
         <Path as Resolver<Src>>::resolve(t)
     }
 }
 
-impl<Src,Tgt,Path> Lens<Src,Tgt,Path> {
-    pub fn new() -> Self { default() }
+impl<Src, Tgt, Path> Lens<Src, Tgt, Path> {
+    pub fn new() -> Self {
+        default()
+    }
 }
 
-impl<Src,Tgt,Path> Default for Lens<Src,Tgt,Path> {
-    fn default() -> Self { Self(default()) }
+impl<Src, Tgt, Path> Default for Lens<Src, Tgt, Path> {
+    fn default() -> Self {
+        Self(default())
+    }
 }
 
-impl<Src,Tgt,Path> OptLens<Src,Tgt,Path> {
-    pub fn new() -> Self { default() }
+impl<Src, Tgt, Path> OptLens<Src, Tgt, Path> {
+    pub fn new() -> Self {
+        default()
+    }
 }
 
-impl<Src,Tgt,Path> Default for OptLens<Src,Tgt,Path> {
-    fn default() -> Self { Self(default()) }
+impl<Src, Tgt, Path> Default for OptLens<Src, Tgt, Path> {
+    fn default() -> Self {
+        Self(default())
+    }
 }
 
-struct BoundLens<'t,Src,Tgt,Path> {
+struct BoundLens<'t, Src, Tgt, Path> {
     target: &'t Src,
-    lens: Lens<Src,Tgt,Path>,
+    lens:   Lens<Src, Tgt, Path>,
 }
 
-struct BoundLensMut<'t,Src,Tgt,Path> {
+struct BoundLensMut<'t, Src, Tgt, Path> {
     target: &'t mut Src,
-    lens: Lens<Src,Tgt,Path>,
+    lens:   Lens<Src, Tgt, Path>,
 }
 
-struct BoundOptLens<'t,Src,Tgt,Path> {
+struct BoundOptLens<'t, Src, Tgt, Path> {
     target: &'t Src,
-    lens: OptLens<Src,Tgt,Path>,
+    lens:   OptLens<Src, Tgt, Path>,
 }
 
-struct BoundOptLensMut<'t,Src,Tgt,Path> {
+struct BoundOptLensMut<'t, Src, Tgt, Path> {
     target: &'t mut Src,
-    lens: OptLens<Src,Tgt,Path>,
+    lens:   OptLens<Src, Tgt, Path>,
 }
 
-impl<'t,Src,Tgt,Path> BoundLens<'t,Src,Tgt,Path> {
+impl<'t, Src, Tgt, Path> BoundLens<'t, Src, Tgt, Path> {
     pub fn new(target: &'t Src) -> Self {
         let lens = Lens::new();
         Self { target, lens }
     }
 
-    pub fn read(&self) -> &NestedField<Src,Path>
+    pub fn read(&self) -> &NestedField<Src, Path>
     where Path: Resolver<Src> {
         self.lens.resolve(self.target)
     }
 }
 
-impl<'t,Src,Tgt,Path> BoundOptLens<'t,Src,Tgt,Path> {
+impl<'t, Src, Tgt, Path> BoundOptLens<'t, Src, Tgt, Path> {
     pub fn new(target: &'t Src) -> Self {
         let lens = OptLens::new();
         Self { target, lens }
@@ -229,16 +269,17 @@ impl<'t,Src,Tgt,Path> BoundOptLens<'t,Src,Tgt,Path> {
     }
 }
 
-impl<'t,Src:Clone,Tgt,Path> BoundOptLens<'t,Src,Tgt,Path> {
+impl<'t, Src: Clone, Tgt, Path> BoundOptLens<'t, Src, Tgt, Path> {
     pub fn write(&self, val: NestedField<Src, Path>)
-    where for<'a> Path: OptResolver<Src>,
-          OptLens<Src,Tgt,Path>: Copy {
+    where
+        for<'a> Path: OptResolver<Src>,
+        OptLens<Src, Tgt, Path>: Copy, {
         let mut a = (*self.target).clone();
         a.lens_mut().unsafe_repath::<Path>().set(val);
     }
 }
 
-impl<'t,Src,Tgt,Path> BoundOptLensMut<'t,Src,Tgt,Path> {
+impl<'t, Src, Tgt, Path> BoundOptLensMut<'t, Src, Tgt, Path> {
     pub fn new(target: &'t mut Src) -> Self {
         let lens = OptLens::new();
         Self { target, lens }
@@ -255,20 +296,16 @@ impl<'t,Src,Tgt,Path> BoundOptLensMut<'t,Src,Tgt,Path> {
         r.map(|s| *s = val);
     }
 
-    pub fn unsafe_repath<Path2>(self) -> BoundOptLensMut<'t,Src,Tgt,Path2> {
-        BoundOptLensMut {
-            target: self.target,
-            lens: OptLens::new(),
-        }
+    pub fn unsafe_repath<Path2>(self) -> BoundOptLensMut<'t, Src, Tgt, Path2> {
+        BoundOptLensMut { target: self.target, lens: OptLens::new() }
     }
 }
 
 ////////////////////////////////////////
-////////////////////////////////////////
-////////////////////////////////////////
 
 
-trait HasLens where Self:Sized {
+trait HasLens
+where Self: Sized {
     fn lens(&self) -> BoundOptLens<'_, Self, Self, Nil> {
         BoundOptLens::new(self)
     }
@@ -500,25 +537,12 @@ mod tests {
 
     #[test]
     fn deeply_nested() {
-        let mut foo = Foo {
-            bar: Bar {
-                baz: Some(Baz {
-                    qux: Some(Qux {
-                        quxx: "nice".to_owned(),
-                    }),
-                }),
-            },
-        };
+        let mut foo =
+            Foo { bar: Bar { baz: Some(Baz { qux: Some(Qux { quxx: "nice".to_owned() }) }) } };
 
         lens_mut!(foo.bar.baz.Some.qux.Some.quxx).set("Hello".into());
         assert_eq!(foo, Foo {
-            bar: Bar {
-                baz: Some(Baz {
-                    qux: Some(Qux {
-                        quxx: "Hello".to_owned(),
-                    }),
-                }),
-            },
+            bar: Bar { baz: Some(Baz { qux: Some(Qux { quxx: "Hello".to_owned() }) }) },
         })
     }
 }
@@ -530,10 +554,7 @@ pub fn main() {
     let lens1 = val.lens().Some().Some();
     let mut val2 = *lens1.target;
     let lm = val2.lens_mut();
-    let mut lm2 = BoundOptLensMut {
-        target: lm.target,
-        lens: lens1.lens,
-    };
+    let mut lm2 = BoundOptLensMut { target: lm.target, lens: lens1.lens };
     lm2.set(9);
     println!("{:?}", val.lens_mut().Some().Some().get());
     println!("{:?}", val2.lens_mut().Some().Some().get());

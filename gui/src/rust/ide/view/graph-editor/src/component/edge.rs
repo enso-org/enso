@@ -13,7 +13,7 @@ use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::gui::component::ShapeViewEvents;
-use ensogl_theme as theme;
+use ensogl_hardcoded_theme as theme;
 use nalgebra::Rotation2;
 
 

@@ -11,8 +11,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ast = { path = "../ast/impl" }
 enso-data = { path = "../../../../../../lib/rust/data"}
-enso-prelude = { path = "../../../../../../lib/rust/prelude"}
-utils = { path = "../utils" }
+enso-prelude = { path = "../../../../../../lib/rust/prelude", features = ["serde", "serde_json"] }
 console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1" }
 js-sys = { version = "0.3.28" }
@@ -27,7 +26,7 @@ wasm-bindgen = { version = "=0.2.58" }
 wasm-bindgen-test = { version = "0.3.8" }
 
 [build-dependencies]
-ensogl-build-utilities = { path = "../../../build" }
+enso-build-utilities = { path = "../../../../../../lib/rust/build-utils" }
 bytes = { version = "0.5.4" }
 futures = { version = "0.3.1" }
 reqwest = { version = "0.10.1" }

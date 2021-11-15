@@ -20,9 +20,9 @@ pub use entry::message::Message;
 
 use prelude::*;
 
-use crate::entry::Entry;
 use crate::entry::DefaultFilter;
 use crate::entry::DefaultLevels;
+use crate::entry::Entry;
 use crate::processor::DefaultProcessor;
 use crate::processor::Processor;
 
@@ -43,40 +43,44 @@ use enso_shapely::CloneRef;
 ///
 /// In order to learn how to use the logger, please refer to the docs in `macros.rs`, where a lot
 /// of logging utility macros are defined.
-#[derive(CloneRef,Derivative)]
-#[derivative(Clone(bound=""))]
-#[derivative(Debug(bound=""))]
-pub struct Logger<Filter=DefaultFilter, Processor=DefaultProcessor, Levels=DefaultLevels> {
-    path      : ImString,
-    #[derivative(Debug="ignore")]
-    filter    : PhantomData<Filter>,
-    #[derivative(Debug="ignore")]
-    levels    : PhantomData<Levels>,
-    #[derivative(Debug="ignore")]
-    processor : Rc<RefCell<Processor>>,
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
+pub struct Logger<Filter = DefaultFilter, Processor = DefaultProcessor, Levels = DefaultLevels> {
+    path:      ImString,
+    #[derivative(Debug = "ignore")]
+    filter:    PhantomData<Filter>,
+    #[derivative(Debug = "ignore")]
+    levels:    PhantomData<Levels>,
+    #[derivative(Debug = "ignore")]
+    processor: Rc<RefCell<Processor>>,
 }
 
-impl<Filter,Processor,Level> Logger<Filter,Processor,Level>
-where Processor:Default {
+impl<Filter, Processor, Level> Logger<Filter, Processor, Level>
+where Processor: Default
+{
     /// Constructor from another logger keeping the same path.
-    pub fn new_from(logger:impl AnyLogger) -> Self {
+    pub fn new_from(logger: impl AnyLogger) -> Self {
         Self::new(logger.path())
     }
 }
 
-impl<Filter,Processor,Level> AnyLogger for Logger<Filter,Processor,Level>
-where Processor:Default {
+impl<Filter, Processor, Level> AnyLogger for Logger<Filter, Processor, Level>
+where Processor: Default
+{
     type Owned = Self;
 
-    fn new(path:impl Into<ImString>) -> Self {
-        let path      = path.into();
-        let filter    = default();
-        let levels    = default();
+    fn new(path: impl Into<ImString>) -> Self {
+        let path = path.into();
+        let filter = default();
+        let levels = default();
         let processor = default();
-        Self {path,filter,levels,processor}
+        Self { path, filter, levels, processor }
     }
 
-    fn path (&self) -> &str { &self.path }
+    fn path(&self) -> &str {
+        &self.path
+    }
 }
 
 
@@ -93,30 +97,36 @@ pub trait AnyLogger {
     type Owned;
 
     /// Constructor.
-    fn new(path:impl Into<ImString>) -> Self::Owned;
+    fn new(path: impl Into<ImString>) -> Self::Owned;
 
     /// Path that is used as an unique identifier of this logger.
     fn path(&self) -> &str;
 
     /// Creates a new logger with this logger as a parent. It can be useful when we need to create
     /// a sub-logger for a generic type parameter.
-    fn sub<T>(&self, id:impl AsRef<str>) -> T
-    where T:AnyLogger<Owned=T>, Self:Sized {
-        <T as AnyLogger>::new_sub(self,id)
+    fn sub<T>(&self, id: impl AsRef<str>) -> T
+    where
+        T: AnyLogger<Owned = T>,
+        Self: Sized, {
+        <T as AnyLogger>::new_sub(self, id)
     }
 
     /// Creates a new logger with this logger as a parent. It can be useful when we need to create
     /// a sub-logger for a generic type parameter.
-    fn new_sub(logger:impl AnyLogger, id:impl AsRef<str>) -> Self::Owned
-    where Self::Owned : AnyLogger<Owned=Self::Owned> {
+    fn new_sub(logger: impl AnyLogger, id: impl AsRef<str>) -> Self::Owned
+    where Self::Owned: AnyLogger<Owned = Self::Owned> {
         Self::Owned::new(iformat!("{logger.path()}.{id.as_ref()}"))
     }
 }
 
-impl<T:AnyLogger> AnyLogger for &T {
+impl<T: AnyLogger> AnyLogger for &T {
     type Owned = T::Owned;
-    fn new(path:impl Into<ImString>) -> Self::Owned { T::new(path) }
-    fn path(&self) -> &str { T::path(self) }
+    fn new(path: impl Into<ImString>) -> Self::Owned {
+        T::new(path)
+    }
+    fn path(&self) -> &str {
+        T::path(self)
+    }
 }
 
 
@@ -152,44 +162,52 @@ define_logger_aliases! {
 /// Primitive operations on a logger. The type parameter allows for compile-time log level filtering
 /// of the messages.
 #[allow(missing_docs)]
-pub trait LoggerOps<Level=DefaultLevels> {
-    fn log         (&self, level:Level, msg:impl Message);
-    fn group_begin (&self, level:Level, collapsed:bool, msg:impl Message);
-    fn group_end   (&self, level:Level);
+pub trait LoggerOps<Level = DefaultLevels> {
+    fn log(&self, level: Level, msg: impl Message);
+    fn group_begin(&self, level: Level, collapsed: bool, msg: impl Message);
+    fn group_end(&self, level: Level);
 }
 
 
 // === Impl for References ===
 
-impl<T:LoggerOps<Level>,Level> LoggerOps<Level> for &T {
-    fn log(&self, level:Level, msg:impl Message) {
-        LoggerOps::log(*self,level,msg)
+impl<T: LoggerOps<Level>, Level> LoggerOps<Level> for &T {
+    fn log(&self, level: Level, msg: impl Message) {
+        LoggerOps::log(*self, level, msg)
     }
 
-    fn group_begin(&self, level:Level, collapsed:bool, msg:impl Message) {
-        LoggerOps::group_begin(*self,level,collapsed,msg)
+    fn group_begin(&self, level: Level, collapsed: bool, msg: impl Message) {
+        LoggerOps::group_begin(*self, level, collapsed, msg)
     }
 
-    fn group_end(&self, level:Level) {
-        LoggerOps::group_end(*self,level)
+    fn group_end(&self, level: Level) {
+        LoggerOps::group_end(*self, level)
     }
 }
 
 
 // === Generic Redirection ===
 
-impl<S,Filter,Level,L> LoggerOps<L> for Logger<Filter,S,Level>
-where S:Processor<Entry<Level>>, Level:From<L> {
-    default fn log(&self, level:L, msg:impl Message) {
-        self.processor.borrow_mut().submit(Entry::message(level,self.path.clone(),msg));
+impl<S, Filter, Level, L> LoggerOps<L> for Logger<Filter, S, Level>
+where
+    S: Processor<Entry<Level>>,
+    Level: From<L>,
+{
+    default fn log(&self, level: L, msg: impl Message) {
+        self.processor.borrow_mut().submit(Entry::message(level, self.path.clone(), msg));
     }
 
-    default fn group_begin(&self, level:L, collapsed:bool, msg:impl Message) {
-        self.processor.borrow_mut().submit(Entry::group_begin(level,self.path.clone(),msg,collapsed));
+    default fn group_begin(&self, level: L, collapsed: bool, msg: impl Message) {
+        self.processor.borrow_mut().submit(Entry::group_begin(
+            level,
+            self.path.clone(),
+            msg,
+            collapsed,
+        ));
     }
 
-    default fn group_end(&self, level:L) {
-        self.processor.borrow_mut().submit(Entry::group_end(level,self.path.clone()));
+    default fn group_end(&self, level: L) {
+        self.processor.borrow_mut().submit(Entry::group_end(level, self.path.clone()));
     }
 }
 

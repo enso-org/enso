@@ -1,0 +1,13 @@
+[package]
+name = "config-reader"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+serde = { version = "1.0" }
+serde_yaml = { version = "=0.8.14" }
+Inflector = { version = "0.11.4" }
