@@ -370,7 +370,7 @@ commands['assert-version-stable'].rust = async function (argv) {
 
 let usage = `run command [options]
 
-All arguments after '--' will be passed to cargo bcuild system.
+All arguments after '--' will be passed to cargo build system.
 All arguments after second '--' will be passed to target executable if any.
 For example, 'run start -- --dev -- --debug-scene shapes' will pass '--dev' to cargo \
 and '--debug-scene shapes' to the output binary.`
