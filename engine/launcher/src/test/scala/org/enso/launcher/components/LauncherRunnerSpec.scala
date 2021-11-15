@@ -145,7 +145,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
       commandLine should include(s"--new-project-author-email $authorEmail")
     }
 
-    "warn when creating a project using a nightly version" in {
+    "warn when creating a project using a nightly version" taggedAs Flaky in {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
       val nightlyVersion = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))
