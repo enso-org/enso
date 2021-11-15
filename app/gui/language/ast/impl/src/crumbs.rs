@@ -12,10 +12,6 @@ use crate::Shifted;
 use crate::ShiftedVec1;
 use crate::TokenConsumer;
 
-use enso_data::text::Index;
-use enso_data::text::Size;
-use enso_data::text::Span;
-
 
 
 // ==============

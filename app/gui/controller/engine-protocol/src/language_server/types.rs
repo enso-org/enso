@@ -1,6 +1,6 @@
 //! This module contains language server types.
 
-use super::*;
+use crate::language_server::*;
 
 
 
@@ -456,17 +456,17 @@ pub struct Position {
     pub character: usize,
 }
 
-impls! { From + &From <enso_data::text::TextLocation> for Position { |location|
+impls! { From + &From <enso_text::Location> for Position { |location|
     Position {
-        line      : location.line,
-        character : location.column,
+        line: location.line,
+        character: location.column,
     }
 }}
 
-impls! { From + &From <Position> for enso_data::text::TextLocation { |position|
-    enso_data::text::TextLocation {
-        line      : position.line,
-        column    : position.character,
+impls! { From + &From <Position> for enso_text::Location { |position|
+    enso_text::Location {
+        line: position.line.into(),
+        column: position.character.into(),
     }
 }}
 
@@ -484,14 +484,14 @@ pub struct TextRange {
     pub end:   Position,
 }
 
-impls! { From + &From <Range<enso_data::text::TextLocation>> for TextRange { |range|
+impls! { From + &From <Range<enso_text::Location>> for TextRange { |range|
     TextRange {
         start : range.start.into(),
         end   : range.end.into(),
     }
 }}
 
-impls! { From + &From <TextRange> for Range<enso_data::text::TextLocation> { |range|
+impls! { From + &From <TextRange> for Range<enso_text::Location> { |range|
     range.start.into()..range.end.into()
 }}
 
@@ -546,9 +546,12 @@ impl TextEdit {
     /// };
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "".to_string() });
     /// ```
-    pub fn from_prefix_postfix_differences(source: &str, target: &str) -> TextEdit {
-        use enso_data::text::Index;
-        use enso_data::text::TextLocation;
+    pub fn from_prefix_postfix_differences(
+        source: &enso_text::Text,
+        target: &enso_text::Text,
+    ) -> TextEdit {
+        // use enso_text::Lo::text::Index;
+        use enso_text::Location;
 
         let source_length = source.chars().count();
         let target_length = target.chars().count();
