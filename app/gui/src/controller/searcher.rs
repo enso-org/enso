@@ -1054,7 +1054,9 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        let project_name = self.ide.current_project().qualified_name();
+        // TODO: store project name in Searcher
+        let project_name =
+            self.ide.current_project().map(|project| project.qualified_name()).unwrap();
         self.graph.graph().module.path().qualified_module_name(project_name)
     }
 

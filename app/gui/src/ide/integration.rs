@@ -35,7 +35,12 @@ impl Model {
         // not race for the view.
         *self.project_integration.borrow_mut() = None;
 
-        let project_model = self.controller.current_project();
+        let project_model = if let Some(model) = self.controller.current_project() {
+            model
+        } else {
+            return
+        };
+
         let status_notifications = self.controller.status_notifications().clone_ref();
         let project = controller::Project::new(project_model, status_notifications.clone_ref());
 

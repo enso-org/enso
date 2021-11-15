@@ -39,7 +39,7 @@ const UNNAMED_PROJECT_NAME: &str = "Unnamed";
 #[derivative(Debug)]
 pub struct Handle {
     logger:               Logger,
-    current_project:      Rc<CloneRefCell<model::Project>>,
+    current_project:      Rc<RefCell<Option<model::Project>>>,
     #[derivative(Debug = "ignore")]
     project_manager:      Rc<dyn project_manager::API>,
     status_notifications: StatusNotificationPublisher,
@@ -54,7 +54,7 @@ impl Handle {
         initial_project: model::Project,
     ) -> Self {
         let logger = Logger::new("controller::ide::Desktop");
-        let current_project = Rc::new(CloneRefCell::new(initial_project));
+        let current_project = Rc::new(RefCell::new(Some(initial_project)));
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
@@ -84,8 +84,8 @@ impl Handle {
 }
 
 impl API for Handle {
-    fn current_project(&self) -> model::Project {
-        self.current_project.get()
+    fn current_project(&self) -> Option<model::Project> {
+        self.current_project.borrow().as_ref().map(CloneRef::clone_ref)
     }
     fn status_notifications(&self) -> &StatusNotificationPublisher {
         &self.status_notifications
