@@ -54,6 +54,7 @@ members = [
     "lib/rust/shapely/macros",
     "lib/rust/shortcuts",
     "lib/rust/shortcuts/example",
+    "lib/rust/text",
     "lib/rust/types",
     "lib/rust/web",
     "lib/rust/not-used/eval-tt",
