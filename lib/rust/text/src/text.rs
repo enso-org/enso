@@ -6,9 +6,9 @@ use crate::range::Range;
 use crate::range::RangeBounds;
 use crate::rope;
 use crate::rope::Rope;
-use crate::selection::Selection;
 use crate::unit::*;
 
+use enso_types::min;
 
 
 // ============
@@ -107,13 +107,6 @@ impl Text {
                 Location(line, column)
             }
         }
-    }
-
-    /// Constrain the selection to values valid inside of the current text buffer.
-    pub fn snap_selection(&self, selection: Selection) -> Selection {
-        let start = self.snap_location(selection.start);
-        let end = self.snap_location(selection.end);
-        selection.with_start(start).with_end(end)
     }
 
     /// Return the offset to the next grapheme if any. See the documentation of the library to
@@ -695,10 +688,6 @@ impl TextCell {
 
     pub fn snap_location(&self, location: Location) -> Location {
         self.cell.borrow().snap_location(location)
-    }
-
-    pub fn snap_selection(&self, selection: Selection) -> Selection {
-        self.cell.borrow().snap_selection(selection)
     }
 
     pub fn next_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {

@@ -3,8 +3,17 @@
 
 use crate::prelude::*;
 
+use crate::component::type_coloring;
+use crate::node;
+use crate::node::input::port;
+use crate::node::profiling;
+use crate::view;
+use crate::Type;
+
+
 use enso_frp as frp;
 use enso_frp;
+use enso_text::unit::traits::*;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -15,15 +24,7 @@ use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_text::buffer::data::unit::traits::*;
-use text::Text;
-
-use crate::component::type_coloring;
-use crate::node;
-use crate::node::input::port;
-use crate::node::profiling;
-use crate::view;
-use crate::Type;
+use ensogl_text::Text;
 
 
 

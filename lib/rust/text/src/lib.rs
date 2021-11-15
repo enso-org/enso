@@ -23,4 +23,8 @@ pub use text::TextCell;
 pub use unit::traits;
 pub use unit::*;
 
-use enso_prelude as prelude;
+/// Commonly used utilities.
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use enso_types::*;
+}

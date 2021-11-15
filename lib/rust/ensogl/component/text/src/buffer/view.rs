@@ -10,9 +10,6 @@ pub use movement::*;
 pub use selection::Selection;
 
 use crate::buffer;
-use crate::buffer::data::text::BoundsError;
-use crate::buffer::data::unit::*;
-use crate::buffer::data::Text;
 use crate::buffer::style;
 use crate::buffer::style::Style;
 use crate::buffer::Buffer;
@@ -20,6 +17,9 @@ use crate::buffer::DefaultSetter;
 use crate::buffer::Setter;
 
 use enso_frp as frp;
+use enso_text::text::BoundsError;
+use enso_text::unit::*;
+use enso_text::Text;
 use ensogl_core::data::color;
 
 
