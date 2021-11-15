@@ -18,7 +18,7 @@ import scala.concurrent.Future
 /** We test integration of both the underlying [[Runner]] and the
   * [[LauncherRunner]] in a single suite.
   */
-class LauncherRunnerSpec extends RuntimeVersionManagerTest {
+class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
 
   private val fakeUri = Uri("ws://test:1234/")
