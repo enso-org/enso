@@ -1,7 +1,0 @@
-[target.wasm32-unknown-unknown]
-rustflags = [
-  # Increas the stack size from 1MB to 2MB. This is required to avoid running out of stack space
-  # in debug builds. The error is reported as `RuntimeError: memory access out of bounds`.
-  "-C",
-  "link-args=-z stack-size=2097152",
-]

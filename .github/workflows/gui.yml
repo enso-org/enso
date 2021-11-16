@@ -11,9 +11,6 @@ name: GUI CI
       - stable
   pull_request: {}
   workflow_dispatch: {}
-defaults:
-  run:
-    working-directory: gui
 jobs:
   info:
     name: Build Info
@@ -274,7 +271,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ide-wasm
-          path: gui/dist/wasm
+          path: dist/wasm
   package:
     name: Build package
     runs-on: ${{ matrix.runner }}
@@ -350,7 +347,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: ide-wasm
-          path: gui/dist/wasm
+          path: dist/wasm
       - name: Build Package
         run: node ./run dist --no-rust --skip-version-validation
         shell: bash
@@ -367,14 +364,14 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: content
-          path: gui/dist/content
+          path: dist/content
         if: runner.os == 'Linux'
       - name: Upload Artifacts (macOS, dmg)
         uses: actions/upload-artifact@v1
         with:
           name: enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
           path: >-
-            gui/dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
+            dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
         if: runner.os == 'macOS'
       - name: Upload Artifacts (macOS, dmg.sha256)
         uses: actions/upload-artifact@v1
@@ -382,14 +379,14 @@ jobs:
           name: >-
             enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg.sha256
           path: >-
-            gui/dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg.sha256
+            dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg.sha256
         if: runner.os == 'macOS'
       - name: Upload Artifacts (Windows, exe)
         uses: actions/upload-artifact@v1
         with:
           name: enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
           path: >-
-            gui/dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
+            dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
         if: runner.os == 'Windows'
       - name: Upload Artifacts (Windows, exe.sha256)
         uses: actions/upload-artifact@v1
@@ -397,7 +394,7 @@ jobs:
           name: >-
             enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe.sha256
           path: >-
-            gui/dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe.sha256
+            dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe.sha256
         if: runner.os == 'Windows'
       - name: Upload Artifacts (Linux, AppImage)
         uses: actions/upload-artifact@v1
@@ -405,7 +402,7 @@ jobs:
           name: >-
             enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
           path: >-
-            gui/dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
+            dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
         if: runner.os == 'Linux'
       - name: Upload Artifacts (Linux, AppImage.sha256)
         uses: actions/upload-artifact@v1
@@ -413,7 +410,7 @@ jobs:
           name: >-
             enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
           path: >-
-            gui/dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
+            dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
         if: runner.os == 'Linux'
     needs:
       - build_wasm

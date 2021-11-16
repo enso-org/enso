@@ -823,6 +823,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "ensogl",
+ "semver 1.0.4",
 ]
 
 [[package]]
@@ -880,6 +881,55 @@ version = "0.2.0"
 dependencies = [
  "nalgebra 0.21.1",
  "serde",
+]
+
+[[package]]
+name = "enso-gui"
+version = "0.1.0"
+dependencies = [
+ "analytics",
+ "ast",
+ "bimap",
+ "console_error_panic_hook",
+ "double-representation",
+ "engine-protocol",
+ "enso-callback",
+ "enso-config",
+ "enso-data",
+ "enso-frp",
+ "enso-logger",
+ "enso-prelude",
+ "enso-shapely",
+ "enso-web",
+ "ensogl",
+ "ensogl-drop-manager",
+ "ensogl-examples",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+ "ensogl-text-msdf-sys",
+ "failure",
+ "flo_stream",
+ "futures 0.3.17",
+ "fuzzly",
+ "ide-view",
+ "itertools 0.10.1",
+ "js-sys",
+ "json-rpc",
+ "mockall",
+ "nalgebra 0.26.2",
+ "parser",
+ "regex",
+ "semver 1.0.4",
+ "serde",
+ "serde_json",
+ "sha3",
+ "span-tree",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-test 0.3.8",
+ "web-sys",
+ "websocket",
 ]
 
 [[package]]
@@ -1697,55 +1747,6 @@ dependencies = [
  "native-tls",
  "tokio",
  "tokio-tls 0.3.1",
-]
-
-[[package]]
-name = "ide"
-version = "0.1.0"
-dependencies = [
- "analytics",
- "ast",
- "bimap",
- "console_error_panic_hook",
- "double-representation",
- "engine-protocol",
- "enso-callback",
- "enso-config",
- "enso-data",
- "enso-frp",
- "enso-logger",
- "enso-prelude",
- "enso-shapely",
- "enso-web",
- "ensogl",
- "ensogl-drop-manager",
- "ensogl-examples",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-text",
- "ensogl-text-msdf-sys",
- "failure",
- "flo_stream",
- "futures 0.3.17",
- "fuzzly",
- "ide-view",
- "itertools 0.10.1",
- "js-sys",
- "json-rpc",
- "mockall",
- "nalgebra 0.26.2",
- "parser",
- "regex",
- "semver 1.0.4",
- "serde",
- "serde_json",
- "sha3",
- "span-tree",
- "uuid",
- "wasm-bindgen",
- "wasm-bindgen-test 0.3.8",
- "web-sys",
- "websocket",
 ]
 
 [[package]]
