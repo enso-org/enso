@@ -508,7 +508,7 @@ impl Searcher {
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
             Data::new_with_edited_node(
-                project.qualified_name(),
+                project_name.deref().clone(),
                 &graph.graph(),
                 &*database,
                 node_id,
