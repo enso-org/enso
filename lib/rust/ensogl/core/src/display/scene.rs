@@ -488,28 +488,34 @@ impl DomLayers {
         let fullscreen_vis = DomScene::new(logger);
         let back = DomScene::new(logger);
         let panel = DomScene::new(logger);
+
+        panel.dom.set_class_name("panel");
+        panel.dom.set_style_or_warn("pointer-events", "auto", logger);
+        panel.dom.set_style_or_warn("z-index", "0", logger);
+
+        back.dom.set_class_name("back");
+        back.dom.set_style_or_warn("pointer-events", "auto", logger);
+        back.dom.set_style_or_warn("z-index", "1", logger);
+
+        fullscreen_vis.dom.set_class_name("fullscreen_vis");
+        fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
+
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
         canvas.set_style_or_warn("display", "block", logger);
         // Position must not be "static" to have z-index working.
         canvas.set_style_or_warn("position", "absolute", logger);
-        canvas.set_style_or_warn("z-index", "2", logger);
+        canvas.set_style_or_warn("z-index", "3", logger);
         canvas.set_style_or_warn("pointer-events", "none", logger);
+
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "3", logger);
-        back.dom.set_class_name("back");
-        back.dom.set_style_or_warn("pointer-events", "auto", logger);
-        back.dom.set_style_or_warn("z-index", "0", logger);
-        panel.dom.set_class_name("panel");
-        panel.dom.set_style_or_warn("pointer-events", "auto", logger);
-        panel.dom.set_style_or_warn("z-index", "0", logger);
-        fullscreen_vis.dom.set_class_name("fullscreen_vis");
-        fullscreen_vis.dom.set_style_or_warn("z-index", "1", logger);
+        front.dom.set_style_or_warn("z-index", "4", logger);
+
+        dom.append_or_panic(&panel.dom);
+        dom.append_or_panic(&back.dom);
+        dom.append_or_panic(&fullscreen_vis.dom);
         dom.append_or_panic(&canvas);
         dom.append_or_panic(&front.dom);
-        dom.append_or_panic(&back.dom);
-        dom.append_or_panic(&panel.dom);
-        dom.append_or_panic(&fullscreen_vis.dom);
         Self { back, panel, fullscreen_vis, front, canvas }
     }
 }
