@@ -477,6 +477,7 @@ pub struct Searcher {
     ide:              controller::Ide,
     this_arg:         Rc<Option<ThisNode>>,
     position_in_code: Immutable<TextLocation>,
+    project_name:     Immutable<project::QualifiedName>,
 }
 
 impl Searcher {
@@ -502,11 +503,12 @@ impl Searcher {
         mode: Mode,
         selected_nodes: Vec<double_representation::node::Id>,
     ) -> FallibleResult<Self> {
+        let project_name = Immutable(project.qualified_name());
         let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
             Data::new_with_edited_node(
-                project.qualified_name(),
+                project_name.deref().clone(),
                 &graph.graph(),
                 &*database,
                 node_id,
@@ -533,6 +535,7 @@ impl Searcher {
             database: project.suggestion_db(),
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
+            project_name,
         };
         ret.reload_list();
         Ok(ret)
@@ -1054,10 +1057,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        // TODO: store project name in Searcher
-        let project_name =
-            self.ide.current_project().map(|project| project.qualified_name()).unwrap();
-        self.graph.graph().module.path().qualified_module_name(project_name)
+        self.graph.graph().module.path().qualified_module_name(self.project_name.deref().clone())
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
