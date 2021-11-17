@@ -48,38 +48,40 @@ pub struct Handle {
 }
 
 impl Handle {
-    /// Create a project controller handle with already loaded project model.
-    pub fn new_with_project(
+    /// Create IDE controller. If `maybe_project_name` is `Some`, a project with provided name will
+    /// be opened. Otherwise controller will be used for project manager operations by Welcome
+    /// Screen.
+    pub async fn new(
         project_manager: Rc<dyn project_manager::API>,
-        initial_project: model::Project,
-    ) -> Self {
+        maybe_project_name: Option<ProjectName>,
+    ) -> FallibleResult<Self> {
+        let maybe_initial_project = match maybe_project_name {
+            Some(name) => Some(Self::init_project_model(project_manager.clone_ref(), name).await?),
+            None => None
+        };
         let logger = Logger::new("controller::ide::Desktop");
-        let current_project = Rc::new(RefCell::new(Some(initial_project)));
+        let current_project = Rc::new(RefCell::new(maybe_initial_project));
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
-        Self {
+        Ok(Self {
             logger,
             current_project,
             project_manager,
             status_notifications,
             parser,
             notifications,
-        }
+        })
     }
 
-    /// Create a project controller handle which opens the project with the given name, or creates
-    /// it if it does not exist.
-    pub async fn new_with_opened_project(
-        project_manager: Rc<dyn project_manager::API>,
-        name: ProjectName,
-    ) -> FallibleResult<Self> {
+    /// Open project with provided name.
+    async fn init_project_model(project_manager: Rc<dyn project_manager::API>, project_name: ProjectName) -> FallibleResult<model::Project> {
         // TODO[ao]: Reuse of initializer used in previous code design. It should be soon replaced
         //      anyway, because we will soon resign from the "open or create" approach when opening
         //      IDE. See https://github.com/enso-org/ide/issues/1492 for details.
-        let initializer = initializer::WithProjectManager::new(project_manager.clone_ref(), name);
+        let initializer = initializer::WithProjectManager::new(project_manager, project_name);
         let model = initializer.initialize_project_model().await?;
-        Ok(Self::new_with_project(project_manager, model))
+        Ok(model)
     }
 }
 

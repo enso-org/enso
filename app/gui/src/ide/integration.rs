@@ -41,6 +41,10 @@ impl Model {
             return
         };
 
+        // We know the name of new project before it loads. We set it right now to avoid
+        // displaying placeholder on the scene during loading.
+        self.view.graph().model.breadcrumbs.project_name(project_model.name().to_string());
+
         let status_notifications = self.controller.status_notifications().clone_ref();
         let project = controller::Project::new(project_model, status_notifications.clone_ref());
 

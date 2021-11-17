@@ -84,21 +84,12 @@ impl BackendService {
 // ===============
 
 /// Configuration data necessary to initialize IDE.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Startup {
     /// The configuration of connection to the backend service.
     pub backend:      BackendService,
     /// The project name we want to open on startup.
-    pub project_name: ProjectName,
-}
-
-impl Default for Startup {
-    fn default() -> Self {
-        Self {
-            backend:      default(),
-            project_name: ProjectName(constants::DEFAULT_PROJECT_NAME.to_owned()),
-        }
-    }
+    pub project_name: Option<ProjectName>,
 }
 
 impl Startup {
@@ -108,8 +99,7 @@ impl Startup {
         let project_name = ARGS
             .project
             .clone()
-            .map(|t| t.into())
-            .unwrap_or_else(|| ProjectName::new(constants::DEFAULT_PROJECT_NAME));
+            .map(Into::into);
         Ok(Startup { backend, project_name })
     }
 }
