@@ -45,6 +45,7 @@ module.exports = {
             BUILD_INFO: JSON.stringify(BUILD_INFO),
             FIREBASE_API_KEY: JSON.stringify(process.env.FIREBASE_API_KEY),
         }),
+        new webpack.EnvironmentPlugin({'PROFILING_LEVEL': ""}),
     ],
     devServer: {
         publicPath: '/assets/',

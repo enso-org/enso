@@ -770,9 +770,12 @@ impl Model {
     /// Reload whole displayed content to be up to date with module state.
     pub fn refresh_graph_view(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph view.");
+        let performance_handle = performance_logger::start_interval_task("refresh_graph_view");
         let connections_info = self.graph.connections()?;
         self.refresh_node_views(&connections_info, true)?;
         self.refresh_connection_views(connections_info.connections)?;
+        performance_handle.measure();
+
         Ok(())
     }
 
@@ -781,6 +784,7 @@ impl Model {
         connections_info: &Connections,
         update_position: bool,
     ) -> FallibleResult {
+        let performance_handle = performance_logger::start_interval_task("refresh_node_views");
         let base_default_position = default_node_position();
         let mut trees = connections_info.trees.clone();
         let nodes = self.graph.graph().nodes()?;
@@ -824,15 +828,20 @@ impl Model {
                 None => self.create_node_view(node_info, node_trees, *default_pos),
             }
         }
+        performance_handle.measure();
         Ok(())
     }
 
     /// Refresh the expressions (e.g., types, ports) for all nodes.
     fn refresh_graph_expressions(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph expressions.");
+        let performance_handle =
+            performance_logger::start_interval_task("refresh_graph_expressions");
         let connections = self.graph.connections()?;
         self.refresh_node_views(&connections, false)?;
-        self.refresh_connection_views(connections.connections)
+        let ret = self.refresh_connection_views(connections.connections);
+        performance_handle.measure();
+        ret
     }
 
     /// Retain only given nodes in displayed graph.
@@ -854,6 +863,7 @@ impl Model {
         trees: NodeTrees,
         default_pos: Vector2,
     ) {
+        performance_logger::start_interval_task("create_node_view");
         let id = info.info.id();
         let displayed_id = self.view.graph().add_node();
         self.node_views.borrow_mut().insert(id, displayed_id);
@@ -869,6 +879,7 @@ impl Model {
                 );
             }
         }
+        performance_logger::start_interval_task("create_node_view");
     }
 
     fn deserialize_visualization_data(

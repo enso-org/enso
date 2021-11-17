@@ -22,6 +22,7 @@ import semver from 'semver'
 
 // @ts-ignore
 import * as templates from './templates'
+import * as performanceLogger from 'performance-logger/src/performance_logger'
 
 // ==================
 // === Global API ===
@@ -334,6 +335,14 @@ function showLogs() {
 
 // @ts-ignore
 window.showLogs = showLogs
+
+function showPerformanceReport() {
+    const report = new performanceLogger.Report()
+    report.show()
+}
+
+// @ts-ignore
+window.showPerformanceReport = showPerformanceReport
 
 // ======================
 // === Crash Handling ===
@@ -977,10 +986,14 @@ API.main = async function (inputConfig: any) {
     const urlParams = new URLSearchParams(window.location.search)
     // @ts-ignore
     const urlConfig = Object.fromEntries(urlParams.entries())
-
+    const profilingHandle = performanceLogger.start_interval(
+        performanceLogger.LogLevel.Task,
+        'load_config'
+    )
     const config = Config.default()
     config.updateFromObject(inputConfig)
     config.updateFromObject(urlConfig)
+    profilingHandle.measure()
 
     if (await checkMinSupportedVersion(config)) {
         if (config.authentication_enabled && !Versions.isDevVersion()) {

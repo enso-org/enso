@@ -923,6 +923,7 @@ dependencies = [
  "mockall",
  "nalgebra 0.26.2",
  "parser",
+ "performance-logger",
  "regex",
  "semver 1.0.4",
  "serde",
@@ -2691,6 +2692,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
+name = "performance-logger"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "enso-logger",
+ "enso-prelude",
+ "enso-web",
+ "js-sys",
+ "ordered-float 2.8.0",
+ "paste 1.0.6",
+ "serde",
+ "serde_plain",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "pest"
 version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3357,6 +3375,15 @@ checksum = "e466864e431129c7e0d3476b92f20458e5879919a0596c6472738d9fa2d342f8"
 dependencies = [
  "itoa",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_plain"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95455e7e29fada2052e72170af226fbe368a4ca33dee847875325d9fdb133858"
+dependencies = [
  "serde",
 ]
 

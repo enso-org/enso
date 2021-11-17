@@ -100,6 +100,38 @@ function run_project_manager() {
     })
 }
 
+function make_profiling_feature_string(args) {
+    const profiling_level = args['profiling-level']
+    if (profiling_level === undefined) {
+        return ''
+    }
+
+    const features = []
+
+    if (profiling_level.includes('section')) {
+        features.push('enable-section-profiling')
+    }
+    if (profiling_level.includes('task')) {
+        features.push('enable-task-profiling')
+    }
+    if (profiling_level.includes('detail')) {
+        features.push('enable-detail-profiling')
+    }
+    if (profiling_level.includes('debug')) {
+        features.push('enable-debug-profiling')
+    }
+    return features.join(' ')
+}
+function make_performance_logging_feature_flag(args) {
+    const feature_string = make_profiling_feature_string(args)
+    return '--features ' + '"' + feature_string + '"'
+}
+
+function set_performance_logging_env(args) {
+    const feature_string = make_profiling_feature_string(args)
+    process.env['PROFILING_LEVEL'] = feature_string
+}
+
 // ================
 // === Commands ===
 // ================
@@ -149,6 +181,7 @@ commands.build.js = async function () {
 commands.build.rust = async function (argv) {
     let crate = argv.crate || DEFAULT_CRATE
     let crate_sfx = crate ? ` '${crate}'` : ``
+
     console.log(`Building WASM target${crate_sfx}.`)
     let args = [
         'build',
@@ -163,6 +196,14 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
+    /// Set compile time features to toggle profiling mode. This is used for the Rust profiling
+    // crate.
+    const feature_flags = make_performance_logging_feature_flag(argv)
+    args.push('--')
+    args.push(feature_flags)
+    /// Set environment variables that indicate the profiling mode. This is used in the JS profiling library.
+    set_performance_logging_env(argv)
+
     await run_cargo('wasm-pack', args)
     await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
     await fs.rename(paths.dist.wasm.mainRaw, paths.dist.wasm.main)

@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "target": "ES5",
+    "module": "es2020",
+    "declaration": true,
+    "outDir": "./lib",
+      "types": ["node"]
+  },
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ],
+  "include": [
+    "./src"
+  ]
+}
+
