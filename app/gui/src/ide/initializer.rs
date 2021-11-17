@@ -107,18 +107,16 @@ impl Initializer {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
                 let maybe_project_name = self.config.project_name.clone();
-                let controller = controller::ide::Desktop::new(
-                    project_manager,
-                    maybe_project_name,
-                )
-                .await?;
+                let controller =
+                    controller::ide::Desktop::new(project_manager, maybe_project_name).await?;
                 Ok(Rc::new(controller))
             }
             LanguageServer { json_endpoint, binary_endpoint, namespace } => {
                 let json_endpoint = json_endpoint.clone();
                 let binary_endpoint = binary_endpoint.clone();
                 let namespace = namespace.clone();
-                let project_name = self.config.project_name.clone().unwrap(); // TODO: handle unwrap
+                // unwrap is safe here, as BackendService constructor made this check
+                let project_name = self.config.project_name.clone().unwrap();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
                 let version = semver::Version::parse(enso_config::engine_version_supported)?;

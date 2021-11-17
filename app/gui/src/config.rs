@@ -61,6 +61,9 @@ impl BackendService {
         } else {
             match (&args.language_server_rpc, &args.language_server_data) {
                 (Some(json_endpoint), Some(binary_endpoint)) => {
+                    if args.project.is_none() {
+                        return Err(MissingOption(args.names().project()).into());
+                    }
                     let json_endpoint = json_endpoint.clone();
                     let binary_endpoint = binary_endpoint.clone();
                     let namespace = args
@@ -96,10 +99,7 @@ impl Startup {
     /// Read configuration from the web arguments. See also [`web::Arguments`] documentation.
     pub fn from_web_arguments() -> FallibleResult<Startup> {
         let backend = BackendService::from_web_arguments(&ARGS)?;
-        let project_name = ARGS
-            .project
-            .clone()
-            .map(Into::into);
+        let project_name = ARGS.project.clone().map(Into::into);
         Ok(Startup { backend, project_name })
     }
 }
