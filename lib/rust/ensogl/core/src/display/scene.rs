@@ -469,6 +469,8 @@ impl Dom {
 pub struct DomLayers {
     /// Back DOM scene layer.
     pub back:           DomScene,
+    /// Back DOM scene layer with disabled panning. It shares camera from `fullscreen_vis`.
+    pub panel:          DomScene,
     /// Back DOM scene layer with fullscreen visualization. Kept separately from `back`, because
     /// the fullscreen visualizations should not share camera with main view.
     pub fullscreen_vis: DomScene,
@@ -485,6 +487,7 @@ impl DomLayers {
         let front = DomScene::new(logger);
         let fullscreen_vis = DomScene::new(logger);
         let back = DomScene::new(logger);
+        let panel = DomScene::new(logger);
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
         canvas.set_style_or_warn("display", "block", logger);
@@ -497,13 +500,17 @@ impl DomLayers {
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("pointer-events", "auto", logger);
         back.dom.set_style_or_warn("z-index", "0", logger);
+        panel.dom.set_class_name("panel");
+        panel.dom.set_style_or_warn("pointer-events", "auto", logger);
+        panel.dom.set_style_or_warn("z-index", "0", logger);
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
         fullscreen_vis.dom.set_style_or_warn("z-index", "1", logger);
         dom.append_or_panic(&canvas);
         dom.append_or_panic(&front.dom);
         dom.append_or_panic(&back.dom);
+        dom.append_or_panic(&panel.dom);
         dom.append_or_panic(&fullscreen_vis.dom);
-        Self { back, fullscreen_vis, front, canvas }
+        Self { back, panel, fullscreen_vis, front, canvas }
     }
 }
 
@@ -947,6 +954,7 @@ impl SceneData {
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
+            self.dom.layers.panel.update_view_projection(&fullscreen_vis_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
