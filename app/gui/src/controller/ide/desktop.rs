@@ -73,14 +73,14 @@ impl Handle {
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
-        Self {
+        Ok(Self {
             logger,
             current_project,
             project_manager,
             status_notifications,
             parser,
             notifications,
-        }
+        })
     }
 
     /// Open project with provided name.
