@@ -66,6 +66,9 @@ impl BackendService {
         } else {
             match (&args.language_server_rpc, &args.language_server_data) {
                 (Some(json_endpoint), Some(binary_endpoint)) => {
+                    if args.project.is_none() {
+                        return Err(MissingOption(args.names().project()).into());
+                    }
                     let json_endpoint = json_endpoint.clone();
                     let binary_endpoint = binary_endpoint.clone();
                     let default_namespace = || constants::DEFAULT_PROJECT_NAMESPACE.to_owned();
