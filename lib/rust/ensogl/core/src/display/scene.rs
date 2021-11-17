@@ -469,7 +469,7 @@ impl Dom {
 pub struct DomLayers {
     /// Back DOM scene layer.
     pub back:           DomScene,
-    /// Back DOM scene layer with disabled panning. It shares camera from `fullscreen_vis`.
+    /// Back DOM scene layer with disabled panning.
     pub panel:          DomScene,
     /// Back DOM scene layer with fullscreen visualization. Kept separately from `back`, because
     /// the fullscreen visualizations should not share camera with main view.
@@ -950,6 +950,8 @@ impl SceneData {
         // setups now, so we are using here the main camera only.
         let camera = self.camera();
         let fullscreen_vis_camera = self.layers.panel.camera();
+        // for now, we use the same camera as `fullscreen_vis`, it might change in the future
+        let panel_camera = self.layers.panel.camera();
         let changed = camera.update(scene);
         if changed {
             self.frp.camera_changed_source.emit(());
@@ -960,7 +962,7 @@ impl SceneData {
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
-            self.dom.layers.panel.update_view_projection(&fullscreen_vis_camera);
+            self.dom.layers.panel.update_view_projection(&panel_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
