@@ -57,7 +57,7 @@ impl Handle {
     ) -> FallibleResult<Self> {
         let maybe_initial_project = match maybe_project_name {
             Some(name) => Some(Self::init_project_model(project_manager.clone_ref(), name).await?),
-            None => None
+            None => None,
         };
         let logger = Logger::new("controller::ide::Desktop");
         let current_project = Rc::new(RefCell::new(maybe_initial_project));
@@ -75,7 +75,10 @@ impl Handle {
     }
 
     /// Open project with provided name.
-    async fn init_project_model(project_manager: Rc<dyn project_manager::API>, project_name: ProjectName) -> FallibleResult<model::Project> {
+    async fn init_project_model(
+        project_manager: Rc<dyn project_manager::API>,
+        project_name: ProjectName,
+    ) -> FallibleResult<model::Project> {
         // TODO[ao]: Reuse of initializer used in previous code design. It should be soon replaced
         //      anyway, because we will soon resign from the "open or create" approach when opening
         //      IDE. See https://github.com/enso-org/ide/issues/1492 for details.

@@ -35,11 +35,8 @@ impl Model {
         // not race for the view.
         *self.project_integration.borrow_mut() = None;
 
-        let project_model = if let Some(model) = self.controller.current_project() {
-            model
-        } else {
-            return
-        };
+        let project_model =
+            if let Some(model) = self.controller.current_project() { model } else { return };
 
         // We know the name of new project before it loads. We set it right now to avoid
         // displaying placeholder on the scene during loading.
