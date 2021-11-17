@@ -15,6 +15,7 @@ members = [
     "app/gui/language/span-tree/example",
     "app/gui/view",
     "app/gui/view/graph-editor",
+    "app/gui/view/welcome-screen",
     "build/rust-scripts",
     "lib/rust/automata",
     "lib/rust/build-utils",
