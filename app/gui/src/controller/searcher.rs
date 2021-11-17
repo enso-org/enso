@@ -1268,7 +1268,7 @@ pub mod test {
             project.expect_name().returning_st(move || project_name.clone());
             let project = Rc::new(project);
             ide.expect_parser().return_const(Parser::new_or_panic());
-            ide.expect_current_project().returning_st(move || project.clone_ref());
+            ide.expect_current_project().returning_st(move || Some(project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let module_name =
@@ -1285,6 +1285,7 @@ pub mod test {
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
+                project_name: Immutable(project_qualified_name()),
             };
             let entry1 = model::suggestion_database::Entry {
                 name:               "testFunction1".to_string(),
