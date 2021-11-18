@@ -66,6 +66,22 @@ impl<T> Range<T> {
     where T: Clone {
         self.with_end(f(self.end.clone()))
     }
+
+    pub fn contains<U>(&self, value: &U) -> bool
+    where
+        T: PartialOrd<U>,
+        U: PartialOrd<T>, {
+        use std::cmp::Ordering::*;
+        match (self.start.partial_cmp(value), self.end.partial_cmp(value)) {
+            (Some(Less), Some(Greater)) | (Some(Equal), Some(Greater)) => true,
+            _ => false,
+        }
+    }
+
+    pub fn contains_range(&self, other: &Range<T>) -> bool
+    where T: PartialOrd {
+        self.contains(&other.start) && self.contains(&other.end)
+    }
 }
 
 

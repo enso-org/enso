@@ -109,6 +109,18 @@ impl Text {
         }
     }
 
+    /// Return the offset to the next codepoint if any. See the documentation of the library to
+    /// learn more about codepoints.
+    pub fn next_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
+        self.rope.next_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
+    }
+
+    /// Return the offset to the previous codepoint if any. See the documentation of the library to
+    /// learn more about codepoints.
+    pub fn prev_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
+        self.rope.prev_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
+    }
+
     /// Return the offset to the next grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
     pub fn next_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
@@ -383,7 +395,7 @@ impl Text {
         let mut offset = self.byte_offset_of_line_index(line_index)?;
         let mut column = 0.column();
         while offset < tgt_offset {
-            match self.next_grapheme_offset(offset) {
+            match self.next_codepoint_offset(offset) {
                 None => return Err(BoundsError(TooBig)),
                 Some(off) => {
                     offset = off;
@@ -559,6 +571,28 @@ impl Text {
     }
 }
 
+
+// === Common Prefix and Suffix ===
+
+/// The return value of [`Text::common_prefix_and_suffix`] function.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CommonPrefixAndSuffix {
+    pub prefix: Bytes,
+    pub suffix: Bytes,
+}
+
+impl Text {
+    /// Returns the length in bytes of common prefix and suffix.
+    ///
+    /// The prefix and suffix lengths does not overlap, so the sum of their length will not exceed
+    /// the length of both texts.
+    pub fn common_prefix_and_suffix(&self, other: &Text) -> CommonPrefixAndSuffix {
+        let mut scanner = xi_rope::compare::RopeScanner::new(&self.rope, &other.rope);
+        let (prefix, suffix) = scanner.find_min_diff_range();
+        CommonPrefixAndSuffix { prefix: prefix.into(), suffix: suffix.into() }
+    }
+}
 
 
 // ===================
@@ -848,4 +882,19 @@ impl TextCell {
     pub fn location_of_byte_offset_snapped(&self, offset: Bytes) -> Location {
         self.cell.borrow().location_of_byte_offset_snapped(offset)
     }
+}
+
+
+
+// ==============
+// === Change ===
+// ==============
+
+/// A single change done to the text content.
+#[derive(Clone, Debug, Default)]
+pub struct Change<Metric = Bytes, String = Text> {
+    /// Range of old text being replaced.
+    pub range: buffer::Range<Metric>,
+    /// The text inserted in place of `range`.
+    pub text:  String,
 }

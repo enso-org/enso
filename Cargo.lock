@@ -92,6 +92,7 @@ dependencies = [
  "enso-data",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "failure",
  "lazy_static",
  "regex",
@@ -717,6 +718,7 @@ dependencies = [
  "enso-data",
  "enso-logger",
  "enso-prelude",
+ "enso-text",
  "failure",
  "itertools 0.10.1",
  "parser",
@@ -1071,6 +1073,7 @@ dependencies = [
  "ast",
  "enso-logger",
  "enso-prelude",
+ "enso-text",
  "enso-web",
  "span-tree",
  "uuid",
@@ -1084,6 +1087,7 @@ version = "0.1.0"
 dependencies = [
  "enso-prelude",
  "enso-types",
+ "serde",
  "xi-rope",
 ]
 
@@ -2606,6 +2610,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-data",
  "enso-prelude",
+ "enso-text",
  "failure",
  "futures 0.3.17",
  "js-sys",
@@ -3492,6 +3497,7 @@ dependencies = [
  "ast",
  "enso-data",
  "enso-prelude",
+ "enso-text",
  "failure",
  "parser",
  "wasm-bindgen-test 0.3.8",

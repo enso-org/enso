@@ -458,8 +458,8 @@ pub struct Position {
 
 impls! { From + &From <enso_text::Location> for Position { |location|
     Position {
-        line: location.line,
-        character: location.column,
+        line: location.line.as_usize(),
+        character: location.column.as_usize(),
     }
 }}
 
@@ -513,7 +513,7 @@ pub struct TextEdit {
 impl TextEdit {
     /// Compute an edit that represents the difference between the two given strings based on their
     /// common pre- and postfix. This is an approximation of the diff between the two strings that
-    /// assumes that anythign between the common prefix and the common post-fix has changed.
+    /// assumes that anything between the common prefix and the common post-fix has changed.
     ///
     /// Example:
     /// ```
@@ -546,34 +546,26 @@ impl TextEdit {
     /// };
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "".to_string() });
     /// ```
-    pub fn from_prefix_postfix_differences(
-        source: &enso_text::Text,
-        target: &enso_text::Text,
-    ) -> TextEdit {
-        // use enso_text::Lo::text::Index;
-        use enso_text::Location;
+    pub fn from_prefix_postfix_differences(source: &str, target: &str) -> TextEdit {
+        use enso_text::unit::*;
 
-        let source_length = source.chars().count();
-        let target_length = target.chars().count();
+        let source = enso_text::Text::from(source);
+        let target = enso_text::Text::from(target);
 
-        let common_prefix_len = common_prefix_length(source, target);
-        let common_postfix_len = common_postfix_length(source, target);
-        let common_parts_len = common_prefix_len + common_postfix_len;
-        let overlaping_chars = common_parts_len.saturating_sub(source_length.min(target_length));
-        let prefix_length = common_prefix_len;
-        let postfix_length = common_postfix_len - overlaping_chars;
+        let common_lengths = source.common_prefix_and_suffix(&target);
 
-        let source_start_index = Index::new(prefix_length);
-        let source_end_index = Index::new(source_length - postfix_length);
+        let source_start_byte = common_lengths.prefix;
+        let source_end_byte = Bytes::from(source.len()) - common_lengths.suffix;
 
-        let source_start_position = TextLocation::from_index(source, source_start_index);
-        let source_end_position = TextLocation::from_index(source, source_end_index);
+        let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
+        let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
         let source_text_range = source_start_position..source_end_position;
 
-        let target_range = prefix_length..(target_length - postfix_length);
-        let target_text = target.chars().skip(target_range.start).take(target_range.len());
+        let target_range =
+            common_lengths.prefix..(Bytes::from(target.len()) - common_lengths.suffix);
+        let target_text = target.sub(target_range).to_string();
 
-        TextEdit { range: source_text_range.into(), text: target_text.collect() }
+        TextEdit { range: source_text_range.into(), text: target_text }
     }
 
     /// Return the edit moved by the given number of lines.
@@ -801,14 +793,14 @@ pub struct SuggestionEntryScope {
     pub end:   Position,
 }
 
-impls! { From + &From <RangeInclusive<enso_data::text::TextLocation>> for SuggestionEntryScope { |range|
+impls! { From + &From <RangeInclusive<enso_text::Location>> for SuggestionEntryScope { |range|
     SuggestionEntryScope {
         start : range.start().into(),
         end   : range.end().into(),
     }
 }}
 
-impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_data::text::TextLocation> { |this|
+impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_text::Location> { |this|
     this.start.into()..=this.end.into()
 }}
 

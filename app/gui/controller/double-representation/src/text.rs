@@ -3,8 +3,6 @@
 use crate::prelude::*;
 
 use ast::IdMap;
-use enso_data::text::Size;
-use enso_data::text::Span;
 
 
 
@@ -15,7 +13,7 @@ use enso_data::text::Span;
 /// Update IdMap to reflect the recent code change.
 pub fn apply_code_change_to_id_map(
     id_map: &mut IdMap,
-    change: &enso_data::text::TextChange,
+    change: &enso_text::text::Change<enso_text::unit::Bytes, String>,
     code: &str,
 ) {
     // TODO [mwu]

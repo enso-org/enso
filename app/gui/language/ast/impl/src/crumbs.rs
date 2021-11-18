@@ -12,6 +12,10 @@ use crate::Shifted;
 use crate::ShiftedVec1;
 use crate::TokenConsumer;
 
+use enso_text as text;
+use enso_text::traits::*;
+use enso_text::unit::*;
+
 
 
 // ==============
@@ -1461,16 +1465,16 @@ pub trait TraversableAst: Sized {
     }
 
     /// Calculate the span of the descendent AST node described by given crumbs..
-    fn span_of_descendent_at(&self, crumbs: &[Crumb]) -> FallibleResult<Span> {
-        let mut position = Index::new(0);
+    fn span_of_descendent_at(&self, crumbs: &[Crumb]) -> FallibleResult<text::Range<Codepoints>> {
+        let mut position = 0.codepoints();
         let mut ast = self.my_ast()?;
         for crumb in crumbs {
             let child = ast.get(crumb)?;
-            let child_ix = ast.child_offset(child)?;
-            position += Span::from_beginning_to(child_ix).size;
+            let child_offset = ast.child_offset(child)?;
+            position += child_offset;
             ast = child;
         }
-        Ok(Span::new(position, Size::new(ast.len())))
+        Ok(text::Range::new(position, position + ast.char_count()))
     }
 }
 
