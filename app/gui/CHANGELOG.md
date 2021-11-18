@@ -1,5 +1,9 @@
 # Next Release
 
+#### Visual Environment
+
+- [Fixed histograms coloring and added a color legend.][3153]
+
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
