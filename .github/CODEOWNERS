@@ -1,14 +1,17 @@
 # Catch All
 * @radeusgd @4e6
 
+# IDE build scripts
+/run @wdanilo
+/build/ @wdanilo
+
 # Rust Libraries
-/lib/rust/ @wdanilo @radeusgd @4e6
+/lib/rust/* @wdanilo @radeusgd @4e6
+/lib/rust/ensogl/ @wdanilo
 
 # Repo Configuration
 /.github/settings.yml @4e6 @radeusgd
 
 # GUI
-/gui/* @wdanilo
-/gui/src/rust/ide @mwu-tow
-/gui/src/rust/ide/view @wdanilo
-/gui/src/rust/ide/view @MichaelMauderer
+/app/gui/* @mwu-tow @farmaazon
+/app/gui/view/ @wdanilo @farmaazon @MichaelMauderer
