@@ -467,10 +467,10 @@ impl Dom {
 /// elements.
 #[derive(Clone, CloneRef, Debug)]
 pub struct DomLayers {
+    /// Bottom-most DOM scene layer with disabled panning.
+    pub welcome_screen: DomScene,
     /// Back DOM scene layer.
     pub back:           DomScene,
-    /// Back DOM scene layer with disabled panning.
-    pub panel:          DomScene,
     /// Back DOM scene layer with fullscreen visualization. Kept separately from `back`, because
     /// the fullscreen visualizations should not share camera with main view.
     pub fullscreen_vis: DomScene,
@@ -487,18 +487,21 @@ impl DomLayers {
         let front = DomScene::new(logger);
         let fullscreen_vis = DomScene::new(logger);
         let back = DomScene::new(logger);
-        let panel = DomScene::new(logger);
+        let welcome_screen = DomScene::new(logger);
 
-        panel.dom.set_class_name("panel");
-        panel.dom.set_style_or_warn("pointer-events", "auto", logger);
-        panel.dom.set_style_or_warn("z-index", "0", logger);
+        welcome_screen.dom.set_class_name("panel");
+        welcome_screen.dom.set_style_or_warn("pointer-events", "auto", logger);
+        welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
+        dom.append_or_panic(&welcome_screen.dom);
 
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("pointer-events", "auto", logger);
         back.dom.set_style_or_warn("z-index", "1", logger);
+        dom.append_or_panic(&back.dom);
 
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
         fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
+        dom.append_or_panic(&fullscreen_vis.dom);
 
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
@@ -507,16 +510,13 @@ impl DomLayers {
         canvas.set_style_or_warn("position", "absolute", logger);
         canvas.set_style_or_warn("z-index", "3", logger);
         canvas.set_style_or_warn("pointer-events", "none", logger);
+        dom.append_or_panic(&canvas);
 
         front.dom.set_class_name("front");
         front.dom.set_style_or_warn("z-index", "4", logger);
-
-        dom.append_or_panic(&panel.dom);
-        dom.append_or_panic(&back.dom);
-        dom.append_or_panic(&fullscreen_vis.dom);
-        dom.append_or_panic(&canvas);
         dom.append_or_panic(&front.dom);
-        Self { back, panel, fullscreen_vis, front, canvas }
+
+        Self { back, welcome_screen, fullscreen_vis, front, canvas }
     }
 }
 
@@ -962,7 +962,7 @@ impl SceneData {
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
-            self.dom.layers.panel.update_view_projection(&panel_camera);
+            self.dom.layers.welcome_screen.update_view_projection(&panel_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
