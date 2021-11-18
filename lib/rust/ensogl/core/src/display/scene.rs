@@ -467,7 +467,9 @@ impl Dom {
 /// elements.
 #[derive(Clone, CloneRef, Debug)]
 pub struct DomLayers {
-    /// Bottom-most DOM scene layer with disabled panning.
+    /// Bottom-most DOM scene layer with disabled panning. This layer is placed at the bottom
+    /// because mouse cursor is drawn on `canvas` layer, and would be covered by Welcome Screen
+    /// elements otherwise.
     pub welcome_screen: DomScene,
     /// Back DOM scene layer.
     pub back:           DomScene,
@@ -948,8 +950,8 @@ impl SceneData {
         // setups now, so we are using here the main camera only.
         let camera = self.camera();
         let fullscreen_vis_camera = self.layers.panel.camera();
-        // for now, we use the same camera as `fullscreen_vis`, it might change in the future
-        let panel_camera = self.layers.panel.camera();
+        // We are using the same camera as `fullscreen_vis`.
+        let welcome_screen_camera = self.layers.panel.camera();
         let changed = camera.update(scene);
         if changed {
             self.frp.camera_changed_source.emit(());
@@ -960,7 +962,7 @@ impl SceneData {
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
-            self.dom.layers.welcome_screen.update_view_projection(&panel_camera);
+            self.dom.layers.welcome_screen.update_view_projection(&welcome_screen_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
