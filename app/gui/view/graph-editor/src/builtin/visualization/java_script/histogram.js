@@ -17,6 +17,7 @@ const ANIMATION_DURATION = 1000
 const LINEAR_SCALE = 'linear'
 const DEFAULT_NUMBER_OF_BINS = 50
 const BUTTON_HEIGHT = 25
+const COLOR_LEGEND_WIDTH = 5
 
 /**
  * A d3.js histogram visualization.
@@ -187,11 +188,26 @@ class Histogram extends Visualization {
         )
         this.dom.appendChild(container)
 
-        this.svg = d3
+        const svg = d3
             .select(container)
             .append('svg')
             .attr('width', this.canvas.outer.width)
             .attr('height', this.canvas.outer.height)
+
+        this.colorLegend = svg
+            .append('rect')
+            .attr('id', 'color-legend')
+            .attr('width', COLOR_LEGEND_WIDTH)
+            .attr('height', this.canvas.inner.height)
+            .attr(
+                'transform',
+                `translate(${this.canvas.margin.left - COLOR_LEGEND_WIDTH}, ${
+                    this.canvas.margin.top
+                })`
+            )
+            .style('fill', 'url(#color-legend-gradient)')
+
+        this.svg = svg
             .append('g')
             .attr(
                 'transform',
@@ -210,6 +226,16 @@ class Histogram extends Visualization {
             .append('rect')
             .attr('width', this.canvas.inner.width)
             .attr('height', this.canvas.inner.height)
+
+        // Vertical gradient from top to bottom. See https://www.w3schools.com/graphics/svg_grad_linear.asp.
+        // Colors of the gradient are set later, in `updateColorLegend`.
+        this.colorLegendGradient = defs
+            .append('linearGradient')
+            .attr('id', 'color-legend-gradient')
+            .attr('x1', '0%')
+            .attr('y1', '100%')
+            .attr('x2', '0%')
+            .attr('y2', '0%')
     }
 
     /**
@@ -542,10 +568,9 @@ class Histogram extends Visualization {
 
         this.yAxis.call(yAxis.ticks((10 * this.canvasDimensions().outer.height) / 200))
 
-        const fill = d3
-            .scaleSequential()
-            .interpolator(d3.interpolateViridis)
-            .domain([0, d3.max(bins, d => d.x0)])
+        const fill = d3.scaleSequential().interpolator(d3.interpolateViridis).domain(y.domain())
+
+        this.updateColorLegend(fill)
 
         const items = this.plot.selectAll('rect').data(bins)
 
@@ -556,7 +581,7 @@ class Histogram extends Visualization {
             .attr('transform', d => 'translate(' + x(d.x0) + ',' + y(d.length) + ')')
             .attr('width', d => x(d.x1) - x(d.x0))
             .attr('height', d => this.canvas.inner.height - y(d.length))
-            .style('fill', d => fill(d.x0))
+            .style('fill', d => fill(d.length))
 
         items.exit().remove()
 
@@ -564,7 +589,27 @@ class Histogram extends Visualization {
     }
 
     /**
-     * Creates labels on axes if they are defined.
+     * Update height of the color legend to match the height of the canvas.
+     * Set up `stop` attributes on color legend gradient to match `colorScale`, so color legend shows correct colors
+     * used by histogram.
+     */
+    updateColorLegend(colorScale) {
+        const colorScaleToGradient = (t, i, n) => ({
+            offset: `${(100 * i) / n.length}%`,
+            color: colorScale(t),
+        })
+        this.colorLegendGradient
+            .selectAll('stop')
+            .data(colorScale.ticks().map(colorScaleToGradient))
+            .enter()
+            .append('stop')
+            .attr('offset', d => d.offset)
+            .attr('stop-color', d => d.color)
+        this.colorLegend.attr('width', COLOR_LEGEND_WIDTH).attr('height', this.canvas.inner.height)
+    }
+
+    /**
+     * Create labels on axes if they are defined.
      */
     initLabels() {
         this.yAxisLabel = this.svg
