@@ -10,11 +10,11 @@
 // ==============
 
 /// The `Switch` type. Read module docs to learn more.
-#[derive(Clone,Copy,Debug,Default,Eq,PartialEq,Hash)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
 #[allow(missing_docs)]
 pub struct Switch<T> {
-    pub value : T,
-    is_on     : bool,
+    pub value: T,
+    is_on:     bool,
 }
 
 
@@ -22,20 +22,20 @@ pub struct Switch<T> {
 
 impl<T> Switch<T> {
     /// Constructor.
-    pub fn new(value:T, is_on:bool) -> Self {
-        Self {value,is_on}
+    pub fn new(value: T, is_on: bool) -> Self {
+        Self { value, is_on }
     }
 
     /// Constructor.
     #[allow(non_snake_case)]
-    pub fn On(value:T) -> Self {
-        Self::new(value,true)
+    pub fn On(value: T) -> Self {
+        Self::new(value, true)
     }
 
     /// Constructor.
     #[allow(non_snake_case)]
-    pub fn Off(value:T) -> Self {
-        Self::new(value,false)
+    pub fn Off(value: T) -> Self {
+        Self::new(value, false)
     }
 }
 
@@ -44,7 +44,7 @@ impl<T> Switch<T> {
 
 impl<T> Switch<T> {
     /// Change the on / off status.
-    pub fn switch(&mut self, is_on:bool) {
+    pub fn switch(&mut self, is_on: bool) {
         self.is_on = is_on;
     }
 
@@ -54,7 +54,7 @@ impl<T> Switch<T> {
     }
 
     /// Change the on / off status while consuming the value.
-    pub fn switched(mut self, is_on:bool) -> Self {
+    pub fn switched(mut self, is_on: bool) -> Self {
         self.switch(is_on);
         self
     }
@@ -87,32 +87,56 @@ impl<T> Switch<T> {
 impl<T> Switch<T> {
     /// Get the value if it was turned on.
     pub fn on(&self) -> Option<&T> {
-        if self.is_on() { Some(&self.value) } else { None }
+        if self.is_on() {
+            Some(&self.value)
+        } else {
+            None
+        }
     }
 
     /// Get the value if it was turned off.
     pub fn off(&self) -> Option<&T> {
-        if self.is_off() { Some(&self.value) } else { None }
+        if self.is_off() {
+            Some(&self.value)
+        } else {
+            None
+        }
     }
 
     /// Get the value if it was turned on while consuming self.
     pub fn into_on(self) -> Option<T> {
-        if self.is_on() { Some(self.value) } else { None }
+        if self.is_on() {
+            Some(self.value)
+        } else {
+            None
+        }
     }
 
     /// Get the value if it was turned off while consuming self.
     pub fn into_off(self) -> Option<T> {
-        if self.is_off() { Some(self.value) } else { None }
+        if self.is_off() {
+            Some(self.value)
+        } else {
+            None
+        }
     }
 
     /// Get the value if the switch was turned on while consuming self, or a default it it was off.
-    pub fn into_on_or(self, default:T) -> T {
-        if self.is_on() { self.value } else { default }
+    pub fn into_on_or(self, default: T) -> T {
+        if self.is_on() {
+            self.value
+        } else {
+            default
+        }
     }
 
     /// Get the value if the switch was turned off while consuming self or a default if it was on.
-    pub fn into_off_or(self, default:T) -> T {
-        if self.is_off() { self.value } else { default }
+    pub fn into_off_or(self, default: T) -> T {
+        if self.is_off() {
+            self.value
+        } else {
+            default
+        }
     }
 }
 

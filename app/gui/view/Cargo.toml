@@ -1,0 +1,39 @@
+[package]
+name = "ide-view"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ast = { path = "../language/ast/impl" }
+enso-config = { path = "../config" }
+enso-frp = { path = "../../../lib/rust/frp" }
+enso-logger = { path = "../../../lib/rust/logger"}
+enso-prelude = { path = "../../../lib/rust/prelude"}
+enso-shapely = { path = "../../../lib/rust/shapely/impl"}
+engine-protocol = { path = "../controller/engine-protocol" }
+ensogl = { path = "../../../lib/rust/ensogl" }
+ensogl-gui-component = { path = "../../../lib/rust/ensogl/component/gui" }
+ensogl-text = { path = "../../../lib/rust/ensogl/component/text" }
+ensogl-text-msdf-sys = { path = "../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded" }
+ide-view-graph-editor = { path = "graph-editor" }
+parser = { path = "../language/parser" }
+span-tree = { path = "../language/span-tree" }
+js-sys = { version = "0.3.28" }
+nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+ordered-float = { version = "2.7.0" }
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
+uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
+wasm-bindgen = { version = "=0.2.58", features = [
+  "nightly",
+  "serde-serialize"
+] }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []

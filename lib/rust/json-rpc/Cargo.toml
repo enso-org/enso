@@ -1,0 +1,18 @@
+[package]
+name = "json-rpc"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-prelude = { path = "../prelude", features = ["futures"]}
+enso-shapely = { path = "../shapely/impl"}
+enso-web = { path = "../web" }
+futures = { version = "0.3.1" }
+failure = { version = "0.1.6" }
+serde = { version = "1.0.0", features = ["derive"] }
+serde_json = { version = "1.0.0" }
+shrinkwraprs = { version = "0.3.0" }

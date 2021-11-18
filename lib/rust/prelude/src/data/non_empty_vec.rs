@@ -2,9 +2,9 @@
 
 use crate::*;
 
+use std::ops::Bound;
 use std::vec::Drain;
 use std::vec::Splice;
-use std::ops::Bound;
 
 
 // ===================
@@ -13,9 +13,9 @@ use std::ops::Bound;
 
 /// A version of [`std::vec::Vec`] that can't be empty.
 #[allow(missing_docs)]
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NonEmptyVec<T> {
-    elems: Vec<T>
+    elems: Vec<T>,
 }
 
 impl<T> Deref for NonEmptyVec<T> {
@@ -36,12 +36,12 @@ impl<T> NonEmptyVec<T> {
     /// ```
     /// #![allow(unused_mut)]
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new(0,vec![]);
+    /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new(0, vec![]);
     /// ```
-    pub fn new(first:T, rest:Vec<T>) -> NonEmptyVec<T> {
+    pub fn new(first: T, rest: Vec<T>) -> NonEmptyVec<T> {
         let mut elems = vec![first];
         elems.extend(rest);
-        NonEmptyVec{elems}
+        NonEmptyVec { elems }
     }
 
     /// Construct a `NonEmptyVec` containing a single element.
@@ -51,11 +51,11 @@ impl<T> NonEmptyVec<T> {
     /// ```
     /// use enso_prelude::NonEmptyVec;
     /// let vec = NonEmptyVec::singleton(0);
-    /// assert_eq!(vec.get(0),Some(&0));
-    /// assert_eq!(vec.len(),1);
+    /// assert_eq!(vec.get(0), Some(&0));
+    /// assert_eq!(vec.len(), 1);
     /// ```
-    pub fn singleton(first:T) -> NonEmptyVec<T> {
-        NonEmptyVec::new(first,vec![])
+    pub fn singleton(first: T) -> NonEmptyVec<T> {
+        NonEmptyVec::new(first, vec![])
     }
 
     /// Construct a new, `NonEmptyVec<T>` containing the provided element and with the provided
@@ -88,11 +88,11 @@ impl<T> NonEmptyVec<T> {
     /// // ...but this may make the vector reallocate
     /// vec.push(11);
     /// ```
-    pub fn with_capacity(first:T, capacity:usize) -> NonEmptyVec<T> {
+    pub fn with_capacity(first: T, capacity: usize) -> NonEmptyVec<T> {
         assert_ne!(capacity, 0, "Capacity must be greater than zero for a NonEmptyVec.");
         let mut elems = Vec::with_capacity(capacity);
         elems.push(first);
-        NonEmptyVec{elems}
+        NonEmptyVec { elems }
     }
 
     /// Reserve capacity for at least `additional` more elements to be inserted in the given
@@ -110,11 +110,11 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0,vec![]);
+    /// let mut vec = NonEmptyVec::new(0, vec![]);
     /// vec.reserve(10);
     /// assert!(vec.capacity() >= 11);
     /// ```
-    pub fn reserve(&mut self, additional:usize) {
+    pub fn reserve(&mut self, additional: usize) {
         self.elems.reserve(additional);
     }
 
@@ -128,7 +128,7 @@ impl<T> NonEmptyVec<T> {
     /// ```
     /// use enso_prelude::NonEmptyVec;
     /// let mut vec = NonEmptyVec::with_capacity(0, 10);
-    /// assert_eq!(vec.capacity(),10);
+    /// assert_eq!(vec.capacity(), 10);
     /// vec.shrink_to_fit();
     /// assert!(vec.capacity() < 10);
     /// ```
@@ -146,11 +146,11 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0,vec![1,2]);
+    /// let mut vec = NonEmptyVec::new(0, vec![1, 2]);
     /// vec.push(3);
-    /// assert_eq!(vec.len(),4);
+    /// assert_eq!(vec.len(), 4);
     /// ```
-    pub fn push(&mut self, value:T) {
+    pub fn push(&mut self, value: T) {
         self.elems.push(value)
     }
 
@@ -162,13 +162,13 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0,vec![1]);
+    /// let mut vec = NonEmptyVec::new(0, vec![1]);
     /// assert!(vec.pop().is_some());
     /// assert!(vec.pop().is_none());
-    /// assert_eq!(vec.len(),1);
+    /// assert_eq!(vec.len(), 1);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
-        (self.len() > 1).and_option_from(||self.elems.pop())
+        (self.len() > 1).and_option_from(|| self.elems.pop())
     }
 
     /// Obtain a mutable reference to teh element in the vector at the specified `index`.
@@ -177,12 +177,12 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec   = NonEmptyVec::new(0,vec![1,2]);
+    /// let mut vec = NonEmptyVec::new(0, vec![1, 2]);
     /// let reference = vec.get_mut(0);
     /// assert!(reference.is_some());
-    /// assert_eq!(*reference.unwrap(),0);
+    /// assert_eq!(*reference.unwrap(), 0);
     /// ```
-    pub fn get_mut(&mut self, index:usize) -> Option<&mut T> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         self.elems.get_mut(index)
     }
 
@@ -192,7 +192,7 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let vec = NonEmptyVec::new(0,vec![1,2]);
+    /// let vec = NonEmptyVec::new(0, vec![1, 2]);
     /// assert_eq!(*vec.first(), 0);
     /// ```
     pub fn first(&self) -> &T {
@@ -205,7 +205,7 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0,vec![1,2]);
+    /// let mut vec = NonEmptyVec::new(0, vec![1, 2]);
     /// assert_eq!(*vec.first_mut(), 0);
     /// ```
     pub fn first_mut(&mut self) -> &mut T {
@@ -218,8 +218,8 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let vec = NonEmptyVec::new(0,vec![1,2]);
-    /// assert_eq!(*vec.last(),2)
+    /// let vec = NonEmptyVec::new(0, vec![1, 2]);
+    /// assert_eq!(*vec.last(), 2)
     /// ```
     pub fn last(&self) -> &T {
         self.get(self.len() - 1).expect("There is always one element in a NonEmptyVec.")
@@ -231,8 +231,8 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0,vec![1,2]);
-    /// assert_eq!(*vec.last_mut(),2)
+    /// let mut vec = NonEmptyVec::new(0, vec![1, 2]);
+    /// assert_eq!(*vec.last_mut(), 2)
     /// ```
     pub fn last_mut(&mut self) -> &mut T {
         self.get_mut(self.len() - 1).expect("There is always one element in a NonEmptyVec.")
@@ -252,16 +252,17 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0,vec![1,2,3,4,5]);
-    /// let drained:Vec<i32> = vec.drain(1..=5).collect();
-    /// assert_eq!(drained,[1,2,3,4,5])
+    /// let mut vec = NonEmptyVec::new(0, vec![1, 2, 3, 4, 5]);
+    /// let drained: Vec<i32> = vec.drain(1..=5).collect();
+    /// assert_eq!(drained, [1, 2, 3, 4, 5])
     /// ```
-    pub fn drain<R>(&mut self, range:R) -> Drain<T> where R:RangeBounds<usize> {
+    pub fn drain<R>(&mut self, range: R) -> Drain<T>
+    where R: RangeBounds<usize> {
         if range.contains(&0) {
             match range.end_bound() {
                 Bound::Included(n) => self.elems.drain(1..=*n),
                 Bound::Excluded(n) => self.elems.drain(1..*n),
-                Bound::Unbounded   => self.elems.drain(1..)
+                Bound::Unbounded => self.elems.drain(1..),
             }
         } else {
             self.elems.drain(range)
@@ -274,7 +275,8 @@ impl<T> NonEmptyVec<T> {
     /// `replace_with` does not need to be the same length as range. The element range is removed
     /// even if the iterator is not consumed until the end.
     ///
-    /// It is unspecified how many elements are removed from the vector if the Splice value is leaked.
+    /// It is unspecified how many elements are removed from the vector if the Splice value is
+    /// leaked.
     ///
     /// The input iterator replace_with is only consumed when the Splice value is dropped.
     ///
@@ -287,23 +289,29 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec        = NonEmptyVec::new(0,vec![1,2,3,4,5]);
-    /// let replacements   = [10,20,30,40];
-    /// let yielded:Vec<_> = vec.splice(..2,replacements.iter().cloned()).collect();
-    /// assert_eq!(vec.as_slice(),&[10,20,30,40,2,3,4,5]);
-    /// assert_eq!(yielded,&[0,1])
+    /// let mut vec = NonEmptyVec::new(0, vec![1, 2, 3, 4, 5]);
+    /// let replacements = [10, 20, 30, 40];
+    /// let yielded: Vec<_> = vec.splice(..2, replacements.iter().cloned()).collect();
+    /// assert_eq!(vec.as_slice(), &[10, 20, 30, 40, 2, 3, 4, 5]);
+    /// assert_eq!(yielded, &[0, 1])
     /// ```
-    pub fn splice<R,I>(&mut self, range:R, replace_with:I) -> Splice<<I as IntoIterator>::IntoIter>
-        where I: IntoIterator<Item = T>,
-              R: RangeBounds<usize> {
-        self.elems.splice(range,replace_with)
+    pub fn splice<R, I>(
+        &mut self,
+        range: R,
+        replace_with: I,
+    ) -> Splice<<I as IntoIterator>::IntoIter>
+    where
+        I: IntoIterator<Item = T>,
+        R: RangeBounds<usize>,
+    {
+        self.elems.splice(range, replace_with)
     }
 }
 
 
 // === Trait Impls ===
 
-impl<T:Default> Default for NonEmptyVec<T> {
+impl<T: Default> Default for NonEmptyVec<T> {
     fn default() -> Self {
         Self::singleton(default())
     }

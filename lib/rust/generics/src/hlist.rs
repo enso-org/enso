@@ -12,13 +12,13 @@
 pub trait HList = HasLength;
 
 /// Empty `HList` value.
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Nil;
 
 /// Non-empty `HList` with head and tail.
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 #[allow(missing_docs)]
-pub struct Cons<Head,Tail>(pub Head, pub Tail);
+pub struct Cons<Head, Tail>(pub Head, pub Tail);
 
 
 
@@ -65,19 +65,23 @@ macro_rules! ty {
 /// Compile-time known length value.
 #[allow(missing_docs)]
 pub trait HasLength {
-    const LEN : usize;
+    const LEN: usize;
     fn len() -> usize {
         Self::LEN
     }
 }
 
 /// Compile-time known length value.
-pub const fn len<T:HasLength>() -> usize {
+pub const fn len<T: HasLength>() -> usize {
     <T as HasLength>::LEN
 }
 
-impl                HasLength for Nil       { const LEN : usize = 0; }
-impl<H,T:HasLength> HasLength for Cons<H,T> { const LEN : usize = 1 + len::<T>(); }
+impl HasLength for Nil {
+    const LEN: usize = 0;
+}
+impl<H, T: HasLength> HasLength for Cons<H, T> {
+    const LEN: usize = 1 + len::<T>();
+}
 
 
 
@@ -96,24 +100,27 @@ pub type Head<T> = <T as KnownHead>::Head;
 
 /// Head element accessor.
 #[allow(missing_docs)]
-pub trait GetHead : KnownHead {
+pub trait GetHead: KnownHead {
     fn head(&self) -> &Self::Head;
 }
 
 /// Mutable head element accessor.
 #[allow(missing_docs)]
-pub trait GetHeadMut : KnownHead {
+pub trait GetHeadMut: KnownHead {
     fn head_mut(&mut self) -> &mut Self::Head;
 }
 
 /// Head element clone.
 #[allow(missing_docs)]
-pub trait GetHeadClone : KnownHead {
+pub trait GetHeadClone: KnownHead {
     fn head_clone(&self) -> Self::Head;
 }
 
 impl<T> GetHeadClone for T
-where T:GetHead, Head<T>:Clone {
+where
+    T: GetHead,
+    Head<T>: Clone,
+{
     default fn head_clone(&self) -> Self::Head {
         self.head().clone()
     }
@@ -122,17 +129,17 @@ where T:GetHead, Head<T>:Clone {
 
 // === Impls ===
 
-impl<H,T> KnownHead for Cons<H,T> {
+impl<H, T> KnownHead for Cons<H, T> {
     type Head = H;
 }
 
-impl<H,T> GetHead for Cons<H,T> {
+impl<H, T> GetHead for Cons<H, T> {
     fn head(&self) -> &Self::Head {
         &self.0
     }
 }
 
-impl<H,T> GetHeadMut for Cons<H,T> {
+impl<H, T> GetHeadMut for Cons<H, T> {
     fn head_mut(&mut self) -> &mut Self::Head {
         &mut self.0
     }
@@ -155,24 +162,27 @@ pub type Tail<T> = <T as KnownTail>::Tail;
 
 /// Tail element accessor.
 #[allow(missing_docs)]
-pub trait GetTail : KnownTail {
+pub trait GetTail: KnownTail {
     fn tail(&self) -> &Self::Tail;
 }
 
 /// Mutable tail element accessor.
 #[allow(missing_docs)]
-pub trait GetTailMut : KnownTail {
+pub trait GetTailMut: KnownTail {
     fn tail_mut(&mut self) -> &mut Self::Tail;
 }
 
 /// Tail element clone.
 #[allow(missing_docs)]
-pub trait GetTailClone : KnownTail {
+pub trait GetTailClone: KnownTail {
     fn tail_clone(&self) -> Self::Tail;
 }
 
 impl<T> GetTailClone for T
-    where T:GetTail, Tail<T>:Clone {
+where
+    T: GetTail,
+    Tail<T>: Clone,
+{
     default fn tail_clone(&self) -> Self::Tail {
         self.tail().clone()
     }
@@ -181,17 +191,17 @@ impl<T> GetTailClone for T
 
 // === Impls ===
 
-impl<H,T> KnownTail for Cons<H,T> {
+impl<H, T> KnownTail for Cons<H, T> {
     type Tail = T;
 }
 
-impl<H,T> GetTail for Cons<H,T> {
+impl<H, T> GetTail for Cons<H, T> {
     fn tail(&self) -> &Self::Tail {
         &self.1
     }
 }
 
-impl<H,T> GetTailMut for Cons<H,T> {
+impl<H, T> GetTailMut for Cons<H, T> {
     fn tail_mut(&mut self) -> &mut Self::Tail {
         &mut self.1
     }
@@ -214,24 +224,27 @@ pub type Last<T> = <T as KnownLast>::Last;
 
 /// Last element accessor.
 #[allow(missing_docs)]
-pub trait GetLast : KnownLast {
+pub trait GetLast: KnownLast {
     fn last(&self) -> &Self::Last;
 }
 
 /// Mutable last element accessor.
 #[allow(missing_docs)]
-pub trait GetLastMut : KnownLast {
+pub trait GetLastMut: KnownLast {
     fn last_mut(&mut self) -> &mut Self::Last;
 }
 
 /// Last element clone.
 #[allow(missing_docs)]
-pub trait GetLastClone : KnownLast {
+pub trait GetLastClone: KnownLast {
     fn last_clone(&self) -> Self::Last;
 }
 
 impl<T> GetLastClone for T
-    where T:GetLast, Last<T>:Clone {
+where
+    T: GetLast,
+    Last<T>: Clone,
+{
     default fn last_clone(&self) -> Self::Last {
         self.last().clone()
     }
@@ -240,33 +253,36 @@ impl<T> GetLastClone for T
 
 // === Impls ===
 
-impl<H>             KnownLast for Cons<H,Nil> { type Last = H; }
-impl<H,T:KnownLast> KnownLast for Cons<H,T>   { type Last = Last<T>; }
+impl<H> KnownLast for Cons<H, Nil> {
+    type Last = H;
+}
+impl<H, T: KnownLast> KnownLast for Cons<H, T> {
+    type Last = Last<T>;
+}
 
-impl<H> GetLast for Cons<H,Nil> {
+impl<H> GetLast for Cons<H, Nil> {
     fn last(&self) -> &Self::Last {
         &self.0
     }
 }
 
-impl<H> GetLastMut for Cons<H,Nil> {
+impl<H> GetLastMut for Cons<H, Nil> {
     fn last_mut(&mut self) -> &mut Self::Last {
         &mut self.0
     }
 }
 
-impl<H,T:GetLast> GetLast for Cons<H,T> {
+impl<H, T: GetLast> GetLast for Cons<H, T> {
     fn last(&self) -> &Self::Last {
         self.tail().last()
     }
 }
 
-impl<H,T:GetLastMut> GetLastMut for Cons<H,T> {
+impl<H, T: GetLastMut> GetLastMut for Cons<H, T> {
     fn last_mut(&mut self) -> &mut Self::Last {
         self.tail_mut().last_mut()
     }
 }
-
 
 
 
@@ -285,25 +301,29 @@ pub type Init<T> = <T as KnownInit>::Init;
 
 /// Init element clone.
 #[allow(missing_docs)]
-pub trait GetInitClone : KnownInit {
+pub trait GetInitClone: KnownInit {
     fn init_clone(&self) -> Self::Init;
 }
 
 
 // === Impls ===
 
-impl<H>             KnownInit for Cons<H,Nil> { type Init = Nil; }
-impl<H,T:KnownInit> KnownInit for Cons<H,T>   { type Init = Cons<H,Init<T>>; }
+impl<H> KnownInit for Cons<H, Nil> {
+    type Init = Nil;
+}
+impl<H, T: KnownInit> KnownInit for Cons<H, T> {
+    type Init = Cons<H, Init<T>>;
+}
 
-impl<H> GetInitClone for Cons<H,Nil> {
+impl<H> GetInitClone for Cons<H, Nil> {
     fn init_clone(&self) -> Self::Init {
         Nil
     }
 }
 
-impl<H:Clone,T:GetInitClone> GetInitClone for Cons<H,T> {
+impl<H: Clone, T: GetInitClone> GetInitClone for Cons<H, T> {
     fn init_clone(&self) -> Self::Init {
-        Cons(self.head().clone(),self.tail().init_clone())
+        Cons(self.head().clone(), self.tail().init_clone())
     }
 }
 
@@ -317,26 +337,27 @@ impl<H:Clone,T:GetInitClone> GetInitClone for Cons<H,T> {
 
 /// Add a new element to the back of the list.
 #[allow(missing_docs)]
-pub trait PushBack<T> : Sized {
-    type Output : KnownLast<Last=T> + KnownInit<Init=Self>;
-    fn push_back(self,t:T) -> Self::Output;
+pub trait PushBack<T>: Sized {
+    type Output: KnownLast<Last = T> + KnownInit<Init = Self>;
+    fn push_back(self, t: T) -> Self::Output;
 }
 
 impl<X> PushBack<X> for Nil {
-    type Output = Cons<X,Nil>;
+    type Output = Cons<X, Nil>;
     #[inline(always)]
-    fn push_back(self,x:X) -> Self::Output {
-        Cons(x,Nil)
+    fn push_back(self, x: X) -> Self::Output {
+        Cons(x, Nil)
     }
 }
 
-impl<X,H,T> PushBack<X> for Cons<H,T>
-    where T:PushBack<X> {
-    type Output = Cons<H,<T as PushBack<X>>::Output>;
+impl<X, H, T> PushBack<X> for Cons<H, T>
+where T: PushBack<X>
+{
+    type Output = Cons<H, <T as PushBack<X>>::Output>;
     #[inline(always)]
-    fn push_back(self,x:X) -> Self::Output {
-        let Cons(head,tail) = self;
-        Cons(head,tail.push_back(x))
+    fn push_back(self, x: X) -> Self::Output {
+        let Cons(head, tail) = self;
+        Cons(head, tail.push_back(x))
     }
 }
 
@@ -350,20 +371,21 @@ impl<X,H,T> PushBack<X> for Cons<H,T>
 
 /// Remove the last element of the list and return it and the new list.
 #[allow(missing_docs)]
-pub trait PopBack : KnownLast + KnownInit {
-    fn pop_back(self) -> (Self::Last,Self::Init);
+pub trait PopBack: KnownLast + KnownInit {
+    fn pop_back(self) -> (Self::Last, Self::Init);
 }
 
-impl<H> PopBack for Cons<H,Nil> {
-    fn pop_back(self) -> (Self::Last,Self::Init) {
-        (self.0,Nil)
+impl<H> PopBack for Cons<H, Nil> {
+    fn pop_back(self) -> (Self::Last, Self::Init) {
+        (self.0, Nil)
     }
 }
 
-impl<H,T> PopBack for Cons<H,T>
-where T:PopBack {
-    fn pop_back(self) -> (Self::Last,Self::Init) {
-        let (last,tail) = self.1.pop_back();
-        (last,Cons(self.0,tail))
+impl<H, T> PopBack for Cons<H, T>
+where T: PopBack
+{
+    fn pop_back(self) -> (Self::Last, Self::Init) {
+        let (last, tail) = self.1.pop_back();
+        (last, Cons(self.0, tail))
     }
 }

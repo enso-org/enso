@@ -18,12 +18,13 @@ use std::pin::Pin;
 pub struct GeneratingIterator<G: Generator>(pub G);
 
 impl<G> Iterator for GeneratingIterator<G>
-where G: Generator<Return = ()> + Unpin {
+where G: Generator<Return = ()> + Unpin
+{
     type Item = G::Yield;
     fn next(&mut self) -> Option<Self::Item> {
         match Pin::new(&mut self.0).resume(()) {
             GeneratorState::Yielded(element) => Some(element),
-            _                                => None,
+            _ => None,
         }
     }
 }
@@ -45,8 +46,8 @@ mod tests {
             yield 1;
             yield 2;
         };
-        let expected_numbers         = vec!(0, 1, 2);
-        let generator_iter           = GeneratingIterator(generator);
+        let expected_numbers = vec![0, 1, 2];
+        let generator_iter = GeneratingIterator(generator);
         let collected_result: Vec<_> = generator_iter.collect();
         assert_eq!(collected_result, expected_numbers);
     }

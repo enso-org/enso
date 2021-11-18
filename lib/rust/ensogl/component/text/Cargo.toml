@@ -1,0 +1,22 @@
+[package]
+name = "ensogl-text"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+enso-prelude = { path = "../../../prelude"}
+enso-shapely = { path = "../../../shapely/impl"}
+enso-types = { path = "../../../types" }
+ensogl-core = { path = "../../core" }
+ensogl-text-embedded-fonts = { path = "embedded-fonts" }
+ensogl-text-msdf-sys = { path = "msdf-sys" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+xi-rope = { version = "0.3.0" }
+
+[dev-dependencies]
+wasm-bindgen-test = { version = "0.3.8" }
