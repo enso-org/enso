@@ -485,26 +485,24 @@ pub struct DomLayers {
 impl DomLayers {
     /// Constructor.
     pub fn new(logger: &Logger, dom: &web_sys::HtmlDivElement) -> Self {
-        let canvas = web::create_canvas();
-        let front = DomScene::new(logger);
-        let fullscreen_vis = DomScene::new(logger);
-        let back = DomScene::new(logger);
         let welcome_screen = DomScene::new(logger);
-
         welcome_screen.dom.set_class_name("panel");
         welcome_screen.dom.set_style_or_warn("pointer-events", "auto", logger);
         welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
         dom.append_or_panic(&welcome_screen.dom);
 
+        let back = DomScene::new(logger);
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("pointer-events", "auto", logger);
         back.dom.set_style_or_warn("z-index", "1", logger);
         dom.append_or_panic(&back.dom);
 
+        let fullscreen_vis = DomScene::new(logger);
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
         fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
         dom.append_or_panic(&fullscreen_vis.dom);
 
+        let canvas = web::create_canvas();
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
         canvas.set_style_or_warn("display", "block", logger);
@@ -512,6 +510,7 @@ impl DomLayers {
         canvas.set_style_or_warn("pointer-events", "none", logger);
         dom.append_or_panic(&canvas);
 
+        let front = DomScene::new(logger);
         front.dom.set_class_name("front");
         front.dom.set_style_or_warn("z-index", "4", logger);
         dom.append_or_panic(&front.dom);
