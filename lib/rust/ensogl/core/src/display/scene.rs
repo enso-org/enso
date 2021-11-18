@@ -506,8 +506,6 @@ impl DomLayers {
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
         canvas.set_style_or_warn("display", "block", logger);
-        // Position must not be "static" to have z-index working.
-        canvas.set_style_or_warn("position", "absolute", logger);
         canvas.set_style_or_warn("z-index", "3", logger);
         canvas.set_style_or_warn("pointer-events", "none", logger);
         dom.append_or_panic(&canvas);
