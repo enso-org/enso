@@ -3,6 +3,16 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Test
 
+polyglot java import java.util.Locale as JavaLocale
+
+with_locale locale ~test =
+    default_locale = JavaLocale.getDefault
+    JavaLocale.setDefault locale.java_locale
+    result = Panic.recover test . catch_primitive e->
+        JavaLocale.setDefault default_locale
+        Panic.throw e
+    result
+
 spec = Test.group "Locale" <|
     en_gb = Locale.new "en" "GB"
     Test.specify "allow constructing a locale with optional parts" <|
@@ -25,11 +35,13 @@ spec = Test.group "Locale" <|
         locale = Locale.from_language_tag "en-US-x-lvariant-UTF-8"
         locale.variant . should_equal "UTF_8"
     Test.specify "should allow getting the display language" <|
-        display = Locale.from_language_tag "en-GB" . display_language
-        display . should_equal "English"
+        here.with_locale Locale.us <|
+            display = Locale.from_language_tag "en-GB" . display_language
+            display . should_equal "English"
     Test.specify "should allow getting the display country" <|
-        display = Locale.from_language_tag "en-GB" . display_country
-        display . should_equal "United Kingdom"
+        here.with_locale Locale.us <|
+            display = Locale.from_language_tag "en-GB" . display_country
+            display . should_equal "United Kingdom"
     Test.specify "should allow getting the display variant" <|
         display = Locale.from_language_tag "en-GB-x-lvariant-UTF8" . display_variant
         display . should_equal "UTF8"

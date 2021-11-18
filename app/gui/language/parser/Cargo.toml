@@ -1,0 +1,36 @@
+[package]
+name = "parser"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+build = "build.rs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ast = { path = "../ast/impl" }
+enso-data = { path = "../../../../lib/rust/data"}
+enso-prelude = { path = "../../../../lib/rust/prelude", features = ["serde", "serde_json"] }
+console_error_panic_hook = { version = "0.1.6" }
+failure = { version = "0.1" }
+js-sys = { version = "0.3.28" }
+matches = { version = "0.1" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["unbounded_depth"] }
+shrinkwraprs = { version = "0.2.1" }
+uuid = { version = "0.8", features = ["serde", "v5", "wasm-bindgen"] }
+wasm-bindgen = { version = "=0.2.58" }
+
+[dev-dependencies]
+wasm-bindgen-test = { version = "0.3.8" }
+
+[build-dependencies]
+enso-build-utilities = { path = "../../../../lib/rust/build-utils" }
+bytes = { version = "0.5.4" }
+futures = { version = "0.3.1" }
+reqwest = { version = "0.10.1" }
+tokio = { version = "0.2.10", features = ["macros"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+websocket = "0.23.0"

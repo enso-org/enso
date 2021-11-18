@@ -13,20 +13,20 @@ use crate::macros::literal::Literal;
 // ================
 
 /// The type of the tree that underlies the registry.
-pub type Tree = HashMapTree<Literal,Option<Definition>>;
+pub type Tree = HashMapTree<Literal, Option<Definition>>;
 
 /// The registry is responsible for the registration of macro definitions, and the querying of said
 /// definitions.
-#[derive(Clone,Debug,Default,PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct Registry {
-    tree : Tree
+    tree: Tree,
 }
 
 impl Registry {
     /// Insert `definition` into the macro registry.
-    pub fn insert(&mut self, definition:Definition) {
-        self.tree.set(definition.path(),Some(definition));
+    pub fn insert(&mut self, definition: Definition) {
+        self.tree.set(definition.path(), Some(definition));
     }
 
     /// Get a reference to the root of the registry.
@@ -35,8 +35,10 @@ impl Registry {
     }
 
     /// Query the registry for a tree.
-    pub fn subtree<P>(&self, path:P) -> Option<&Tree>
-    where P:IntoIterator, P::Item:Into<Literal> {
+    pub fn subtree<P>(&self, path: P) -> Option<&Tree>
+    where
+        P: IntoIterator,
+        P::Item: Into<Literal>, {
         self.tree.get_node(path)
     }
 
@@ -44,17 +46,21 @@ impl Registry {
     ///
     /// # Panics
     /// If no tree exists at `path`.
-    pub fn unsafe_subtree<P>(&self, path:P) -> &Tree
-    where P:IntoIterator, P::Item:Into<Literal> {
+    pub fn unsafe_subtree<P>(&self, path: P) -> &Tree
+    where
+        P: IntoIterator,
+        P::Item: Into<Literal>, {
         self.subtree(path).expect("A tree exists at the input path.")
     }
 
     /// Query the registry for a definition.
-    pub fn definition<P>(&self, path:P) -> Option<&Definition>
-    where P:IntoIterator, P::Item:Into<Literal> {
+    pub fn definition<P>(&self, path: P) -> Option<&Definition>
+    where
+        P: IntoIterator,
+        P::Item: Into<Literal>, {
         match self.tree.get(path) {
             Some(Some(def)) => Some(def),
-            _ => None
+            _ => None,
         }
     }
 
@@ -62,8 +68,10 @@ impl Registry {
     ///
     /// # Panics
     /// If no definition exists at `path`.
-    pub fn unsafe_definition<P>(&self, path:P) -> &Definition
-    where P:IntoIterator, P::Item:Into<Literal> {
+    pub fn unsafe_definition<P>(&self, path: P) -> &Definition
+    where
+        P: IntoIterator,
+        P::Item: Into<Literal>, {
         self.definition(path).expect("A definition exists at the input path.")
     }
 }
@@ -72,8 +80,8 @@ impl Registry {
 // === Trait Impls ===
 
 impl From<Vec<Definition>> for Registry {
-    fn from(defs:Vec<Definition>) -> Self {
-        let mut registry:Registry = default();
+    fn from(defs: Vec<Definition>) -> Self {
+        let mut registry: Registry = default();
         defs.into_iter().for_each(|def| registry.insert(def));
         registry
     }
@@ -93,19 +101,20 @@ mod tests {
     #[test]
     fn insert_query() {
         let mut registry = Registry::default();
-        let definition   = Definition::new("Test",vec![
+        let definition = Definition::new("Test", vec![
             Section::new(Literal::variable("if")),
             Section::new(Literal::variable("then")),
             Section::new(Literal::variable("else")),
         ]);
-        let path_1 = &[Literal::variable("if"),Literal::variable("then"),Literal::variable("else")];
-        let path_2 = &[Literal::variable("if"),Literal::variable("then")];
+        let path_1 =
+            &[Literal::variable("if"), Literal::variable("then"), Literal::variable("else")];
+        let path_2 = &[Literal::variable("if"), Literal::variable("then")];
         registry.insert(definition.clone());
         let result_1 = registry.definition(path_1);
         let result_2 = registry.definition(path_2);
         assert!(result_1.is_some());
-        assert_eq!(result_1.unwrap(),&definition);
-        assert_eq!(result_2,None);
+        assert_eq!(result_1.unwrap(), &definition);
+        assert_eq!(result_2, None);
     }
 
     #[test]
@@ -126,10 +135,11 @@ mod tests {
             ]),
         ];
         let registry = Registry::from(definitions.clone());
-        let path_1   = &[Literal::variable("if"),Literal::variable("then"),Literal::variable("else")];
-        let path_2   = &[Literal::variable("if"),Literal::variable("then")];
-        let path_3   = &[Literal::variable("if"),Literal::variable("let")];
-        let path_4   = &[Literal::variable("if")];
+        let path_1 =
+            &[Literal::variable("if"), Literal::variable("then"), Literal::variable("else")];
+        let path_2 = &[Literal::variable("if"), Literal::variable("then")];
+        let path_3 = &[Literal::variable("if"), Literal::variable("let")];
+        let path_4 = &[Literal::variable("if")];
         let result_1 = registry.definition(path_1);
         let result_2 = registry.definition(path_2);
         let result_3 = registry.definition(path_3);
@@ -138,8 +148,8 @@ mod tests {
         assert!(result_2.is_some());
         assert!(result_3.is_some());
         assert!(result_4.is_none());
-        assert_eq!(result_1,definitions.get(0));
-        assert_eq!(result_2,definitions.get(1));
-        assert_eq!(result_3,definitions.get(2));
+        assert_eq!(result_1, definitions.get(0));
+        assert_eq!(result_2, definitions.get(1));
+        assert_eq!(result_3, definitions.get(2));
     }
 }

@@ -13,14 +13,19 @@ use shrinkwraprs::Shrinkwrap;
 /// The following `PhantomData` implementations allow each argument to be non
 /// Sized. Unfortunately, this is not equivalent to `PhantomData<(T1,T2,...)>`,
 /// as tuple requires each arg to implement `Sized`.
-pub type PhantomData2<T1,T2>                      = PhantomData<(PhantomData <T1>,                      PhantomData<T2>)>;
-pub type PhantomData3<T1,T2,T3>                   = PhantomData2<PhantomData2<T1,T2>,                   PhantomData<T3>>;
-pub type PhantomData4<T1,T2,T3,T4>                = PhantomData2<PhantomData3<T1,T2,T3>,                PhantomData<T4>>;
-pub type PhantomData5<T1,T2,T3,T4,T5>             = PhantomData2<PhantomData4<T1,T2,T3,T4>,             PhantomData<T5>>;
-pub type PhantomData6<T1,T2,T3,T4,T5,T6>          = PhantomData2<PhantomData5<T1,T2,T3,T4,T5>,          PhantomData<T6>>;
-pub type PhantomData7<T1,T2,T3,T4,T5,T6,T7>       = PhantomData2<PhantomData6<T1,T2,T3,T4,T5,T6>,       PhantomData<T7>>;
-pub type PhantomData8<T1,T2,T3,T4,T5,T6,T7,T8>    = PhantomData2<PhantomData7<T1,T2,T3,T4,T5,T6,T7>,    PhantomData<T8>>;
-pub type PhantomData9<T1,T2,T3,T4,T5,T6,T7,T8,T9> = PhantomData2<PhantomData8<T1,T2,T3,T4,T5,T6,T7,T8>, PhantomData<T9>>;
+pub type PhantomData2<T1, T2> = PhantomData<(PhantomData<T1>, PhantomData<T2>)>;
+pub type PhantomData3<T1, T2, T3> = PhantomData2<PhantomData2<T1, T2>, PhantomData<T3>>;
+pub type PhantomData4<T1, T2, T3, T4> = PhantomData2<PhantomData3<T1, T2, T3>, PhantomData<T4>>;
+pub type PhantomData5<T1, T2, T3, T4, T5> =
+    PhantomData2<PhantomData4<T1, T2, T3, T4>, PhantomData<T5>>;
+pub type PhantomData6<T1, T2, T3, T4, T5, T6> =
+    PhantomData2<PhantomData5<T1, T2, T3, T4, T5>, PhantomData<T6>>;
+pub type PhantomData7<T1, T2, T3, T4, T5, T6, T7> =
+    PhantomData2<PhantomData6<T1, T2, T3, T4, T5, T6>, PhantomData<T7>>;
+pub type PhantomData8<T1, T2, T3, T4, T5, T6, T7, T8> =
+    PhantomData2<PhantomData7<T1, T2, T3, T4, T5, T6, T7>, PhantomData<T8>>;
+pub type PhantomData9<T1, T2, T3, T4, T5, T6, T7, T8, T9> =
+    PhantomData2<PhantomData8<T1, T2, T3, T4, T5, T6, T7, T8>, PhantomData<T9>>;
 
 
 
@@ -32,13 +37,13 @@ pub type PhantomData9<T1,T2,T3,T4,T5,T6,T7,T8,T9> = PhantomData2<PhantomData8<T1
 #[derive(Derivative)]
 #[derive(Shrinkwrap)]
 #[shrinkwrap(mutable)]
-#[derivative(Clone   (bound="T:Clone"))]
-#[derivative(Default (bound="T:Default"))]
-#[derivative(Debug   (bound="T:Debug"))]
-pub struct WithPhantom<T, P=()> {
+#[derivative(Clone(bound = "T:Clone"))]
+#[derivative(Default(bound = "T:Default"))]
+#[derivative(Debug(bound = "T:Debug"))]
+pub struct WithPhantom<T, P = ()> {
     #[shrinkwrap(main_field)]
     pub without_phantom: T,
-    phantom: PhantomData<P>
+    phantom:             PhantomData<P>,
 }
 
 impl<T, P> WithPhantom<T, P> {
@@ -81,10 +86,11 @@ impl<T, P> WithPhantom<T, P> {
 /// let val = GlEnum::phantom_from::<Int>()
 /// ```
 pub trait PhantomConversions: Sized {
-    fn phantom_into<P>() -> P where Self:PhantomInto<P> {
+    fn phantom_into<P>() -> P
+    where Self: PhantomInto<P> {
         PhantomData::<Self>.into()
     }
-    fn phantom_from<P:PhantomInto<Self>>() -> Self {
+    fn phantom_from<P: PhantomInto<Self>>() -> Self {
         PhantomData::<P>.into()
     }
 }

@@ -61,7 +61,7 @@ mod manually_expanded;
 // 1) uncomment the second part of `define_debug_macros`;
 // 2) remove the `manually_expanded` module altogether.
 
-define_debug_macros!{$
+define_debug_macros! {$
     [trace TRACE   purple]
     [debug DEBUG   blue]
     [info  INFO    white]

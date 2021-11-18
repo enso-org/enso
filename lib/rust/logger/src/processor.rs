@@ -3,9 +3,9 @@
 pub mod consumer;
 pub mod formatter;
 
-use crate::prelude::*;
-use crate::entry::Entry;
 use crate::entry::level::DefaultLevels;
+use crate::entry::Entry;
+use crate::prelude::*;
 use wasm_bindgen::prelude::*;
 
 
@@ -35,7 +35,7 @@ mod js {
     ")]
     extern "C" {
         #[allow(unsafe_code)]
-        pub fn setup_logs_flush(closure:&Closure<dyn Fn()>);
+        pub fn setup_logs_flush(closure: &Closure<dyn Fn()>);
 
         #[allow(unsafe_code)]
         pub fn show_logs();
@@ -69,7 +69,7 @@ mod js {
 #[allow(missing_docs)]
 pub trait Processor<Input> {
     type Output;
-    fn submit(&mut self, input:Input) -> Self::Output;
+    fn submit(&mut self, input: Input) -> Self::Output;
 }
 
 
@@ -84,18 +84,21 @@ pub trait Processor<Input> {
 /// below generates a special type `Seq` which can accept two or more processors to be connected
 /// together. Because it uses default arguments, you are allowed to use it like `Seq<P1,P2>`,
 /// or `Seq<P1,P2,P3,P4>`.
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 #[allow(missing_docs)]
-pub struct SeqBuilder<First,Second> {
-    pub first  : First,
-    pub second : Second,
+pub struct SeqBuilder<First, Second> {
+    pub first:  First,
+    pub second: Second,
 }
 
-impl<Input,First,Second> Processor<Input> for SeqBuilder<First,Second>
-where First:Processor<Input>, Second:Processor<First::Output> {
+impl<Input, First, Second> Processor<Input> for SeqBuilder<First, Second>
+where
+    First: Processor<Input>,
+    Second: Processor<First::Output>,
+{
     type Output = Second::Output;
     #[inline(always)]
-    fn submit(&mut self, input:Input) -> Self::Output {
+    fn submit(&mut self, input: Input) -> Self::Output {
         self.second.submit(self.first.submit(input))
     }
 }
@@ -130,7 +133,7 @@ macro_rules! define_seq_type {
     };
 }
 
-define_seqs!(Seq5,Seq4,Seq3,Seq2,Seq1);
+define_seqs!(Seq5, Seq4, Seq3, Seq2, Seq1);
 
 
 // === Branch ===
@@ -139,18 +142,22 @@ define_seqs!(Seq5,Seq4,Seq3,Seq2,Seq1);
 /// below generates a special type `Branch` which can accept two or more processors to be connected
 /// together. Because it uses default arguments, you are allowed to use it like `Branch<P1,P2>`,
 /// or `Branch<P1,P2,P3,P4>`.
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 #[allow(missing_docs)]
-pub struct BranchBuilder<First,Second> {
-    pub first  : First,
-    pub second : Second,
+pub struct BranchBuilder<First, Second> {
+    pub first:  First,
+    pub second: Second,
 }
 
-impl<Input,First,Second> Processor<Input> for BranchBuilder<First,Second>
-where First:Processor<Input>, Second:Processor<Input>, Input:Clone {
+impl<Input, First, Second> Processor<Input> for BranchBuilder<First, Second>
+where
+    First: Processor<Input>,
+    Second: Processor<Input>,
+    Input: Clone,
+{
     type Output = ();
     #[inline(always)]
-    fn submit(&mut self, input:Input) -> Self::Output {
+    fn submit(&mut self, input: Input) -> Self::Output {
         self.first.submit(input.clone());
         self.second.submit(input);
     }
@@ -186,32 +193,32 @@ macro_rules! define_branch_type {
     };
 }
 
-define_branches!(Branch5,Branch4,Branch3,Branch2,Branch1);
+define_branches!(Branch5, Branch4, Branch3, Branch2, Branch1);
 
 
 // === Drop Processor ===
 
 /// Drop processor. Does nothing, just drops the input.
-#[derive(Clone,Copy,Debug,Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Drop;
 
 impl<Input> Processor<Input> for Drop {
     type Output = ();
     #[inline(always)]
-    fn submit(&mut self, _input:Input) {}
+    fn submit(&mut self, _input: Input) {}
 }
 
 
 // === Identity Processor ===
 
 /// Identity processor. It passes its input to output without performing any modification.
-#[derive(Clone,Copy,Debug,Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Identity;
 
 impl<Input> Processor<Input> for Identity {
     type Output = Input;
     #[inline(always)]
-    fn submit(&mut self, input:Input) -> Self::Output {
+    fn submit(&mut self, input: Input) -> Self::Output {
         input
     }
 }
@@ -220,18 +227,19 @@ impl<Input> Processor<Input> for Identity {
 // === Formatter ===
 
 /// Formatter processor. It uses the provided formatter to format its input.
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct Formatter<T> {
-    formatter : PhantomData<T>,
+    formatter: PhantomData<T>,
 }
 
-impl<Fmt,Lvl> Processor<Entry<Lvl>> for Formatter<Fmt>
-where Fmt:formatter::GenericDefinition<Lvl> {
-    type Output = (Entry<Lvl>,Option<Fmt::Output>);
+impl<Fmt, Lvl> Processor<Entry<Lvl>> for Formatter<Fmt>
+where Fmt: formatter::GenericDefinition<Lvl>
+{
+    type Output = (Entry<Lvl>, Option<Fmt::Output>);
     #[inline(always)]
-    fn submit(&mut self, entry:Entry<Lvl>) -> Self::Output {
+    fn submit(&mut self, entry: Entry<Lvl>) -> Self::Output {
         let out = <Fmt>::generic_format(&entry);
-        (entry,out)
+        (entry, out)
     }
 }
 
@@ -240,75 +248,81 @@ where Fmt:formatter::GenericDefinition<Lvl> {
 
 /// Consumer processor. It uses the provided consumer to consume the results, and probably print
 /// them on the screen or write to a file.
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct Consumer<T> {
-    consumer : T,
+    consumer: T,
 }
 
-impl<C,Levels,Message> Processor<(Entry<Levels>,Option<Message>)> for Consumer<C>
-where C:consumer::Definition<Levels,Message> {
+impl<C, Levels, Message> Processor<(Entry<Levels>, Option<Message>)> for Consumer<C>
+where C: consumer::Definition<Levels, Message>
+{
     type Output = ();
     #[inline(always)]
-    fn submit(&mut self, (entry,message):(Entry<Levels>,Option<Message>)) -> Self::Output {
-        self.consumer.consume(entry,message)
+    fn submit(&mut self, (entry, message): (Entry<Levels>, Option<Message>)) -> Self::Output {
+        self.consumer.consume(entry, message)
     }
 }
 
 
 // === Buffer ===
 
-#[derive(Debug,Derivative)]
+#[derive(Debug, Derivative)]
 #[allow(missing_docs)]
-pub struct Buffer<Input,Next> {
-    model   : Rc<RefCell<BufferModel<Input,Next>>>,
+pub struct Buffer<Input, Next> {
+    model:    Rc<RefCell<BufferModel<Input, Next>>>,
     _closure: Closure<dyn Fn()>,
 }
 
-impl<Input,Next> Default for Buffer<Input,Next>
-    where Input:'static, Next:'static+Default+Processor<Input> {
+impl<Input, Next> Default for Buffer<Input, Next>
+where
+    Input: 'static,
+    Next: 'static + Default + Processor<Input>,
+{
     fn default() -> Self {
-        let model   = Rc::new(RefCell::new(BufferModel::<Input,Next>::default()));
+        let model = Rc::new(RefCell::new(BufferModel::<Input, Next>::default()));
         let closure = Closure::new(f!(model.borrow_mut().flush_and_enable_auto_flush()));
         js::setup_logs_flush(&closure);
         if cfg!(debug_assertions) {
             println!("Debug mode. Logs will be enabled automatically.");
             js::show_logs();
         }
-        Self{model, _closure: closure }
+        Self { model, _closure: closure }
     }
 }
 
-impl<Input,Next> Processor<Input> for Buffer<Input,Next>
-    where Next:Processor<Input> {
+impl<Input, Next> Processor<Input> for Buffer<Input, Next>
+where Next: Processor<Input>
+{
     type Output = ();
     #[inline(always)]
-    fn submit(&mut self, input:Input) {
+    fn submit(&mut self, input: Input) {
         self.model.borrow_mut().submit(input);
     }
 }
 
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct BufferModel<Input,Next> {
-    buffer     : Vec<Input>,
-    auto_flush : bool,
-    next       : Next,
+pub struct BufferModel<Input, Next> {
+    buffer:     Vec<Input>,
+    auto_flush: bool,
+    next:       Next,
 }
 
-impl<Input,Next> BufferModel<Input,Next>
-where Next:Processor<Input> {
+impl<Input, Next> BufferModel<Input, Next>
+where Next: Processor<Input>
+{
     /// Constructor.
     pub fn new() -> Self
-    where Next:Default {
+    where Next: Default {
         let auto_flush = js::check_auto_flush();
-        let buffer     = default();
-        let next       = default();
-        Self {buffer,auto_flush,next}
+        let buffer = default();
+        let next = default();
+        Self { buffer, auto_flush, next }
     }
 
     /// Submit the input to the buffer or the subsequent processor in case the `auto_flush` is
     /// enabled.
-    pub fn submit(&mut self, input:Input) {
+    pub fn submit(&mut self, input: Input) {
         if self.auto_flush {
             self.next.submit(input);
         } else {
@@ -330,8 +344,9 @@ where Next:Processor<Input> {
     }
 }
 
-impl<Input,Next> Default for BufferModel<Input,Next>
-where Next : Processor<Input> + Default {
+impl<Input, Next> Default for BufferModel<Input, Next>
+where Next: Processor<Input> + Default
+{
     fn default() -> Self {
         Self::new()
     }
@@ -340,17 +355,20 @@ where Next : Processor<Input> + Default {
 
 // === Global ===
 
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct Global<Processor> {
-    processor : PhantomData<Processor>
+    processor: PhantomData<Processor>,
 }
 
-impl<P,Input> Processor<Input> for Global<P>
-    where P:GlobalProcessor, P::Processor:'static+Processor<Input> {
+impl<P, Input> Processor<Input> for Global<P>
+where
+    P: GlobalProcessor,
+    P::Processor: 'static + Processor<Input>,
+{
     type Output = <<P as GlobalProcessor>::Processor as Processor<Input>>::Output;
     #[inline(always)]
-    fn submit(&mut self, entry:Input) -> Self::Output {
+    fn submit(&mut self, entry: Input) -> Self::Output {
         global_processor::<P>().submit(entry)
     }
 }
@@ -366,7 +384,7 @@ pub trait GlobalProcessor {
 }
 
 /// Get a reference to a global processor. Read docs of `GlobalProcessor` to learn more.
-pub fn global_processor<T:GlobalProcessor>() -> &'static mut T::Processor {
+pub fn global_processor<T: GlobalProcessor>() -> &'static mut T::Processor {
     T::get_mut()
 }
 
@@ -376,7 +394,7 @@ pub fn global_processor<T:GlobalProcessor>() -> &'static mut T::Processor {
 macro_rules! define_global_processor {
     ($name:ident = $tp:ty;) => {
         /// Global processor definition.
-        #[derive(Copy,Clone,Debug,Default)]
+        #[derive(Copy, Clone, Debug, Default)]
         pub struct $name;
         paste::item! {
             #[allow(non_upper_case_globals)]
@@ -410,11 +428,11 @@ macro_rules! define_global_processor {
 // ========================
 
 /// Default processor implementation.
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 pub type DefaultProcessor = DefaultJsProcessor;
 
 /// Default processor implementation.
-#[cfg(not(target_arch="wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
 pub type DefaultProcessor = DefaultNativeProcessor;
 
 #[allow(dead_code)]
@@ -422,7 +440,7 @@ type DefaultJsProcessor = Global<DefaultGlobalJsProcessor>;
 
 #[allow(dead_code)]
 type DefaultNativeProcessor =
-    Seq<Formatter<formatter::NativeConsole>,Consumer<consumer::NativeConsole>>;
+    Seq<Formatter<formatter::NativeConsole>, Consumer<consumer::NativeConsole>>;
 
 define_global_processor! {
     DefaultGlobalJsProcessor =

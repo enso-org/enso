@@ -20,11 +20,11 @@ pub type SymbolIndex = u64;
 // ==============
 
 /// An input symbol to a finite automaton.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct Symbol {
-    pub index : SymbolIndex,
-    pub name  : String
+    pub index: SymbolIndex,
+    pub name:  String,
 }
 
 
@@ -56,15 +56,15 @@ impl Symbol {
     }
 
     /// Constructor.
-    pub fn new(index:SymbolIndex) -> Self {
+    pub fn new(index: SymbolIndex) -> Self {
         let name = "unnamed".into();
-        Self{index,name}
+        Self { index, name }
     }
 
     /// Named constructor.
-    pub fn new_named(index:SymbolIndex, name:impl Into<String>) -> Self {
+    pub fn new_named(index: SymbolIndex, name: impl Into<String>) -> Self {
         let name = name.into();
-        Self{index,name}
+        Self { index, name }
     }
 
     /// Next symbol, if any.
@@ -101,8 +101,8 @@ impl Hash for Symbol {
 }
 
 impl Display for Symbol {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"{}",self.name)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 
@@ -113,25 +113,25 @@ impl Default for Symbol {
 }
 
 impl From<u64> for Symbol {
-    fn from(index:u64) -> Symbol {
+    fn from(index: u64) -> Symbol {
         Symbol::new(index)
     }
 }
 
 impl From<u32> for Symbol {
-    fn from(index:u32) -> Symbol {
+    fn from(index: u32) -> Symbol {
         Symbol::new(index as u64)
     }
 }
 
 impl From<char> for Symbol {
-    fn from(ch:char) -> Symbol {
-        Symbol::new_named(ch as u64,format!("{}",ch))
+    fn from(ch: char) -> Symbol {
+        Symbol::new_named(ch as u64, format!("{}", ch))
     }
 }
 
 impl From<&Symbol> for Symbol {
-    fn from(symbol:&Symbol) -> Self {
+    fn from(symbol: &Symbol) -> Self {
         symbol.clone()
     }
 }
@@ -149,18 +149,18 @@ mod tests {
     #[test]
     fn default() {
         let sym = Symbol::default();
-        assert_eq!(sym,Symbol::null());
+        assert_eq!(sym, Symbol::null());
     }
 
     #[test]
     fn from_natural() {
         let sym = Symbol::from(12143u64);
-        assert_eq!(sym.index,12143u64);
+        assert_eq!(sym.index, 12143u64);
     }
 
     #[test]
     fn from_char() {
         let sym = Symbol::from('a');
-        assert_eq!(sym.index,97);
+        assert_eq!(sym.index, 97);
     }
 }

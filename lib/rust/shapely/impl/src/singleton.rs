@@ -32,7 +32,6 @@
 ///         Self
 ///     }
 /// }
-///
 /// ```
 #[macro_export]
 macro_rules! define_singletons {

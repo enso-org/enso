@@ -11,9 +11,11 @@
 ///
 /// compiles to:
 /// ```
-/// struct A { name:String };
+/// struct A {
+///     name: String,
+/// };
 /// impl From<A> for String {
-///     fn from(t:A) -> Self {
+///     fn from(t: A) -> Self {
 ///         t.name.clone()
 ///     }
 /// }
@@ -195,16 +197,18 @@ macro_rules! f__ {
 /// compiler to optimise more.
 #[macro_export]
 macro_rules! unreachable_panic {
-    () => (
+    () => {
         unreachable_panic!("This code was marked as unreachable.")
-    );
-    ($msg:tt) => (
+    };
+    ($msg:tt) => {
         if cfg!(debug_assertions) {
             panic!($msg)
         } else {
             use std::hint::unreachable_unchecked;
             #[allow(unsafe_code)]
-            unsafe { unreachable_unchecked() }
+            unsafe {
+                unreachable_unchecked()
+            }
         }
-    )
+    };
 }
