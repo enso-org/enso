@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use ast::IdMap;
-
+use enso_text::unit::*;
 
 
 // ================
@@ -13,7 +13,7 @@ use ast::IdMap;
 /// Update IdMap to reflect the recent code change.
 pub fn apply_code_change_to_id_map(
     id_map: &mut IdMap,
-    change: &enso_text::text::Change<enso_text::unit::Bytes, String>,
+    change: &enso_text::text::Change<Codepoints, String>,
     code: &str,
 ) {
     // TODO [mwu]
@@ -25,34 +25,33 @@ pub fn apply_code_change_to_id_map(
     //   spend much time on refactoring this function right now, even if it could be made nicer.
 
 
-    let removed = change.replaced_span();
-    let inserted = change.inserted.as_str();
-    let new_code = change.applied(code);
+    let removed = &change.range.clone();
+    let inserted = change.text.as_str();
+    let new_code = change.applied(code).unwrap_or(code.to_owned());
     let non_white = |c: char| !c.is_whitespace();
     let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
-    let inserted_size = Size::from_text(inserted);
+    let inserted_size: Codepoints = inserted.chars().count().into();
 
     info!(logger, "Old code:\n```\n{code}\n```");
     info!(logger, "New code:\n```\n{new_code}\n```");
     info!(logger, "Updating the ID map with the following text edit: {change:?}.");
 
     // Remove all entries fully covered by the removed span.
-    vector.drain_filter(|(span, _)| removed.contains_span(span));
+    vector.drain_filter(|(span, _)| removed.contains_range(&span.as_range()));
 
     // If the edited section ends up being the trailing part of AST node, how many bytes should be
     // trimmed from the id. Precalculated, as is constant in the loop below.
-    let to_trim_back = {
-        let last_non_white = inserted.rfind(non_white);
-        let inserted_len = || inserted.len();
-        let length_to_last_non_white = |index| inserted.len() - index - 1;
-        Size::new(last_non_white.map_or_else(inserted_len, length_to_last_non_white))
+    let to_trim_back: Codepoints = {
+        let last_non_white =
+            inserted.chars().rev().position(non_white).map(Into::<Codepoints>::into);
+        let length_to_last_non_white = |index| inserted_size - index - 1.codepoints();
+        last_non_white.map_or(inserted_size, length_to_last_non_white)
     };
     // As above but for the front side.
-    let to_trim_front = {
-        let first_non_white = inserted.find(non_white);
-        let ret = first_non_white.unwrap_or_else(|| inserted.len());
-        Size::new(ret)
+    let to_trim_front: Codepoints = {
+        let first_non_white = inserted.chars().position(non_white);
+        first_non_white.map_or(inserted_size, Into::<Codepoints>::into)
     };
 
     let inserted_non_white = inserted.chars().any(non_white);
@@ -63,95 +62,100 @@ pub fn apply_code_change_to_id_map(
     // This is needed for edits like: `foo f` => `foo` — the earlier `foo` in `foo f` also has a
     // id map entry, however we want it to be consistently shadowed by the id from the whole App
     // expression.
-    let mut preferred: HashMap<Span, ast::Id> = default();
+    let mut preferred: HashMap<enso_text::Range<Codepoints>, ast::Id> = default();
 
     for (span, id) in vector.iter_mut() {
-        // These
+        let mut range = span.as_range();
         let mut trim_front = false;
         let mut trim_back = false;
-        let initial_span = *span;
-        info!(logger, "Processing @{span}: `{&code[*span]}`.");
-        if span.index > removed.end() {
+        let initial_range = range;
+        info!(logger, "Processing @{range}: `{slice_from_codepoints_range(code, range)}`.");
+        if range.start > removed.end {
             debug!(logger, "Node after the edited region.");
             // AST node starts after edited region — it will be simply shifted.
-            let code_between = &code[Span::from(removed.end()..span.index)];
-            span.move_left(removed.size);
-            span.move_right(inserted_size);
+            let between_range: enso_text::Range<_> = (removed.end..range.start).into();
+            let code_between = slice_from_codepoints_range(code, between_range);
+            range = range.moved_left(removed.size()).moved_right(inserted_size.into());
 
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
             debug!(logger, "Between: `{code_between}`.");
             if all_spaces(code_between) && inserted_non_white {
                 debug!(logger, "Will extend the node leftwards.");
-                span.extend_left(inserted_size);
-                span.extend_left(Size::from_text(code_between));
+                range.end += inserted_size + between_range.size();
                 trim_front = true;
             }
-        } else if span.index >= removed.index {
-            // AST node starts inside the edited region. It doesn't end strictly inside it.
+        } else if range.start >= removed.start {
+            // AST node starts inside the edited region. It does not have to end inside it.
             debug!(logger, "Node overlapping with the end of the edited region.");
-            let removed_before = span.index - removed.index;
-            span.move_left(removed_before);
-            span.shrink_right(removed.size - removed_before);
-            span.extend_right(inserted_size);
+            let removed_before = range.start - removed.start;
+            range = range.moved_left(removed_before);
+            range.end -= removed.size() - removed_before;
+            range.end += inserted_size;
             trim_front = true;
-        } else if span.end() >= removed.index {
+        } else if range.end >= removed.start {
             // AST node starts before the edited region and reaches (or possibly goes past) its end.
             debug!(logger, "Node overlapping with the beginning of the edited region.");
-            if span.end() <= removed.end() {
+            if range.end <= removed.end {
                 trim_back = true;
             }
-            let removed_chars = (span.end() - removed.index).min(removed.size);
-            span.shrink_right(removed_chars);
-            span.extend_right(inserted_size);
+            let removed_chars = (range.end - removed.start).min(removed.size());
+            range.end -= removed_chars;
+            range.end += inserted_size;
         } else {
             debug!(logger, "Node before the edited region.");
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
-            let between = &code[Span::from(span.end()..removed.index)];
+            let between_range: enso_text::Range<_> = (range.end..removed.start).into();
+            let between = slice_from_codepoints_range(code, between_range);
             if all_spaces(between) && inserted_non_white {
                 debug!(logger, "Will extend ");
-                span.size += Size::from_text(between) + inserted_size;
+                range.end += between_range.size() + inserted_size;
                 trim_back = true;
             }
         }
 
-        if trim_front && to_trim_front.non_empty() {
-            span.shrink_left(to_trim_front);
-            debug!(logger, "Trimming front {to_trim_front} bytes.");
+        if trim_front && to_trim_front > 0.codepoints() {
+            range.start += to_trim_front;
+            debug!(logger, "Trimming front {to_trim_front.as_usize()} codepoints.");
         }
 
         if trim_back {
-            if to_trim_back.non_empty() {
-                span.shrink_right(to_trim_back);
-                debug!(logger, "Trimming back {to_trim_back} bytes.");
+            if to_trim_back > 0.codepoints() {
+                range.end += -to_trim_back;
+                debug!(logger, "Trimming back {to_trim_back.as_usize()} codepoints.");
             }
-            let new_repr = &new_code[*span];
+            let new_repr = slice_from_codepoints_range(&new_code, range);
             // Trim trailing spaces
             let spaces = spaces_size(new_repr.chars().rev());
-            if spaces.non_empty() {
-                debug!(logger, "Additionally trimming {spaces} trailing spaces.");
+            if spaces > 0.codepoints() {
+                debug!(logger, "Additionally trimming {spaces.as_usize()} trailing spaces.");
                 debug!(logger, "The would-be code: `{new_repr}`.");
-                span.shrink_right(spaces);
+                range.end -= spaces;
             }
         }
 
         // If we edited front or end of an AST node, its extended (or shrunk) span will be
         // preferred.
         if trim_front || trim_back {
-            preferred.insert(*span, *id);
+            preferred.insert(range, *id);
         }
 
-        info!(
-            logger,
-            "Processing for id {id}: {initial_span} ->\t{span}.\n\
-        Code: `{&code[initial_span]}` => `{&new_code[*span]}`"
-        );
+        *span = range.into();
+        info!(logger, || {
+            let old_fragment = slice_from_codepoints_range(code, initial_range);
+            let new_fragment = slice_from_codepoints_range(&new_code, range);
+            iformat!(
+                "Processing for id {id}: {initial_range} ->\t{range}.\n
+                Code: `{old_fragment}` => `{new_fragment}`"
+            )
+        });
     }
 
     // If non-preferred entry collides with the preferred one, remove the former.
     vector.drain_filter(|(span, id)| {
-        preferred.get(span).map(|preferred_id| id != preferred_id).unwrap_or(false)
+        let range = span.as_range();
+        preferred.get(&range).map(|preferred_id| id != preferred_id).unwrap_or(false)
     });
 }
 
@@ -161,9 +165,9 @@ pub fn apply_code_change_to_id_map(
 // === Helpers ===
 // ===============
 
-/// Returns the byte length of leading space characters sequence.
-fn spaces_size(itr: impl Iterator<Item = char>) -> Size {
-    Size::new(itr.take_while(|c| *c == ' ').fold(0, |acc, _| acc + 1))
+/// Returns the codepoints length of leading space characters sequence.
+fn spaces_size(itr: impl Iterator<Item = char>) -> Codepoints {
+    itr.take_while(|c| *c == ' ').fold(0, |acc, _| acc + 1).into()
 }
 
 /// Checks if the given string slice contains only space charactesr.
@@ -171,7 +175,11 @@ fn all_spaces(text: &str) -> bool {
     text.chars().all(|c| c == ' ')
 }
 
-
+fn slice_from_codepoints_range(text: &str, range: enso_text::Range<Codepoints>) -> &str {
+    let byte_range = range.to_byte_range_in_str(text);
+    let range = byte_range.map_or(text.len()..text.len(), |r| r.start.as_usize()..r.end.as_usize());
+    &text[range]
+}
 
 // =============
 // === Tests ===

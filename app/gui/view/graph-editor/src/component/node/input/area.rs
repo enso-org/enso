@@ -125,16 +125,16 @@ impl From<node::Expression> for Expression {
     /// structure. It also computes `port::Model` values in the `viz_code` representation.
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
-        let mut shift = 0;
+        let mut shift = 0.codepoints();
         let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
             let is_expected_arg = node.is_expected_argument();
             let span = node.span();
-            let mut size = span.size.value;
-            let mut index = span.index.value;
-            let offset_from_prev_tok = node.offset.value - info.prev_tok_local_index;
+            let mut size = span.size();
+            let mut index = span.start;
+            let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
             info.prev_tok_local_index = node.offset.value + size;
             viz_code += &" ".repeat(offset_from_prev_tok);
             if node.children.is_empty() {

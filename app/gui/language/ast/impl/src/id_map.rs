@@ -40,6 +40,14 @@ impl<T: Into<enso_text::Range<Codepoints>>> From<T> for Span {
     }
 }
 
+impl Span {
+    pub fn as_range(&self) -> enso_text::Range<Codepoints> {
+        let start: Codepoints = self.index.value.into();
+        let len: Codepoints = self.size.value.into();
+        (start..start + len).into()
+    }
+}
+
 /// A mapping between text position and immutable ID.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(transparent)]

@@ -894,7 +894,26 @@ impl TextCell {
 #[derive(Clone, Debug, Default)]
 pub struct Change<Metric = Bytes, String = Text> {
     /// Range of old text being replaced.
-    pub range: buffer::Range<Metric>,
+    pub range: Range<Metric>,
     /// The text inserted in place of `range`.
     pub text:  String,
+}
+
+
+// === Applying Change ===
+
+impl<S: AsRef<str>> Change<Codepoints, S> {
+    pub fn apply(&self, target: &mut String) -> Result<(), BoundsError> {
+        let range = self.range.to_byte_range_in_str(target)?;
+        let start_byte = range.start.as_usize();
+        let end_byte = range.end.as_usize();
+        target.replace_range(start_byte..end_byte, self.text.as_ref());
+        Ok(())
+    }
+
+    pub fn applied(&self, target: &str) -> Result<String, BoundsError> {
+        let mut string = target.to_owned();
+        self.apply(&mut string)?;
+        Ok(string)
+    }
 }
