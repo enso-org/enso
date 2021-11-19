@@ -2,7 +2,7 @@
 * @4e6 @MichaelMauderer @PabloBuchu @jdunkerley
 
 # Rust Libraries
-/lib/rust/* @MichaelMauderer @4e6
+/lib/rust/* @MichaelMauderer @4e6 @mwu-tow @farmaazon
 /lib/rust/ensogl/* @MichaelMauderer @wdanilo @farmaazon
 
 # Scala Libraries
