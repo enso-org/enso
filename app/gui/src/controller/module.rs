@@ -3,10 +3,10 @@
 use crate::prelude::*;
 
 use crate::model::module::Path;
+use crate::model::module::TextChange;
 
 use ast;
 use ast::HasIdMap;
-use data::text::*;
 use double_representation::module;
 use double_representation::project;
 use double_representation::text::apply_code_change_to_id_map;

@@ -1058,15 +1058,15 @@ pub trait HasIdMap {
 #[derive(Debug, Clone, Default)]
 struct IdMapBuilder {
     id_map: IdMap,
-    offset: Codepoints,
+    offset: Bytes,
 }
 
 impl TokenConsumer for IdMapBuilder {
     fn feed(&mut self, token: Token) {
         match token {
-            Token::Off(val) => self.offset += Codepoints::from(val),
-            Token::Chr(_) => self.offset += 1.codepoints(),
-            Token::Str(val) => self.offset += Codepoints::from(val.chars().count()),
+            Token::Off(val) => self.offset += Bytes::from(' '.len_utf8() * val),
+            Token::Chr(_) => self.offset += 1.bytes(),
+            Token::Str(val) => self.offset += Bytes::from(val.len()),
             Token::Ast(val) => {
                 let begin = self.offset;
                 val.shape().feed_to(self);

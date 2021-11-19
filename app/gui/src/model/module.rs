@@ -13,8 +13,6 @@ use crate::controller::FilePath;
 
 use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
-use data::text::TextChange;
-use data::text::TextLocation;
 use double_representation::definition::DefinitionInfo;
 use double_representation::identifier::ReferentName;
 use double_representation::project;
@@ -58,6 +56,14 @@ pub enum ModulePathViolation {
     #[fail(display = "The module file must have a proper language extension.")]
     WrongFileExtension,
 }
+
+
+
+// ===============
+// === Aliases ===
+// ===============
+
+pub type TextChange = enso_text::Change<enso_text::unit::Bytes, String>;
 
 
 
@@ -271,7 +277,7 @@ pub enum NotificationKind {
         /// The code change description.
         change:            TextChange,
         /// Information about line:col position of replaced fragment.
-        replaced_location: Range<TextLocation>,
+        replaced_location: enso_text::Range<enso_text::Location>,
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,

@@ -153,10 +153,8 @@ pub struct Model {
     pub shape:           Option<Shape>,
     pub name:            Option<String>,
     pub index:           Bytes,
-    pub char_offset:     Codepoints,
     pub local_index:     Bytes,
     pub length:          Bytes,
-    pub char_count:      Codepoints,
     pub highlight_color: color::Lcha, // TODO needed? and other fields?
 }
 
@@ -188,5 +186,11 @@ impl Model {
         let shape = Shape::new(&logger, scene, size, hover_height);
         self.shape = Some(shape);
         self.shape.as_ref().unwrap().clone_ref()
+    }
+
+    pub fn range(&self) -> enso_text::Range<Bytes> {
+        let start = self.index;
+        let end = self.index + self.length;
+        enso_text::Range::new(start, end)
     }
 }

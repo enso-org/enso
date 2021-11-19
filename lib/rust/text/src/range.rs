@@ -176,6 +176,14 @@ impl Index<Range<Bytes>> for str {
     }
 }
 
+impl Index<Range<Bytes>> for String {
+    type Output = str;
+
+    fn index(&self, index: Range<Bytes>) -> &Self::Output {
+        &self.as_str()[index]
+    }
+}
+
 
 // === Conversions ===
 

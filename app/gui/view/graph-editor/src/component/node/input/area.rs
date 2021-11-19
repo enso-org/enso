@@ -448,8 +448,11 @@ impl Area {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
             let unit = GLYPH_WIDTH;
-            let width = unit * (i32::from(node.payload.length) as f32);
-            let x = width / 2.0 + unit * (i32::from(node.payload.index) as f32);
+            let range_before = ensogl_text::Range::new(0.bytes(), node.payload.index);
+            let char_offset: Codepoints = expr.viz_code[range_before].chars().count().into();
+            let char_count: Codepoints = expr.viz_code[node.payload.range()].chars().count().into();
+            let width = unit * (i32::from(char_count) as f32);
+            let x = width / 2.0 + unit * (i32::from(char_offset) as f32);
             Vector2::new(TEXT_OFFSET + x, 0.0)
         })
     }
@@ -482,10 +485,10 @@ struct PortLayerBuilder {
     parent:          display::object::Instance,
     /// Information whether the parent port was a parensed expression.
     parent_parensed: bool,
-    /// The number of text bytes the expression should be shifted. For example, consider
-    /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 byte shift
-    /// should be applied when considering its children.
-    shift:           Bytes,
+    /// The number of codepoints the expression should be shifted. For example, consider
+    /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 codepoints
+    /// shift should be applied when considering its children.
+    shift:           Codepoints,
     /// The depth at which the current expression is, where root is at depth 0.
     depth:           usize,
 }
@@ -496,7 +499,7 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: Bytes,
+        shift: Codepoints,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
@@ -513,7 +516,7 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: Bytes,
+        shift: Codepoints,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
@@ -530,7 +533,8 @@ impl Area {
         let mut is_header = true;
         let mut id_crumbs_map = HashMap::new();
         let builder = PortLayerBuilder::empty(&self.model.ports);
-        expression.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
+        let code = &expression.viz_code;
+        expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
             let is_parensed = node.is_parensed();
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
@@ -562,14 +566,21 @@ impl Area {
                 );
             }
 
+            let range_before = ensogl_text::Range::new(
+                node.payload.index - node.payload.local_index,
+                node.payload.index,
+            );
+            let local_char_offset: Codepoints = code[range_before].chars().count().into();
+
             let new_parent = if not_a_port {
                 builder.parent.clone_ref()
             } else {
                 let port = &mut node;
-                let index = port.payload.local_index + builder.shift;
-                let size = port.payload.length;
+
+                let index = local_char_offset + builder.shift;
+                let size: Codepoints = code[port.payload.range()].chars().count().into();
                 let unit = GLYPH_WIDTH;
-                let width = unit * size as f32;
+                let width = unit * i32::from(size) as f32;
                 let width_padded = width + 2.0 * PORT_PADDING_X;
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
@@ -578,7 +589,7 @@ impl Area {
                 let scene = self.model.scene();
                 let port_shape = port.payload_mut().init_shape(logger, scene, size, node::HEIGHT);
 
-                port_shape.mod_position(|t| t.x = unit * index as f32);
+                port_shape.mod_position(|t| t.x = unit * i32::from(index) as f32);
                 if DEBUG {
                     port_shape.mod_position(|t| t.y = DEBUG_PORT_OFFSET)
                 }
@@ -686,7 +697,7 @@ impl Area {
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
             let new_shift =
-                if !not_a_port { 0.bytes() } else { builder.shift + node.payload.local_index };
+                if !not_a_port { 0.codepoints() } else { builder.shift + local_char_offset };
             builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;
@@ -785,9 +796,7 @@ impl Area {
                 frp::extend! { port_network
                     set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
-                        let start_bytes = (index as i32).bytes();
-                        let end_bytes   = ((index + length) as i32).bytes();
-                        let range       = ensogl_text::buffer::Range::from(start_bytes..end_bytes);
+                        let range = enso_text::Range::new(index, index + length);
                         label.set_color_bytes(range,color::Rgba::from(color));
                     });
                 }

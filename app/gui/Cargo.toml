@@ -17,6 +17,7 @@ enso-frp = { path = "../../lib/rust/frp" }
 enso-logger = { path = "../../lib/rust/logger"}
 enso-prelude = { path = "../../lib/rust/prelude"}
 enso-shapely = { path = "../../lib/rust/shapely/impl"}
+enso-text = { path = "../../lib/rust/text" }
 enso-web = { path = "../../lib/rust/web" }
 ensogl = { path = "../../lib/rust/ensogl" }
 ensogl-examples = { path = "../../lib/rust/ensogl/example" }

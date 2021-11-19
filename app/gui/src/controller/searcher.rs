@@ -13,7 +13,6 @@ use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::model::traits::*;
 use crate::notification;
 
-use data::text::TextLocation;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;

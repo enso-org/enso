@@ -13,6 +13,7 @@ use api::Metadata;
 use api::ParsedSourceFile;
 use ast::IdMap;
 
+use ast::id_map::IdMapForParser;
 use serde::de::DeserializeOwned;
 use std::fmt::Formatter;
 
@@ -92,7 +93,7 @@ impl From<serde_json::error::Error> for Error {
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest { program: String, ids: IdMap },
+    ParseRequest { program: String, ids: IdMapForParser },
     ParseRequestWithMetadata { content: String },
     DocParserGenerateHtmlSource { program: String },
     DocParserGenerateHtmlFromDoc { code: String },
@@ -238,6 +239,7 @@ impl Client {
 
     /// Sends a request to parser service to parse Enso code.
     pub fn parse(&mut self, program: String, ids: IdMap) -> api::Result<Ast> {
+        let ids = ids.for_parser(&program);
         let request = Request::ParseRequest { program, ids };
         let response = self.rpc_call::<serde_json::Value>(request)?;
         match response {

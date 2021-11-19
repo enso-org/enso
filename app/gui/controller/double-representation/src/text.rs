@@ -13,7 +13,7 @@ use enso_text::unit::*;
 /// Update IdMap to reflect the recent code change.
 pub fn apply_code_change_to_id_map(
     id_map: &mut IdMap,
-    change: &enso_text::text::Change<Codepoints, String>,
+    change: &enso_text::text::Change<Bytes, String>,
     code: &str,
 ) {
     // TODO [mwu]
@@ -25,33 +25,34 @@ pub fn apply_code_change_to_id_map(
     //   spend much time on refactoring this function right now, even if it could be made nicer.
 
 
+
     let removed = &change.range.clone();
     let inserted = change.text.as_str();
     let new_code = change.applied(code).unwrap_or(code.to_owned());
     let non_white = |c: char| !c.is_whitespace();
     let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
-    let inserted_size: Codepoints = inserted.chars().count().into();
+    let inserted_size: Bytes = inserted.len().into();
 
     info!(logger, "Old code:\n```\n{code}\n```");
     info!(logger, "New code:\n```\n{new_code}\n```");
     info!(logger, "Updating the ID map with the following text edit: {change:?}.");
 
     // Remove all entries fully covered by the removed span.
-    vector.drain_filter(|(span, _)| removed.contains_range(&span.as_range()));
+    vector.drain_filter(|(range, _)| removed.contains_range(&range));
 
     // If the edited section ends up being the trailing part of AST node, how many bytes should be
     // trimmed from the id. Precalculated, as is constant in the loop below.
-    let to_trim_back: Codepoints = {
-        let last_non_white =
-            inserted.chars().rev().position(non_white).map(Into::<Codepoints>::into);
-        let length_to_last_non_white = |index| inserted_size - index - 1.codepoints();
-        last_non_white.map_or(inserted_size, length_to_last_non_white)
+    let to_trim_back: Bytes = {
+        let last_non_white = inserted.rfind(non_white);
+        let inserted_len = || inserted.len();
+        let length_to_last_non_white = |index| inserted.len() - index - 1;
+        last_non_white.map_or_else(inserted_len, length_to_last_non_white).into()
     };
     // As above but for the front side.
-    let to_trim_front: Codepoints = {
-        let first_non_white = inserted.chars().position(non_white);
-        first_non_white.map_or(inserted_size, Into::<Codepoints>::into)
+    let to_trim_front: Bytes = {
+        let first_non_white = inserted.find(non_white);
+        first_non_white.unwrap_or_else(|| inserted.len()).into()
     };
 
     let inserted_non_white = inserted.chars().any(non_white);
@@ -62,20 +63,19 @@ pub fn apply_code_change_to_id_map(
     // This is needed for edits like: `foo f` => `foo` — the earlier `foo` in `foo f` also has a
     // id map entry, however we want it to be consistently shadowed by the id from the whole App
     // expression.
-    let mut preferred: HashMap<enso_text::Range<Codepoints>, ast::Id> = default();
+    let mut preferred: HashMap<enso_text::Range<Bytes>, ast::Id> = default();
 
-    for (span, id) in vector.iter_mut() {
-        let mut range = span.as_range();
+    for (range, id) in vector.iter_mut() {
         let mut trim_front = false;
         let mut trim_back = false;
-        let initial_range = range;
-        info!(logger, "Processing @{range}: `{slice_from_codepoints_range(code, range)}`.");
+        let initial_range = *range;
+        info!(logger, "Processing @{range}: `{&code[*range]}`.");
         if range.start > removed.end {
             debug!(logger, "Node after the edited region.");
             // AST node starts after edited region — it will be simply shifted.
             let between_range: enso_text::Range<_> = (removed.end..range.start).into();
-            let code_between = slice_from_codepoints_range(code, between_range);
-            range = range.moved_left(removed.size()).moved_right(inserted_size.into());
+            let code_between = &code[between_range];
+            *range = range.moved_left(removed.size()).moved_right(inserted_size.into());
 
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
@@ -89,7 +89,7 @@ pub fn apply_code_change_to_id_map(
             // AST node starts inside the edited region. It does not have to end inside it.
             debug!(logger, "Node overlapping with the end of the edited region.");
             let removed_before = range.start - removed.start;
-            range = range.moved_left(removed_before);
+            *range = range.moved_left(removed_before);
             range.end -= removed.size() - removed_before;
             range.end += inserted_size;
             trim_front = true;
@@ -107,7 +107,7 @@ pub fn apply_code_change_to_id_map(
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
             let between_range: enso_text::Range<_> = (range.end..removed.start).into();
-            let between = slice_from_codepoints_range(code, between_range);
+            let between = &code[between_range];
             if all_spaces(between) && inserted_non_white {
                 debug!(logger, "Will extend ");
                 range.end += between_range.size() + inserted_size;
@@ -115,20 +115,21 @@ pub fn apply_code_change_to_id_map(
             }
         }
 
-        if trim_front && to_trim_front > 0.codepoints() {
+        if trim_front && to_trim_front > 0.bytes() {
             range.start += to_trim_front;
             debug!(logger, "Trimming front {to_trim_front.as_usize()} codepoints.");
         }
 
         if trim_back {
-            if to_trim_back > 0.codepoints() {
+            if to_trim_back > 0.bytes() {
                 range.end += -to_trim_back;
                 debug!(logger, "Trimming back {to_trim_back.as_usize()} codepoints.");
             }
-            let new_repr = slice_from_codepoints_range(&new_code, range);
+            let new_repr = &new_code[*range];
             // Trim trailing spaces
-            let spaces = spaces_size(new_repr.chars().rev());
-            if spaces > 0.codepoints() {
+            let spaces: Bytes =
+                (spaces_size(new_repr.chars().rev()).as_usize() * ' '.len_utf8()).into();
+            if spaces > 0.bytes() {
                 debug!(logger, "Additionally trimming {spaces.as_usize()} trailing spaces.");
                 debug!(logger, "The would-be code: `{new_repr}`.");
                 range.end -= spaces;
@@ -138,13 +139,12 @@ pub fn apply_code_change_to_id_map(
         // If we edited front or end of an AST node, its extended (or shrunk) span will be
         // preferred.
         if trim_front || trim_back {
-            preferred.insert(range, *id);
+            preferred.insert(*range, *id);
         }
 
-        *span = range.into();
         info!(logger, || {
-            let old_fragment = slice_from_codepoints_range(code, initial_range);
-            let new_fragment = slice_from_codepoints_range(&new_code, range);
+            let old_fragment = &code[initial_range];
+            let new_fragment = &new_code[*range];
             iformat!(
                 "Processing for id {id}: {initial_range} ->\t{range}.\n
                 Code: `{old_fragment}` => `{new_fragment}`"
@@ -153,8 +153,7 @@ pub fn apply_code_change_to_id_map(
     }
 
     // If non-preferred entry collides with the preferred one, remove the former.
-    vector.drain_filter(|(span, id)| {
-        let range = span.as_range();
+    vector.drain_filter(|(range, id)| {
         preferred.get(&range).map(|preferred_id| id != preferred_id).unwrap_or(false)
     });
 }
@@ -175,11 +174,7 @@ fn all_spaces(text: &str) -> bool {
     text.chars().all(|c| c == ' ')
 }
 
-fn slice_from_codepoints_range(text: &str, range: enso_text::Range<Codepoints>) -> &str {
-    let byte_range = range.to_byte_range_in_str(text);
-    let range = byte_range.map_or(text.len()..text.len(), |r| r.start.as_usize()..r.end.as_usize());
-    &text[range]
-}
+
 
 // =============
 // === Tests ===

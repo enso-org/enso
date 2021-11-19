@@ -8,6 +8,7 @@ use crate::model::module::Notification;
 use crate::model::module::NotificationKind;
 use crate::model::module::Path;
 use crate::model::module::ProjectMetadata;
+use crate::model::module::TextChange;
 use crate::model::module::API;
 
 use ast::IdMap;

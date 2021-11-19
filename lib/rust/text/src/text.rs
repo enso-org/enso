@@ -147,6 +147,10 @@ impl Text {
         let range = self.crop_byte_range(range);
         self.rope.edit(range.into_rope_interval(), text.rope);
     }
+
+    pub fn apply_change(&mut self, change: Change<Bytes, impl Into<Text>>) {
+        self.replace(change.range, change.text)
+    }
 }
 
 
@@ -900,13 +904,20 @@ pub struct Change<Metric = Bytes, String = Text> {
 }
 
 
+impl<Metric, String> Change<Metric, String> {
+    pub fn as_ref(&self) -> Change<Metric, &String>
+    where Metric: Copy {
+        Change { range: self.range.clone(), text: &self.text }
+    }
+}
+
+
 // === Applying Change ===
 
-impl<S: AsRef<str>> Change<Codepoints, S> {
+impl<S: AsRef<str>> Change<Bytes, S> {
     pub fn apply(&self, target: &mut String) -> Result<(), BoundsError> {
-        let range = self.range.to_byte_range_in_str(target)?;
-        let start_byte = range.start.as_usize();
-        let end_byte = range.end.as_usize();
+        let start_byte = self.range.start.as_usize();
+        let end_byte = self.range.end.as_usize();
         target.replace_range(start_byte..end_byte, self.text.as_ref());
         Ok(())
     }

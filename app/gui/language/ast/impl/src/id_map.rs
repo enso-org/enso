@@ -51,21 +51,50 @@ impl Span {
 /// A mapping between text position and immutable ID.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(transparent)]
-pub struct IdMap {
+pub struct IdMapForParser {
     pub vec: Vec<(Span, Id)>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct IdMap {
+    pub vec: Vec<(enso_text::Range<Bytes>, Id)>,
 }
 
 impl IdMap {
     /// Create a new instance.
-    pub fn new(vec: Vec<(Span, Id)>) -> IdMap {
+    pub fn new(vec: Vec<(enso_text::Range<Bytes>, Id)>) -> IdMap {
         IdMap { vec }
     }
     /// Assigns Span to given ID.
-    pub fn insert(&mut self, span: impl Into<Span>, id: Id) {
+    pub fn insert(&mut self, span: impl Into<enso_text::Range<Bytes>>, id: Id) {
         self.vec.push((span.into(), id));
     }
     /// Generate random Uuid for span.
-    pub fn generate(&mut self, span: impl Into<Span>) {
+    pub fn generate(&mut self, span: impl Into<enso_text::Range<Bytes>>) {
         self.vec.push((span.into(), Uuid::new_v4()));
+    }
+
+    pub fn for_parser(self, code: &str) -> IdMapForParser {
+        let char_offsets = code.char_indices().map(|(idx, _)| idx).collect_vec();
+        IdMapForParser {
+            vec: self
+                .vec
+                .into_iter()
+                .map(|(range, id)| {
+                    let byte_start = range.start.as_usize();
+                    let byte_end = range.end.as_usize();
+                    let start: Codepoints =
+                        char_offsets.binary_search(&byte_start).unwrap_both().into();
+                    let end: Codepoints =
+                        char_offsets.binary_search(&byte_end).unwrap_both().into();
+                    let size = end - start;
+                    let span = Span {
+                        index: Index { value: start.as_usize() },
+                        size:  Size { value: size.as_usize() },
+                    };
+                    (span, id)
+                })
+                .collect(),
+        }
     }
 }

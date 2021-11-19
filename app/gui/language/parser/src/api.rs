@@ -187,7 +187,7 @@ impl<M: Metadata> ParsedSourceFile<M> {
         let before_idmap = "\n";
         let before_metadata = "\n";
         let code = self.ast.repr();
-        let id_map = to_json_single_line(&self.ast.id_map())?;
+        let id_map = to_json_single_line(&self.ast.id_map().for_parser(&code))?;
         let metadata = to_json_single_line(&self.metadata)?;
         let id_map_start = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
         let id_map_start_bytes = Bytes::from(id_map_start);

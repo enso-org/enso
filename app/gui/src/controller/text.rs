@@ -7,11 +7,11 @@ use crate::prelude::*;
 
 use crate::controller::FilePath;
 
+use crate::model::module::TextChange;
 use data::text::TextChange;
 use engine_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
-
 
 
 // ====================

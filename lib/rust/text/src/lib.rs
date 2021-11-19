@@ -18,6 +18,7 @@ pub use range::RangeBounds;
 pub use rope::metric;
 pub use rope::Cursor;
 pub use spans::Spans;
+pub use text::Change;
 pub use text::Text;
 pub use text::TextCell;
 pub use unit::traits;

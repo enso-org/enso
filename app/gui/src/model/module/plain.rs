@@ -10,10 +10,9 @@ use crate::model::module::Notification;
 use crate::model::module::NotificationKind;
 use crate::model::module::Path;
 use crate::model::module::ProjectMetadata;
+use crate::model::module::TextChange;
 use crate::notification;
 
-use data::text::TextChange;
-use data::text::TextLocation;
 use double_representation::definition::DefinitionInfo;
 use flo_stream::Subscriber;
 use parser::api::ParsedSourceFile;
@@ -160,10 +159,12 @@ impl model::module::API for Module {
         parser: &Parser,
         new_id_map: ast::IdMap,
     ) -> FallibleResult {
-        let code = self.ast().repr();
-        let replaced_location = TextLocation::convert_range(&code, &change.replaced);
-        let new_code = change.applied(&code);
-        let new_ast = parser.parse(new_code, new_id_map)?.try_into()?;
+        let mut code: enso_text::Text = self.ast().repr().into();
+        let replaced_start = code.location_of_byte_offset(change.range.start)?;
+        let replaced_end = code.location_of_byte_offset(change.range.end)?;
+        let replaced_location = enso_text::Range(replaced_start, replaced_end);
+        code.apply_change(change.as_ref());
+        let new_ast = parser.parse(code.into(), new_id_map)?.try_into()?;
         let notification = NotificationKind::CodeChanged { change, replaced_location };
         self.update_content(notification, |content| content.ast = new_ast)
     }

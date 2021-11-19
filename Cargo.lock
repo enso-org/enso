@@ -903,6 +903,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "enso-web",
  "ensogl",
  "ensogl-drop-manager",
