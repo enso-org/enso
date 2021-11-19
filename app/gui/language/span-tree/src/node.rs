@@ -30,7 +30,7 @@ pub trait Payload = Default + Clone;
 #[allow(missing_docs)]
 pub struct Node<T> {
     pub kind:     Kind,
-    pub size:     Codepoints,
+    pub size:     Bytes,
     pub children: Vec<Child<T>>,
     pub ast_id:   Option<ast::Id>,
     pub payload:  T,
@@ -126,7 +126,7 @@ impl<T> Node<T> {
         self.kind = k.into();
         self
     }
-    pub fn with_size(mut self, size: Codepoints) -> Self {
+    pub fn with_size(mut self, size: Bytes) -> Self {
         self.size = size;
         self
     }
@@ -176,7 +176,7 @@ pub struct Child<T = ()> {
     /// A child node.
     pub node:       Node<T>,
     /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset:     Codepoints,
+    pub offset:     Bytes,
     /// AST crumbs which lead from parent to child associated AST node.
     pub ast_crumbs: ast::Crumbs,
 }
@@ -279,7 +279,7 @@ impl<T: Payload> ChildBuilder<T> {
     }
 
     /// Offset setter.
-    pub fn offset(mut self, offset: Codepoints) -> Self {
+    pub fn offset(mut self, offset: Bytes) -> Self {
         self.offset = offset;
         self
     }
@@ -297,7 +297,7 @@ impl<T: Payload> ChildBuilder<T> {
     }
 
     /// Size setter.
-    pub fn size(mut self, size: Codepoints) -> Self {
+    pub fn size(mut self, size: Bytes) -> Self {
         self.node.size = size;
         self
     }
@@ -423,7 +423,7 @@ pub struct Ref<'a, T = ()> {
     /// The node's ref.
     pub node:        &'a Node<T>,
     /// Span begin's offset counted from the root expression.
-    pub span_offset: Codepoints,
+    pub span_offset: Bytes,
     /// Crumbs specifying this node position related to root.
     pub crumbs:      Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
@@ -449,7 +449,7 @@ impl<'a, T: Payload> Ref<'a, T> {
     }
 
     /// Get span of current node.
-    pub fn span(&self) -> text::Range<Codepoints> {
+    pub fn span(&self) -> text::Range<Bytes> {
         let start = self.span_offset;
         let end = self.span_offset + self.node.size;
         (start..end).into()
@@ -553,7 +553,7 @@ impl<'a, T: Payload> Ref<'a, T> {
 
     /// Get the node which exactly matches the given Span. If there many such node's, it pick first
     /// found by DFS.
-    pub fn find_by_span(self, span: &text::Range<Codepoints>) -> Option<Ref<'a, T>> {
+    pub fn find_by_span(self, span: &text::Range<Bytes>) -> Option<Ref<'a, T>> {
         if self.span() == *span {
             Some(self)
         } else {
@@ -641,9 +641,9 @@ pub struct RefMut<'a, T = ()> {
     /// The node's ref.
     node:            &'a mut Node<T>,
     /// An offset counted from the parent node start to the start of this node's span.
-    pub offset:      Codepoints,
+    pub offset:      Bytes,
     /// Span begin's offset counted from the root expression.
-    pub span_offset: Codepoints,
+    pub span_offset: Bytes,
     /// Crumbs specifying this node position related to root.
     pub crumbs:      Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
@@ -671,7 +671,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
     }
 
     /// Get span of current node.
-    pub fn span(&self) -> text::Range<Codepoints> {
+    pub fn span(&self) -> text::Range<Bytes> {
         text::Range::new(self.span_offset, self.span_offset + self.size)
     }
 
@@ -679,7 +679,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
     fn child_from_ref(
         index: usize,
         child: &'a mut Child<T>,
-        mut span_begin: Codepoints,
+        mut span_begin: Bytes,
         crumbs: Crumbs,
         mut ast_crumbs: ast::Crumbs,
     ) -> RefMut<'a, T> {

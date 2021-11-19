@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use enso_text::unit::*;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
@@ -151,9 +152,11 @@ pub struct Model {
     pub frp:             Frp,
     pub shape:           Option<Shape>,
     pub name:            Option<String>,
-    pub index:           usize,
-    pub local_index:     usize,
-    pub length:          usize,
+    pub index:           Bytes,
+    pub char_offset:     Codepoints,
+    pub local_index:     Bytes,
+    pub length:          Bytes,
+    pub char_count:      Codepoints,
     pub highlight_color: color::Lcha, // TODO needed? and other fields?
 }
 

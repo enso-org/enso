@@ -61,19 +61,19 @@ pub fn main() {
                 .kind(node::Kind::Chained)
                 .crumbs(PrefixCrumb::Func)
                 .new_child(|t| {
-                    t.size(9.codepoints())
+                    t.size(9.bytes())
                         .kind(node::Kind::Operation)
                         .crumbs(PrefixCrumb::Func)
                         .new_ast_id()
                 })
-                .new_child(|t| t.size(1.codepoints()))
+                .new_child(|t| t.size(1.bytes()))
                 .new_child(|t| {
-                    t.size(4.codepoints())
+                    t.size(4.bytes())
                         .kind(node::Kind::this().removable())
                         .crumbs(PrefixCrumb::Arg)
                         .new_ast_id()
                 })
-                .new_child(|t| t.size(1.codepoints()))
+                .new_child(|t| t.size(1.bytes()))
         })
         .new_child(|t| {
             t.new_ast_id()
@@ -81,26 +81,26 @@ pub fn main() {
                 .crumbs(PrefixCrumb::Arg)
                 .new_child(|t| {
                     t.new_ast_id()
-                        .offset(1.codepoints())
+                        .offset(1.bytes())
                         .kind(node::Kind::argument().removable())
                         .crumbs(parens_cr)
                         .new_child(|t| {
-                            t.size(12.codepoints())
+                            t.size(12.bytes())
                                 .kind(node::Kind::Operation)
                                 .crumbs(PrefixCrumb::Func)
                                 .new_ast_id()
                         })
-                        .new_child(|t| t.size(1.codepoints()))
+                        .new_child(|t| t.size(1.bytes()))
                         .new_child(|t| {
-                            t.size(6.codepoints())
+                            t.size(6.bytes())
                                 .kind(node::Kind::this().removable())
                                 .crumbs(PrefixCrumb::Arg)
                                 .new_ast_id()
                         })
-                        .new_child(|t| t.size(1.codepoints()))
+                        .new_child(|t| t.size(1.bytes()))
                 })
         })
-        .new_child(|t| t.size(1.codepoints()));
+        .new_child(|t| t.size(1.bytes()));
 
     DEBUG!("{input_span_tree2:#?}");
 }

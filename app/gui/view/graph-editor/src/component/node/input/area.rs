@@ -13,7 +13,8 @@ use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
-use enso_text::unit::traits::*;
+use enso_text::traits::*;
+use enso_text::unit::*;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -108,13 +109,13 @@ impl Debug for Expression {
 /// Helper struct used for `Expression` conversions.
 #[derive(Debug, Default)]
 struct ExprConversion {
-    prev_tok_local_index:  usize,
+    prev_tok_local_index:  Bytes,
     /// Index of the last traverse parent node in the `SpanTree`.
-    last_parent_tok_index: usize,
+    last_parent_tok_index: Bytes,
 }
 
 impl ExprConversion {
-    fn new(last_parent_tok_index: usize) -> Self {
+    fn new(last_parent_tok_index: Bytes) -> Self {
         let prev_tok_local_index = default();
         Self { prev_tok_local_index, last_parent_tok_index }
     }
@@ -125,7 +126,7 @@ impl From<node::Expression> for Expression {
     /// structure. It also computes `port::Model` values in the `viz_code` representation.
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
-        let mut shift = 0.codepoints();
+        let mut shift = 0.bytes();
         let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
@@ -135,17 +136,17 @@ impl From<node::Expression> for Expression {
             let mut size = span.size();
             let mut index = span.start;
             let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
-            info.prev_tok_local_index = node.offset.value + size;
-            viz_code += &" ".repeat(offset_from_prev_tok);
+            info.prev_tok_local_index = node.offset + size;
+            viz_code += &" ".repeat(offset_from_prev_tok.as_usize());
             if node.children.is_empty() {
-                viz_code += &code[index..index + size];
+                viz_code += &code.as_str()[enso_text::Range::new(index, index + size)];
             }
             index += shift;
             if is_expected_arg {
                 if let Some(name) = node.name() {
-                    size = name.len();
-                    index += 1;
-                    shift += 1 + size;
+                    size = name.len().into();
+                    index += 1.bytes();
+                    shift += 1.bytes() + size;
                     viz_code += " ";
                     viz_code += name;
                 }
@@ -447,8 +448,8 @@ impl Area {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
             let unit = GLYPH_WIDTH;
-            let width = unit * node.payload.length as f32;
-            let x = width / 2.0 + unit * node.payload.index as f32;
+            let width = unit * (i32::from(node.payload.length) as f32);
+            let x = width / 2.0 + unit * (i32::from(node.payload.index) as f32);
             Vector2::new(TEXT_OFFSET + x, 0.0)
         })
     }
@@ -481,10 +482,10 @@ struct PortLayerBuilder {
     parent:          display::object::Instance,
     /// Information whether the parent port was a parensed expression.
     parent_parensed: bool,
-    /// The number of glyphs the expression should be shifted. For example, consider `(foo bar)`,
-    /// where expression `foo bar` does not get its own port, and thus a 1 glyph shift should be
-    /// applied when considering its children.
-    shift:           usize,
+    /// The number of text bytes the expression should be shifted. For example, consider
+    /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 byte shift
+    /// should be applied when considering its children.
+    shift:           Bytes,
     /// The depth at which the current expression is, where root is at depth 0.
     depth:           usize,
 }
@@ -495,7 +496,7 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: usize,
+        shift: Bytes,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
@@ -512,7 +513,7 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: usize,
+        shift: Bytes,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
@@ -684,7 +685,8 @@ impl Area {
                 }
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
-            let new_shift = if !not_a_port { 0 } else { builder.shift + node.payload.local_index };
+            let new_shift =
+                if !not_a_port { 0.bytes() } else { builder.shift + node.payload.local_index };
             builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;

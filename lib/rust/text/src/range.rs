@@ -166,6 +166,16 @@ impl From<RangeToInclusive<Bytes>> for Range<Bytes> {
     }
 }
 
+impl Index<Range<Bytes>> for str {
+    type Output = str;
+
+    fn index(&self, index: Range<Bytes>) -> &Self::Output {
+        let start = index.start.as_usize();
+        let end = index.end.as_usize();
+        &self[start..end]
+    }
+}
+
 
 // === Conversions ===
 
