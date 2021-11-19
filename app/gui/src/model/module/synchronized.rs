@@ -12,13 +12,15 @@ use crate::model::module::TextChange;
 use crate::model::module::API;
 
 use ast::IdMap;
-use data::text::TextChange;
-use data::text::TextLocation;
 use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
+use enso_text::unit::*;
+use enso_text::Location;
+use enso_text::Range;
+use enso_text::Text;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
@@ -34,15 +36,13 @@ use parser::Parser;
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ContentSummary {
     digest:      Sha3_224,
-    end_of_file: TextLocation,
+    end_of_file: Location,
 }
 
 impl ContentSummary {
-    fn new(text: &str) -> Self {
-        Self {
-            digest:      Sha3_224::new(text.as_bytes()),
-            end_of_file: TextLocation::at_document_end(text),
-        }
+    fn new(text: &Text) -> Self {
+        let parts = text.rope.iter_chunks(..).map(|s| s.as_bytes());
+        Self { digest: Sha3_224::from_parts(parts), end_of_file: text.location_of_text_end() }
     }
 }
 
@@ -53,43 +53,47 @@ impl ContentSummary {
 struct ParsedContentSummary {
     #[shrinkwrap(main_field)]
     summary:  ContentSummary,
-    source:   String,
-    code:     Range<TextLocation>,
-    id_map:   Range<TextLocation>,
-    metadata: Range<TextLocation>,
+    source:   Text,
+    code:     Range<Location>,
+    id_map:   Range<Location>,
+    metadata: Range<Location>,
 }
 
 impl ParsedContentSummary {
     /// Get summary from `SourceFile`.
     fn from_source(source: &SourceFile) -> Self {
+        let content = Text::from(&source.content);
+        let code = source.code.map(|i| content.location_of_byte_offset_snapped(i));
+        let id_map = source.id_map.map(|i| content.location_of_byte_offset_snapped(i));
+        let metadata = source.metadata.map(|i| content.location_of_byte_offset_snapped(i));
         ParsedContentSummary {
-            summary:  ContentSummary::new(&source.content),
-            source:   source.content.clone(),
-            code:     TextLocation::convert_byte_range(&source.content, &source.code),
-            id_map:   TextLocation::convert_byte_range(&source.content, &source.id_map),
-            metadata: TextLocation::convert_byte_range(&source.content, &source.metadata),
+            summary: ContentSummary::new(&content),
+            source: content,
+            code,
+            id_map,
+            metadata,
         }
     }
 
     // Get fragment of string with code.
-    pub fn code_slice(&self) -> &str {
+    pub fn code_slice(&self) -> Text {
         self.slice(&self.code)
     }
 
     /// Get fragment of string with id map.
-    pub fn id_map_slice(&self) -> &str {
+    pub fn id_map_slice(&self) -> Text {
         self.slice(&self.id_map)
     }
 
     /// Get fragment of string with metadata.
-    pub fn metadata_slice(&self) -> &str {
+    pub fn metadata_slice(&self) -> Text {
         self.slice(&self.metadata)
     }
 
-    fn slice(&self, range: &Range<TextLocation>) -> &str {
-        let start_ix = range.start.to_index(&self.source);
-        let end_ix = range.end.to_index(&self.source);
-        &self.source[start_ix.value..end_ix.value]
+    fn slice(&self, range: &Range<Location>) -> Text {
+        let start_ix = self.source.byte_offset_of_location_snapped(range.start);
+        let end_ix = self.source.byte_offset_of_location_snapped(range.end);
+        self.source.sub(Range::new(start_ix, end_ix))
     }
 }
 
@@ -150,8 +154,9 @@ impl Module {
         let file_path = path.file_path().clone();
         info!(logger, "Opening module {file_path}");
         let opened = language_server.client.open_text_file(&file_path).await?;
+        let content: Text = (&opened.content).into();
         info!(logger, "Read content of the module {path}, digest is {opened.current_version:?}");
-        let end_of_file = TextLocation::at_document_end(&opened.content);
+        let end_of_file = content.location_of_text_end();
         // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
         //  default instead.
         let source = parser.parse_with_metadata(opened.content)?;
@@ -315,7 +320,7 @@ impl Module {
                 NotificationKind::Invalidate => self.partial_invalidation(summary, new_file).await,
                 NotificationKind::CodeChanged { change, replaced_location } => {
                     let code_change =
-                        TextEdit { range: replaced_location.into(), text: change.inserted };
+                        TextEdit { range: replaced_location.into(), text: change.text };
                     let id_map_change = TextEdit {
                         range: summary.id_map.clone().into(),
                         text:  new_file.id_map_slice().to_string(),
@@ -343,19 +348,19 @@ impl Module {
         new_file: SourceFile,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
         debug!(self.logger, "Handling full invalidation: {ls_content:?}.");
-        let range = TextLocation::at_document_begin()..ls_content.end_of_file;
+        let range = Range::new(Location::default(), ls_content.end_of_file);
         let edits = vec![TextEdit { range: range.into(), text: new_file.content.clone() }];
         self.notify_language_server(ls_content, &new_file, edits)
     }
 
-    fn edit_for_snipped(start: &TextLocation, source: &str, target: &str) -> Option<TextEdit> {
+    fn edit_for_snipped(start: &Location, source: Text, target: Text) -> Option<TextEdit> {
         // This is an implicit assumption that always seems to be true. Otherwise finding the
         // correct location for the final edit would be more complex.
-        debug_assert_eq!(start.column, 0);
+        debug_assert_eq!(start.column, 0.column());
 
         (source != target).as_some_from(|| {
             let edit = TextEdit::from_prefix_postfix_differences(source, target);
-            edit.move_by_lines(start.line)
+            edit.move_by_lines(start.line.as_usize())
         })
     }
 

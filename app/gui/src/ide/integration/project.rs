@@ -32,7 +32,6 @@ use analytics;
 use bimap::BiMap;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_frp as frp;
-use enso_text as text;
 use ensogl::display::traits::*;
 use ensogl_gui_component::file_browser::model::AnyFolderContent;
 use ensogl_gui_component::list_view;
@@ -1743,7 +1742,8 @@ impl Model {
 
     fn code_changed_in_ui(&self, changes: &Vec<ensogl_text::Change>) -> FallibleResult {
         for change in changes {
-            let converted = enso_text::text::Change { range: change.range, text: change.into() };
+            let converted =
+                enso_text::text::Change { range: change.range, text: change.text.into() };
             self.text.apply_text_change(converted)?;
         }
         Ok(())

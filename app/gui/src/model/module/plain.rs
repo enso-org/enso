@@ -160,9 +160,9 @@ impl model::module::API for Module {
         new_id_map: ast::IdMap,
     ) -> FallibleResult {
         let mut code: enso_text::Text = self.ast().repr().into();
-        let replaced_start = code.location_of_byte_offset(change.range.start)?;
-        let replaced_end = code.location_of_byte_offset(change.range.end)?;
-        let replaced_location = enso_text::Range(replaced_start, replaced_end);
+        let replaced_start = code.location_of_byte_offset_snapped(change.range.start);
+        let replaced_end = code.location_of_byte_offset_snapped(change.range.end);
+        let replaced_location = enso_text::Range::new(replaced_start, replaced_end);
         code.apply_change(change.as_ref());
         let new_ast = parser.parse(code.into(), new_id_map)?.try_into()?;
         let notification = NotificationKind::CodeChanged { change, replaced_location };

@@ -895,7 +895,7 @@ impl TextCell {
 // ==============
 
 /// A single change done to the text content.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Change<Metric = Bytes, String = Text> {
     /// Range of old text being replaced.
     pub range: Range<Metric>,

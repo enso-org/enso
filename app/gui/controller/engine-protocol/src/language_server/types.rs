@@ -484,15 +484,15 @@ pub struct TextRange {
     pub end:   Position,
 }
 
-impls! { From + &From <Range<enso_text::Location>> for TextRange { |range|
+impls! { From + &From <enso_text::Range<enso_text::Location>> for TextRange { |range|
     TextRange {
         start : range.start.into(),
         end   : range.end.into(),
     }
 }}
 
-impls! { From + &From <TextRange> for Range<enso_text::Location> { |range|
-    range.start.into()..range.end.into()
+impls! { From + &From <TextRange> for enso_text::Range<enso_text::Location> { |range|
+    enso_text::Range::new(range.start.into(), range.end.into())
 }}
 
 
@@ -546,11 +546,12 @@ impl TextEdit {
     /// };
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "".to_string() });
     /// ```
-    pub fn from_prefix_postfix_differences(source: &str, target: &str) -> TextEdit {
+    pub fn from_prefix_postfix_differences(
+        source: &enso_text::Text,
+        target: &enso_text::Text,
+    ) -> TextEdit {
         use enso_text::unit::*;
-
-        let source = enso_text::Text::from(source);
-        let target = enso_text::Text::from(target);
+        use enso_text::Range;
 
         let common_lengths = source.common_prefix_and_suffix(&target);
 
@@ -559,7 +560,7 @@ impl TextEdit {
 
         let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
         let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
-        let source_text_range = source_start_position..source_end_position;
+        let source_text_range = Range::new(source_start_position, source_end_position);
 
         let target_range =
             common_lengths.prefix..(Bytes::from(target.len()) - common_lengths.suffix);

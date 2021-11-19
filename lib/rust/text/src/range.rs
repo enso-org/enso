@@ -61,9 +61,9 @@ impl<T> Range<T> {
     }
 
     /// Map both values with the provided function.
-    pub fn map(&self, f: impl Fn(T) -> T) -> Self
+    pub fn map<U>(&self, f: impl Fn(T) -> U) -> Range<U>
     where T: Clone {
-        self.with_start(f(self.start.clone())).with_end(f(self.end.clone()))
+        Range { start: f(self.start.clone()), end: f(self.end.clone()) }
     }
 
     /// Map the start value with the provided function.
