@@ -7,6 +7,13 @@ const paths = require('./build/paths')
 
 process.on('unhandledRejection', error => { throw(error) })
 
+if (process.platform === 'darwin' && process.arch === 'arm64') {
+    cmd.section('Environment preparation')
+    console.log('Discovered Apple Silicon. Applying patches.')
+    // Hotfix for rustc bug: [Apple linker not aware of the default 10.7 deployment target, causing issues on macOS 12.0 Monterey](https://github.com/rust-lang/rust/issues/90342)
+    process.env.MACOSX_DEPLOYMENT_TARGET = '10.7'
+}
+
 let args = process.argv.slice(2)
 
 let skip_validation = '--skip-version-validation'

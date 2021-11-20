@@ -52,6 +52,16 @@ application icon if built on Linux or Windows due to non-trivial icon generation
 on these platforms. To develop the source code you will need the following
 setup:
 
+- **Additional steps for Apple Silicon**
+  If you are running Apple Silicon, you have to export an environment variable
+  before compiling Rust dependencies. This should not be needed as soon as the
+  [rustc bug #90342](https://github.com/rust-lang/rust/issues/90342) will be 
+  fixed.
+
+  ```bash
+  export MACOSX_DEPLOYMENT_TARGET=10.7
+  ```
+
 - **The Rust Toolchain (nightly-2021-05-12)**
 
   This project uses several features available only in the nightly Rust
