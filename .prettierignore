@@ -1,4 +1,5 @@
 # Build Artefacts
+dist/
 target/
 .github/PULL_REQUEST_TEMPLATE.md
 .github/ISSUE_TEMPLATE
