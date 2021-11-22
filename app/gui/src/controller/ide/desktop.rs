@@ -69,22 +69,18 @@ impl Handle {
         project: Option<model::Project>,
     ) -> Self {
         let logger = Logger::new("controller::ide::Desktop");
-<<<<<<< HEAD
         let current_project = Rc::new(CloneCell::new(project));
-=======
-        let current_project = Rc::new(CloneCell::new(maybe_initial_project));
->>>>>>> 1c186cfba (refactor: use CloneCell instead of RefCell for current_project)
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
-        Ok(Self {
+        Self {
             logger,
             current_project,
             project_manager,
             status_notifications,
             parser,
             notifications,
-        })
+        }
     }
 
     /// Open project with provided name.
