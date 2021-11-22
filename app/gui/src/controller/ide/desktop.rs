@@ -39,7 +39,7 @@ const UNNAMED_PROJECT_NAME: &str = "Unnamed";
 #[derivative(Debug)]
 pub struct Handle {
     logger:               Logger,
-    current_project:      Rc<RefCell<Option<model::Project>>>,
+    current_project:      Rc<CloneCell<Option<model::Project>>>,
     #[derivative(Debug = "ignore")]
     project_manager:      Rc<dyn project_manager::API>,
     status_notifications: StatusNotificationPublisher,
@@ -60,7 +60,7 @@ impl Handle {
             None => None,
         };
         let logger = Logger::new("controller::ide::Desktop");
-        let current_project = Rc::new(RefCell::new(maybe_initial_project));
+        let current_project = Rc::new(CloneCell::new(maybe_initial_project));
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
@@ -90,7 +90,7 @@ impl Handle {
 
 impl API for Handle {
     fn current_project(&self) -> Option<model::Project> {
-        self.current_project.borrow().as_ref().map(CloneRef::clone_ref)
+        self.current_project.get()
     }
     fn status_notifications(&self) -> &StatusNotificationPublisher {
         &self.status_notifications
@@ -127,8 +127,9 @@ impl ManagingProjectAPI for Handle {
                 self.project_manager.create_project(&name, &version, &action).await?;
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
-            self.current_project.set(new_project.await?);
+            let new_project =
+                Project::new_opened(&self.logger, project_mgr, new_project_id).await?;
+            self.current_project.set(Some(new_project));
             executor::global::spawn(self.notifications.publish(Notification::NewProjectCreated));
             Ok(())
         }
@@ -147,8 +148,9 @@ impl ManagingProjectAPI for Handle {
         async move {
             let logger = &self.logger;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project = model::project::Synchronized::new_opened(logger, project_mgr, id);
-            self.current_project.set(new_project.await?);
+            let new_project =
+                model::project::Synchronized::new_opened(logger, project_mgr, id).await?;
+            self.current_project.set(Some(new_project));
             executor::global::spawn(self.notifications.publish(Notification::ProjectOpened));
             Ok(())
         }
