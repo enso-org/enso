@@ -53,9 +53,9 @@ impl Handle {
     /// Screen.
     pub async fn new(
         project_manager: Rc<dyn project_manager::API>,
-        maybe_project_name: Option<ProjectName>,
+        project_name: Option<ProjectName>,
     ) -> FallibleResult<Self> {
-        let maybe_initial_project = match maybe_project_name {
+        let maybe_initial_project = match project_name {
             Some(name) => Some(Self::init_project_model(project_manager.clone_ref(), name).await?),
             None => None,
         };
