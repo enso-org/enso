@@ -477,7 +477,7 @@ pub struct Searcher {
     ide:              controller::Ide,
     this_arg:         Rc<Option<ThisNode>>,
     position_in_code: Immutable<TextLocation>,
-    project_name:     Immutable<project::QualifiedName>,
+    project:          model::Project,
 }
 
 impl Searcher {
@@ -503,12 +503,12 @@ impl Searcher {
         mode: Mode,
         selected_nodes: Vec<double_representation::node::Id>,
     ) -> FallibleResult<Self> {
-        let project_name = Immutable(project.qualified_name());
+        let project = project.clone_ref();
         let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
             Data::new_with_edited_node(
-                project_name.deref().clone(),
+                project.qualified_name(),
                 &graph.graph(),
                 &*database,
                 node_id,
@@ -535,7 +535,7 @@ impl Searcher {
             database: project.suggestion_db(),
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
-            project_name,
+            project,
         };
         ret.reload_list();
         Ok(ret)
@@ -1057,7 +1057,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.graph().module.path().qualified_module_name(self.project_name.deref().clone())
+        self.graph.graph().module.path().qualified_module_name(self.project.qualified_name())
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1285,7 +1285,7 @@ pub mod test {
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
-                project_name: Immutable(project_qualified_name()),
+                project: Immutable(project_qualified_name()),
             };
             let entry1 = model::suggestion_database::Entry {
                 name:               "testFunction1".to_string(),
