@@ -474,7 +474,9 @@ pub struct DomLayers {
     /// Back DOM scene layer.
     pub back:           DomScene,
     /// Back DOM scene layer with fullscreen visualization. Kept separately from `back`, because
-    /// the fullscreen visualizations should not share camera with main view.
+    /// the fullscreen visualizations should not share camera with main view. This layer is placed
+    /// behind `canvas` because mouse cursor is drawn on `canvas` layer, and would be covered by
+    /// `fullscreen_vis` elements otherwise.
     pub fullscreen_vis: DomScene,
     /// Front DOM scene layer.
     pub front:          DomScene,
@@ -949,7 +951,7 @@ impl SceneData {
         // setups now, so we are using here the main camera only.
         let camera = self.camera();
         let fullscreen_vis_camera = self.layers.panel.camera();
-        // We are using the same camera as `fullscreen_vis`.
+        // We are using unnavigable camera to disable panning behavior.
         let welcome_screen_camera = self.layers.panel.camera();
         let changed = camera.update(scene);
         if changed {
