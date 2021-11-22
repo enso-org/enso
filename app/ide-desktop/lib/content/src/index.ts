@@ -797,6 +797,8 @@ function ok(value: any) {
 }
 
 class Config {
+    // TODO [vitvakatu]: it is a temporary feature-switch that would be removed.
+    public rust_welcome_screen: boolean
     public entry: string
     public project: string
     public project_manager: string
@@ -822,6 +824,7 @@ class Config {
 
     static default() {
         let config = new Config()
+        config.rust_welcome_screen = false
         config.use_loader = true
         config.wasm_url = '/assets/ide.wasm'
         config.wasm_glue_url = '/assets/wasm_imports.js'
@@ -839,6 +842,9 @@ class Config {
         if (!ok(other)) {
             return
         }
+        this.rust_welcome_screen = ok(other.rust_welcome_screen)
+            ? tryAsBoolean(other.rust_welcome_screen)
+            : this.rust_welcome_screen
         this.entry = ok(other.entry) ? tryAsString(other.entry) : this.entry
         this.project = ok(other.project) ? tryAsString(other.project) : this.project
         this.project_manager = ok(other.project_manager)
@@ -963,7 +969,7 @@ async function mainEntryPoint(config: Config) {
 }
 
 async function runEntryPoint(config: Config) {
-    if (ok(config.project)) {
+    if (ok(config.project) || config.rust_welcome_screen) {
         await mainEntryPoint(config)
     } else {
         await templates.loadTemplatesView((name: string) => {

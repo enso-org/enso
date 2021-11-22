@@ -65,7 +65,13 @@ impl Initializer {
             info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
-            let view = application.new_view::<ide_view::project::View>();
+            let view = application.new_view::<ide_view::root::View>();
+
+            // TODO [vitvakatu]: this is a temporary feature flag and would be removed later.
+            if !enso_config::ARGS.rust_welcome_screen.unwrap_or(false) {
+                view.switch_view_to_project();
+            }
+
             let status_bar = view.status_bar().clone_ref();
             application.display.add_child(&view);
             // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
