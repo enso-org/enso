@@ -480,12 +480,12 @@ pub mod test {
 
     use crate::test::Runner;
 
-    use data::text;
-    use data::text::TextChange;
     use engine_protocol::language_server::FileEdit;
     use engine_protocol::language_server::MockClient;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::TextRange;
+    use enso_text::Change;
+    use enso_text::Text;
     use json_rpc::error::RpcError;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -497,14 +497,15 @@ pub mod test {
     struct LsClientSetup {
         logger:             Logger,
         path:               Path,
-        current_ls_content: Rc<CloneCell<String>>,
+        current_ls_content: Rc<CloneCell<Text>>,
         current_ls_version: Rc<CloneCell<Sha3_224>>,
     }
 
     impl LsClientSetup {
-        fn new(parent: impl AnyLogger, path: Path, initial_content: impl Into<String>) -> Self {
+        fn new(parent: impl AnyLogger, path: Path, initial_content: impl Into<Text>) -> Self {
             let current_ls_content = initial_content.into();
-            let current_ls_version = Sha3_224::new(current_ls_content.as_bytes());
+            let current_ls_version =
+                Sha3_224::from_parts(current_ls_content.iter_chunks(..).map(|ch| ch.as_bytes()));
             let logger = Logger::new_sub(parent, "LsClientSetup");
             debug!(logger, "Initial content:\n===\n{current_ls_content}\n===");
             Self {
@@ -536,7 +537,8 @@ pub mod test {
                 let result = f(edits);
                 let new_content = apply_edits(content_so_far, &edits);
                 let actual_old = this.current_ls_version.get();
-                let actual_new = Sha3_224::new(new_content.as_bytes());
+                let actual_new =
+                    Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
                 debug!(this.logger, "Actual digest:   {actual_old} => {actual_new}");
                 debug!(this.logger, "Declared digest: {edits.old_version} => {edits.new_version}");
                 debug!(this.logger, "New content:\n===\n{new_content}\n===");
@@ -555,7 +557,7 @@ pub mod test {
         }
 
         /// The single text edit with accompanying metadata idmap changes.
-        fn expect_edit_w_metadata(
+        fn expect_edit_with_metadata(
             &self,
             client: &mut MockClient,
             f: impl FnOnce(&TextEdit) -> json_rpc::Result<()> + 'static,
@@ -564,12 +566,12 @@ pub mod test {
             self.expect_some_edit(client, move |edit| {
                 if let [edit_idmap, edit_code] = edit.edits.as_slice() {
                     let code_so_far = this.current_ls_content.get();
-                    let file_so_far = SourceFile::new(code_so_far);
+                    let file_so_far = SourceFile::new((&code_so_far).into());
                     // TODO [mwu]
                     //  Currently this assumes that the whole idmap is replaced at each edit.
                     //  This code should be adjusted, if partial metadata updates are implemented.
                     let idmap_range =
-                        TextLocation::convert_byte_range(&file_so_far.content, &file_so_far.id_map);
+                        file_so_far.id_map.map(|x| code_so_far.location_of_byte_offset_snapped(x));
                     let idmap_range = TextRange::from(idmap_range);
                     assert_eq!(edit_idmap.range, idmap_range);
                     assert!(SourceFile::looks_like_idmap(&edit_idmap.text));
@@ -605,18 +607,21 @@ pub mod test {
 
         fn whole_document_range(&self) -> TextRange {
             let code_so_far = self.current_ls_content.get();
-            let end_of_file = TextLocation::at_document_end(&code_so_far);
+            let end_of_file = code_so_far.location_of_text_end();
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
     }
 
-    fn apply_edit(code: &str, edit: &TextEdit) -> String {
-        let start = TextLocation::from(edit.range.start).to_index(code);
-        let end = TextLocation::from(edit.range.end).to_index(code);
-        data::text::TextChange::replace(start..end, edit.text.clone()).applied(code)
+    fn apply_edit(code: impl Into<Text>, edit: &TextEdit) -> Text {
+        let mut code = code.into();
+        let start_loc = code.byte_offset_of_location_snapped(edit.range.start.into());
+        let end_loc = code.byte_offset_of_location_snapped(edit.range.end.into());
+        let change = Change { range: Range::new(start_loc, end_loc), text: edit.text.clone() };
+        code.apply_change(change);
+        code
     }
 
-    fn apply_edits(code: impl Into<String>, file_edit: &FileEdit) -> String {
+    fn apply_edits(code: impl Into<Text>, file_edit: &FileEdit) -> Text {
         let initial = code.into();
         file_edit.edits.iter().fold(initial, |content, edit| apply_edit(&content, edit))
     }
@@ -669,10 +674,7 @@ pub mod test {
             let new_ast = parser.parse_module(new_content, default()).unwrap();
             module.update_ast(new_ast).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
-            let change = TextChange {
-                replaced: text::Index::new(20)..text::Index::new(24),
-                inserted: "Test 2".to_string(),
-            };
+            let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
             module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
         };
@@ -694,7 +696,7 @@ pub mod test {
                 // Opening module and metadata generation.
                 edit_handler.expect_full_invalidation(client);
                 // Applying code update.
-                edit_handler.expect_edit_w_metadata(client, |edit| {
+                edit_handler.expect_edit_with_metadata(client, |edit| {
                     assert_eq!(edit.text, "Test 2");
                     assert_eq!(edit.range, TextRange {
                         start: Position { line: 1, character: 13 },
@@ -708,10 +710,7 @@ pub mod test {
 
             let (_module, controller) = fixture.synchronized_module_w_controller();
             runner.perhaps_run_until_stalled(&mut fixture);
-            let change = TextChange {
-                replaced: text::Index::new(20)..text::Index::new(24),
-                inserted: "Test 2".to_string(),
-            };
+            let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
             controller.apply_code_change(change).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
         };

@@ -1204,11 +1204,11 @@ pub mod test {
 
     impl MockData {
         fn change_main_body(&mut self, line: &str) {
-            let code = dbg!(crate::test::mock::main_from_lines(&[line]));
-            let location = data::text::TextLocation::at_document_end(&code);
+            let code: enso_text::Text = dbg!(crate::test::mock::main_from_lines(&[line])).into();
+            let location = code.location_of_text_end();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
-            self.graph.module.code = code.clone();
-            self.graph.graph.code = code;
+            self.graph.module.code = (&code).into();
+            self.graph.graph.code = code.into();
             self.code_location = location.into();
         }
 
@@ -1251,8 +1251,8 @@ pub mod test {
             let mut client = language_server::MockClient::default();
             client.require_all_calls();
             client_setup(&mut data, &mut client);
-            let end_of_code = TextLocation::at_document_end(&data.graph.module.code);
-            let code_range = TextLocation::at_document_begin()..=end_of_code;
+            let end_of_code = enso_text::Text::from(&data.graph.module.code).location_of_text_end();
+            let code_range = enso_text::Location::default()..=end_of_code;
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
             let this = ThisNode::new(vec![node.info.id()], &graph.graph());

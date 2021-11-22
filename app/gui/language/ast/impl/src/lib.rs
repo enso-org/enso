@@ -1717,7 +1717,6 @@ impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
 mod tests {
     use super::*;
 
-    use enso_data::text::Size;
     use serde::de::DeserializeOwned;
 
     /// Assert that given value round trips JSON serialization.
@@ -1751,19 +1750,22 @@ mod tests {
 
     #[test]
     fn ast_length() {
-        let ast = Ast::prefix(Ast::var("XX"), Ast::var("YY"));
-        assert_eq!(ast.len(), 5)
+        let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
+        assert_eq!(ast.len(), 6.bytes());
+        assert_eq!(ast.char_count(), 5.codepoints());
     }
 
     #[test]
     fn ast_repr() {
-        let ast = Ast::prefix(Ast::var("XX"), Ast::var("YY"));
-        assert_eq!(ast.repr().as_str(), "XX YY")
+        let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
+        assert_eq!(ast.repr().as_str(), "XĄ YY")
     }
 
     #[test]
     fn ast_id_map() {
-        let span = |ix, length| Span::new(Index::new(ix), Size::new(length));
+        let span = |ix: usize, length: usize| {
+            enso_text::Range::<Bytes>::new(ix.into(), (ix + length).into())
+        };
         let uid = default();
         let ids = vec![(span(0, 2), uid), (span(3, 2), uid), (span(0, 5), uid)];
         let func = Ast::new(Var { name: "XX".into() }, Some(uid));
@@ -1779,7 +1781,7 @@ mod tests {
         let v = Var { name: ident.clone() };
         let ast = Ast::from(v);
         assert!(ast.wrapped.id.is_some());
-        assert_eq!(ast.wrapped.wrapped.length, ident.len());
+        assert_eq!(ast.wrapped.wrapped.length, ident.chars().count().into());
     }
 
     #[test]
@@ -1811,7 +1813,7 @@ mod tests {
         let expected_uuid = Id::parse_str(uuid_str).ok();
         assert_eq!(ast.id, expected_uuid);
 
-        let expected_length = 3;
+        let expected_length = 3.codepoints();
         assert_eq!(ast.length, expected_length);
 
         let expected_var = Var { name: var_name.into() };
@@ -1886,13 +1888,15 @@ mod tests {
     #[test]
     fn utf8_lengths() {
         let var = Ast::var("価");
-        assert_eq!(var.len(), 1);
+        assert_eq!(var.char_count(), 1.codepoints());
+        assert_eq!(var.len(), 3.bytes());
 
         let idmap = var.id_map();
-        assert_eq!(idmap.vec[0].0, Span::from(0..1));
+        assert_eq!(idmap.vec[0].0, enso_text::Range::new(0.bytes(), 3.bytes()));
         assert_eq!(idmap.vec[0].1, var.id.unwrap());
 
         let builder_with_char = Token::Chr('壱');
-        assert_eq!(builder_with_char.len(), 1);
+        assert_eq!(builder_with_char.char_count(), 1.codepoints());
+        assert_eq!(builder_with_char.len(), 3.bytes());
     }
 }

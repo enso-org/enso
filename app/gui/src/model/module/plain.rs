@@ -235,15 +235,15 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::module::Position;
 
-    use data::text;
+    use enso_text::traits::*;
 
     #[wasm_bindgen_test]
     fn applying_code_change() {
         let _test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("2 + 2");
         let change = TextChange {
-            replaced: text::Index::new(2)..text::Index::new(5),
-            inserted: "- abc".to_string(),
+            range: enso_text::Range::new(2.bytes(), 5.bytes()),
+            text:  "- abc".to_string(),
         };
         module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
         assert_eq!("2 - abc", module.ast().repr());
@@ -273,12 +273,14 @@ mod test {
 
         // Code change
         let change = TextChange {
-            replaced: text::Index::new(0)..text::Index::new(1),
-            inserted: "foo".to_string(),
+            range: enso_text::Range::new(0.bytes(), 1.bytes()),
+            text:  "foo".to_string(),
         };
         module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();
-        let replaced_location =
-            TextLocation { line: 0, column: 0 }..TextLocation { line: 0, column: 1 };
+        let replaced_location = enso_text::Range {
+            start: enso_text::Location { line: 0.line(), column: 0.column() },
+            end:   enso_text::Location { line: 0.line(), column: 1.column() },
+        };
         expect_notification(NotificationKind::CodeChanged { change, replaced_location });
 
         // Metadata update

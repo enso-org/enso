@@ -238,10 +238,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::HasRepr;
-    use enso_data::text::Index;
-    use enso_data::text::Span;
     use parser::Parser;
-    use std::ops::Range;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
@@ -259,12 +256,9 @@ mod test {
                 let ast = parser.parse_line_ast(self.expr).unwrap();
                 let ast_id = ast.id;
                 let tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
-                let span_begin = Index::new(self.span.start);
-                let span_end = Index::new(self.span.end);
-                let span = Span::from_indices(span_begin, span_end);
-                let node = tree.root_ref().find_by_span(&span);
+                let node = tree.root_ref().find_by_span(&self.span.clone().into());
                 let node = node.expect(
-                    format!("Invalid case {:?}: no node with span {:?}", self, span).as_str(),
+                    format!("Invalid case {:?}: no node with span {:?}", self, self.span).as_str(),
                 );
                 let arg = Ast::new(ast::Var { name: "foo".to_string() }, None);
                 let result = match &self.action {
@@ -346,12 +340,9 @@ mod test {
             fn run(&self, parser: &Parser) {
                 let ast = parser.parse_line_ast(self.expr).unwrap();
                 let tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
-                let span_begin = Index::new(self.span.start);
-                let span_end = Index::new(self.span.end);
-                let span = Span::from_indices(span_begin, span_end);
-                let node = tree.root_ref().find_by_span(&span);
+                let node = tree.root_ref().find_by_span(&self.span.clone().into());
                 let node = node.expect(
-                    format!("Invalid case {:?}: no node with span {:?}", self, span).as_str(),
+                    format!("Invalid case {:?}: no node with span {:?}", self, self.span).as_str(),
                 );
 
                 let expected: HashSet<Action> = self.expected.iter().cloned().collect();

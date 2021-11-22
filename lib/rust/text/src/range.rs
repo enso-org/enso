@@ -138,10 +138,16 @@ impl<T: Debug> Debug for Range<T> {
     }
 }
 
-impl<T> From<std::ops::Range<T>> for Range<T> {
-    fn from(range: std::ops::Range<T>) -> Range<T> {
+impl<T, U: Into<T>> From<std::ops::Range<U>> for Range<T> {
+    fn from(range: std::ops::Range<U>) -> Range<T> {
         let std::ops::Range { start, end } = range;
-        Range { start, end }
+        Range { start: start.into(), end: end.into() }
+    }
+}
+
+impl<T: PartialEq<T>> PartialEq<std::ops::Range<T>> for Range<T> {
+    fn eq(&self, other: &std::ops::Range<T>) -> bool {
+        (&self.start, &self.end) == (&other.start, &other.end)
     }
 }
 

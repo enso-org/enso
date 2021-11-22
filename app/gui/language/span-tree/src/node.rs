@@ -842,6 +842,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::crumbs;
+    use enso_text::unit::*;
 
     #[test]
     fn node_lookup() {
@@ -864,11 +865,11 @@ mod test {
         let grand_child2 = child2.clone().get_descendant(&vec![1]).unwrap();
 
         // Span begin.
-        assert_eq!(root.span_begin.value, 0);
-        assert_eq!(child1.span_begin.value, 0);
-        assert_eq!(child2.span_begin.value, 2);
-        assert_eq!(grand_child1.span_begin.value, 2);
-        assert_eq!(grand_child2.span_begin.value, 5);
+        assert_eq!(root.span_offset, 0.bytes());
+        assert_eq!(child1.span_offset, 0.bytes());
+        assert_eq!(child2.span_offset, 2.bytes());
+        assert_eq!(grand_child1.span_offset, 2.bytes());
+        assert_eq!(grand_child2.span_offset, 5.bytes());
 
         // Length
         assert_eq!(root.node.size.value, 7);

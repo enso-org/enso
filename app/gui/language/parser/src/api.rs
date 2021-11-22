@@ -269,12 +269,13 @@ mod test {
         let main = ast::Ast::var("main");
         let node = ast::Ast::infix_var("2", "+", "2");
         let infix = ast::Ast::infix(main, "=", node);
-        let ast = ast::Ast::one_line_module(infix).try_into().unwrap();
+        let ast: ast::known::Module = ast::Ast::one_line_module(infix).try_into().unwrap();
+        let repr = ast.repr();
         let metadata = Metadata { foo: 321 };
         let source = ParsedSourceFile { ast, metadata };
         let serialized = source.serialize().unwrap();
 
-        let expected_id_map = to_json_single_line(&source.ast.id_map()).unwrap();
+        let expected_id_map = to_json_single_line(&source.ast.id_map().for_parser(&repr)).unwrap();
         let expected_metadata = to_json_single_line(&source.metadata).unwrap();
         let expected_content = iformat!(
             r#"main = 2 + 2

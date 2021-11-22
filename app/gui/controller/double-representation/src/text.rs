@@ -187,8 +187,6 @@ mod test {
     use crate::module;
 
     use ast::HasIdMap;
-    use enso_data::text::Index;
-    use enso_data::text::TextChange;
     use enso_prelude::default;
     use parser::Parser;
     use uuid::Uuid;
@@ -200,7 +198,7 @@ mod test {
         /// The initial enso program code.
         pub code:   String,
         /// The edit made to the initial code.
-        pub change: TextChange,
+        pub change: enso_text::Change<Bytes, String>,
     }
 
     impl Case {
@@ -228,11 +226,11 @@ mod test {
                     let inserted_code = insertion.map_or("", |insertion| {
                         &marked_code[insertion + INSERTION.len_utf8()..end]
                     });
-                    let removed_span = Range {
-                        start: Index::new(start),
-                        end:   Index::new(erased_finish - START.len_utf8()),
-                    };
-                    let change = TextChange::replace(removed_span, inserted_code.to_string());
+                    let range = enso_text::Range::new(
+                        start.into(),
+                        (erased_finish - START.len_utf8()).into(),
+                    );
+                    let change = enso_text::Change { range, text: inserted_code.to_string() };
                     Case { code, change }
                 }
                 _ => panic!("Invalid markdown in the marked code: {}.", marked_code),
@@ -241,7 +239,7 @@ mod test {
 
         /// Code after applying the change
         fn resulting_code(&self) -> String {
-            self.change.applied(&self.code)
+            self.change.applied(&self.code).expect("Change removed range out of bounds")
         }
 
         /// Checks if the text operation described by this case keeps the node IDs intact.
@@ -294,14 +292,14 @@ mod test {
     fn test_case_markdown() {
         let case = Case::from_markdown("foo«aa⎀bb»c");
         assert_eq!(case.code, "fooaac");
-        assert_eq!(case.change.inserted, "bb");
-        assert_eq!(case.change.replaced, Index::new(3)..Index::new(5));
+        assert_eq!(case.change.text, "bb");
+        assert_eq!(case.change.range, 3.bytes()..5.bytes());
         assert_eq!(case.resulting_code(), "foobbc");
 
         let case = Case::from_markdown("foo«aa»c");
         assert_eq!(case.code, "fooaac");
-        assert_eq!(case.change.inserted, "");
-        assert_eq!(case.change.replaced, Index::new(3)..Index::new(5));
+        assert_eq!(case.change.text, "");
+        assert_eq!(case.change.range, 3.bytes()..5.bytes());
         assert_eq!(case.resulting_code(), "fooc");
     }
 

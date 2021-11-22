@@ -8,6 +8,7 @@ use crate::rope;
 use crate::rope::Rope;
 use crate::unit::*;
 
+use crate::prelude::fmt::Formatter;
 use enso_types::min;
 
 
@@ -595,6 +596,14 @@ impl Text {
         let mut scanner = xi_rope::compare::RopeScanner::new(&self.rope, &other.rope);
         let (prefix, suffix) = scanner.find_min_diff_range();
         CommonPrefixAndSuffix { prefix: prefix.into(), suffix: suffix.into() }
+    }
+}
+
+// === Display ===
+
+impl Display for Text {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.rope, f)
     }
 }
 
