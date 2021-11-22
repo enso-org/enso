@@ -38,7 +38,12 @@ pub enum BackendService {
     ProjectManager { endpoint: String },
     /// Connect to the language server of some project. The project managing operations will be
     /// unavailable.
-    LanguageServer { json_endpoint: String, binary_endpoint: String, namespace: String },
+    LanguageServer {
+        json_endpoint:   String,
+        binary_endpoint: String,
+        namespace:       String,
+        project_name:    String,
+    },
 }
 
 impl Default for BackendService {
@@ -61,16 +66,22 @@ impl BackendService {
         } else {
             match (&args.language_server_rpc, &args.language_server_data) {
                 (Some(json_endpoint), Some(binary_endpoint)) => {
-                    if args.project.is_none() {
-                        return Err(MissingOption(args.names().project()).into());
-                    }
                     let json_endpoint = json_endpoint.clone();
                     let binary_endpoint = binary_endpoint.clone();
                     let namespace = args
                         .namespace
                         .clone()
                         .unwrap_or_else(|| constants::DEFAULT_PROJECT_NAMESPACE.to_owned());
-                    Ok(Self::LanguageServer { json_endpoint, binary_endpoint, namespace })
+                    let project_name = args
+                        .project
+                        .clone()
+                        .ok_or_else(|| MissingOption(args.names().project()))?;
+                    Ok(Self::LanguageServer {
+                        json_endpoint,
+                        binary_endpoint,
+                        namespace,
+                        project_name,
+                    })
                 }
                 (None, None) => Ok(default()),
                 (None, _) => Err(MissingOption(args.names().language_server_rpc()).into()),
