@@ -55,23 +55,32 @@ impl Handle {
         project_manager: Rc<dyn project_manager::API>,
         project_name: Option<ProjectName>,
     ) -> FallibleResult<Self> {
-        let maybe_initial_project = match project_name {
+        let project = match project_name {
             Some(name) => Some(Self::init_project_model(project_manager.clone_ref(), name).await?),
             None => None,
         };
+        Ok(Self::new_with_project_model(project_manager, project))
+    }
+
+    /// Create IDE controller with prepared project model. If `project` is `None`,
+    /// `API::current_project` returns `None` as well.
+    pub fn new_with_project_model(
+        project_manager: Rc<dyn project_manager::API>,
+        project: Option<model::Project>,
+    ) -> Self {
         let logger = Logger::new("controller::ide::Desktop");
-        let current_project = Rc::new(CloneCell::new(maybe_initial_project));
+        let current_project = Rc::new(CloneCell::new(project));
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
-        Ok(Self {
+        Self {
             logger,
             current_project,
             project_manager,
             status_notifications,
             parser,
             notifications,
-        })
+        }
     }
 
     /// Open project with provided name.
