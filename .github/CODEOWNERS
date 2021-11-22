@@ -1,14 +1,33 @@
 # Catch All
-* @radeusgd @4e6
+* @4e6 @MichaelMauderer @PabloBuchu @jdunkerley
 
 # Rust Libraries
-/lib/rust/ @wdanilo @radeusgd @4e6
+/lib/rust/* @MichaelMauderer @4e6 @mwu-tow @farmaazon
+/lib/rust/ensogl/* @MichaelMauderer @wdanilo @farmaazon
 
-# Repo Configuration
-/.github/settings.yml @4e6 @radeusgd
+# Scala Libraries
+/lib/scala/* @4e6
 
 # GUI
-/gui/* @wdanilo
-/gui/src/rust/ide @mwu-tow
-/gui/src/rust/ide/view @wdanilo
-/gui/src/rust/ide/view @MichaelMauderer
+/run @MichaelMauderer @wdanilo
+/build/* @MichaelMauderer @wdanilo
+/app/gui/* @MichaelMauderer @wdanilo @farmaazon @mwu-tow
+/app/gui/view/* @MichaelMauderer @wdanilo @farmaazon
+/app/ide-desktop/* @MichaelMauderer @wdanilo
+
+# Engine (old)
+# This section should be removed once the engine moves to /app/engine
+/build.sbt @4e6
+/distribution/* @4e6
+/engine/* @4e6
+/project/* @4e6
+/test/* @4e6
+/tools/* @4e6
+
+# Enso Libraries
+# This section should be amended once the engine moves to /app/engine
+/distribution/lib/* @4e6 @jdunkerley @radeusgd
+/std-bits/* @4e6 @jdunkerley @radeusgd
+
+# Engine
+/app/engine/* @4e6
