@@ -1,6 +1,7 @@
 package org.enso.runner
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
+import buildinfo.Info
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
@@ -25,35 +26,46 @@ import scala.util.control.NonFatal
 /** The main CLI entry point class. */
 object Main {
 
-  private val RUN_OPTION                  = "run"
-  private val HELP_OPTION                 = "help"
-  private val NEW_OPTION                  = "new"
-  private val PROJECT_NAME_OPTION         = "new-project-name"
-  private val PROJECT_TEMPLATE_OPTION     = "new-project-template"
-  private val PROJECT_AUTHOR_NAME_OPTION  = "new-project-author-name"
-  private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
-  private val REPL_OPTION                 = "repl"
-  private val DOCS_OPTION                 = "docs"
-  private val PREINSTALL_OPTION           = "preinstall-dependencies"
-  private val LANGUAGE_SERVER_OPTION      = "server"
-  private val DAEMONIZE_OPTION            = "daemon"
-  private val INTERFACE_OPTION            = "interface"
-  private val RPC_PORT_OPTION             = "rpc-port"
-  private val DATA_PORT_OPTION            = "data-port"
-  private val ROOT_ID_OPTION              = "root-id"
-  private val ROOT_PATH_OPTION            = "path"
-  private val IN_PROJECT_OPTION           = "in-project"
-  private val VERSION_OPTION              = "version"
-  private val JSON_OPTION                 = "json"
-  private val LOG_LEVEL                   = "log-level"
-  private val LOGGER_CONNECT              = "logger-connect"
-  private val NO_LOG_MASKING              = "no-log-masking"
-  private val UPLOAD_OPTION               = "upload"
-  private val UPDATE_MANIFEST_OPTION      = "update-manifest"
-  private val HIDE_PROGRESS               = "hide-progress"
-  private val AUTH_TOKEN                  = "auth-token"
+  private val RUN_OPTION                     = "run"
+  private val HELP_OPTION                    = "help"
+  private val NEW_OPTION                     = "new"
+  private val PROJECT_NAME_OPTION            = "new-project-name"
+  private val PROJECT_TEMPLATE_OPTION        = "new-project-template"
+  private val PROJECT_AUTHOR_NAME_OPTION     = "new-project-author-name"
+  private val PROJECT_AUTHOR_EMAIL_OPTION    = "new-project-author-email"
+  private val REPL_OPTION                    = "repl"
+  private val DOCS_OPTION                    = "docs"
+  private val PREINSTALL_OPTION              = "preinstall-dependencies"
+  private val LANGUAGE_SERVER_OPTION         = "server"
+  private val DAEMONIZE_OPTION               = "daemon"
+  private val INTERFACE_OPTION               = "interface"
+  private val RPC_PORT_OPTION                = "rpc-port"
+  private val DATA_PORT_OPTION               = "data-port"
+  private val ROOT_ID_OPTION                 = "root-id"
+  private val ROOT_PATH_OPTION               = "path"
+  private val IN_PROJECT_OPTION              = "in-project"
+  private val VERSION_OPTION                 = "version"
+  private val JSON_OPTION                    = "json"
+  private val IR_CACHES_OPTION               = "ir-caches"
+  private val NO_IR_CACHES_OPTION            = "no-ir-caches"
+  private val NO_READ_IR_CACHES_OPTION       = "no-read-ir-caches"
+  private val COMPILE_OPTION                 = "compile"
+  private val NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies"
+  private val NO_GLOBAL_CACHE_OPTION         = "no-global-cache"
+  private val LOG_LEVEL                      = "log-level"
+  private val LOGGER_CONNECT                 = "logger-connect"
+  private val NO_LOG_MASKING                 = "no-log-masking"
+  private val UPLOAD_OPTION                  = "upload"
+  private val UPDATE_MANIFEST_OPTION         = "update-manifest"
+  private val HIDE_PROGRESS                  = "hide-progress"
+  private val AUTH_TOKEN                     = "auth-token"
+  private val AUTO_PARALLELISM_OPTION        = "with-auto-parallelism"
 
   private lazy val logger = Logger[Main.type]
+
+  private def isDevBuild: Boolean = {
+    Info.ensoVersion.matches(".+-SNAPSHOT$")
+  }
 
   /** Builds the [[Options]] object representing the CLI syntax.
     *
@@ -243,6 +255,57 @@ object Main {
       .longOpt(AUTH_TOKEN)
       .desc("Authentication token for the upload.")
       .build()
+    val noReadIrCachesOption = CliOption.builder
+      .longOpt(NO_READ_IR_CACHES_OPTION)
+      .desc(
+        "Disables the reading of IR caches in the runtime if IR caching is enabled."
+      )
+      .build()
+    val compileOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("package")
+      .longOpt(COMPILE_OPTION)
+      .desc("Compile the provided package without executing it.")
+      .build()
+    val noCompileDependenciesOption = CliOption.builder
+      .longOpt(NO_COMPILE_DEPENDENCIES_OPTION)
+      .desc(
+        "Tells the compiler to not compile dependencies when performing static compilation."
+      )
+      .build()
+    val noGlobalCacheOption = CliOption.builder
+      .longOpt(NO_GLOBAL_CACHE_OPTION)
+      .desc(
+        "Tells the compiler not to write compiled data to the global cache locations."
+      )
+      .build()
+
+    val irCachesOption = CliOption.builder
+      .longOpt(IR_CACHES_OPTION)
+      .desc(
+        "Enables IR caches. These are on by default in production builds " +
+        "and off by default in developer builds. You may not specify this " +
+        "option with `--no-ir-caches`."
+      )
+      .build()
+    val noIrCachesOption = CliOption.builder
+      .longOpt(NO_IR_CACHES_OPTION)
+      .desc(
+        "Disables IR caches. These are on by default in production builds " +
+        "and off by default in developer builds. You may not specify this " +
+        "option with `--ir-caches`."
+      )
+      .build()
+
+    val cacheOptionsGroup = new OptionGroup
+    cacheOptionsGroup.addOption(irCachesOption)
+    cacheOptionsGroup.addOption(noIrCachesOption)
+
+    val autoParallelism = CliOption.builder
+      .longOpt(AUTO_PARALLELISM_OPTION)
+      .desc("Enables auto parallelism in the Enso interpreter.")
+      .build
 
     val options = new Options
     options
@@ -273,6 +336,12 @@ object Main {
       .addOption(updateManifestOption)
       .addOption(hideProgressOption)
       .addOption(authTokenOption)
+      .addOption(noReadIrCachesOption)
+      .addOption(compileOption)
+      .addOption(noCompileDependenciesOption)
+      .addOption(noGlobalCacheOption)
+      .addOptionGroup(cacheOptionsGroup)
+      .addOption(autoParallelism)
 
     options
   }
@@ -302,11 +371,11 @@ object Main {
     * specifies the project name, otherwise the name is generated automatically.
     * The Enso version used in the project is set to the version of this runner.
     *
-    * @param path root path of the newly created project
-    * @param nameOption specifies the name of the created project
+    * @param path           root path of the newly created project
+    * @param nameOption     specifies the name of the created project
     * @param templateOption specifies the template of the created project
-    * @param authorName if set, sets the name of the author and maintainer
-    * @param authorEmail if set, sets the email of the author and maintainer
+    * @param authorName     if set, sets the name of the author and maintainer
+    * @param authorEmail    if set, sets the email of the author and maintainer
     */
   private def createNew(
     path: String,
@@ -348,20 +417,65 @@ object Main {
     exitSuccess()
   }
 
+  /** Handles the `--compile` CLI option.
+    *
+    * @param packagePath the path to the package being compiled
+    * @param shouldCompileDependencies whether the dependencies of that package
+    *                                  should also be compiled
+    * @param shouldUseGlobalCache whether or not the compilation result should
+    *                             be written to the global cache
+    * @param logLevel the logging level
+    * @param logMasking whether or not log masking is enabled
+    */
+  private def compile(
+    packagePath: String,
+    shouldCompileDependencies: Boolean,
+    shouldUseGlobalCache: Boolean,
+    logLevel: LogLevel,
+    logMasking: Boolean
+  ): Unit = {
+    val file = new File(packagePath)
+    if (!file.exists || !file.isDirectory) {
+      println(s"No package exists at $file.")
+      exitFail()
+    }
+
+    val context = new ContextFactory().create(
+      packagePath,
+      System.in,
+      System.out,
+      Repl(TerminalIO()),
+      logLevel,
+      logMasking,
+      enableIrCaches           = true,
+      useGlobalIrCacheLocation = shouldUseGlobalCache
+    )
+    val topScope = context.getTopScope
+    topScope.compile(shouldCompileDependencies)
+
+    context.context.close()
+    exitSuccess()
+  }
+
   /** Handles the `--run` CLI option.
     *
     * If `path` is a directory, so a project is run, a conflicting (pointing to
     * another project) `projectPath` should not be provided.
     *
-    * @param path path of the project or file to execute
-    * @param projectPath if specified, the script is run in context of a
-    *                    project located at that path
-    * @param logLevel log level to set for the engine runtime
+    * @param path           path of the project or file to execute
+    * @param projectPath    if specified, the script is run in context of a
+    *                       project located at that path
+    * @param logLevel       log level to set for the engine runtime
+    * @param logMasking     is the log masking enabled
+    * @param enableIrCaches are IR caches enabled
     */
   private def run(
     path: String,
     projectPath: Option[String],
-    logLevel: LogLevel
+    logLevel: LogLevel,
+    logMasking: Boolean,
+    enableIrCaches: Boolean,
+    enableAutoParallelism: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -388,8 +502,11 @@ object Main {
       System.in,
       System.out,
       Repl(TerminalIO()),
-      strictErrors = true,
-      logLevel     = logLevel
+      logLevel,
+      logMasking,
+      enableIrCaches,
+      strictErrors          = true,
+      enableAutoParallelism = enableAutoParallelism
     )
     if (projectMode) {
       val pkg  = PackageManager.Default.fromDirectory(file)
@@ -415,30 +532,46 @@ object Main {
     *
     * @param projectPath if specified, the docs is generated for a project
     *                    at the given path
-    * @param logLevel log level to set for the engine runtime
+    * @param logLevel    log level to set for the engine runtime
+    * @param logMasking  is the log masking enabled
+    * @param enableIrCaches are the IR caches enabled
     */
   private def genDocs(
     projectPath: Option[String],
-    logLevel: LogLevel
+    logLevel: LogLevel,
+    logMasking: Boolean,
+    enableIrCaches: Boolean
   ): Unit = {
     if (projectPath.isEmpty) {
       println("Path hasn't been provided.")
       exitFail()
     }
-    generateDocsFrom(projectPath.get, logLevel)
+    generateDocsFrom(
+      projectPath.get,
+      logLevel,
+      logMasking,
+      enableIrCaches
+    )
     exitSuccess()
   }
 
   /** Subroutine of `genDocs` function.
     * Generates the documentation for given Enso project at given path.
     */
-  def generateDocsFrom(path: String, logLevel: LogLevel): Unit = {
+  private def generateDocsFrom(
+    path: String,
+    logLevel: LogLevel,
+    logMasking: Boolean,
+    enableIrCaches: Boolean
+  ): Unit = {
     val executionContext = new ContextFactory().create(
       path,
       System.in,
       System.out,
       Repl(TerminalIO()),
-      logLevel = logLevel
+      logLevel,
+      logMasking,
+      enableIrCaches
     )
 
     val file = new File(path)
@@ -582,9 +715,16 @@ object Main {
     *
     * @param projectPath if specified, the REPL is run in context of a project
     *                    at the given path
-    * @param logLevel log level to set for the engine runtime
+    * @param logLevel    log level to set for the engine runtime
+    * @param logMasking  is the log masking enabled
+    * @param enableIrCaches are IR caches enabled
     */
-  private def runRepl(projectPath: Option[String], logLevel: LogLevel): Unit = {
+  private def runRepl(
+    projectPath: Option[String],
+    logLevel: LogLevel,
+    logMasking: Boolean,
+    enableIrCaches: Boolean
+  ): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
       s"""from Standard.Base import all
@@ -599,7 +739,9 @@ object Main {
         System.in,
         System.out,
         Repl(TerminalIO()),
-        logLevel = logLevel
+        logLevel,
+        logMasking,
+        enableIrCaches
       )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -609,11 +751,11 @@ object Main {
 
   /** Handles `--server` CLI option
     *
-    * @param line a CLI line
+    * @param line     a CLI line
     * @param logLevel log level to set for the engine runtime
     */
   private def runLanguageServer(line: CommandLine, logLevel: LogLevel): Unit = {
-    val maybeConfig = parseSeverOptions(line)
+    val maybeConfig = parseServerOptions(line)
 
     maybeConfig match {
       case Left(errorMsg) =>
@@ -630,32 +772,32 @@ object Main {
     }
   }
 
-  private def parseSeverOptions(
+  private def parseServerOptions(
     line: CommandLine
   ): Either[String, LanguageServerConfig] =
     // format: off
     for {
-      rootId     <- Option(line.getOptionValue(ROOT_ID_OPTION))
-                      .toRight("Root id must be provided")
-                      .flatMap { id =>
-                        Either
-                          .catchNonFatal(UUID.fromString(id))
-                          .leftMap(_ => "Root must be UUID")
-                      }
-      rootPath   <- Option(line.getOptionValue(ROOT_PATH_OPTION))
-                      .toRight("Root path must be provided")
-      interface   = Option(line.getOptionValue(INTERFACE_OPTION))
-                      .getOrElse("127.0.0.1")
-      rpcPortStr  = Option(line.getOptionValue(RPC_PORT_OPTION)).getOrElse("8080")
-      rpcPort    <- Either
-                      .catchNonFatal(rpcPortStr.toInt)
-                      .leftMap(_ => "Port must be integer")
+      rootId <- Option(line.getOptionValue(ROOT_ID_OPTION))
+        .toRight("Root id must be provided")
+        .flatMap { id =>
+          Either
+            .catchNonFatal(UUID.fromString(id))
+            .leftMap(_ => "Root must be UUID")
+        }
+      rootPath <- Option(line.getOptionValue(ROOT_PATH_OPTION))
+        .toRight("Root path must be provided")
+      interface = Option(line.getOptionValue(INTERFACE_OPTION))
+        .getOrElse("127.0.0.1")
+      rpcPortStr = Option(line.getOptionValue(RPC_PORT_OPTION)).getOrElse("8080")
+      rpcPort <- Either
+        .catchNonFatal(rpcPortStr.toInt)
+        .leftMap(_ => "Port must be integer")
       dataPortStr = Option(line.getOptionValue(DATA_PORT_OPTION)).getOrElse("8081")
-      dataPort   <- Either
-                      .catchNonFatal(dataPortStr.toInt)
-                      .leftMap(_ => "Port must be integer")
+      dataPort <- Either
+        .catchNonFatal(dataPortStr.toInt)
+        .leftMap(_ => "Port must be integer")
     } yield boot.LanguageServerConfig(interface, rpcPort, dataPort, rootId, rootPath)
-    // format: on
+  // format: on
 
   /** Prints the version of the Enso executable.
     *
@@ -779,18 +921,46 @@ object Main {
       exitSuccess()
     }
 
+    if (line.hasOption(COMPILE_OPTION)) {
+      val packagePaths = line.getOptionValue(COMPILE_OPTION)
+      val shouldCompileDependencies =
+        !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
+      val shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION)
+
+      compile(
+        packagePaths,
+        shouldCompileDependencies,
+        shouldUseGlobalCache,
+        logLevel,
+        logMasking
+      )
+    }
+
     if (line.hasOption(RUN_OPTION)) {
       run(
         line.getOptionValue(RUN_OPTION),
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
-        logLevel
+        logLevel,
+        logMasking,
+        shouldEnableIrCaches(line),
+        line.hasOption(AUTO_PARALLELISM_OPTION)
       )
     }
     if (line.hasOption(REPL_OPTION)) {
-      runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+      runRepl(
+        Option(line.getOptionValue(IN_PROJECT_OPTION)),
+        logLevel,
+        logMasking,
+        shouldEnableIrCaches(line)
+      )
     }
     if (line.hasOption(DOCS_OPTION)) {
-      genDocs(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+      genDocs(
+        Option(line.getOptionValue(IN_PROJECT_OPTION)),
+        logLevel,
+        logMasking,
+        shouldEnableIrCaches(line)
+      )
     }
     if (line.hasOption(PREINSTALL_OPTION)) {
       preinstallDependencies(
@@ -804,6 +974,24 @@ object Main {
     if (line.getOptions.isEmpty) {
       printHelp(options)
       exitFail()
+    }
+  }
+
+  /** Checks whether IR caching should be enabled.o
+    *
+    * The (mutually exclusive) flags can control it explicitly, otherwise it
+    * defaults to off in development builds and on in production builds.
+    *
+    * @param line the command-line
+    * @return `true` if caching should be enabled, `false`, otherwise
+    */
+  private def shouldEnableIrCaches(line: CommandLine): Boolean = {
+    if (line.hasOption(IR_CACHES_OPTION)) {
+      true
+    } else if (line.hasOption(NO_IR_CACHES_OPTION)) {
+      false
+    } else {
+      !isDevBuild
     }
   }
 }

@@ -40,6 +40,7 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -51,6 +52,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URI
 import java.time.Clock
+
 import scala.concurrent.duration._
 
 /** A main module containing all components of the server.
@@ -233,12 +235,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-    .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
     .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
     .option(
       RuntimeOptions.LOG_LEVEL,
       JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
     )
+    .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
     .option(
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString

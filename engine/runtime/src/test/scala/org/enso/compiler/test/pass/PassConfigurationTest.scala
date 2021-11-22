@@ -28,6 +28,11 @@ class PassConfigurationTest extends CompilerTest {
       inlineContext: InlineContext
     ): IR.Expression = ir
 
+    override def updateMetadataInDuplicate[T <: IR](
+      sourceIr: T,
+      copyOfIr: T
+    ): T = copyOfIr
+
     sealed case class Configuration1() extends IRPass.Configuration {
       override var shouldWriteToContext: Boolean = false
     }
@@ -49,6 +54,11 @@ class PassConfigurationTest extends CompilerTest {
       ir: IR.Expression,
       inlineContext: InlineContext
     ): IR.Expression = ir
+
+    override def updateMetadataInDuplicate[T <: IR](
+      sourceIr: T,
+      copyOfIr: T
+    ): T = copyOfIr
 
     sealed case class Configuration2() extends IRPass.Configuration {
       override var shouldWriteToContext: Boolean = true

@@ -1,0 +1,38 @@
+[package]
+name = "ide-view-graph-editor"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+analytics = { version = "0.1.0", path = "../../analytics" }
+ast = { version = "0.1.0", path = "../../language/ast/impl" }
+bimap = { version = "0.4.0" }
+enso-config = { version = "0.1.0", path = "../../config" }
+enso-frp = { version = "0.1.0", path = "../../../../lib/rust/frp" }
+enso-logger = { path = "../../../../lib/rust/logger"}
+enso-prelude = { path = "../../../../lib/rust/prelude"}
+engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol" }
+enso-shapely = { path = "../../../../lib/rust/shapely/impl"}
+ensogl = { version = "0.1.0", path = "../../../../lib/rust/ensogl" }
+ensogl-gui-component = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/gui" }
+ensogl-text = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text" }
+ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-drop-manager = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/drop-manager" }
+failure = { version = "0.1.8" }
+ordered-float = {version = "1.0"}
+span-tree = { version = "0.1.0", path = "../../language/span-tree" }
+js-sys = { version = "0.3.28" }
+nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
+uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly", "serde-serialize"] }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []

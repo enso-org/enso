@@ -3,7 +3,7 @@ import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
 /** The input/output JSON RPC API provided by the language server.
   *
-  * @see [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
+  * @see [[https://github.com/enso-org/enso/blob/develop/docs/language-server/README.md]]
   */
 object InputOutputApi {
 

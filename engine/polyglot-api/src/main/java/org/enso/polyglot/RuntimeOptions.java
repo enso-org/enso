@@ -23,10 +23,20 @@ public class RuntimeOptions {
   private static final OptionDescriptor DISABLE_INLINE_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_INLINE_CACHES_KEY, DISABLE_INLINE_CACHES).build();
 
+  public static final String ENABLE_AUTO_PARALLELISM = optionName("withAutoParallelism");
+  public static final OptionKey<Boolean> ENABLE_AUTO_PARALLELISM_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor ENABLE_AUTO_PARALLELISM_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_AUTO_PARALLELISM_KEY, ENABLE_AUTO_PARALLELISM).build();
+
   public static final String LOG_LEVEL = "log.level";
   public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
+
+  public static final String LOG_MASKING = optionName("log.masking");
+  public static final OptionKey<Boolean> LOG_MASKING_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor LOG_MASKING_DESCRIPTOR =
+      OptionDescriptor.newBuilder(LOG_MASKING_KEY, LOG_MASKING).build();
 
   public static final String INTERACTIVE_MODE = interpreterOptionName("interactive");
   public static final OptionKey<Boolean> INTERACTIVE_MODE_KEY = new OptionKey<>(false);
@@ -60,7 +70,7 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(LANGUAGE_HOME_OVERRIDE_KEY, LANGUAGE_HOME_OVERRIDE).build();
 
   public static final String DISABLE_IR_CACHES = optionName("disableIrCaches");
-  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(true);
+  public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(false);
   private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
 
@@ -68,9 +78,15 @@ public class RuntimeOptions {
       optionName("waitForPendingSerializationJobs");
   public static final OptionKey<Boolean> WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY =
       new OptionKey<>(false);
-  private static final OptionDescriptor WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESRIPTOR =
+  private static final OptionDescriptor WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR =
       OptionDescriptor.newBuilder(
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY, WAIT_FOR_PENDING_SERIALIZATION_JOBS)
+          .build();
+
+  public static final String USE_GLOBAL_IR_CACHE_LOCATION = optionName("useGlobalIrCacheLocation");
+  public static final OptionKey<Boolean> USE_GLOBAL_IR_CACHE_LOCATION_KEY = new OptionKey<>(true);
+  public static final OptionDescriptor USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR =
+      OptionDescriptor.newBuilder(USE_GLOBAL_IR_CACHE_LOCATION_KEY, USE_GLOBAL_IR_CACHE_LOCATION)
           .build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
@@ -79,14 +95,17 @@ public class RuntimeOptions {
               PROJECT_ROOT_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
+              LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
+              ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
-              WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESRIPTOR));
+              WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
+              USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

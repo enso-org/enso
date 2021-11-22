@@ -3,7 +3,7 @@ package org.enso.languageserver.monitoring
 import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
 /** The monitoring JSON RPC API provided by the language server.
-  * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
+  * See [[https://github.com/enso-org/enso/blob/develop/docs/language-server/README.md]]
   * for message specifications.
   */
 object MonitoringApi {

@@ -193,7 +193,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "allow itself to be copied deeply" in {
-      val complexScopeCopy = complexScope.copy
+      val complexScopeCopy = complexScope.deepCopy()
 
       complexScopeCopy shouldEqual complexScope
     }

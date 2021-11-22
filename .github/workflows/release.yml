@@ -13,7 +13,7 @@ env:
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.5.2
   # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2021-05-12
+  rustToolchain: nightly-2021-11-08
   # Please ensure that this is in sync with nodeVersion in scala.yml
   nodeVersion: 14.17.2
 
@@ -195,6 +195,39 @@ jobs:
         run: |
           sleep 1
           sbt buildEngineDistribution
+
+      - name: Compile the Standard Libraries (Unix)
+        working-directory: repo
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+
+      - name: Compile the Standard Libraries (Windows)
+        working-directory: repo
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
+
       - name: Prepare Project Manager Distribution
         working-directory: repo
         shell: bash
@@ -433,8 +466,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
           asset_name: enso-engine-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -444,8 +476,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
           asset_name: enso-engine-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -455,8 +486,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-engine-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
             }}-windows-amd64.zip
           asset_name: enso-engine-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip
@@ -467,8 +497,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
           asset_name: enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -478,8 +507,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
           asset_name: enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -489,8 +517,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
             }}-windows-amd64.zip
           asset_name: enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip
@@ -504,8 +531,7 @@ jobs:
           asset_path:
             repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
-          asset_name:
-            enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
       - name: Publish the Project Manager (MacOS)
         uses: actions/upload-release-asset@v1
@@ -516,8 +542,7 @@ jobs:
           asset_path:
             repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
-          asset_name:
-            enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
       - name: Publish the Project Manager (Windows)
         uses: actions/upload-release-asset@v1
@@ -528,8 +553,7 @@ jobs:
           asset_path:
             repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
             }}-windows-amd64.zip
-          asset_name:
-            enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip
 
       - name: Publish the Bundle (Linux)
@@ -538,8 +562,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
             }}-linux-amd64.tar.gz
           asset_name: enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -549,8 +572,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
             }}-macos-amd64.tar.gz
           asset_name: enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
           asset_content_type: application/x-tar
@@ -560,8 +582,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
+          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
             }}-windows-amd64.zip
           asset_name: enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip
           asset_content_type: application/zip

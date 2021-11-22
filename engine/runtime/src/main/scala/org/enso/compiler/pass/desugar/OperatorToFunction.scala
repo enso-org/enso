@@ -9,6 +9,8 @@ import org.enso.compiler.pass.analyse.{
   DemandAnalysis
 }
 
+import scala.annotation.unused
+
 /** This pass converts usages of operators to calls to standard functions.
   *
   * This pass requires the context to provide:
@@ -86,4 +88,10 @@ case object OperatorToFunction extends IRPass {
           diag
         )
     }
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 }

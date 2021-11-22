@@ -20,6 +20,8 @@ import org.enso.compiler.pass.desugar.{
   NestedPatternMatch
 }
 
+import scala.annotation.unused
+
 /** This pass translates ignored bindings (of the form `_`) into fresh names
   * internally, as well as marks all bindings as whether or not they were
   * ignored.
@@ -94,6 +96,20 @@ case object IgnoredBindings extends IRPass {
     } else ir
   }
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
+  private def setNotIgnored[T <: IR](ir: T): T = {
+    if (ir.getMetadata(this).isEmpty) {
+      ir.updateMetadata(this -->> State.NotIgnored)
+    } else {
+      ir
+    }
+  }
+
   // === Pass Internals =======================================================
 
   /** Resolves ignored bindings of the form `_` in an arbitrary expression.
@@ -139,11 +155,12 @@ case object IgnoredBindings extends IRPass {
         )
         .updateMetadata(this -->> State.Ignored)
     } else {
-      binding
-        .copy(
-          expression = resolveExpression(binding.expression, supply)
-        )
-        .updateMetadata(this -->> State.NotIgnored)
+      setNotIgnored(
+        binding
+          .copy(
+            expression = resolveExpression(binding.expression, supply)
+          )
+      )
     }
   }
 
@@ -225,12 +242,13 @@ case object IgnoredBindings extends IRPass {
             )
             .updateMetadata(this -->> State.Ignored)
         } else {
-          spec
-            .copy(
-              defaultValue =
-                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
-            )
-            .updateMetadata(this -->> State.NotIgnored)
+          setNotIgnored(
+            spec
+              .copy(
+                defaultValue =
+                  spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+              )
+          )
         }
     }
   }
@@ -323,7 +341,7 @@ case object IgnoredBindings extends IRPass {
           )
         } else {
           named.copy(
-            name = name.updateMetadata(this -->> State.NotIgnored)
+            name = setNotIgnored(name)
           )
         }
       case cons @ Pattern.Constructor(_, fields, _, _, _) =>

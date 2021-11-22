@@ -1,0 +1,16 @@
+[package]
+name = "ensogl-text-embedded-fonts"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+enso-prelude = { path = "../../../../prelude"}
+
+[build-dependencies]
+enso-build-utilities = { path = "../../../../build-utils" }
+zip = { version = "0.5" }

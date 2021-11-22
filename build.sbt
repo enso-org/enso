@@ -16,11 +16,11 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion  = "2.13.6"
-val rustVersion    = "1.54.0-nightly"
+val rustVersion    = "1.58.0-nightly"
 val graalVersion   = "21.1.0"
 val javaVersion    = "11"
-val ensoVersion    = "0.2.29-SNAPSHOT"  // Note [Engine And Launcher Version]
-val currentEdition = "2021.17-SNAPSHOT" // Note [Default Editions]
+val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
+val currentEdition = "2021.20-SNAPSHOT" // Note [Default Editions]
 val stdLibVersion  = ensoVersion
 
 /* Note [Engine And Launcher Version]
@@ -954,6 +954,7 @@ lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
     Test / javaOptions ++= {
       // Note [Classpath Separation]

@@ -1,5 +1,54 @@
 # Enso Next
 
+## Tooling
+
+- Added the `enso install dependencies` command to the launcher which installs
+  any project dependencies, ensuring that `enso run` will not need to download
+  any libraries ([#1981](https://github.com/enso-org/enso/pull/1981)).
+  Additionally, made the `library/preinstall` endpoint able to install any
+  transitive dependencies of the library.
+
+## Enso 0.2.31 (2021-10-01)
+
+## Interpreter/Runtime
+
+- Added experimental support for automatic parallelization of computations
+  ([#2000](https://github.com/enso-org/enso/pull/2000)). The functionality is
+  hidden behind the `--with-auto-parellelism` flag to the interpreter.
+- Added support for compiling Enso packages without execution
+  ([#1998](https://github.com/enso-org/enso/pull/1998)). This allows the
+  distribution of precompiled libraries which greatly improves language start-up
+  time.
+
+## Libraries
+
+- Added support for computing least-squares linear regression on tables
+  ([#2003](https://github.com/enso-org/enso/pull/2003)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-10-01)
+  for issues opened before the release date.
+
+## Enso 0.2.30 (2021-09-23)
+
+## Interpreter/Runtime
+
+- Added support for reading the compiler's intermediate representation from
+  disk, as well as round-tripping that IR
+  ([#1996](https://github.com/enso-org/enso/pull/1996)). The compiler will now
+  take advantage of cached IR where available to drastically reduce start-up
+  time, and will write these caches if they do not exist or are invalid.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-09-16)
+  for issues opened before the release date.
+
+## Enso 0.2.29 (2021-09-16)
+
 ## Interpreter/Runtime
 
 - Added support for serializing the compiler's intermediate representation to
@@ -14,13 +63,11 @@
 - Added support for certain statistical functions of table columns
   ([#1990](https://github.com/enso-org/enso/pull/1990)).
 
-## Tooling
+## Known Issues
 
-- Added the `enso install dependencies` command to the launcher which installs
-  any project dependencies, ensuring that `enso run` will not need to download
-  any libraries ([#1981](https://github.com/enso-org/enso/pull/1981)).
-  Additionally, made the `library/preinstall` endpoint able to install any
-  transitive dependencies of the library.
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-09-16)
+  for issues opened before the release date.
 
 # Enso 0.2.28 (2021-09-02)
 

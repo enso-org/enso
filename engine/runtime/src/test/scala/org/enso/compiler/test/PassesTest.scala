@@ -30,6 +30,11 @@ class PassesTest extends CompilerTest {
       ir: IR.Expression,
       inlineContext: InlineContext
     ): IR.Expression = ir
+
+    override def updateMetadataInDuplicate[T <: IR](
+      sourceIr: T,
+      copyOfIr: T
+    ): T = copyOfIr
   }
 
   // === The Tests ============================================================

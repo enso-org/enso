@@ -56,8 +56,8 @@ case object TypeFunctions extends IRPass {
     @unused moduleContext: ModuleContext
   ): IR.Module = {
     val new_bindings = ir.bindings.map {
-      case asc:IR.Type.Ascription => asc
-      case a => a.mapExpressions(resolveExpression)
+      case asc: IR.Type.Ascription => asc
+      case a                       => a.mapExpressions(resolveExpression)
     }
     ir.copy(bindings = new_bindings)
   }
@@ -77,6 +77,12 @@ case object TypeFunctions extends IRPass {
     ir.transformExpressions { case a =>
       resolveExpression(a)
     }
+
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

@@ -23,7 +23,7 @@ case class SourceFile[F](qualifiedName: QualifiedName, file: F)
   *
   * @param root the root directory of this package
   * @param config the metadata contained in the package configuration
-  *  @param fileSystem the file system access module
+  * @param fileSystem the file system access module
   */
 case class Package[F](
   root: F,

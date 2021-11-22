@@ -3,7 +3,7 @@ name: Publish Developer Docs
 on:
   push:
     branches:
-      - main
+      - develop
     paths:
       - "docs/**"
 

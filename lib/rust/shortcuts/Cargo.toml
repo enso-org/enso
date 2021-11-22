@@ -1,0 +1,27 @@
+[package]
+name = "enso-shortcuts"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-automata = { path = "../automata" }
+enso-frp = { path = "../frp" }
+enso-logger = { path = "../logger" }
+enso-prelude = { path = "../prelude" }
+enso-web = { path = "../web" }
+wasm-bindgen = { version = "=0.2.58", features = [
+  "nightly",
+  "serde-serialize"
+] }
+nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
+js-sys = { version = "0.3.28" }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []

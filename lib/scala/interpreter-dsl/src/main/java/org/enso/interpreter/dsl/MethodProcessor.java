@@ -135,7 +135,11 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println("  public static Function makeFunction(Language language) {");
       out.println("    return Function." + functionBuilderMethod + "(");
-      out.println("        new " + methodDefinition.getClassName() + "(language),");
+      out.println(
+          "        new "
+              + methodDefinition.getClassName()
+              + "(language)"
+              + (methodDefinition.getArguments().size() > 0 ? "," : ""));
       List<String> argumentDefs = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         if (arg.isPositional()) {

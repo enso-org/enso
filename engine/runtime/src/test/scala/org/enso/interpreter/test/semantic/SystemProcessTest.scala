@@ -16,12 +16,25 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     interpreterContext: InterpreterContext
   ): Unit = {
 
-    "return success exit code" in {
+    "return success exit code (Unix)" taggedAs OsUnix in {
       val code =
         """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" Array.empty "" False False False
+          |    result.exit_code
+          |""".stripMargin
+      eval(code) shouldEqual 0
+      consumeOut shouldEqual List()
+      consumeErr shouldEqual List()
+    }
+
+    "return success exit code (Windows)" taggedAs OsWindows in {
+      val code =
+        """from Standard.Builtins import all
+          |
+          |main =
+          |    result = System.create_process "cmd" (Array.new_1 "/c") "" False False False
           |    result.exit_code
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -41,7 +54,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       consumeErr shouldEqual List()
     }
 
-    "return error exit code" in {
+    "return error exit code (Unix)" taggedAs OsUnix in {
       val code =
         """from Standard.Builtins import all
           |
@@ -51,6 +64,20 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |""".stripMargin
 
       eval(code) should not equal 0
+      consumeOut shouldEqual List()
+      consumeErr shouldEqual List()
+    }
+
+    "return error exit code (Windows)" taggedAs OsWindows in {
+      val code =
+        """from Standard.Builtins import all
+          |
+          |main =
+          |    result = System.create_process "cmd" (Array.new_2 "/c" "exit 7") "" False False False
+          |    result.exit_code
+          |""".stripMargin
+
+      eval(code) shouldEqual 7
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }
@@ -101,7 +128,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       consumeErr shouldEqual List()
     }
 
-    "redirect stdin unused" in {
+    "redirect stdin unused (Unix)" taggedAs OsUnix in {
       val code =
         """from Standard.Builtins import all
           |
@@ -116,12 +143,41 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       consumeErr shouldEqual List()
     }
 
-    "redirect stdin empty" in {
+    "redirect stdin unused (Windows)" taggedAs OsWindows in {
+      val code =
+        """from Standard.Builtins import all
+          |
+          |main =
+          |    result = System.create_process "cmd" (Array.new_2 "/c" "echo 9") "" True True True
+          |    result.exit_code
+          |""".stripMargin
+
+      feedInput("unused input")
+      eval(code) shouldEqual 0
+      consumeOut shouldEqual List("9")
+      consumeErr shouldEqual List()
+    }
+
+    "redirect stdin empty (Unix)" taggedAs OsUnix in {
       val code =
         """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "9") "" True True True
+          |    result.exit_code
+          |""".stripMargin
+
+      eval(code) shouldEqual 0
+      consumeOut shouldEqual List("9")
+      consumeErr shouldEqual List()
+    }
+
+    "redirect stdin empty (Windows)" taggedAs OsWindows in {
+      val code =
+        """from Standard.Builtins import all
+          |
+          |main =
+          |    result = System.create_process "cmd" (Array.new_2 "/c" "echo 9") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -158,12 +214,26 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       consumeErr shouldEqual List()
     }
 
-    "redirect stdout chars" in {
+    "redirect stdout chars (Unix)" taggedAs OsUnix in {
       val code =
         """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "foobar") "" False True True
+          |    result.exit_code
+          |""".stripMargin
+
+      eval(code) shouldEqual 0
+      consumeOut shouldEqual List("foobar")
+      consumeErr shouldEqual List()
+    }
+
+    "redirect stdout chars (Windows)" taggedAs OsWindows in {
+      val code =
+        """from Standard.Builtins import all
+          |
+          |main =
+          |    result = System.create_process "cmd" (Array.new_2 "/c" "echo foobar") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -186,12 +256,27 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       consumeErrBytes shouldEqual Array()
     }
 
-    "return stdout string" in {
+    "return stdout string (Unix)" taggedAs OsUnix in {
       val code =
         """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "foobar") "" False False False
+          |    result.stdout
+          |""".stripMargin
+
+      val result = eval(code).asString().replace("\r\n","\n")
+      result shouldEqual "foobar\n"
+      consumeOut shouldEqual List()
+      consumeErr shouldEqual List()
+    }
+
+    "return stdout string (Windows)" taggedAs OsWindows in {
+      val code =
+        """from Standard.Builtins import all
+          |
+          |main =
+          |    result = System.create_process "cmd" (Array.new_2 "/c" "echo foobar") "" False False False
           |    result.stdout
           |""".stripMargin
 

@@ -4,7 +4,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 
 /** A mutable reference type. */
 public class Ref implements TruffleObject {
-  private Object value;
+  private volatile Object value;
 
   /**
    * Creates a new reference.

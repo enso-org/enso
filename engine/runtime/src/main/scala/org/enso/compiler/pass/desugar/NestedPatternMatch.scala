@@ -144,6 +144,12 @@ case object NestedPatternMatch extends IRPass {
     }
   }
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
   // === Pass Internals =======================================================
 
   /** Desugars an arbitrary expression.

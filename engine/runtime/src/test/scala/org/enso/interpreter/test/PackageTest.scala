@@ -28,6 +28,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
         Paths.get("../../distribution/component").toFile.getAbsolutePath
       )
       .option(RuntimeOptions.STRICT_ERRORS, "true")
+      .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .out(output)
       .in(System.in)
       .option(RuntimeOptions.LOG_LEVEL, "WARNING")

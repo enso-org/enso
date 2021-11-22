@@ -1,0 +1,58 @@
+[package]
+name = "enso-web"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+enso-data = { path = "../data" }
+enso-logger = { path = "../logger" }
+enso-prelude = { path = "../prelude", features = ["wasm-bindgen"] }
+console_error_panic_hook = { version = "0.1.1", optional = true }
+failure = { version = "0.1.5" }
+gloo-timers = { version = "0.2.1", features = ["futures"] }
+js-sys = { version = "0.3.28" }
+nalgebra = { version = "0.26.1" }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+async-std = { version = "1.5.0" }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'Blob',
+  'Document',
+  'Node',
+  'Element',
+  'HtmlElement',
+  'HtmlDivElement',
+  'HtmlCollection',
+  'CssStyleDeclaration',
+  'HtmlCanvasElement',
+  'WebGlBuffer',
+  'WebGlRenderingContext',
+  'WebGl2RenderingContext',
+  'CanvasRenderingContext2d',
+  'WebGlProgram',
+  'WebGlShader',
+  'Window',
+  'Navigator',
+  'console',
+  'Performance',
+  'Event',
+  'MouseEvent',
+  'EventTarget',
+  'DomRect',
+  'DomRectReadOnly',
+  'Location',
+  'ReadableStream',
+]
+
+[dev-dependencies]
+wasm-bindgen-test = { version = "0.3.8" }

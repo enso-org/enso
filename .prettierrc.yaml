@@ -1,0 +1,14 @@
+overrides:
+  - files: "*.[j|t]s"
+    options:
+      printWidth: 100
+      tabWidth: 4
+      semi: false
+      singleQuote: true
+      trailingComma: "es5"
+      arrowParens: "avoid"
+
+  - files: "*.md"
+    options:
+      printWidth: 80
+      proseWrap: "always"

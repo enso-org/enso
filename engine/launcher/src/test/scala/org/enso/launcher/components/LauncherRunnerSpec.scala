@@ -11,13 +11,14 @@ import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.{LogLevel, TestLogger}
+import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Future
 
 /** We test integration of both the underlying [[Runner]] and the
   * [[LauncherRunner]] in a single suite.
   */
-class LauncherRunnerSpec extends RuntimeVersionManagerTest {
+class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
 
   private val fakeUri = Uri("ws://test:1234/")
@@ -145,7 +146,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
       commandLine should include(s"--new-project-author-email $authorEmail")
     }
 
-    "warn when creating a project using a nightly version" in {
+    "warn when creating a project using a nightly version" taggedAs Flaky in {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
       val nightlyVersion = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))

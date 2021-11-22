@@ -76,6 +76,7 @@ public class Builtins {
   private final Resource resource;
   private final System system;
   private final Text text;
+  private final Special special;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -109,6 +110,7 @@ public class Builtins {
     resource = new Resource(language, scope);
     system = new System(language, scope);
     text = new Text(language, scope);
+    special = new Special(language);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -186,6 +188,21 @@ public class Builtins {
     return this.module.getIr() != null;
   }
 
+  /** Initialize the source file for the builtins module. */
+  @CompilerDirectives.TruffleBoundary
+  public void initializeBuiltinsSource() {
+    try {
+      var builtinsModuleBytes =
+          Objects.requireNonNull(
+                  getClass().getClassLoader().getResourceAsStream(Builtins.SOURCE_NAME))
+              .readAllBytes();
+      String source = new String(builtinsModuleBytes, StandardCharsets.UTF_8);
+      module.setLiteralSource(source);
+    } catch (IOException e) {
+      throw new CompilerError("Fatal, unable to read Builtins source file.");
+    }
+  }
+
   /**
    * Initialize the IR for the builtins module from the builtins source file.
    *
@@ -195,15 +212,12 @@ public class Builtins {
   @CompilerDirectives.TruffleBoundary
   public void initializeBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
     try {
-      var builtinsModuleBytes =
-          Objects.requireNonNull(
-                  getClass().getClassLoader().getResourceAsStream(Builtins.SOURCE_NAME))
-              .readAllBytes();
-      String source = new String(builtinsModuleBytes, StandardCharsets.UTF_8);
-      module.setLiteralSource(source);
+      if (module.getSource() == null) {
+        initializeBuiltinsSource();
+      }
       BuiltinsIrBuilder.build(module, freshNameSupply, passes);
     } catch (IOException e) {
-      throw new CompilerError("Fatal, unable to read Builtins source file.");
+      e.printStackTrace();
     }
   }
 
@@ -299,6 +313,10 @@ public class Builtins {
   /** @return the container for the dataflow error-related builtins */
   public DataflowError dataflowError() {
     return dataflowError;
+  }
+
+  public Special special() {
+    return special;
   }
 
   /**

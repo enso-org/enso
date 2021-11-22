@@ -74,6 +74,34 @@ case object DataflowAnalysis extends IRPass {
     analyseExpression(ir, localScope.dataflowInfo)
   }
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    sourceIr: T,
+    copyOfIr: T
+  ): T = {
+    (sourceIr, copyOfIr) match {
+      case (sourceIr: IR.Module, copyOfIr: IR.Module) =>
+        val sourceMeta =
+          sourceIr.unsafeGetMetadata(this, "Dataflow Analysis must have run.")
+        val copyMeta = DependencyInfo(
+          dependents   = sourceMeta.dependents.deepCopy,
+          dependencies = sourceMeta.dependencies.deepCopy
+        )
+
+        val sourceNodes = sourceIr.preorder
+        val copyNodes   = copyOfIr.preorder
+
+        sourceNodes.lazyZip(copyNodes).foreach { case (src, copy) =>
+          src
+            .getMetadata(this)
+            .foreach(_ => copy.updateMetadata(this -->> copyMeta))
+        }
+
+        copyOfIr.asInstanceOf[T]
+      case _ => copyOfIr
+    }
+  }
+
   // === Pass Internals =======================================================
 
   /** Performs dataflow analysis on a module definition.
@@ -854,6 +882,11 @@ case object DataflowAnalysis extends IRPass {
       }
 
       combinedModule
+    }
+
+    /** @return A deep copy of this dependency mapping */
+    def deepCopy: DependencyMapping = {
+      DependencyMapping(mutable.Map.from(this.mapping.toMap))
     }
   }
 

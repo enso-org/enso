@@ -8,6 +8,7 @@ public class MethodNames {
     public static final String LEAK_CONTEXT = "leak_context";
     public static final String REGISTER_MODULE = "register_module";
     public static final String UNREGISTER_MODULE = "unregister_module";
+    public static final String COMPILE = "compile";
   }
 
   public static class Module {

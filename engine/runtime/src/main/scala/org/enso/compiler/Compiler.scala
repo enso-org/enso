@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -19,11 +20,12 @@ import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{Context, Module}
-import org.enso.polyglot.LanguageInfo
+import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 import java.io.StringReader
+import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -45,14 +47,47 @@ class Compiler(
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
   private val irCachingEnabled = !context.isIrCachingDisabled
+  private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
+    RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
+  )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
+  private val logger: TruffleLogger = context.getLogger(getClass)
 
   /** Lazy-initializes the IR for the builtins module.
     */
   def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
-      builtins.initializeBuiltinsIr(freshNameSupply, passes)
+      logger.log(
+        Compiler.defaultLogLevel,
+        s"Initialising IR for [${builtins.getModule.getName}]."
+      )
+
+      builtins.initializeBuiltinsSource()
+
+      if (irCachingEnabled) {
+        serializationManager.deserialize(builtins.getModule) match {
+          case Some(true) =>
+            // Ensure that builtins doesn't try and have codegen run on it.
+            builtins.getModule.unsafeSetCompilationStage(
+              Module.CompilationStage.AFTER_CODEGEN
+            )
+          case _ =>
+            builtins.initializeBuiltinsIr(freshNameSupply, passes)
+            builtins.getModule.setHasCrossModuleLinks(true)
+
+        }
+      } else {
+        builtins.initializeBuiltinsIr(freshNameSupply, passes)
+        builtins.getModule.setHasCrossModuleLinks(true)
+      }
+
+      if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
+        serializationManager.serialize(
+          builtins.getModule,
+          useGlobalCacheLocations = true // Builtins can't have a local cache.
+        )
+      }
     }
   }
 
@@ -74,12 +109,135 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(module: Module): Unit = {
+    runInternal(
+      List(module),
+      generateCode              = true,
+      shouldCompileDependencies = true
+    )
+  }
+
+  /** Compiles the requested packages, writing the compiled IR to the library
+    * cache directories.
+    *
+    * @param shouldCompileDependencies whether compilation should also compile
+    *                                  the dependencies of the requested package
+    */
+  def compile(shouldCompileDependencies: Boolean): Unit = {
+    val packageRepository = context.getPackageRepository
+
+    packageRepository.getMainProjectPackage match {
+      case None =>
+        logger.log(
+          Level.SEVERE,
+          s"No package found in the compiler environment. Aborting."
+        )
+      case Some(pkg) =>
+        val packageModule = packageRepository.getModuleMap.get(
+          s"${pkg.namespace}.${pkg.name}.Main"
+        )
+        packageModule match {
+          case None =>
+            logger.log(
+              Level.SEVERE,
+              s"Could not find entry point for compilation in package " +
+              s"[${pkg.namespace}.${pkg.name}]."
+            )
+          case Some(m) =>
+            logger.log(
+              Compiler.defaultLogLevel,
+              s"Compiling the package [${pkg.namespace}.${pkg.name}] " +
+              s"starting at the root [${m.getName}]."
+            )
+
+            val packageModules = packageRepository.freezeModuleMap.collect {
+              case (name, mod)
+                  if name.startsWith(s"${pkg.namespace}.${pkg.name}") =>
+                mod
+            }.toList
+
+            runInternal(
+              packageModules,
+              generateCode = false,
+              shouldCompileDependencies
+            )
+        }
+    }
+  }
+
+  /** Runs part of the compiler to generate docs from Enso code.
+    *
+    * @param module the scope from which docs are generated
+    */
+  def generateDocs(module: Module): Module = {
     initializeBuiltinsIr()
-    parseModule(module)
-    val importedModules = importResolver.mapImports(module)
-    val requiredModules =
-      try { new ExportsResolution().run(importedModules) }
-      catch { case e: ExportCycleException => reportCycle(e) }
+    parseModule(module, isGenDocs = true)
+    module
+  }
+
+  private def runInternal(
+    modules: List[Module],
+    generateCode: Boolean,
+    shouldCompileDependencies: Boolean
+  ): Unit = {
+    initializeBuiltinsIr()
+    modules.foreach(m => parseModule(m))
+
+    var requiredModules = modules.flatMap(runImportsAndExportsResolution)
+
+    var hasInvalidModuleRelink = false
+    if (irCachingEnabled) {
+      requiredModules.foreach { module =>
+        if (!module.hasCrossModuleLinks) {
+          val flags =
+            module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
+
+          if (!flags.contains(false)) {
+            logger.log(
+              Compiler.defaultLogLevel,
+              s"Restored links (late phase) for module [${module.getName}]."
+            )
+          } else {
+            hasInvalidModuleRelink = true
+            logger.log(
+              Compiler.defaultLogLevel,
+              s"Failed to restore links (late phase) for module " +
+              s"[${module.getName}]."
+            )
+            uncachedParseModule(module, isGenDocs = false)
+          }
+        }
+      }
+    }
+
+    if (hasInvalidModuleRelink) {
+      logger.log(
+        Compiler.defaultLogLevel,
+        s"Some modules failed to relink. Re-running import and " +
+        s"export resolution."
+      )
+
+      requiredModules = modules.flatMap(runImportsAndExportsResolution)
+    }
+
+    requiredModules.foreach { module =>
+      if (
+        !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_GLOBAL_TYPES
+        )
+      ) {
+
+        val moduleContext = ModuleContext(
+          module          = module,
+          freshNameSupply = Some(freshNameSupply),
+          compilerConfig  = config
+        )
+        val compilerOutput = runGlobalTypingPasses(module.getIr, moduleContext)
+        module.unsafeSetIr(compilerOutput)
+        module.unsafeSetCompilationStage(
+          Module.CompilationStage.AFTER_GLOBAL_TYPES
+        )
+      }
+    }
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
@@ -92,7 +250,7 @@ class Compiler(
           freshNameSupply = Some(freshNameSupply),
           compilerConfig  = config
         )
-        val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
+        val compilerOutput = runMethodBodyPasses(module.getIr, moduleContext)
         module.unsafeSetIr(compilerOutput)
         module.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_STATIC_PASSES
@@ -120,24 +278,48 @@ class Compiler(
           Module.CompilationStage.AFTER_CODEGEN
         )
       ) {
-        truffleCodegen(module.getIr, module.getSource, module.getScope)
+
+        if (generateCode) {
+          logger.log(
+            Compiler.defaultLogLevel,
+            s"Generating code for module [${module.getName}]."
+          )
+
+          truffleCodegen(module.getIr, module.getSource, module.getScope)
+        }
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
 
-        val shouldStoreCache = irCachingEnabled && !module.wasLoadedFromCache()
-        if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-          serializationManager.serialize(module)
+        if (shouldCompileDependencies || isModuleInRootPackage(module)) {
+          val shouldStoreCache =
+            irCachingEnabled && !module.wasLoadedFromCache()
+          if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
+            serializationManager.serialize(module, useGlobalCacheLocations)
+          }
+        } else {
+          logger.log(
+            Compiler.defaultLogLevel,
+            s"Skipping serialization for [${module.getName}]."
+          )
         }
       }
     }
   }
 
-  /** Runs part of the compiler to generate docs from Enso code.
-    * @param module - the scope from which docs are generated.
-    */
-  def generateDocs(module: Module): Module = {
-    initializeBuiltinsIr()
-    parseModule(module, isGenDocs = true)
-    module
+  private def isModuleInRootPackage(module: Module): Boolean = {
+    if (!module.isInteractive) {
+      val pkg = context.getPackageOf(module.getSourceFile).toScala
+      pkg.contains(context.getPackageRepository.getMainProjectPackage.get)
+    } else false
+  }
+
+  private def runImportsAndExportsResolution(module: Module): List[Module] = {
+    val importedModules = importResolver.mapImports(module)
+
+    val requiredModules =
+      try { new ExportsResolution().run(importedModules) }
+      catch { case e: ExportCycleException => reportCycle(e) }
+
+    requiredModules
   }
 
   /** Runs the initial passes of the compiler to gather the import statements,
@@ -170,29 +352,43 @@ class Compiler(
     module: Module,
     isGenDocs: Boolean = false
   ): Unit = {
+    logger.log(
+      Compiler.defaultLogLevel,
+      s"Parsing the module [${module.getName}]."
+    )
     module.ensureScopeExists()
     module.getScope.reset()
 
-    module.getCache.load(context) match {
-      case Some(ModuleCache.CachedModule(ir, stage)) if irCachingEnabled =>
-        module.unsafeSetIr(ir)
-        module.unsafeSetCompilationStage(stage)
-        throw new CompilerError(
-          "Caching should not yet be enabled in production."
-        )
-      case _ =>
-        val moduleContext = ModuleContext(
-          module           = module,
-          freshNameSupply  = Some(freshNameSupply),
-          compilerConfig   = config,
-          isGeneratingDocs = isGenDocs
-        )
-        val parsedAST        = parse(module.getSource)
-        val expr             = generateIR(parsedAST)
-        val discoveredModule = recognizeBindings(expr, moduleContext)
-        module.unsafeSetIr(discoveredModule)
-        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    if (irCachingEnabled && !module.isInteractive) {
+      serializationManager.deserialize(module) match {
+        case Some(_) => return
+        case _       =>
+      }
     }
+
+    uncachedParseModule(module, isGenDocs)
+  }
+
+  private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
+    logger.log(
+      Compiler.defaultLogLevel,
+      s"Loading module `${module.getName}` from source."
+    )
+    module.ensureScopeExists()
+    module.getScope.reset()
+
+    val moduleContext = ModuleContext(
+      module           = module,
+      freshNameSupply  = Some(freshNameSupply),
+      compilerConfig   = config,
+      isGeneratingDocs = isGenDocs
+    )
+    val parsedAST        = parse(module.getSource)
+    val expr             = generateIR(parsedAST)
+    val discoveredModule = recognizeBindings(expr, moduleContext)
+    module.unsafeSetIr(discoveredModule)
+    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.setHasCrossModuleLinks(true)
   }
 
   /* Note [Polyglot Imports In Dependency Gathering]
@@ -346,11 +542,18 @@ class Compiler(
     * @param ir the compiler intermediate representation to transform
     * @return the output result of the
     */
-  def runCompilerPhases(
+  private def runMethodBodyPasses(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
+  }
+
+  private def runGlobalTypingPasses(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
+    passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
   }
 
   /** Runs the various compiler passes in an inline context.
@@ -401,9 +604,13 @@ class Compiler(
     modules: List[Module]
   ): Unit = {
     if (context.isStrictErrors) {
-      val diagnostics = modules.map { module =>
-        val errors = gatherDiagnostics(module)
-        (module, errors)
+      val diagnostics = modules.flatMap { module =>
+        if (module == builtins.getModule) {
+          List()
+        } else {
+          val errors = gatherDiagnostics(module)
+          List((module, errors))
+        }
       }
       if (reportDiagnostics(diagnostics)) {
         throw new CompilationAbortedException
@@ -593,4 +800,28 @@ class Compiler(
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
     serializationManager.shutdown(waitForPendingJobCompletion)
   }
+
+  /** Updates the metadata in a copy of the IR when updating that metadata
+    * requires global state.
+    *
+    * This is usually the case in the presence of structures that are shared
+    * throughout the IR, and need to maintain that sharing for correctness. This
+    * must be called with `copyOfIr` as the result of an `ir.duplicate` call.
+    *
+    * Additionally this method _must not_ alter the structure of the IR. It
+    * should only update its metadata.
+    *
+    * @param sourceIr the IR being copied
+    * @param copyOfIr a duplicate of `sourceIr`
+    * @return the result of updating metadata in `copyOfIr` globally using
+    *         information from `sourceIr`
+    */
+  def updateMetadata(sourceIr: IR.Module, copyOfIr: IR.Module): IR.Module = {
+    passManager.runMetadataUpdate(sourceIr, copyOfIr)
+  }
+}
+object Compiler {
+
+  /** The default logging level for the compiler. */
+  private val defaultLogLevel: Level = Level.FINE
 }

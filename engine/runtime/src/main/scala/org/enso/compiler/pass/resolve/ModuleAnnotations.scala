@@ -104,6 +104,12 @@ case object ModuleAnnotations extends IRPass {
     @unused inlineContext: InlineContext
   ): IR.Expression = ir
 
+  /** @inheritdoc */
+  override def updateMetadataInDuplicate[T <: IR](
+    @unused sourceIr: T,
+    copyOfIr: T
+  ): T = copyOfIr
+
   /** A container for annotations on an IR construct.
     *
     * @param annotations the initial annotations for the container
@@ -133,7 +139,7 @@ case object ModuleAnnotations extends IRPass {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[IRPass.Metadata] = {
-      annotations.foreach{ ann =>
+      annotations.foreach { ann =>
         ann.preorder.foreach { ir =>
           if (!ir.passData.restoreFromSerialization(compiler)) {
             return None

@@ -1,50 +1,86 @@
 [workspace]
 
 members = [
-    "lib/rust/ast",
+    "app/gui",
+    "app/gui/controller",
+    "app/gui/controller/double-representation",
+    "app/gui/controller/engine-model",
+    "app/gui/controller/engine-protocol",
+    "app/gui/analytics",
+    "app/gui/config",
+    "app/gui/language/ast/impl",
+    "app/gui/language/ast/macros",
+    "app/gui/language/parser",
+    "app/gui/language/span-tree",
+    "app/gui/language/span-tree/example",
+    "app/gui/view",
+    "app/gui/view/graph-editor",
+    "build/rust-scripts",
+    "lib/rust/automata",
+    "lib/rust/build-utils",
+    "lib/rust/callback",
+    "lib/rust/code-builder",
+    "lib/rust/config-reader",
+    "lib/rust/data",
+    "lib/rust/ensogl",
+    "lib/rust/ensogl/app/theme/hardcoded",
+    "lib/rust/ensogl/core",
+    "lib/rust/ensogl/component",
+    "lib/rust/ensogl/component/drop-manager",
+    "lib/rust/ensogl/component/gui",
+    "lib/rust/ensogl/component/text",
+    "lib/rust/ensogl/component/text/embedded-fonts",
+    "lib/rust/ensogl/component/text/msdf-sys",
+    "lib/rust/ensogl/example",
+    "lib/rust/frp",
+    "lib/rust/fuzzly",
+    "lib/rust/generics",
+    "lib/rust/json-rpc",
     "lib/rust/launcher-shims",
-    "lib/rust/lexer/definition",
-    "lib/rust/lexer/generation",
+    "lib/rust/logger",
+    "lib/rust/macro-utils",
+    "lib/rust/optics",
     "lib/rust/parser",
-    "lib/rust/parser-jni",
+    "lib/rust/parser/ast",
+    "lib/rust/parser/flexer",
+    "lib/rust/prelude",
+    "lib/rust/parser/flexer-testing/definition",
+    "lib/rust/parser/flexer-testing/generation",
+    "lib/rust/parser/lexer/definition",
+    "lib/rust/parser/lexer/generation",
+    "lib/rust/parser/parser-jni",
+    "lib/rust/parser/lazy-reader",
+    "lib/rust/shapely/impl",
+    "lib/rust/shapely/macros",
+    "lib/rust/shortcuts",
+    "lib/rust/shortcuts/example",
+    "lib/rust/types",
+    "lib/rust/web",
+    "lib/rust/not-used/eval-tt",
+    "lib/rust/not-used/web-test",
+    "lib/rust/not-used/web-test-proc-macro",
 ]
 
-# These patch versions exist to allow local development of these libraries alongside Enso. It
-# assumes you have `rust-lib` in the same directory as `enso`. See:
-# https://github.com/enso-org/rust-lib/blob/main/docs/CONTRIBUTING.md#developing-in-conjunction-with-enso--ide
-[patch.crates-io]
-#enso-automata       = { path = '../rust-lib/src/automata'       }
-#enso-data           = { path = '../rust-lib/src/data'           }
-#enso-flexer         = { path = '../rust-lib/src/flexer'         }
-#enso-generics       = { path = '../rust-lib/src/generics'       }
-#enso-lazy-reader    = { path = '../rust-lib/src/lazy-reader'    }
-#enso-logger         = { path = '../rust-lib/src/logger'         }
-#enso-macro-utils    = { path = '../rust-lib/src/macro-utils'    }
-#enso-optics         = { path = '../rust-lib/src/optics'         }
-#enso-prelude        = { path = '../rust-lib/src/prelude'        }
-#enso-shapely        = { path = '../rust-lib/src/shapely/impl'   }
-#enso-shapely-macros = { path = '../rust-lib/src/shapely/macros' }
-
 [profile.dev]
-opt-level        = 0
-lto              = false
-debug            = true
+opt-level = 0
+lto = false
+debug = true
 debug-assertions = true
 
 [profile.release]
-opt-level        = 3
-lto              = true
-debug            = false
+opt-level = 3
+lto = true
+debug = false
 debug-assertions = false
 
 [profile.bench]
-opt-level        = 3
-lto              = true
-debug            = false
+opt-level = 3
+lto = true
+debug = false
 debug-assertions = false
 
 [profile.test]
-opt-level        = 0
-lto              = false
-debug            = true
+opt-level = 0
+lto = false
+debug = true
 debug-assertions = true

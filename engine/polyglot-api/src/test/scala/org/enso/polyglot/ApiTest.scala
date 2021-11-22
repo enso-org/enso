@@ -12,6 +12,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
     Context
       .newBuilder(ID)
       .allowExperimentalOptions(true)
+      .allowAllAccess(true)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
         Paths.get("../../distribution/component").toFile.getAbsolutePath

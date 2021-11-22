@@ -1,0 +1,15 @@
+[package]
+name    = "flexer-test-definition"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+test       = true
+bench      = true
+
+[dependencies]
+enso-flexer = { version = "^0.2.0", path = "../../flexer" }
