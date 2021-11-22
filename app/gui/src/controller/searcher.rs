@@ -20,6 +20,7 @@ use double_representation::node::NodeInfo;
 use double_representation::project;
 use double_representation::tp;
 use engine_protocol::language_server;
+use enso_text::Location;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -475,7 +476,7 @@ pub struct Searcher {
     language_server:  Rc<language_server::Connection>,
     ide:              controller::Ide,
     this_arg:         Rc<Option<ThisNode>>,
-    position_in_code: Immutable<TextLocation>,
+    position_in_code: Immutable<Location>,
 }
 
 impl Searcher {
@@ -516,7 +517,8 @@ impl Searcher {
         let module_ast = graph.graph().module.ast();
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
-        let position = TextLocation::convert_span(module_ast.repr(), &def_span).end;
+        let module_repr: enso_text::Text = module_ast.repr().into();
+        let position = module_repr.location_of_byte_offset_snapped(def_span.end);
         let this_arg = Rc::new(
             matches!(mode, Mode::NewNode { .. })
                 .and_option_from(|| ThisNode::new(selected_nodes, &graph.graph())),

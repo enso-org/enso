@@ -756,7 +756,7 @@ pub fn lookup_method(
 pub fn definition_span(
     ast: &known::Module,
     id: &definition::Id,
-) -> FallibleResult<text::Range<Codepoints>> {
+) -> FallibleResult<text::Range<Bytes>> {
     let location = locate(ast, id)?;
     ast.span_of_descendent_at(&location.crumbs)
 }

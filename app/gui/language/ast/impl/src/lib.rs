@@ -322,15 +322,15 @@ impl Ast {
     ///
     /// Returned index is the position of the first character of child's text representation within
     /// the text representation of this AST node.
-    pub fn child_offset(&self, child: &Ast) -> FallibleResult<Codepoints> {
+    pub fn child_offset(&self, child: &Ast) -> FallibleResult<Bytes> {
         let searched_token = Token::Ast(child);
         let mut found_child = false;
-        let mut position = 0.codepoints();
+        let mut position = 0.bytes();
         self.shape().feed_to(&mut |token: Token| {
             if searched_token == token {
                 found_child = true
             } else if !found_child {
-                position += token.char_count()
+                position += token.len()
             }
         });
         if found_child {
@@ -341,10 +341,10 @@ impl Ast {
     }
 
     /// Get the span (relative to self) for a child node identified by given crumb.
-    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<text::Range<Codepoints>> {
+    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<text::Range<Bytes>> {
         let child = self.get(crumb)?;
         let offset = self.child_offset(child)?;
-        Ok(text::Range::new(offset, offset + child.char_count()))
+        Ok(text::Range::new(offset, offset + child.len()))
     }
 }
 

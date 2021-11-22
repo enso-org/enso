@@ -8,10 +8,10 @@ use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::Kind;
 use crate::notification;
 
-use data::text::TextLocation;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
+use enso_text::Location;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -191,7 +191,7 @@ impl SuggestionDatabase {
         &self,
         name: impl Str,
         module: &QualifiedName,
-        location: TextLocation,
+        location: Location,
     ) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()
@@ -209,7 +209,7 @@ impl SuggestionDatabase {
         &self,
         name: impl Str,
         module: &QualifiedName,
-        location: TextLocation,
+        location: Location,
     ) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()

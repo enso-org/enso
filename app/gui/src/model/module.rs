@@ -63,6 +63,7 @@ pub enum ModulePathViolation {
 // === Aliases ===
 // ===============
 
+/// A specialization of text change used in module's text changes across controllers.
 pub type TextChange = enso_text::Change<enso_text::unit::Bytes, String>;
 
 

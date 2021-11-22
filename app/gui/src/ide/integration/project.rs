@@ -1743,7 +1743,7 @@ impl Model {
     fn code_changed_in_ui(&self, changes: &Vec<ensogl_text::Change>) -> FallibleResult {
         for change in changes {
             let converted =
-                enso_text::text::Change { range: change.range, text: change.text.into() };
+                enso_text::text::Change { range: change.range, text: (&change.text).into() };
             self.text.apply_text_change(converted)?;
         }
         Ok(())
