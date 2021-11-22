@@ -49,7 +49,7 @@ impl ContentSummary {
 /// The information about module's content. In addition to minimal summery defined in
 /// `ContentSummary` it adds information about sections, what enables efficient updates after code
 /// and metadata changes.
-#[derive(Clone, Debug, Eq, PartialEq, Shrinkwrap)]
+#[derive(Clone, Debug, Shrinkwrap)]
 struct ParsedContentSummary {
     #[shrinkwrap(main_field)]
     summary:  ContentSummary,
@@ -358,17 +358,16 @@ impl Module {
         // correct location for the final edit would be more complex.
         debug_assert_eq!(start.column, 0.column());
 
-        (source != target).as_some_from(|| {
-            let edit = TextEdit::from_prefix_postfix_differences(source, target);
-            edit.move_by_lines(start.line.as_usize())
-        })
+        let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
+        (edit.range.start != edit.range.end)
+            .as_some_from(|| edit.move_by_lines(start.line.as_usize()))
     }
 
     fn edit_for_code(ls_content: &ParsedContentSummary, new_file: &SourceFile) -> Option<TextEdit> {
         Self::edit_for_snipped(
             &ls_content.code.start,
             ls_content.code_slice(),
-            new_file.code_slice(),
+            new_file.code_slice().into(),
         )
     }
 
@@ -379,7 +378,7 @@ impl Module {
         Self::edit_for_snipped(
             &ls_content.metadata.start,
             ls_content.metadata_slice(),
-            new_file.metadata_slice(),
+            new_file.metadata_slice().into(),
         )
     }
 
@@ -390,7 +389,7 @@ impl Module {
         Self::edit_for_snipped(
             &ls_content.id_map.start,
             ls_content.id_map_slice(),
-            new_file.id_map_slice(),
+            new_file.id_map_slice().into(),
         )
     }
 
