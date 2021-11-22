@@ -102,8 +102,8 @@ Please note that you should not use `cargo fmt` on this code base. Please read
 the following documents to learn more about reasons behind this decision and the
 recommended code style guide. Be sure to carefully read the
 [Rust style guide 1](./contributing/style-guide.md) and the
-[Rust style guide 2](https://dev.enso.org/docs/style-guide/rust.html) before
-contributing to the codebase.
+[Rust style guide 2](https://enso.org/docs/developer/ide/contributing/style-guide.html)
+before contributing to the codebase.
 
 We do, however, use [`prettier`](https://prettier.io/) for the JavaScript files
 in our code base. If you have not installed it already you can do so via
