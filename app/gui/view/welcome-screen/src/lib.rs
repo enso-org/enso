@@ -90,9 +90,7 @@ impl Model {
         app.display.scene().layers.panel.add_exclusive(&dom);
         app.display.scene().dom.layers.fullscreen_vis.manage(&dom);
 
-        let model = Self { application, logger, dom, display_object, side_menu, template_cards };
-
-        model
+        Self { application, logger, dom, display_object, side_menu, template_cards }
     }
 }
 
@@ -131,7 +129,7 @@ impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(&app);
+        let model = Model::new(app);
         let network = &frp.network;
 
         frp::extend! { network

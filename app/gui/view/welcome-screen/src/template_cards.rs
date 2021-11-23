@@ -90,9 +90,7 @@ impl TemplateCards {
         };
         root.append_or_warn(&templates, &logger);
 
-        let template_cards = Self { logger, root, closures: default() };
-
-        template_cards
+        Self { logger, root, closures: default() }
     }
 
     /// Create main content, a set of cards.
@@ -104,26 +102,26 @@ impl TemplateCards {
             let row = web::create_div();
             row.set_class_name("row");
 
-            let card_spreadsheets = Self::create_card(&logger, CARD_SPREADSHEETS);
-            row.append_or_warn(&card_spreadsheets, &logger);
+            let card_spreadsheets = Self::create_card(logger, CARD_SPREADSHEETS);
+            row.append_or_warn(&card_spreadsheets, logger);
 
-            let card_geo = Self::create_card(&logger, CARD_GEO);
-            row.append_or_warn(&card_geo, &logger);
+            let card_geo = Self::create_card(logger, CARD_GEO);
+            row.append_or_warn(&card_geo, logger);
 
             row
         };
-        cards.append_or_warn(&row1, &logger);
+        cards.append_or_warn(&row1, logger);
 
         let row2 = {
             let row = web::create_div();
             row.set_class_name("row");
 
-            let card_visualize = Self::create_card(&logger, CARD_VISUALIZE);
-            row.append_or_warn(&card_visualize, &logger);
+            let card_visualize = Self::create_card(logger, CARD_VISUALIZE);
+            row.append_or_warn(&card_visualize, logger);
 
             row
         };
-        cards.append_or_warn(&row2, &logger);
+        cards.append_or_warn(&row2, logger);
 
         cards
     }
@@ -136,15 +134,15 @@ impl TemplateCards {
         card.set_class_name(definition.class);
         if let Some(src) = definition.img {
             let img = web::create_element("img");
-            img.set_attribute_or_warn("src", src, &logger);
-            card.append_or_warn(&img, &logger);
+            img.set_attribute_or_warn("src", src, logger);
+            card.append_or_warn(&img, logger);
         }
         let card_header = web::create_element("h3");
         card_header.set_text_content(Some(definition.header));
-        card.append_or_warn(&card_header, &logger);
+        card.append_or_warn(&card_header, logger);
         let text_content = web::create_element("p");
         text_content.set_text_content(Some(definition.content));
-        card.append_or_warn(&text_content, &logger);
+        card.append_or_warn(&text_content, logger);
 
         card
     }

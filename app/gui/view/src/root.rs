@@ -97,7 +97,7 @@ impl Deref for View {
 impl View {
     /// Constuctor.
     pub fn new(app: &Application) -> Self {
-        let model = Model::new(&app);
+        let model = Model::new(app);
         let frp = Frp::new();
         let network = &frp.network;
         frp::extend! { network
