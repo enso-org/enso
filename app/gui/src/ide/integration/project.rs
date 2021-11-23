@@ -573,6 +573,7 @@ impl Integration {
 }
 
 impl Model {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         logger: Logger,
         view: ide_view::project::View,
