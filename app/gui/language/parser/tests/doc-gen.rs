@@ -7,7 +7,7 @@ use wasm_bindgen_test::wasm_bindgen_test_configure;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn doc_gen_test() {
     // Case of pure documentation code.
     let input = String::from("Foo *Bar* Baz");

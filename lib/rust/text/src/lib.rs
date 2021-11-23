@@ -1,3 +1,13 @@
+//! The text operation utilities.
+//!
+//! This crate contains several utility structures for operations on text:
+//! * The effective [`Text`] structure, optimized for middle-insertions, based on the rope
+//!   structure.
+//! * A set of units, forcing the developers to think about how the text positions are expressed (in
+//!   chars, or in bytes? Or maybe in _grapheme clusters_)?
+//! * An alternative [`Range`] with text-related trait implementations + copyable.
+//! * Interval tree structure [`Spans`] useful for text rich decorations.
+
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

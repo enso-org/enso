@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use crate::rope;
-use crate::text::BoundsError;
 use crate::unit::*;
 
 
@@ -50,11 +49,13 @@ impl<T> Range<T> {
         Self { start, end }
     }
 
+    /// Return new range with the `offset` subtracted from both ends.
     pub fn moved_left(&self, offset: T) -> Self
     where T: Clone + Sub<T, Output = T> {
         Self { start: self.start.clone() - offset.clone(), end: self.end.clone() - offset }
     }
 
+    /// Return new range with the `offset` added to both ends.
     pub fn moved_right(&self, offset: T) -> Self
     where T: Clone + Add<T, Output = T> {
         Self { start: self.start.clone() + offset.clone(), end: self.end.clone() + offset }
@@ -78,18 +79,15 @@ impl<T> Range<T> {
         self.with_end(f(self.end.clone()))
     }
 
+    /// Check if the range contains the given value.
     pub fn contains<U>(&self, value: &U) -> bool
     where
         T: PartialOrd<U>,
         U: PartialOrd<T>, {
-        // use std::cmp::Ordering::*;
-        // match (self.start.partial_cmp(value), self.end.partial_cmp(value)) {
-        //     (Some(Less), Some(Greater)) | (Some(Equal), Some(Greater)) => true,
-        //     _ => false,
-        // }
         value >= &self.start && value < &self.end
     }
 
+    /// Check if the range contains all values from `other` range.
     pub fn contains_range(&self, other: &Range<T>) -> bool
     where T: PartialOrd {
         self.start <= other.start && self.end >= other.end
@@ -103,24 +101,6 @@ impl Range<Bytes> {
     /// Convert to `rope::Interval`.
     pub fn into_rope_interval(self) -> rope::Interval {
         self.into()
-    }
-}
-
-
-// === Range<Codepoints> methods ===
-
-impl Range<Codepoints> {
-    pub fn to_byte_range_in_str(&self, text: &str) -> Result<Range<Bytes>, BoundsError> {
-        let start = self.start.as_usize();
-        let end = self.end.as_usize();
-        let mut char_offsets = text.char_indices().map(|(idx, _)| idx);
-        let byte_start: Bytes = char_offsets.nth(start).ok_or(BoundsError::TooBig)?.into();
-        let byte_end: Bytes = if end > start {
-            char_offsets.nth(end - 1).ok_or(BoundsError::TooBig)?.into()
-        } else {
-            byte_start
-        };
-        Ok((byte_start..byte_end).into())
     }
 }
 

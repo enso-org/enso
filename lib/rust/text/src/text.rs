@@ -149,6 +149,9 @@ impl Text {
         self.rope.edit(range.into_rope_interval(), text.rope);
     }
 
+    /// Apply the given change on the current text.
+    ///
+    /// See also [`Self::replace`].
     pub fn apply_change(&mut self, change: Change<Bytes, impl Into<Text>>) {
         self.replace(change.range, change.text)
     }
@@ -914,6 +917,7 @@ pub struct Change<Metric = Bytes, String = Text> {
 
 
 impl<Metric, String> Change<Metric, String> {
+    /// Return new [`Change`] with copied range and a reference to self's string.
     pub fn as_ref(&self) -> Change<Metric, &String>
     where Metric: Copy {
         Change { range: self.range.clone(), text: &self.text }
@@ -924,6 +928,7 @@ impl<Metric, String> Change<Metric, String> {
 // === Applying Change ===
 
 impl<S: AsRef<str>> Change<Bytes, S> {
+    /// Apply the change on the given string.
     pub fn apply(&self, target: &mut String) -> Result<(), BoundsError> {
         let start_byte = self.range.start.as_usize();
         let end_byte = self.range.end.as_usize();
@@ -931,6 +936,7 @@ impl<S: AsRef<str>> Change<Bytes, S> {
         Ok(())
     }
 
+    /// Return a new string being a `target` with this change applied.
     pub fn applied(&self, target: &str) -> Result<String, BoundsError> {
         let mut string = target.to_owned();
         self.apply(&mut string)?;
