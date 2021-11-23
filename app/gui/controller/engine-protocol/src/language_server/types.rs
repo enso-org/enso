@@ -563,8 +563,8 @@ impl TextEdit {
         let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
         let source_text_range = Range::new(source_start_position, source_end_position);
 
-        let target_range =
-            common_lengths.prefix..(Bytes::from(target.len()) - common_lengths.suffix);
+        let target_len: Bytes = target.len().into();
+        let target_range = common_lengths.prefix..(target_len - common_lengths.suffix);
         let target_text = target.sub(target_range).to_string();
 
         TextEdit { range: source_text_range.into(), text: target_text }

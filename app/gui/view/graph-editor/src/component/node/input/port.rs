@@ -188,6 +188,7 @@ impl Model {
         self.shape.as_ref().unwrap().clone_ref()
     }
 
+    /// The range of this port.
     pub fn range(&self) -> enso_text::Range<Bytes> {
         let start = self.index;
         let end = self.index + self.length;

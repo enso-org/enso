@@ -162,9 +162,10 @@ unit! {
 ///
 /// Note: Currently our text rendering engine display each codepoint as a separate glyph, so it does
 /// not support the grapheme clusters (as described in https://stackoverflow.com/a/27331885).
-/// If it does, the column should be measured in grapheme clusters, to have Text Area cursors behave
-/// correctly (and the usages shall be then fixed, as in
-/// [`crate::text::Text::column_of_byte_offset`]
+/// This should be fixed when doing
+/// https://www.pivotaltracker.com/n/projects/2539304/stories/180392693: after that, the column
+/// should be measured in grapheme clusters, to have Text Area cursors behave correctly (and the
+/// usages shall be then fixed, e.g. [`crate::text::Text::column_of_byte_offset`]).
 Column::column(i32)
 }
 
@@ -201,7 +202,7 @@ impl From<&usize> for Column {
 newtype! {
 /// A type representing 2d measurements.
 Location {
-    line: Line,
+    line:   Line,
     column: Column,
 }}
 

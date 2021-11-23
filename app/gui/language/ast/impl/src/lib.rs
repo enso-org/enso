@@ -8,10 +8,9 @@
 pub mod assoc;
 #[warn(missing_docs)]
 pub mod crumbs;
+pub mod id_map;
 #[warn(missing_docs)]
 pub mod identifier;
-
-pub mod id_map;
 #[warn(missing_docs)]
 pub mod internal;
 #[warn(missing_docs)]
@@ -72,7 +71,6 @@ pub use id_map::IdMap;
 
 use ast_macros::*;
 use enso_shapely::*;
-use enso_text as text;
 use enso_text::traits::*;
 use enso_text::unit::*;
 use serde::de::Deserializer;
@@ -341,10 +339,10 @@ impl Ast {
     }
 
     /// Get the span (relative to self) for a child node identified by given crumb.
-    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<text::Range<Bytes>> {
+    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<enso_text::Range<Bytes>> {
         let child = self.get(crumb)?;
         let offset = self.child_offset(child)?;
-        Ok(text::Range::new(offset, offset + child.len()))
+        Ok(enso_text::Range::new(offset, offset + child.len()))
     }
 }
 
@@ -1091,8 +1089,6 @@ impl<T: HasTokens> HasIdMap for T {
 // === HasRepr ===
 
 /// Things that can be asked about their textual representation.
-///
-/// See also `HasLength`.
 pub trait HasRepr {
     /// Obtain the text representation for the This type.
     fn repr(&self) -> String;
@@ -1103,6 +1099,11 @@ pub trait HasRepr {
     /// `x.len() == x.repr().len()` for any `x: impl HasRepr`.
     fn len(&self) -> Bytes {
         self.repr().len().into()
+    }
+
+    /// Check if the representation is empty.
+    fn is_empty(&self) -> bool {
+        self.len() >= 0.bytes()
     }
 
     /// Get the representation length in codepoints.
@@ -1266,9 +1267,12 @@ pub fn traverse_with_offset(ast: &impl HasTokens, f: impl FnMut(Codepoints, &Ast
 }
 
 /// Visits each Ast node, while keeping track of its span.
-pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(text::Range<Codepoints>, &Ast)) {
+pub fn traverse_with_span(
+    ast: &impl HasTokens,
+    mut f: impl FnMut(enso_text::Range<Codepoints>, &Ast),
+) {
     traverse_with_offset(ast, move |offset, ast| {
-        f(text::Range::new(offset, offset + ast.char_count()), ast)
+        f(enso_text::Range::new(offset, offset + ast.char_count()), ast)
     })
 }
 

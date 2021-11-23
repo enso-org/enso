@@ -6,6 +6,7 @@ use ast::IdMap;
 use enso_text::unit::*;
 
 
+
 // ================
 // === Text API ===
 // ================
@@ -24,13 +25,11 @@ pub fn apply_code_change_to_id_map(
     //   API. Because of such expected rewrite and deeper restructuring, we don't really want to
     //   spend much time on refactoring this function right now, even if it could be made nicer.
 
-
-
     let removed = &change.range.clone();
     let inserted = change.text.as_str();
-    let new_code = change.applied(code).unwrap_or(code.to_owned());
+    let new_code = change.applied(code).unwrap_or_else(|_| code.to_owned());
     let non_white = |c: char| !c.is_whitespace();
-    let logger = enso_logger::DefaultTraceLogger::new("apply_code_change_to_id_map");
+    let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
     let inserted_size: Bytes = inserted.len().into();
 
@@ -39,7 +38,7 @@ pub fn apply_code_change_to_id_map(
     info!(logger, "Updating the ID map with the following text edit: {change:?}.");
 
     // Remove all entries fully covered by the removed span.
-    vector.drain_filter(|(range, _)| removed.contains_range(&range));
+    vector.drain_filter(|(range, _)| removed.contains_range(range));
 
     // If the edited section ends up being the trailing part of AST node, how many bytes should be
     // trimmed from the id. Precalculated, as is constant in the loop below.
@@ -75,7 +74,7 @@ pub fn apply_code_change_to_id_map(
             // AST node starts after edited region — it will be simply shifted.
             let between_range: enso_text::Range<_> = (removed.end..range.start).into();
             let code_between = &code[between_range];
-            *range = range.moved_left(removed.size()).moved_right(inserted_size.into());
+            *range = range.moved_left(removed.size()).moved_right(inserted_size);
 
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
@@ -127,12 +126,12 @@ pub fn apply_code_change_to_id_map(
             }
             let new_repr = &new_code[*range];
             // Trim trailing spaces
-            let spaces: Bytes =
-                (spaces_size(new_repr.chars().rev()).as_usize() * ' '.len_utf8()).into();
-            if spaces > 0.bytes() {
-                debug!(logger, "Additionally trimming {spaces.as_usize()} trailing spaces.");
+            let space_count = spaces_size(new_repr.chars().rev());
+            let spaces_len: Bytes = (space_count.as_usize() * ' '.len_utf8()).into();
+            if spaces_len > 0.bytes() {
+                debug!(logger, "Additionally trimming {space_count.as_usize()} trailing spaces.");
                 debug!(logger, "The would-be code: `{new_repr}`.");
-                range.end -= spaces;
+                range.end -= spaces_len;
             }
         }
 
@@ -154,7 +153,7 @@ pub fn apply_code_change_to_id_map(
 
     // If non-preferred entry collides with the preferred one, remove the former.
     vector.drain_filter(|(range, id)| {
-        preferred.get(&range).map(|preferred_id| id != preferred_id).unwrap_or(false)
+        preferred.get(range).map(|preferred_id| id != preferred_id).unwrap_or(false)
     });
 }
 
@@ -227,10 +226,8 @@ mod test {
                     let inserted_code = insertion.map_or("", |insertion| {
                         &marked_code[insertion + INSERTION.len_utf8()..end]
                     });
-                    let range = enso_text::Range::new(
-                        start.into(),
-                        (erased_finish - START.len_utf8()).into(),
-                    );
+                    let range_end = (erased_finish - START.len_utf8()).into();
+                    let range = enso_text::Range::new(start.into(), range_end);
                     let change = enso_text::Change { range, text: inserted_code.to_string() };
                     Case { code, change }
                 }

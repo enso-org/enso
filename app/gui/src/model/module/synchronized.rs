@@ -322,7 +322,7 @@ impl Module {
                     let code_change =
                         TextEdit { range: replaced_location.into(), text: change.text };
                     let id_map_change = TextEdit {
-                        range: summary.id_map.clone().into(),
+                        range: summary.id_map.into(),
                         text:  new_file.id_map_slice().to_string(),
                     };
                     //id_map goes first, because code change may alter its position.
@@ -331,7 +331,7 @@ impl Module {
                 }
                 NotificationKind::MetadataChanged => {
                     let edits = vec![TextEdit {
-                        range: summary.metadata.clone().into(),
+                        range: summary.metadata.into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
                     self.notify_language_server(&summary.summary, &new_file, edits).await

@@ -566,10 +566,9 @@ impl Area {
                 );
             }
 
-            let range_before = ensogl_text::Range::new(
-                node.payload.index - node.payload.local_index,
-                node.payload.index,
-            );
+            let range_before_start = node.payload.index - node.payload.local_index;
+            let range_before_end = node.payload.index;
+            let range_before = ensogl_text::Range::new(range_before_start, range_before_end);
             let local_char_offset: Codepoints = code[range_before].chars().count().into();
 
             let new_parent = if not_a_port {

@@ -261,7 +261,7 @@ ensogl_core::define_endpoints! {
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
-        changed         (Vec<buffer::view::Change>),
+        changed         (Vec<enso_text::Change>),
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),

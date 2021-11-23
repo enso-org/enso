@@ -237,8 +237,7 @@ mod test {
                 Handle::new_mock(location, code, id_map, ls, parser, default()).unwrap();
 
             // Change code from "2+2" to "22+2"
-            let change =
-                enso_text::Change { range: (0.bytes()..0.bytes()).into(), text: "2".to_string() };
+            let change = enso_text::Change::inserted(0.bytes(), "2".to_string());
             controller.apply_code_change(change).unwrap();
             let expected_ast = Ast::new_no_id(ast::Module {
                 lines: vec![BlockLine {

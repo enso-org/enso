@@ -201,8 +201,7 @@ mod test {
             };
             let mut sub = controller.subscribe();
 
-            let change =
-                enso_text::Change { range: (8.bytes()..8.bytes()).into(), text: "2".to_string() };
+            let change = enso_text::Change::inserted(8.bytes(), "2".to_string());
             module.apply_code_change(change).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         })

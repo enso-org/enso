@@ -917,10 +917,16 @@ pub struct Change<Metric = Bytes, String = Text> {
 
 
 impl<Metric, String> Change<Metric, String> {
+    /// Create a change being an insert of the `text` at given `offset` (no text will be removed).
+    pub fn inserted(offset: Metric, text: String) -> Self
+    where Metric: Copy {
+        Self { range: Range::new(offset, offset), text }
+    }
+
     /// Return new [`Change`] with copied range and a reference to self's string.
     pub fn as_ref(&self) -> Change<Metric, &String>
     where Metric: Copy {
-        Change { range: self.range.clone(), text: &self.text }
+        Change { range: self.range, text: &self.text }
     }
 }
 

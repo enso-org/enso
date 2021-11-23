@@ -12,8 +12,8 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 
+use ast::id_map::JsonIdMap;
 pub use ast::Ast;
-
 
 
 // ================
@@ -59,9 +59,9 @@ impl SourceFile {
     /// the whole contents is treated as the code.
     pub fn new(content: String) -> Self {
         pub const METADATA_LINES: usize = 3;
-        let nl_offsets =
-            content.char_indices().filter_map(|(ix, c)| (c == '\n').as_some(Bytes::from(ix)));
-        let nl_offsets_from_end = nl_offsets.rev().take(METADATA_LINES).collect_vec();
+        let nl_offsets = content.char_indices().filter_map(|(ix, c)| (c == '\n').as_some(ix));
+        let nl_offsets_bytes = nl_offsets.map(Bytes::from);
+        let nl_offsets_from_end = nl_offsets_bytes.rev().take(METADATA_LINES).collect_vec();
         match nl_offsets_from_end.as_slice() {
             [last, before_last, two_before_last] => {
                 // Last line should be metadata. Line before should be id map. Line before is the
@@ -187,7 +187,8 @@ impl<M: Metadata> ParsedSourceFile<M> {
         let before_idmap = "\n";
         let before_metadata = "\n";
         let code = self.ast.repr();
-        let id_map = to_json_single_line(&self.ast.id_map().for_parser(&code))?;
+        let json_id_map = JsonIdMap::from_id_map(&self.ast.id_map(), &code);
+        let id_map = to_json_single_line(&json_id_map)?;
         let metadata = to_json_single_line(&self.metadata)?;
         let id_map_start = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
         let id_map_start_bytes = Bytes::from(id_map_start);
@@ -275,7 +276,8 @@ mod test {
         let source = ParsedSourceFile { ast, metadata };
         let serialized = source.serialize().unwrap();
 
-        let expected_id_map = to_json_single_line(&source.ast.id_map().for_parser(&repr)).unwrap();
+        let expected_json_id_map = JsonIdMap::from_id_map(&source.ast.id_map(), &repr);
+        let expected_id_map = to_json_single_line(&expected_json_id_map).unwrap();
         let expected_metadata = to_json_single_line(&source.metadata).unwrap();
         let expected_content = iformat!(
             r#"main = 2 + 2
