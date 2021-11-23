@@ -20,39 +20,36 @@ use web_sys::HtmlDivElement;
 // ========================
 
 struct Card<'a> {
-    /// Id of HTML element.
-    id:      &'a str,
-    /// Class of HTML element.
-    class:   &'a str,
-    /// URL to background image of the card.
-    img:     Option<&'a str>,
-    /// Header text of the card.
-    header:  &'a str,
-    /// Content text of the card.
-    content: &'a str,
+    id:        &'a str,
+    class:     &'a str,
+    image_url: Option<&'a str>,
+    header:    &'a str,
+    content:   &'a str,
 }
 
 const CARD_SPREADSHEETS: Card<'static> = Card {
-    id:      "card-spreadsheets",
-    class:   "card card-spreadsheets",
-    img:     Some("/assets/spreadsheets.png"),
-    header:  "Combine spreadsheets",
-    content: "Glue multiple spreadsheets together to analyse all your data at once.",
+    id:        "card-spreadsheets",
+    class:     "card card-spreadsheets",
+    image_url: Some("/assets/spreadsheets.png"),
+    header:    "Combine spreadsheets",
+    content:   "Glue multiple spreadsheets together to analyse all your data at once.",
 };
 const CARD_GEO: Card<'static> = Card {
-    id:      "card-geo",
-    class:   "card card-geo",
-    img:     None,
-    header:  "Geospatial analysis",
-    content: "Learn where to open a coffee shop to maximize your income.",
+    id:        "card-geo",
+    class:     "card card-geo",
+    image_url: None,
+    header:    "Geospatial analysis",
+    content:   "Learn where to open a coffee shop to maximize your income.",
 };
 const CARD_VISUALIZE: Card<'static> = Card {
-    id:      "card-visualize",
-    class:   "card card-visualize",
-    img:     None,
-    header:  "Analyze GitHub stars",
-    content: "Find out which of Enso's repositories are most popular over time.",
+    id:        "card-visualize",
+    class:     "card card-visualize",
+    image_url: None,
+    header:    "Analyze GitHub stars",
+    content:   "Find out which of Enso's repositories are most popular over time.",
 };
+
+
 
 // ======================
 // === Template Cards ===
@@ -131,7 +128,7 @@ impl TemplateCards {
         let card = web::create_div();
         card.set_id(definition.id);
         card.set_class_name(definition.class);
-        if let Some(src) = definition.img {
+        if let Some(src) = definition.image_url {
             let img = web::create_element("img");
             img.set_attribute_or_warn("src", src, logger);
             card.append_or_warn(&img, logger);
