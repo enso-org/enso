@@ -1,6 +1,6 @@
 //! Side menu for Welcome Screen.
 //!
-//! Side menu contains a list of available projects and "new project" button.
+//! Side menu contains a list of available projects and a "new project" button.
 
 use ensogl::prelude::*;
 
@@ -16,7 +16,7 @@ use web_sys::Element;
 // === SideMenu ===
 // ================
 
-/// Side menu for Welcome Screen. Contains a list of available projects and "new project" button.
+/// Side menu for Welcome Screen. Contains a list of available projects and a "new project" button.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SideMenu {
     logger:             Logger,

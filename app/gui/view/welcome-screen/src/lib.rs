@@ -1,6 +1,6 @@
 //! WelcomeScreen View.
 //!
-//! It is the opened when the IDE launches without any project or entry point selected. It
+//! It is opened when the IDE launches without any project or entry point selected. It
 //! displays a list of available projects, template cards and "new project" button.
 //!
 //! The DOM of the view is generated in Rust, while CSS styles for elements are provided in

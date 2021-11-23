@@ -1,6 +1,6 @@
 //! Template cards for Welcome Screen.
 //!
-//! Template cards allows user to select a predefined template by clicking on the corresponding
+//! Template cards allow user to select a predefined template by clicking on the corresponding
 //! card.
 
 use ensogl::prelude::*;
@@ -59,7 +59,7 @@ const CARD_VISUALIZE: Card<'static> = Card {
 // ======================
 
 /// Template Cards for Welcome View. It contains a few predefined template cards. Clicking on
-/// template creates a new project with some prepared code.
+/// a template card creates a new project with some prepared code.
 #[derive(Debug, Clone, CloneRef)]
 pub struct TemplateCards {
     logger:       Logger,

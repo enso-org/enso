@@ -25,7 +25,7 @@ enum State {
     OpenedProject,
 }
 
-/// Root View model. Stores both Welcome Screen and Project View views and handles their
+/// Root View model. Stores both Welcome Screen and Project views and handles their
 /// visibility.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
