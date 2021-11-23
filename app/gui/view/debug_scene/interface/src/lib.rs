@@ -232,7 +232,7 @@ fn init(app: &Application) {
         }
     });
 
-    project_view.show_prompt();
+    root_view.project().show_prompt();
 
     // === Profiling ===
 
