@@ -2,9 +2,6 @@
 //!
 //! It is opened when the IDE launches without any project or entry point selected. It
 //! displays a list of available projects, template cards and "new project" button.
-//!
-//! The DOM of the view is generated in Rust, while CSS styles for elements are provided in
-//! `app/ide-desktop/lib/content/src/style.css`.
 
 #![warn(missing_docs)]
 
@@ -30,10 +27,23 @@ use web_sys::MouseEvent;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// Padding of Welcome Screen from the left border of the screen. In fractions of screen's width.
+const PADDING_LEFT: f32 = 0.15;
+
+
+
 // =============
 // === Model ===
 // =============
 
+
+// === CSS Styles ===
+
+static STYLESHEET: &str = include_str!("../style.css");
 
 // === ClickClosure ===
 
@@ -90,6 +100,10 @@ impl Model {
         app.display.scene().layers.panel.add_exclusive(&dom);
         app.display.scene().dom.layers.fullscreen_vis.manage(&dom);
 
+        let style = web::create_element("style");
+        style.set_inner_html(STYLESHEET);
+        dom.append_or_warn(&style, &logger);
+
         Self { application, logger, dom, display_object, side_menu, template_cards }
     }
 }
@@ -137,7 +151,8 @@ impl View {
 
             let shape = app.display.scene().shape().clone_ref();
             position <- shape.map(|scene_size| {
-                let x = -scene_size.width / 2.0;
+                let padding_left = scene_size.width * PADDING_LEFT;
+                let x = -scene_size.width / 2.0 + padding_left;
                 let y =  scene_size.height / 2.0;
                 Vector2(x, y)
             });
