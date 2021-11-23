@@ -19,6 +19,9 @@ use web_sys::HtmlDivElement;
 // === Cards Definition ===
 // ========================
 
+
+// === Card struct. ===
+
 struct Card<'a> {
     id:        &'a str,
     class:     &'a str,
@@ -26,6 +29,9 @@ struct Card<'a> {
     header:    &'a str,
     content:   &'a str,
 }
+
+
+// === Predefined cards. ===
 
 const CARD_SPREADSHEETS: Card<'static> = Card {
     id:        "card-spreadsheets",
