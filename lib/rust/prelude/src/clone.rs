@@ -87,8 +87,8 @@ impl_clone_ref_as_clone_no_from!([T:?Sized] Rc<T>);
 impl_clone_ref_as_clone_no_from!([T:?Sized] Weak<T>);
 
 #[cfg(feature = "wasm-bindgen")]
-impl_clone_ref_as_clone_no_from!(web_sys::Element);
 impl_clone_ref_as_clone_no_from!(wasm_bindgen::JsValue);
+impl_clone_ref_as_clone_no_from!(web_sys::Element);
 impl_clone_ref_as_clone_no_from!(web_sys::HtmlDivElement);
 impl_clone_ref_as_clone_no_from!(web_sys::HtmlElement);
 impl_clone_ref_as_clone_no_from!(web_sys::Performance);
