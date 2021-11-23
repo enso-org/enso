@@ -67,7 +67,7 @@ impl Model {
 
 ensogl::define_endpoints! {
     Input {
-        /// Switch displayed view from to Project View.
+        /// Switch displayed view to Project View.
         switch_view_to_project(),
     }
     Output {
