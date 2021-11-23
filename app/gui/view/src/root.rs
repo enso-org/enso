@@ -112,12 +112,12 @@ impl View {
     }
 
     /// Project View.
-    pub fn project_view(&self) -> &crate::project::View {
+    pub fn project(&self) -> &crate::project::View {
         &self.model.project_view
     }
 
     /// Welcome View.
-    pub fn welcome_view(&self) -> &crate::welcome_screen::View {
+    pub fn welcome_screen(&self) -> &crate::welcome_screen::View {
         &self.model.welcome_view
     }
 }
