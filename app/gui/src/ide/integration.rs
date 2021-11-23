@@ -38,7 +38,8 @@ impl Model {
         if let Some(project_model) = self.controller.current_project() {
             // We know the name of new project before it loads. We set it right now to avoid
             // displaying placeholder on the scene during loading.
-            let breadcrumbs = &self.view.project().graph().model.breadcrumbs;
+            let project_view = self.view.project();
+            let breadcrumbs = &project_view.graph().model.breadcrumbs;
             breadcrumbs.project_name(project_model.name().to_string());
 
             let status_notifications = self.controller.status_notifications().clone_ref();
@@ -47,7 +48,7 @@ impl Model {
             executor::global::spawn(async move {
                 match project.initialize().await {
                     Ok(result) => {
-                        let view = self.view.project().clone_ref();
+                        let view = project_view;
                         let status_bar = self.view.status_bar().clone_ref();
                         let text = result.main_module_text;
                         let graph = result.main_graph;

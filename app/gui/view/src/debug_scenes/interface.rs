@@ -101,8 +101,8 @@ fn init(app: &Application) {
     app.views.register::<GraphEditor>();
     let root_view = app.new_view::<root::View>();
     root_view.switch_view_to_project();
-    let graph_editor = root_view.project().graph();
-    let code_editor = root_view.project().code_editor();
+    let graph_editor = root_view.project().graph().clone_ref();
+    let code_editor = root_view.project().code_editor().clone_ref();
     world.add_child(&root_view);
 
     code_editor.text_area().set_content(STUB_MODULE.to_owned());
