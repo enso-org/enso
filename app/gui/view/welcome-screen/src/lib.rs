@@ -73,8 +73,8 @@ impl Model {
                 let container = web::create_div();
                 container.set_class_name("container");
 
-                container.append_or_warn(&side_menu.root, &logger);
-                container.append_or_warn(&template_cards.root, &logger);
+                container.append_or_warn(&side_menu.root_dom, &logger);
+                container.append_or_warn(&template_cards.root_dom, &logger);
 
                 container
             };

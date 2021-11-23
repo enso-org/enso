@@ -62,18 +62,17 @@ const CARD_VISUALIZE: Card<'static> = Card {
 /// template creates a new project with some prepared code.
 #[derive(Debug, Clone, CloneRef)]
 pub struct TemplateCards {
-    logger:   Logger,
-    /// Root DOM element of template cards.
-    pub root: Element,
-    closures: Rc<RefCell<Vec<ClickClosure>>>,
+    logger:       Logger,
+    pub root_dom: Element,
+    closures:     Rc<RefCell<Vec<ClickClosure>>>,
 }
 
 impl TemplateCards {
     /// Constructor.
     pub fn new(logger: &Logger) -> Self {
         let logger = Logger::new_sub(logger, "TemplateCards");
-        let root = web::create_element("main");
-        root.set_class_name("content");
+        let root_dom = web::create_element("main");
+        root_dom.set_class_name("content");
 
         let templates = {
             let templates = web::create_div();
@@ -88,9 +87,9 @@ impl TemplateCards {
 
             templates
         };
-        root.append_or_warn(&templates, &logger);
+        root_dom.append_or_warn(&templates, &logger);
 
-        Self { logger, root, closures: default() }
+        Self { logger, root_dom, closures: default() }
     }
 
     /// Create main content, a set of cards.

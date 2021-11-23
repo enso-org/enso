@@ -20,8 +20,7 @@ use web_sys::Element;
 #[derive(Clone, CloneRef, Debug)]
 pub struct SideMenu {
     logger:             Logger,
-    /// Root DOM element of the side menu.
-    pub root:           Element,
+    pub root_dom:       Element,
     new_project_button: Element,
     projects_list:      Element,
     closures:           Rc<RefCell<Vec<ClickClosure>>>,
@@ -31,8 +30,8 @@ impl SideMenu {
     /// Constructor.
     pub fn new(logger: &Logger) -> Self {
         let logger = Logger::new_sub(logger, "SideMenu");
-        let root = web::create_element("aside");
-        root.set_class_name("side-menu");
+        let root_dom = web::create_element("aside");
+        root_dom.set_class_name("side-menu");
 
 
         // === Header ===
@@ -42,7 +41,7 @@ impl SideMenu {
             header.set_text_content(Some("Your projects"));
             header
         };
-        root.append_or_warn(&header, &logger);
+        root_dom.append_or_warn(&header, &logger);
 
 
         // === Projects list ===
@@ -63,8 +62,8 @@ impl SideMenu {
             projects_list.append_or_warn(&button, &logger);
             button
         };
-        root.append_or_warn(&projects_list, &logger);
+        root_dom.append_or_warn(&projects_list, &logger);
 
-        Self { logger, root, projects_list, new_project_button, closures: default() }
+        Self { logger, root_dom, projects_list, new_project_button, closures: default() }
     }
 }
