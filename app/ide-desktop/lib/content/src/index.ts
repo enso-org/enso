@@ -968,7 +968,7 @@ async function mainEntryPoint(config: Config) {
 }
 
 async function runEntryPoint(config: Config) {
-    if (ok(config.project) || config.rust_welcome_screen) {
+    if (ok(config.project) || config.rust_welcome_screen || ok(config.entry)) {
         await mainEntryPoint(config)
     } else {
         await templates.loadTemplatesView((name: string) => {
