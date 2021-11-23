@@ -58,12 +58,11 @@ impl SideMenu {
         // === New project button ===
 
         let new_project_button = {
-            let new_project_button = web::create_element("li");
-            new_project_button.set_id("projects-list-new-project");
-            new_project_button
-                .set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
-            projects_list.append_or_warn(&new_project_button, &logger);
-            new_project_button
+            let button = web::create_element("li");
+            button.set_id("projects-list-new-project");
+            button.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
+            projects_list.append_or_warn(&button, &logger);
+            button
         };
         root.append_or_warn(&projects_list, &logger);
 
