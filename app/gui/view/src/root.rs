@@ -1,10 +1,7 @@
 //! Root View of the IDE.
 //!
 //! The main entry point to the IDE which can display either Welcome Screen or Project View.
-//! Initially displays Welcome Screen. As soon as user selects a project to open, Root View
-//! switches state to Project View and stays in this state till the application quit.
-// TODO [vitvakatu]: at the moment Root View is not used as described, but it will be used in the
-// following tasks.
+//! Initially displays Welcome Screen.
 
 use ensogl::prelude::*;
 

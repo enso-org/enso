@@ -67,7 +67,8 @@ impl Initializer {
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
             let view = application.new_view::<ide_view::root::View>();
 
-            // TODO [vitvakatu]: this is a temporary feature flag and would be removed later.
+            // If `rust_welcome_screen` feature-flag is not used, switch to project view
+            // immediately.
             if !enso_config::ARGS.rust_welcome_screen.unwrap_or(false) {
                 view.switch_view_to_project();
             }

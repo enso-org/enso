@@ -30,7 +30,6 @@ pub struct SideMenu {
 
 impl SideMenu {
     /// Constructor.
-    // TODO [vitvakatu]: _frp argument is not used now, but will be in the next tasks.
     pub fn new(logger: &Logger, _frp: &Frp) -> Self {
         let logger = Logger::new_sub(logger, "SideMenu");
         let root = web::create_element("aside");

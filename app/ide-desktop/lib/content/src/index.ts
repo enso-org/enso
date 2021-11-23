@@ -797,8 +797,6 @@ function ok(value: any) {
 }
 
 class Config {
-    // TODO [vitvakatu]: it is a temporary feature-switch that would be removed.
-    public rust_welcome_screen: boolean
     public entry: string
     public project: string
     public project_manager: string
@@ -821,10 +819,10 @@ class Config {
     public authentication_enabled: boolean
     public email: string
     public application_config_url: string
+    public rust_welcome_screen: boolean
 
     static default() {
         let config = new Config()
-        config.rust_welcome_screen = false
         config.use_loader = true
         config.wasm_url = '/assets/ide.wasm'
         config.wasm_glue_url = '/assets/wasm_imports.js'
@@ -835,6 +833,7 @@ class Config {
         config.authentication_enabled = true
         config.application_config_url =
             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
+        config.rust_welcome_screen = false
         return config
     }
 
@@ -842,9 +841,6 @@ class Config {
         if (!ok(other)) {
             return
         }
-        this.rust_welcome_screen = ok(other.rust_welcome_screen)
-            ? tryAsBoolean(other.rust_welcome_screen)
-            : this.rust_welcome_screen
         this.entry = ok(other.entry) ? tryAsString(other.entry) : this.entry
         this.project = ok(other.project) ? tryAsString(other.project) : this.project
         this.project_manager = ok(other.project_manager)
@@ -887,6 +883,9 @@ class Config {
         this.application_config_url = ok(other.application_config_url)
             ? tryAsString(other.application_config_url)
             : this.application_config_url
+        this.rust_welcome_screen = ok(other.rust_welcome_screen)
+            ? tryAsBoolean(other.rust_welcome_screen)
+            : this.rust_welcome_screen
     }
 }
 

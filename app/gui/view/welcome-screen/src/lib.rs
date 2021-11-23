@@ -102,7 +102,6 @@ impl Model {
 // === FRP ===
 // ===========
 
-// TODO [vitvakatu]: is empty for now, but will be filled in the next tasks
 ensogl::define_endpoints! {
     Input {}
     Output {}

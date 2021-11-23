@@ -71,7 +71,6 @@ pub struct TemplateCards {
 
 impl TemplateCards {
     /// Constructor.
-    // TODO [vitvakatu]: `_frp` argument is unused now, but will be used in the future tasks.
     pub fn new(logger: &Logger, _frp: &Frp) -> Self {
         let logger = Logger::new_sub(logger, "TemplateCards");
         let root = web::create_element("main");
