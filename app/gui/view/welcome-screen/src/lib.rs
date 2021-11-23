@@ -50,6 +50,20 @@ mod css_id {
 }
 
 
+// === Classes for CSS styles ===
+
+const TEMPLATES_VIEW_ROOT: &str = "enso-internal-templates-view";
+const CONTAINER: &str = "enso-internal-container";
+const SIDE_MENU: &str = "enso-internal-side-menu";
+const CONTENT: &str = "enso-internal-content";
+const CARDS: &str = "enso-internal-cards";
+const CARD: &str = "enso-internal-card";
+const ROW: &str = "enso-internal-row";
+const CARD_SPREADSHEETS: &str = "enso-internal-card-spreadsheets";
+const CARD_GEO: &str = "enso-internal-card-geo";
+const CARD_VISUALIZE: &str = "enso-internal-card-visualize";
+
+
 
 // =============
 // === Model ===
