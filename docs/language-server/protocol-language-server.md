@@ -140,7 +140,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
   - [`search/completion`](#searchcompletion)
-  - [`search/import`](#searchimport)
 - [Input/Output Operations](#inputoutput-operations)
   - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
@@ -3881,49 +3880,6 @@ the type match.
   root directory
 - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
   cannot be extracted from the provided file path parameter
-
-### `search/import`
-
-Sent from client to the server to receive the information required for module
-import.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  /**
-   * The id of suggestion to import.
-   */
-  id: SuggestionId;
-}
-```
-
-#### Result
-
-```typescript
-{
-  /**
-   * The definition module of the suggestion.
-   */
-  module: String;
-
-  /**
-   * The name of the resolved suggestion.
-   */
-  symbol: String;
-
-  /**
-   * The list of modules that re-export the suggestion. Modules are ordered
-   * from the least to most nested.
-   */
-  exports: Export[];
-}
-```
 
 #### Errors
 
