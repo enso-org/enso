@@ -650,7 +650,7 @@ mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree() {
         let parser = Parser::new_or_panic();
         let mut id_map = IdMap::default();
@@ -696,7 +696,7 @@ mod test {
         assert_eq!(expected, tree)
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generate_span_tree_with_chains() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast("2 + 3 + foo bar baz 13 + 5").unwrap();
@@ -738,7 +738,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_from_right_assoc_operator() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast("1,2,3").unwrap();
@@ -762,7 +762,7 @@ mod test {
         assert_eq!(expected, tree)
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_from_section() {
         let parser = Parser::new_or_panic();
         // The star makes `SectionSides` ast being one of the parameters of + chain. First + makes
@@ -798,7 +798,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_from_right_assoc_section() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast(",2,").unwrap();
@@ -819,7 +819,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_from_matched_macros() {
         use PatternMatchCrumb::*;
 
@@ -871,7 +871,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_from_matched_list_macro() {
         use PatternMatchCrumb::*;
 
@@ -900,7 +900,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_from_ambiguous_macros() {
         let parser = Parser::new_or_panic();
         let mut id_map = IdMap::default();
@@ -924,7 +924,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_for_lambda() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast("foo a-> b + c").unwrap();
@@ -941,7 +941,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_span_tree_for_unfinished_call() {
         let parser = Parser::new_or_panic();
         let this_param =

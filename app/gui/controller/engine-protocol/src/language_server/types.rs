@@ -518,7 +518,6 @@ impl TextEdit {
     /// Example:
     /// ```
     /// # use engine_protocol::language_server::{TextEdit, Position, TextRange};
-    /// # use enso_data::text::TextLocation;
     /// let source = "\n333<->🌊12345\n";
     /// let target = "\n333x🔥12345\n";
     /// let diff = TextEdit::from_prefix_postfix_differences(source, target);
@@ -547,12 +546,14 @@ impl TextEdit {
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "".to_string() });
     /// ```
     pub fn from_prefix_postfix_differences(
-        source: &enso_text::Text,
-        target: &enso_text::Text,
+        source: impl Into<enso_text::Text>,
+        target: impl Into<enso_text::Text>,
     ) -> TextEdit {
         use enso_text::unit::*;
         use enso_text::Range;
 
+        let source = source.into();
+        let target = target.into();
         let common_lengths = source.common_prefix_and_suffix(&target);
 
         let source_start_byte = common_lengths.prefix;

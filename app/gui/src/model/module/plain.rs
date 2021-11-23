@@ -237,7 +237,7 @@ mod test {
 
     use enso_text::traits::*;
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn applying_code_change() {
         let _test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("2 + 2");
@@ -249,7 +249,7 @@ mod test {
         assert_eq!("2 - abc", module.ast().repr());
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn notifying() {
         let mut test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("");
@@ -306,7 +306,7 @@ mod test {
         assert_eq!(None, test.expect_completion(subscription.next()));
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn handling_metadata() {
         let _test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("");

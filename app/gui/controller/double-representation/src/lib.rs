@@ -218,7 +218,7 @@ mod tests {
         assert_eq!(doc.line().repr(), doc2.line().repr())
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn parse_single_line_comment() {
         let parser = parser::Parser::new_or_panic();
 
@@ -255,7 +255,7 @@ main =
         run_case(&parser, code, expected);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn parse_multi_line_comment() {
         let parser = parser::Parser::new_or_panic();
         let code = r#"

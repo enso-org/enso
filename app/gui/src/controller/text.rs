@@ -185,7 +185,7 @@ mod test {
         Rc::new(project)
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn passing_notifications_from_module() {
         let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
@@ -208,7 +208,7 @@ mod test {
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn obtain_plain_text_controller() {
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let project = setup_mock_project(|_| {});
@@ -227,7 +227,7 @@ mod test {
         });
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn obtain_text_controller_for_module() {
         let parser = parser::Parser::new_or_panic();
         TestWithLocalPoolExecutor::set_up().run_task(async move {

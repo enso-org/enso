@@ -44,7 +44,7 @@ pub fn web_test(_args: TokenStream, input: TokenStream) -> TokenStream {
             parsed.block.stmts.insert(0, stmt);
 
             let output = quote! {
-                #[wasm_bindgen_test]
+                #[test] //#[wasm_bindgen_test]
                 #parsed
             };
             output.into()
@@ -96,7 +96,7 @@ pub fn web_bench(_args: TokenStream, input: TokenStream) -> TokenStream {
         let fn_benchmark = Ident::new(&fn_benchmark_str, Span::call_site());
 
         let output = quote! {
-            #[wasm_bindgen_test]
+            #[test] //#[wasm_bindgen_test]
             fn #fn_benchmark() {
                 let container = BenchContainer::new(#fn_string, 320.0, 240.0);
                 let mut b = Bencher::new(container);

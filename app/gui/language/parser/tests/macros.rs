@@ -6,7 +6,7 @@ use wasm_bindgen_test::wasm_bindgen_test_configure;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-#[wasm_bindgen_test]
+#[test] //#[wasm_bindgen_test]
 fn import_utilities() {
     use ast::macros::ast_as_import_match;
     use ast::macros::is_ast_import;
@@ -47,7 +47,7 @@ fn import_utilities() {
     expect_not_import("from Foo export all hiding Bar");
 }
 
-#[wasm_bindgen_test]
+#[test] //#[wasm_bindgen_test]
 fn recognizing_lambdas() {
     let parser = Parser::new_or_panic();
 

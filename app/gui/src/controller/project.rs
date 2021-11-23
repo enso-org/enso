@@ -273,7 +273,7 @@ mod tests {
         assert!(requirements.matches(&version))
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn adding_missing_main() {
         let _ctx = TestWithLocalPoolExecutor::set_up();
         let parser = parser::Parser::new_or_panic();

@@ -26,7 +26,7 @@ use crate::prelude::*;
 /// impl Graph {
 ///     /// When calling this function, you won't mix the edge id with vertex id.
 ///     fn do_something_with_vertex_and_edge(&self, v: Index<Vertex>, e: Index<Edge>) {
-///         do_something(&self.edges[e], &self.vertices[v]);
+///         do_something(&self.edges[e.raw], &self.vertices[v.raw]);
 ///     }
 /// }
 /// ```

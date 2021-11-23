@@ -698,7 +698,7 @@ mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn notify_backend_connection_lost() {
         use crate::model::project::BackendConnection::*;
         use crate::model::project::Notification;
@@ -723,7 +723,7 @@ mod test {
         });
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn obtain_module_controller() {
         let path = module::Path::from_mock_module_name("TestModule");
         let another_path = module::Path::from_mock_module_name("TestModule2");
@@ -766,7 +766,7 @@ mod test {
     /// * created execution context appears in the registry
     /// * project controller correctly dispatches the LS notification with type information
     /// * the type information is correctly recorded and available in the execution context
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn execution_context_management() {
         use execution_context::synchronized::test::Fixture as ExecutionFixture;
         use language_server::Event;

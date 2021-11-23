@@ -241,7 +241,7 @@ mod test {
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn actions_in_span_tree() {
         #[derive(Debug)]
         struct Case {
@@ -327,7 +327,7 @@ mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn possible_actions_in_span_tree() {
         #[derive(Debug)]
         struct Case {

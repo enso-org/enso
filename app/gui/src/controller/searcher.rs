@@ -1398,7 +1398,7 @@ pub mod test {
     /// 2) instead the searcher model obtains the type information for the selected node and uses it
     ///    to query Language Server for the suggestion list;
     /// 3) The query for argument type takes the this-argument presence into consideration.
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn loading_list_w_self() {
         let mock_type = crate::test::mock::data::TYPE_NAME;
 
@@ -1465,7 +1465,7 @@ pub mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn arguments_suggestions_for_picked_method() {
         let mut fixture = Fixture::new_custom(|data, client| {
             data.expect_completion(client, None, Some("Number"), &[20]);
@@ -1477,7 +1477,7 @@ pub mod test {
         assert!(!searcher.actions().is_loading());
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn arguments_suggestions_for_picked_function() {
         let mut fixture = Fixture::new_custom(|data, client| {
             data.expect_completion(client, None, Some("Text"), &[]); // First arg suggestion.
@@ -1493,7 +1493,7 @@ pub mod test {
         searcher.set_input("testFunction2 'foo' 10 ".to_owned()).unwrap();
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn non_picked_function_arg_suggestions() {
         let mut fixture = Fixture::new_custom(|data, client| {
             data.graph.module.code.insert_str(0, "import test.Test.Test\n\n");
@@ -1516,7 +1516,7 @@ pub mod test {
         searcher.set_input("unknownFunction ".to_string()).unwrap();
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn non_picked_function_arg_suggestion_ambiguous() {
         fn run_case(input: impl Str, setup: impl FnOnce(&mut Fixture)) {
             // In each case we expect that we can pick two methods with the same name, but different
@@ -1558,7 +1558,7 @@ pub mod test {
         });
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn loading_list() {
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
@@ -1581,7 +1581,7 @@ pub mod test {
         assert_eq!(notification, Some(Notification::NewActionList));
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn parsed_input() {
         let parser = Parser::new_or_panic();
 
@@ -1661,7 +1661,7 @@ pub mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn picked_completions_list_maintaining() {
         let Fixture { test: _test, searcher, entry1, entry2, .. } =
             Fixture::new_custom(|data, client| {
@@ -1718,7 +1718,7 @@ pub mod test {
         assert!(are_same(&arg.picked_suggestion, &entry2));
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn applying_this_var() {
         #[derive(Copy, Clone, Debug)]
         struct Case {
@@ -1756,7 +1756,7 @@ pub mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn adding_node_introducing_this_var() {
         struct Case {
             line:   &'static str,
@@ -1830,7 +1830,7 @@ pub mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn adding_imports_with_nodes() {
         fn expect_inserted_import_for(
             entry: &Rc<model::suggestion_database::Entry>,
@@ -1871,7 +1871,7 @@ pub mod test {
         expect_inserted_import_for(&entry10, vec![&entry10.module]);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn committing_node() {
         let Fixture { test: _test, mut searcher, entry4, .. } = Fixture::new();
         let module = searcher.graph.graph().module.clone_ref();
@@ -1911,7 +1911,7 @@ pub mod test {
         assert_eq!(module.ast().repr(), expected_code);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn initialized_data_when_editing_node() {
         let Fixture { test: _test, searcher, entry4, .. } = Fixture::new();
 
@@ -1962,7 +1962,7 @@ pub mod test {
         assert!(are_same(&initial_fragment.picked_suggestion, &entry4))
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn simple_function_call_parsing() {
         let parser = Parser::new_or_panic();
 
@@ -1991,7 +1991,7 @@ pub mod test {
         assert!(SimpleFunctionCall::try_new(&ast).is_none());
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn adding_example() {
         let Fixture { test: _test, searcher, .. } = Fixture::new();
         let module = searcher.graph.graph().module.clone_ref();
@@ -2007,7 +2007,7 @@ pub mod test {
         assert_eq!(module.ast().repr(), expected_code);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn adding_example_twice() {
         let Fixture { test: _test, searcher, .. } = Fixture::new();
         let module = searcher.graph.graph().module.clone_ref();

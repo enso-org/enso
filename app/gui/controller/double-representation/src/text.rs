@@ -303,7 +303,7 @@ mod test {
         assert_eq!(case.resulting_code(), "fooc");
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn applying_code_changes_to_id_map() {
         let parser = Parser::new_or_panic();
 

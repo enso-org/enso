@@ -16,7 +16,7 @@ use wasm_bindgen_test::wasm_bindgen_test;
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
-#[wasm_bindgen_test]
+#[test] //#[wasm_bindgen_test]
 pub fn to_assignment_test() {
     let parser = parser::Parser::new_or_panic();
     let is_assignment = |code: &str| {
@@ -36,7 +36,7 @@ pub fn to_assignment_test() {
     }
 }
 
-#[wasm_bindgen_test]
+#[test] //#[wasm_bindgen_test]
 pub fn generalized_infix_test() {
     let parser = parser::Parser::new_or_panic();
     let make_gen_infix = |code: &str| {
@@ -65,7 +65,7 @@ pub fn generalized_infix_test() {
     assert!(var_as_infix.is_none());
 }
 
-#[wasm_bindgen_test]
+#[test] //#[wasm_bindgen_test]
 pub fn flatten_prefix_test() {
     fn expect_pieces(flattened: &prefix::Chain, pieces: Vec<&str>) {
         let mut piece_itr = pieces.iter();
@@ -91,7 +91,7 @@ pub fn flatten_prefix_test() {
     case("a b + c d", vec!["a b + c d"]); // nothing to flatten, this is infix, not prefix
 }
 
-#[wasm_bindgen_test]
+#[test] //#[wasm_bindgen_test]
 pub fn flatten_infix_test() {
     fn expect_pieces(flattened: &opr::Chain, target: &str, pieces: Vec<&str>) {
         assert_eq!(flattened.target.as_ref().map(|a| &a.arg).repr(), target);

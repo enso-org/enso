@@ -133,7 +133,7 @@ impl SourceFile {
 
     fn slice(&self, range: &Range<Bytes>) -> &str {
         let start = range.start.as_usize();
-        let end = range.start.as_usize();
+        let end = range.end.as_usize();
         &self.content[start..end]
     }
 }

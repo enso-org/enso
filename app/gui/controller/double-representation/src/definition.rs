@@ -564,7 +564,7 @@ mod tests {
         iformat!("    {line}")
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn generating_definition_to_add() {
         let parser = Parser::new_or_panic();
         let mut to_add = ToAdd {
@@ -592,7 +592,7 @@ mod tests {
         assert_eq!(ast.repr(), "Main.add arg1 arg2 =\n        arg1 + arg2\n        arg1 - arg2");
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn definition_name_tests() {
         let parser = parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo.Bar.baz").unwrap();
@@ -607,14 +607,14 @@ mod tests {
         assert_eq!(ast.get_traversing(&name.extended_target[1].crumbs).unwrap().repr(), "Bar");
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn definition_name_rejecting_incomplete_names() {
         let parser = parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo. .baz").unwrap();
         assert!(DefinitionName::from_ast(&ast).is_none());
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn definition_info_name() {
         let parser = parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo.bar a b c = baz").unwrap();
@@ -624,7 +624,7 @@ mod tests {
         assert_eq!(ast.get_traversing(&definition.name.crumbs).unwrap().repr(), "Foo.bar");
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn located_definition_args() {
         let parser = parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("foo bar baz = a + b + c").unwrap();
@@ -643,7 +643,7 @@ mod tests {
         assert_eq!(ast.get_traversing(&arg1.crumbs).unwrap(), &arg1.item);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn match_is_not_definition() {
         let cons = Ast::cons("Foo");
         let arg = Ast::number(5);
@@ -666,7 +666,7 @@ mod tests {
         assert!(def_opt.is_some());
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn list_definition_test() {
         let parser = parser::Parser::new_or_panic();
 
@@ -713,7 +713,7 @@ mod tests {
         assert_eq_strings(to_names(&nested_defs), expected_def_names_in_def);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn finding_root_definition() {
         let program_to_expected_main_pos = vec![
             ("main = bar", 0),
@@ -736,7 +736,7 @@ mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     fn getting_nested_definition() {
         let program = r"
 main =

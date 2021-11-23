@@ -12,7 +12,7 @@ use wasm_bindgen_test::wasm_bindgen_test_configure;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-#[wasm_bindgen_test]
+#[test] //#[wasm_bindgen_test]
 fn web_test() {
     let uuid = Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
 

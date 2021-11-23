@@ -200,7 +200,7 @@ mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     pub fn connection_listing_test_plain() {
         use InfixCrumb::LeftOperand;
         use InfixCrumb::RightOperand;
@@ -244,13 +244,13 @@ f = fun 2";
         assert_eq!(run.connections.len(), 4);
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     pub fn inline_definition() {
         let run = TestRun::from_main_def("main = a");
         assert!(run.connections.is_empty());
     }
 
-    #[wasm_bindgen_test]
+    #[test] //#[wasm_bindgen_test]
     pub fn listing_dependent_nodes() {
         let code_block = "\
             f,g = p
