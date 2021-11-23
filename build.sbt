@@ -1,3 +1,4 @@
+import LibraryManifestGenerator.BundledLibrary
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
@@ -1013,6 +1014,27 @@ lazy val `language-server` = (project in file("engine/language-server"))
       new TestFramework("org.scalameter.ScalaMeterFramework")
     )
   )
+  .settings(
+    // These settings are needed by language-server tests that create a runtime context.
+    Test / fork := true,
+    Test / javaOptions ++= {
+      // Note [Classpath Separation]
+      val runtimeClasspath =
+        (LocalProject("runtime") / Compile / fullClasspath).value
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(
+        s"-Dtruffle.class.path.append=$runtimeClasspath",
+        s"-Duser.dir=${file(".").getCanonicalPath}"
+      )
+    },
+    Test / compile := (Test / compile)
+      .dependsOn(LocalProject("enso") / updateLibraryManifests)
+      .value,
+    Test / envVars ++= Map(
+      "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
+    )
+  )
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`task-progress-notifications`)
@@ -1632,7 +1654,7 @@ lazy val `std-database` = project
           `database-polyglot-root`,
           Some("std-database.jar"),
           ignoreScalaLibrary = true,
-          unpackedDeps = Set("aws-java-sdk-core", "httpclient")
+          unpackedDeps       = Set("aws-java-sdk-core", "httpclient")
         )
         .value
       result
@@ -1684,7 +1706,8 @@ projectManagerDistributionRoot :=
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
-  val _            = (`engine-runner` / assembly).value
+  val _ = (`engine-runner` / assembly).value
+  updateLibraryManifests.value
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
@@ -1742,5 +1765,25 @@ buildGraalDistribution := {
     log,
     os,
     DistributionPackage.Architecture.X64
+  )
+}
+
+lazy val updateLibraryManifests =
+  taskKey[Unit](
+    "Recomputes dependencies to update manifests bundled with libraries."
+  )
+updateLibraryManifests := {
+  val _            = (`engine-runner` / assembly).value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  val libraries = Editions.standardLibraries.map(libName =>
+    BundledLibrary(libName, stdLibVersion)
+  )
+
+  LibraryManifestGenerator.generateManifests(
+    libraries,
+    file("distribution"),
+    log,
+    cacheFactory
   )
 }

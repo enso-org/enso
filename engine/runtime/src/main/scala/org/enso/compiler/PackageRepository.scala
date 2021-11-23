@@ -244,7 +244,7 @@ object PackageRepository {
           case Left(error) =>
             logger.error(s"Resolution failed with [$error].", error)
           case Right(resolved) =>
-            logger.trace(
+            logger.info(
               s"Found library ${resolved.name} @ ${resolved.version} " +
               s"at [${MaskedPath(resolved.location).applyMasking()}]."
             )
