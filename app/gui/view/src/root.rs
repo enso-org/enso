@@ -52,7 +52,7 @@ impl Model {
     }
 
     /// Switch displayed view from Welcome Screen to Project View.
-    pub fn switch_view(&self) {
+    pub fn switch_view_to_project(&self) {
         self.state.set(State::OpenedProject);
         self.display_object.remove_child(&self.welcome_view);
         self.display_object.add_child(&self.project_view);
@@ -101,7 +101,7 @@ impl View {
         let frp = Frp::new();
         let network = &frp.network;
         frp::extend! { network
-            eval_ frp.switch_view_to_project(model.switch_view());
+            eval_ frp.switch_view_to_project(model.switch_view_to_project());
         }
         Self { model, frp }
     }
