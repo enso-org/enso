@@ -34,8 +34,6 @@ pub fn engine_version_requirement() -> semver::VersionReq {
 
 ensogl::read_args! {
     [window_app_scope_name, window_app_scope_config_name] {
-        // TODO [vitvakatu]: this is a temporary feature flag and would be removed later.
-        rust_welcome_screen    : bool,
         entry                  : String,
         project                : String,
         project_manager        : String,
