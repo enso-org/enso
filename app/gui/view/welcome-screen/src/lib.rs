@@ -96,7 +96,6 @@ impl Model {
         display_object.add_child(&dom);
 
         // Use `fullscreen_vis` layer to lock position when panning
-        // TODO: use `welcome_screen` instead
         app.display.scene().layers.panel.add_exclusive(&dom);
         app.display.scene().dom.layers.fullscreen_vis.manage(&dom);
 
