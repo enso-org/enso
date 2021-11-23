@@ -12,7 +12,7 @@ analytics = { version = "0.1.0", path = "analytics" }
 double-representation = { version = "0.1.0", path = "controller/double-representation" }
 enso-config = { path = "config" }
 enso-callback = { path = "../../lib/rust/callback" }
-enso-data = { path = "../../lib/rust/data"}
+enso-data-structures = { path = "../../lib/rust/data-structures" }
 enso-frp = { path = "../../lib/rust/frp" }
 enso-logger = { path = "../../lib/rust/logger"}
 enso-prelude = { path = "../../lib/rust/prelude"}

@@ -7,8 +7,8 @@ pub mod function;
 pub mod mix;
 pub mod seq;
 
-pub use enso_data::dependency_graph;
-pub use enso_data::hash_map_tree;
-pub use enso_data::hash_map_tree::HashMapTree;
-pub use enso_data::index::Index;
-pub use enso_data::opt_vec::OptVec;
+pub use enso_data_structures::dependency_graph;
+pub use enso_data_structures::hash_map_tree;
+pub use enso_data_structures::hash_map_tree::HashMapTree;
+pub use enso_data_structures::index::Index;
+pub use enso_data_structures::opt_vec::OptVec;

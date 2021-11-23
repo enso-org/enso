@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-data = { path = "../../../../lib/rust/data"}
+enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-logger = { path = "../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../lib/rust/prelude"}
 enso-shapely = { path = "../../../../lib/rust/shapely/impl"}

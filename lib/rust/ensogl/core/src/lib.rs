@@ -64,7 +64,7 @@ pub mod prelude {
     pub use super::types::*;
     pub use crate::data::container::AddMut;
     pub use crate::shapes_order_dependencies;
-    pub use enso_data as data;
+    pub use enso_data_structures as data;
     pub use enso_logger as logger;
     pub use enso_logger::AnyLogger;
     pub use enso_logger::DefaultWarningLogger as Logger;

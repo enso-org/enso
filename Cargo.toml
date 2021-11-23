@@ -21,7 +21,7 @@ members = [
     "lib/rust/callback",
     "lib/rust/code-builder",
     "lib/rust/config-reader",
-    "lib/rust/data",
+    "lib/rust/data-structures",
     "lib/rust/ensogl",
     "lib/rust/ensogl/app/theme/hardcoded",
     "lib/rust/ensogl/core",

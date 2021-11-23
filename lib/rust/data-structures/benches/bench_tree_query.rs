@@ -1,6 +1,6 @@
 //! This file contains benchmarks of the query performance for the HashTree structure.
 
-use enso_data::hash_map_tree::HashMapTree;
+use enso_data_structures::hash_map_tree::HashMapTree;
 use itertools::*;
 
 use criterion::black_box;

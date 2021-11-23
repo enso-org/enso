@@ -1,7 +1,7 @@
 //! The macro registry that can be queried during the process of macro resolution.
 
 use crate::prelude::*;
-use enso_data::hash_map_tree::*;
+use enso_data_structures::hash_map_tree::*;
 
 use crate::macros::definition::Definition;
 use crate::macros::literal::Literal;

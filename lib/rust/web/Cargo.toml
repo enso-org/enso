@@ -10,7 +10,7 @@ edition = "2018"
 default = ["console_error_panic_hook"]
 
 [dependencies]
-enso-data = { path = "../data" }
+enso-data-structures = { path = "../data-structures" }
 enso-logger = { path = "../logger" }
 enso-prelude = { path = "../prelude", features = ["wasm-bindgen"] }
 console_error_panic_hook = { version = "0.1.1", optional = true }
