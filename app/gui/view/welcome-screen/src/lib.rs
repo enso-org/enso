@@ -135,8 +135,8 @@ impl View {
         frp::extend! { network
             // === Set view's position to the top-left corner of the viewport. ===
 
-            let shape  = app.display.scene().shape();
-            position <- map(shape, |scene_size| {
+            let shape = app.display.scene().shape().clone_ref();
+            position <- shape.map(|scene_size| {
                 let x = -scene_size.width / 2.0;
                 let y =  scene_size.height / 2.0;
                 Vector2(x, y)
