@@ -31,7 +31,7 @@ impl SideMenu {
     pub fn new(logger: &Logger) -> Self {
         let logger = Logger::new_sub(logger, "SideMenu");
         let root_dom = web::create_element("aside");
-        root_dom.set_class_name("side-menu");
+        root_dom.set_class_name(crate::SIDE_MENU);
 
 
         // === Header ===

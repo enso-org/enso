@@ -35,6 +35,20 @@ use web_sys::MouseEvent;
 const PADDING_LEFT: f32 = 0.15;
 
 
+// === Classes for CSS styles ===
+
+const TEMPLATES_VIEW_ROOT: &str = "enso-internal-templates-view";
+const CONTAINER: &str = "enso-internal-container";
+const SIDE_MENU: &str = "enso-internal-side-menu";
+const CONTENT: &str = "enso-internal-content";
+const CARDS: &str = "enso-internal-cards";
+const CARD: &str = "enso-internal-card";
+const ROW: &str = "enso-internal-row";
+const CARD_SPREADSHEETS: &str = "enso-internal-card-spreadsheets";
+const CARD_GEO: &str = "enso-internal-card-geo";
+const CARD_VISUALIZE: &str = "enso-internal-card-visualize";
+
+
 
 // =============
 // === Model ===
@@ -44,6 +58,7 @@ const PADDING_LEFT: f32 = 0.15;
 // === CSS Styles ===
 
 static STYLESHEET: &str = include_str!("../style.css");
+
 
 // === ClickClosure ===
 
@@ -76,12 +91,12 @@ impl Model {
 
         let root = {
             let root = web::create_div();
-            root.set_class_name("templates-view");
+            root.set_class_name(TEMPLATES_VIEW_ROOT);
             root.set_id("templates-view");
 
             let container = {
                 let container = web::create_div();
-                container.set_class_name("container");
+                container.set_class_name(CONTAINER);
 
                 container.append_or_warn(&side_menu.root_dom, &logger);
                 container.append_or_warn(&template_cards.root_dom, &logger);
