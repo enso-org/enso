@@ -7,8 +7,7 @@ use std::path::PathBuf;
 const PACKAGE_BLACKLIST: [&str; 0] = [];
 
 /// Attributes that denote WASM tests.
-const WASM_TEST_ATTRIBUTES: [&str; 2] =
-    ["#[test] //#[wasm_bindgen_test]", "#[wasm_bindgen_test(async)]"];
+const WASM_TEST_ATTRIBUTES: [&str; 2] = ["#[wasm_bindgen_test]", "#[wasm_bindgen_test(async)]"];
 
 /// Subdirectories in the crate directory that contain sources for the crate.
 const SOURCE_SUBDIRECTORIES: [&str; 4] = ["src", "benches", "examples", "tests"];

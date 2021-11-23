@@ -180,7 +180,7 @@ mod test {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn platform() {
         assert_eq!(current(), current_native())
     }

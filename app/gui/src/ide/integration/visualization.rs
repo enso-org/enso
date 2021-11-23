@@ -638,7 +638,7 @@ mod tests {
             && visualization.context_module == manager.resolve_context_module(&module).unwrap()
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn test_visualization_manager() {
         let fixture = Fixture::new();
         let node_id = fixture.node_id;

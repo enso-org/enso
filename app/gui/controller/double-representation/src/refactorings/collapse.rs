@@ -438,7 +438,7 @@ mod tests {
     }
 
     #[allow(unused_parens)] // False warning.
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn test_collapse() {
         let parser = Parser::new_or_panic();
         let introduced_name = Identifier::try_from("custom_new").unwrap();

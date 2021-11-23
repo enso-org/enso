@@ -569,7 +569,7 @@ mod test {
 
     // === NodeFromDroppedFileHandler Tests ===
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn creating_node_from_dropped_file() {
         let logger = Logger::new("test::creating_node_from_dropped_file");
         let data = TestData::new(vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8]]);
@@ -596,7 +596,7 @@ mod test {
         assert_eq!(fixture.module.ast().repr(), module_code_uploaded(TEST_FILE));
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn recreating_data_directory() {
         let logger = Logger::new("test::recreating_data_directory");
         let mut fixture = mock::Unified::new().fixture_customize(|_, json_rpc, _| {
@@ -619,7 +619,7 @@ mod test {
         fixture.executor.expect_completion(handler.ensure_data_directory_exists()).unwrap();
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn name_collisions_are_avoided() {
         struct Case {
             file_name:            String,

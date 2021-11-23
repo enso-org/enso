@@ -629,7 +629,7 @@ pub mod test {
 
     // === Test cases ===
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn handling_notifications() {
         // The test starts with code as below. Then it replaces the whole AST to print "Test".
         // Then partial edit happens to change Test into Test 2.
@@ -682,7 +682,7 @@ pub mod test {
         Runner::run(test);
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn handling_notification_after_failure() {
         let initial_code = "main =\n    println \"Hello World!\"";
         let mut data = crate::test::mock::Unified::new();

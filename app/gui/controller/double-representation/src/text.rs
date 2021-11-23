@@ -30,7 +30,7 @@ pub fn apply_code_change_to_id_map(
     let inserted = change.text.as_str();
     let new_code = change.applied(code).unwrap_or(code.to_owned());
     let non_white = |c: char| !c.is_whitespace();
-    let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
+    let logger = enso_logger::DefaultTraceLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
     let inserted_size: Bytes = inserted.len().into();
 
@@ -82,7 +82,7 @@ pub fn apply_code_change_to_id_map(
             debug!(logger, "Between: `{code_between}`.");
             if all_spaces(code_between) && inserted_non_white {
                 debug!(logger, "Will extend the node leftwards.");
-                range.end += inserted_size + between_range.size();
+                range.start -= inserted_size + between_range.size();
                 trim_front = true;
             }
         } else if range.start >= removed.start {
@@ -194,6 +194,7 @@ mod test {
     /// A sample text edit used to test "text api" properties.
     ///
     /// See `from_markdown` constructor function for helper markdown description.
+    #[derive(Debug)]
     struct Case {
         /// The initial enso program code.
         pub code:   String,
@@ -253,7 +254,17 @@ mod test {
             let code2 = self.resulting_code();
 
             let ast2 = parser.parse_module(&code2, id_map.clone()).unwrap();
-            assert_same_node_ids(&ast1, &ast2);
+            self.assert_same_node_ids(&ast1, &ast2);
+        }
+
+        /// Checks that both module AST contain `main` function that has the same sequence of node
+        /// IDs, as described by the `main_nodes` function.
+        fn assert_same_node_ids(&self, ast1: &ast::known::Module, ast2: &ast::known::Module) {
+            let ids1 = main_nodes(ast1);
+            let ids2 = main_nodes(ast2);
+            DEBUG!("IDs1: {ids1:?}");
+            DEBUG!("IDs2: {ids2:?}");
+            assert_eq!(ids1, ids2, "Node ids mismatch in {:?}", self);
         }
     }
 
@@ -278,16 +289,6 @@ mod test {
         nodes.into_iter().map(|node| node.id()).collect()
     }
 
-    /// Checks that both module AST contain `main` function that has the same sequence of node IDs,
-    /// as described by the `main_nodes` function.
-    fn assert_same_node_ids(ast1: &ast::known::Module, ast2: &ast::known::Module) {
-        let ids1 = main_nodes(ast1);
-        let ids2 = main_nodes(ast2);
-        DEBUG!("IDs1: {ids1:?}");
-        DEBUG!("IDs2: {ids2:?}");
-        assert_eq!(ids1, ids2);
-    }
-
     #[test]
     fn test_case_markdown() {
         let case = Case::from_markdown("foo«aa⎀bb»c");
@@ -303,7 +304,7 @@ mod test {
         assert_eq!(case.resulting_code(), "fooc");
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn applying_code_changes_to_id_map() {
         let parser = Parser::new_or_panic();
 

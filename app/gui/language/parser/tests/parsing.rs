@@ -462,13 +462,13 @@ impl Fixture {
 /// Setting up the parser is costly, so we run all tests as a single batch.
 /// Until proper CI solution for calling external parser is devised, this
 /// test is marked with `#[ignore]`.
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn parser_tests() {
     Fixture::new().run()
 }
 
 /// Test case for https://github.com/enso-org/ide/issues/296
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn block_roundtrip() {
     let programs = vec![
         "main = 10 + 10",
@@ -483,7 +483,7 @@ fn block_roundtrip() {
 }
 
 /// Test case for https://github.com/enso-org/ide/issues/296
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn nested_macros() {
     let parser = parser::Parser::new_or_panic();
 
@@ -513,7 +513,7 @@ IO.println(here.triplets n)"#;
     roundtrip_program_with(&parser, &program);
 }
 
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn dealing_with_invalid_metadata() {
     let f = Fixture::new();
 

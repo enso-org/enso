@@ -356,7 +356,7 @@ async fn binary_visualization_updates_test_hlp() {
     assert_eq!(first_event.as_ref(), "30".as_bytes());
 }
 
-//#[test] //#[wasm_bindgen_test]
+//#[wasm_bindgen_test]
 #[allow(dead_code)]
 /// This integration test covers attaching visualizations and receiving their updates.
 fn binary_visualization_updates_test() {

@@ -228,7 +228,7 @@ mod tests {
         GraphInfo::from_definition(definition)
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn detect_a_node() {
         let mut parser = parser::Parser::new_or_panic();
         // Each of these programs should have a `main` definition with a single `2+2` node.
@@ -270,7 +270,7 @@ mod tests {
         assert_eq!(left.main_line.repr(), right.main_line.repr());
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn add_node_to_graph_with_single_line() {
         let program = "main = print \"hello\"";
         let parser = parser::Parser::new_or_panic();
@@ -293,7 +293,7 @@ mod tests {
         assert_all(nodes.as_slice(), &[node_to_add1, node_to_add0, initial_node]);
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn add_node_to_graph_with_multiple_lines() {
         // TODO [dg] Also add test for binding node when it's possible to update its id.
         let program = r#"main =
@@ -348,7 +348,7 @@ mod tests {
         assert_eq!(graph.nodes()[1].expression().repr(), "not_node");
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn add_node_to_graph_with_blank_line() {
         // The trailing `foo` definition is necessary for the blank line after "node2" to be
         // included in the `main` block. Otherwise, the block would end on "node2" and the blank
@@ -385,7 +385,7 @@ foo = 5";
         graph.expect_code(expected_code);
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn multiple_node_graph() {
         let mut parser = parser::Parser::new_or_panic();
         let program = r"
@@ -416,7 +416,7 @@ main =
         assert_eq!(nodes.len(), 4);
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn removing_node_from_graph() {
         let mut parser = parser::Parser::new_or_panic();
         let program = r"
@@ -442,7 +442,7 @@ main =
         graph.expect_code(expected_code);
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn removing_last_node_from_graph() {
         let mut parser = parser::Parser::new_or_panic();
         let program = r"
@@ -462,7 +462,7 @@ main =
     }
 
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn editing_nodes_expression_in_graph() {
         let mut parser = parser::Parser::new_or_panic();
         let program = r"

@@ -400,7 +400,7 @@ mod tests {
         run_case(parser, case)
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn test_alias_analysis() {
         let parser = parser::Parser::new_or_panic();
         let test_cases = [

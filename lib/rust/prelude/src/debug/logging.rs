@@ -87,7 +87,7 @@ mod tests {
         WARNING!("test");
         ERROR!("test");
     }
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn wasm_calls() {
         let var = 39;
         TRACE!("test");

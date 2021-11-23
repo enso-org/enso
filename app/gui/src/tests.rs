@@ -21,7 +21,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 // === JSON Rpc Transport in IDE Initializer ===
 // =============================================
 
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn failure_to_open_project_is_reported() {
     let transport = MockTransport::new();
     let mut fixture = TestWithMockedTransport::set_up(&transport);
@@ -56,7 +56,7 @@ fn failure_to_open_project_is_reported() {
 // === SpanTree in Graph Controller ===
 // ====================================
 
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn span_tree_args() {
     use crate::test::mock::*;
     use span_tree::Node;

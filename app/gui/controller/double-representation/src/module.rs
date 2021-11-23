@@ -804,7 +804,7 @@ mod tests {
         assert!(QualifiedName::try_from("namespace.Project.Name.Sub").is_ok());
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn import_listing() {
         let parser = parser::Parser::new_or_panic();
         let expect_imports = |code: &str, expected: &[&[&str]]| {
@@ -827,7 +827,7 @@ mod tests {
         ]]);
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn import_adding_and_removing() {
         let parser = parser::Parser::new_or_panic();
         let code = "import Foo.Bar.Baz";
@@ -856,7 +856,7 @@ mod tests {
         info.expect_code("import Bar.Gar");
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn implicit_method_resolution() {
         let parser = parser::Parser::new_or_panic();
         let module_name =
@@ -918,7 +918,7 @@ mod tests {
         expect_not_found(&ptr, "bar a b = a + b");
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn test_definition_location() {
         let code = r"
 some def =
@@ -951,7 +951,7 @@ last def = inline expression";
         assert!(code[span].ends_with("nested body"));
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn add_method() {
         let parser = parser::Parser::new_or_panic();
         let module = r#"Main.method1 arg = body

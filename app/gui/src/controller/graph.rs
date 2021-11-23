@@ -1077,7 +1077,7 @@ pub mod tests {
         }
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn node_operations() {
         Fixture::set_up().run(|graph| async move {
             let uid = graph.all_node_infos().unwrap()[0].id();
@@ -1088,7 +1088,7 @@ pub mod tests {
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_notification_relay() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
@@ -1098,7 +1098,7 @@ pub mod tests {
         });
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn suggestion_db_updates_graph_values() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
@@ -1111,7 +1111,7 @@ pub mod tests {
         });
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_inline_definition() {
         let mut test = Fixture::set_up();
         const EXPRESSION: &str = "2+2";
@@ -1126,7 +1126,7 @@ pub mod tests {
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_block_definition() {
         let mut test = Fixture::set_up();
         test.data.code = r"
@@ -1142,7 +1142,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_parse_expression() {
         let mut test = Fixture::set_up();
         test.run(|graph| async move {
@@ -1157,7 +1157,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn span_tree_context_handling_metadata_and_name() {
         let entry = crate::test::mock::data::suggestion_entry_foo();
         let mut test = Fixture::set_up();
@@ -1196,7 +1196,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_used_names_in_inline_def() {
         let mut test = Fixture::set_up();
         test.data.code = "main = foo".into();
@@ -1207,7 +1207,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_nested_definition() {
         let mut test = Fixture::set_up();
         test.data.code = r"main =
@@ -1228,7 +1228,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn collapsing_nodes_avoids_name_conflicts() {
         // Checks that generated name avoid collision with other methods defined in the module
         // and with symbols used that could be shadowed by the extracted method's name.
@@ -1265,7 +1265,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn collapsing_nodes() {
         let mut test = Fixture::set_up();
         let code = r"
@@ -1315,7 +1315,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_doubly_nested_definition() {
         // Tests editing nested definition that requires transforming inline expression into
         // into a new block.
@@ -1334,7 +1334,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_node_operations_node() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"
@@ -1413,7 +1413,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_connections_listing() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"
@@ -1462,7 +1462,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_create_connection() {
         /// A case for creating connection test. The field's names are short to be able to write
         /// nice-to-read table of cases without very long lines (see `let cases` below).
@@ -1518,7 +1518,7 @@ main =
         }
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_create_connection_reordering() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"main =
@@ -1551,7 +1551,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_create_connection_reordering_with_dependency() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"main =
@@ -1590,7 +1590,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn graph_controller_create_connection_introducing_var() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"main =
@@ -1627,7 +1627,7 @@ main =
         })
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn suggested_names() {
         let parser = Parser::new_or_panic();
         let cases = [
@@ -1652,7 +1652,7 @@ main =
         }
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn disconnect() {
         #[derive(Clone, Debug)]
         struct Case {

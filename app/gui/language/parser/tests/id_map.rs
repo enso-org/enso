@@ -7,7 +7,7 @@ use wasm_bindgen_test::wasm_bindgen_test_configure;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn id_map_round_tripping() {
     let cases = [
         "main =\n    2 + 2",

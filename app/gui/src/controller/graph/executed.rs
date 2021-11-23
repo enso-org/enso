@@ -384,7 +384,7 @@ pub mod tests {
     }
 
     // Test that checks that value computed notification is properly relayed by the executed graph.
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn dispatching_value_computed_notification() {
         use crate::test::mock::Fixture;
         // Setup the controller.
@@ -431,7 +431,7 @@ pub mod tests {
         notifications.expect_pending();
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn span_tree_context() {
         use crate::test::assert_call_info;
         use crate::test::mock;

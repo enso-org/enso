@@ -508,7 +508,7 @@ mod tests {
     }
 
     // Collapse two middle nodes.
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn collapse_nodes_atomic() {
         let code = r#"
 main =
@@ -526,7 +526,7 @@ main =
 
     // A complex operation: involves introducing variable name, reordering lines and
     // replacing an argument.
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn connect_nodes_atomic() {
         let code = r#"
 main =
@@ -555,7 +555,7 @@ main =
 
 
     // Check that node position is properly updated.
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn move_node() {
         use model::module::Position;
 
@@ -585,7 +585,7 @@ main =
         assert_eq!(graph.node(node.id()).unwrap().position(), Some(pos2));
     }
 
-    #[test] //#[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn undo_redo() {
         use crate::test::mock::Fixture;
         // Setup the controller.

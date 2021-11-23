@@ -12,7 +12,7 @@ use wasm_bindgen_test::wasm_bindgen_test_configure;
 wasm_bindgen_test_configure!(run_in_browser);
 
 
-#[test] //#[wasm_bindgen_test]
+#[wasm_bindgen_test]
 fn macro_crumb_test() {
     let ast = Parser::new_or_panic().parse_line_ast("foo -> bar").unwrap();
     let crumbs = ast.iter_subcrumbs().collect_vec();
