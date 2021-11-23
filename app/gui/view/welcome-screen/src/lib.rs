@@ -56,13 +56,13 @@ pub struct Model {
 
 impl Model {
     /// Constructor. `frp` is used to set up event handlers on buttons.
-    pub fn new(app: &Application, frp: Frp) -> Self {
+    pub fn new(app: &Application) -> Self {
         let application = app.clone_ref();
         let logger = Logger::new("WelcomeScreen");
         let display_object = display::object::Instance::new(&logger);
 
-        let side_menu = SideMenu::new(&logger, &frp);
-        let template_cards = TemplateCards::new(&logger, &frp);
+        let side_menu = SideMenu::new(&logger);
+        let template_cards = TemplateCards::new(&logger);
 
         let root = {
             let root = web::create_div();
@@ -131,7 +131,7 @@ impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(&app, frp.clone_ref());
+        let model = Model::new(&app);
         let network = &frp.network;
 
         frp::extend! { network

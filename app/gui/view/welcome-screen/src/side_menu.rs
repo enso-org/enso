@@ -5,7 +5,6 @@
 use ensogl::prelude::*;
 
 use crate::ClickClosure;
-use crate::Frp;
 
 use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
@@ -30,7 +29,7 @@ pub struct SideMenu {
 
 impl SideMenu {
     /// Constructor.
-    pub fn new(logger: &Logger, _frp: &Frp) -> Self {
+    pub fn new(logger: &Logger) -> Self {
         let logger = Logger::new_sub(logger, "SideMenu");
         let root = web::create_element("aside");
         root.set_class_name("side-menu");

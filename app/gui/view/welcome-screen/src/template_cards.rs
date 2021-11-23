@@ -6,7 +6,6 @@
 use ensogl::prelude::*;
 
 use crate::ClickClosure;
-use crate::Frp;
 
 use ensogl::system::web;
 use ensogl::system::web::AttributeSetter;
@@ -71,7 +70,7 @@ pub struct TemplateCards {
 
 impl TemplateCards {
     /// Constructor.
-    pub fn new(logger: &Logger, _frp: &Frp) -> Self {
+    pub fn new(logger: &Logger) -> Self {
         let logger = Logger::new_sub(logger, "TemplateCards");
         let root = web::create_element("main");
         root.set_class_name("content");
