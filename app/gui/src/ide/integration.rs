@@ -48,13 +48,15 @@ impl Model {
                 match project.initialize().await {
                     Ok(result) => {
                         let view = self.view.project().clone_ref();
+                        let status_bar = self.view.status_bar().clone_ref();
                         let text = result.main_module_text;
                         let graph = result.main_graph;
                         let ide = self.controller.clone_ref();
                         let project = project.model;
-                        let main_module = result.main_module_model;
-                        let integration =
-                            project::Integration::new(view, graph, text, ide, project, main_module);
+                        let main = result.main_module_model;
+                        let integration = project::Integration::new(
+                            view, status_bar, graph, text, ide, project, main,
+                        );
                         // We don't want any initialization-related changes to appear on undo stack.
                         integration.graph_controller().undo_redo_repository().clear_all();
                         *self.project_integration.borrow_mut() = Some(integration);

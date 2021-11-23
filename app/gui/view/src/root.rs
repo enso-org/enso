@@ -34,6 +34,7 @@ pub struct Model {
     logger:         Logger,
     display_object: display::object::Instance,
     state:          Rc<CloneCell<State>>,
+    status_bar:     crate::status_bar::View,
     welcome_view:   crate::welcome_screen::View,
     project_view:   crate::project::View,
 }
@@ -45,11 +46,13 @@ impl Model {
         let logger = Logger::new("RootView");
         let display_object = display::object::Instance::new(&logger);
         let state = Rc::new(CloneCell::new(State::WelcomeScreen));
+        let status_bar = crate::status_bar::View::new(&app);
+        display_object.add_child(&status_bar);
         let welcome_view = app.new_view::<crate::welcome_screen::View>();
         let project_view = app.new_view::<crate::project::View>();
         display_object.add_child(&welcome_view);
 
-        Self { app, logger, display_object, welcome_view, project_view, state }
+        Self { app, logger, display_object, status_bar, welcome_view, project_view, state }
     }
 
     /// Switch displayed view from Welcome Screen to Project View.
@@ -109,7 +112,7 @@ impl View {
 
     /// Status Bar view from Project View.
     pub fn status_bar(&self) -> &crate::status_bar::View {
-        self.model.project_view.status_bar()
+        &self.model.status_bar
     }
 
     /// Project View.
