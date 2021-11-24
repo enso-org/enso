@@ -106,10 +106,10 @@ impl TemplateCards {
         let cards = web::create_div();
         cards.set_class_name(crate::CARDS);
 
-        let row1 = Self::create_row(logger, &[CARD_SPREADSHEETS]);
+        let row1 = Self::create_row(logger, &[CARD_SPREADSHEETS, CARD_GEO]);
         cards.append_or_warn(&row1, logger);
 
-        let row2 = Self::create_row(logger, &[CARD_GEO, CARD_VISUALIZE]);
+        let row2 = Self::create_row(logger, &[CARD_VISUALIZE]);
         cards.append_or_warn(&row2, logger);
 
         cards
