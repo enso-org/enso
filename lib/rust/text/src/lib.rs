@@ -76,7 +76,6 @@
 //! "code points except high-surrogate and low-surrogate code points" - but the surrogate code
 //! points are not used uin UTF-8 anyway).
 
-
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

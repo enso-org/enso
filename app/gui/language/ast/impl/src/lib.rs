@@ -1267,10 +1267,7 @@ pub fn traverse_with_offset(ast: &impl HasTokens, f: impl FnMut(Chars, &Ast)) {
 }
 
 /// Visits each Ast node, while keeping track of its span.
-pub fn traverse_with_span(
-    ast: &impl HasTokens,
-    mut f: impl FnMut(enso_text::Range<Chars>, &Ast),
-) {
+pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(enso_text::Range<Chars>, &Ast)) {
     traverse_with_offset(ast, move |offset, ast| {
         f(enso_text::Range::new(offset, offset + ast.char_count()), ast)
     })

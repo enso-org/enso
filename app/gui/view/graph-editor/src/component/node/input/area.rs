@@ -695,8 +695,7 @@ impl Area {
                 }
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
-            let new_shift =
-                if !not_a_port { 0.chars() } else { builder.shift + local_char_offset };
+            let new_shift = if !not_a_port { 0.chars() } else { builder.shift + local_char_offset };
             builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;

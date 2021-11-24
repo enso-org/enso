@@ -2243,7 +2243,7 @@ mod tests {
         let two = ast.get_traversing(&crumbs_to_two).unwrap();
         assert_eq!(two.repr(), "2");
 
-        let two_span = ast.span_of_descendent_at(&crumbs_to_two).unwrap();
+        let two_span = ast.range_of_descendant_at(&crumbs_to_two).unwrap();
         assert_eq!(two_span, 4.bytes()..5.bytes());
         assert_eq!(&expected_code[two_span], "2");
     }
