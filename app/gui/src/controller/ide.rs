@@ -114,7 +114,7 @@ pub enum Notification {
 /// [`API::manage_projects`]).
 pub trait ManagingProjectAPI {
     /// Create a new unnamed project and open it in the IDE.
-    fn create_new_project(&self) -> BoxFuture<FallibleResult>;
+    fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult>;
 
     /// Return a list of existing projects.
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>>;

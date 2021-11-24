@@ -196,7 +196,7 @@ impl WithProjectManager {
         info!(self.logger, "Creating a new project named '{self.project_name}'.");
         let version = Some(enso_config::engine_version_supported.to_owned());
         let ProjectName(name) = &self.project_name;
-        let response = self.project_manager.create_project(name, &version, &Install);
+        let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
     }
 
