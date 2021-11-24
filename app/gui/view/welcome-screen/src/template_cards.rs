@@ -23,36 +23,36 @@ use web_sys::HtmlDivElement;
 // === Card struct. ===
 
 struct Card<'a> {
-    id:        &'a str,
-    class:     &'a str,
-    image_url: Option<&'a str>,
-    header:    &'a str,
-    content:   &'a str,
+    id:                   &'a str,
+    class:                &'a str,
+    background_image_url: Option<&'a str>,
+    header:               &'a str,
+    content:              &'a str,
 }
 
 
 // === Predefined cards. ===
 
 const CARD_SPREADSHEETS: Card<'static> = Card {
-    id:        "card-spreadsheets",
-    class:     crate::CARD_SPREADSHEETS,
-    image_url: Some("/assets/spreadsheets.png"),
-    header:    "Combine spreadsheets",
-    content:   "Glue multiple spreadsheets together to analyse all your data at once.",
+    id:                   "card-spreadsheets",
+    class:                crate::CARD_SPREADSHEETS,
+    background_image_url: Some("/assets/spreadsheets.png"),
+    header:               "Combine spreadsheets",
+    content:              "Glue multiple spreadsheets together to analyse all your data at once.",
 };
 const CARD_GEO: Card<'static> = Card {
-    id:        "card-geo",
-    class:     crate::CARD_GEO,
-    image_url: None,
-    header:    "Geospatial analysis",
-    content:   "Learn where to open a coffee shop to maximize your income.",
+    id:                   "card-geo",
+    class:                crate::CARD_GEO,
+    background_image_url: None,
+    header:               "Geospatial analysis",
+    content:              "Learn where to open a coffee shop to maximize your income.",
 };
 const CARD_VISUALIZE: Card<'static> = Card {
-    id:        "card-visualize",
-    class:     crate::CARD_VISUALIZE,
-    image_url: None,
-    header:    "Analyze GitHub stars",
-    content:   "Find out which of Enso's repositories are most popular over time.",
+    id:                   "card-visualize",
+    class:                crate::CARD_VISUALIZE,
+    background_image_url: None,
+    header:               "Analyze GitHub stars",
+    content:              "Find out which of Enso's repositories are most popular over time.",
 };
 
 
@@ -134,7 +134,7 @@ impl TemplateCards {
         let card = web::create_div();
         card.set_id(definition.id);
         card.set_class_name(&format!("{} {}", crate::CARD, definition.class));
-        if let Some(src) = definition.image_url {
+        if let Some(src) = definition.background_image_url {
             let img = web::create_element("img");
             img.set_attribute_or_warn("src", src, logger);
             card.append_or_warn(&img, logger);
