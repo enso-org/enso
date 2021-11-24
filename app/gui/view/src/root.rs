@@ -56,6 +56,16 @@ impl Model {
         Self { app, logger, display_object, status_bar, welcome_view, project_view, state }
     }
 
+    /// Switch displayed view from Project View to Welcome Screen. Project View will not be
+    /// deallocated.
+    pub fn switch_view_to_welcome_screen(&self) {
+        self.state.set(State::WelcomeScreen);
+        if let Some(project_view) = self.project_view.get() {
+            self.display_object.remove_child(&project_view);
+        }
+        self.display_object.add_child(&self.welcome_view);
+    }
+
     /// Switch displayed view from Welcome Screen to Project View. Will initialize Project View if
     /// it wasn't initialized before.
     pub fn switch_view_to_project(&self) {
@@ -88,6 +98,8 @@ ensogl::define_endpoints! {
     Input {
         /// Switch displayed view to Project View. Lazily intializes Project View.
         switch_view_to_project(),
+        /// Switch displayed view to Welcome Screen.
+        switch_view_to_welcome_screen(),
     }
     Output {
     }
@@ -121,6 +133,7 @@ impl View {
         let network = &frp.network;
         frp::extend! { network
             eval_ frp.switch_view_to_project(model.switch_view_to_project());
+            eval_ frp.switch_view_to_welcome_screen(model.switch_view_to_welcome_screen());
         }
         Self { model, frp }
     }
