@@ -23,6 +23,7 @@ use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
+use web_sys::HtmlDivElement;
 use web_sys::MouseEvent;
 
 
@@ -88,26 +89,7 @@ impl Model {
 
         let side_menu = SideMenu::new(&logger);
         let template_cards = TemplateCards::new(&logger);
-
-        let root = {
-            let root = web::create_div();
-            root.set_class_name(TEMPLATES_VIEW_ROOT);
-            root.set_id("templates-view");
-
-            let container = {
-                let container = web::create_div();
-                container.set_class_name(CONTAINER);
-
-                container.append_or_warn(&side_menu.root_dom, &logger);
-                container.append_or_warn(&template_cards.root_dom, &logger);
-
-                container
-            };
-            root.append_or_panic(&container);
-            root
-        };
-
-        let dom = DomSymbol::new(&root);
+        let dom = Self::create_dom(&logger, &side_menu, &template_cards);
         display_object.add_child(&dom);
 
         // Use `fullscreen_vis` layer to lock position when panning
@@ -119,6 +101,30 @@ impl Model {
         dom.append_or_warn(&style, &logger);
 
         Self { application, logger, dom, display_object, side_menu, template_cards }
+    }
+
+    fn create_dom(
+        logger: &Logger,
+        side_menu: &SideMenu,
+        template_cards: &TemplateCards,
+    ) -> DomSymbol {
+        let root = web::create_div();
+        root.set_class_name(TEMPLATES_VIEW_ROOT);
+        root.set_id("templates-view");
+
+        let container = Self::create_content_container();
+        container.append_or_warn(&side_menu.root_dom, logger);
+        container.append_or_warn(&template_cards.root_dom, logger);
+        root.append_or_warn(&container, logger);
+
+        DomSymbol::new(&root)
+    }
+
+    fn create_content_container() -> HtmlDivElement {
+        let container = web::create_div();
+        container.set_class_name(CONTAINER);
+
+        container
     }
 }
 

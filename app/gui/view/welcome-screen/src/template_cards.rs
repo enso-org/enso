@@ -77,22 +77,28 @@ impl TemplateCards {
         let root_dom = web::create_element("main");
         root_dom.set_class_name(crate::CONTENT);
 
-        let templates = {
-            let templates = web::create_div();
-            let header = {
-                let header = web::create_element("h2");
-                header.set_text_content(Some("Templates"));
-                header
-            };
-            templates.append_or_warn(&header, &logger);
-            let cards = Self::create_cards(&logger);
-            templates.append_or_warn(&cards, &logger);
-
-            templates
-        };
+        let templates = Self::create_templates(&logger);
         root_dom.append_or_warn(&templates, &logger);
 
         Self { logger, root_dom, closures: default() }
+    }
+
+    fn create_templates(logger: &Logger) -> HtmlDivElement {
+        let templates = web::create_div();
+
+        let header = Self::create_header("Templates");
+        templates.append_or_warn(&header, logger);
+
+        let cards = Self::create_cards(logger);
+        templates.append_or_warn(&cards, logger);
+
+        templates
+    }
+
+    fn create_header(content: &str) -> Element {
+        let header = web::create_element("h2");
+        header.set_text_content(Some(content));
+        header
     }
 
     /// Create main content, a set of cards.
@@ -100,37 +106,27 @@ impl TemplateCards {
         let cards = web::create_div();
         cards.set_class_name(crate::CARDS);
 
-        let row1 = {
-            let row = web::create_div();
-            row.set_class_name(crate::ROW);
-
-            let card_spreadsheets = Self::create_card(logger, CARD_SPREADSHEETS);
-            row.append_or_warn(&card_spreadsheets, logger);
-
-            let card_geo = Self::create_card(logger, CARD_GEO);
-            row.append_or_warn(&card_geo, logger);
-
-            row
-        };
+        let row1 = Self::create_row(logger, &[CARD_SPREADSHEETS]);
         cards.append_or_warn(&row1, logger);
 
-        let row2 = {
-            let row = web::create_div();
-            row.set_class_name(crate::ROW);
-
-            let card_visualize = Self::create_card(logger, CARD_VISUALIZE);
-            row.append_or_warn(&card_visualize, logger);
-
-            row
-        };
+        let row2 = Self::create_row(logger, &[CARD_GEO, CARD_VISUALIZE]);
         cards.append_or_warn(&row2, logger);
 
         cards
     }
 
-    /// Helper to create a single card with provided HTML attributes, optional image, header and
-    /// content text.
-    fn create_card(logger: &Logger, definition: Card<'_>) -> HtmlDivElement {
+    fn create_row(logger: &Logger, cards: &[Card<'_>]) -> HtmlDivElement {
+        let row = web::create_div();
+        row.set_class_name(crate::ROW);
+        for definition in cards {
+            let card = Self::create_card(logger, definition);
+            row.append_or_warn(&card, logger);
+        }
+        row
+    }
+
+    /// Helper to create a single card DOM from provided definition.
+    fn create_card(logger: &Logger, definition: &Card<'_>) -> HtmlDivElement {
         let card = web::create_div();
         card.set_id(definition.id);
         card.set_class_name(&format!("{} {}", crate::CARD, definition.class));
