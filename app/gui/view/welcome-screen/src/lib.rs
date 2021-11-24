@@ -32,12 +32,6 @@ use web_sys::MouseEvent;
 // === Constants ===
 // =================
 
-/// Padding of Welcome Screen from the left border of the screen. In fractions of screen's width.
-const PADDING_LEFT: f32 = 0.15;
-
-
-// === Classes for CSS styles ===
-
 const TEMPLATES_VIEW_ROOT: &str = "enso-internal-templates-view";
 const CONTAINER: &str = "enso-internal-container";
 const SIDE_MENU: &str = "enso-internal-side-menu";
@@ -167,16 +161,10 @@ impl View {
         let network = &frp.network;
 
         frp::extend! { network
-            // === Set view's position to the top-left corner of the viewport. ===
+            // === Update DOM's size so CSS styles work correctly. ===
 
-            let shape = app.display.scene().shape().clone_ref();
-            position <- shape.map(|scene_size| {
-                let padding_left = scene_size.width * PADDING_LEFT;
-                let x = -scene_size.width / 2.0 + padding_left;
-                let y =  scene_size.height / 2.0;
-                Vector2(x, y)
-            });
-            eval position ((pos) model.display_object.set_position_xy(*pos));
+            let scene_size = app.display.scene().shape().clone_ref();
+            eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
         }
 
         Self { model, frp }
