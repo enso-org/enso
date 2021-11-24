@@ -1,4 +1,7 @@
 //! A module containing structures describing id-map.
+//!
+//! The Id Map is a mapping between code spans and some particular id. Its a part of our language's
+//! source file: the parser gives the id of particular span to the AST node representing that span.
 
 use crate::prelude::*;
 
@@ -42,7 +45,7 @@ impl IdMap {
 // === IdMapForParser ===
 // ======================
 
-/// Strongly typed index of codepoint.
+/// Strongly typed index of char.
 ///
 /// Part of json representation of id_map: see [`JsonIdMap`].
 #[allow(missing_docs)]
@@ -51,7 +54,7 @@ struct Index {
     value: usize,
 }
 
-/// A size expressed in codepoints.
+/// A size expressed in chars.
 ///
 /// Part of json representation of id_map: see [`JsonIdMap`].
 #[allow(missing_docs)]
@@ -87,8 +90,8 @@ impl JsonIdMap {
         let mapped_vec = id_map.vec.iter().map(|(range, id)| {
             let byte_start = range.start.as_usize();
             let byte_end = range.end.as_usize();
-            let start: Codepoints = char_offsets.binary_search(&byte_start).unwrap_both().into();
-            let end: Codepoints = char_offsets.binary_search(&byte_end).unwrap_both().into();
+            let start: Chars = char_offsets.binary_search(&byte_start).unwrap_both().into();
+            let end: Chars = char_offsets.binary_search(&byte_end).unwrap_both().into();
             let size = end - start;
             let span = Span {
                 index: Index { value: start.as_usize() },

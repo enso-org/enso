@@ -275,7 +275,7 @@ impl Ast {
     }
 
     /// Just wraps shape, id and len into Ast node.
-    fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, char_count: Codepoints) -> Ast {
+    fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, char_count: Chars) -> Ast {
         let with_length = WithLength { wrapped: shape, length: char_count };
         let with_id = WithID { wrapped: with_length, id };
         Ast { wrapped: Rc::new(with_id) }
@@ -1106,11 +1106,11 @@ pub trait HasRepr {
         self.len() >= 0.bytes()
     }
 
-    /// Get the representation length in codepoints.
+    /// Get the representation length in chars.
     ///
     /// May be implemented in a quicker way than building string. Must meet the constraint
     /// `x.char_count() == x.repr().chars().count()` for any `x: impl HasRepr`.
-    fn char_count(&self) -> Codepoints {
+    fn char_count(&self) -> Chars {
         self.repr().chars().count().into()
     }
 }
@@ -1149,16 +1149,16 @@ impl TokenConsumer for LengthBuilder {
 
 #[derive(Debug, Clone, Copy, Default)]
 struct CharCountBuilder {
-    char_count: Codepoints,
+    char_count: Chars,
 }
 
 
 impl TokenConsumer for CharCountBuilder {
     fn feed(&mut self, token: Token) {
         match token {
-            Token::Off(val) => self.char_count += Codepoints::from(val),
-            Token::Chr(_) => self.char_count += 1.codepoints(),
-            Token::Str(val) => self.char_count += Codepoints::from(val.chars().count()),
+            Token::Off(val) => self.char_count += Chars::from(val),
+            Token::Chr(_) => self.char_count += 1.chars(),
+            Token::Str(val) => self.char_count += Chars::from(val.chars().count()),
             Token::Ast(val) => val.shape().feed_to(self),
         }
     }
@@ -1177,7 +1177,7 @@ impl<T: HasTokens> HasRepr for T {
         consumer.length
     }
 
-    fn char_count(&self) -> Codepoints {
+    fn char_count(&self) -> Chars {
         let mut consumer = CharCountBuilder::default();
         self.feed_to(&mut consumer);
         consumer.char_count
@@ -1227,7 +1227,7 @@ where T: HasRepr
         self.deref().len()
     }
 
-    fn char_count(&self) -> Codepoints {
+    fn char_count(&self) -> Chars {
         self.deref().char_count()
     }
 }
@@ -1236,19 +1236,19 @@ where T: HasRepr
 
 #[derive(Debug, Clone)]
 struct TraverserWithOffset<F> {
-    offset:   Codepoints,
+    offset:   Chars,
     callback: F,
 }
 
 impl<F> TraverserWithOffset<F> {
     pub fn new(callback: F) -> TraverserWithOffset<F> {
-        let offset = 0.codepoints();
+        let offset = 0.chars();
         TraverserWithOffset { offset, callback }
     }
 }
 
 impl<F> TokenConsumer for TraverserWithOffset<F>
-where F: FnMut(Codepoints, &Ast)
+where F: FnMut(Chars, &Ast)
 {
     fn feed(&mut self, token: Token) {
         if let Token::Ast(val) = token {
@@ -1261,7 +1261,7 @@ where F: FnMut(Codepoints, &Ast)
 }
 
 /// Visits each Ast node, while keeping track of its index.
-pub fn traverse_with_offset(ast: &impl HasTokens, f: impl FnMut(Codepoints, &Ast)) {
+pub fn traverse_with_offset(ast: &impl HasTokens, f: impl FnMut(Chars, &Ast)) {
     let mut traverser = TraverserWithOffset::new(f);
     ast.feed_to(&mut traverser);
 }
@@ -1269,7 +1269,7 @@ pub fn traverse_with_offset(ast: &impl HasTokens, f: impl FnMut(Codepoints, &Ast
 /// Visits each Ast node, while keeping track of its span.
 pub fn traverse_with_span(
     ast: &impl HasTokens,
-    mut f: impl FnMut(enso_text::Range<Codepoints>, &Ast),
+    mut f: impl FnMut(enso_text::Range<Chars>, &Ast),
 ) {
     traverse_with_offset(ast, move |offset, ast| {
         f(enso_text::Range::new(offset, offset + ast.char_count()), ast)
@@ -1288,7 +1288,7 @@ pub struct WithLength<T> {
     #[shrinkwrap(main_field)]
     #[serde(flatten)]
     pub wrapped: T,
-    pub length:  Codepoints,
+    pub length:  Chars,
 }
 
 impl<T> HasRepr for WithLength<T>
@@ -1302,7 +1302,7 @@ where T: HasRepr
         self.deref().len()
     }
 
-    fn char_count(&self) -> Codepoints {
+    fn char_count(&self) -> Chars {
         self.length
     }
 }
@@ -1756,7 +1756,7 @@ mod tests {
     fn ast_length() {
         let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
         assert_eq!(ast.len(), 6.bytes());
-        assert_eq!(ast.char_count(), 5.codepoints());
+        assert_eq!(ast.char_count(), 5.chars());
     }
 
     #[test]
@@ -1817,7 +1817,7 @@ mod tests {
         let expected_uuid = Id::parse_str(uuid_str).ok();
         assert_eq!(ast.id, expected_uuid);
 
-        let expected_length = 3.codepoints();
+        let expected_length = 3.chars();
         assert_eq!(ast.length, expected_length);
 
         let expected_var = Var { name: var_name.into() };
@@ -1892,7 +1892,7 @@ mod tests {
     #[test]
     fn utf8_lengths() {
         let var = Ast::var("価");
-        assert_eq!(var.char_count(), 1.codepoints());
+        assert_eq!(var.char_count(), 1.chars());
         assert_eq!(var.len(), 3.bytes());
 
         let idmap = var.id_map();
@@ -1900,7 +1900,7 @@ mod tests {
         assert_eq!(idmap.vec[0].1, var.id.unwrap());
 
         let builder_with_char = Token::Chr('壱');
-        assert_eq!(builder_with_char.char_count(), 1.codepoints());
+        assert_eq!(builder_with_char.char_count(), 1.chars());
         assert_eq!(builder_with_char.len(), 3.bytes());
     }
 }

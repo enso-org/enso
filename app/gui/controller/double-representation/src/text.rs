@@ -116,13 +116,13 @@ pub fn apply_code_change_to_id_map(
 
         if trim_front && to_trim_front > 0.bytes() {
             range.start += to_trim_front;
-            debug!(logger, "Trimming front {to_trim_front.as_usize()} codepoints.");
+            debug!(logger, "Trimming front {to_trim_front.as_usize()} chars.");
         }
 
         if trim_back {
             if to_trim_back > 0.bytes() {
                 range.end += -to_trim_back;
-                debug!(logger, "Trimming back {to_trim_back.as_usize()} codepoints.");
+                debug!(logger, "Trimming back {to_trim_back.as_usize()} chars.");
             }
             let new_repr = &new_code[*range];
             // Trim trailing spaces
@@ -163,8 +163,8 @@ pub fn apply_code_change_to_id_map(
 // === Helpers ===
 // ===============
 
-/// Returns the codepoints length of leading space characters sequence.
-fn spaces_size(itr: impl Iterator<Item = char>) -> Codepoints {
+/// Returns the chars count of leading space characters sequence.
+fn spaces_size(itr: impl Iterator<Item = char>) -> Chars {
     itr.take_while(|c| *c == ' ').fold(0, |acc, _| acc + 1).into()
 }
 

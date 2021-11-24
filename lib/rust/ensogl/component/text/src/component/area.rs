@@ -874,7 +874,7 @@ impl AreaModel {
         }
     }
 
-    /// Constrain the selection to values valid inside of the current text buffer.
+    /// Constrain the selection to values fitting inside of the current text buffer.
     fn snap_selection(
         &self,
         selection: buffer::selection::Selection,

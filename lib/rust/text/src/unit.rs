@@ -15,7 +15,7 @@ use enso_types::unit;
 /// Common traits.
 pub mod traits {
     pub use super::bytes::Into as TRAIT_bytes_into;
-    pub use super::codepoints::Into as TRAIT_codepoints_into;
+    pub use super::chars::Into as TRAIT_chars_into;
     pub use super::column::Into as TRAIT_column_into;
     pub use super::line::Into as TRAIT_line_into;
 }
@@ -62,51 +62,53 @@ impl From<&usize> for Bytes {
 
 
 
-// ==================
-// === Codepoints ===
-// ==================
+// =============
+// === Chars ===
+// =============
 
 unit! {
-/// An offset in the buffer in bytes.
-Codepoints::codepoints(i32)
+/// An offset in the buffer in Rust's chars (being roughly the Unicode code points.
+///
+/// See [`crate`] documentation to know more about codepoints.
+Chars::chars(i32)
 }
 
-impl Codepoints {
+impl Chars {
     /// Saturating conversion to `usize`.
     pub fn as_usize(self) -> usize {
         self.value.max(0) as usize
     }
 }
 
-impl<T: Into<Codepoints>> codepoints::Into for Range<T> {
-    type Output = Range<Codepoints>;
-    fn codepoints(self) -> Self::Output {
+impl<T: Into<Chars>> chars::Into for Range<T> {
+    type Output = Range<Chars>;
+    fn chars(self) -> Self::Output {
         let start = self.start.into();
         let end = self.end.into();
         Range { start, end }
     }
 }
 
-impl From<usize> for Codepoints {
+impl From<usize> for Chars {
     fn from(t: usize) -> Self {
         (t as i32).into()
     }
 }
 
-impl From<&usize> for Codepoints {
+impl From<&usize> for Chars {
     fn from(t: &usize) -> Self {
         (*t as i32).into()
     }
 }
 
-impl serde::Serialize for Codepoints {
+impl serde::Serialize for Chars {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: serde::Serializer {
         i32::from(self).serialize(serializer)
     }
 }
 
-impl<'de> serde::Deserialize<'de> for Codepoints {
+impl<'de> serde::Deserialize<'de> for Chars {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where D: serde::Deserializer<'de> {
         i32::deserialize(deserializer).map(|val| val.into())
@@ -158,10 +160,13 @@ impl From<&usize> for Line {
 // TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
 //       This will make this unit safer.
 unit! {
-/// A type representing horizontal measurements expressed as number of unicode codepoints.
+/// A type representing horizontal measurements expressed as number of Rust's chars (being roughly
+/// the Unicode code points.
 ///
-/// Note: Currently our text rendering engine display each codepoint as a separate glyph, so it does
-/// not support the grapheme clusters (as described in https://stackoverflow.com/a/27331885).
+/// See [`crate`] documentation to know more about codepoints.
+///
+/// Note: The reason of representing Column as a code point is that our text rendering engine
+/// display each codepoint as a separate glyph (so it does not support the _grapheme clusters_).
 /// This should be fixed when doing
 /// https://www.pivotaltracker.com/n/projects/2539304/stories/180392693: after that, the column
 /// should be measured in grapheme clusters, to have Text Area cursors behave correctly (and the

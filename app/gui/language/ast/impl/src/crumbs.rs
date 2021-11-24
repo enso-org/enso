@@ -1465,7 +1465,7 @@ pub trait TraversableAst: Sized {
     }
 
     /// Calculate the span of the descendent AST node described by given crumbs..
-    fn span_of_descendent_at(&self, crumbs: &[Crumb]) -> FallibleResult<text::Range<Bytes>> {
+    fn range_of_descendant_at(&self, crumbs: &[Crumb]) -> FallibleResult<text::Range<Bytes>> {
         let mut position = 0.bytes();
         let mut ast = self.my_ast()?;
         for crumb in crumbs {

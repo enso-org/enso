@@ -110,14 +110,14 @@ impl Text {
         }
     }
 
-    /// Return the offset to the next codepoint if any. See the documentation of the library to
-    /// learn more about codepoints.
+    /// Return the offset to the next codepoint if any. See the [`crate`] documentation to learn
+    /// more about codepoints.
     pub fn next_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
         self.rope.next_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
     }
 
-    /// Return the offset to the previous codepoint if any. See the documentation of the library to
-    /// learn more about codepoints.
+    /// Return the offset to the previous codepoint if any. See the [`crate`] documentation to learn
+    /// more about codepoints.
     pub fn prev_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
         self.rope.prev_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
     }
