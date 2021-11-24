@@ -82,19 +82,19 @@ pub struct Model {
 
 impl Model {
     /// Constructor. `frp` is used to set up event handlers on buttons.
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, frp: Frp) -> Self {
         let application = app.clone_ref();
         let logger = Logger::new("WelcomeScreen");
         let display_object = display::object::Instance::new(&logger);
 
-        let side_menu = SideMenu::new(&logger);
+        let side_menu = SideMenu::new(&logger, frp.clone_ref());
         let template_cards = TemplateCards::new(&logger);
         let dom = Self::create_dom(&logger, &side_menu, &template_cards);
         display_object.add_child(&dom);
 
         // Use `fullscreen_vis` layer to lock position when panning
         app.display.scene().layers.panel.add_exclusive(&dom);
-        app.display.scene().dom.layers.fullscreen_vis.manage(&dom);
+        app.display.scene().dom.layers.back.manage(&dom);
 
         let style = web::create_element("style");
         style.set_inner_html(STYLESHEET);
@@ -142,8 +142,13 @@ ensogl::define_endpoints! {
     Input {
         /// Update displayed list of projects.
         projects_list(Vec<String>),
+
+        open_project(String),
     }
-    Output {}
+    Output {
+        /// A project that is selected to be opened.
+        opened_project(Option<String>),
+    }
 }
 
 
@@ -171,7 +176,7 @@ impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(app);
+        let model = Model::new(app, frp.clone_ref());
         let network = &frp.network;
 
         frp::extend! { network
@@ -184,6 +189,11 @@ impl View {
             // === Receive updates to projects list. ===
 
             eval frp.projects_list((list) model.update_projects_list(list));
+
+
+            // === Open projects. ===
+
+            frp.source.opened_project <+ frp.open_project.map(|name| Some(name.clone()));
         }
 
         Self { model, frp }

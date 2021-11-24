@@ -119,7 +119,7 @@ pub trait ManagingProjectAPI {
     /// Return a list of existing projects.
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>>;
 
-    /// Open the project with given id and name.
+    /// Open the project with given UUID.
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult>;
 }
 

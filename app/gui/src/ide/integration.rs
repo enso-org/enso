@@ -9,6 +9,7 @@ use crate::prelude::*;
 use crate::controller::ide::StatusNotification;
 use crate::model::undo_redo::Aware;
 
+use enso_frp as frp;
 use ide_view::graph_editor::SharedHashMap;
 
 
@@ -71,6 +72,32 @@ impl Model {
             });
         }
     }
+
+    /// Open new project through project manager API.
+    pub fn open_project(&self, project_name: &str) {
+        let logger = self.logger.clone_ref();
+        let controller = self.controller.clone_ref();
+        let name = project_name.to_owned();
+        crate::executor::global::spawn(async move {
+            if let Ok(managing_api) = controller.manage_projects() {
+                match managing_api.list_projects().await {
+                    Ok(projects) => {
+                        let mut projects = projects.into_iter();
+                        let project = projects.find(|project| project.name.0 == name);
+                        let uuid = project.map(|project| project.id);
+                        if let Some(uuid) = uuid {
+                            if let Err(err) = managing_api.open_project(uuid).await {
+                                error!(logger, "Could not open open project `{name}`: {err}.");
+                            }
+                        } else {
+                            error!(logger, "Could not find project `{name}`.")
+                        }
+                    }
+                    Err(err) => error!(logger, "Could not list projects: {err}."),
+                }
+            }
+        });
+    }
 }
 
 
@@ -82,7 +109,8 @@ impl Model {
 /// notifications from controllers will update the view.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Integration {
-    model: Rc<Model>,
+    model:   Rc<Model>,
+    network: frp::Network,
 }
 
 impl Integration {
@@ -90,8 +118,20 @@ impl Integration {
     pub fn new(controller: controller::Ide, view: ide_view::root::View) -> Self {
         let logger = Logger::new("ide::Integration");
         let project_integration = default();
+        let root_frp = view.frp.clone_ref();
+        let welcome_view_frp = view.welcome_screen().frp.clone_ref();
         let model = Rc::new(Model { logger, controller, view, project_integration });
-        Self { model }.init()
+
+        frp::new_network! { network
+            let opened_project = welcome_view_frp.opened_project.clone_ref();
+            open_project <- opened_project.filter_map(|name| name.clone());
+            eval open_project((name) {
+                model.open_project(name);
+                root_frp.switch_view_to_project.emit(());
+            });
+        }
+
+        Self { model, network }.init()
     }
 
     /// Initialize integration, so FRP outputs of the view will call the proper controller methods,
