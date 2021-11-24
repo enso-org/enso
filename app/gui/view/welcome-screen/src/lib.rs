@@ -103,6 +103,11 @@ impl Model {
         Self { application, logger, dom, display_object, side_menu, template_cards }
     }
 
+    /// Update displayed projects list.
+    pub fn update_projects_list(&self, projects: &[String]) {
+        self.side_menu.update_projects_list(projects);
+    }
+
     fn create_dom(
         logger: &Logger,
         side_menu: &SideMenu,
@@ -134,7 +139,10 @@ impl Model {
 // ===========
 
 ensogl::define_endpoints! {
-    Input {}
+    Input {
+        /// Update displayed list of projects.
+        projects_list(Vec<String>),
+    }
     Output {}
 }
 
@@ -146,9 +154,10 @@ ensogl::define_endpoints! {
 
 /// View of the Welcome Screen.
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct View {
-    model: Model,
-    frp:   Frp,
+    model:   Model,
+    pub frp: Frp,
 }
 
 impl Deref for View {
@@ -170,6 +179,11 @@ impl View {
 
             let scene_size = app.display.scene().shape().clone_ref();
             eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
+
+
+            // === Receive updates to projects list. ===
+
+            eval frp.projects_list((list) model.update_projects_list(list));
         }
 
         Self { model, frp }

@@ -58,4 +58,13 @@ impl SideMenu {
         projects_list.append_or_warn(&button, logger);
         button
     }
+
+    pub fn update_projects_list(&self, projects: &[String]) {
+        let new_button = &self.new_project_button;
+        for project in projects {
+            let node = web::create_element("li");
+            node.set_inner_html(&format!(r#"<img src="assets/project.svg"/> {}"#, project));
+            self.projects_list.insert_before_or_warn(&node, new_button, &self.logger);
+        }
+    }
 }
