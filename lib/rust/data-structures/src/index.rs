@@ -1,4 +1,4 @@
-//! This module defines a typed index struct. Useful to introduce type safety when using indexes
+//! This module defines a typed index struct. Useful to introduce type safety when using indexes of
 //! several indexable containers.
 
 use crate::prelude::*;
@@ -9,7 +9,27 @@ use crate::prelude::*;
 // === Index ===
 // =============
 
-/// Typed newtype for `usize` meant to be used as a typed index.
+/// Typed wrapper for `usize` meant to be used as a typed index.
+///
+/// Useful to introduce type safety when using indexes of several indexable containers, for example:
+///
+/// ```no_run
+/// # use enso_data_structures::index::Index;
+/// # struct Edge {}
+/// # struct Vertex {}
+/// # fn do_something(_e: &Edge, _v : &Vertex) {}
+/// struct Graph {
+///     edges:    Vec<Edge>,
+///     vertices: Vec<Vertex>,
+/// }
+///
+/// impl Graph {
+///     /// When calling this function, you won't mix the edge id with vertex id.
+///     fn do_something_with_vertex_and_edge(&self, v: Index<Vertex>, e: Index<Edge>) {
+///         do_something(&self.edges[e.raw], &self.vertices[v.raw]);
+///     }
+/// }
+/// ```
 pub struct Index<T> {
     /// Raw value.
     pub raw: usize,

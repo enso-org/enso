@@ -6,12 +6,11 @@
 use crate::prelude::*;
 
 use crate::controller::FilePath;
+use crate::model::module::TextChange;
 
-use data::text::TextChange;
 use engine_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
-
 
 
 // ====================
@@ -172,7 +171,7 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use data::text::Index;
+    use enso_text::traits::*;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -202,7 +201,8 @@ mod test {
             };
             let mut sub = controller.subscribe();
 
-            module.apply_code_change(TextChange::insert(Index::new(8), "2".to_string())).unwrap();
+            let change = enso_text::Change::inserted(8.bytes(), "2".to_string());
+            module.apply_code_change(change).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         })
     }

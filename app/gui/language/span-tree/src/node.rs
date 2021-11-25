@@ -4,11 +4,11 @@ use crate::prelude::*;
 
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
-
 use crate::ArgumentInfo;
+
 use ast::crumbs::IntoCrumbs;
-use enso_data::text::Index;
-use enso_data::text::Size;
+use enso_text as text;
+use enso_text::unit::*;
 
 pub mod kind;
 pub use kind::*;
@@ -30,7 +30,7 @@ pub trait Payload = Default + Clone;
 #[allow(missing_docs)]
 pub struct Node<T> {
     pub kind:     Kind,
-    pub size:     Size,
+    pub size:     Bytes,
     pub children: Vec<Child<T>>,
     pub ast_id:   Option<ast::Id>,
     pub payload:  T,
@@ -126,7 +126,7 @@ impl<T> Node<T> {
         self.kind = k.into();
         self
     }
-    pub fn with_size(mut self, size: Size) -> Self {
+    pub fn with_size(mut self, size: Bytes) -> Self {
         self.size = size;
         self
     }
@@ -176,7 +176,7 @@ pub struct Child<T = ()> {
     /// A child node.
     pub node:       Node<T>,
     /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset:     Size,
+    pub offset:     Bytes,
     /// AST crumbs which lead from parent to child associated AST node.
     pub ast_crumbs: ast::Crumbs,
 }
@@ -273,14 +273,14 @@ impl<T: Payload> ChildBuilder<T> {
         f: impl FnOnce(Self) -> Self,
     ) -> Self {
         let child: ChildBuilder<T> = ChildBuilder::new(default());
-        let child = f(child.offset(offset).size(size).kind(kind).crumbs(crumbs));
+        let child = f(child.offset(offset.into()).size(size.into()).kind(kind).crumbs(crumbs));
         self.node.children.push(child.child);
         self
     }
 
     /// Offset setter.
-    pub fn offset(mut self, offset: usize) -> Self {
-        self.offset = Size::new(offset);
+    pub fn offset(mut self, offset: Bytes) -> Self {
+        self.offset = offset;
         self
     }
 
@@ -297,8 +297,8 @@ impl<T: Payload> ChildBuilder<T> {
     }
 
     /// Size setter.
-    pub fn size(mut self, size: usize) -> Self {
-        self.node.size = Size::new(size);
+    pub fn size(mut self, size: Bytes) -> Self {
+        self.node.size = size;
         self
     }
 
@@ -421,13 +421,13 @@ impl InvalidCrumb {
 #[derive(Clone, Debug)]
 pub struct Ref<'a, T = ()> {
     /// The node's ref.
-    pub node:       &'a Node<T>,
-    /// Span begin being an index counted from the root expression.
-    pub span_begin: Index,
+    pub node:        &'a Node<T>,
+    /// Span begin's offset counted from the root expression.
+    pub span_offset: Bytes,
     /// Crumbs specifying this node position related to root.
-    pub crumbs:     Crumbs,
+    pub crumbs:      Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
-    pub ast_crumbs: ast::Crumbs,
+    pub ast_crumbs:  ast::Crumbs,
 }
 
 /// A result of `get_subnode_by_ast_crumbs`
@@ -442,22 +442,24 @@ pub struct NodeFoundByAstCrumbs<'a, 'b, T = ()> {
 impl<'a, T: Payload> Ref<'a, T> {
     /// Constructor.
     pub fn new(node: &'a Node<T>) -> Self {
-        let span_begin = default();
+        let span_offset = default();
         let crumbs = default();
         let ast_crumbs = default();
-        Self { node, span_begin, crumbs, ast_crumbs }
+        Self { node, span_offset, crumbs, ast_crumbs }
     }
 
     /// Get span of current node.
-    pub fn span(&self) -> enso_data::text::Span {
-        enso_data::text::Span::new(self.span_begin, self.node.size)
+    pub fn span(&self) -> text::Range<Bytes> {
+        let start = self.span_offset;
+        let end = self.span_offset + self.node.size;
+        (start..end).into()
     }
 
     /// Get the reference to child with given index. Fails if index if out of bounds.
     pub fn child(self, index: usize) -> FallibleResult<Self> {
         let node = self.node;
         let crumbs = self.crumbs;
-        let mut span_begin = self.span_begin;
+        let mut span_offset = self.span_offset;
         let mut ast_crumbs = self.ast_crumbs;
         let count = node.children.len();
 
@@ -465,10 +467,10 @@ impl<'a, T: Payload> Ref<'a, T> {
             None => Err(InvalidCrumb::new(count, index, &crumbs).into()),
             Some(child) => {
                 let node = &child.node;
-                span_begin += child.offset;
+                span_offset += child.offset;
                 let crumbs = crumbs.into_sub(index);
                 ast_crumbs.extend(child.ast_crumbs.iter().cloned());
-                Ok(Self { node, span_begin, crumbs, ast_crumbs })
+                Ok(Self { node, span_offset, crumbs, ast_crumbs })
             }
         }
     }
@@ -551,12 +553,12 @@ impl<'a, T: Payload> Ref<'a, T> {
 
     /// Get the node which exactly matches the given Span. If there many such node's, it pick first
     /// found by DFS.
-    pub fn find_by_span(self, span: &enso_data::text::Span) -> Option<Ref<'a, T>> {
+    pub fn find_by_span(self, span: &text::Range<Bytes>) -> Option<Ref<'a, T>> {
         if self.span() == *span {
             Some(self)
         } else {
             self.children_iter().find_map(|ch| {
-                ch.span().contains_span(span).and_option_from(|| ch.find_by_span(span))
+                ch.span().contains_range(span).and_option_from(|| ch.find_by_span(span))
             })
         }
     }
@@ -637,15 +639,15 @@ impl<'a, T: Payload> Ref<'a, T> {
 #[derive(Debug)]
 pub struct RefMut<'a, T = ()> {
     /// The node's ref.
-    node:           &'a mut Node<T>,
-    /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset:     Size,
-    /// Span begin being an index counted from the root expression.
-    pub span_begin: Index,
+    node:            &'a mut Node<T>,
+    /// An offset counted from the parent node start to the start of this node's span.
+    pub offset:      Bytes,
+    /// Span begin's offset counted from the root expression.
+    pub span_offset: Bytes,
     /// Crumbs specifying this node position related to root.
-    pub crumbs:     Crumbs,
+    pub crumbs:      Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
-    pub ast_crumbs: ast::Crumbs,
+    pub ast_crumbs:  ast::Crumbs,
 }
 
 impl<'a, T: Payload> RefMut<'a, T> {
@@ -655,7 +657,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
         let span_begin = default();
         let crumbs = default();
         let ast_crumbs = default();
-        Self { node, offset, span_begin, crumbs, ast_crumbs }
+        Self { node, offset, span_offset: span_begin, crumbs, ast_crumbs }
     }
 
     /// Payload accessor.
@@ -669,15 +671,15 @@ impl<'a, T: Payload> RefMut<'a, T> {
     }
 
     /// Get span of current node.
-    pub fn span(&self) -> enso_data::text::Span {
-        enso_data::text::Span::new(self.span_begin, self.node.size)
+    pub fn span(&self) -> text::Range<Bytes> {
+        text::Range::new(self.span_offset, self.span_offset + self.size)
     }
 
     /// Helper function for building child references.
     fn child_from_ref(
         index: usize,
         child: &'a mut Child<T>,
-        mut span_begin: Index,
+        mut span_begin: Bytes,
         crumbs: Crumbs,
         mut ast_crumbs: ast::Crumbs,
     ) -> RefMut<'a, T> {
@@ -686,13 +688,13 @@ impl<'a, T: Payload> RefMut<'a, T> {
         span_begin += child.offset;
         let crumbs = crumbs.into_sub(index);
         ast_crumbs.extend(child.ast_crumbs.iter().cloned());
-        Self { node, offset, span_begin, crumbs, ast_crumbs }
+        Self { node, offset, span_offset: span_begin, crumbs, ast_crumbs }
     }
 
     /// Get the reference to child with given index. Fails if index if out of bounds.
     pub fn child(self, index: usize) -> FallibleResult<RefMut<'a, T>> {
         let node = self.node;
-        let span_begin = self.span_begin;
+        let span_begin = self.span_offset;
         let crumbs = self.crumbs;
         let ast_crumbs = self.ast_crumbs;
         let count = node.children.len();
@@ -704,7 +706,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
 
     /// Iterator over all direct children producing `RefMut`s.
     pub fn children_iter(self) -> impl Iterator<Item = RefMut<'a, T>> {
-        let span_begin = self.span_begin;
+        let span_begin = self.span_offset;
         let crumbs = self.crumbs;
         let ast_crumbs = self.ast_crumbs;
         self.node.children.iter_mut().enumerate().map(move |(index, child)| {
@@ -840,6 +842,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::crumbs;
+    use enso_text::unit::*;
 
     #[test]
     fn node_lookup() {
@@ -862,11 +865,11 @@ mod test {
         let grand_child2 = child2.clone().get_descendant(&vec![1]).unwrap();
 
         // Span begin.
-        assert_eq!(root.span_begin.value, 0);
-        assert_eq!(child1.span_begin.value, 0);
-        assert_eq!(child2.span_begin.value, 2);
-        assert_eq!(grand_child1.span_begin.value, 2);
-        assert_eq!(grand_child2.span_begin.value, 5);
+        assert_eq!(root.span_offset, 0.bytes());
+        assert_eq!(child1.span_offset, 0.bytes());
+        assert_eq!(child2.span_offset, 2.bytes());
+        assert_eq!(grand_child1.span_offset, 2.bytes());
+        assert_eq!(grand_child2.span_offset, 5.bytes());
 
         // Length
         assert_eq!(root.node.size.value, 7);

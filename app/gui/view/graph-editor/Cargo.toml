@@ -17,6 +17,7 @@ enso-logger = { path = "../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../lib/rust/prelude"}
 engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol" }
 enso-shapely = { path = "../../../../lib/rust/shapely/impl"}
+enso-text = { version = "0.1.0", path = "../../../../lib/rust/text" }
 ensogl = { version = "0.1.0", path = "../../../../lib/rust/ensogl" }
 ensogl-gui-component = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/gui" }
 ensogl-text = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text" }

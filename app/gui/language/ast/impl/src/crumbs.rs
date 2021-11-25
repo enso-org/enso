@@ -12,9 +12,9 @@ use crate::Shifted;
 use crate::ShiftedVec1;
 use crate::TokenConsumer;
 
-use enso_data::text::Index;
-use enso_data::text::Size;
-use enso_data::text::Span;
+use enso_text as text;
+use enso_text::traits::*;
+use enso_text::unit::*;
 
 
 
@@ -1465,16 +1465,16 @@ pub trait TraversableAst: Sized {
     }
 
     /// Calculate the span of the descendent AST node described by given crumbs..
-    fn span_of_descendent_at(&self, crumbs: &[Crumb]) -> FallibleResult<Span> {
-        let mut position = Index::new(0);
+    fn range_of_descendant_at(&self, crumbs: &[Crumb]) -> FallibleResult<text::Range<Bytes>> {
+        let mut position = 0.bytes();
         let mut ast = self.my_ast()?;
         for crumb in crumbs {
             let child = ast.get(crumb)?;
-            let child_ix = ast.child_offset(child)?;
-            position += Span::from_beginning_to(child_ix).size;
+            let child_offset = ast.child_offset(child)?;
+            position += child_offset;
             ast = child;
         }
-        Ok(Span::new(position, Size::new(ast.len())))
+        Ok(text::Range::new(position, position + ast.len()))
     }
 }
 
@@ -2243,8 +2243,8 @@ mod tests {
         let two = ast.get_traversing(&crumbs_to_two).unwrap();
         assert_eq!(two.repr(), "2");
 
-        let two_span = ast.span_of_descendent_at(&crumbs_to_two).unwrap();
-        assert_eq!(two_span, Span::from(4..5));
+        let two_span = ast.range_of_descendant_at(&crumbs_to_two).unwrap();
+        assert_eq!(two_span, 4.bytes()..5.bytes());
         assert_eq!(&expected_code[two_span], "2");
     }
 }

@@ -5,6 +5,7 @@ use enso_web as web;
 
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
+use enso_text::traits::*;
 use span_tree::builder::Builder;
 use span_tree::node;
 use span_tree::node::InsertionPointType;
@@ -60,16 +61,19 @@ pub fn main() {
                 .kind(node::Kind::Chained)
                 .crumbs(PrefixCrumb::Func)
                 .new_child(|t| {
-                    t.size(9).kind(node::Kind::Operation).crumbs(PrefixCrumb::Func).new_ast_id()
+                    t.size(9.bytes())
+                        .kind(node::Kind::Operation)
+                        .crumbs(PrefixCrumb::Func)
+                        .new_ast_id()
                 })
-                .new_child(|t| t.size(1))
+                .new_child(|t| t.size(1.bytes()))
                 .new_child(|t| {
-                    t.size(4)
+                    t.size(4.bytes())
                         .kind(node::Kind::this().removable())
                         .crumbs(PrefixCrumb::Arg)
                         .new_ast_id()
                 })
-                .new_child(|t| t.size(1))
+                .new_child(|t| t.size(1.bytes()))
         })
         .new_child(|t| {
             t.new_ast_id()
@@ -77,26 +81,26 @@ pub fn main() {
                 .crumbs(PrefixCrumb::Arg)
                 .new_child(|t| {
                     t.new_ast_id()
-                        .offset(1)
+                        .offset(1.bytes())
                         .kind(node::Kind::argument().removable())
                         .crumbs(parens_cr)
                         .new_child(|t| {
-                            t.size(12)
+                            t.size(12.bytes())
                                 .kind(node::Kind::Operation)
                                 .crumbs(PrefixCrumb::Func)
                                 .new_ast_id()
                         })
-                        .new_child(|t| t.size(1))
+                        .new_child(|t| t.size(1.bytes()))
                         .new_child(|t| {
-                            t.size(6)
+                            t.size(6.bytes())
                                 .kind(node::Kind::this().removable())
                                 .crumbs(PrefixCrumb::Arg)
                                 .new_ast_id()
                         })
-                        .new_child(|t| t.size(1))
+                        .new_child(|t| t.size(1.bytes()))
                 })
         })
-        .new_child(|t| t.size(1));
+        .new_child(|t| t.size(1.bytes()));
 
     DEBUG!("{input_span_tree2:#?}");
 }

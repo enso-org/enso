@@ -12,7 +12,8 @@ fn no_doc_found() {
     let program = std::env::args().nth(1).unwrap_or(input);
     let parser = parser::DocParser::new_or_panic();
     let gen_code = parser.generate_html_docs(program).unwrap();
-    assert_eq!(gen_code.len(), 22); // should be 0
+    // gen_code should be empty.
+    assert_eq!(gen_code.len(), 22, "Generated length differs from the expected\"{}\"", gen_code);
 }
 
 #[wasm_bindgen_test]

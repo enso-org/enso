@@ -5,7 +5,6 @@ use crate::Node;
 use crate::SpanTree;
 
 use ast::crumbs::IntoCrumbs;
-use enso_data::text::Size;
 
 
 
@@ -29,9 +28,8 @@ pub trait Builder<T: Payload>: Sized {
         crumbs: impl IntoCrumbs,
     ) -> ChildBuilder<Self, T> {
         let kind = kind.into();
-        let node = Node::<T>::new().with_kind(kind).with_size(Size::new(len));
-        let child =
-            node::Child { node, offset: Size::new(offset), ast_crumbs: crumbs.into_crumbs() };
+        let node = Node::<T>::new().with_kind(kind).with_size(len.into());
+        let child = node::Child { node, offset: offset.into(), ast_crumbs: crumbs.into_crumbs() };
         ChildBuilder { built: child, parent: self }
     }
 
@@ -50,7 +48,7 @@ pub trait Builder<T: Payload>: Sized {
     fn add_empty_child(mut self, offset: usize, insert_type: node::InsertionPointType) -> Self {
         let child = node::Child {
             node:       Node::<T>::new().with_kind(insert_type),
-            offset:     Size::new(offset),
+            offset:     offset.into(),
             ast_crumbs: vec![],
         };
         self.node_being_built().children.push(child);
@@ -81,7 +79,7 @@ pub struct TreeBuilder<T = ()> {
 impl<T: Payload> TreeBuilder<T> {
     /// Create new builder for tree with root having length `len`.
     pub fn new(len: usize) -> Self {
-        let built = Node::<T>::new().with_kind(node::Kind::Root).with_size(Size::new(len));
+        let built = Node::<T>::new().with_kind(node::Kind::Root).with_size(len.into());
         TreeBuilder { built }
     }
 

@@ -1,18 +1,18 @@
 #![cfg(not(target_arch = "wasm32"))]
 
 use crate::api;
+use crate::api::Ast;
+use crate::api::Error::*;
+use crate::api::Metadata;
+use crate::api::ParsedSourceFile;
 use crate::prelude::*;
 
 use websocket::stream::sync::TcpStream;
 use websocket::ClientBuilder;
 use websocket::Message;
 
-use api::Ast;
-use api::Error::*;
-use api::Metadata;
-use api::ParsedSourceFile;
+use ast::id_map::JsonIdMap;
 use ast::IdMap;
-
 use serde::de::DeserializeOwned;
 use std::fmt::Formatter;
 
@@ -92,7 +92,7 @@ impl From<serde_json::error::Error> for Error {
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest { program: String, ids: IdMap },
+    ParseRequest { program: String, ids: JsonIdMap },
     ParseRequestWithMetadata { content: String },
     DocParserGenerateHtmlSource { program: String },
     DocParserGenerateHtmlFromDoc { code: String },
@@ -238,6 +238,7 @@ impl Client {
 
     /// Sends a request to parser service to parse Enso code.
     pub fn parse(&mut self, program: String, ids: IdMap) -> api::Result<Ast> {
+        let ids = JsonIdMap::from_id_map(&ids, &program);
         let request = Request::ParseRequest { program, ids };
         let response = self.rpc_call::<serde_json::Value>(request)?;
         match response {

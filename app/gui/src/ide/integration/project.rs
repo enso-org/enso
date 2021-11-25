@@ -31,7 +31,6 @@ use crate::model::traits::*;
 use analytics;
 use bimap::BiMap;
 use engine_protocol::language_server::ExpressionUpdatePayload;
-use enso_data::text::TextChange;
 use enso_frp as frp;
 use ensogl::display::traits::*;
 use ensogl_gui_component::file_browser::model::AnyFolderContent;
@@ -1741,11 +1740,10 @@ impl Model {
         spawn(exit_node_action);
     }
 
-    fn code_changed_in_ui(&self, changes: &Vec<ensogl_text::Change>) -> FallibleResult {
+    fn code_changed_in_ui(&self, changes: &Vec<enso_text::Change>) -> FallibleResult {
         for change in changes {
-            let range_start = data::text::Index::new(change.range.start.value as usize);
-            let range_end = data::text::Index::new(change.range.end.value as usize);
-            let converted = TextChange::replace(range_start..range_end, change.text.to_string());
+            let converted =
+                enso_text::text::Change { range: change.range, text: (&change.text).into() };
             self.text.apply_text_change(converted)?;
         }
         Ok(())

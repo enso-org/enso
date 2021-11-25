@@ -117,14 +117,14 @@ macro_rules! define_styles {
 
         $(
             impl Setter<Option<$field_type>> for Buffer {
-                fn replace(&self, range:impl data::RangeBounds, data:Option<$field_type>) {
+                fn replace(&self, range:impl enso_text::RangeBounds, data:Option<$field_type>) {
                     let range = self.crop_byte_range(range);
                     self.data.style.cell.borrow_mut().$field.replace_resize(range,range.size(),data)
                 }
             }
 
             impl Setter<$field_type> for Buffer {
-                fn replace(&self, range:impl data::RangeBounds, data:$field_type) {
+                fn replace(&self, range:impl enso_text::RangeBounds, data:$field_type) {
                     self.replace(range,Some(data))
                 }
             }
@@ -174,7 +174,7 @@ impl StyleIterator {
 #[derive(Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Property<T: Clone> {
-    pub spans: data::Spans<Option<T>>,
+    pub spans: enso_text::Spans<Option<T>>,
     default:   T,
 }
 
@@ -202,7 +202,7 @@ impl<T: Clone> Property<T> {
 // === Deref ===
 
 impl<T: Clone> Deref for Property<T> {
-    type Target = data::Spans<Option<T>>;
+    type Target = enso_text::Spans<Option<T>>;
     fn deref(&self) -> &Self::Target {
         &self.spans
     }

@@ -17,6 +17,7 @@ serde_json = { version = "1.0" }
 shrinkwraprs = { version = "0.2.1" }
 uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
 ast-macros = { path = "../macros" }
-enso-data = { path = "../../../../../lib/rust/data"}
-enso-prelude = { path = "../../../../../lib/rust/prelude"}
-enso-shapely = { path = "../../../../../lib/rust/shapely/impl"}
+enso-data-structures = { path = "../../../../../lib/rust/data-structures" }
+enso-text = { path = "../../../../../lib/rust/text" }
+enso-prelude = { path = "../../../../../lib/rust/prelude" }
+enso-shapely = { path = "../../../../../lib/rust/shapely/impl" }

@@ -8,6 +8,7 @@ use crate::view;
 use crate::Type;
 
 use enso_frp as frp;
+use enso_text::unit::*;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
@@ -447,8 +448,8 @@ pub struct Model {
     pub shape:          Option<PortShapeView>,
     pub type_label:     Option<text::Area>,
     pub display_object: Option<display::object::Instance>,
-    pub index:          usize,
-    pub length:         usize,
+    pub index:          Bytes,
+    pub length:         Bytes,
     port_count:         usize,
     port_index:         usize,
 }

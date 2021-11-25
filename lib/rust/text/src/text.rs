@@ -2,13 +2,14 @@
 
 use crate::prelude::*;
 
-use super::range::Range;
-use super::range::RangeBounds;
-use super::rope;
-use super::rope::Rope;
-use super::unit::*;
-use crate::selection::Selection;
+use crate::range::Range;
+use crate::range::RangeBounds;
+use crate::rope;
+use crate::rope::Rope;
+use crate::unit::*;
 
+use crate::prelude::fmt::Formatter;
+use enso_types::min;
 
 
 // ============
@@ -109,11 +110,16 @@ impl Text {
         }
     }
 
-    /// Constrain the selection to values valid inside of the current text buffer.
-    pub fn snap_selection(&self, selection: Selection) -> Selection {
-        let start = self.snap_location(selection.start);
-        let end = self.snap_location(selection.end);
-        selection.with_start(start).with_end(end)
+    /// Return the offset to the next codepoint if any. See the [`crate`] documentation to learn
+    /// more about codepoints.
+    pub fn next_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
+        self.rope.next_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
+    }
+
+    /// Return the offset to the previous codepoint if any. See the [`crate`] documentation to learn
+    /// more about codepoints.
+    pub fn prev_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
+        self.rope.prev_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
     }
 
     /// Return the offset to the next grapheme if any. See the documentation of the library to
@@ -141,6 +147,13 @@ impl Text {
         let text = text.into();
         let range = self.crop_byte_range(range);
         self.rope.edit(range.into_rope_interval(), text.rope);
+    }
+
+    /// Apply the given change on the current text.
+    ///
+    /// See also [`Self::replace`].
+    pub fn apply_change(&mut self, change: Change<Bytes, impl Into<Text>>) {
+        self.replace(change.range, change.text)
     }
 }
 
@@ -390,7 +403,7 @@ impl Text {
         let mut offset = self.byte_offset_of_line_index(line_index)?;
         let mut column = 0.column();
         while offset < tgt_offset {
-            match self.next_grapheme_offset(offset) {
+            match self.next_codepoint_offset(offset) {
                 None => return Err(BoundsError(TooBig)),
                 Some(off) => {
                     offset = off;
@@ -567,6 +580,36 @@ impl Text {
 }
 
 
+// === Common Prefix and Suffix ===
+
+/// The return value of [`Text::common_prefix_and_suffix`] function.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CommonPrefixAndSuffix {
+    pub prefix: Bytes,
+    pub suffix: Bytes,
+}
+
+impl Text {
+    /// Returns the length in bytes of common prefix and suffix.
+    ///
+    /// The prefix and suffix lengths does not overlap, so the sum of their length will not exceed
+    /// the length of both texts.
+    pub fn common_prefix_and_suffix(&self, other: &Text) -> CommonPrefixAndSuffix {
+        let mut scanner = xi_rope::compare::RopeScanner::new(&self.rope, &other.rope);
+        let (prefix, suffix) = scanner.find_min_diff_range();
+        CommonPrefixAndSuffix { prefix: prefix.into(), suffix: suffix.into() }
+    }
+}
+
+// === Display ===
+
+impl Display for Text {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.rope, f)
+    }
+}
+
 
 // ===================
 // === Conversions ===
@@ -695,10 +738,6 @@ impl TextCell {
 
     pub fn snap_location(&self, location: Location) -> Location {
         self.cell.borrow().snap_location(location)
-    }
-
-    pub fn snap_selection(&self, selection: Selection) -> Selection {
-        self.cell.borrow().snap_selection(selection)
     }
 
     pub fn next_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
@@ -858,5 +897,55 @@ impl TextCell {
 
     pub fn location_of_byte_offset_snapped(&self, offset: Bytes) -> Location {
         self.cell.borrow().location_of_byte_offset_snapped(offset)
+    }
+}
+
+
+
+// ==============
+// === Change ===
+// ==============
+
+/// A single change done to the text content.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Change<Metric = Bytes, String = Text> {
+    /// Range of old text being replaced.
+    pub range: Range<Metric>,
+    /// The text inserted in place of `range`.
+    pub text:  String,
+}
+
+
+impl<Metric, String> Change<Metric, String> {
+    /// Create a change being an insert of the `text` at given `offset` (no text will be removed).
+    pub fn inserted(offset: Metric, text: String) -> Self
+    where Metric: Copy {
+        Self { range: Range::new(offset, offset), text }
+    }
+
+    /// Return new [`Change`] with copied range and a reference to self's string.
+    pub fn as_ref(&self) -> Change<Metric, &String>
+    where Metric: Copy {
+        Change { range: self.range, text: &self.text }
+    }
+}
+
+
+// === Applying Change ===
+
+impl<S: AsRef<str>> Change<Bytes, S> {
+    /// Apply the change on the given string.
+    pub fn apply(&self, target: &mut String) -> Result<(), BoundsError> {
+        let start_byte = self.range.start.as_usize();
+        let end_byte = self.range.end.as_usize();
+        target.replace_range(start_byte..end_byte, self.text.as_ref());
+        Ok(())
+    }
+
+    /// Return a new string being a `target` with this change applied.
+    pub fn applied(&self, target: &str) -> Result<String, BoundsError> {
+        let mut string = target.to_owned();
+        self.apply(&mut string)?;
+        Ok(string)
     }
 }

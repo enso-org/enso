@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use enso_text::unit::*;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
@@ -151,9 +152,9 @@ pub struct Model {
     pub frp:             Frp,
     pub shape:           Option<Shape>,
     pub name:            Option<String>,
-    pub index:           usize,
-    pub local_index:     usize,
-    pub length:          usize,
+    pub index:           Bytes,
+    pub local_index:     Bytes,
+    pub length:          Bytes,
     pub highlight_color: color::Lcha, // TODO needed? and other fields?
 }
 
@@ -185,5 +186,12 @@ impl Model {
         let shape = Shape::new(&logger, scene, size, hover_height);
         self.shape = Some(shape);
         self.shape.as_ref().unwrap().clone_ref()
+    }
+
+    /// The range of this port.
+    pub fn range(&self) -> enso_text::Range<Bytes> {
+        let start = self.index;
+        let end = self.index + self.length;
+        enso_text::Range::new(start, end)
     }
 }

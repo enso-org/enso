@@ -13,7 +13,6 @@ use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::model::traits::*;
 use crate::notification;
 
-use data::text::TextLocation;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;
@@ -21,6 +20,7 @@ use double_representation::node::NodeInfo;
 use double_representation::project;
 use double_representation::tp;
 use engine_protocol::language_server;
+use enso_text::Location;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -476,7 +476,7 @@ pub struct Searcher {
     language_server:  Rc<language_server::Connection>,
     ide:              controller::Ide,
     this_arg:         Rc<Option<ThisNode>>,
-    position_in_code: Immutable<TextLocation>,
+    position_in_code: Immutable<Location>,
 }
 
 impl Searcher {
@@ -517,7 +517,8 @@ impl Searcher {
         let module_ast = graph.graph().module.ast();
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
-        let position = TextLocation::convert_span(module_ast.repr(), &def_span).end;
+        let module_repr: enso_text::Text = module_ast.repr().into();
+        let position = module_repr.location_of_byte_offset_snapped(def_span.end);
         let this_arg = Rc::new(
             matches!(mode, Mode::NewNode { .. })
                 .and_option_from(|| ThisNode::new(selected_nodes, &graph.graph())),
@@ -1203,11 +1204,11 @@ pub mod test {
 
     impl MockData {
         fn change_main_body(&mut self, line: &str) {
-            let code = dbg!(crate::test::mock::main_from_lines(&[line]));
-            let location = data::text::TextLocation::at_document_end(&code);
+            let code: enso_text::Text = dbg!(crate::test::mock::main_from_lines(&[line])).into();
+            let location = code.location_of_text_end();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
-            self.graph.module.code = code.clone();
-            self.graph.graph.code = code;
+            self.graph.module.code = (&code).into();
+            self.graph.graph.code = code.into();
             self.code_location = location.into();
         }
 
@@ -1250,8 +1251,8 @@ pub mod test {
             let mut client = language_server::MockClient::default();
             client.require_all_calls();
             client_setup(&mut data, &mut client);
-            let end_of_code = TextLocation::at_document_end(&data.graph.module.code);
-            let code_range = TextLocation::at_document_begin()..=end_of_code;
+            let end_of_code = enso_text::Text::from(&data.graph.module.code).location_of_text_end();
+            let code_range = enso_text::Location::default()..=end_of_code;
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
             let this = ThisNode::new(vec![node.info.id()], &graph.graph());

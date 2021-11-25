@@ -961,6 +961,7 @@ pub mod tests {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::module::Position;
+    use crate::model::module::TextChange;
     use crate::model::suggestion_database;
     use crate::test::mock::data;
 
@@ -969,8 +970,7 @@ pub mod tests {
     use double_representation::identifier::NormalizedName;
     use double_representation::project;
     use engine_protocol::language_server::MethodPointer;
-    use enso_data::text::Index;
-    use enso_data::text::TextChange;
+    use enso_text::traits::*;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -1092,7 +1092,7 @@ pub mod tests {
     fn graph_controller_notification_relay() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
-            let change = TextChange::insert(Index::new(12), "2".into());
+            let change = TextChange { range: (12.bytes()..12.bytes()).into(), text: "2".into() };
             graph.module.apply_code_change(change, &graph.parser, default()).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         });
