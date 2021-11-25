@@ -41,7 +41,7 @@ pub struct Model {
 }
 
 impl Model {
-    /// Constuctor. Creates both Welcome Screen and Project View.
+    /// Constuctor.
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = Logger::new("RootView");
