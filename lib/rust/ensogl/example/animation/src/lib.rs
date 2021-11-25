@@ -1,6 +1,24 @@
 //! A debug scene showing the bug described in https://github.com/enso-org/ide/issues/757
 
-use crate::prelude::*;
+#![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(entry_insert)]
+#![feature(fn_traits)]
+#![feature(specialization)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![recursion_limit = "1024"]
+
+use enso_prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::system::web;
@@ -31,7 +49,7 @@ pub fn entry_point_animation() {
 
 // ========================
 // === Init Application ===
-// ========================
+========================
 
 fn init() {
     let logger: Logger = Logger::new("AnimationTest");

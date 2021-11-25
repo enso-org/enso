@@ -1,5 +1,23 @@
 //! A debug scene which shows the scroll area.
 
+#![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(entry_insert)]
+#![feature(fn_traits)]
+#![feature(specialization)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![recursion_limit = "1024"]
+
 use crate::prelude::*;
 use wasm_bindgen::prelude::*;
 

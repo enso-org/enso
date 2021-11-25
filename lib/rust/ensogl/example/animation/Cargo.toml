@@ -1,0 +1,10 @@
+[package]
+name = "ensogl-example-animation"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[dependencies]
+ensogl-core = { path = "../../core" }
+ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }

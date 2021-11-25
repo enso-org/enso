@@ -1208,30 +1208,158 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-examples"
+name = "ensogl-example-animation"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-complex-shape-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-dom-symbols"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "nalgebra 0.26.2",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-drop-manager"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+ "wasm-bindgen-futures 0.4.8",
+]
+
+[[package]]
+name = "ensogl-example-easing-animator"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "js-sys",
+ "nalgebra 0.26.2",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "ensogl-example-glyph-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-text",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-list-view"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-mouse-events"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-logger",
- "enso-prelude",
- "enso-shapely",
- "enso-text",
  "ensogl-core",
- "ensogl-drop-manager",
- "ensogl-gui-component",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-scroll-area"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
  "ensogl-hardcoded-theme",
- "ensogl-list-view",
  "ensogl-scroll-area",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-shape-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-slider"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-selector",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-sprite-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-sprite-system-benchmark"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "nalgebra 0.26.2",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-text-area"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "js-sys",
- "nalgebra 0.26.2",
- "serde",
- "serde_json",
  "wasm-bindgen",
- "wasm-bindgen-futures 0.4.8",
- "web-sys",
+]
+
+[[package]]
+name = "ensogl-examples"
+version = "0.1.0"
+dependencies = [
+ "ensogl-example-animation",
+ "ensogl-example-complex-shape-system",
+ "ensogl-example-dom-symbols",
+ "ensogl-example-drop-manager",
+ "ensogl-example-easing-animator",
+ "ensogl-example-glyph-system",
+ "ensogl-example-list-view",
+ "ensogl-example-mouse-events",
+ "ensogl-example-scroll-area",
+ "ensogl-example-shape-system",
+ "ensogl-example-slider",
+ "ensogl-example-sprite-system",
+ "ensogl-example-sprite-system-benchmark",
+ "ensogl-example-text-area",
 ]
 
 [[package]]
