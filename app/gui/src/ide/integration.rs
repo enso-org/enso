@@ -164,7 +164,7 @@ impl Integration {
     pub fn init(self) -> Self {
         self.initialize_status_bar_integration();
         self.initialize_controller_integration();
-        self.update_welcome_screen();
+        self.set_projects_list_on_welcome_screen();
         self.model.clone_ref().setup_and_display_new_project();
         self
     }
@@ -217,7 +217,7 @@ impl Integration {
         }));
     }
 
-    fn update_welcome_screen(&self) {
+    fn set_projects_list_on_welcome_screen(&self) {
         let controller = self.model.controller.clone_ref();
         let welcome_view_frp = self.model.view.welcome_screen().frp.clone_ref();
         let logger = self.model.logger.clone_ref();

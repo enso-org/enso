@@ -103,9 +103,9 @@ impl Model {
         Self { application, logger, dom, display_object, side_menu, template_cards }
     }
 
-    /// Update displayed projects list.
-    pub fn update_projects_list(&self, projects: &[String]) {
-        self.side_menu.update_projects_list(projects);
+    /// Set displayed projects list.
+    pub fn set_projects_list(&self, projects: &[String]) {
+        self.side_menu.set_projects_list(projects);
     }
 
     fn create_dom(
@@ -188,7 +188,7 @@ impl View {
 
             // === Receive updates to projects list. ===
 
-            eval frp.projects_list((list) model.update_projects_list(list));
+            eval frp.projects_list((list) model.set_projects_list(list));
         }
 
         Self { model, frp }

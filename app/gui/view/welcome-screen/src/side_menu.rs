@@ -49,6 +49,26 @@ impl SideMenu {
         menu
     }
 
+    pub fn set_projects_list(&self, projects: &[String]) {
+        self.clear_projects_list();
+        let new_button = &self.new_project_button;
+        for project in projects {
+            let node = Self::create_project_list_entry(project);
+            self.setup_open_project_event_listener(&node, project);
+            self.projects_list.insert_before_or_warn(&node, new_button, &self.logger);
+        }
+    }
+
+    fn clear_projects_list(&self) {
+        let entries = self.projects_list.children();
+        for i in 0..entries.length() {
+            let entry = entries.item(i).expect("Out of bounds error.");
+            if entry != self.new_project_button {
+                entry.remove();
+            }
+        }
+    }
+
     fn create_header(text: &str) -> Element {
         let header = web::create_element("h2");
         header.set_text_content(Some(text));
@@ -65,15 +85,6 @@ impl SideMenu {
         button.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
         projects_list.append_or_warn(&button, logger);
         button
-    }
-
-    pub fn update_projects_list(&self, projects: &[String]) {
-        let new_button = &self.new_project_button;
-        for project in projects {
-            let node = Self::create_project_list_entry(project);
-            self.setup_open_project_event_listener(&node, project);
-            self.projects_list.insert_before_or_warn(&node, new_button, &self.logger);
-        }
     }
 
     fn setup_new_project_event_listener(&self) {
