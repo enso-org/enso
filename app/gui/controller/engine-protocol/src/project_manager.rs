@@ -253,13 +253,9 @@ mod mock_client_tests {
         let delete_result = mock_client.delete_project(&expected_uuid);
         result(delete_result).expect_err("Project shouldn't exist.");
 
-        let creation_response = mock_client.create_project(
-            &"HelloWorld".to_string(),
-            &None,
-            &None,
-            &missing_component_action,
-        );
-        let uuid = result(creation_response).expect("Couldn't create project").project_id;
+        let name = String::from("HelloWorld");
+        let response = mock_client.create_project(&name, &None, &None, &missing_component_action);
+        let uuid = result(response).expect("Couldn't create project").project_id;
         assert_eq!(uuid, expected_uuid);
 
         let close_result = result(mock_client.close_project(&uuid));

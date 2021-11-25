@@ -186,7 +186,7 @@ impl View {
             eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
 
 
-            // === Receive updates to projects list. ===
+            // === Receive updates of projects list. ===
 
             eval frp.projects_list((list) model.set_projects_list(list));
         }
