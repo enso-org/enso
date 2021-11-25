@@ -123,9 +123,7 @@ impl Integration {
         let model = Rc::new(Model { logger, controller, view, project_integration });
 
         frp::new_network! { network
-            let opened_project = welcome_view_frp.opened_project.clone_ref();
-            open_project <- opened_project.filter_map(|name| name.clone());
-            eval open_project((name) {
+            eval welcome_view_frp.open_project((name) {
                 model.open_project(name);
                 root_frp.switch_view_to_project.emit(());
             });

@@ -145,10 +145,7 @@ ensogl::define_endpoints! {
 
         open_project(String),
     }
-    Output {
-        /// A project that is selected to be opened.
-        opened_project(Option<String>),
-    }
+    Output {}
 }
 
 
@@ -189,11 +186,6 @@ impl View {
             // === Receive updates to projects list. ===
 
             eval frp.projects_list((list) model.update_projects_list(list));
-
-
-            // === Open projects. ===
-
-            frp.source.opened_project <+ frp.open_project.map(|name| Some(name.clone()));
         }
 
         Self { model, frp }
