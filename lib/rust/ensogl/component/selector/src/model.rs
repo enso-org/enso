@@ -3,17 +3,15 @@
 
 use crate::prelude::*;
 
+use crate::decimal_aligned::FloatLabel;
+use crate::shape::*;
+use crate::Bounds;
+
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_text as text;
-
-use crate::component;
-
-use super::decimal_aligned::FloatLabel;
-use super::shape::*;
-use super::Bounds;
 
 
 
@@ -29,6 +27,8 @@ const LABEL_OFFSET: f32 = 13.0;
 // === Model ===
 // =============
 
+/// A Selector Component Model.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     /// Background shape that the other UI elements are placed on.
@@ -74,8 +74,9 @@ pub struct Model {
     pub app: Application,
 }
 
-impl component::Model for Model {
-    fn new(app: &Application) -> Self {
+#[allow(missing_docs)]
+impl Model {
+    pub fn new(app: &Application) -> Self {
         let logger = Logger::new("selector::common::Model");
         let root = display::object::Instance::new(&logger);
         let label = app.new_view::<FloatLabel>();
@@ -141,9 +142,7 @@ impl component::Model for Model {
             app,
         }
     }
-}
 
-impl Model {
     /// Set the size of the overall shape, taking into account the extra padding required to
     /// render the shadow.
     pub fn set_size(&self, size: Vector2, shadow_padding: Vector2) {

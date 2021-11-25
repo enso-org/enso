@@ -1,6 +1,6 @@
-//! EnsoGL Components.
+//! EnsoGL GUI Component Abstraction.
 //!
-//! A collection of useful standard UI components for EnsoGL.
+//! A collection of utilities for easy implementing new GUI components.
 
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
@@ -15,15 +15,6 @@
 #![recursion_limit = "512"]
 
 pub mod component;
-pub mod drop_down_menu;
-pub mod file_browser;
-pub mod label;
-pub mod list_view;
-pub mod scroll_area;
-pub mod scrollbar;
-pub mod selector;
-pub mod shadow;
-pub mod toggle_button;
 
 /// Commonly used types and functions.
 pub mod prelude {

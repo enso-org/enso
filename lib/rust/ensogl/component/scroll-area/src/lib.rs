@@ -12,10 +12,7 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "512"]
 
-use crate::prelude::*;
-
-use crate::scrollbar;
-use crate::scrollbar::Scrollbar;
+use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
@@ -23,6 +20,8 @@ use ensogl_core::control::callback;
 use ensogl_core::control::io::mouse;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_scrollbar as scrollbar;
+use ensogl_scrollbar::Scrollbar;
 
 
 

@@ -1,8 +1,12 @@
 [package]
-name = "drop-down-menu"
+name = "ensogl-drop-down-menu"
 version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
 
 [dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-list-view = { path = "../list-view" }
+ensogl-text = { path = "../text" }

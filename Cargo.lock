@@ -735,10 +735,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4bb454f0228b18c7f4c3b0ebbee346ed9c52e7443b0999cd543ff3571205701d"
 
 [[package]]
-name = "drop-down-menu"
-version = "0.1.0"
-
-[[package]]
 name = "dtoa"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -910,11 +906,10 @@ dependencies = [
  "enso-text",
  "enso-web",
  "ensogl",
+ "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-examples",
- "ensogl-gui-component",
  "ensogl-hardcoded-theme",
- "ensogl-text",
  "ensogl-text-msdf-sys",
  "failure",
  "flo_stream",
@@ -1134,6 +1129,19 @@ dependencies = [
 [[package]]
 name = "ensogl-component"
 version = "0.1.0"
+dependencies = [
+ "ensogl-drop-down-menu",
+ "ensogl-drop-manager",
+ "ensogl-file-browser",
+ "ensogl-label",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-scrollbar",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ensogl-toggle-button",
+]
 
 [[package]]
 name = "ensogl-core"
@@ -1175,6 +1183,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-drop-down-menu"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text",
+]
+
+[[package]]
 name = "ensogl-drop-manager"
 version = "0.1.0"
 dependencies = [
@@ -1201,6 +1220,9 @@ dependencies = [
  "ensogl-drop-manager",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf-sys",
  "js-sys",
@@ -1213,17 +1235,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-file-browser"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+]
+
+[[package]]
 name = "ensogl-gui-component"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-logger",
- "enso-prelude",
- "enso-shapely",
- "enso-types",
  "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-text",
  "float_eq",
  "wasm-bindgen-test 0.3.8",
 ]
@@ -1233,6 +1258,68 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+]
+
+[[package]]
+name = "ensogl-label"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-list-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-scroll-area"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-scrollbar",
+]
+
+[[package]]
+name = "ensogl-scrollbar"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+]
+
+[[package]]
+name = "ensogl-selector"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ensogl-toggle-button",
+]
+
+[[package]]
+name = "ensogl-shadow"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
 ]
 
 [[package]]
@@ -1276,6 +1363,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-toggle-button"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+]
+
+[[package]]
 name = "enum_dispatch"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1315,10 +1410,6 @@ dependencies = [
  "syn",
  "synstructure",
 ]
-
-[[package]]
-name = "file-browser"
-version = "0.1.0"
 
 [[package]]
 name = "flatbuffers"
@@ -1786,7 +1877,7 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "ensogl",
- "ensogl-gui-component",
+ "ensogl-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
@@ -1818,10 +1909,9 @@ dependencies = [
  "enso-shapely",
  "enso-text",
  "ensogl",
+ "ensogl-component",
  "ensogl-drop-manager",
- "ensogl-gui-component",
  "ensogl-hardcoded-theme",
- "ensogl-text",
  "ensogl-text-msdf-sys",
  "failure",
  "js-sys",
@@ -2019,10 +2109,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "label"
-version = "0.1.0"
-
-[[package]]
 name = "language-tags"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2074,10 +2160,6 @@ name = "linked-hash-map"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
-
-[[package]]
-name = "list-view"
-version = "0.1.0"
 
 [[package]]
 name = "lock_api"
@@ -3271,14 +3353,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
-name = "scroll-area"
-version = "0.1.0"
-
-[[package]]
-name = "scrollbar"
-version = "0.1.0"
-
-[[package]]
 name = "security-framework"
 version = "2.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3300,10 +3374,6 @@ dependencies = [
  "core-foundation-sys",
  "libc",
 ]
-
-[[package]]
-name = "selector"
-version = "0.1.0"
 
 [[package]]
 name = "semver"
@@ -3430,10 +3500,6 @@ dependencies = [
  "keccak",
  "opaque-debug",
 ]
-
-[[package]]
-name = "shadow"
-version = "0.1.0"
 
 [[package]]
 name = "shrinkwraprs"
@@ -3648,10 +3714,6 @@ name = "tinyvec_macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
-
-[[package]]
-name = "toggle-button"
-version = "0.1.0"
 
 [[package]]
 name = "tokio"

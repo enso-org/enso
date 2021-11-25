@@ -17,8 +17,12 @@
 
 pub mod entry;
 
+/// Commonly used types and functions.
+pub mod prelude {
+    pub use ensogl_core::prelude::*;
+}
+
 use crate::prelude::*;
-use crate::shadow;
 
 use enso_frp as frp;
 use ensogl_core::application;
@@ -29,6 +33,7 @@ use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_hardcoded_theme as theme;
+use ensogl_shadow as shadow;
 
 pub use entry::Entry;
 

@@ -13,9 +13,6 @@
 
 use ensogl_core::prelude::*;
 
-use crate::list_view;
-use crate::list_view::entry::ModelProvider;
-
 use enso_frp as frp;
 use enso_frp;
 use ensogl_core::application::Application;
@@ -25,6 +22,8 @@ use ensogl_core::display::shape::primitive::StyleWatch;
 use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_hardcoded_theme as theme;
+use ensogl_list_view as list_view;
+use ensogl_list_view::entry::ModelProvider;
 use ensogl_text as text;
 
 

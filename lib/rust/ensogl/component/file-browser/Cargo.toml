@@ -1,8 +1,9 @@
 [package]
-name = "file-browser"
+name = "ensogl-file-browser"
 version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
 
 [dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }

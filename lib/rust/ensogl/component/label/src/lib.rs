@@ -12,8 +12,7 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "512"]
 
-use crate::prelude::*;
-use crate::shadow;
+use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use enso_frp;
@@ -21,7 +20,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
-use ensogl_core::display::traits::*;
+use ensogl_shadow as shadow;
 use ensogl_text as text;
 
 use ensogl_hardcoded_theme::component::label as theme;

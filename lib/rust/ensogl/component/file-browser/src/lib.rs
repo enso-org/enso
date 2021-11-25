@@ -15,12 +15,16 @@
 
 pub mod model;
 
+/// Commonly used utilities.
+pub mod prelude {
+    pub use ensogl_core::prelude::*;
+}
+
 use crate::prelude::*;
 
-use crate::file_browser::model::*;
+use crate::model::AnyFolderContent;
 
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::Scene;
 use std::path::PathBuf;
 

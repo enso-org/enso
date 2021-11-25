@@ -10,7 +10,7 @@ use ensogl::prelude::*;
 
 use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::display::shape::StyleWatch;
-use ensogl_gui_component::label::Label;
+use ensogl_component::label::Label;
 
 
 

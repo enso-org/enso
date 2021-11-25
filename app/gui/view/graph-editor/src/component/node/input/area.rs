@@ -23,9 +23,10 @@ use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::gui::cursor;
 use ensogl::Animation;
+use ensogl_component::text;
+use ensogl_component::text::buffer::data::unit::traits::*;
+use ensogl_component::text::Text;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text as text;
-use ensogl_text::Text;
 
 
 
@@ -794,7 +795,9 @@ impl Area {
                 frp::extend! { port_network
                     set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
-                        let range = enso_text::Range::new(index, index + length);
+                        let start_bytes = (index as i32).bytes();
+                        let end_bytes   = ((index + length) as i32).bytes();
+                        let range       = text::buffer::Range::from(start_bytes..end_bytes);
                         label.set_color_bytes(range,color::Rgba::from(color));
                     });
                 }

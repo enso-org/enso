@@ -21,8 +21,8 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "512"]
 
-pub(crate) mod bounds;
-pub(crate) mod model;
+pub mod bounds;
+pub mod model;
 
 mod decimal_aligned;
 mod frp;
@@ -30,12 +30,22 @@ mod number;
 mod range;
 mod shape;
 
+/// Commonly used types and functions.
+pub mod prelude {
+    pub use ensogl_core::prelude::*;
+}
+
+use prelude::*;
+
+use crate::model::*;
+
 use ensogl_core::application;
 use ensogl_core::application::Application;
+use ensogl_core::display;
+use ensogl_core::display::shape::StyleWatchFrp;
 
-pub use bounds::Bounds;
-pub(crate) use frp::*;
-use model::*;
+pub use crate::bounds::Bounds;
+pub use crate::frp::*;
 
 
 
@@ -49,7 +59,48 @@ use model::*;
 /// background that corresponds to the value relative in the range, for example, 0.0 would be not
 /// filled in, 128.0 would be about halfway filled in, and 128.0 would be completely filled in.
 /// The value can be changed by clicking and dragging on the shape.
-pub type NumberPicker = crate::component::Component<Model, number::Frp>;
+#[derive(Clone, CloneRef, Debug)]
+pub struct NumberPicker {
+    /// Public FRP api of the Component.
+    pub frp: Rc<number::Frp>,
+    model:   Rc<Model>,
+    /// Reference to the application the Component belongs to. Generally required for implementing
+    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
+    /// `Component`.
+    pub app: Application,
+}
+
+impl NumberPicker {
+    /// Constructor.
+    pub fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let model = Rc::new(Model::new(&app));
+        let frp = number::Frp::default();
+        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        frp.init(&app, &model, &style);
+        let frp = Rc::new(frp);
+        Self { frp, model, app }
+    }
+}
+
+impl display::Object for NumberPicker {
+    fn display_object(&self) -> &display::object::Instance {
+        self.model.display_object()
+    }
+}
+
+impl Deref for NumberPicker {
+    type Target = number::Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl application::command::FrpNetworkProvider for NumberPicker {
+    fn network(&self) -> &enso_frp::Network {
+        self.frp.network()
+    }
+}
 
 impl application::View for NumberPicker {
     fn label() -> &'static str {
@@ -78,7 +129,48 @@ impl application::View for NumberPicker {
 /// would show the track covering the right half of the background. The selected range can be
 /// changed by clicking and dragging the track, which changes the whole range, but preserves the
 /// width, or the individual edges of the track which changes just the respective end of the range.
-pub type NumberRangePicker = crate::component::Component<Model, range::Frp>;
+#[derive(Clone, CloneRef, Debug)]
+pub struct NumberRangePicker {
+    /// Public FRP api of the Component.
+    pub frp: Rc<range::Frp>,
+    model:   Rc<Model>,
+    /// Reference to the application the Component belongs to. Generally required for implementing
+    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
+    /// `Component`.
+    pub app: Application,
+}
+
+impl NumberRangePicker {
+    /// Constructor.
+    pub fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let model = Rc::new(Model::new(&app));
+        let frp = range::Frp::default();
+        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        frp.init(&app, &model, &style);
+        let frp = Rc::new(frp);
+        Self { frp, model, app }
+    }
+}
+
+impl display::Object for NumberRangePicker {
+    fn display_object(&self) -> &display::object::Instance {
+        self.model.display_object()
+    }
+}
+
+impl Deref for NumberRangePicker {
+    type Target = range::Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl application::command::FrpNetworkProvider for NumberRangePicker {
+    fn network(&self) -> &enso_frp::Network {
+        self.frp.network()
+    }
+}
 
 impl application::View for NumberRangePicker {
     fn label() -> &'static str {

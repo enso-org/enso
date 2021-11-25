@@ -12,22 +12,20 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "512"]
 
-use crate::prelude::*;
+use ensogl_core::prelude::*;
 
 use enso_frp as frp;
+use ensogl_core::animation::delayed::DelayedAnimation;
 use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
+use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::shape::*;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
-
-use crate::component;
-use crate::selector;
-use crate::selector::model::Model;
-use crate::selector::Bounds;
-use ensogl_core::animation::delayed::DelayedAnimation;
+use ensogl_selector as selector;
+use ensogl_selector::model::Model;
+use ensogl_selector::Bounds;
 
 
 
@@ -83,33 +81,8 @@ ensogl_core::define_endpoints! {
 }
 
 impl Frp {
-    fn compute_target_alpha(
-        &recently_active: &bool,
-        &dragging: &bool,
-        &cursor_distance: &f32,
-        &thumb_size: &f32,
-        &max: &f32,
-    ) -> f32 {
-        let thumb_fills_bar = thumb_size >= max;
-        if thumb_fills_bar {
-            0.0
-        } else if recently_active || dragging {
-            1.0
-        } else {
-            #[allow(clippy::collapsible_else_if)]
-            if cursor_distance <= 0.0 {
-                1.0
-            } else {
-                // The opacity approaches 0.7 when the cursor is right next to the bar and fades
-                // linearly to 0.0 at 20 px distance.
-                (0.7 - cursor_distance / 20.0).max(0.0)
-            }
-        }
-    }
-}
-
-impl component::Frp<Model> for Frp {
-    fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
+    /// Initialize the FRP network.
+    pub fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
         let frp = &self;
         let network = &frp.network;
         let scene = app.display.scene();
@@ -270,6 +243,30 @@ impl component::Frp<Model> for Frp {
         init_mouse_position.emit(Vector2(f32::NAN, f32::NAN));
         init_color.emit(());
     }
+
+    fn compute_target_alpha(
+        &recently_active: &bool,
+        &dragging: &bool,
+        &cursor_distance: &f32,
+        &thumb_size: &f32,
+        &max: &f32,
+    ) -> f32 {
+        let thumb_fills_bar = thumb_size >= max;
+        if thumb_fills_bar {
+            0.0
+        } else if recently_active || dragging {
+            1.0
+        } else {
+            #[allow(clippy::collapsible_else_if)]
+            if cursor_distance <= 0.0 {
+                1.0
+            } else {
+                // The opacity approaches 0.7 when the cursor is right next to the bar and fades
+                // linearly to 0.0 at 20 px distance.
+                (0.7 - cursor_distance / 20.0).max(0.0)
+            }
+        }
+    }
 }
 
 
@@ -290,7 +287,48 @@ impl component::Frp<Model> for Frp {
 ///
 /// All operations related to the scroll position take as argument a number of pixels describing a
 /// position or distance on the scrolled area. We call them scroll units.
-pub type Scrollbar = crate::component::Component<Model, Frp>;
+#[derive(Clone, CloneRef, Debug, Derivative)]
+pub struct Scrollbar {
+    /// Public FRP api of the Component.
+    pub frp: Rc<Frp>,
+    model:   Rc<Model>,
+    /// Reference to the application the Component belongs to. Generally required for implementing
+    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
+    /// `Component`.
+    pub app: Application,
+}
+
+impl Scrollbar {
+    /// Constructor.
+    pub fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let model = Rc::new(Model::new(&app));
+        let frp = Frp::default();
+        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        frp.init(&app, &model, &style);
+        let frp = Rc::new(frp);
+        Self { frp, model, app }
+    }
+}
+
+impl display::Object for Scrollbar {
+    fn display_object(&self) -> &display::object::Instance {
+        self.model.display_object()
+    }
+}
+
+impl Deref for Scrollbar {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl application::command::FrpNetworkProvider for Scrollbar {
+    fn network(&self) -> &frp::Network {
+        self.frp.network()
+    }
+}
 
 impl application::View for Scrollbar {
     fn label() -> &'static str {

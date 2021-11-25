@@ -4,14 +4,11 @@
 
 use crate::prelude::*;
 
-use crate::component;
-
 use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_text as text;
 
 
@@ -54,7 +51,7 @@ pub struct Model {
     label_left: text::Area,
 }
 
-impl component::Model for Model {
+impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("DecimalAlignedLabel");
         let root = display::object::Instance::new(&logger);
@@ -71,8 +68,8 @@ impl component::Model for Model {
     }
 }
 
-impl component::Frp<Model> for Frp {
-    fn init(&self, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+impl Frp {
+    fn init(&self, model: &Model) {
         let frp = &self;
         let network = &frp.network;
 
@@ -100,7 +97,44 @@ impl display::Object for Model {
 }
 
 /// Decimal aligned text label that shows the text representation of a floating point number.
-pub type FloatLabel = component::Component<Model, Frp>;
+#[allow(missing_docs)]
+#[derive(Clone, CloneRef, Debug, Derivative)]
+pub struct FloatLabel {
+    pub frp: Rc<Frp>,
+    model:   Rc<Model>,
+    app:     Application,
+}
+
+impl FloatLabel {
+    /// Constructor.
+    pub fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let model = Rc::new(Model::new(&app));
+        let frp = Frp::default();
+        frp.init(&model);
+        let frp = Rc::new(frp);
+        Self { frp, model, app }
+    }
+}
+
+impl display::Object for FloatLabel {
+    fn display_object(&self) -> &display::object::Instance {
+        self.model.display_object()
+    }
+}
+
+impl Deref for FloatLabel {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl application::command::FrpNetworkProvider for FloatLabel {
+    fn network(&self) -> &frp::Network {
+        self.frp.network()
+    }
+}
 
 impl application::View for FloatLabel {
     fn label() -> &'static str {

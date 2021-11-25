@@ -12,7 +12,7 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "512"]
 
-use crate::prelude::*;
+use ensogl_core::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::shape::AnyShape;

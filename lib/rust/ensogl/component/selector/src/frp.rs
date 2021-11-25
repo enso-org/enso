@@ -2,18 +2,17 @@
 
 use crate::prelude::*;
 
+use crate::model::Model;
+use crate::shape::relative_shape_down_position;
+use crate::shape::shape_is_dragged;
+
 use enso_frp as frp;
 use enso_frp::io::Mouse;
 use enso_frp::Network;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_hardcoded_theme as theme;
-
-use crate::shadow;
-
-use super::model::Model;
-use super::shape::relative_shape_down_position;
-use super::shape::shape_is_dragged;
+use ensogl_shadow as shadow;
 
 
 
@@ -37,6 +36,7 @@ fn slider_area_width(size: &Vector2) -> f32 {
 
 /// Frp endpoints provided for general information about mouse interactions and shape properties
 /// of the `common::Model`.
+#[derive(Clone, CloneRef, Debug)]
 pub struct Frp {
     /// Current maximum extent of the track in scene coordinate space.
     pub track_max_width:            frp::Stream<f32>,
@@ -67,6 +67,7 @@ pub struct Frp {
 }
 
 impl Frp {
+    /// Create and initialize the FRP.
     pub fn new(
         model: &Model,
         style: &StyleWatchFrp,

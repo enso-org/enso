@@ -1,20 +1,18 @@
 ///! Frp of the range selector.
 use crate::prelude::*;
 
+use crate::bounds::absolute_value;
+use crate::bounds::normalise_value;
+use crate::bounds::should_clamp_with_overflow;
+use crate::Bounds;
+use crate::Model;
+
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::shape::*;
 use ensogl_hardcoded_theme as theme;
-
-use crate::component;
-
-use super::bounds::absolute_value;
-use super::bounds::normalise_value;
-use super::bounds::should_clamp_with_overflow;
-use super::Bounds;
-use super::Model;
 
 
 
@@ -39,8 +37,8 @@ ensogl_core::define_endpoints! {
     }
 }
 
-impl component::Frp<Model> for Frp {
-    fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
+impl Frp {
+    pub fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
         let frp = &self;
         let network = &frp.network;
         let scene = app.display.scene();

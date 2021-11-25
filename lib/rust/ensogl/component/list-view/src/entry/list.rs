@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::list_view::entry;
-use crate::list_view::entry::Entry;
+use crate::entry;
+use crate::entry::Entry;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
