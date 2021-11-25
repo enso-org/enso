@@ -1211,6 +1211,8 @@ dependencies = [
 name = "ensogl-example-animation"
 version = "0.1.0"
 dependencies = [
+ "enso-frp",
+ "enso-prelude",
  "ensogl-core",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
@@ -1237,7 +1239,10 @@ dependencies = [
 name = "ensogl-example-drop-manager"
 version = "0.1.0"
 dependencies = [
+ "enso-frp",
+ "enso-prelude",
  "ensogl-core",
+ "ensogl-drop-manager",
  "wasm-bindgen",
  "wasm-bindgen-futures 0.4.8",
 ]
@@ -1267,6 +1272,8 @@ dependencies = [
 name = "ensogl-example-list-view"
 version = "0.1.0"
 dependencies = [
+ "enso-frp",
+ "enso-text",
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",

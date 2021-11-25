@@ -1,7 +1,8 @@
 [package]
 name = "ensogl-example-easing-animator"
 version = "0.1.0"
-edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
 
 [dependencies]
 ensogl-core = { path = "../../core" }

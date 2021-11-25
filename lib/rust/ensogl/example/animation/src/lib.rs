@@ -4,7 +4,6 @@
 #![feature(drain_filter)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]
-#![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
@@ -18,7 +17,7 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "1024"]
 
-use enso_prelude::*;
+use ensogl_core::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::system::web;
@@ -49,7 +48,7 @@ pub fn entry_point_animation() {
 
 // ========================
 // === Init Application ===
-========================
+// ========================
 
 fn init() {
     let logger: Logger = Logger::new("AnimationTest");
