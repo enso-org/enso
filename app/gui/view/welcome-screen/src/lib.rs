@@ -143,7 +143,10 @@ ensogl::define_endpoints! {
         /// Update displayed list of projects.
         projects_list(Vec<String>),
 
+        /// Open project by name.
         open_project(String),
+        /// Create new project. Optional argument is template name.
+        create_project(Option<String>),
     }
     Output {}
 }

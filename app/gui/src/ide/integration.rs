@@ -98,6 +98,27 @@ impl Model {
             }
         });
     }
+
+    /// Create new project through project manager API.
+    fn create_project(&self, template: Option<&str>) {
+        let logger = self.logger.clone_ref();
+        let controller = self.controller.clone_ref();
+        let template = template.map(ToOwned::to_owned);
+        crate::executor::global::spawn(async move {
+            if let Ok(managing_api) = controller.manage_projects() {
+                if let Err(err) = managing_api.create_new_project(template.clone()).await {
+                    if let Some(template) = template {
+                        error!(
+                            logger,
+                            "Could not create new project from template {template}: {err}."
+                        );
+                    } else {
+                        error!(logger, "Could not create new project: {err}.");
+                    }
+                }
+            }
+        })
+    }
 }
 
 
@@ -123,9 +144,15 @@ impl Integration {
         let model = Rc::new(Model { logger, controller, view, project_integration });
 
         frp::new_network! { network
+            let frp = root_frp.clone_ref();
             eval welcome_view_frp.open_project((name) {
                 model.open_project(name);
-                root_frp.switch_view_to_project.emit(());
+                frp.switch_view_to_project.emit(());
+            });
+            let frp = root_frp.clone_ref();
+            eval welcome_view_frp.create_project((template) {
+                model.create_project(template.as_deref());
+                frp.switch_view_to_project.emit(());
             });
         }
 

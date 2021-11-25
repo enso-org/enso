@@ -42,8 +42,11 @@ impl SideMenu {
         let projects_list = Self::create_projects_list();
         root_dom.append_or_warn(&projects_list, &logger);
         let new_project_button = Self::create_new_project_button(&logger, &projects_list);
+        let closures = default();
 
-        Self { logger, root_dom, frp, projects_list, new_project_button, closures: default() }
+        let menu = Self { logger, root_dom, frp, projects_list, new_project_button, closures };
+        menu.setup_new_project_event_listener();
+        menu
     }
 
     fn create_header(text: &str) -> Element {
@@ -73,12 +76,23 @@ impl SideMenu {
         }
     }
 
+    fn setup_new_project_event_listener(&self) {
+        let frp = self.frp.clone_ref();
+        let closure = Box::new(move |_event: MouseEvent| {
+            frp.create_project.emit(None);
+        });
+        let closure: ClickClosure = Closure::wrap(closure);
+        let callback = closure.as_ref().unchecked_ref();
+        if self.new_project_button.add_event_listener_with_callback("click", callback).is_err() {
+            error!(self.logger, "Could not add create project event listener.");
+        }
+        self.closures.borrow_mut().push(closure);
+    }
+
     fn setup_open_project_event_listener(&self, entry: &Element, project_name: &str) {
         let frp = self.frp.clone_ref();
         let project = project_name.to_owned();
-        let logger = self.logger.clone_ref();
         let closure = Box::new(move |_event: MouseEvent| {
-            error!(logger, "This is click");
             frp.open_project.emit(project.clone());
         });
         let closure: ClickClosure = Closure::wrap(closure);
