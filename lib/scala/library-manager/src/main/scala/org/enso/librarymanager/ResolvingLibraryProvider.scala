@@ -16,6 +16,19 @@ trait ResolvingLibraryProvider {
   def findLibrary(
     name: LibraryName
   ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary]
+
+  /** Locates a specific library version in local libraries or the cache.
+    *
+    * If it is not available, a download may be attempted.
+    *
+    * @param name name of the library
+    * @param version requested version of the library
+    * @return the resolved library containing the resulting version and path
+    */
+  def findSpecificLibraryVersion(
+    name: LibraryName,
+    version: LibraryVersion
+  ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary]
 }
 
 object ResolvingLibraryProvider {

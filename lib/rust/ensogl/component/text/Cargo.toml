@@ -11,6 +11,7 @@ crate-type = ["rlib", "cdylib"]
 enso-frp = { path = "../../../frp" }
 enso-prelude = { path = "../../../prelude"}
 enso-shapely = { path = "../../../shapely/impl"}
+enso-text = { path = "../../../text" }
 enso-types = { path = "../../../types" }
 ensogl-core = { path = "../../core" }
 ensogl-text-embedded-fonts = { path = "embedded-fonts" }

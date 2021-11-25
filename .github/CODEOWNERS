@@ -2,6 +2,8 @@
 * @4e6 @MichaelMauderer @PabloBuchu @jdunkerley
 
 # Rust Libraries
+Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon
+Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
 /lib/rust/ @MichaelMauderer @4e6 @mwu-tow @farmaazon
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon
 

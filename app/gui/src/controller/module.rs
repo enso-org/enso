@@ -3,10 +3,10 @@
 use crate::prelude::*;
 
 use crate::model::module::Path;
+use crate::model::module::TextChange;
 
 use ast;
 use ast::HasIdMap;
-use data::text::*;
 use double_representation::module;
 use double_representation::project;
 use double_representation::text::apply_code_change_to_id_map;
@@ -211,8 +211,7 @@ mod test {
     use ast;
     use ast::Ast;
     use ast::BlockLine;
-    use enso_data::text::Index;
-    use enso_data::text::Span;
+    use enso_text::traits::*;
     use parser::Parser;
     use uuid::Uuid;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -229,16 +228,16 @@ mod test {
             let uuid3 = Uuid::new_v4();
             let uuid4 = Uuid::new_v4();
             let id_map = ast::IdMap::new(vec![
-                (Span::new(Index::new(0), Size::new(1)), uuid1),
-                (Span::new(Index::new(1), Size::new(1)), uuid2),
-                (Span::new(Index::new(2), Size::new(1)), uuid3),
-                (Span::new(Index::new(0), Size::new(3)), uuid4),
+                ((0.bytes()..1.bytes()).into(), uuid1),
+                ((1.bytes()..2.bytes()).into(), uuid2),
+                ((2.bytes()..3.bytes()).into(), uuid3),
+                ((0.bytes()..3.bytes()).into(), uuid4),
             ]);
             let controller =
                 Handle::new_mock(location, code, id_map, ls, parser, default()).unwrap();
 
             // Change code from "2+2" to "22+2"
-            let change = TextChange::insert(Index::new(0), "2".to_string());
+            let change = enso_text::Change::inserted(0.bytes(), "2".to_string());
             controller.apply_code_change(change).unwrap();
             let expected_ast = Ast::new_no_id(ast::Module {
                 lines: vec![BlockLine {

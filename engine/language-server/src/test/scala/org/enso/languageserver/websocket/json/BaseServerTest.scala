@@ -37,6 +37,7 @@ import org.enso.languageserver.text.BufferRegistry
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
+import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -277,7 +278,8 @@ class BaseServerTest
       installerConfig = LibraryInstallerConfig(
         distributionManager,
         resourceManager,
-        Some(languageHome)
+        Some(languageHome),
+        new CompilerBasedDependencyExtractor(logLevel = LogLevel.Warning)
       )
     )
 

@@ -8,10 +8,10 @@ use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::Kind;
 use crate::notification;
 
-use data::text::TextLocation;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
+use enso_text::Location;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -191,7 +191,7 @@ impl SuggestionDatabase {
         &self,
         name: impl Str,
         module: &QualifiedName,
-        location: TextLocation,
+        location: Location,
     ) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()
@@ -209,7 +209,7 @@ impl SuggestionDatabase {
         &self,
         name: impl Str,
         module: &QualifiedName,
-        location: TextLocation,
+        location: Location,
     ) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()
@@ -280,10 +280,8 @@ mod test {
     use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
-    use enso_data::text::TextLocation;
+    use enso_text::traits::*;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
-
-
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -523,7 +521,10 @@ mod test {
         assert_eq!(db.lookup(3).unwrap().arguments[2].repr_type, "TestAtom");
         assert!(db.lookup(3).unwrap().arguments[2].is_suspended);
         assert_eq!(db.lookup(3).unwrap().arguments[2].default_value, None);
-        let range = TextLocation { line: 1, column: 5 }..=TextLocation { line: 3, column: 0 };
+        let range = Location { line: 1.line(), column: 5.column() }..=Location {
+            line:   3.line(),
+            column: 0.column(),
+        };
         assert_eq!(db.lookup(3).unwrap().scope, Scope::InModule { range });
         assert_eq!(db.version.get(), 6);
 

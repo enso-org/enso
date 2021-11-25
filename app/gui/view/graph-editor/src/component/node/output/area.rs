@@ -105,8 +105,8 @@ impl From<node::Expression> for Expression {
         span_tree.root_ref_mut().dfs_with_layer_data((), |node, ()| {
             let span = node.span();
             let port = node.payload_mut();
-            port.index = span.index.value;
-            port.length = span.size.value;
+            port.index = span.start;
+            port.length = span.size();
         });
         Expression { code, span_tree, whole_expr_type, whole_expr_id }
     }

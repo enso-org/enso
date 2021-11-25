@@ -234,7 +234,7 @@ impl<T: Ord> Extend<(T, Node<T>)> for DependencyGraph<T> {
 
 /// Utility macro allowing easy construction of the [`DependencyGraph`]. The following code:
 /// ```
-/// use crate::enso_data::dependency_graph;
+/// use crate::enso_data_structures::dependency_graph;
 /// dependency_graph!(1->2, 2->3);
 /// ```
 /// will produce:

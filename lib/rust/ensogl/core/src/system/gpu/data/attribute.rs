@@ -64,25 +64,25 @@ shared! { AttributeScope
 /// possible:
 ///
 /// 1. Keeping track of all free indexes in a sorted container (like [`BTreeSet`] or the specialized
-///    [`enso_data::Diet`] and in case the biggest index is freed, iterating over the indexes and
+///    [`enso_data_structures::Diet`] and in case the biggest index is freed, iterating over the indexes and
 ///    freeing as much as possible. This solution has the downside that the indexes are stored in
 ///    order, so insertion and deletion is much slower than when using unordered [`Vec`]. Also, this
 ///    does not work well if a instance with a big ID is kept alive, as it will prevent memory of
-///    all instances with smaller IDs from being cleaned. See benchmarks in the `enso_data::diet`
+///    all instances with smaller IDs from being cleaned. See benchmarks in the `enso_data_structures::diet`
 ///    module to learn more.
 ///
 /// 2. Keeping track of all free indexes in an unordered container and in case the biggest index is
 ///    freed, sorting the container and freeing the memory. As an optimization, the sorting might
 ///    be performed after the frame (or several frames) was drawn. It's not obvious when this
 ///    solution will be slower / faster than the solution (1), but time differences may be big.
-///    See benchmarks in the `enso_data::diet` module to learn more.
+///    See benchmarks in the `enso_data_structures::diet` module to learn more.
 ///
 /// 3. Keeping track of all free indexes and in case a lot of them are free, re-ordering the
 ///    instances and freeing the memory. This would require all instance-users (like [`Sprite`]s) to
 ///    keep instance IDs in some kind of `Rc<Cell<ID>>`, which may slow attrib read/write down.
 ///    However, this solution works well even if an instance with a big ID is kept alive. It's not
 ///    obvious when this solution will be slower / faster than other ones, but time differences may
-///    be big. See benchmarks in the `enso_data::diet` module to learn more.
+///    be big. See benchmarks in the `enso_data_structures::diet` module to learn more.
 ///
 /// To learn more about these mechanisms and connected design decisions, read the docs of
 /// [`Symbol`], especially the "Changing attribute & GPU memory consumption" sections.

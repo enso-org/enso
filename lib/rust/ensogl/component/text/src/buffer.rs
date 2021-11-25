@@ -9,21 +9,21 @@ use crate::prelude::*;
 // === Exports ===
 // ===============
 
-pub mod data;
 pub mod style;
 pub mod view;
 
 /// Common traits.
 pub mod traits {
-    pub use super::data::traits::*;
+    pub use enso_text::traits::*;
 }
 
-pub use data::unit::*;
-pub use data::Range;
-pub use data::Text;
-pub use data::TextCell;
 pub use style::*;
 pub use view::*;
+
+pub use enso_text::unit::*;
+pub use enso_text::Range;
+pub use enso_text::Text;
+pub use enso_text::TextCell;
 
 
 
@@ -103,7 +103,7 @@ impl BufferData {
     }
 
     /// Query style information for the provided range.
-    pub fn sub_style(&self, range: impl data::RangeBounds) -> Style {
+    pub fn sub_style(&self, range: impl enso_text::RangeBounds) -> Style {
         let range = self.crop_byte_range(range);
         self.style.sub(range)
     }
@@ -119,7 +119,7 @@ impl BufferData {
 trait Setter<T> {
     /// Replace the range with the provided value. The exact meaning of this function depends on the
     /// provided data type. See implementations provided in the `style` module.
-    fn replace(&self, range: impl data::RangeBounds, data: T);
+    fn replace(&self, range: impl enso_text::RangeBounds, data: T);
 }
 
 /// Generic setter for default value for metadata like colors, font weight, etc.
@@ -130,7 +130,7 @@ trait DefaultSetter<T> {
 }
 
 impl Setter<Text> for Buffer {
-    fn replace(&self, range: impl data::RangeBounds, text: Text) {
+    fn replace(&self, range: impl enso_text::RangeBounds, text: Text) {
         let range = self.crop_byte_range(range);
         let size = text.byte_size();
         self.text.replace(range, text);
@@ -139,7 +139,7 @@ impl Setter<Text> for Buffer {
 }
 
 impl Setter<&Text> for Buffer {
-    fn replace(&self, range: impl data::RangeBounds, text: &Text) {
+    fn replace(&self, range: impl enso_text::RangeBounds, text: &Text) {
         self.replace(range, text.clone())
     }
 }

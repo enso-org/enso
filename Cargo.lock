@@ -89,9 +89,10 @@ version = "0.1.0"
 dependencies = [
  "ast-macros",
  "derive_more",
- "enso-data",
+ "enso-data-structures",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "failure",
  "lazy_static",
  "regex",
@@ -714,9 +715,10 @@ version = "0.1.0"
 dependencies = [
  "ast",
  "engine-protocol",
- "enso-data",
+ "enso-data-structures",
  "enso-logger",
  "enso-prelude",
+ "enso-text",
  "failure",
  "itertools 0.10.1",
  "parser",
@@ -770,10 +772,11 @@ dependencies = [
  "bytes 0.5.6",
  "chrono",
  "enso-build-utilities",
- "enso-data",
+ "enso-data-structures",
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "enso-web",
  "failure",
  "flatbuffers",
@@ -827,7 +830,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-data"
+name = "enso-data-structures"
 version = "0.2.0"
 dependencies = [
  "criterion",
@@ -895,11 +898,12 @@ dependencies = [
  "engine-protocol",
  "enso-callback",
  "enso-config",
- "enso-data",
+ "enso-data-structures",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "enso-web",
  "ensogl",
  "ensogl-drop-manager",
@@ -1070,11 +1074,22 @@ dependencies = [
  "ast",
  "enso-logger",
  "enso-prelude",
+ "enso-text",
  "enso-web",
  "span-tree",
  "uuid",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "enso-text"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "enso-types",
+ "serde",
+ "xi-rope",
 ]
 
 [[package]]
@@ -1092,7 +1107,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "console_error_panic_hook",
- "enso-data",
+ "enso-data-structures",
  "enso-logger",
  "enso-prelude",
  "failure",
@@ -1126,7 +1141,7 @@ dependencies = [
  "code-builder",
  "console_error_panic_hook",
  "enso-callback",
- "enso-data",
+ "enso-data-structures",
  "enso-frp",
  "enso-generics",
  "enso-logger",
@@ -1177,6 +1192,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "ensogl-core",
  "ensogl-drop-manager",
  "ensogl-gui-component",
@@ -1222,6 +1238,7 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "enso-types",
  "ensogl-core",
  "ensogl-hardcoded-theme",
@@ -1791,6 +1808,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "enso-shapely",
+ "enso-text",
  "ensogl",
  "ensogl-drop-manager",
  "ensogl-gui-component",
@@ -2591,8 +2609,9 @@ dependencies = [
  "bytes 0.5.6",
  "console_error_panic_hook",
  "enso-build-utilities",
- "enso-data",
+ "enso-data-structures",
  "enso-prelude",
+ "enso-text",
  "failure",
  "futures 0.3.17",
  "js-sys",
@@ -2621,7 +2640,7 @@ name = "parser-new"
 version = "0.1.0"
 dependencies = [
  "criterion",
- "enso-data",
+ "enso-data-structures",
  "enso-logger",
  "enso-prelude",
  "itertools 0.10.1",
@@ -3477,8 +3496,9 @@ name = "span-tree"
 version = "0.1.0"
 dependencies = [
  "ast",
- "enso-data",
+ "enso-data-structures",
  "enso-prelude",
+ "enso-text",
  "failure",
  "parser",
  "wasm-bindgen-test 0.3.8",

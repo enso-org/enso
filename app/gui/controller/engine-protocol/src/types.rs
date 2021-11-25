@@ -33,6 +33,16 @@ impl Sha3_224 {
         hasher.input(data);
         hasher.into()
     }
+
+    /// Create new SHA3-224 digest of any arbitrary data split into chunks.
+    pub fn from_parts<'a>(parts: impl IntoIterator<Item = &'a [u8]>) -> Self {
+        use sha3::Digest;
+        let mut hasher = sha3::Sha3_224::new();
+        for part in parts {
+            hasher.input(part)
+        }
+        hasher.into()
+    }
 }
 
 impl From<sha3::Sha3_224> for Sha3_224 {

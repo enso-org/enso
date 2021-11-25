@@ -20,6 +20,7 @@ import org.enso.librarymanager.published.repository.RepositoryHelper.{
 }
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
+import org.enso.yaml.YamlHelper
 
 import java.nio.file.{Files, Path}
 import scala.util.control.NonFatal
@@ -72,13 +73,22 @@ class DownloadingLibraryCache(
     version: SemVer,
     recommendedRepository: Editions.Repository
   ): Try[Path] = {
-    val _      = progressReporter // TODO
     val cached = findCachedLibrary(libraryName, version)
     cached match {
       case Some(result) => Success(result)
       case None =>
         installLibrary(libraryName, version, recommendedRepository)
     }
+  }
+
+  private def saveManifest(
+    manifest: LibraryManifest,
+    destinationDirectory: Path
+  ): Unit = {
+    FileSystem.writeTextFile(
+      destinationDirectory / LibraryManifest.filename,
+      YamlHelper.toYaml(manifest)
+    )
   }
 
   private def installLibrary(
@@ -111,6 +121,7 @@ class DownloadingLibraryCache(
         try {
           downloadLooseFiles(libraryName, version, access, localTmpDir)
           downloadAndExtractArchives(libraryName, access, manifest, localTmpDir)
+          saveManifest(manifest, localTmpDir)
           verifyPackageIntegrity(localTmpDir)
 
           FileSystem.atomicMove(

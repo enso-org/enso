@@ -2,12 +2,12 @@
 
 use crate::prelude::*;
 
+use enso_text::unit::Bytes;
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::system::web;
 use ensogl_gui_component::list_view;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text::buffer::data::unit::Bytes;
 use ensogl_text_msdf_sys::run_once_initialized;
 use logger::TraceLogger as Logger;
 use wasm_bindgen::prelude::*;

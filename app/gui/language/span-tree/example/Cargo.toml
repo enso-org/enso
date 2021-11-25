@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../../ast/impl" }
+enso-text = { path = "../../../../../lib/rust/text" }
 span-tree = { path = "../../span-tree" }
 enso-web = { path = "../../../../../lib/rust/web" }
 enso-prelude = { path = "../../../../../lib/rust/prelude"}

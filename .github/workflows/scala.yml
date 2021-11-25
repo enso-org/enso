@@ -151,6 +151,8 @@ jobs:
           sbt --no-colors "project-manager/assembly"
           sbt --no-colors --mem 1536 "project-manager/buildNativeImage"
 
+      # The runtime/clean is needed to avoid issues with Truffle Instrumentation.
+      # It should be removed once #1992 is fixed.
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
@@ -167,7 +169,7 @@ jobs:
       - name: Check Language Server Benchmark Compilation
         run: |
           sleep 1
-          sbt --no-colors language-server/Benchmark/compile
+          sbt --no-colors "runtime/clean; language-server/Benchmark/compile"
       - name: Check Searcher Benchmark Compilation
         run: |
           sleep 1

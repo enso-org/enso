@@ -8,7 +8,6 @@ use ast::test_utils::expect_shape;
 use ast::test_utils::expect_single_line;
 use ast::test_utils::validate_spans;
 use ast::Ast;
-use ast::HasLength;
 use ast::HasRepr;
 use ast::Shape;
 
@@ -40,7 +39,7 @@ impl ParserTestExts for Parser {
         let program = program.into();
         DEBUG!("parsing " program);
         let ast = self.parse(program.clone(), default()).unwrap();
-        assert_eq!(ast.shape().len(), program.len());
+        assert_eq!(ast.shape().len().as_usize(), program.len());
         validate_spans(&ast);
         assert_eq!(ast.repr(), program, "{:?}", ast);
         ast

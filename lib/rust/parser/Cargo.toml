@@ -12,7 +12,7 @@ test       = true
 bench      = true
 
 [dependencies]
-enso-data = { version = "0.2.0", path = "../data" }
+enso-data-structures = { version = "0.2.0", path = "../data-structures" }
 enso-logger = { version = "0.3.0", path = "../logger" }
 enso-prelude = { version = "0.2.0", path = "../prelude" }
 lexer = { version = "0.1.0", path = "lexer/generation" }

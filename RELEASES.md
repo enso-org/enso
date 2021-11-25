@@ -1,5 +1,13 @@
 # Enso Next
 
+## Tooling
+
+- Added the `enso install dependencies` command to the launcher which installs
+  any project dependencies, ensuring that `enso run` will not need to download
+  any libraries ([#1981](https://github.com/enso-org/enso/pull/1981)).
+  Additionally, made the `library/preinstall` endpoint able to install any
+  transitive dependencies of the library.
+
 ## Enso 0.2.31 (2021-10-01)
 
 ## Interpreter/Runtime

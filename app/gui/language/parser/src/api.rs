@@ -4,14 +4,16 @@ use crate::prelude::*;
 
 use ast::HasIdMap;
 use ast::HasRepr;
-use enso_data::text::ByteIndex;
 
+use enso_text::traits::*;
+use enso_text::unit::*;
+use enso_text::Range;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 
+use ast::id_map::JsonIdMap;
 pub use ast::Ast;
-
 
 
 // ================
@@ -36,11 +38,11 @@ pub struct SourceFile {
     /// The whole content of file.
     pub content:  String,
     /// The range in bytes of module's "Code" section.
-    pub code:     Range<ByteIndex>,
+    pub code:     Range<Bytes>,
     /// The range in bytes of module's "Id Map" section.
-    pub id_map:   Range<ByteIndex>,
+    pub id_map:   Range<Bytes>,
     /// The range in bytes of module's "Metadata" section.
-    pub metadata: Range<ByteIndex>,
+    pub metadata: Range<Bytes>,
 }
 
 impl Display for SourceFile {
@@ -57,30 +59,32 @@ impl SourceFile {
     /// the whole contents is treated as the code.
     pub fn new(content: String) -> Self {
         pub const METADATA_LINES: usize = 3;
-        let newline_indices = enso_data::text::rev_newline_byte_indices(&content);
-        let newline_indices_from_end = newline_indices.take(METADATA_LINES).collect_vec();
-        match newline_indices_from_end.as_slice() {
+        let nl_offsets = content.char_indices().filter_map(|(ix, c)| (c == '\n').as_some(ix));
+        let nl_offsets_bytes = nl_offsets.map(Bytes::from);
+        let nl_offsets_from_end = nl_offsets_bytes.rev().take(METADATA_LINES).collect_vec();
+        match nl_offsets_from_end.as_slice() {
             [last, before_last, two_before_last] => {
                 // Last line should be metadata. Line before should be id map. Line before is the
                 // metadata tag.
                 // We check that tag matches and that trailing lines looks like JSON list/object
                 // respectively.
-                let code_length = *two_before_last + 1 - NEWLINES_BEFORE_TAG;
-                let code_range = 0..code_length;
-                let tag_range = two_before_last + 1..*before_last;
-                let id_map_range = before_last + 1..*last;
-                let metadata_range = last + 1..content.len();
-                let tag = &content[tag_range];
-                let idmap = &content[id_map_range.clone()];
-                let metadata = &content[metadata_range.clone()];
+                let code_length = *two_before_last + 1.bytes() - Bytes::from(NEWLINES_BEFORE_TAG);
+                let code_range = 0.bytes()..code_length;
+                let tag_range = two_before_last + 1.bytes()..*before_last;
+                let id_map_range = before_last + 1.bytes()..*last;
+                let metadata_range = last + 1.bytes()..Bytes::from(content.len());
+                let tag = &content[tag_range.start.as_usize()..tag_range.end.as_usize()];
+                let idmap = &content[id_map_range.start.as_usize()..id_map_range.end.as_usize()];
+                let metadata =
+                    &content[metadata_range.start.as_usize()..metadata_range.end.as_usize()];
                 let tag_matching = tag == METADATA_TAG;
                 let idmap_matching = Self::looks_like_idmap(idmap);
                 let metadata_matching = Self::looks_like_metadata(metadata);
                 if tag_matching && idmap_matching && metadata_matching {
                     SourceFile {
-                        code: ByteIndex::new_range(code_range),
-                        id_map: ByteIndex::new_range(id_map_range),
-                        metadata: ByteIndex::new_range(metadata_range),
+                        code: code_range.into(),
+                        id_map: id_map_range.into(),
+                        metadata: metadata_range.into(),
                         content,
                     }
                 } else {
@@ -93,10 +97,11 @@ impl SourceFile {
 
     /// Create a description of source file consisting only of code, with no metadata.
     fn new_without_metadata(content: String) -> Self {
+        let length = Bytes::from(content.len());
         Self {
-            code: ByteIndex::new_range(0..content.len()),
-            id_map: ByteIndex::new_range(content.len()..content.len()),
-            metadata: ByteIndex::new_range(content.len()..content.len()),
+            code: (0.bytes()..length).into(),
+            id_map: (length..length).into(),
+            metadata: (length..length).into(),
             content,
         }
     }
@@ -126,8 +131,10 @@ impl SourceFile {
         self.slice(&self.metadata)
     }
 
-    fn slice(&self, range: &Range<ByteIndex>) -> &str {
-        &self.content[range.start.value..range.end.value]
+    fn slice(&self, range: &Range<Bytes>) -> &str {
+        let start = range.start.as_usize();
+        let end = range.end.as_usize();
+        &self.content[start..end]
     }
 }
 
@@ -180,18 +187,22 @@ impl<M: Metadata> ParsedSourceFile<M> {
         let before_idmap = "\n";
         let before_metadata = "\n";
         let code = self.ast.repr();
-        let id_map = to_json_single_line(&self.ast.id_map())?;
+        let json_id_map = JsonIdMap::from_id_map(&self.ast.id_map(), &code);
+        let id_map = to_json_single_line(&json_id_map)?;
         let metadata = to_json_single_line(&self.metadata)?;
         let id_map_start = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
+        let id_map_start_bytes = Bytes::from(id_map_start);
         let metadata_start = id_map_start + id_map.len() + before_metadata.len();
+        let metadata_start_bytes = Bytes::from(metadata_start);
         Ok(SourceFile {
             content:  iformat!(
                 "{code}{before_tag}{METADATA_TAG}{before_idmap}{id_map}\
                                  {before_metadata}{metadata}"
             ),
-            code:     ByteIndex::new_range(0..code.len()),
-            id_map:   ByteIndex::new_range(id_map_start..id_map_start + id_map.len()),
-            metadata: ByteIndex::new_range(metadata_start..metadata_start + metadata.len()),
+            code:     (0.bytes()..Bytes::from(code.len())).into(),
+            id_map:   (id_map_start_bytes..id_map_start_bytes + Bytes::from(id_map.len())).into(),
+            metadata: (metadata_start_bytes..metadata_start_bytes + Bytes::from(metadata.len()))
+                .into(),
         })
     }
 }
@@ -259,12 +270,14 @@ mod test {
         let main = ast::Ast::var("main");
         let node = ast::Ast::infix_var("2", "+", "2");
         let infix = ast::Ast::infix(main, "=", node);
-        let ast = ast::Ast::one_line_module(infix).try_into().unwrap();
+        let ast: ast::known::Module = ast::Ast::one_line_module(infix).try_into().unwrap();
+        let repr = ast.repr();
         let metadata = Metadata { foo: 321 };
         let source = ParsedSourceFile { ast, metadata };
         let serialized = source.serialize().unwrap();
 
-        let expected_id_map = to_json_single_line(&source.ast.id_map()).unwrap();
+        let expected_json_id_map = JsonIdMap::from_id_map(&source.ast.id_map(), &repr);
+        let expected_id_map = to_json_single_line(&expected_json_id_map).unwrap();
         let expected_metadata = to_json_single_line(&source.metadata).unwrap();
         let expected_content = iformat!(
             r#"main = 2 + 2

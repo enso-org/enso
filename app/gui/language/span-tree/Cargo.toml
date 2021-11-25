@@ -6,8 +6,9 @@ edition = "2018"
 
 [dependencies]
 ast = { path = "../ast/impl" }
-enso-data = { path = "../../../../lib/rust/data"}
-enso-prelude = { path = "../../../../lib/rust/prelude"}
+enso-data-structures = { path = "../../../../lib/rust/data-structures" }
+enso-text = { path = "../../../../lib/rust/text" }
+enso-prelude = { path = "../../../../lib/rust/prelude" }
 failure = { version = "0.1.6" }
 
 [dev-dependencies]
