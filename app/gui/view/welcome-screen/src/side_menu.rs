@@ -31,7 +31,7 @@ impl SideMenu {
     pub fn new(logger: &Logger) -> Self {
         let logger = Logger::new_sub(logger, "SideMenu");
         let root_dom = web::create_element("aside");
-        root_dom.set_class_name(crate::SIDE_MENU);
+        root_dom.set_class_name(crate::css_class::SIDE_MENU);
         let header = Self::create_header("Your projects");
         root_dom.append_or_warn(&header, &logger);
         let projects_list = Self::create_projects_list();
@@ -48,14 +48,12 @@ impl SideMenu {
     }
 
     fn create_projects_list() -> Element {
-        let projects_list = web::create_element("ul");
-        projects_list.set_id("projects-list");
-        projects_list
+        web::create_element("ul")
     }
 
     fn create_new_project_button(logger: &Logger, projects_list: &Element) -> Element {
         let button = web::create_element("li");
-        button.set_id("projects-list-new-project");
+        button.set_id(crate::css_id::NEW_PROJECT);
         button.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
         projects_list.append_or_warn(&button, logger);
         button

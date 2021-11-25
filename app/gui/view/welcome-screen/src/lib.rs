@@ -32,16 +32,22 @@ use web_sys::MouseEvent;
 // === Constants ===
 // =================
 
-const TEMPLATES_VIEW_ROOT: &str = "enso-internal-templates-view";
-const CONTAINER: &str = "enso-internal-container";
-const SIDE_MENU: &str = "enso-internal-side-menu";
-const CONTENT: &str = "enso-internal-content";
-const CARDS: &str = "enso-internal-cards";
-const CARD: &str = "enso-internal-card";
-const ROW: &str = "enso-internal-row";
-const CARD_SPREADSHEETS: &str = "enso-internal-card-spreadsheets";
-const CARD_GEO: &str = "enso-internal-card-geo";
-const CARD_VISUALIZE: &str = "enso-internal-card-visualize";
+mod css_class {
+    pub const TEMPLATES_VIEW_ROOT: &str = "enso-internal-templates-view";
+    pub const CONTAINER: &str = "enso-internal-container";
+    pub const SIDE_MENU: &str = "enso-internal-side-menu";
+    pub const CONTENT: &str = "enso-internal-content";
+    pub const CARDS: &str = "enso-internal-cards";
+    pub const CARD: &str = "enso-internal-card";
+    pub const ROW: &str = "enso-internal-row";
+    pub const CARD_SPREADSHEETS: &str = "enso-internal-card-spreadsheets";
+    pub const CARD_GEO: &str = "enso-internal-card-geo";
+    pub const CARD_VISUALIZE: &str = "enso-internal-card-visualize";
+}
+
+mod css_id {
+    pub const NEW_PROJECT: &str = "enso-internal-projects-list-new-project";
+}
 
 
 
@@ -103,8 +109,7 @@ impl Model {
         template_cards: &TemplateCards,
     ) -> DomSymbol {
         let root = web::create_div();
-        root.set_class_name(TEMPLATES_VIEW_ROOT);
-        root.set_id("templates-view");
+        root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
 
         let container = Self::create_content_container();
         container.append_or_warn(&side_menu.root_dom, logger);
@@ -116,7 +121,7 @@ impl Model {
 
     fn create_content_container() -> HtmlDivElement {
         let container = web::create_div();
-        container.set_class_name(CONTAINER);
+        container.set_class_name(css_class::CONTAINER);
 
         container
     }
