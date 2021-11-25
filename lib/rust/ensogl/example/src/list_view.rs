@@ -8,7 +8,6 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
-use ensogl_text::buffer::data::unit::Bytes;
 use ensogl_text_msdf_sys::run_once_initialized;
 use logger::TraceLogger as Logger;
 use wasm_bindgen::prelude::*;

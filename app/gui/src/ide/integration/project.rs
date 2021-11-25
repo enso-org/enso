@@ -2010,8 +2010,8 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for SuggestionsProvi
                     if let Some(char) = char_iter.next() {
                         let (char_idx, (byte_id, char)) = char;
                         if char_idx == *idx {
-                            let start = enso_text::Bytes(byte_id as i32);
-                            let end = enso_text::Bytes((byte_id + char.len_utf8()) as i32);
+                            let start = enso_text::unit::Bytes(byte_id as i32);
+                            let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
                             break Some(enso_text::Range::new(start, end));
                         }
                     } else {
