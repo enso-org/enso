@@ -88,7 +88,7 @@ impl Model {
         let display_object = display::object::Instance::new(&logger);
 
         let side_menu = SideMenu::new(&logger, frp.clone_ref());
-        let template_cards = TemplateCards::new(&logger);
+        let template_cards = TemplateCards::new(&logger, frp.clone_ref());
         let dom = Self::create_dom(&logger, &side_menu, &template_cards);
         display_object.add_child(&dom);
 

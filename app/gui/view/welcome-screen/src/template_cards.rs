@@ -6,12 +6,16 @@
 use ensogl::prelude::*;
 
 use crate::ClickClosure;
+use crate::Frp;
 
 use ensogl::system::web;
 use ensogl::system::web::AttributeSetter;
 use ensogl::system::web::NodeInserter;
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 use web_sys::Element;
 use web_sys::HtmlDivElement;
+use web_sys::MouseEvent;
 
 
 
@@ -27,6 +31,7 @@ struct Card<'a> {
     background_image_url: Option<&'a str>,
     header:               &'a str,
     content:              &'a str,
+    template:             &'a str,
 }
 
 
@@ -37,18 +42,21 @@ const CARD_SPREADSHEETS: Card<'static> = Card {
     background_image_url: Some("/assets/spreadsheets.png"),
     header:               "Combine spreadsheets",
     content:              "Glue multiple spreadsheets together to analyse all your data at once.",
+    template:             "orders",
 };
 const CARD_GEO: Card<'static> = Card {
     class:                crate::css_class::CARD_GEO,
     background_image_url: None,
     header:               "Geospatial analysis",
     content:              "Learn where to open a coffee shop to maximize your income.",
+    template:             "restaurants",
 };
 const CARD_VISUALIZE: Card<'static> = Card {
     class:                crate::css_class::CARD_VISUALIZE,
     background_image_url: None,
     header:               "Analyze GitHub stars",
     content:              "Find out which of Enso's repositories are most popular over time.",
+    template:             "stargazers",
 };
 
 
@@ -63,17 +71,18 @@ const CARD_VISUALIZE: Card<'static> = Card {
 pub struct TemplateCards {
     logger:       Logger,
     pub root_dom: Element,
+    frp:          Frp,
     closures:     Rc<RefCell<Vec<ClickClosure>>>,
 }
 
 impl TemplateCards {
     /// Constructor.
-    pub fn new(logger: &Logger) -> Self {
+    pub fn new(logger: &Logger, frp: Frp) -> Self {
         let logger = Logger::new_sub(logger, "TemplateCards");
         let root_dom = web::create_element("main");
         root_dom.set_class_name(crate::css_class::CONTENT);
 
-        Self { logger, root_dom, closures: default() }.init()
+        Self { logger, frp, root_dom, closures: default() }.init()
     }
 
     fn init(self) -> Self {
@@ -115,6 +124,7 @@ impl TemplateCards {
         row.set_class_name(crate::css_class::ROW);
         for definition in cards {
             let card = self.create_card(definition);
+            self.setup_card_event_listener(&card, definition.template);
             row.append_or_warn(&card, &self.logger);
         }
         row
@@ -137,5 +147,19 @@ impl TemplateCards {
         card.append_or_warn(&text_content, &self.logger);
 
         card
+    }
+
+    fn setup_card_event_listener(&self, card: &Element, template_name: &str) {
+        let frp = self.frp.clone_ref();
+        let template = Some(template_name.to_owned());
+        let closure = Box::new(move |_event: MouseEvent| {
+            frp.create_project.emit(template.clone());
+        });
+        let closure: ClickClosure = Closure::wrap(closure);
+        let callback = closure.as_ref().unchecked_ref();
+        if card.add_event_listener_with_callback("click", callback).is_err() {
+            error!(self.logger, "Could not add open template event listener for {template_name}.");
+        }
+        self.closures.borrow_mut().push(closure);
     }
 }
