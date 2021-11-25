@@ -1447,6 +1447,7 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ensogl-toggle-button",
+ "float_eq",
 ]
 
 [[package]]
