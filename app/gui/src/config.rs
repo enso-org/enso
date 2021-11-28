@@ -68,14 +68,10 @@ impl BackendService {
                 (Some(json_endpoint), Some(binary_endpoint)) => {
                     let json_endpoint = json_endpoint.clone();
                     let binary_endpoint = binary_endpoint.clone();
-                    let namespace = args
-                        .namespace
-                        .clone()
-                        .unwrap_or_else(|| constants::DEFAULT_PROJECT_NAMESPACE.to_owned());
-                    let project_name = args
-                        .project
-                        .clone()
-                        .ok_or_else(|| MissingOption(args.names().project()))?;
+                    let default_namespace = || constants::DEFAULT_PROJECT_NAMESPACE.to_owned();
+                    let namespace = args.namespace.clone().unwrap_or_else(default_namespace);
+                    let missing_project_name = || MissingOption(args.names().project());
+                    let project_name = args.project.clone().ok_or_else(missing_project_name)?;
                     Ok(Self::LanguageServer {
                         json_endpoint,
                         binary_endpoint,
