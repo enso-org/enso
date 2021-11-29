@@ -9,17 +9,17 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use crate::graph_editor::component::visualization;
-use crate::graph_editor::component::visualization::Data;
-use crate::graph_editor::component::visualization::Registry;
+use ensogl::prelude::*;
 
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl_text_msdf_sys::run_once_initialized;
+use ide_view::graph_editor::component::visualization;
+use ide_view::graph_editor::component::visualization::Data;
+use ide_view::graph_editor::component::visualization::Registry;
 use js_sys::Math::sin;
 use nalgebra::Vector2;
-use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 fn generate_data(seconds: f64) -> Vec<Vector2<f32>> {

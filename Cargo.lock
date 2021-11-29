@@ -671,6 +671,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-interface"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "enso-frp",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf-sys",
+ "ide-view",
+ "parser",
+ "span-tree",
+ "uuid",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-visualization"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf-sys",
+ "ide-view",
+ "js-sys",
+ "nalgebra 0.26.2",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -842,6 +873,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-debug-scene"
+version = "0.1.0"
+dependencies = [
+ "debug-scene-interface",
+ "debug-scene-visualization",
+]
+
+[[package]]
 name = "enso-flexer"
 version = "0.2.1"
 dependencies = [
@@ -899,6 +938,7 @@ dependencies = [
  "enso-callback",
  "enso-config",
  "enso-data-structures",
+ "enso-debug-scene",
  "enso-frp",
  "enso-logger",
  "enso-prelude",

@@ -13,6 +13,7 @@ double-representation = { version = "0.1.0", path = "controller/double-represent
 enso-config = { path = "config" }
 enso-callback = { path = "../../lib/rust/callback" }
 enso-data-structures = { path = "../../lib/rust/data-structures" }
+enso-debug-scene = { path = "view/debug_scene" }
 enso-frp = { path = "../../lib/rust/frp" }
 enso-logger = { path = "../../lib/rust/logger"}
 enso-prelude = { path = "../../lib/rust/prelude"}

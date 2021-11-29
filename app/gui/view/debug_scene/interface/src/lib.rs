@@ -1,4 +1,7 @@
-#![allow(missing_docs)]
+//! NOTE
+//! This file is under a heavy development. It contains commented lines of code and some code may
+//! be of poor quality. Expect drastic changes.
+
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(trivial_casts)]
@@ -7,28 +10,30 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-//! NOTE
-//! This file is under a heavy development. It contains commented lines of code and some code may
-//! be of poor quality. Expect drastic changes.
+use ensogl::prelude::*;
 
-use crate::prelude::*;
-
-use crate::graph_editor;
-use crate::graph_editor::GraphEditor;
-use crate::graph_editor::NodeProfilingStatus;
-use crate::graph_editor::Type;
-use crate::project;
-use crate::status_bar;
-
+use ast::crumbs::PatternMatchCrumb::*;
+use ast::crumbs::*;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
+use ensogl::gui::text;
 use ensogl::system::web;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text as text;
+use ensogl_text_msdf_sys::run_once_initialized;
+use ide_view::graph_editor;
+use ide_view::graph_editor::component::node::vcs;
+use ide_view::graph_editor::component::node::Expression;
+use ide_view::graph_editor::GraphEditor;
+use ide_view::graph_editor::NodeProfilingStatus;
+use ide_view::graph_editor::Type;
+use ide_view::project;
+use ide_view::status_bar;
 use parser::Parser;
+use span_tree::traits::*;
+use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
 
@@ -297,16 +302,6 @@ fn init(app: &Application) {
 // =============
 // === Mocks ===
 // =============
-
-use crate::graph_editor::component::node::vcs;
-use crate::graph_editor::component::node::Expression;
-
-use ast::crumbs::PatternMatchCrumb::*;
-use ast::crumbs::*;
-use engine_protocol::prelude::Uuid;
-use ensogl_text_msdf_sys::run_once_initialized;
-use span_tree::traits::*;
-
 
 pub fn expression_mock_string(label: &str) -> Expression {
     let pattern = Some(label.to_string());
