@@ -192,7 +192,6 @@ pub mod right_overflow {
 // === Shape Utilities ===
 // =======================
 
-use enso_frp;
 use enso_frp::Network;
 use ensogl_core::frp::io::Mouse;
 use ensogl_core::gui::component::ShapeView;
