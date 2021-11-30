@@ -39,7 +39,7 @@ const UNNAMED_PROJECT_NAME: &str = "Unnamed";
 #[derivative(Debug)]
 pub struct Handle {
     logger:               Logger,
-    current_project:      Rc<CloneRefCell<model::Project>>,
+    current_project:      Rc<CloneCell<Option<model::Project>>>,
     #[derivative(Debug = "ignore")]
     project_manager:      Rc<dyn project_manager::API>,
     status_notifications: StatusNotificationPublisher,
@@ -48,13 +48,28 @@ pub struct Handle {
 }
 
 impl Handle {
-    /// Create a project controller handle with already loaded project model.
-    pub fn new_with_project(
+    /// Create IDE controller. If `maybe_project_name` is `Some`, a project with provided name will
+    /// be opened. Otherwise controller will be used for project manager operations by Welcome
+    /// Screen.
+    pub async fn new(
         project_manager: Rc<dyn project_manager::API>,
-        initial_project: model::Project,
+        project_name: Option<ProjectName>,
+    ) -> FallibleResult<Self> {
+        let project = match project_name {
+            Some(name) => Some(Self::init_project_model(project_manager.clone_ref(), name).await?),
+            None => None,
+        };
+        Ok(Self::new_with_project_model(project_manager, project))
+    }
+
+    /// Create IDE controller with prepared project model. If `project` is `None`,
+    /// `API::current_project` returns `None` as well.
+    pub fn new_with_project_model(
+        project_manager: Rc<dyn project_manager::API>,
+        project: Option<model::Project>,
     ) -> Self {
         let logger = Logger::new("controller::ide::Desktop");
-        let current_project = Rc::new(CloneRefCell::new(initial_project));
+        let current_project = Rc::new(CloneCell::new(project));
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
@@ -68,23 +83,22 @@ impl Handle {
         }
     }
 
-    /// Create a project controller handle which opens the project with the given name, or creates
-    /// it if it does not exist.
-    pub async fn new_with_opened_project(
+    /// Open project with provided name.
+    async fn init_project_model(
         project_manager: Rc<dyn project_manager::API>,
-        name: ProjectName,
-    ) -> FallibleResult<Self> {
+        project_name: ProjectName,
+    ) -> FallibleResult<model::Project> {
         // TODO[ao]: Reuse of initializer used in previous code design. It should be soon replaced
         //      anyway, because we will soon resign from the "open or create" approach when opening
         //      IDE. See https://github.com/enso-org/ide/issues/1492 for details.
-        let initializer = initializer::WithProjectManager::new(project_manager.clone_ref(), name);
+        let initializer = initializer::WithProjectManager::new(project_manager, project_name);
         let model = initializer.initialize_project_model().await?;
-        Ok(Self::new_with_project(project_manager, model))
+        Ok(model)
     }
 }
 
 impl API for Handle {
-    fn current_project(&self) -> model::Project {
+    fn current_project(&self) -> Option<model::Project> {
         self.current_project.get()
     }
     fn status_notifications(&self) -> &StatusNotificationPublisher {
@@ -123,7 +137,7 @@ impl ManagingProjectAPI for Handle {
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
             let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
-            self.current_project.set(new_project.await?);
+            self.current_project.set(Some(new_project.await?));
             executor::global::spawn(self.notifications.publish(Notification::NewProjectCreated));
             Ok(())
         }
@@ -143,7 +157,7 @@ impl ManagingProjectAPI for Handle {
             let logger = &self.logger;
             let project_mgr = self.project_manager.clone_ref();
             let new_project = model::project::Synchronized::new_opened(logger, project_mgr, id);
-            self.current_project.set(new_project.await?);
+            self.current_project.set(Some(new_project.await?));
             executor::global::spawn(self.notifications.publish(Notification::ProjectOpened));
             Ok(())
         }
