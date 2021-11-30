@@ -489,13 +489,11 @@ impl DomLayers {
     pub fn new(logger: &Logger, dom: &web_sys::HtmlDivElement) -> Self {
         let welcome_screen = DomScene::new(logger);
         welcome_screen.dom.set_class_name("panel");
-        welcome_screen.dom.set_style_or_warn("pointer-events", "auto", logger);
         welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
         dom.append_or_panic(&welcome_screen.dom);
 
         let back = DomScene::new(logger);
         back.dom.set_class_name("back");
-        back.dom.set_style_or_warn("pointer-events", "auto", logger);
         back.dom.set_style_or_warn("z-index", "1", logger);
         dom.append_or_panic(&back.dom);
 
