@@ -477,6 +477,7 @@ pub struct Searcher {
     ide:              controller::Ide,
     this_arg:         Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
+    project:          model::Project,
 }
 
 impl Searcher {
@@ -502,6 +503,7 @@ impl Searcher {
         mode: Mode,
         selected_nodes: Vec<double_representation::node::Id>,
     ) -> FallibleResult<Self> {
+        let project = project.clone_ref();
         let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
@@ -534,6 +536,7 @@ impl Searcher {
             database: project.suggestion_db(),
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
+            project,
         };
         ret.reload_list();
         Ok(ret)
@@ -1055,8 +1058,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        let project_name = self.ide.current_project().qualified_name();
-        self.graph.graph().module.path().qualified_module_name(project_name)
+        self.graph.graph().module.path().qualified_module_name(self.project.qualified_name())
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1267,7 +1269,8 @@ pub mod test {
             project.expect_name().returning_st(move || project_name.clone());
             let project = Rc::new(project);
             ide.expect_parser().return_const(Parser::new_or_panic());
-            ide.expect_current_project().returning_st(move || project.clone_ref());
+            let current_project = project.clone_ref();
+            ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let module_name =
@@ -1284,6 +1287,7 @@ pub mod test {
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
+                project: project.clone_ref(),
             };
             let entry1 = model::suggestion_database::Entry {
                 name:               "testFunction1".to_string(),

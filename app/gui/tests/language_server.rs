@@ -64,7 +64,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 async fn ls_text_protocol_test() {
     let _guard = enso_gui::initializer::setup_global_executor();
     let ide = setup_ide().await;
-    let project = ide.current_project();
+    let project = ide.current_project().expect("IDE is configured without an open project.");
     let client = project.json_rpc();
     let root_id = project.project_content_root_id();
     let project_name = project.qualified_name();
@@ -294,7 +294,7 @@ async fn file_operations_test() {
     let logger = Logger::new("Test");
     let _guard = enso_gui::initializer::setup_global_executor();
     let ide = setup_ide().await;
-    let project = ide.current_project();
+    let project = ide.current_project().expect("IDE is configured without an open project.");
     info!(logger, "Got project: {project:?}");
     // Edit file using the text protocol
     let path = Path::new(project.json_rpc().project_root().id(), &["test_file.txt"]);
@@ -322,7 +322,7 @@ async fn file_operations_test() {
 async fn binary_visualization_updates_test_hlp() {
     let logger = Logger::new("Test");
     let ide = setup_ide().await;
-    let project = ide.current_project();
+    let project = ide.current_project().expect("IDE is configured without an open project.");
     info!(logger, "Got project: {project:?}");
 
     let expression = "x -> x.json_serialize".to_owned();

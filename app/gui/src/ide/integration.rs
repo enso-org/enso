@@ -35,32 +35,37 @@ impl Model {
         // not race for the view.
         *self.project_integration.borrow_mut() = None;
 
-        let project_model = self.controller.current_project();
-        let status_notifications = self.controller.status_notifications().clone_ref();
-        let project = controller::Project::new(project_model, status_notifications.clone_ref());
+        if let Some(project_model) = self.controller.current_project() {
+            // We know the name of new project before it loads. We set it right now to avoid
+            // displaying placeholder on the scene during loading.
+            self.view.graph().model.breadcrumbs.project_name(project_model.name().to_string());
 
-        executor::global::spawn(async move {
-            match project.initialize().await {
-                Ok(result) => {
-                    let view = self.view.clone_ref();
-                    let text = result.main_module_text;
-                    let graph = result.main_graph;
-                    let ide = self.controller.clone_ref();
-                    let project = project.model;
-                    let main_module = result.main_module_model;
-                    let integration =
-                        project::Integration::new(view, graph, text, ide, project, main_module);
-                    // We don't want any initialization-related changes to appear on undo stack.
-                    integration.graph_controller().undo_redo_repository().clear_all();
-                    *self.project_integration.borrow_mut() = Some(integration);
+            let status_notifications = self.controller.status_notifications().clone_ref();
+            let project = controller::Project::new(project_model, status_notifications.clone_ref());
+
+            executor::global::spawn(async move {
+                match project.initialize().await {
+                    Ok(result) => {
+                        let view = self.view.clone_ref();
+                        let text = result.main_module_text;
+                        let graph = result.main_graph;
+                        let ide = self.controller.clone_ref();
+                        let project = project.model;
+                        let main_module = result.main_module_model;
+                        let integration =
+                            project::Integration::new(view, graph, text, ide, project, main_module);
+                        // We don't want any initialization-related changes to appear on undo stack.
+                        integration.graph_controller().undo_redo_repository().clear_all();
+                        *self.project_integration.borrow_mut() = Some(integration);
+                    }
+                    Err(err) => {
+                        let err_msg = format!("Failed to initialize project: {}", err);
+                        error!(self.logger, "{err_msg}");
+                        status_notifications.publish_event(err_msg)
+                    }
                 }
-                Err(err) => {
-                    let err_msg = format!("Failed to initialize project: {}", err);
-                    error!(self.logger, "{err_msg}");
-                    status_notifications.publish_event(err_msg)
-                }
-            }
-        });
+            });
+        }
     }
 }
 

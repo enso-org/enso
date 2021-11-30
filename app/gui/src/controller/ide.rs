@@ -132,7 +132,9 @@ pub trait API: Debug {
     /// The model of currently opened project.
     ///
     /// IDE can have only one project opened at a time.
-    fn current_project(&self) -> model::Project;
+    ///
+    /// Returns `None` if no project is opened at the moment.
+    fn current_project(&self) -> Option<model::Project>;
 
     /// Getter of Status Notification Publisher.
     fn status_notifications(&self) -> &StatusNotificationPublisher;

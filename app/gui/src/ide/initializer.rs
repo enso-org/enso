@@ -67,9 +67,6 @@ impl Initializer {
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
             let view = application.new_view::<ide_view::project::View>();
             let status_bar = view.status_bar().clone_ref();
-            // We know the name of new project before it loads. We set it right now to avoid
-            // displaying placeholder on the scene during loading.
-            view.graph().model.breadcrumbs.project_name(self.config.project_name.to_string());
             application.display.add_child(&view);
             // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
             //      issues to user, such information should be properly passed
@@ -110,18 +107,14 @@ impl Initializer {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
                 let project_name = self.config.project_name.clone();
-                let controller = controller::ide::Desktop::new_with_opened_project(
-                    project_manager,
-                    project_name,
-                )
-                .await?;
-                Ok(Rc::new(controller))
+                let controller = controller::ide::Desktop::new(project_manager, project_name);
+                Ok(Rc::new(controller.await?))
             }
-            LanguageServer { json_endpoint, binary_endpoint, namespace } => {
+            LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
                 let json_endpoint = json_endpoint.clone();
                 let binary_endpoint = binary_endpoint.clone();
                 let namespace = namespace.clone();
-                let project_name = self.config.project_name.clone();
+                let project_name = project_name.clone().into();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
                 let version = semver::Version::parse(enso_config::engine_version_supported)?;
