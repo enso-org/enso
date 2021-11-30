@@ -113,10 +113,9 @@ impl Initializer {
         match &self.config.backend {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
-                let maybe_project_name = self.config.project_name.clone();
-                let controller =
-                    controller::ide::Desktop::new(project_manager, maybe_project_name).await?;
-                Ok(Rc::new(controller))
+                let project_name = self.config.project_name.clone();
+                let controller = controller::ide::Desktop::new(project_manager, project_name);
+                Ok(Rc::new(controller.await?))
             }
             LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
                 let json_endpoint = json_endpoint.clone();

@@ -188,4 +188,18 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
       the[PolyglotException] thrownBy mod2.getAssociatedConstructor
     exception.getMessage shouldEqual "Compilation aborted due to errors."
   }
+
+  subject should "allow gathering imported libraries" in {
+    val ctx = new TestContext("Test")
+    ctx.writeMain("""
+                    |import Foo.Bar.Baz
+                    |
+                    |main = 42
+                    |""".stripMargin)
+
+    val topScope   = ctx.executionContext.getTopScope
+    val mainModule = topScope.getModule("Enso_Test.Test.Main")
+    val imports    = mainModule.gatherImportStatements()
+    imports shouldEqual Seq("Foo.Bar")
+  }
 }

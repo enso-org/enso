@@ -5,12 +5,12 @@ use crate::prelude::*;
 use crate::model::module::MethodId;
 
 use ast::constants::keywords;
-use data::text::TextLocation;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
+use enso_text::Location;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
 
@@ -77,7 +77,7 @@ pub enum Scope {
     /// Local symbol that is visible only in a particular section of the module where it has been
     /// defined.
     #[allow(missing_docs)]
-    InModule { range: RangeInclusive<TextLocation> },
+    InModule { range: RangeInclusive<Location> },
 }
 
 /// Represents code snippet and the imports needed for it to work.
@@ -202,7 +202,7 @@ impl Entry {
     }
 
     /// Checks if entry is visible at given location in a specific module.
-    pub fn is_visible_at(&self, module: &module::QualifiedName, location: TextLocation) -> bool {
+    pub fn is_visible_at(&self, module: &module::QualifiedName, location: Location) -> bool {
         match &self.scope {
             Scope::Everywhere => true,
             Scope::InModule { range } => self.module == *module && range.contains(&location),

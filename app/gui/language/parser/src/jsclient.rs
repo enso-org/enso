@@ -3,12 +3,14 @@
 use crate::prelude::*;
 
 use crate::api;
+use crate::api::Ast;
 use crate::from_json_str_without_recursion_limit;
 
-use api::Ast;
+use ast::id_map::JsonIdMap;
 use ast::IdMap;
-
 use wasm_bindgen::prelude::*;
+
+
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -66,6 +68,7 @@ impl Client {
     /// Parses Enso code with JS-based parser.
     pub fn parse(&self, program: String, ids: IdMap) -> api::Result<Ast> {
         let ast = || {
+            let ids = JsonIdMap::from_id_map(&ids, &program);
             let json_ids = serde_json::to_string(&ids)?;
             let json_ast = parse(program, json_ids)?;
             let ast = from_json_str_without_recursion_limit(&json_ast)?;

@@ -1,8 +1,8 @@
 //! Implementation of a cursor allowing word-based traversal.
-
-use crate::buffer::data::rope;
-use crate::buffer::data::unit::*;
 use crate::prelude::*;
+
+use enso_text::rope;
+use enso_text::unit::*;
 
 
 

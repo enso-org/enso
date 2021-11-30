@@ -136,9 +136,8 @@ impl ManagingProjectAPI for Handle {
                 self.project_manager.create_project(&name, &version, &action).await?;
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project =
-                Project::new_opened(&self.logger, project_mgr, new_project_id).await?;
-            self.current_project.set(Some(new_project));
+            let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
+            self.current_project.set(Some(new_project.await?));
             executor::global::spawn(self.notifications.publish(Notification::NewProjectCreated));
             Ok(())
         }
@@ -157,9 +156,8 @@ impl ManagingProjectAPI for Handle {
         async move {
             let logger = &self.logger;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project =
-                model::project::Synchronized::new_opened(logger, project_mgr, id).await?;
-            self.current_project.set(Some(new_project));
+            let new_project = model::project::Synchronized::new_opened(logger, project_mgr, id);
+            self.current_project.set(Some(new_project.await?));
             executor::global::spawn(self.notifications.publish(Notification::ProjectOpened));
             Ok(())
         }

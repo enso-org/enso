@@ -8,6 +8,7 @@
 pub mod assoc;
 #[warn(missing_docs)]
 pub mod crumbs;
+pub mod id_map;
 #[warn(missing_docs)]
 pub mod identifier;
 #[warn(missing_docs)]
@@ -66,13 +67,12 @@ use crate::prelude::*;
 
 pub use crumbs::Crumb;
 pub use crumbs::Crumbs;
+pub use id_map::IdMap;
 
 use ast_macros::*;
-use enso_data::text::Index;
-use enso_data::text::Size;
-use enso_data::text::Span;
-
 use enso_shapely::*;
+use enso_text::traits::*;
+use enso_text::unit::*;
 use serde::de::Deserializer;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
@@ -83,34 +83,6 @@ use uuid::Uuid;
 
 /// A sequence of AST nodes, typically the "token soup".
 pub type Stream<T> = Vec<T>;
-
-
-
-// =============
-// === IdMap ===
-// =============
-
-/// A mapping between text position and immutable ID.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct IdMap {
-    pub vec: Vec<(Span, Id)>,
-}
-
-impl IdMap {
-    /// Create a new instance.
-    pub fn new(vec: Vec<(Span, Id)>) -> IdMap {
-        IdMap { vec }
-    }
-    /// Assigns Span to given ID.
-    pub fn insert(&mut self, span: impl Into<Span>, id: Id) {
-        self.vec.push((span.into(), id));
-    }
-    /// Generate random Uuid for span.
-    pub fn generate(&mut self, span: impl Into<Span>) {
-        self.vec.push((span.into(), Uuid::new_v4()));
-    }
-}
 
 
 
@@ -287,7 +259,7 @@ impl Ast {
     pub fn new<S: Into<Shape<Ast>>>(shape: S, id: Option<Id>) -> Ast {
         let shape = shape.into();
         let id = id.unwrap_or_else(Id::new_v4);
-        let length = shape.len();
+        let length = shape.char_count();
         Ast::from_ast_id_len(shape, Some(id), length)
     }
 
@@ -298,13 +270,13 @@ impl Ast {
     /// Tracking issue: https://github.com/enso-org/ide/issues/434
     pub fn new_no_id<S: Into<Shape<Ast>>>(shape: S) -> Ast {
         let shape = shape.into();
-        let length = shape.len();
+        let length = shape.char_count();
         Ast::from_ast_id_len(shape, None, length)
     }
 
     /// Just wraps shape, id and len into Ast node.
-    fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, len: usize) -> Ast {
-        let with_length = WithLength { wrapped: shape, len };
+    fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, char_count: Chars) -> Ast {
+        let with_length = WithLength { wrapped: shape, length: char_count };
         let with_id = WithID { wrapped: with_length, id };
         Ast { wrapped: Rc::new(with_id) }
     }
@@ -348,10 +320,10 @@ impl Ast {
     ///
     /// Returned index is the position of the first character of child's text representation within
     /// the text representation of this AST node.
-    pub fn child_offset(&self, child: &Ast) -> FallibleResult<Index> {
+    pub fn child_offset(&self, child: &Ast) -> FallibleResult<Bytes> {
         let searched_token = Token::Ast(child);
         let mut found_child = false;
-        let mut position = 0;
+        let mut position = 0.bytes();
         self.shape().feed_to(&mut |token: Token| {
             if searched_token == token {
                 found_child = true
@@ -360,17 +332,17 @@ impl Ast {
             }
         });
         if found_child {
-            Ok(Index::new(position))
+            Ok(position)
         } else {
             Err(NoSuchChild.into())
         }
     }
 
     /// Get the span (relative to self) for a child node identified by given crumb.
-    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<Span> {
+    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<enso_text::Range<Bytes>> {
         let child = self.get(crumb)?;
-        let index = self.child_offset(child)?;
-        Ok(Span::new(index, Size::new(child.len())))
+        let offset = self.child_offset(child)?;
+        Ok(enso_text::Range::new(offset, offset + child.len()))
     }
 }
 
@@ -404,7 +376,7 @@ impl Serialize for Ast {
         if self.id.is_some() {
             state.serialize_field(ID, &self.id)?;
         }
-        state.serialize_field(LENGTH, &self.len)?;
+        state.serialize_field(LENGTH, &self.length.as_usize())?;
         state.end()
     }
 }
@@ -440,7 +412,7 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
         let shape = shape.ok_or_else(|| serde::de::Error::missing_field(SHAPE))?;
         let id = id.unwrap_or(None); // allow missing `id` field
         let len = len.ok_or_else(|| serde::de::Error::missing_field(LENGTH))?;
-        Ok(Ast::from_ast_id_len(shape, id, len))
+        Ok(Ast::from_ast_id_len(shape, id, len.into()))
     }
 }
 
@@ -994,6 +966,12 @@ impl<F: FnMut(Token)> TokenConsumer for F {
     }
 }
 
+impl<'a> HasTokens for Token<'a> {
+    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
+        consumer.feed(self.clone())
+    }
+}
+
 impl HasTokens for &str {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
         consumer.feed(Token::Str(self));
@@ -1078,21 +1056,21 @@ pub trait HasIdMap {
 #[derive(Debug, Clone, Default)]
 struct IdMapBuilder {
     id_map: IdMap,
-    offset: usize,
+    offset: Bytes,
 }
 
 impl TokenConsumer for IdMapBuilder {
     fn feed(&mut self, token: Token) {
         match token {
-            Token::Off(val) => self.offset += val,
-            Token::Chr(_) => self.offset += 1,
-            Token::Str(val) => self.offset += val.chars().count(),
+            Token::Off(val) => self.offset += Bytes::from(' '.len_utf8() * val),
+            Token::Chr(_) => self.offset += 1.bytes(),
+            Token::Str(val) => self.offset += Bytes::from(val.len()),
             Token::Ast(val) => {
                 let begin = self.offset;
                 val.shape().feed_to(self);
+                let end = self.offset;
                 if let Some(id) = val.id {
-                    let span = Span::from_indices(Index::new(begin), Index::new(self.offset));
-                    self.id_map.insert(span, id);
+                    self.id_map.insert(begin..end, id);
                 }
             }
         }
@@ -1108,68 +1086,33 @@ impl<T: HasTokens> HasIdMap for T {
 }
 
 
-// === HasLength ===
-
-/// Things that can be asked about their length.
-pub trait HasLength {
-    /// Length of the textual representation of This type in Unicode codepoints.
-    ///
-    /// Usually implemented together with `HasRepr`.For any `T:HasLength+HasRepr`
-    /// for `t:T` the following must hold: `t.len() == t.repr().len()`.
-    fn len(&self) -> usize;
-
-    /// More efficient implementation of `t.len() == 0`
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-struct LengthBuilder {
-    length: usize,
-}
-
-impl TokenConsumer for LengthBuilder {
-    fn feed(&mut self, token: Token) {
-        match token {
-            Token::Off(val) => self.length += val,
-            Token::Chr(_) => self.length += 1,
-            Token::Str(val) => self.length += val.chars().count(),
-            Token::Ast(val) => val.shape().feed_to(self),
-        }
-    }
-}
-
-impl<T: HasTokens> HasLength for T {
-    fn len(&self) -> usize {
-        let mut consumer = LengthBuilder::default();
-        self.feed_to(&mut consumer);
-        consumer.length
-    }
-}
-
-impl HasLength for Token<'_> {
-    fn len(&self) -> usize {
-        match self {
-            Token::Off(val) => *val,
-            Token::Chr(_) => 1,
-            Token::Str(val) => val.chars().count(),
-            // The below is different and cannot be unified with `LengthBuilder` because below will
-            // use the cached length, while `LengthBuilder` will traverse subtree.
-            Token::Ast(val) => val.len(),
-        }
-    }
-}
-
-
 // === HasRepr ===
 
 /// Things that can be asked about their textual representation.
-///
-/// See also `HasLength`.
 pub trait HasRepr {
     /// Obtain the text representation for the This type.
     fn repr(&self) -> String;
+
+    /// Get the representation length in bytes.
+    ///
+    /// May be implemented in a quicker way than building string. Must meet the constraint
+    /// `x.len() == x.repr().len()` for any `x: impl HasRepr`.
+    fn len(&self) -> Bytes {
+        self.repr().len().into()
+    }
+
+    /// Check if the representation is empty.
+    fn is_empty(&self) -> bool {
+        self.len() >= 0.bytes()
+    }
+
+    /// Get the representation length in chars.
+    ///
+    /// May be implemented in a quicker way than building string. Must meet the constraint
+    /// `x.char_count() == x.repr().chars().count()` for any `x: impl HasRepr`.
+    fn char_count(&self) -> Chars {
+        self.repr().chars().count().into()
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -1188,11 +1131,56 @@ impl TokenConsumer for ReprBuilder {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+struct LengthBuilder {
+    length: Bytes,
+}
+
+impl TokenConsumer for LengthBuilder {
+    fn feed(&mut self, token: Token) {
+        match token {
+            Token::Off(val) => self.length += Bytes::from(' '.len_utf8() * val),
+            Token::Chr(chr) => self.length += Bytes::from(chr.len_utf8()),
+            Token::Str(val) => self.length += Bytes::from(val.len()),
+            Token::Ast(val) => val.shape().feed_to(self),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct CharCountBuilder {
+    char_count: Chars,
+}
+
+
+impl TokenConsumer for CharCountBuilder {
+    fn feed(&mut self, token: Token) {
+        match token {
+            Token::Off(val) => self.char_count += Chars::from(val),
+            Token::Chr(_) => self.char_count += 1.chars(),
+            Token::Str(val) => self.char_count += Chars::from(val.chars().count()),
+            Token::Ast(val) => val.shape().feed_to(self),
+        }
+    }
+}
+
 impl<T: HasTokens> HasRepr for T {
     fn repr(&self) -> String {
         let mut consumer = ReprBuilder::default();
         self.feed_to(&mut consumer);
         consumer.repr
+    }
+
+    fn len(&self) -> Bytes {
+        let mut consumer = LengthBuilder::default();
+        self.feed_to(&mut consumer);
+        consumer.length
+    }
+
+    fn char_count(&self) -> Chars {
+        let mut consumer = CharCountBuilder::default();
+        self.feed_to(&mut consumer);
+        consumer.char_count
     }
 }
 
@@ -1228,55 +1216,60 @@ impl<T, S: Layer<T>> Layer<T> for WithID<S> {
     }
 }
 
-impl<T> HasLength for WithID<T>
-where T: HasLength
+impl<T> HasRepr for WithID<T>
+where T: HasRepr
 {
-    fn len(&self) -> usize {
+    fn repr(&self) -> String {
+        self.deref().repr()
+    }
+
+    fn len(&self) -> Bytes {
         self.deref().len()
+    }
+
+    fn char_count(&self) -> Chars {
+        self.deref().char_count()
     }
 }
 
 
 
 #[derive(Debug, Clone)]
-struct TraverserWithIndex<F> {
-    index:    usize,
+struct TraverserWithOffset<F> {
+    offset:   Chars,
     callback: F,
 }
 
-impl<F> TraverserWithIndex<F> {
-    pub fn new(callback: F) -> TraverserWithIndex<F> {
-        let offset = 0;
-        TraverserWithIndex { index: offset, callback }
+impl<F> TraverserWithOffset<F> {
+    pub fn new(callback: F) -> TraverserWithOffset<F> {
+        let offset = 0.chars();
+        TraverserWithOffset { offset, callback }
     }
 }
 
-impl<F> TokenConsumer for TraverserWithIndex<F>
-where F: FnMut(Index, &Ast)
+impl<F> TokenConsumer for TraverserWithOffset<F>
+where F: FnMut(Chars, &Ast)
 {
     fn feed(&mut self, token: Token) {
-        match token {
-            Token::Off(val) => self.index += val,
-            Token::Chr(_) => self.index += 1,
-            Token::Str(val) => self.index += val.chars().count(),
-            Token::Ast(val) => {
-                (self.callback)(Index::new(self.index), val);
-                val.shape().feed_to(self);
-            }
+        if let Token::Ast(val) = token {
+            (self.callback)(self.offset, val);
+            val.shape().feed_to(self);
+        } else {
+            self.offset += token.char_count();
         }
     }
 }
 
 /// Visits each Ast node, while keeping track of its index.
-pub fn traverse_with_index(ast: &impl HasTokens, f: impl FnMut(Index, &Ast)) {
-    let mut traverser = TraverserWithIndex::new(f);
+pub fn traverse_with_offset(ast: &impl HasTokens, f: impl FnMut(Chars, &Ast)) {
+    let mut traverser = TraverserWithOffset::new(f);
     ast.feed_to(&mut traverser);
 }
 
 /// Visits each Ast node, while keeping track of its span.
-pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(Span, &Ast)) {
-    traverse_with_index(ast, move |index, ast| {
-        f(Span::new(index, enso_data::text::Size::new(ast.len())), ast)
+pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(enso_text::Range<Chars>, &Ast)) {
+    traverse_with_offset(ast, move |offset, ast| {
+        f(enso_text::Range::new(offset, offset + ast.char_count()), ast)
     })
 }
 
@@ -1292,21 +1285,31 @@ pub struct WithLength<T> {
     #[shrinkwrap(main_field)]
     #[serde(flatten)]
     pub wrapped: T,
-    pub len:     usize,
+    pub length:  Chars,
 }
 
-impl<T> HasLength for WithLength<T> {
-    fn len(&self) -> usize {
-        self.len
+impl<T> HasRepr for WithLength<T>
+where T: HasRepr
+{
+    fn repr(&self) -> String {
+        self.deref().repr()
+    }
+
+    fn len(&self) -> Bytes {
+        self.deref().len()
+    }
+
+    fn char_count(&self) -> Chars {
+        self.length
     }
 }
 
 impl<T, S> Layer<T> for WithLength<S>
-where T: HasLength + Into<S>
+where T: HasRepr + Into<S>
 {
     fn layered(t: T) -> Self {
-        let length = t.len();
-        WithLength { wrapped: t.into(), len: length }
+        let char_count = t.char_count();
+        WithLength { wrapped: t.into(), length: char_count }
     }
 }
 
@@ -1715,7 +1718,6 @@ impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
 mod tests {
     use super::*;
 
-    use enso_data::text::Size;
     use serde::de::DeserializeOwned;
 
     /// Assert that given value round trips JSON serialization.
@@ -1749,19 +1751,22 @@ mod tests {
 
     #[test]
     fn ast_length() {
-        let ast = Ast::prefix(Ast::var("XX"), Ast::var("YY"));
-        assert_eq!(ast.len(), 5)
+        let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
+        assert_eq!(ast.len(), 6.bytes());
+        assert_eq!(ast.char_count(), 5.chars());
     }
 
     #[test]
     fn ast_repr() {
-        let ast = Ast::prefix(Ast::var("XX"), Ast::var("YY"));
-        assert_eq!(ast.repr().as_str(), "XX YY")
+        let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
+        assert_eq!(ast.repr().as_str(), "XĄ YY")
     }
 
     #[test]
     fn ast_id_map() {
-        let span = |ix, length| Span::new(Index::new(ix), Size::new(length));
+        let span = |ix: usize, length: usize| {
+            enso_text::Range::<Bytes>::new(ix.into(), (ix + length).into())
+        };
         let uid = default();
         let ids = vec![(span(0, 2), uid), (span(3, 2), uid), (span(0, 5), uid)];
         let func = Ast::new(Var { name: "XX".into() }, Some(uid));
@@ -1777,7 +1782,7 @@ mod tests {
         let v = Var { name: ident.clone() };
         let ast = Ast::from(v);
         assert!(ast.wrapped.id.is_some());
-        assert_eq!(ast.wrapped.wrapped.len, ident.len());
+        assert_eq!(ast.wrapped.wrapped.length, ident.chars().count().into());
     }
 
     #[test]
@@ -1809,8 +1814,8 @@ mod tests {
         let expected_uuid = Id::parse_str(uuid_str).ok();
         assert_eq!(ast.id, expected_uuid);
 
-        let expected_length = 3;
-        assert_eq!(ast.len, expected_length);
+        let expected_length = 3.chars();
+        assert_eq!(ast.length, expected_length);
 
         let expected_var = Var { name: var_name.into() };
         let expected_shape = Shape::from(expected_var);
@@ -1884,13 +1889,15 @@ mod tests {
     #[test]
     fn utf8_lengths() {
         let var = Ast::var("価");
-        assert_eq!(var.len(), 1);
+        assert_eq!(var.char_count(), 1.chars());
+        assert_eq!(var.len(), 3.bytes());
 
         let idmap = var.id_map();
-        assert_eq!(idmap.vec[0].0, Span::from(0..1));
+        assert_eq!(idmap.vec[0].0, enso_text::Range::new(0.bytes(), 3.bytes()));
         assert_eq!(idmap.vec[0].1, var.id.unwrap());
 
         let builder_with_char = Token::Chr('壱');
-        assert_eq!(builder_with_char.len(), 1);
+        assert_eq!(builder_with_char.char_count(), 1.chars());
+        assert_eq!(builder_with_char.len(), 3.bytes());
     }
 }

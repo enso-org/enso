@@ -16,6 +16,9 @@ trait PublishedLibraryCache {
     * caches.
     */
   def isLibraryCached(libraryName: LibraryName, version: SemVer): Boolean
+
+  /** Tries to locate a cached version of the requested library. */
+  def findCachedLibrary(libraryName: LibraryName, version: SemVer): Option[Path]
 }
 
 object PublishedLibraryCache {

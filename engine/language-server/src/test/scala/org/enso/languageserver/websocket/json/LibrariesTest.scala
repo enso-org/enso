@@ -3,22 +3,39 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import io.circe.{Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{
   EmptyRepository,
-  ExampleRepository
+  ExampleRepository,
+  LibraryManifest
 }
 import org.enso.pkg.{Contact, PackageManager}
+import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
 
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
 
-  private val exampleRepo   = new ExampleRepository
+  private val exampleRepo = new ExampleRepository {
+    override def libraries: Seq[DummyLibrary] = Seq(
+      DummyLibrary(
+        LibraryName("Foo", "Bar"),
+        SemVer(1, 0, 0),
+        """import Standard.Base
+          |
+          |baz = 42
+          |
+          |quux = "foobar"
+          |""".stripMargin,
+        dependencies = Seq(LibraryName("Standard", "Base"))
+      )
+    )
+  }
   private val baseUrl       = s"http://localhost:$libraryRepositoryPort/"
   private val repositoryUrl = baseUrl + "libraries"
 
@@ -232,6 +249,21 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
+      // Update Main.enso
+      val libraryRoot = getTestDirectory
+        .resolve("test_home")
+        .resolve("libraries")
+        .resolve("user")
+        .resolve("Publishable_Lib")
+      val mainSource = libraryRoot.resolve("src").resolve("Main.enso")
+      FileSystem.writeTextFile(
+        mainSource,
+        """import Some.Other_Library
+          |
+          |main = 42
+          |""".stripMargin
+      )
+
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "library/setMetadata",
@@ -308,6 +340,18 @@ class LibrariesTest extends BaseServerTest {
           Contact(name = Some("only-name"), email = None),
           Contact(name = None, email              = Some("foo@example.com"))
         )
+        val manifest = YamlHelper
+          .load[LibraryManifest](
+            libraryRoot.resolve(LibraryManifest.filename)
+          )
+          .get
+
+        manifest.archives shouldEqual Seq("main.tgz")
+        manifest.dependencies shouldEqual Seq(
+          LibraryName("Some", "Other_Library")
+        )
+        manifest.description shouldEqual Some("Description for publication.")
+        manifest.tagLine shouldEqual Some("published-lib")
 
         client.send(json"""
           { "jsonrpc": "2.0",
@@ -387,6 +431,9 @@ class LibrariesTest extends BaseServerTest {
           msg("id") match {
             case Some(json) =>
               json.asNumber.value.toInt.value shouldEqual requestId
+              msg("error").foreach(err =>
+                println("Request ended with error: " + err)
+              )
               msg("result").value.asNull.value
               waitingForResult = false
             case None =>
@@ -408,8 +455,6 @@ class LibrariesTest extends BaseServerTest {
           .asString
           .value shouldEqual "library/preinstall"
 
-        taskStart._2("unit").value.asString.value shouldEqual "Bytes"
-
         val updates = messages.filter { case (method, params) =>
           method == "task/progress-update" &&
           params("taskId").value.asString.value == taskId
@@ -417,7 +462,7 @@ class LibrariesTest extends BaseServerTest {
 
         updates should not be empty
         updates.head._2("message").value.asString.value should include(
-          "Downloading"
+          "Installing"
         )
 
         val cachePath     = getTestDirectory.resolve("test_data").resolve("lib")
@@ -435,6 +480,11 @@ class LibrariesTest extends BaseServerTest {
         pkg.listSources.map(
           _.file.getName
         ) should contain theSameElementsAs Seq("Main.enso")
+
+        assert(
+          Files.exists(cachedLibraryRoot.resolve(LibraryManifest.filename)),
+          "The manifest file of a downloaded library should be saved in the cache too."
+        )
       }
     }
   }

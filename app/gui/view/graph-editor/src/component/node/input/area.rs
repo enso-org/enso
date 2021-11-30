@@ -3,8 +3,18 @@
 
 use crate::prelude::*;
 
+use crate::component::type_coloring;
+use crate::node;
+use crate::node::input::port;
+use crate::node::profiling;
+use crate::view;
+use crate::Type;
+
+
 use enso_frp as frp;
 use enso_frp;
+use enso_text::traits::*;
+use enso_text::unit::*;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -15,15 +25,7 @@ use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
-use ensogl_text::buffer::data::unit::traits::*;
-use text::Text;
-
-use crate::component::type_coloring;
-use crate::node;
-use crate::node::input::port;
-use crate::node::profiling;
-use crate::view;
-use crate::Type;
+use ensogl_text::Text;
 
 
 
@@ -107,13 +109,13 @@ impl Debug for Expression {
 /// Helper struct used for `Expression` conversions.
 #[derive(Debug, Default)]
 struct ExprConversion {
-    prev_tok_local_index:  usize,
+    prev_tok_local_index:  Bytes,
     /// Index of the last traverse parent node in the `SpanTree`.
-    last_parent_tok_index: usize,
+    last_parent_tok_index: Bytes,
 }
 
 impl ExprConversion {
-    fn new(last_parent_tok_index: usize) -> Self {
+    fn new(last_parent_tok_index: Bytes) -> Self {
         let prev_tok_local_index = default();
         Self { prev_tok_local_index, last_parent_tok_index }
     }
@@ -124,27 +126,27 @@ impl From<node::Expression> for Expression {
     /// structure. It also computes `port::Model` values in the `viz_code` representation.
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
-        let mut shift = 0;
+        let mut shift = 0.bytes();
         let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
             let is_expected_arg = node.is_expected_argument();
             let span = node.span();
-            let mut size = span.size.value;
-            let mut index = span.index.value;
-            let offset_from_prev_tok = node.offset.value - info.prev_tok_local_index;
-            info.prev_tok_local_index = node.offset.value + size;
-            viz_code += &" ".repeat(offset_from_prev_tok);
+            let mut size = span.size();
+            let mut index = span.start;
+            let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
+            info.prev_tok_local_index = node.offset + size;
+            viz_code += &" ".repeat(offset_from_prev_tok.as_usize());
             if node.children.is_empty() {
-                viz_code += &code[index..index + size];
+                viz_code += &code.as_str()[enso_text::Range::new(index, index + size)];
             }
             index += shift;
             if is_expected_arg {
                 if let Some(name) = node.name() {
-                    size = name.len();
-                    index += 1;
-                    shift += 1 + size;
+                    size = name.len().into();
+                    index += 1.bytes();
+                    shift += 1.bytes() + size;
                     viz_code += " ";
                     viz_code += name;
                 }
@@ -446,8 +448,11 @@ impl Area {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
             let unit = GLYPH_WIDTH;
-            let width = unit * node.payload.length as f32;
-            let x = width / 2.0 + unit * node.payload.index as f32;
+            let range_before = ensogl_text::Range::new(0.bytes(), node.payload.index);
+            let char_offset: Chars = expr.viz_code[range_before].chars().count().into();
+            let char_count: Chars = expr.viz_code[node.payload.range()].chars().count().into();
+            let width = unit * (i32::from(char_count) as f32);
+            let x = width / 2.0 + unit * (i32::from(char_offset) as f32);
             Vector2::new(TEXT_OFFSET + x, 0.0)
         })
     }
@@ -480,10 +485,10 @@ struct PortLayerBuilder {
     parent:          display::object::Instance,
     /// Information whether the parent port was a parensed expression.
     parent_parensed: bool,
-    /// The number of glyphs the expression should be shifted. For example, consider `(foo bar)`,
-    /// where expression `foo bar` does not get its own port, and thus a 1 glyph shift should be
-    /// applied when considering its children.
-    shift:           usize,
+    /// The number of chars the expression should be shifted. For example, consider
+    /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
+    /// shift should be applied when considering its children.
+    shift:           Chars,
     /// The depth at which the current expression is, where root is at depth 0.
     depth:           usize,
 }
@@ -494,7 +499,7 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: usize,
+        shift: Chars,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
@@ -511,7 +516,7 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: usize,
+        shift: Chars,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
@@ -528,7 +533,8 @@ impl Area {
         let mut is_header = true;
         let mut id_crumbs_map = HashMap::new();
         let builder = PortLayerBuilder::empty(&self.model.ports);
-        expression.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
+        let code = &expression.viz_code;
+        expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
             let is_parensed = node.is_parensed();
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
@@ -560,14 +566,20 @@ impl Area {
                 );
             }
 
+            let range_before_start = node.payload.index - node.payload.local_index;
+            let range_before_end = node.payload.index;
+            let range_before = ensogl_text::Range::new(range_before_start, range_before_end);
+            let local_char_offset: Chars = code[range_before].chars().count().into();
+
             let new_parent = if not_a_port {
                 builder.parent.clone_ref()
             } else {
                 let port = &mut node;
-                let index = port.payload.local_index + builder.shift;
-                let size = port.payload.length;
+
+                let index = local_char_offset + builder.shift;
+                let size: Chars = code[port.payload.range()].chars().count().into();
                 let unit = GLYPH_WIDTH;
-                let width = unit * size as f32;
+                let width = unit * i32::from(size) as f32;
                 let width_padded = width + 2.0 * PORT_PADDING_X;
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
@@ -576,7 +588,7 @@ impl Area {
                 let scene = self.model.scene();
                 let port_shape = port.payload_mut().init_shape(logger, scene, size, node::HEIGHT);
 
-                port_shape.mod_position(|t| t.x = unit * index as f32);
+                port_shape.mod_position(|t| t.x = unit * i32::from(index) as f32);
                 if DEBUG {
                     port_shape.mod_position(|t| t.y = DEBUG_PORT_OFFSET)
                 }
@@ -683,7 +695,7 @@ impl Area {
                 }
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
-            let new_shift = if !not_a_port { 0 } else { builder.shift + node.payload.local_index };
+            let new_shift = if !not_a_port { 0.chars() } else { builder.shift + local_char_offset };
             builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;
@@ -782,9 +794,7 @@ impl Area {
                 frp::extend! { port_network
                     set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
-                        let start_bytes = (index as i32).bytes();
-                        let end_bytes   = ((index + length) as i32).bytes();
-                        let range       = ensogl_text::buffer::Range::from(start_bytes..end_bytes);
+                        let range = enso_text::Range::new(index, index + length);
                         label.set_color_bytes(range,color::Rgba::from(color));
                     });
                 }

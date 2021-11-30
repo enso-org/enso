@@ -17,6 +17,7 @@ import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.cache.DownloadingLibraryCache
 import org.enso.librarymanager.published.{
   DefaultPublishedLibraryProvider,
+  PublishedLibraryCache,
   PublishedLibraryProvider
 }
 
@@ -28,7 +29,7 @@ import org.enso.librarymanager.published.{
   * @param preferLocalLibraries     project setting whether to use local
   *                                 libraries
   */
-class DefaultLibraryProvider private (
+class DefaultLibraryProvider(
   localLibraryProvider: LocalLibraryProvider,
   publishedLibraryProvider: PublishedLibraryProvider,
   edition: Editions.ResolvedEdition,
@@ -48,32 +49,42 @@ class DefaultLibraryProvider private (
     val resolvedVersion = resolver
       .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
     logger.trace(s"Resolved $libraryName to [$resolvedVersion].")
+
     resolvedVersion match {
       case Left(reason) =>
         Left(ResolvingLibraryProvider.Error.NotResolved(reason))
 
-      case Right(LibraryVersion.Local) =>
-        localLibraryProvider
-          .findLibrary(libraryName)
-          .map(ResolvedLibrary(libraryName, LibraryVersion.Local, _))
-          .toRight {
-            ResolvingLibraryProvider.Error.NotResolved(
-              LibraryResolutionError(
-                s"Edition configuration forces to use the local version, but " +
-                s"the `$libraryName` library is not present among local " +
-                s"libraries."
-              )
-            )
-          }
-
-      case Right(version @ LibraryVersion.Published(semver, repository)) =>
-        publishedLibraryProvider
-          .findLibrary(libraryName, semver, repository)
-          .map(ResolvedLibrary(libraryName, version, _))
-          .toEither
-          .left
-          .map(ResolvingLibraryProvider.Error.DownloadFailed(version, _))
+      case Right(version) =>
+        findSpecificLibraryVersion(libraryName, version)
     }
+  }
+
+  /** @inheritdoc */
+  override def findSpecificLibraryVersion(
+    libraryName: LibraryName,
+    version: LibraryVersion
+  ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary] = version match {
+    case LibraryVersion.Local =>
+      localLibraryProvider
+        .findLibrary(libraryName)
+        .map(ResolvedLibrary(libraryName, LibraryVersion.Local, _))
+        .toRight {
+          ResolvingLibraryProvider.Error.NotResolved(
+            LibraryResolutionError(
+              s"Edition configuration forces to use the local version, but " +
+              s"the `$libraryName` library is not present among local " +
+              s"libraries."
+            )
+          )
+        }
+
+    case version @ LibraryVersion.Published(semver, repository) =>
+      publishedLibraryProvider
+        .findLibrary(libraryName, semver, repository)
+        .map(ResolvedLibrary(libraryName, version, _))
+        .toEither
+        .left
+        .map(ResolvingLibraryProvider.Error.DownloadFailed(version, _))
   }
 }
 
@@ -100,6 +111,33 @@ object DefaultLibraryProvider {
     edition: Editions.ResolvedEdition,
     preferLocalLibraries: Boolean
   ): ResolvingLibraryProvider = {
+    val (localLibraryProvider, publishedLibraryProvider) = makeProviders(
+      distributionManager,
+      resourceManager,
+      lockUserInterface,
+      progressReporter,
+      languageHome
+    )
+
+    new DefaultLibraryProvider(
+      localLibraryProvider,
+      publishedLibraryProvider,
+      edition,
+      preferLocalLibraries
+    )
+  }
+
+  /** Creates a pair of local and published library providers. */
+  def makeProviders(
+    distributionManager: DistributionManager,
+    resourceManager: ResourceManager,
+    lockUserInterface: LockUserInterface,
+    progressReporter: ProgressReporter,
+    languageHome: Option[LanguageHome]
+  ): (
+    LocalLibraryProvider,
+    PublishedLibraryProvider with PublishedLibraryCache
+  ) = {
     val locations = LibraryLocations.resolve(distributionManager, languageHome)
     val primaryCache = new DownloadingLibraryCache(
       locations.primaryCacheRoot,
@@ -115,12 +153,6 @@ object DefaultLibraryProvider {
       new DefaultLocalLibraryProvider(locations.localLibrarySearchPaths)
     val publishedLibraryProvider =
       new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
-
-    new DefaultLibraryProvider(
-      localLibraryProvider,
-      publishedLibraryProvider,
-      edition,
-      preferLocalLibraries
-    )
+    (localLibraryProvider, publishedLibraryProvider)
   }
 }

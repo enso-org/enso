@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::buffer::data::unit::*;
-use crate::buffer::data::Range;
+use enso_text::unit::*;
+use enso_text::Range;
 
 
 

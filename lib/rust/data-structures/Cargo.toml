@@ -1,5 +1,5 @@
 [package]
-name    = "enso-data"
+name    = "enso-data-structures"
 version = "0.2.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"

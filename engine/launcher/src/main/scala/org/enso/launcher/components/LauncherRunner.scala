@@ -241,4 +241,49 @@ class LauncherRunner(
         connectLoggerIfAvailable = true
       )
     }
+
+  /** Creates [[RunSettings]] for installing project dependencies.
+    *
+    * See [[org.enso.launcher.Launcher.runInstallDependencies]] for more
+    * details.
+    */
+  def installDependencies(
+    versionOverride: Option[SemVer],
+    hideProgress: Boolean,
+    logLevel: LogLevel,
+    logMasking: Boolean,
+    additionalArguments: Seq[String]
+  ): Try[RunSettings] =
+    Try {
+      val actualPath = currentWorkingDirectory
+      val project = projectManager.findProject(actualPath).get.getOrElse {
+        throw RunnerError(
+          s"Could not find a project at " +
+          s"${MaskedPath(actualPath).applyMasking()} or any of its parent " +
+          s"directories."
+        )
+      }
+
+      val version = resolveVersion(versionOverride, Some(project))
+      if (version < Constants.preinstallDependenciesIntroducedVersion) {
+        throw RunnerError(
+          s"Project dependency installation feature is not available in Enso " +
+          s"$version. Please upgrade your project to a newer version to use it."
+        )
+      }
+
+      val hideProgressOpts =
+        if (hideProgress) Seq("--hide-progress") else Seq.empty
+
+      val arguments =
+        Seq("--preinstall-dependencies") ++
+        Seq("--in-project", project.path.toAbsolutePath.normalize.toString) ++
+        hideProgressOpts
+      RunSettings(
+        version,
+        arguments ++ setLogLevelArgs(logLevel, logMasking)
+        ++ additionalArguments,
+        connectLoggerIfAvailable = true
+      )
+    }
 }

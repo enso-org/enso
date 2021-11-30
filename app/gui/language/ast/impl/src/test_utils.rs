@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate::Ast;
-use crate::HasLength;
 use crate::HasRepr;
 use crate::Module;
 use crate::Shape;
@@ -34,8 +33,8 @@ pub fn expect_single_line(ast: &Ast) -> &Ast {
 /// spans we calculate.
 pub fn validate_spans(ast: &Ast) {
     for node in ast.iter_recursive() {
-        let calculated = node.shape().len();
-        let declared = node.wrapped.wrapped.len;
+        let calculated = node.shape().char_count();
+        let declared = node.wrapped.wrapped.length;
         assert_eq!(calculated, declared, "`{}` part of `{}`", node.repr(), ast.repr());
     }
 }

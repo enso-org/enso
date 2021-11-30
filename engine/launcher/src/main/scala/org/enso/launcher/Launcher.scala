@@ -293,7 +293,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     contentRoot: Path,
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
-    logMasking: Boolean,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -306,7 +305,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             contentRoot,
             versionOverride,
             logLevel,
-            logMasking,
+            logMasking = cliOptions.internalOptions.logMasking,
             additionalArguments
           )
           .get,
@@ -314,6 +313,42 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
+    exitCode
+  }
+
+  /** Runs the engine associated with the project in dependency installation
+    * mode.
+    *
+    * @param versionOverride if provided, overrides the default engine version
+    *                        that would have been used
+    * @param logLevel log level for the language server
+    * @param useSystemJVM if set, forces to use the default configured JVM,
+    *                     instead of the JVM associated with the engine version
+    * @param jvmOpts additional options to pass to the launched JVM
+    * @param additionalArguments additional arguments to pass to the runner
+    * @return exit code of the launched program
+    */
+  def runInstallDependencies(
+    versionOverride: Option[SemVer],
+    logLevel: LogLevel,
+    useSystemJVM: Boolean,
+    jvmOpts: Seq[(String, String)],
+    additionalArguments: Seq[String]
+  ): Int = {
+    val exitCode = runner.withCommand(
+      runner
+        .installDependencies(
+          versionOverride,
+          hideProgress = cliOptions.hideProgress,
+          logLevel,
+          logMasking          = cliOptions.internalOptions.logMasking,
+          additionalArguments = additionalArguments
+        )
+        .get,
+      JVMSettings(useSystemJVM, jvmOpts)
+    ) { command =>
+      command.run().get
+    }
     exitCode
   }
 

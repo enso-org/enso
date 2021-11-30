@@ -19,6 +19,7 @@ use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
 use engine_protocol::language_server;
+use enso_text::unit::*;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -754,9 +755,9 @@ pub fn lookup_method(
 pub fn definition_span(
     ast: &known::Module,
     id: &definition::Id,
-) -> FallibleResult<enso_data::text::Span> {
+) -> FallibleResult<enso_text::Range<Bytes>> {
     let location = locate(ast, id)?;
-    ast.span_of_descendent_at(&location.crumbs)
+    ast.range_of_descendant_at(&location.crumbs)
 }
 
 impl DefinitionProvider for known::Module {

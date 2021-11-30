@@ -24,11 +24,14 @@ abstract class DummyRepository {
     * @param libraryName name of the library
     * @param version version of the library
     * @param mainContent contents of the `Main.enso` file
+    * @param dependencies libraries that this library directly depends on, to be
+    *                     included in the manifest
     */
   case class DummyLibrary(
     libraryName: LibraryName,
     version: SemVer,
-    mainContent: String
+    mainContent: String,
+    dependencies: Seq[LibraryName] = Seq.empty
   )
 
   /** Name of the repository, as it will be indicated in the generated edition.
@@ -62,7 +65,7 @@ abstract class DummyRepository {
         }
         .get
 
-      createManifest(libraryRoot)
+      createManifest(libraryRoot, lib)
     }
 
     val editionsRoot = root.resolve("editions")
@@ -96,12 +99,22 @@ abstract class DummyRepository {
     pkg
   }
 
-  private def createManifest(path: Path): Unit = {
-    FileSystem.writeTextFile(
-      path.resolve("manifest.yaml"),
+  private def createManifest(path: Path, lib: DummyLibrary): Unit = {
+    val dependencies =
+      if (lib.dependencies.isEmpty) ""
+      else
+        lib.dependencies
+          .map(name => s""" - "${name.qualifiedName}"""")
+          .mkString("dependencies:\n", "\n", "\n")
+
+    val content =
       s"""archives:
          | - main.tgz
-         |""".stripMargin
+         |""".stripMargin + dependencies
+
+    FileSystem.writeTextFile(
+      path.resolve("manifest.yaml"),
+      content
     )
   }
 

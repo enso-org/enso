@@ -1,6 +1,6 @@
 //! This module contains language server types.
 
-use super::*;
+use crate::language_server::*;
 
 
 
@@ -456,17 +456,17 @@ pub struct Position {
     pub character: usize,
 }
 
-impls! { From + &From <enso_data::text::TextLocation> for Position { |location|
+impls! { From + &From <enso_text::Location> for Position { |location|
     Position {
-        line      : location.line,
-        character : location.column,
+        line: location.line.as_usize(),
+        character: location.column.as_usize(),
     }
 }}
 
-impls! { From + &From <Position> for enso_data::text::TextLocation { |position|
-    enso_data::text::TextLocation {
-        line      : position.line,
-        column    : position.character,
+impls! { From + &From <Position> for enso_text::Location { |position|
+    enso_text::Location {
+        line: position.line.into(),
+        column: position.character.into(),
     }
 }}
 
@@ -484,15 +484,15 @@ pub struct TextRange {
     pub end:   Position,
 }
 
-impls! { From + &From <Range<enso_data::text::TextLocation>> for TextRange { |range|
+impls! { From + &From <enso_text::Range<enso_text::Location>> for TextRange { |range|
     TextRange {
         start : range.start.into(),
         end   : range.end.into(),
     }
 }}
 
-impls! { From + &From <TextRange> for Range<enso_data::text::TextLocation> { |range|
-    range.start.into()..range.end.into()
+impls! { From + &From <TextRange> for enso_text::Range<enso_text::Location> { |range|
+    enso_text::Range::new(range.start.into(), range.end.into())
 }}
 
 
@@ -513,12 +513,11 @@ pub struct TextEdit {
 impl TextEdit {
     /// Compute an edit that represents the difference between the two given strings based on their
     /// common pre- and postfix. This is an approximation of the diff between the two strings that
-    /// assumes that anythign between the common prefix and the common post-fix has changed.
+    /// assumes that anything between the common prefix and the common post-fix has changed.
     ///
     /// Example:
     /// ```
     /// # use engine_protocol::language_server::{TextEdit, Position, TextRange};
-    /// # use enso_data::text::TextLocation;
     /// let source = "\n333<->🌊12345\n";
     /// let target = "\n333x🔥12345\n";
     /// let diff = TextEdit::from_prefix_postfix_differences(source, target);
@@ -546,31 +545,29 @@ impl TextEdit {
     /// };
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "".to_string() });
     /// ```
-    pub fn from_prefix_postfix_differences(source: &str, target: &str) -> TextEdit {
-        use enso_data::text::Index;
-        use enso_data::text::TextLocation;
+    pub fn from_prefix_postfix_differences(
+        source: impl Into<enso_text::Text>,
+        target: impl Into<enso_text::Text>,
+    ) -> TextEdit {
+        use enso_text::unit::*;
+        use enso_text::Range;
 
-        let source_length = source.chars().count();
-        let target_length = target.chars().count();
+        let source = source.into();
+        let target = target.into();
+        let common_lengths = source.common_prefix_and_suffix(&target);
 
-        let common_prefix_len = common_prefix_length(source, target);
-        let common_postfix_len = common_postfix_length(source, target);
-        let common_parts_len = common_prefix_len + common_postfix_len;
-        let overlaping_chars = common_parts_len.saturating_sub(source_length.min(target_length));
-        let prefix_length = common_prefix_len;
-        let postfix_length = common_postfix_len - overlaping_chars;
+        let source_start_byte = common_lengths.prefix;
+        let source_end_byte = Bytes::from(source.len()) - common_lengths.suffix;
 
-        let source_start_index = Index::new(prefix_length);
-        let source_end_index = Index::new(source_length - postfix_length);
+        let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
+        let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
+        let source_text_range = Range::new(source_start_position, source_end_position);
 
-        let source_start_position = TextLocation::from_index(source, source_start_index);
-        let source_end_position = TextLocation::from_index(source, source_end_index);
-        let source_text_range = source_start_position..source_end_position;
+        let target_len: Bytes = target.len().into();
+        let target_range = common_lengths.prefix..(target_len - common_lengths.suffix);
+        let target_text = target.sub(target_range).to_string();
 
-        let target_range = prefix_length..(target_length - postfix_length);
-        let target_text = target.chars().skip(target_range.start).take(target_range.len());
-
-        TextEdit { range: source_text_range.into(), text: target_text.collect() }
+        TextEdit { range: source_text_range.into(), text: target_text }
     }
 
     /// Return the edit moved by the given number of lines.
@@ -798,14 +795,14 @@ pub struct SuggestionEntryScope {
     pub end:   Position,
 }
 
-impls! { From + &From <RangeInclusive<enso_data::text::TextLocation>> for SuggestionEntryScope { |range|
+impls! { From + &From <RangeInclusive<enso_text::Location>> for SuggestionEntryScope { |range|
     SuggestionEntryScope {
         start : range.start().into(),
         end   : range.end().into(),
     }
 }}
 
-impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_data::text::TextLocation> { |this|
+impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_text::Location> { |this|
     this.start.into()..=this.end.into()
 }}
 

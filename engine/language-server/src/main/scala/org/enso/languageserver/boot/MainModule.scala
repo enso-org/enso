@@ -16,13 +16,7 @@ import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
-import org.enso.languageserver.libraries.{
-  EditionReferenceResolver,
-  LibraryConfig,
-  LibraryInstallerConfig,
-  LocalLibraryManager,
-  ProjectSettingsManager
-}
+import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
@@ -330,7 +324,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     installerConfig = LibraryInstallerConfig(
       distributionManager,
       resourceManager,
-      Some(languageHome)
+      Some(languageHome),
+      new CompilerBasedDependencyExtractor(logLevel)
     )
   )
 

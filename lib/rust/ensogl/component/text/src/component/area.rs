@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use crate::buffer;
-use crate::buffer::data::unit::*;
 use crate::buffer::style;
 use crate::buffer::Text;
 use crate::buffer::Transform;
@@ -17,6 +16,7 @@ use crate::typeface::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
+use enso_text::unit::*;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
@@ -261,7 +261,7 @@ ensogl_core::define_endpoints! {
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
-        changed         (Vec<buffer::view::Change>),
+        changed         (Vec<enso_text::Change>),
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
@@ -616,7 +616,7 @@ impl AreaModel {
             let mut selection_map = self.selection_map.borrow_mut();
             let mut new_selection_map = SelectionMap::default();
             for sel in selections {
-                let sel = self.buffer.snap_selection(*sel);
+                let sel = self.snap_selection(*sel);
                 let id = sel.id;
                 let start_line = sel.start.line.as_usize();
                 let end_line = sel.end.line.as_usize();
@@ -872,6 +872,16 @@ impl AreaModel {
             Key::Space => Some(" ".into()),
             _ => None,
         }
+    }
+
+    /// Constrain the selection to values fitting inside of the current text buffer.
+    fn snap_selection(
+        &self,
+        selection: buffer::selection::Selection,
+    ) -> buffer::selection::Selection {
+        let start = self.buffer.snap_location(selection.start);
+        let end = self.buffer.snap_location(selection.end);
+        selection.with_start(start).with_end(end)
     }
 }
 
