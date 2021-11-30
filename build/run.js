@@ -122,13 +122,19 @@ function make_profiling_feature_string(args) {
     }
     return features.join(' ')
 }
+
 function make_performance_logging_feature_flag(args) {
     const feature_string = make_profiling_feature_string(args)
-    return '--features ' + '"' + feature_string + '"'
+    if (feature_string.length === 0) {
+        return ''
+    } else {
+        return '--features ' + '"' + feature_string + '"'
+    }
 }
 
 function set_performance_logging_env(args) {
     const feature_string = make_profiling_feature_string(args)
+    console.log(feature_string)
     process.env['PROFILING_LEVEL'] = feature_string
 }
 
@@ -199,8 +205,12 @@ commands.build.rust = async function (argv) {
     /// Set compile time features to toggle profiling mode. This is used for the Rust profiling
     // crate.
     const feature_flags = make_performance_logging_feature_flag(argv)
-    args.push('--')
-    args.push(feature_flags)
+    if (feature_flags) {
+        args.push('--')
+        args.push(feature_flags)
+    }
+    console.log(args)
+
     /// Set environment variables that indicate the profiling mode. This is used in the JS profiling library.
     set_performance_logging_env(argv)
 

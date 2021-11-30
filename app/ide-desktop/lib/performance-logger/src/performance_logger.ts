@@ -64,40 +64,69 @@ function decode_label(label: string): [LogLevel, string] {
     return [log_level, interval_name]
 }
 
+/// Class that enables indirection to the status boolean that indicates whether a `IntervalHandle`
+/// was used. This can be shared between the `FinalizationRegistry` and the  `IntervalHandle`.
+class ReleasedStatus {
+    released: boolean
+
+    constructor() {
+        this.released = false
+    }
+}
+
+class IntervalFinalizationRegistryEntry {
+    interval_name: string
+    release_status: ReleasedStatus
+
+    constructor(interval_name: string, release_status: ReleasedStatus) {
+        this.interval_name = interval_name
+        this.release_status = release_status
+    }
+}
+
 // @ts-ignore
 const handle_registry = new FinalizationRegistry(heldValue => {
-    console.warn(heldValue + 'was dropped without a call to `measure`.')
+    if (heldValue instanceof IntervalFinalizationRegistryEntry) {
+        if (!heldValue.release_status.released) {
+            console.warn(heldValue.interval_name + 'was dropped without a call to `measure`.')
+        }
+    }
 })
 
 class IntervalHandle {
     interval_name: string
     log_level: LogLevel
-    released: boolean
+    released_status: ReleasedStatus
 
-    constructor(interval_name: string, log_level: LogLevel, released: boolean) {
+    constructor(interval_name: string, log_level: LogLevel) {
         this.interval_name = interval_name
         this.log_level = log_level
-        this.released = false
-        handle_registry.register(this, interval_name)
+        this.released_status = new ReleasedStatus()
+        this.released_status.released = false
+        handle_registry.register(
+            this,
+            new IntervalFinalizationRegistryEntry(interval_name, this.released_status)
+        )
     }
 
     /// Measure the interval.
     measure() {
         end_interval(this.log_level, this.interval_name)
-        this.released = true
+        this.released_status.released = true
     }
 
     /// Release the handle to manually call `end_interval` without emitting a warning.
     release() {
-        this.released = true
+        this.released_status.released = true
     }
 }
 
 export function start_interval(log_level: LogLevel, interval_name: string): IntervalHandle {
+    console.log(log_level_is_active(log_level), log_level)
     if (log_level_is_active(log_level)) {
         performance.mark(start_interval_label(log_level, interval_name))
     }
-    return
+    return new IntervalHandle(interval_name, log_level)
 }
 
 export function end_interval(log_level: LogLevel, interval_name: string) {

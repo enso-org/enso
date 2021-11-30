@@ -774,7 +774,7 @@ impl Model {
         let connections_info = self.graph.connections()?;
         self.refresh_node_views(&connections_info, true)?;
         self.refresh_connection_views(connections_info.connections)?;
-        performance_handle.measure();
+        let _ = performance_handle.measure();
 
         Ok(())
     }
@@ -828,7 +828,7 @@ impl Model {
                 None => self.create_node_view(node_info, node_trees, *default_pos),
             }
         }
-        performance_handle.measure();
+        let _ = performance_handle.measure();
         Ok(())
     }
 
@@ -840,7 +840,7 @@ impl Model {
         let connections = self.graph.connections()?;
         self.refresh_node_views(&connections, false)?;
         let ret = self.refresh_connection_views(connections.connections);
-        performance_handle.measure();
+        let _ = performance_handle.measure();
         ret
     }
 
@@ -863,7 +863,7 @@ impl Model {
         trees: NodeTrees,
         default_pos: Vector2,
     ) {
-        performance_logger::start_interval_task("create_node_view");
+        let performance_handle = performance_logger::start_interval_task("create_node_view");
         let id = info.info.id();
         let displayed_id = self.view.graph().add_node();
         self.node_views.borrow_mut().insert(id, displayed_id);
@@ -879,7 +879,7 @@ impl Model {
                 );
             }
         }
-        performance_logger::start_interval_task("create_node_view");
+        let _ = performance_handle.measure();
     }
 
     fn deserialize_visualization_data(

@@ -31,10 +31,10 @@ macro_rules! define_profiling_toggle {
     ($log_level_name_upper:ident, $log_level_name:ident) => {
         paste::paste! {
             #[doc = "Defines whether the log level `" $log_level_name "` should be used."]
-            #[cfg(feature = "enable-" $log_level_name )]
+            #[cfg(feature = "enable-" $log_level_name "-profiling")]
             pub const [< ENABLE_ $log_level_name_upper _PROFILING >]: bool = true;
             #[doc = "Defines whether the log level `" $log_level_name "` should be used."]
-            #[cfg(not(feature = "enable-" $log_level_name))]
+            #[cfg(not(feature = "enable-" $log_level_name  "-profiling"))]
             pub const [< ENABLE_ $log_level_name_upper _PROFILING >]: bool = false;
         }
     };

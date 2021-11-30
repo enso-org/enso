@@ -8,7 +8,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib" ]
 
 [features]
-disable-profiling = []
 enable-section-profiling = []
 enable-task-profiling = []
 enable-detail-profiling = []
