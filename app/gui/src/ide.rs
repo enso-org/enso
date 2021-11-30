@@ -51,7 +51,7 @@ impl Ide {
     /// Constructor.
     pub async fn new(
         application: Application,
-        view: ide_view::project::View,
+        view: ide_view::root::View,
         controller: controller::Ide,
     ) -> Self {
         let integration = integration::Integration::new(controller, view);

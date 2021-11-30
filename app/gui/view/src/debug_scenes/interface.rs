@@ -18,6 +18,7 @@ use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeProfilingStatus;
 use crate::graph_editor::Type;
 use crate::project;
+use crate::root;
 use crate::status_bar;
 
 use enso_frp as frp;
@@ -101,17 +102,19 @@ fn init(app: &Application) {
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
 
+    app.views.register::<root::View>();
     app.views.register::<project::View>();
     app.views.register::<text::Area>();
     app.views.register::<GraphEditor>();
-    let project_view = app.new_view::<project::View>();
-    let graph_editor = project_view.graph();
-    let code_editor = project_view.code_editor();
-    world.add_child(&project_view);
+    let root_view = app.new_view::<root::View>();
+    root_view.switch_view_to_project();
+    let graph_editor = root_view.project().graph().clone_ref();
+    let code_editor = root_view.project().code_editor().clone_ref();
+    world.add_child(&root_view);
 
     code_editor.text_area().set_content(STUB_MODULE.to_owned());
 
-    project_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
+    root_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
     graph_editor.debug_push_breadcrumb();
 
 
@@ -224,7 +227,7 @@ fn init(app: &Application) {
         }
     });
 
-    project_view.show_prompt();
+    root_view.project().show_prompt();
 
     // === Profiling ===
 
@@ -244,7 +247,7 @@ fn init(app: &Application) {
     world
         .on_frame(move |_| {
             let _keep_alive = &navigator;
-            let _keep_alive = &project_view;
+            let _keep_alive = &root_view;
 
             if to_theme_switch == 0 {
                 // println!("THEME SWITCH !!!");

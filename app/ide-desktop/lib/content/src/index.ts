@@ -819,6 +819,7 @@ class Config {
     public authentication_enabled: boolean
     public email: string
     public application_config_url: string
+    public rust_welcome_screen: boolean
 
     static default() {
         let config = new Config()
@@ -832,6 +833,7 @@ class Config {
         config.authentication_enabled = true
         config.application_config_url =
             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
+        config.rust_welcome_screen = false
         return config
     }
 
@@ -881,6 +883,9 @@ class Config {
         this.application_config_url = ok(other.application_config_url)
             ? tryAsString(other.application_config_url)
             : this.application_config_url
+        this.rust_welcome_screen = ok(other.rust_welcome_screen)
+            ? tryAsBoolean(other.rust_welcome_screen)
+            : this.rust_welcome_screen
     }
 }
 
@@ -963,7 +968,7 @@ async function mainEntryPoint(config: Config) {
 }
 
 async function runEntryPoint(config: Config) {
-    if (ok(config.project)) {
+    if (ok(config.project) || config.rust_welcome_screen || ok(config.entry)) {
         await mainEntryPoint(config)
     } else {
         await templates.loadTemplatesView((name: string) => {

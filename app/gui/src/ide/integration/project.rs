@@ -46,6 +46,7 @@ use ide_view::open_dialog;
 use ide_view::searcher::entry::AnyModelProvider;
 use ide_view::searcher::entry::GlyphHighlightedLabel;
 use ide_view::searcher::new::Icon;
+use ide_view::status_bar;
 
 
 
@@ -190,6 +191,7 @@ impl Integration {
 struct Model {
     logger:                  Logger,
     view:                    ide_view::project::View,
+    status_bar:              status_bar::View,
     graph:                   controller::ExecutedGraph,
     text:                    controller::Text,
     ide:                     controller::Ide,
@@ -216,6 +218,7 @@ impl Integration {
     /// Constructor. It creates GraphEditor and integrates it with given controller handle.
     pub fn new(
         view: ide_view::project::View,
+        status_bar: status_bar::View,
         graph: controller::ExecutedGraph,
         text: controller::Text,
         ide: controller::Ide,
@@ -223,7 +226,7 @@ impl Integration {
         main_module: model::Module,
     ) -> Self {
         let logger = Logger::new("ViewIntegration");
-        let model = Model::new(logger, view, graph, text, ide, project, main_module);
+        let model = Model::new(logger, view, status_bar, graph, text, ide, project, main_module);
         let editor_outs = &model.view.graph().frp.output;
         let code_editor = &model.view.code_editor().text_area();
         let searcher_frp = &model.view.searcher().frp;
@@ -487,7 +490,7 @@ impl Integration {
     fn setup_handling_project_notifications(&self) {
         let stream = self.model.project.subscribe();
         let logger = self.model.logger.clone_ref();
-        let status_bar = self.model.view.status_bar().clone_ref();
+        let status_bar = self.model.status_bar.clone_ref();
         self.spawn_sync_stream_handler(stream, move |notification, _| {
             info!(logger, "Processing notification {notification:?}");
             let message = match notification {
@@ -569,9 +572,11 @@ impl Integration {
 }
 
 impl Model {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         logger: Logger,
         view: ide_view::project::View,
+        status_bar: status_bar::View,
         graph: controller::ExecutedGraph,
         text: controller::Text,
         ide: controller::Ide,
@@ -602,6 +607,7 @@ impl Model {
         let this = Model {
             logger,
             view,
+            status_bar,
             graph,
             text,
             ide,
@@ -629,7 +635,7 @@ impl Model {
 
         let graph_frp = this.view.graph().frp.clone_ref();
         graph_frp.remove_all_nodes();
-        this.view.status_bar().clear_all();
+        this.status_bar.clear_all();
         this.init_project_name();
         this.init_crumbs();
         this.load_visualizations();

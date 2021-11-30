@@ -10,7 +10,6 @@ use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::open_dialog::OpenDialog;
 use crate::searcher;
-use crate::status_bar;
 
 use enso_config::ARGS;
 use enso_frp as frp;
@@ -111,7 +110,6 @@ struct Model {
     graph_editor:           Rc<GraphEditor>,
     searcher:               searcher::View,
     code_editor:            code_editor::View,
-    status_bar:             status_bar::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     prompt_background:      prompt_background::View,
     prompt:                 ensogl_text::Area,
@@ -126,7 +124,6 @@ impl Model {
         let searcher = app.new_view::<searcher::View>();
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
-        let status_bar = status_bar::View::new(app);
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new(&logger);
         let prompt = ensogl_text::Area::new(app);
@@ -147,7 +144,6 @@ impl Model {
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
-        display_object.add_child(&status_bar);
         display_object.add_child(&prompt_background);
         display_object.remove_child(&searcher);
 
@@ -161,7 +157,6 @@ impl Model {
             graph_editor,
             searcher,
             code_editor,
-            status_bar,
             fullscreen_vis,
             prompt_background,
             prompt,
@@ -596,11 +591,6 @@ impl View {
     /// Code Editor View.
     pub fn code_editor(&self) -> &code_editor::View {
         &self.model.code_editor
-    }
-
-    /// Status Bar View.
-    pub fn status_bar(&self) -> &status_bar::View {
-        &self.model.status_bar
     }
 
     /// Open File or Project Dialog
