@@ -18,6 +18,7 @@ members = [
     "app/gui/view/debug_scene/interface",
     "app/gui/view/debug_scene/visualization",
     "app/gui/view/graph-editor",
+    "app/gui/view/welcome-screen",
     "build/rust-scripts",
     "lib/rust/automata",
     "lib/rust/build-utils",

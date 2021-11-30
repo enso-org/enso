@@ -2068,6 +2068,7 @@ dependencies = [
  "uuid",
  "wasm-bindgen",
  "web-sys",
+ "welcome-screen",
 ]
 
 [[package]]
@@ -4486,6 +4487,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bb43f70885151e629e2a19ce9e50bd730fd436cfd4b666894c9ce4de9141164"
 dependencies = [
  "nom",
+]
+
+[[package]]
+name = "welcome-screen"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

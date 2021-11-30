@@ -56,5 +56,6 @@ ensogl::read_args! {
         authentication_enabled : bool,
         email                  : String,
         application_config_url : String,
+        rust_welcome_screen    : bool,
     }
 }

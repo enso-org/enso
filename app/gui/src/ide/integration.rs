@@ -24,7 +24,7 @@ use ide_view::graph_editor::SharedHashMap;
 struct Model {
     logger:              Logger,
     controller:          controller::Ide,
-    view:                ide_view::project::View,
+    view:                ide_view::root::View,
     project_integration: RefCell<Option<project::Integration>>,
 }
 
@@ -38,7 +38,9 @@ impl Model {
         if let Some(project_model) = self.controller.current_project() {
             // We know the name of new project before it loads. We set it right now to avoid
             // displaying placeholder on the scene during loading.
-            self.view.graph().model.breadcrumbs.project_name(project_model.name().to_string());
+            let project_view = self.view.project();
+            let breadcrumbs = &project_view.graph().model.breadcrumbs;
+            breadcrumbs.project_name(project_model.name().to_string());
 
             let status_notifications = self.controller.status_notifications().clone_ref();
             let project = controller::Project::new(project_model, status_notifications.clone_ref());
@@ -46,14 +48,16 @@ impl Model {
             executor::global::spawn(async move {
                 match project.initialize().await {
                     Ok(result) => {
-                        let view = self.view.clone_ref();
+                        let view = project_view;
+                        let status_bar = self.view.status_bar().clone_ref();
                         let text = result.main_module_text;
                         let graph = result.main_graph;
                         let ide = self.controller.clone_ref();
                         let project = project.model;
-                        let main_module = result.main_module_model;
-                        let integration =
-                            project::Integration::new(view, graph, text, ide, project, main_module);
+                        let main = result.main_module_model;
+                        let integration = project::Integration::new(
+                            view, status_bar, graph, text, ide, project, main,
+                        );
                         // We don't want any initialization-related changes to appear on undo stack.
                         integration.graph_controller().undo_redo_repository().clear_all();
                         *self.project_integration.borrow_mut() = Some(integration);
@@ -83,7 +87,7 @@ pub struct Integration {
 
 impl Integration {
     /// Create the integration of given controller and view.
-    pub fn new(controller: controller::Ide, view: ide_view::project::View) -> Self {
+    pub fn new(controller: controller::Ide, view: ide_view::root::View) -> Self {
         let logger = Logger::new("ide::Integration");
         let project_integration = default();
         let model = Rc::new(Model { logger, controller, view, project_integration });
