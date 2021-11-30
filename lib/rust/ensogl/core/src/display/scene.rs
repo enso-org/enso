@@ -503,6 +503,9 @@ impl DomLayers {
         dom.append_or_panic(&fullscreen_vis.dom);
 
         let canvas = web::create_canvas();
+        // z-index only works on positioned elements. Other layers set this in
+        // DomScene::new().
+        canvas.set_style_or_warn("position", "absolute", logger);
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
         canvas.set_style_or_warn("display", "block", logger);
