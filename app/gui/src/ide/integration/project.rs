@@ -33,8 +33,8 @@ use bimap::BiMap;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_frp as frp;
 use ensogl::display::traits::*;
-use ensogl_gui_component::file_browser::model::AnyFolderContent;
-use ensogl_gui_component::list_view;
+use ensogl_component::file_browser::model::AnyFolderContent;
+use ensogl_component::list_view;
 use futures::future::LocalBoxFuture;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node;
@@ -202,7 +202,7 @@ struct Model {
         RefCell<HashMap<graph_editor::NodeId, graph_editor::component::node::Expression>>,
     expression_types:        SharedHashMap<ExpressionId, Option<graph_editor::Type>>,
     connection_views:        RefCell<BiMap<controller::graph::Connection, graph_editor::EdgeId>>,
-    code_view:               CloneRefCell<ensogl_text::Text>,
+    code_view:               CloneRefCell<ensogl_component::text::Text>,
     visualizations:          Rc<VisualizationManager>,
     error_visualizations:    Rc<VisualizationManager>,
     prompt_was_shown:        Cell<bool>,
@@ -2010,9 +2010,9 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for SuggestionsProvi
                     if let Some(char) = char_iter.next() {
                         let (char_idx, (byte_id, char)) = char;
                         if char_idx == *idx {
-                            let start = ensogl_text::Bytes(byte_id as i32);
-                            let end = ensogl_text::Bytes((byte_id + char.len_utf8()) as i32);
-                            break Some(ensogl_text::Range::new(start, end));
+                            let start = enso_text::unit::Bytes(byte_id as i32);
+                            let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                            break Some(enso_text::Range::new(start, end));
                         }
                     } else {
                         break None;

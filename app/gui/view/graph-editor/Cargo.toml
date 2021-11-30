@@ -19,8 +19,7 @@ engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol"
 enso-shapely = { path = "../../../../lib/rust/shapely/impl"}
 enso-text = { version = "0.1.0", path = "../../../../lib/rust/text" }
 ensogl = { version = "0.1.0", path = "../../../../lib/rust/ensogl" }
-ensogl-gui-component = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/gui" }
-ensogl-text = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text" }
+ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
 ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text/msdf-sys" }
 ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/drop-manager" }

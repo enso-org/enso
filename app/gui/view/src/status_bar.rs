@@ -15,7 +15,7 @@ use ensogl::display::camera::Camera2d;
 use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::Scene;
-use ensogl_gui_component::shadow;
+use ensogl_component::shadow;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use std::future::Future;

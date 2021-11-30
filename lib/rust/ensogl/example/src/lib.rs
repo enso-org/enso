@@ -7,11 +7,9 @@
 #![feature(drain_filter)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]
-#![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
-#![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -22,25 +20,17 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "1024"]
 
-pub mod animation;
-pub mod complex_shape_system;
-pub mod dom_symbols;
-pub mod drop_manager;
-pub mod easing_animator;
-pub mod glyph_system;
-#[allow(clippy::option_map_unit_fn)]
-mod leak;
-pub mod list_view;
-pub mod mouse_events;
-pub mod scroll_area;
-pub mod shape_system;
-pub mod slider;
-pub mod sprite_system;
-pub mod sprite_system_benchmark;
-pub mod text_area;
-
-/// Common types that should be visible across the whole crate.
-pub mod prelude {
-    pub use super::leak::*;
-    pub use ensogl_core::prelude::*;
-}
+pub use ensogl_example_animation as animation;
+pub use ensogl_example_complex_shape_system as complex_shape_system;
+pub use ensogl_example_dom_symbols as dom_symbols;
+pub use ensogl_example_drop_manager as drop_manager;
+pub use ensogl_example_easing_animator as easing_animator;
+pub use ensogl_example_glyph_system as glyph_system;
+pub use ensogl_example_list_view as list_view;
+pub use ensogl_example_mouse_events as mouse_events;
+pub use ensogl_example_scroll_area as scroll_area;
+pub use ensogl_example_shape_system as shape_system;
+pub use ensogl_example_slider as slider;
+pub use ensogl_example_sprite_system as sprite_system;
+pub use ensogl_example_sprite_system_benchmark as sprite_system_benchmark;
+pub use ensogl_example_text_area as text_area;

@@ -1,0 +1,16 @@
+[package]
+name = "ensogl-example-scroll-area"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+ensogl-core = { path = "../../core" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-scroll-area = { path = "../../component/scroll-area" }
+ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }

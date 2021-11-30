@@ -1,0 +1,12 @@
+[package]
+name = "ensogl-scrollbar"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-gui-component = { path = "../gui" }
+ensogl-selector = { path = "../selector" }
