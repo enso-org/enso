@@ -30,6 +30,7 @@ use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeProfilingStatus;
 use ide_view::graph_editor::Type;
 use ide_view::project;
+use ide_view::root;
 use ide_view::status_bar;
 use parser::Parser;
 use span_tree::traits::*;
@@ -106,17 +107,19 @@ fn init(app: &Application) {
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
 
+    app.views.register::<root::View>();
     app.views.register::<project::View>();
     app.views.register::<text::Area>();
     app.views.register::<GraphEditor>();
-    let project_view = app.new_view::<project::View>();
+    let root_view = app.new_view::<root::View>();
+    let project_view = root_view.project();
     let graph_editor = project_view.graph();
     let code_editor = project_view.code_editor();
-    world.add_child(&project_view);
+    world.add_child(&root_view);
 
     code_editor.text_area().set_content(STUB_MODULE.to_owned());
 
-    project_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
+    root_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
     graph_editor.debug_push_breadcrumb();
 
 
@@ -249,7 +252,7 @@ fn init(app: &Application) {
     world
         .on_frame(move |_| {
             let _keep_alive = &navigator;
-            let _keep_alive = &project_view;
+            let _keep_alive = &root_view;
 
             if to_theme_switch == 0 {
                 // println!("THEME SWITCH !!!");
