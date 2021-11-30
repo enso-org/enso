@@ -488,7 +488,7 @@ impl DomLayers {
     /// Constructor.
     pub fn new(logger: &Logger, dom: &web_sys::HtmlDivElement) -> Self {
         let welcome_screen = DomScene::new(logger);
-        welcome_screen.dom.set_class_name("panel");
+        welcome_screen.dom.set_class_name("welcome_screen");
         welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
         dom.append_or_panic(&welcome_screen.dom);
 
