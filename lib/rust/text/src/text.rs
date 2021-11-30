@@ -457,7 +457,13 @@ impl Text {
     /// The location of text end.
     pub fn location_of_text_end(&self) -> Location {
         let lines_count = self.lines(self.byte_range()).count();
-        if lines_count == 0 {
+        let last_char_off = self.rope.prev_codepoint_offset(self.len());
+        let last_char = last_char_off.map(|off| self.rope.slice_to_cow(off..));
+        let ends_with_eol = last_char.map_or(false, |ch| ch.starts_with('\n'));
+        if ends_with_eol {
+            let line: Line = lines_count.into();
+            Location(line, 0.column())
+        } else if lines_count == 0 {
             default()
         } else {
             let line = ((lines_count - 1) as i32).line();
@@ -947,5 +953,46 @@ impl<S: AsRef<str>> Change<Bytes, S> {
         let mut string = target.to_owned();
         self.apply(&mut string)?;
         Ok(string)
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn location_of_text_end() {
+        struct Case {
+            text:     &'static str,
+            expected: (usize, usize), // Line and column
+        }
+
+        impl Case {
+            fn run(&self) {
+                let text: Text = self.text.into();
+                let (exp_line, exp_column) = self.expected;
+                let expected = Location { line: exp_line.into(), column: exp_column.into() };
+                let result = text.location_of_text_end();
+                assert_eq!(result, expected, "Wrong text end location in case \"{}\"", text);
+            }
+        }
+
+        let cases = &[
+            Case { text: "", expected: (0, 0) },
+            Case { text: "single line", expected: (0, 11) },
+            Case { text: "single line with eol\n", expected: (1, 0) },
+            Case { text: "\nMany\nLines", expected: (2, 5) },
+            Case { text: "Many\nLines\nwith eol\n", expected: (3, 0) },
+        ];
+
+        for case in cases {
+            case.run()
+        }
     }
 }
