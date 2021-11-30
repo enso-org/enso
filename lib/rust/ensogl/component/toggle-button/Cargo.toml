@@ -1,0 +1,9 @@
+[package]
+name = "ensogl-toggle-button"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }

@@ -1,0 +1,20 @@
+[package]
+name = "debug-scene-interface"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ast = { path = "../../../language/ast/impl" }
+enso-frp = { path = "../../../../../lib/rust/frp" }
+ensogl = { path = "../../../../../lib/rust/ensogl" }
+ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/component/text/msdf-sys" }
+ide-view = { path = "../.." }
+parser = { path = "../../../language/parser" }
+span-tree = { path = "../../../language/span-tree" }
+uuid = { version = "0.8", features = ["v4", "wasm-bindgen"] }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }

@@ -40,10 +40,13 @@ pub mod transport;
 pub use crate::ide::*;
 
 use ensogl::system::web;
-// This import is required to have all EnsoGL examples entry points visible in IDE.
+use wasm_bindgen::prelude::*;
+
+// Those imports are required to have all EnsoGL examples entry points visible in IDE.
+#[allow(unused_imports)]
+use enso_debug_scene::*;
 #[allow(unused_imports)]
 use ensogl_examples::*;
-use wasm_bindgen::prelude::*;
 
 #[cfg(test)]
 mod tests;

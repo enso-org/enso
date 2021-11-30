@@ -16,10 +16,10 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
-use ensogl_gui_component::list_view;
-use ensogl_gui_component::list_view::ListView;
+use ensogl_component::list_view;
+use ensogl_component::list_view::ListView;
 
-pub use ensogl_gui_component::list_view::entry;
+pub use ensogl_component::list_view::entry;
 
 
 

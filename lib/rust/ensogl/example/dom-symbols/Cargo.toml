@@ -1,0 +1,14 @@
+[package]
+name = "ensogl-example-dom-symbols"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+ensogl-core = { path = "../../core" }
+wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }
+nalgebra = { version = "0.26.1" }

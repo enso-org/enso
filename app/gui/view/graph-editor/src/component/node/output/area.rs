@@ -11,8 +11,8 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
+use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text as text;
 use span_tree;
 
 use crate::component::node;

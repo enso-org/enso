@@ -9,8 +9,8 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::*;
-use ensogl_gui_component::toggle_button;
-use ensogl_gui_component::toggle_button::ToggleButton;
+use ensogl_component::toggle_button;
+use ensogl_component::toggle_button::ToggleButton;
 
 
 
@@ -26,7 +26,7 @@ use ensogl_gui_component::toggle_button::ToggleButton;
 /// pointing to the lower right.
 mod icon {
     use super::*;
-    use ensogl_gui_component::toggle_button::ColorableShape;
+    use ensogl_component::toggle_button::ColorableShape;
 
     ensogl::define_shape_system! {
         (color_rgba:Vector4<f32>) {

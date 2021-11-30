@@ -26,7 +26,6 @@
 
 #[allow(clippy::option_map_unit_fn)]
 pub mod code_editor;
-pub mod debug_scenes;
 pub mod documentation;
 pub mod open_dialog;
 pub mod project;

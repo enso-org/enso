@@ -13,6 +13,7 @@ double-representation = { version = "0.1.0", path = "controller/double-represent
 enso-config = { path = "config" }
 enso-callback = { path = "../../lib/rust/callback" }
 enso-data-structures = { path = "../../lib/rust/data-structures" }
+enso-debug-scene = { path = "view/debug_scene" }
 enso-frp = { path = "../../lib/rust/frp" }
 enso-logger = { path = "../../lib/rust/logger"}
 enso-prelude = { path = "../../lib/rust/prelude"}
@@ -21,8 +22,7 @@ enso-text = { path = "../../lib/rust/text" }
 enso-web = { path = "../../lib/rust/web" }
 ensogl = { path = "../../lib/rust/ensogl" }
 ensogl-examples = { path = "../../lib/rust/ensogl/example" }
-ensogl-gui-component = { path = "../../lib/rust/ensogl/component/gui" }
-ensogl-text = { path = "../../lib/rust/ensogl/component/text" }
+ensogl-component = { path = "../../lib/rust/ensogl/component" }
 ensogl-text-msdf-sys = { path = "../../lib/rust/ensogl/component/text/msdf-sys" }
 ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }
