@@ -2,7 +2,7 @@
 name    = "enso-shapely"
 version = "0.2.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 description  = "Automated typeclass derivation."
 readme       = "README.md"
