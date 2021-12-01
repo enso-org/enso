@@ -5,7 +5,8 @@
 use ensogl::prelude::*;
 
 use crate::ClickClosure;
-use crate::Frp;
+use crate::CreateProject;
+use crate::OpenProject;
 
 use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
@@ -25,7 +26,7 @@ use web_sys::MouseEvent;
 pub struct SideMenu {
     logger:             Logger,
     pub root_dom:       Element,
-    frp:                Frp,
+    open_project:       OpenProject,
     new_project_button: Element,
     projects_list:      Element,
     closures:           Rc<RefCell<Vec<ClickClosure>>>,
@@ -33,7 +34,7 @@ pub struct SideMenu {
 
 impl SideMenu {
     /// Constructor.
-    pub fn new(logger: &Logger, frp: Frp) -> Self {
+    pub fn new(logger: &Logger, open_project: OpenProject, create_project: CreateProject) -> Self {
         let logger = Logger::new_sub(logger, "SideMenu");
         let root_dom = web::create_element("aside");
         root_dom.set_class_name(crate::css_class::SIDE_MENU);
@@ -44,8 +45,9 @@ impl SideMenu {
         let new_project_button = Self::create_new_project_button(&logger, &projects_list);
         let closures = default();
 
-        let menu = Self { logger, root_dom, frp, projects_list, new_project_button, closures };
-        menu.setup_new_project_event_listener();
+        let menu =
+            Self { logger, root_dom, open_project, projects_list, new_project_button, closures };
+        menu.setup_new_project_event_listener(create_project);
         menu
     }
 
@@ -87,8 +89,7 @@ impl SideMenu {
         button
     }
 
-    fn setup_new_project_event_listener(&self) {
-        let create_project = self.frp.create_project.clone_ref();
+    fn setup_new_project_event_listener(&self, create_project: CreateProject) {
         let closure = Box::new(move |_event: MouseEvent| {
             create_project.emit(None);
         });
@@ -101,7 +102,7 @@ impl SideMenu {
     }
 
     fn setup_open_project_event_listener(&self, entry: &Element, project_name: &str) {
-        let open_project = self.frp.open_project.clone_ref();
+        let open_project = self.open_project.clone_ref();
         let project = project_name.to_owned();
         let closure = Box::new(move |_event: MouseEvent| {
             open_project.emit(project.clone());

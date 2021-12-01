@@ -6,7 +6,7 @@
 use ensogl::prelude::*;
 
 use crate::ClickClosure;
-use crate::Frp;
+use crate::CreateProject;
 
 use ensogl::system::web;
 use ensogl::system::web::AttributeSetter;
@@ -69,20 +69,20 @@ const CARD_VISUALIZE: Card<'static> = Card {
 /// a template card creates a new project with some prepared code.
 #[derive(Debug, Clone, CloneRef)]
 pub struct TemplateCards {
-    logger:       Logger,
-    pub root_dom: Element,
-    frp:          Frp,
-    closures:     Rc<RefCell<Vec<ClickClosure>>>,
+    logger:         Logger,
+    pub root_dom:   Element,
+    create_project: CreateProject,
+    closures:       Rc<RefCell<Vec<ClickClosure>>>,
 }
 
 impl TemplateCards {
     /// Constructor.
-    pub fn new(logger: &Logger, frp: Frp) -> Self {
+    pub fn new(logger: &Logger, create_project: CreateProject) -> Self {
         let logger = Logger::new_sub(logger, "TemplateCards");
         let root_dom = web::create_element("main");
         root_dom.set_class_name(crate::css_class::CONTENT);
 
-        Self { logger, frp, root_dom, closures: default() }.init()
+        Self { logger, create_project, root_dom, closures: default() }.init()
     }
 
     fn init(self) -> Self {
@@ -150,7 +150,7 @@ impl TemplateCards {
     }
 
     fn setup_card_event_listener(&self, card: &Element, template_name: &str) {
-        let create_project = self.frp.create_project.clone_ref();
+        let create_project = self.create_project.clone_ref();
         let template = Some(template_name.to_owned());
         let closure = Box::new(move |_event: MouseEvent| {
             create_project.emit(template.clone());

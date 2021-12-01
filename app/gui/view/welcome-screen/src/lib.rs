@@ -82,13 +82,17 @@ pub struct Model {
 
 impl Model {
     /// Constructor. `frp` is used to set up event handlers on buttons.
-    pub fn new(app: &Application, frp: Frp) -> Self {
+    pub fn new(
+        app: &Application,
+        open_project: frp::Any<String>,
+        create_project: frp::Any<Option<String>>,
+    ) -> Self {
         let application = app.clone_ref();
         let logger = Logger::new("WelcomeScreen");
         let display_object = display::object::Instance::new(&logger);
 
-        let side_menu = SideMenu::new(&logger, frp.clone_ref());
-        let template_cards = TemplateCards::new(&logger, frp.clone_ref());
+        let side_menu = SideMenu::new(&logger, open_project, create_project.clone_ref());
+        let template_cards = TemplateCards::new(&logger, create_project.clone_ref());
         let dom = Self::create_dom(&logger, &side_menu, &template_cards);
         display_object.add_child(&dom);
 
@@ -152,6 +156,12 @@ ensogl::define_endpoints! {
 }
 
 
+// === FRP Endpoints Alias ===
+
+type OpenProject = frp::Any<String>;
+type CreateProject = frp::Any<Option<String>>;
+
+
 
 // ============
 // === View ===
@@ -176,7 +186,7 @@ impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(app, frp.clone_ref());
+        let model = Model::new(app, frp.open_project.clone_ref(), frp.create_project.clone_ref());
         let network = &frp.network;
 
         frp::extend! { network
