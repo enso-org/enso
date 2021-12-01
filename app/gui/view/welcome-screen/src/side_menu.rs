@@ -88,9 +88,9 @@ impl SideMenu {
     }
 
     fn setup_new_project_event_listener(&self) {
-        let frp = self.frp.clone_ref();
+        let create_project = self.frp.create_project.clone_ref();
         let closure = Box::new(move |_event: MouseEvent| {
-            frp.create_project.emit(None);
+            create_project.emit(None);
         });
         let closure: ClickClosure = Closure::wrap(closure);
         let callback = closure.as_ref().unchecked_ref();
@@ -101,10 +101,10 @@ impl SideMenu {
     }
 
     fn setup_open_project_event_listener(&self, entry: &Element, project_name: &str) {
-        let frp = self.frp.clone_ref();
+        let open_project = self.frp.open_project.clone_ref();
         let project = project_name.to_owned();
         let closure = Box::new(move |_event: MouseEvent| {
-            frp.open_project.emit(project.clone());
+            open_project.emit(project.clone());
         });
         let closure: ClickClosure = Closure::wrap(closure);
         let callback = closure.as_ref().unchecked_ref();

@@ -150,10 +150,10 @@ impl TemplateCards {
     }
 
     fn setup_card_event_listener(&self, card: &Element, template_name: &str) {
-        let frp = self.frp.clone_ref();
+        let create_project = self.frp.create_project.clone_ref();
         let template = Some(template_name.to_owned());
         let closure = Box::new(move |_event: MouseEvent| {
-            frp.create_project.emit(template.clone());
+            create_project.emit(template.clone());
         });
         let closure: ClickClosure = Closure::wrap(closure);
         let callback = closure.as_ref().unchecked_ref();
