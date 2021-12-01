@@ -226,7 +226,7 @@ impl Integration {
                 match project_manager.list_projects().await {
                     Ok(projects) => {
                         let names = projects.into_iter().map(|p| p.name.into()).collect::<Vec<_>>();
-                        welcome_view_frp.projects_list(names);
+                        welcome_view_frp.set_projects_list(names);
                     }
                     Err(err) => {
                         error!(logger, "Unable to get list of projects: {err}.");

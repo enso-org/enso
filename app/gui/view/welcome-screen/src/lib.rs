@@ -140,8 +140,8 @@ impl Model {
 
 ensogl::define_endpoints! {
     Input {
-        /// Update displayed list of projects.
-        projects_list(Vec<String>),
+        /// Set a displayed list of projects.
+        set_projects_list(Vec<String>),
 
         /// Open project by name.
         open_project(String),
@@ -188,7 +188,7 @@ impl View {
 
             // === Receive updates of projects list. ===
 
-            eval frp.projects_list((list) model.set_projects_list(list));
+            eval frp.set_projects_list((list) model.set_projects_list(list));
         }
 
         Self { model, frp }
