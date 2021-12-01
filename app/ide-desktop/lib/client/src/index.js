@@ -148,7 +148,6 @@ optParser.options('devtron', {
     describe: 'Install the Devtron Developer Tools extension',
 })
 
-
 // === Style Options ===
 
 let styleOptionsGroup = 'Style Options:'
