@@ -83,6 +83,11 @@ impl Model {
     fn init_project_view(&self) {
         if self.project_view.get().is_none() {
             let view = self.app.new_view::<crate::project::View>();
+            // This is a quickfix for a bug #180438664.
+            {
+                view.code_editor().toggle();
+                view.code_editor().toggle();
+            }
             self.project_view.set(Some(view));
         }
     }
