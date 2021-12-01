@@ -88,7 +88,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                   _,
                   _,
                   _
-                ) if ir eq null =>
+                ) if ConversionsEnabled =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val conversion = buildConversion(
               body.getExternalId,
@@ -616,6 +616,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 }
 
 object SuggestionBuilder {
+
+  /** TODO[DB] enable conversions when they get the runtime support. */
+  private val ConversionsEnabled: Boolean = false
 
   /** Create the suggestion builder.
     *
