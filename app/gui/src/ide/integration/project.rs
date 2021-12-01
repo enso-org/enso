@@ -790,7 +790,7 @@ impl Model {
         let base_default_position = default_node_position();
         let mut trees = connections_info.trees.clone();
         let nodes = self.graph.graph().nodes()?;
-        let (without_pos, with_pos): (Vec<_>, Vec<_>) =
+        let (with_pos, without_pos): (Vec<_>, Vec<_>) =
             nodes.iter().partition(|n| n.has_position());
         let bottommost_node_pos = with_pos
             .iter()
