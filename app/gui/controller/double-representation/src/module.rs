@@ -511,7 +511,6 @@ impl Info {
         parser: &parser::Parser,
         to_add: &QualifiedName,
     ) {
-        let imports = self.iter_imports().collect_vec();
         let is_here = to_add == here;
         let import = ImportInfo::from_qualified_name(to_add);
         let already_imported = self.iter_imports().any(|imp| imp == import);
