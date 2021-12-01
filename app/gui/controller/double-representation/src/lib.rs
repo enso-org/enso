@@ -53,8 +53,6 @@ pub mod prelude {
     pub use enso_logger::*;
     pub use enso_prelude::*;
 
-    pub use enso_logger::DefaultTraceLogger as Logger;
-
     #[cfg(test)]
     pub use wasm_bindgen_test::wasm_bindgen_test;
     #[cfg(test)]
