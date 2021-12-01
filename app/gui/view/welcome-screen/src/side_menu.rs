@@ -60,12 +60,12 @@ impl SideMenu {
     }
 
     fn clear_projects_list(&self) {
-        let entries = self.projects_list.children();
-        for i in 0..entries.length() {
-            let entry = entries.item(i).expect("Out of bounds error.");
-            if entry != self.new_project_button {
-                entry.remove();
-            }
+        let children = self.projects_list.children();
+        let items = (0..children.length()).flat_map(|i| children.item(i));
+        let not_new_project_button = |item: &Element| *item != self.new_project_button;
+        let items_to_remove: Vec<_> = items.filter(not_new_project_button).collect();
+        for item in items_to_remove {
+            item.remove();
         }
     }
 
