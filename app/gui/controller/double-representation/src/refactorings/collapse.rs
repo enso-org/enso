@@ -399,7 +399,7 @@ mod tests {
 
     impl Case {
         fn run(&self, parser: &Parser) {
-            let logger = Logger::new("Collapsing_Test");
+            let logger = DefaultTraceLogger::new("Collapsing_Test");
             let ast = parser.parse_module(self.initial_method_code, default()).unwrap();
             let main = module::locate_child(&ast, &self.refactored_name).unwrap();
             let graph = graph::GraphInfo::from_definition(main.item.clone());
