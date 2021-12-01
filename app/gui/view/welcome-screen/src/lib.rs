@@ -21,6 +21,7 @@ use ensogl::display;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
+use ensogl::system::web::StyleSetter;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
 use web_sys::HtmlDivElement;
@@ -98,7 +99,7 @@ impl Model {
 
         // Use `fullscreen_vis` layer to lock position when panning
         app.display.scene().layers.panel.add_exclusive(&dom);
-        app.display.scene().dom.layers.back.manage(&dom);
+        app.display.scene().dom.layers.fullscreen_vis.manage(&dom);
 
         let style = web::create_element("style");
         style.set_inner_html(STYLESHEET);
@@ -119,6 +120,9 @@ impl Model {
     ) -> DomSymbol {
         let root = web::create_div();
         root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
+        // We explicitly enable pointer events for Welcome Screen elements. Pointer events are
+        // disabled for all DOM layers by default.
+        root.set_style_or_warn("pointer-events", "auto", logger);
 
         let container = Self::create_content_container();
         container.append_or_warn(&side_menu.root_dom, logger);
@@ -149,7 +153,7 @@ ensogl::define_endpoints! {
 
         /// Open project by name.
         open_project(String),
-        /// Create new project. Optional argument is template name.
+        /// Create a new project. Optional argument is a template name.
         create_project(Option<String>),
     }
     Output {}

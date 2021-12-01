@@ -38,7 +38,10 @@
   border-radius: 5px;
 }
 
-.enso-internal-templates-view .enso-internal-side-menu li#enso-internal-projects-list-new-project img {
+.enso-internal-templates-view
+  .enso-internal-side-menu
+  li#enso-internal-projects-list-new-project
+  img {
   background-color: #efefef;
 }
 
@@ -131,4 +134,3 @@
   background-image: url("/assets/visualize.png");
   background-size: 100% 100%;
 }
-
