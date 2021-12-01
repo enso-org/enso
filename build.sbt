@@ -16,7 +16,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion  = "2.13.6"
-val rustVersion    = "1.58.0-nightly"
+val rustVersion    = "1.59.0-nightly"
 val graalVersion   = "21.1.0"
 val javaVersion    = "11"
 val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]

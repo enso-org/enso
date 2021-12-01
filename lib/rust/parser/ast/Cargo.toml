@@ -2,7 +2,7 @@
 name    = "ast-new"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 description  = "An abstract syntax tree for the Enso language."
 readme       = "README.md"
