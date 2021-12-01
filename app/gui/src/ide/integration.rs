@@ -73,7 +73,7 @@ impl Model {
         }
     }
 
-    /// Open new project through project manager API.
+    /// Open a project through project manager API.
     pub fn open_project(&self, project_name: &str) {
         let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
@@ -99,7 +99,7 @@ impl Model {
         });
     }
 
-    /// Create new project through project manager API.
+    /// Create a new project through project manager API.
     fn create_project(&self, template: Option<&str>) {
         let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
@@ -117,7 +117,7 @@ impl Model {
                     }
                 }
             }
-        })
+        });
     }
 }
 
