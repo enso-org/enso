@@ -1068,7 +1068,7 @@ impl Model {
         notification: crate::integration::visualization::Notification,
     ) {
         use crate::integration::visualization::Notification;
-        warning!(self.logger, "Received update for {which} visualization: {notification:?}");
+        info!(self.logger, "Received update for {which} visualization: {notification:?}");
         match notification {
             Notification::ValueUpdate { target, data, .. } => {
                 if let Ok(view_id) = self.get_displayed_node_id(target) {
