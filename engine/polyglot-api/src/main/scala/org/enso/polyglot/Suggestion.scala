@@ -247,7 +247,7 @@ object Suggestion {
       s",reexport=$reexport)"
   }
 
-  /** A function defined on a type or a module.
+  /** A conversion function.
     *
     * @param externalId the external id
     * @param module the module name
