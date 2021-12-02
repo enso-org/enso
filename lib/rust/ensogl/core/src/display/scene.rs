@@ -465,6 +465,10 @@ impl Dom {
 /// DOM DomLayers of the scene. It contains a 2 CSS 3D layers and a canvas layer in the middle. The
 /// CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
 /// elements.
+///
+/// Each DomLayer is created with `pointer-events: none` CSS property to avoid "stealing" mouse
+/// events from other layers.
+/// See https://github.com/enso-org/enso/blob/develop/lib/rust/ensogl/doc/mouse-handling.md for more info.
 #[derive(Clone, CloneRef, Debug)]
 pub struct DomLayers {
     /// Bottom-most DOM scene layer with disabled panning. This layer is placed at the bottom
@@ -503,13 +507,13 @@ impl DomLayers {
         dom.append_or_panic(&fullscreen_vis.dom);
 
         let canvas = web::create_canvas();
-        // z-index only works on positioned elements. Other layers set this in
-        // DomScene::new().
+        canvas.set_style_or_warn("display", "block", logger);
+        canvas.set_style_or_warn("z-index", "3", logger);
+        // These properties are set by `DomScene::new` constuctor for other layers.
+        // See its documentation for more info.
         canvas.set_style_or_warn("position", "absolute", logger);
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
-        canvas.set_style_or_warn("display", "block", logger);
-        canvas.set_style_or_warn("z-index", "3", logger);
         canvas.set_style_or_warn("pointer-events", "none", logger);
         dom.append_or_panic(&canvas);
 

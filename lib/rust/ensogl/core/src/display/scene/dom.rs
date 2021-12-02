@@ -132,6 +132,11 @@ impl DomSceneData {
 /// such as WebGL, by placing two HtmlElements in front and behind of the Canvas element,
 /// allowing the move `DomSymbol`s between these two layers, mimicking z-index ordering.
 ///
+/// Each DomScene is essentially an HTML `div` element covering the whole screen.
+/// It ignores all pointer events by setting `pointer-events: none`.
+/// See https://github.com/enso-org/enso/blob/develop/lib/rust/ensogl/doc/mouse-handling.md for details.
+/// We also set `position: absolute` because it is required for `z-index` property to work.
+///
 /// To make use of its functionalities, the API user can create a `Css3dSystem` by using
 /// the `DomScene::new_system` method which creates and manages instances of
 /// `DomSymbol`s.
@@ -148,12 +153,15 @@ impl DomScene {
         let view_projection_dom = web::create_div();
 
         dom.set_class_name("dom-scene-layer");
+        // z-index works on positioned elements only.
         dom.set_style_or_warn("position", "absolute", &logger);
         dom.set_style_or_warn("top", "0px", &logger);
         dom.set_style_or_warn("overflow", "hidden", &logger);
         dom.set_style_or_warn("overflow", "hidden", &logger);
         dom.set_style_or_warn("width", "100%", &logger);
         dom.set_style_or_warn("height", "100%", &logger);
+        // We ignore pointer events to avoid stealing them from other DomScenes.
+        // See https://github.com/enso-org/enso/blob/develop/lib/rust/ensogl/doc/mouse-handling.md.
         dom.set_style_or_warn("pointer-events", "none", &logger);
 
         view_projection_dom.set_class_name("view_projection");
