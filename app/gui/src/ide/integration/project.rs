@@ -790,7 +790,7 @@ impl Model {
         let base_default_position = default_node_position();
         let mut trees = connections_info.trees.clone();
         let nodes = self.graph.graph().nodes()?;
-        let (without_pos, with_pos): (Vec<_>, Vec<_>) =
+        let (with_pos, without_pos): (Vec<_>, Vec<_>) =
             nodes.iter().partition(|n| n.has_position());
         let bottommost_node_pos = with_pos
             .iter()
@@ -1068,7 +1068,7 @@ impl Model {
         notification: crate::integration::visualization::Notification,
     ) {
         use crate::integration::visualization::Notification;
-        warning!(self.logger, "Received update for {which} visualization: {notification:?}");
+        info!(self.logger, "Received update for {which} visualization: {notification:?}");
         match notification {
             Notification::ValueUpdate { target, data, .. } => {
                 if let Ok(view_id) = self.get_displayed_node_id(target) {

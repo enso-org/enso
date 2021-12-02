@@ -2,7 +2,7 @@
 name = "ensogl-component"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 ensogl-drop-down-menu = { path = "drop-down-menu" }
