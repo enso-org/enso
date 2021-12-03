@@ -959,10 +959,6 @@ async function mainEntryPoint(config: Config) {
     }
 }
 
-async function runEntryPoint(config: Config) {
-    await mainEntryPoint(config)
-}
-
 API.main = async function (inputConfig: any) {
     const urlParams = new URLSearchParams(window.location.search)
     // @ts-ignore
@@ -976,10 +972,10 @@ API.main = async function (inputConfig: any) {
         if (config.authentication_enabled && !Versions.isDevVersion()) {
             new FirebaseAuthentication(function (user: any) {
                 config.email = user.email
-                runEntryPoint(config)
+                mainEntryPoint(config)
             })
         } else {
-            await runEntryPoint(config)
+            await mainEntryPoint(config)
         }
     } else {
         // Display a message asking to update the application.
