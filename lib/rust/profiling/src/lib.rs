@@ -33,6 +33,7 @@ use inflector::Inflector;
 use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_plain::from_str;
 use web_sys::PerformanceEntry;
 
 
@@ -177,9 +178,9 @@ impl TryFrom<PerformanceEntry> for Measurement {
         let name_parts: Vec<_> = name_js.split(MESSAGE_DELIMITER).collect();
         let name = name_parts.get(1).ok_or(InvalidFormatting)?.to_string();
         let log_level_name = name_parts.get(0).ok_or(InvalidFormatting)?.to_string();
+        let log_level_name = log_level_name.to_class_case();
 
-        let log_level: ProfilingLevel =
-            serde_plain::from_str(&log_level_name.to_class_case()).or(Err(InvalidLogLevel))?;
+        let log_level: ProfilingLevel = from_str(&log_level_name).or(Err(InvalidLogLevel))?;
         Ok(Measurement { start_time, duration, name, log_level })
     }
 }
