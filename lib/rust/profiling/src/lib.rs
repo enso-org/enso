@@ -7,6 +7,7 @@
 //! needs.
 //!
 //! Example usage
+//! --------------
 //! ```
 //! let some_task = || "DoWork";
 //!

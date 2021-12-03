@@ -1,5 +1,35 @@
-/// List of all instantiated profilers. Used for retrieving profilers based on name.
+/**
+ * Profiling module that supports work with the [Web Performance API](https://developer.mozilla.org/en-US/docs/Web/API/Performance).
+ *
+ * Allows structured profiling of code with a hierarchical API.
+ *
+ * Example usage
+ * -------------
+ * ```
+ * // Manually start and end the measurement.
+ * const profilingHandle = profiling.task.start(doSomething')
+ * doSomething()
+ * profilingHandle.end()
+ *
+ * // Or use the `measure` method.
+ * profiling::task::measure("doSomething", doSomething);
+ *
+ * ```
+ */
+
+
+// =========================
+// === Profiler Registry ===
+// =========================
+
+/// List of all instantiated profilers.
 const profiler_registry: Profiler[] = []
+
+
+
+// ================
+// === Profiler ===
+// ================
 
 /**
  * Class that exposes `start`, `end` and `measure` methods, as well as some utility methods for working with the profiler.
@@ -16,8 +46,10 @@ class Profiler {
         return this.log_level.toUpperCase()
     }
 
+    /// Indicate whether this profiler should perform profiling.
     isActive(): boolean {
-        /// Note hat this is replaced at build time by-pack see XXX
+        // The value `process.env.PROFILING_LEVEL` is populated through the [environment plugin](https://webpack.js.org/plugins/environment-plugin/)
+        // at build time from an environment variable.
         return process.env.PROFILING_LEVEL.toLowerCase().includes(this.logLevelName())
     }
 
@@ -42,6 +74,7 @@ class Profiler {
         return [this.log_level, interval_name, 'measure'].join(MESSAGE_DELIMITER)
     }
 
+    /// Start the profiling of the named interval.
     start(interval_name: string): IntervalHandle {
         if (this.isActive()) {
             performance.mark(this.startIntervalLabel(interval_name))
@@ -49,6 +82,7 @@ class Profiler {
         return new IntervalHandle(interval_name, this)
     }
 
+    /// End the profiling of the named interval.
     end(interval_name: string) {
         let start_label = this.startIntervalLabel(interval_name)
         let end_label = this.endIntervalLabel(interval_name)
@@ -60,6 +94,7 @@ class Profiler {
         }
     }
 
+    /// Profile the execution of the given callable.
     measure(interval_name: string, closure: CallableFunction) {
         this.start(interval_name)
         const ret = closure()
@@ -67,6 +102,13 @@ class Profiler {
         return ret
     }
 }
+
+
+
+// =========================
+// === Encoding/Decoding ===
+// =========================
+
 
 /// Delimiter used to to encode information in the `PerformanceEntry` name.
 const MESSAGE_DELIMITER = '//'
@@ -88,6 +130,44 @@ function decodeLabel(label: string): [Profiler, string] | undefined {
         return [profiler, interval_name]
     } catch (e) {
         return undefined
+    }
+}
+
+
+
+// ======================
+// === IntervalHandle ===
+// ======================
+
+/**
+ * Handle that allows the setting of an `end` marker for a profiling interval that was started via
+ * the `start` function.
+ */
+class IntervalHandle {
+    interval_name: string
+    log_level: Profiler
+    released_status: ReleasedStatus
+
+    constructor(interval_name: string, log_level: Profiler) {
+        this.interval_name = interval_name
+        this.log_level = log_level
+        this.released_status = new ReleasedStatus()
+        this.released_status.released = false
+        handle_registry.register(
+            this,
+            new IntervalFinalizationRegistryEntry(interval_name, this.released_status)
+        )
+    }
+
+    /// Measure the interval.
+    end() {
+        this.log_level.end(this.interval_name)
+        this.released_status.released = true
+    }
+
+    /// Release the handle to manually call `end_interval` without emitting a warning.
+    release() {
+        this.released_status.released = true
     }
 }
 
@@ -128,37 +208,11 @@ const handle_registry = new FinalizationRegistry(heldValue => {
     }
 })
 
-/**
- * Handle that allows the setting of an `end` marker for a profiling interval that was started via
- * the `start` function.
- */
-class IntervalHandle {
-    interval_name: string
-    log_level: Profiler
-    released_status: ReleasedStatus
 
-    constructor(interval_name: string, log_level: Profiler) {
-        this.interval_name = interval_name
-        this.log_level = log_level
-        this.released_status = new ReleasedStatus()
-        this.released_status.released = false
-        handle_registry.register(
-            this,
-            new IntervalFinalizationRegistryEntry(interval_name, this.released_status)
-        )
-    }
 
-    /// Measure the interval.
-    end() {
-        this.log_level.end(this.interval_name)
-        this.released_status.released = true
-    }
-
-    /// Release the handle to manually call `end_interval` without emitting a warning.
-    release() {
-        this.released_status.released = true
-    }
-}
+// ===================
+// === Measurement ===
+// ===================
 
 /**
  * Profiling measurement that contains the profiling information about a measured time interval.
@@ -205,6 +259,11 @@ class Measurement {
     }
 }
 
+
+// ==============
+// === Report ===
+// ==============
+
 /**
  * Report of all measurements taken during the current session.
  */
@@ -245,6 +304,12 @@ export class Report {
         return output
     }
 }
+
+
+
+// ==================
+// === Public API ===
+// ==================
 
 export const section = new Profiler('Section')
 export const task = new Profiler('Task')
