@@ -18,6 +18,9 @@
 //! // Or use the `measure` method.
 //! profiling::task::measure("GUI initialization", some_task);
 //! ```
+//!
+//! Note that this API and encoding formats for messages are synced with the JS equivalent in
+//! `app/ide-desktop/lib/profiling/src/profiling.ts`.
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -222,18 +225,22 @@ fn encode_log_level(log_level: ProfilingLevel) -> String {
 }
 
 /// Return a string that encodes the given log level and name for a mark that indicates the start of
-/// an interval.
+/// an interval. This is done by separating the information by the `MESSAGE_DELIMITER`.
+/// Example output: "TASK//SomeWork//start".
 fn start_interval_label(log_level: ProfilingLevel, interval_name: &str) -> String {
     format!("{1}{0}{2}{0}start", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
 }
 
 /// Return a string that encodes the given log level and name for a mark that indicates the end of
-/// an interval.
+/// an interval. This is done by separating the information by the `MESSAGE_DELIMITER`.
+/// Example output: "TASK//SomeWork//end".
 fn end_interval_label(log_level: ProfilingLevel, interval_name: &str) -> String {
     format!("{1}{0}{2}{0}end", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
 }
 
-/// Return a string that encodes the given log level and name for a measurement.
+/// Return a string that encodes the given log level and name for a measurement.  This is done by
+/// separating the information by the `MESSAGE_DELIMITER`.
+/// Example output: "TASK//SomeWork//measurement".
 fn measure_interval_label(log_level: ProfilingLevel, interval_name: &str) -> String {
     format!("{1}{0}{2}{0}measure", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
 }
@@ -306,9 +313,9 @@ pub struct IntervalMeasurementResult<T> {
 
 
 
-// =====================
+// ======================
 // === IntervalHandle ===
-// =====================
+// ======================
 
 /// Handle that allows ending the interval.
 #[derive(Clone, Debug)]
