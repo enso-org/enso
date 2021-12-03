@@ -15,8 +15,10 @@
  * profiling::task::measure("doSomething", doSomething);
  *
  * ```
+ *
+ * Note that this API and encoding formats for messages are synced with the rust equivalent in
+ * `lib/rust/profiling/src/lib.rs`.
  */
-
 
 // =========================
 // === Profiler Registry ===
@@ -24,8 +26,6 @@
 
 /// List of all instantiated profilers.
 const profiler_registry: Profiler[] = []
-
-
 
 // ================
 // === Profiler ===
@@ -57,21 +57,25 @@ class Profiler {
         return this.logLevelName() == log_level_name.toUpperCase()
     }
 
+    createLabel(interval_name: string, event_name: string): string {
+        return encodeLabel(this, interval_name, event_name)
+    }
+
     /// Return a string that encodes the given log level and name for a mark that indicates the start of
-    /// an interval.
+    /// an interval. The label encoded the log level, name and event type.
     private startIntervalLabel(interval_name: string): string {
-        return [this.log_level, interval_name, 'start'].join(MESSAGE_DELIMITER)
+        return this.createLabel(interval_name, 'start')
     }
 
     /// Return a string that encodes the given log level and name for a mark that indicates the end of
     /// an interval.
     private endIntervalLabel(interval_name: string): string {
-        return [this.log_level, interval_name, 'end'].join(MESSAGE_DELIMITER)
+        return this.createLabel(interval_name, 'end')
     }
 
     /// Return a string that encodes the given log level and name for a measurement.
     private measureIntervalLabel(interval_name: string): string {
-        return [this.log_level, interval_name, 'measure'].join(MESSAGE_DELIMITER)
+        return this.createLabel(interval_name, 'measure')
     }
 
     /// Start the profiling of the named interval.
@@ -103,15 +107,20 @@ class Profiler {
     }
 }
 
-
-
 // =========================
 // === Encoding/Decoding ===
 // =========================
 
-
 /// Delimiter used to to encode information in the `PerformanceEntry` name.
 const MESSAGE_DELIMITER = '//'
+
+/**
+ * Encodes the given information in a string. This is done by separating the information by the `MESSAGE_DELIMITER`.
+ * Example output: "TASK//SomeWork//start"
+ */
+function encodeLabel(log_level: Profiler, inter_val_name: string, event: string): string {
+    return [log_level.log_level, inter_val_name, event].join(MESSAGE_DELIMITER)
+}
 
 function parseLogLevel(log_level_name: string): Profiler | undefined {
     for (const profiler of profiler_registry) {
@@ -122,6 +131,9 @@ function parseLogLevel(log_level_name: string): Profiler | undefined {
     return undefined
 }
 
+/**
+ * Decodes the given information in a string that was encoded with `encodeLabel`.
+ */
 function decodeLabel(label: string): [Profiler, string] | undefined {
     let parts = label.split(MESSAGE_DELIMITER)
     try {
@@ -132,8 +144,6 @@ function decodeLabel(label: string): [Profiler, string] | undefined {
         return undefined
     }
 }
-
-
 
 // ======================
 // === IntervalHandle ===
@@ -208,8 +218,6 @@ const handle_registry = new FinalizationRegistry(heldValue => {
     }
 })
 
-
-
 // ===================
 // === Measurement ===
 // ===================
@@ -259,7 +267,6 @@ class Measurement {
     }
 }
 
-
 // ==============
 // === Report ===
 // ==============
@@ -304,8 +311,6 @@ export class Report {
         return output
     }
 }
-
-
 
 // ==================
 // === Public API ===
