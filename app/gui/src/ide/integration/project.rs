@@ -774,7 +774,7 @@ impl Model {
         let connections_info = self.graph.connections()?;
         self.refresh_node_views(&connections_info, true)?;
         self.refresh_connection_views(connections_info.connections)?;
-        let _ = task_handle.end();
+        task_handle.end();
 
         Ok(())
     }
