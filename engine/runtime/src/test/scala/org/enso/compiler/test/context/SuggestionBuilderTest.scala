@@ -647,6 +647,188 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
+    "build conversion method for simple type" in {
+      pending
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type MyAtom a
+          |
+          |## My conversion
+          |MyAtom.from : Number -> MyAtom
+          |MyAtom.from a = MyAtom a
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "MyType",
+              arguments = Seq(
+                Suggestion
+                  .Argument("a", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType        = "Unnamed.Test.MyType",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+              ),
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Conversion(
+              externalId = None,
+              module     = "Unnamed.Test",
+              arguments = Seq(
+                Suggestion.Argument("a", "Number", false, false, None)
+              ),
+              returnType    = "Unnamed.Test.MyType",
+              sourceType    = "Number",
+              documentation = Some(" My conversion"),
+              documentationHtml =
+                Some(DocParserWrapper.runOnPureDoc(" My conversion", "from"))
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build conersion method for complex type" in {
+      pending
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type MyMaybe
+          |    type Some a
+          |    type None
+          |
+          |type Newtype x
+          |
+          |## My conversion method
+          |Newtype.from : MyMaybe -> Newtype
+          |Newtype.from opt = case opt of
+          |    Some a -> Newtype a
+          |    None -> Newtype 0
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "Some",
+              arguments = Seq(
+                Suggestion
+                  .Argument("a", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType        = "Unnamed.Test.MyMaybe",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyMaybe", false, false, None)
+              ),
+              selfType          = "Unnamed.Test.MyMaybe",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Atom(
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "None",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.None",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "Newtype",
+              arguments = Seq(
+                Suggestion
+                  .Argument("x", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType        = "Unnamed.Test.Newtype",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "x",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Newtype", false, false, None)
+              ),
+              selfType          = "Unnamed.Test.NewType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Conversion(
+              externalId = None,
+              module     = "Unnamed.Test",
+              arguments = Seq(
+                Suggestion
+                  .Argument("opt", "Unnamed.Test.MyMaybe", false, false, None)
+              ),
+              returnType    = "Unnamed.Test.MyType",
+              sourceType    = "Unnamed.Test.MyMaybe",
+              documentation = Some(" My conversion method"),
+              documentationHtml = Some(
+                DocParserWrapper.runOnPureDoc(" My conversion method", "from")
+              )
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build function simple" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
