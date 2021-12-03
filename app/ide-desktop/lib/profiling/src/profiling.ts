@@ -1,11 +1,15 @@
-const all_profilers: Profiler[] = []
+/// List of all instantiated profilers. Used for retrieving profilers based on name.
+const profiler_registry: Profiler[] = []
 
+/**
+ * Class that exposes `start`, `end` and `measure` methods, as well as some utility methods for working with the profiler.
+ */
 class Profiler {
     log_level: string
 
     constructor(logLevel: string) {
         this.log_level = logLevel
-        all_profilers.push(this)
+        profiler_registry.push(this)
     }
 
     logLevelName(): string {
@@ -17,20 +21,24 @@ class Profiler {
         return process.env.PROFILING_LEVEL.toLowerCase().includes(this.logLevelName())
     }
 
+    isLogLevelName(log_level_name: string): boolean {
+        return this.logLevelName() == log_level_name.toUpperCase()
+    }
+
     /// Return a string that encodes the given log level and name for a mark that indicates the start of
     /// an interval.
-    startIntervalLabel(interval_name: string): string {
+    private startIntervalLabel(interval_name: string): string {
         return [this.log_level, interval_name, 'start'].join(MESSAGE_DELIMITER)
     }
 
     /// Return a string that encodes the given log level and name for a mark that indicates the end of
     /// an interval.
-    endIntervalLabel(interval_name: string): string {
+    private endIntervalLabel(interval_name: string): string {
         return [this.log_level, interval_name, 'end'].join(MESSAGE_DELIMITER)
     }
 
     /// Return a string that encodes the given log level and name for a measurement.
-    measureIntervalLabel(interval_name: string): string {
+    private measureIntervalLabel(interval_name: string): string {
         return [this.log_level, interval_name, 'measure'].join(MESSAGE_DELIMITER)
     }
 
@@ -58,17 +66,13 @@ class Profiler {
         this.end(interval_name)
         return ret
     }
-
-    isLogLevelName(log_level_name: string): boolean {
-        return this.logLevelName() == log_level_name.toUpperCase()
-    }
 }
 
 /// Delimiter used to to encode information in the `PerformanceEntry` name.
 const MESSAGE_DELIMITER = '//'
 
 function parseLogLevel(log_level_name: string): Profiler | undefined {
-    for (const profiler of all_profilers) {
+    for (const profiler of profiler_registry) {
         if (profiler.isLogLevelName(log_level_name)) {
             return profiler
         }
@@ -222,7 +226,7 @@ export class Report {
     renderToDevConsole() {
         console.groupCollapsed('PerformanceReport')
 
-        for (const profiler of all_profilers) {
+        for (const profiler of profiler_registry) {
             console.groupCollapsed(profiler.log_level)
             this.singleLevelMeasurement(profiler).forEach(m => m.prettyPrint())
             console.groupEnd()
@@ -233,7 +237,7 @@ export class Report {
 
     toString() {
         let output = ''
-        for (const profiler of all_profilers) {
+        for (const profiler of profiler_registry) {
             this.singleLevelMeasurement(profiler).forEach(
                 m => (output = output.concat(m.prettyString(), '\n'))
             )

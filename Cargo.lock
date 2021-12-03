@@ -1788,6 +1788,7 @@ dependencies = [
  "nalgebra 0.26.2",
  "ordered-float 2.8.0",
  "parser",
+ "profiling",
  "serde",
  "serde_json",
  "span-tree",
