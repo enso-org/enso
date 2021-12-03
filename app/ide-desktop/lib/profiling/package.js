@@ -1,5 +1,5 @@
 let config = {
-    name: 'performance-logger',
+    name: 'profiling',
     version: '1.0.0',
 }
 

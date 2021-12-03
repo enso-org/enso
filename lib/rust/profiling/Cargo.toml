@@ -1,5 +1,5 @@
 [package]
-name = "performance-logger"
+name = "profiling"
 authors = ["Enso Team <contact@luna-lang.org>"]
 version = "0.1.0"
 edition = "2021"
@@ -20,6 +20,7 @@ chrono = "0.4.19"
 enso-logger = { path = "../logger"}
 enso-prelude = { version = "^0.2.1", path = "../prelude" }
 enso-web = { path = "../web" }
+Inflector = "0.11.4"
 js-sys = { version = "0.3" }
 ordered-float = "2.8.0"
 paste = "1.0"

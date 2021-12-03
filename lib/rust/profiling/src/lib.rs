@@ -16,6 +16,7 @@ use enso_prelude::*;
 
 use enso_prelude::fmt::Formatter;
 use enso_web::performance;
+use inflector::Inflector;
 use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
@@ -23,34 +24,88 @@ use web_sys::PerformanceEntry;
 
 
 
-// ========================================
-// === Compile time filtering constants ===
-// ========================================
+// =================
+// === Log Level ===
+// =================
+
+#[derive(Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub enum LogLevel {
+    Section,
+    Task,
+    Detail,
+    Debug,
+}
+
+
+// ===============
+// === Loggers ===
+// ===============
+
 
 macro_rules! define_profiling_toggle {
     ($log_level_name_upper:ident, $log_level_name:ident) => {
-        paste::paste! {
+        paste::item! {
             #[doc = "Defines whether the log level `" $log_level_name "` should be used."]
             #[cfg(feature = "enable-" $log_level_name "-profiling")]
-            pub const [< ENABLE_ $log_level_name_upper _PROFILING >]: bool = true;
+            pub const ENABLED: bool = true;
             #[doc = "Defines whether the log level `" $log_level_name "` should be used."]
             #[cfg(not(feature = "enable-" $log_level_name  "-profiling"))]
-            pub const [< ENABLE_ $log_level_name_upper _PROFILING >]: bool = false;
+            pub const ENABLED: bool = false;
         }
     };
 }
 
-define_profiling_toggle!(SECTION, section);
-define_profiling_toggle!(TASK, task);
-define_profiling_toggle!(DETAIL, detail);
-define_profiling_toggle!(DEBUG, debug);
+macro_rules! define_logger {
+    ($log_level:expr, $log_level_name_upper:ident, $log_level_name:ident) => {
+        /// Profiler module that exposes methods to measure named intervals.
+        pub mod $log_level_name {
+            use super::*;
+
+            define_profiling_toggle!($log_level_name_upper, $log_level_name);
+
+            /// Start measuring an named time interval.
+            pub fn start(interval_name: &str) -> IntervalHandle {
+                start_interval($log_level, interval_name)
+            }
+
+            /// End measuring an named time interval.
+            pub fn end(interval_name: &str) {
+                warn_on_error(end_interval($log_level, interval_name));
+            }
+
+            /// Measure the execution of the given closure.
+            pub fn measure<T, F: FnMut() -> T>(
+                interval_name: &str,
+                closure: F,
+            ) -> IntervalMeasurementResult<T> {
+                measure_interval($log_level, interval_name, closure)
+            }
+        }
+    };
+}
+
+define_logger!(LogLevel::Section, SECTION, section);
+define_logger!(LogLevel::Task, TASK, task);
+define_logger!(LogLevel::Detail, DETAIL, detail);
+define_logger!(LogLevel::Debug, DEBUG, debug);
+
+/// Check at compile time whether the given log level should perform any logging activity.
+const fn log_level_is_active(log_level: LogLevel) -> bool {
+    match log_level {
+        LogLevel::Section => section::ENABLED,
+        LogLevel::Task => task::ENABLED,
+        LogLevel::Detail => detail::ENABLED,
+        LogLevel::Debug => detail::ENABLED,
+    }
+}
 
 
 
 // ====================
 // === Measurements ===
 // ====================
-
 
 /// A single interval measurement.
 #[derive(Debug, Clone)]
@@ -101,14 +156,11 @@ impl TryFrom<PerformanceEntry> for Measurement {
         let duration = measure.duration();
         let name_js = measure.name();
         let name_parts: Vec<_> = name_js.split(MESSAGE_DELIMITER).collect();
-        if name_parts.len() < 2 {
-            return Err(InvalidFormatting); //FIXME
-        }
-        let name = name_parts[1].to_string();
-        let log_level_name = name_parts[0].to_string();
+        let name = name_parts.get(1).ok_or(InvalidFormatting)?.to_string();
+        let log_level_name = name_parts.get(0).ok_or(InvalidFormatting)?.to_string();
 
         let log_level: LogLevel =
-            serde_plain::from_str(&log_level_name).or(Err(InvalidLogLevel))?;
+            serde_plain::from_str(&log_level_name.to_class_case()).or(Err(InvalidLogLevel))?;
         Ok(Measurement { start_time, duration, name, log_level })
     }
 }
@@ -129,75 +181,47 @@ pub enum MeasurementError {
 
 
 
-// =================
-// === Log Level ===
-// =================
-
-#[derive(Copy, Clone, Debug)]
-#[derive(Serialize, Deserialize)]
-#[allow(missing_docs)]
-pub enum LogLevel {
-    SECTION,
-    TASK,
-    DETAIL,
-    DEBUG,
-}
-
-
-
-// =========================
-// === Profiling Methods ===
-// =========================
+// ==================================
+// === Internal Profiling Methods ===
+// ==================================
 
 /// Delimiter used to to encode information in the `PerformanceEntry` name.
 const MESSAGE_DELIMITER: &str = "//";
 
-/// Check at compile time whether the given log level should perform any logging activity.
-const fn log_level_is_active(log_level: LogLevel) -> bool {
-    match log_level {
-        LogLevel::SECTION => ENABLE_SECTION_PROFILING,
-        LogLevel::TASK => ENABLE_TASK_PROFILING,
-        LogLevel::DETAIL => ENABLE_DETAIL_PROFILING,
-        LogLevel::DEBUG => ENABLE_DEBUG_PROFILING,
+/// Emit a warning if the given result is an error.
+fn warn_on_error(result: Result<Measurement, MeasurementError>) {
+    if let Err(e) = result {
+        WARNING!(format!("Failed to do profiling for an interval due to error: {:?}", e));
     }
+}
+
+fn encode_log_level(log_level: LogLevel) -> String {
+    serde_plain::to_string(&log_level)
+        .expect("Failed to serialise LogLevel as string.")
+        .to_uppercase()
 }
 
 /// Return a string that encodes the given log level and name for a mark that indicates the start of
 /// an interval.
 fn start_interval_label(log_level: LogLevel, interval_name: &str) -> String {
-    format!(
-        "{1}{0}{2}{0}start",
-        MESSAGE_DELIMITER,
-        serde_plain::to_string(&log_level).unwrap(),
-        interval_name
-    )
+    format!("{1}{0}{2}{0}start", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
 }
 
 /// Return a string that encodes the given log level and name for a mark that indicates the end of
 /// an interval.
 fn end_interval_label(log_level: LogLevel, interval_name: &str) -> String {
-    format!(
-        "{1}{0}{2}{0}end",
-        MESSAGE_DELIMITER,
-        serde_plain::to_string(&log_level).unwrap(),
-        interval_name
-    )
+    format!("{1}{0}{2}{0}end", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
 }
 
 /// Return a string that encodes the given log level and name for a measurement.
 fn measure_interval_label(log_level: LogLevel, interval_name: &str) -> String {
-    format!(
-        "{1}{0}{2}{0}measure",
-        MESSAGE_DELIMITER,
-        serde_plain::to_string(&log_level).unwrap(),
-        interval_name
-    )
+    format!("{1}{0}{2}{0}measure", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
 }
 
 /// Start measuring an interval. Returns a `IntervalHandle` that an be used to end the created
 /// interval. The interval can also be ended by calling `end_interval` with the same label and log
 /// level.
-pub fn start_interval(log_level: LogLevel, label: &str) -> IntervalHandle {
+fn start_interval(log_level: LogLevel, label: &str) -> IntervalHandle {
     let interval_name = ImString::from(label);
     if log_level_is_active(log_level) {
         performance().mark(&start_interval_label(log_level, &interval_name)).unwrap();
@@ -207,10 +231,7 @@ pub fn start_interval(log_level: LogLevel, label: &str) -> IntervalHandle {
 
 /// End measuring an interval. Return the measurement taken between start and end of the interval,
 /// if possible.
-pub fn end_interval(
-    log_level: LogLevel,
-    interval_name: &str,
-) -> Result<Measurement, MeasurementError> {
+fn end_interval(log_level: LogLevel, interval_name: &str) -> Result<Measurement, MeasurementError> {
     let start_label = start_interval_label(log_level, interval_name);
     let end_label = end_interval_label(log_level, interval_name);
     let measurement_label = measure_interval_label(log_level, interval_name);
@@ -236,6 +257,36 @@ pub fn end_interval(
     }
 }
 
+/// Measure the execution time of the given interval. The interval is executed and the return value
+/// and the measurement result are returned in the `IntervalMeasurementResult`.
+fn measure_interval<T, F: FnMut() -> T>(
+    log_level: LogLevel,
+    interval_name: &str,
+    mut closure: F,
+) -> IntervalMeasurementResult<T> {
+    start_interval(log_level, interval_name);
+    let value = closure();
+    let measurement = end_interval(log_level, interval_name);
+
+    IntervalMeasurementResult { value, measurement }
+}
+
+/// Result of profiling a closure via `measure_interval`. Contains the measurement result and the
+/// closure return value.
+#[derive(Clone, Debug)]
+pub struct IntervalMeasurementResult<T> {
+    /// Return value of the measured closure.
+    pub value:       T,
+    /// Measurement result.
+    pub measurement: Result<Measurement, MeasurementError>,
+}
+
+
+
+// =====================
+// === IntervalHandle ===
+// =====================
+
 /// Handle that allows ending the interval.
 #[derive(Clone, Debug)]
 pub struct IntervalHandle {
@@ -250,9 +301,9 @@ impl IntervalHandle {
     }
 
     /// Measure the interval.
-    pub fn measure(mut self) -> Result<Measurement, MeasurementError> {
+    pub fn end(mut self) {
         self.released = true;
-        end_interval(self.log_level, &self.interval_name)
+        warn_on_error(end_interval(self.log_level, &self.interval_name));
     }
 
     /// Release the handle to manually call `end_interval` without emitting a warning.
@@ -268,30 +319,6 @@ impl Drop for IntervalHandle {
             WARNING!(format!("{} was dropped without a call to `measure`.", self.interval_name));
         }
     }
-}
-
-/// Result of profiling a closure via `measure_interval`. Contains the measurement result and the
-/// closure return value.
-#[derive(Clone, Debug)]
-pub struct IntervalMeasurementResult<T> {
-    /// Return value of the measured closure.
-    pub value:       T,
-    /// Measurement result.
-    pub measurement: Result<Measurement, MeasurementError>,
-}
-
-/// Measure the execution time of the given interval. The interval is executed and the return value
-/// and the measurement result are returned in the `IntervalMeasurementResult`.
-pub fn measure_interval<T, F: FnMut() -> T>(
-    log_level: LogLevel,
-    interval_name: &str,
-    mut closure: F,
-) -> IntervalMeasurementResult<T> {
-    start_interval(log_level, interval_name);
-    let value = closure();
-    let measurement = end_interval(log_level, interval_name);
-
-    IntervalMeasurementResult { value, measurement }
 }
 
 
@@ -335,61 +362,7 @@ impl Display for Report {
     }
 }
 
-
-
-// ===============================
-// === Convenience Definitions ===
-// ===============================
-
-macro_rules! define_start_interval_helpers {
-    ($log_level:expr, $log_level_name:ident) => {
-        paste::paste! {
-            #[doc = "Start measuring an interval with log level `" $log_level_name "`. See `start_interval` for more information."]
-            pub fn  [< start_interval_ $log_level_name >](interval_name: &str) -> IntervalHandle {
-                start_interval($log_level, interval_name)
-            }
-        }
-    };
+/// Return a report on all recorded measurement entries.
+pub fn entries() -> Report {
+    Report::generate()
 }
-
-define_start_interval_helpers!(LogLevel::SECTION, section);
-define_start_interval_helpers!(LogLevel::TASK, task);
-define_start_interval_helpers!(LogLevel::DETAIL, detail);
-define_start_interval_helpers!(LogLevel::DEBUG, debug);
-
-
-macro_rules! define_end_interval_helpers {
-    ($log_level:expr, $log_level_name:ident) => {
-        paste::paste! {
-            #[doc = "End measuring an interval with log level `" $log_level_name "`. See `end_interval` for more information."]
-            pub fn  [< end_interval_ $log_level_name >](interval_name: &str) {
-                if let Err(error) = end_interval($log_level, interval_name) {
-                    WARNING!(format!("Performance logging encountered an error when ending an interval: {:?}", error));
-                };
-            }
-        }
-    };
-}
-
-define_end_interval_helpers!(LogLevel::SECTION, section);
-define_end_interval_helpers!(LogLevel::TASK, task);
-define_end_interval_helpers!(LogLevel::DETAIL, detail);
-define_end_interval_helpers!(LogLevel::DEBUG, debug);
-
-
-macro_rules! define_measure_interval_helpers {
-    ($log_level:expr, $log_level_name:ident) => {
-        paste::paste! {
-            #[doc = "Measure the execution time of the given interval with log level `" $log_level_name  "`. See `measure_interval` for more information."]
-            pub fn [< measure_interval_ $log_level_name >]<T, F: FnMut() -> T>(interval_name: &str, closure: F) -> IntervalMeasurementResult<T>  {
-                measure_interval($log_level, interval_name, closure)
-            }
-        }
-    };
-}
-
-
-define_measure_interval_helpers!(LogLevel::SECTION, section);
-define_measure_interval_helpers!(LogLevel::TASK, task);
-define_measure_interval_helpers!(LogLevel::DETAIL, detail);
-define_measure_interval_helpers!(LogLevel::DEBUG, debug);

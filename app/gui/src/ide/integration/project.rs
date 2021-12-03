@@ -46,7 +46,7 @@ use ide_view::open_dialog;
 use ide_view::searcher::entry::AnyModelProvider;
 use ide_view::searcher::entry::GlyphHighlightedLabel;
 use ide_view::searcher::new::Icon;
-
+use profiling;
 
 
 // ==============
@@ -770,11 +770,11 @@ impl Model {
     /// Reload whole displayed content to be up to date with module state.
     pub fn refresh_graph_view(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph view.");
-        let performance_handle = performance_logger::start_interval_task("refresh_graph_view");
+        let task_handle = profiling::task::start("refresh_graph_view");
         let connections_info = self.graph.connections()?;
         self.refresh_node_views(&connections_info, true)?;
         self.refresh_connection_views(connections_info.connections)?;
-        let _ = performance_handle.measure();
+        let _ = task_handle.end();
 
         Ok(())
     }
@@ -784,7 +784,7 @@ impl Model {
         connections_info: &Connections,
         update_position: bool,
     ) -> FallibleResult {
-        let performance_handle = performance_logger::start_interval_task("refresh_node_views");
+        let task_handle = profiling::task::start("refresh_node_views");
         let base_default_position = default_node_position();
         let mut trees = connections_info.trees.clone();
         let nodes = self.graph.graph().nodes()?;
@@ -828,19 +828,18 @@ impl Model {
                 None => self.create_node_view(node_info, node_trees, *default_pos),
             }
         }
-        let _ = performance_handle.measure();
+        task_handle.end();
         Ok(())
     }
 
     /// Refresh the expressions (e.g., types, ports) for all nodes.
     fn refresh_graph_expressions(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph expressions.");
-        let performance_handle =
-            performance_logger::start_interval_task("refresh_graph_expressions");
+        let task_handle = profiling::task::start("refresh_graph_expressions");
         let connections = self.graph.connections()?;
         self.refresh_node_views(&connections, false)?;
         let ret = self.refresh_connection_views(connections.connections);
-        let _ = performance_handle.measure();
+        task_handle.end();
         ret
     }
 
@@ -863,7 +862,7 @@ impl Model {
         trees: NodeTrees,
         default_pos: Vector2,
     ) {
-        let performance_handle = performance_logger::start_interval_task("create_node_view");
+        let task_handle = profiling::task::start("create_node_view");
         let id = info.info.id();
         let displayed_id = self.view.graph().add_node();
         self.node_views.borrow_mut().insert(id, displayed_id);
@@ -879,7 +878,7 @@ impl Model {
                 );
             }
         }
-        let _ = performance_handle.measure();
+        task_handle.end();
     }
 
     fn deserialize_visualization_data(

@@ -38,7 +38,7 @@ members = [
     "lib/rust/json-rpc",
     "lib/rust/launcher-shims",
     "lib/rust/logger",
-    "lib/rust/performance-logger",
+    "lib/rust/profiling",
     "lib/rust/macro-utils",
     "lib/rust/optics",
     "lib/rust/parser",
