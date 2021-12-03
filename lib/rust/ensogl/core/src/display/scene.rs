@@ -465,12 +465,22 @@ impl Dom {
 /// DOM DomLayers of the scene. It contains a 2 CSS 3D layers and a canvas layer in the middle. The
 /// CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
 /// elements.
+///
+/// Each DomLayer is created with `pointer-events: none` CSS property to avoid "stealing" mouse
+/// events from other layers.
+/// See https://github.com/enso-org/enso/blob/develop/lib/rust/ensogl/doc/mouse-handling.md for more info.
 #[derive(Clone, CloneRef, Debug)]
 pub struct DomLayers {
+    /// Bottom-most DOM scene layer with disabled panning. This layer is placed at the bottom
+    /// because mouse cursor is drawn on `canvas` layer, and would be covered by Welcome Screen
+    /// elements otherwise.
+    pub welcome_screen: DomScene,
     /// Back DOM scene layer.
     pub back:           DomScene,
     /// Back DOM scene layer with fullscreen visualization. Kept separately from `back`, because
-    /// the fullscreen visualizations should not share camera with main view.
+    /// the fullscreen visualizations should not share camera with main view. This layer is placed
+    /// behind `canvas` because mouse cursor is drawn on `canvas` layer, and would be covered by
+    /// `fullscreen_vis` elements otherwise.
     pub fullscreen_vis: DomScene,
     /// Front DOM scene layer.
     pub front:          DomScene,
@@ -481,29 +491,38 @@ pub struct DomLayers {
 impl DomLayers {
     /// Constructor.
     pub fn new(logger: &Logger, dom: &web_sys::HtmlDivElement) -> Self {
-        let canvas = web::create_canvas();
-        let front = DomScene::new(logger);
-        let fullscreen_vis = DomScene::new(logger);
+        let welcome_screen = DomScene::new(logger);
+        welcome_screen.dom.set_class_name("welcome_screen");
+        welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
+        dom.append_or_panic(&welcome_screen.dom);
+
         let back = DomScene::new(logger);
+        back.dom.set_class_name("back");
+        back.dom.set_style_or_warn("z-index", "1", logger);
+        dom.append_or_panic(&back.dom);
+
+        let fullscreen_vis = DomScene::new(logger);
+        fullscreen_vis.dom.set_class_name("fullscreen_vis");
+        fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
+        dom.append_or_panic(&fullscreen_vis.dom);
+
+        let canvas = web::create_canvas();
+        canvas.set_style_or_warn("display", "block", logger);
+        canvas.set_style_or_warn("z-index", "3", logger);
+        // These properties are set by `DomScene::new` constuctor for other layers.
+        // See its documentation for more info.
+        canvas.set_style_or_warn("position", "absolute", logger);
         canvas.set_style_or_warn("height", "100vh", logger);
         canvas.set_style_or_warn("width", "100vw", logger);
-        canvas.set_style_or_warn("display", "block", logger);
-        // Position must not be "static" to have z-index working.
-        canvas.set_style_or_warn("position", "absolute", logger);
-        canvas.set_style_or_warn("z-index", "2", logger);
         canvas.set_style_or_warn("pointer-events", "none", logger);
-        front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "3", logger);
-        back.dom.set_class_name("back");
-        back.dom.set_style_or_warn("pointer-events", "auto", logger);
-        back.dom.set_style_or_warn("z-index", "0", logger);
-        fullscreen_vis.dom.set_class_name("fullscreen_vis");
-        fullscreen_vis.dom.set_style_or_warn("z-index", "1", logger);
         dom.append_or_panic(&canvas);
+
+        let front = DomScene::new(logger);
+        front.dom.set_class_name("front");
+        front.dom.set_style_or_warn("z-index", "4", logger);
         dom.append_or_panic(&front.dom);
-        dom.append_or_panic(&back.dom);
-        dom.append_or_panic(&fullscreen_vis.dom);
-        Self { back, fullscreen_vis, front, canvas }
+
+        Self { back, welcome_screen, fullscreen_vis, front, canvas }
     }
 }
 
@@ -937,6 +956,8 @@ impl SceneData {
         // setups now, so we are using here the main camera only.
         let camera = self.camera();
         let fullscreen_vis_camera = self.layers.panel.camera();
+        // We are using unnavigable camera to disable panning behavior.
+        let welcome_screen_camera = self.layers.panel.camera();
         let changed = camera.update(scene);
         if changed {
             self.frp.camera_changed_source.emit(());
@@ -947,6 +968,7 @@ impl SceneData {
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
+            self.dom.layers.welcome_screen.update_view_projection(&welcome_screen_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
