@@ -27,10 +27,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol._
-import org.enso.languageserver.search.handler.{
-  ImportModuleHandler,
-  InvalidateModulesIndexHandler
-}
+import org.enso.languageserver.search.handler.InvalidateModulesIndexHandler
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logger.masking.MaskedPath
@@ -351,23 +348,6 @@ final class SuggestionsHandler(
           )
         }
         .pipeTo(sender())
-
-    case Import(suggestionId) =>
-      val action = for {
-        result <- suggestionsRepo.select(suggestionId)
-      } yield result
-        .map(SearchProtocol.ImportSuggestion)
-        .getOrElse(SearchProtocol.SuggestionNotFoundError)
-
-      val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
-      val handler = context.system.actorOf(
-        ImportModuleHandler.props(
-          runtimeFailureMapper,
-          timeout,
-          runtimeConnector
-        )
-      )
-      action.pipeTo(handler)(sender())
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)

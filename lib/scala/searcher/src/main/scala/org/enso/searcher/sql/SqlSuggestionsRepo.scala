@@ -1066,6 +1066,41 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           reexport          = reexport
         )
         row -> args
+      case Suggestion.Conversion(
+            expr,
+            module,
+            args,
+            sourceType,
+            returnType,
+            doc,
+            docHtml,
+            reexport
+          ) =>
+        val firstArg = Suggestion.Argument(
+          Suggestion.Kind.Conversion.From,
+          sourceType,
+          false,
+          false,
+          None
+        )
+        val row = SuggestionRow(
+          id                = None,
+          externalIdLeast   = expr.map(_.getLeastSignificantBits),
+          externalIdMost    = expr.map(_.getMostSignificantBits),
+          kind              = SuggestionKind.CONVERSION,
+          module            = module,
+          name              = toConversionMethodName(sourceType, returnType),
+          selfType          = SelfTypeColumn.EMPTY,
+          returnType        = returnType,
+          documentation     = doc,
+          documentationHtml = docHtml,
+          scopeStartLine    = ScopeColumn.EMPTY,
+          scopeStartOffset  = ScopeColumn.EMPTY,
+          scopeEndLine      = ScopeColumn.EMPTY,
+          scopeEndOffset    = ScopeColumn.EMPTY,
+          reexport          = reexport
+        )
+        row -> (firstArg +: args)
       case Suggestion.Function(expr, module, name, args, returnType, scope) =>
         val row = SuggestionRow(
           id                = None,
@@ -1105,6 +1140,13 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         )
         row -> Seq()
     }
+
+  /** Create the method name for conversion */
+  private def toConversionMethodName(
+    sourceType: String,
+    returnType: String
+  ): String =
+    s"${Suggestion.Kind.Conversion.From}_${sourceType}_${returnType}"
 
   /** Convert the argument to a row in the arguments table. */
   private def toArgumentRow(
@@ -1163,6 +1205,18 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           name              = suggestion.name,
           arguments         = arguments.sortBy(_.index).map(toArgument),
           selfType          = suggestion.selfType,
+          returnType        = suggestion.returnType,
+          documentation     = suggestion.documentation,
+          documentationHtml = suggestion.documentationHtml,
+          reexport          = suggestion.reexport
+        )
+      case SuggestionKind.CONVERSION =>
+        Suggestion.Conversion(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module            = suggestion.module,
+          arguments         = arguments.sortBy(_.index).tail.map(toArgument),
+          sourceType        = arguments.minBy(_.index).tpe,
           returnType        = suggestion.returnType,
           documentation     = suggestion.documentation,
           documentationHtml = suggestion.documentationHtml,
