@@ -67,6 +67,11 @@ impl Initializer {
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
             let view = application.new_view::<ide_view::root::View>();
 
+            // IDE was opened with `project` argument, we should skip the Welcome Screen.
+            if self.config.project_name.is_some() {
+                view.switch_view_to_project();
+            }
+
             let status_bar = view.status_bar().clone_ref();
             application.display.add_child(&view);
             // TODO [mwu] Once IDE gets some well-defined mechanism of reporting

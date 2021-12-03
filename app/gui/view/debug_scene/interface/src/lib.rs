@@ -122,6 +122,8 @@ fn init(app: &Application) {
     root_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
     graph_editor.debug_push_breadcrumb();
 
+    root_view.switch_view_to_project();
+
 
     // === Nodes ===
 
