@@ -22,11 +22,12 @@ object SuggestionRandom {
 
   def nextSuggestion(): Suggestion = {
     nextKind() match {
-      case Suggestion.Kind.Module   => nextSuggestionModule()
-      case Suggestion.Kind.Atom     => nextSuggestionAtom()
-      case Suggestion.Kind.Method   => nextSuggestionMethod()
-      case Suggestion.Kind.Function => nextSuggestionFunction()
-      case Suggestion.Kind.Local    => nextSuggestionLocal()
+      case Suggestion.Kind.Module     => nextSuggestionModule()
+      case Suggestion.Kind.Atom       => nextSuggestionAtom()
+      case Suggestion.Kind.Method     => nextSuggestionMethod()
+      case Suggestion.Kind.Conversion => nextSuggestionMethod()
+      case Suggestion.Kind.Function   => nextSuggestionFunction()
+      case Suggestion.Kind.Local      => nextSuggestionLocal()
     }
   }
 
