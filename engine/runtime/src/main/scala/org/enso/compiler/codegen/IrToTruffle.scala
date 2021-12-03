@@ -162,6 +162,10 @@ class IrToTruffle(
     val methodDefs = module.bindings.collect {
       case method: IR.Module.Scope.Definition.Method.Explicit => method
     }
+    val conversionDefs = module.bindings.collect {
+      case conversion: IR.Module.Scope.Definition.Method.Conversion =>
+        conversion
+    }
 
     // Register the imports in scope
     imports.foreach {
@@ -287,7 +291,80 @@ class IrToTruffle(
         }
         moduleScope.registerMethod(cons, methodDef.methodName.name, function)
       }
+    })
 
+    // Register the conversion definitions in scope
+    conversionDefs.foreach(methodDef => {
+      val scopeInfo = methodDef
+        .unsafeGetMetadata(
+          AliasAnalysis,
+          s"Missing scope information for conversion " +
+          s"`${methodDef.typeName.name}.${methodDef.methodName.name}`."
+        )
+        .unsafeAs[AliasAnalysis.Info.Scope.Root]
+      val dataflowInfo = methodDef.unsafeGetMetadata(
+        DataflowAnalysis,
+        "Method definition missing dataflow information."
+      )
+
+      val consOpt =
+        methodDef.methodReference.typePointer
+          .getMetadata(MethodDefinitions)
+          .map { res =>
+            res.target match {
+              case BindingsMap.ResolvedModule(module) =>
+                module.unsafeAsModule().getScope.getAssociatedType
+              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+                definitionModule
+                  .unsafeAsModule()
+                  .getScope
+                  .getConstructors
+                  .get(cons.name)
+              case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                throw new CompilerError(
+                  "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                )
+              case _: BindingsMap.ResolvedMethod =>
+                throw new CompilerError(
+                  "Impossible here, should be caught by MethodDefinitions pass."
+                )
+            }
+          }
+
+      consOpt.foreach { cons =>
+        val expressionProcessor = new ExpressionProcessor(
+          cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+          scopeInfo.graph,
+          scopeInfo.graph.rootScope,
+          dataflowInfo
+        )
+
+        val function = methodDef.body match {
+          case fn: IR.Function =>
+            val (body, arguments) =
+              expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+            val rootNode = MethodRootNode.build(
+              language,
+              expressionProcessor.scope,
+              moduleScope,
+              body,
+              makeSection(methodDef.location),
+              cons,
+              methodDef.methodName.name
+            )
+            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+            new RuntimeFunction(
+              callTarget,
+              null,
+              new FunctionSchema(arguments: _*)
+            )
+          case _ =>
+            throw new CompilerError(
+              "Conversion bodies must be functions at the point of codegen."
+            )
+        }
+        moduleScope.registerMethod(cons, methodDef.methodName.name, function)
+      }
     })
   }
 
