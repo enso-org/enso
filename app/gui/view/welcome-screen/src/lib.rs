@@ -97,9 +97,8 @@ impl Model {
         let dom = Self::create_dom(&logger, &side_menu, &template_cards);
         display_object.add_child(&dom);
 
-        // Use `fullscreen_vis` layer to lock position when panning
-        app.display.scene().layers.panel.add_exclusive(&dom);
-        app.display.scene().dom.layers.fullscreen_vis.manage(&dom);
+        // Use `welcome_screen` layer to lock position when panning.
+        app.display.scene().dom.layers.welcome_screen.manage(&dom);
 
         let style = web::create_element("style");
         style.set_inner_html(STYLESHEET);
