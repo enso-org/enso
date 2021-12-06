@@ -119,6 +119,7 @@ impl Initializer {
         app.views.register::<ensogl_component::selector::NumberPicker>();
         app.views.register::<ensogl_component::selector::NumberRangePicker>();
 
+        // TODO(akavel): add warning in ListView.label()'s docs
         // As long as .label() of a View is the same, shortcuts and commands are currently also
         // expected to be the same, so it should not be important which concrete type parameter of
         // ListView we use below.
@@ -126,6 +127,7 @@ impl Initializer {
 
         if enso_config::ARGS.is_in_cloud == Some(true) {
             app.views.register::<ide_view::window_control_buttons::View>();
+            // TODO: CloseButton
         }
     }
 
