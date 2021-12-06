@@ -95,6 +95,8 @@ impl Model {
                     }
                     Err(err) => error!(logger, "Could not list projects: {err}."),
                 }
+            } else {
+                warning!(logger, "Project opening failed: no ProjectManagingAPI available.");
             }
         });
     }
@@ -116,6 +118,8 @@ impl Model {
                         error!(logger, "Could not create new project: {err}.");
                     }
                 }
+            } else {
+                warning!(logger, "Project creation failed: no ProjectManagingAPI available.");
             }
         });
     }
