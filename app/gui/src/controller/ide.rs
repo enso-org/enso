@@ -114,6 +114,9 @@ pub enum Notification {
 /// [`API::manage_projects`]).
 pub trait ManagingProjectAPI {
     /// Create a new unnamed project and open it in the IDE.
+    ///
+    /// `template` is an optional project template name. Available template names are defined in
+    /// `lib/scala/pkg/src/main/scala/org/enso/pkg/Template.scala`.
     fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult>;
 
     /// Return a list of existing projects.
