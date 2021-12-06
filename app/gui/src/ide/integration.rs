@@ -139,21 +139,20 @@ impl Integration {
     pub fn new(controller: controller::Ide, view: ide_view::root::View) -> Self {
         let logger = Logger::new("ide::Integration");
         let project_integration = default();
-        let root_frp = view.frp.clone_ref();
-        let welcome_view_frp = view.welcome_screen().frp.clone_ref();
         let model = Rc::new(Model { logger, controller, view, project_integration });
 
         frp::new_network! { network
-            let frp = root_frp.clone_ref();
+            let welcome_view_frp = &model.view.welcome_screen().frp;
             eval welcome_view_frp.open_project((name) {
                 model.open_project(name);
-                frp.switch_view_to_project.emit(());
             });
-            let frp = root_frp.clone_ref();
             eval welcome_view_frp.create_project((template) {
                 model.create_project(template.as_deref());
-                frp.switch_view_to_project.emit(());
             });
+
+            let root_frp = &model.view.frp;
+            root_frp.switch_view_to_project <+ welcome_view_frp.create_project.constant(());
+            root_frp.switch_view_to_project <+ welcome_view_frp.open_project.constant(());
         }
 
         Self { model, network }.init()
