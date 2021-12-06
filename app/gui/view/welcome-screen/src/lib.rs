@@ -99,6 +99,8 @@ impl Model {
 
         // Use `welcome_screen` layer to lock position when panning.
         app.display.scene().dom.layers.welcome_screen.manage(&dom);
+        // Use `panel` layer to lock zoom.
+        app.display.scene().layers.panel.add_exclusive(&dom);
 
         let style = web::create_element("style");
         style.set_inner_html(STYLESHEET);
