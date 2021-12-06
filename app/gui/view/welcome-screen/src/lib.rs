@@ -120,7 +120,7 @@ impl Model {
         let root = web::create_div();
         root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
         // We explicitly enable pointer events for Welcome Screen elements. Pointer events are
-        // disabled for all DOM layers by default.
+        // disabled for all DOM layers by default. See `DomLayers` documentation.
         root.set_style_or_warn("pointer-events", "auto", logger);
 
         let container = Self::create_content_container();
