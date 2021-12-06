@@ -114,6 +114,11 @@ impl Initializer {
         app.views.register::<ide_view::searcher::View>();
         app.views.register::<ide_view::welcome_screen::View>();
         app.views.register::<ensogl_component::text::Area>();
+
+        // As long as .label() of a View is the same, shortcuts and commands are currently also
+        // expected to be the same, so it should not be important which concrete type parameter of
+        // ListView we use below.
+        app.views.register::<ensogl_component::list_view::ListView<ensogl_component::list_view::entry::Label>>();
     }
 
     /// Initialize and return a new Ide Controller.
