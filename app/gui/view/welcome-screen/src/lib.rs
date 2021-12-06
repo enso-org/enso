@@ -85,8 +85,8 @@ impl Model {
     /// Constructor. `frp` is used to set up event handlers on buttons.
     pub fn new(
         app: &Application,
-        open_project: frp::Any<String>,
-        create_project: frp::Any<Option<String>>,
+        open_project: OpenProject,
+        create_project: CreateProject,
     ) -> Self {
         let application = app.clone_ref();
         let logger = Logger::new("WelcomeScreen");
