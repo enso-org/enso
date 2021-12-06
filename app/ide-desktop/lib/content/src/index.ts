@@ -914,7 +914,7 @@ function tryAsString(value: any): string {
 }
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
-async function mainEntryPoint(config: Config) {
+async function runEntryPoint(config: Config) {
     // @ts-ignore
     API[globalConfig.windowAppScopeConfigName] = config
 
@@ -972,10 +972,10 @@ API.main = async function (inputConfig: any) {
         if (config.authentication_enabled && !Versions.isDevVersion()) {
             new FirebaseAuthentication(function (user: any) {
                 config.email = user.email
-                mainEntryPoint(config)
+                runEntryPoint(config)
             })
         } else {
-            await mainEntryPoint(config)
+            await runEntryPoint(config)
         }
     } else {
         // Display a message asking to update the application.
