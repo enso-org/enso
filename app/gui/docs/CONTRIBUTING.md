@@ -271,7 +271,7 @@ PR, simply add `[ci build]` anywhere in the PR description.
 By default, CI would fail if the `CHANGELOG.md` file does not need to be
 updated. However, sometimes there are PRs that does not change anything
 significant in the final product. You can then simply add
-`[ci no changelog needed]` anywhere in your commit message to skip this
+`[ci no changelog needed]` anywhere in your PR description to skip this
 assertion.
 
 ### Publishing Results
