@@ -113,6 +113,7 @@ impl Initializer {
         app.views.register::<ide_view::project::View>();
         app.views.register::<ide_view::searcher::View>();
         app.views.register::<ide_view::welcome_screen::View>();
+        app.views.register::<ensogl_component::text::Area>();
     }
 
     /// Initialize and return a new Ide Controller.
