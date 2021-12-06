@@ -149,20 +149,20 @@ ensogl::define_endpoints! {
     Input {
         /// Set a displayed list of projects.
         set_projects_list(Vec<String>),
-
+    }
+    Output {
         /// Open project by name.
         open_project(String),
         /// Create a new project. Optional argument is a template name.
         create_project(Option<String>),
     }
-    Output {}
 }
 
 
 // === FRP Endpoints Alias ===
 
-type OpenProject = frp::Any<String>;
-type CreateProject = frp::Any<Option<String>>;
+type OpenProject = frp::Source<String>;
+type CreateProject = frp::Source<Option<String>>;
 
 
 
@@ -189,8 +189,15 @@ impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(app, frp.open_project.clone_ref(), frp.create_project.clone_ref());
         let network = &frp.network;
+        frp::extend! { network
+            def open_project = source();
+            def create_project = source();
+            frp.output.source.open_project <+ open_project;
+            frp.output.source.create_project <+ create_project;
+        }
+
+        let model = Model::new(app, open_project, create_project);
 
         frp::extend! { network
             // === Update DOM's size so CSS styles work correctly. ===
@@ -199,7 +206,7 @@ impl View {
             eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
 
 
-            // === Receive updates of projects list. ===
+            // === Receive updates of the projects list. ===
 
             eval frp.set_projects_list((list) model.set_projects_list(list));
         }
