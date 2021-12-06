@@ -65,6 +65,7 @@ impl Initializer {
             info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
+            Initializer::register_views(&application);
             let view = application.new_view::<ide_view::root::View>();
 
             // If `rust_welcome_screen` feature-flag is not used, switch to project view
@@ -102,6 +103,10 @@ impl Initializer {
                 .ok();
         });
         std::mem::forget(executor);
+    }
+
+    fn register_views(app: &Application) {
+        app.views.register::<ide_view::root::View>();
     }
 
     /// Initialize and return a new Ide Controller.
