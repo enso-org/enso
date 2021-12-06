@@ -2,15 +2,11 @@
 
 #### Visual Environment
 
-- [Reimplemented Welcome Screen.][3167]. Welcome Screen is now integrated much
-  tightly into the codebase and it will make further improvements a lot easier
-  for developers.
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
-[3167]: https://github.com/enso-org/enso/pull/3167
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
