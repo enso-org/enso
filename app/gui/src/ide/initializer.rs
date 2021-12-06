@@ -117,6 +117,7 @@ impl Initializer {
         // FIXME: decimal_aligned is a private module:
         // app.views.register::<ensogl_component::selector::decimal_aligned::FloatLabel>();
         app.views.register::<ensogl_component::selector::NumberPicker>();
+        app.views.register::<ensogl_component::selector::NumberRangePicker>();
 
         // As long as .label() of a View is the same, shortcuts and commands are currently also
         // expected to be the same, so it should not be important which concrete type parameter of
