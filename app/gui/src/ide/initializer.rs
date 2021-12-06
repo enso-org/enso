@@ -107,6 +107,10 @@ impl Initializer {
 
     fn register_views(app: &Application) {
         app.views.register::<ide_view::root::View>();
+        app.views.register::<ide_view::graph_editor::GraphEditor>();
+        app.views.register::<ide_view::code_editor::View>();
+        app.views.register::<ide_view::project::View>();
+        app.views.register::<ide_view::searcher::View>();
     }
 
     /// Initialize and return a new Ide Controller.
