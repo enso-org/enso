@@ -123,6 +123,10 @@ impl Initializer {
         // expected to be the same, so it should not be important which concrete type parameter of
         // ListView we use below.
         app.views.register::<ensogl_component::list_view::ListView<ensogl_component::list_view::entry::Label>>();
+
+        if enso_config::ARGS.is_in_cloud == Some(true) {
+            app.views.register::<ide_view::window_control_buttons::View>();
+        }
     }
 
     /// Initialize and return a new Ide Controller.
