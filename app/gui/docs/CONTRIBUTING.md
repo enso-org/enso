@@ -110,9 +110,9 @@ Please be sure to carefully read the
 [Rust style guide 2](https://enso.org/docs/developer/ide/contributing/style-guide.html)
 before contributing to the codebase.
 
-We do also use [`prettier`](https://prettier.io/) for the JavaScript and Markdown files in
-our code base. If you have not installed it already you can do so via
-`npm install prettier`. To use it manually via command line run
+We do also use [`prettier`](https://prettier.io/) for the JavaScript and
+Markdown files in our code base. If you have not installed it already you can do
+so via `npm install prettier`. To use it manually via command line run
 `prettier --write` to all JavaScript files in the project. Alternatively, there
 are plugins for many IDEs available to do this for you.
 
