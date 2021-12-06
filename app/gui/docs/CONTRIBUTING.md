@@ -61,9 +61,16 @@ setup:
   ```bash
   rustup toolchain install nightly-2021-05-12     # Install the nightly channel.
   rustup component add clippy                     # Install the linter.
+  rustup toolchain install stable                 # Stable toolchain required for the following tools.
   cargo +stable install wasm-pack --version 0.9.1 # Install the wasm-pack toolkit.
   cargo +stable install cargo-watch               # To enable ./run watch utility
   ```
+
+  Make sure that your `PATH` environment variable is set up correctly, so that
+  the binaries installed by cargo
+  ([typically to `$HOME/.cargo/bin`](https://doc.rust-lang.org/cargo/commands/cargo-install.html#description))
+  can be run from the command line; verify this by running
+  `wasm-pack --version`.
 
 - **Node and Node Package Manager LTS**
 
@@ -98,16 +105,14 @@ setup:
 
 ## Working with sources
 
-Please note that you should not use `cargo fmt` on this code base. Please read
-the following documents to learn more about reasons behind this decision and the
-recommended code style guide. Be sure to carefully read the
+Please be sure to carefully read the
 [Rust style guide 1](./contributing/style-guide.md) and the
 [Rust style guide 2](https://enso.org/docs/developer/ide/contributing/style-guide.html)
 before contributing to the codebase.
 
-We do, however, use [`prettier`](https://prettier.io/) for the JavaScript files
-in our code base. If you have not installed it already you can do so via
-`npm install prettier`. To use it manually via command line run
+We do also use [`prettier`](https://prettier.io/) for the JavaScript and
+Markdown files in our code base. If you have not installed it already you can do
+so via `npm install prettier`. To use it manually via command line run
 `prettier --write` to all JavaScript files in the project. Alternatively, there
 are plugins for many IDEs available to do this for you.
 
@@ -266,7 +271,7 @@ PR, simply add `[ci build]` anywhere in the PR description.
 By default, CI would fail if the `CHANGELOG.md` file does not need to be
 updated. However, sometimes there are PRs that does not change anything
 significant in the final product. You can then simply add
-`[ci no changelog needed]` anywhere in your commit message to skip this
+`[ci no changelog needed]` anywhere in your PR description to skip this
 assertion.
 
 ### Publishing Results
