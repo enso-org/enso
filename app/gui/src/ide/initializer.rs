@@ -125,7 +125,7 @@ impl Initializer {
         // ListView we use below.
         app.views.register::<ensogl_component::list_view::ListView<ensogl_component::list_view::entry::Label>>();
 
-        if enso_config::ARGS.is_in_cloud == Some(true) {
+        if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
             app.views.register::<ide_view::window_control_buttons::View>();
             // TODO: CloseButton
         }
