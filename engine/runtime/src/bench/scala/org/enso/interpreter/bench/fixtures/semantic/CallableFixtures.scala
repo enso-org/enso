@@ -5,6 +5,22 @@ import org.enso.interpreter.test.DefaultInterpreterRunner
 class CallableFixtures extends DefaultInterpreterRunner {
   val hundredMillion: Long = 100000000
 
+  val sumTCOfromCallCode =
+    """
+      |from Standard.Builtins import all
+      |
+      |type Foo
+      |
+      |Foo.from (acc : Number) = current ->
+      |    if current == 0 then acc else @Tail_Call Foo.from (acc + current) (current - 1)
+      |
+      |main = sumTo ->
+      |    res = Foo.from 0 sumTo
+      |    res
+      |""".stripMargin
+  val sumTCOfromCall = getMain(sumTCOfromCallCode)
+
+
   val sumTCOmethodCallCode =
     """
       |summator = acc -> current ->

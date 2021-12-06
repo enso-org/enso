@@ -27,6 +27,11 @@ public class CallableBenchmarks {
   }
 
   @Benchmark
+  public void benchSumTCOfromCall() {
+    runOnHundredMillion(argumentFixtures.sumTCOfromCall());
+  }
+
+  @Benchmark
   public void benchSumTCOmethodCall() {
     runOnHundredMillion(argumentFixtures.sumTCOmethodCall());
   }
