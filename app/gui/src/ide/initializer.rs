@@ -114,8 +114,6 @@ impl Initializer {
         app.views.register::<ide_view::searcher::View>();
         app.views.register::<ide_view::welcome_screen::View>();
         app.views.register::<ensogl_component::text::Area>();
-        // FIXME: decimal_aligned is a private module:
-        // app.views.register::<ensogl_component::selector::decimal_aligned::FloatLabel>();
         app.views.register::<ensogl_component::selector::NumberPicker>();
         app.views.register::<ensogl_component::selector::NumberRangePicker>();
 
@@ -127,7 +125,6 @@ impl Initializer {
 
         if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
             app.views.register::<ide_view::window_control_buttons::View>();
-            // TODO: CloseButton
         }
     }
 
