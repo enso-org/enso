@@ -332,14 +332,3 @@ impl<Shape> application::command::FrpNetworkProvider for View<Shape> {
     }
 }
 
-impl<Shape: ButtonShape> application::View for View<Shape> {
-    fn label() -> &'static str {
-        "CloseButton"
-    }
-    fn new(app: &Application) -> Self {
-        View::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.model.app
-    }
-}
