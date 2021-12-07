@@ -191,8 +191,8 @@ impl View {
         let frp = Frp::new();
         let network = &frp.network;
         frp::extend! { network
-            def open_project = source();
-            def create_project = source();
+            open_project <- source();
+            create_project <- source();
             frp.output.source.open_project <+ open_project;
             frp.output.source.create_project <+ create_project;
         }
