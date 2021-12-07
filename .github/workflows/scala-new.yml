@@ -1,10 +1,11 @@
-name: Engine CI
+name: Engine CI V2
 
 on:
   push:
     branches: ["*"]
   pull_request:
     branches: ["*"]
+  workflow_dispatch:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
