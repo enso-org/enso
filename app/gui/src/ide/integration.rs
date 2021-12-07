@@ -73,7 +73,7 @@ impl Model {
         }
     }
 
-    /// Open a project by name. It makes to calls to Project Manager: one for listing projects and
+    /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
     /// a second one for opening the project.
     pub fn open_project(&self, project_name: &str) {
         let logger = self.logger.clone_ref();
