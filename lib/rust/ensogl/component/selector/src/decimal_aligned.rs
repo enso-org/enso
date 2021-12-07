@@ -135,4 +135,3 @@ impl application::command::FrpNetworkProvider for FloatLabel {
         self.frp.network()
     }
 }
-

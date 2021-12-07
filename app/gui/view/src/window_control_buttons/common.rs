@@ -331,4 +331,3 @@ impl<Shape> application::command::FrpNetworkProvider for View<Shape> {
         &self.frp.network
     }
 }
-
