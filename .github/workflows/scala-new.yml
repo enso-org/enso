@@ -30,8 +30,5 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/checkout@v2
-        with:
-          repository: enso-org/ci
-          path: ci
-          ref: wip/mwu/build
+      - run: cargo run --bin build_enso
+        working-directory: C:\ci
