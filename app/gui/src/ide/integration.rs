@@ -73,7 +73,8 @@ impl Model {
         }
     }
 
-    /// Open a project by name.
+    /// Open a project by name. It makes to calls to Project Manager: one for listing projects and
+    /// a second one for opening the project.
     pub fn open_project(&self, project_name: &str) {
         let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
@@ -101,7 +102,8 @@ impl Model {
         });
     }
 
-    /// Create a new project. `template` is an optional name of the template.
+    /// Create a new project. `template` is an optional name of the project template passed to the
+    /// Engine. It makes a call to Project Manager.
     fn create_project(&self, template: Option<&str>) {
         let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
