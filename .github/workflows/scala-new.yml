@@ -34,3 +34,4 @@ jobs:
         with:
           repository: enso-org/ci
           path: ci
+          ref: wip/mwu/build
