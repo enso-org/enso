@@ -467,8 +467,6 @@ impl<E: Entry> application::command::FrpNetworkProvider for ListView<E> {
 }
 
 impl<E: Entry> application::View for ListView<E> {
-    // NOTE: if implementing a different specialization of ListView, make sure to change the label
-    // appropriately so that 'register' would properly differentiate shortcuts etc.
     fn label() -> &'static str {
         "ListView"
     }
