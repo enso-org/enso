@@ -30,5 +30,5 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
-      - run: cargo run --bin build_enso
+      - run: cargo run --bin build-enso -- ${{ github.workspace }}
         working-directory: C:\ci
