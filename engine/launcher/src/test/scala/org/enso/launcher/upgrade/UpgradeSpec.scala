@@ -11,10 +11,13 @@ import org.enso.launcher._
 import org.enso.testkit.{FlakySpec, WithTemporaryDirectory}
 import org.enso.testkit.process.{RunResult, WrappedProcess}
 import org.scalatest.exceptions.TestFailedException
-import org.scalatest.{BeforeAndAfterAll, OptionValues}
+import org.scalatest.{BeforeAndAfterAll, Ignore, OptionValues}
 
 import scala.concurrent.TimeoutException
 
+// TODO [DB] The suite became quite flaky and frequently fails the
+// Windows CI. Disabled until #3183 is implemented.
+@Ignore
 class UpgradeSpec
     extends NativeTest
     with WithTemporaryDirectory
