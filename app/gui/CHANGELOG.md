@@ -4,7 +4,8 @@
 
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
-- [Fixed developer console warnings about views being created but not registered.][3181]
+- [Fixed developer console warnings about views being created but not
+  registered.][3181]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
