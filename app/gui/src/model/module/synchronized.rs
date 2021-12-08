@@ -25,6 +25,7 @@ use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
 
+use logger::DefaultTraceLogger as Logger;
 
 
 // =======================
