@@ -135,15 +135,3 @@ impl application::command::FrpNetworkProvider for FloatLabel {
         self.frp.network()
     }
 }
-
-impl application::View for FloatLabel {
-    fn label() -> &'static str {
-        "FloatLabel"
-    }
-    fn new(app: &Application) -> Self {
-        FloatLabel::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.app
-    }
-}

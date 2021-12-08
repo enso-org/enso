@@ -8,19 +8,22 @@ import org.enso.distribution.locking.{FileLockManager, LockType}
 import FileSystem.PathSyntax
 import org.enso.cli.OS
 import org.enso.launcher._
-import org.enso.testkit.{RetrySpec, WithTemporaryDirectory}
+import org.enso.testkit.{FlakySpec, WithTemporaryDirectory}
 import org.enso.testkit.process.{RunResult, WrappedProcess}
 import org.scalatest.exceptions.TestFailedException
-import org.scalatest.{BeforeAndAfterAll, OptionValues}
+import org.scalatest.{BeforeAndAfterAll, Ignore, OptionValues}
 
 import scala.concurrent.TimeoutException
 
+// TODO [DB] The suite became quite flaky and frequently fails the
+// Windows CI. Disabled until #3183 is implemented.
+@Ignore
 class UpgradeSpec
     extends NativeTest
     with WithTemporaryDirectory
     with BeforeAndAfterAll
     with OptionValues
-    with RetrySpec {
+    with FlakySpec {
 
   /** Location of the fake releases root.
     */
@@ -156,7 +159,7 @@ class UpgradeSpec
   }
 
   "upgrade" should {
-    "upgrade to latest version (excluding broken)" taggedAs Retry in {
+    "upgrade to latest version (excluding broken)" taggedAs Flaky in {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 2))
@@ -166,7 +169,7 @@ class UpgradeSpec
       checkVersion() shouldEqual SemVer(0, 0, 4)
     }
 
-    "not downgrade without being explicitly asked to do so" taggedAs Retry in {
+    "not downgrade without being explicitly asked to do so" taggedAs Flaky in {
       // precondition for the test to make sense
       SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
 
@@ -177,7 +180,7 @@ class UpgradeSpec
     }
 
     "upgrade/downgrade to a specific version " +
-    "(and update necessary files)" taggedAs Retry in {
+    "(and update necessary files)" taggedAs Flaky in {
       // precondition for the test to make sense
       SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
 
@@ -194,7 +197,7 @@ class UpgradeSpec
         .trim shouldEqual "Test license"
     }
 
-    "upgrade also in installed mode" taggedAs Retry in {
+    "upgrade also in installed mode" taggedAs Flaky in {
       prepareDistribution(
         portable        = false,
         launcherVersion = Some(SemVer(0, 0, 0))
@@ -218,7 +221,7 @@ class UpgradeSpec
         .trim shouldEqual "Test license"
     }
 
-    "perform a multi-step upgrade if necessary" taggedAs Retry in {
+    "perform a multi-step upgrade if necessary" taggedAs Flaky in {
       // 0.0.3 can only be upgraded from 0.0.2 which can only be upgraded from
       // 0.0.1, so the upgrade path should be following:
       // 0.0.0 -> 0.0.1 -> 0.0.2 -> 0.0.3
@@ -309,7 +312,7 @@ class UpgradeSpec
       result.stdout should include(message)
     }
 
-    "fail if another upgrade is running in parallel" taggedAs Retry in {
+    "fail if another upgrade is running in parallel" taggedAs Flaky in {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 1))
