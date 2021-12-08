@@ -137,13 +137,48 @@ impl DisplayedConnections {
 }
 
 
-// === Displayed Expression ===
+// === DisplayedExpressionss ===
 
 #[derive(Clone, Debug, Default)]
 struct DisplayedExpression {
-    node:            ViewNodeId,
+    node:            AstNodeId,
     expression_type: Option<view::graph_editor::Type>,
     method_pointer:  Option<view::graph_editor::MethodPointer>,
+}
+
+#[derive(Clone, Debug, Default)]
+struct DisplayedExpressions {
+    expressions:         HashMap<ast::Id, DisplayedExpression>,
+    expressions_of_node: HashMap<AstNodeId, Vec<ast::Id>>,
+}
+
+impl DisplayedExpressions {
+    fn retain_expression_of_nodes(&mut self, nodes: &HashSet<AstNodeId>) {
+        let nodes_to_remove =
+            self.expressions_of_node.drain_filter(|node_id, _| !nodes.contains(node_id));
+        let expr_to_remove = nodes_to_remove.map(|(_, exprs)| exprs).flatten();
+        for expression_id in expr_to_remove {
+            self.expressions.remove(&expression_id);
+        }
+    }
+
+    fn node_expression_changed(&mut self, node: AstNodeId, expressions: Vec<ast::Id>) {
+        let new_set: HashSet<ast::Id> = expressions.iter().copied().collect();
+        let old_set = self.expressions_of_node.insert(node, expressions).unwrap_or_default();
+        for old_expression in old_set {
+            if !new_set.contains(&old_expression) {
+                self.expressions.remove(&old_expression);
+            }
+        }
+    }
+
+    fn get_mut(&mut self, id: ast::Id) -> Option<&mut DisplayedExpression> {
+        self.expressions.get_mut(&id)
+    }
+
+    fn subexpressions_of_node(&self, id: ast::Id) -> &[ast::Id] {
+        self.expressions_of_node.get(&id).map_or(&[], |v| v.as_slice())
+    }
 }
 
 
@@ -153,7 +188,7 @@ struct DisplayedExpression {
 struct DisplayedState {
     nodes:       RefCell<DisplayedNodes>,
     connections: RefCell<DisplayedConnections>,
-    expressions: RefCell<HashMap<ast::Id, DisplayedExpression>>,
+    expressions: RefCell<DisplayedExpressions>,
 }
 
 impl DisplayedState {
@@ -176,7 +211,11 @@ impl DisplayedState {
     }
 
     fn view_id_of_ast_node(&self, node: AstNodeId) -> Option<ViewNodeId> {
-        self.nodes.borrow().displayed_nodes.get(&node).and_then(|node| node.view_id)
+        self.nodes.borrow().get(node).and_then(|n| n.view_id)
+    }
+
+    fn ast_id_of_view_node(&self, node: ViewNodeId) -> Option<AstNodeId> {
+        self.nodes.borrow().ast_id_of_view(node)
     }
 
     fn view_of_ast_connection(&self, connection: &AstConnection) -> Option<ViewConnection> {
@@ -209,7 +248,14 @@ impl DisplayedState {
         })
     }
 
+    fn subexpressions_of_node(&self, node: ViewNodeId) -> Vec<ast::Id> {
+        let ast_node = self.nodes.borrow().ast_id_of_view(node);
+        ast_node
+            .map_or_default(|id| self.expressions.borrow().subexpressions_of_node(id).to_owned())
+    }
+
     fn retain_nodes(&self, nodes: &HashSet<AstNodeId>) -> Vec<ViewNodeId> {
+        self.expressions.borrow_mut().retain_expression_of_nodes(nodes);
         self.nodes.borrow_mut().retain_nodes(nodes)
     }
 
@@ -245,7 +291,40 @@ impl DisplayedState {
         let displayed = nodes.get_mut_or_create(ast_id);
         if &displayed.expression != &new_displayed_expr {
             displayed.expression = new_displayed_expr.clone();
+            let new_expressions =
+                node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
+            self.expressions.borrow_mut().node_expression_changed(ast_id, new_expressions);
             Some((displayed.view_id?, new_displayed_expr))
+        } else {
+            None
+        }
+    }
+
+    fn refresh_expression_type(
+        &self,
+        id: ast::Id,
+        new_type: Option<view::graph_editor::Type>,
+    ) -> Option<ViewNodeId> {
+        let mut expressions = self.expressions.borrow_mut();
+        let to_update = expressions.get_mut(id).filter(|d| d.expression_type != new_type);
+        if let Some(displayed) = to_update {
+            displayed.expression_type = new_type;
+            self.nodes.borrow().get(displayed.node).and_then(|node| node.view_id)
+        } else {
+            None
+        }
+    }
+
+    fn refresh_expression_method_pointer(
+        &self,
+        id: ast::Id,
+        method_ptr: Option<view::graph_editor::MethodPointer>,
+    ) -> Option<ViewNodeId> {
+        let mut expressions = self.expressions.borrow_mut();
+        let to_update = expressions.get_mut(id).filter(|d| d.method_pointer != method_ptr);
+        if let Some(displayed) = to_update {
+            displayed.method_pointer = method_ptr;
+            self.nodes.borrow().get(displayed.node).and_then(|node| node.view_id)
         } else {
             None
         }
@@ -318,7 +397,7 @@ impl Model {
                 let ast_to_create = self.displayed.assign_connection_view(connection)?;
                 Some(self.controller.connect(&ast_to_create))
             },
-            "create connetion",
+            "create connection",
         );
     }
 
@@ -337,6 +416,61 @@ impl Model {
         if let Some(Err(err)) = f() {
             error!(self.logger, "Failed to {action} in AST: {err}");
         }
+    }
+
+    fn all_types_of_node(
+        &self,
+        node: ViewNodeId,
+    ) -> Vec<(ViewNodeId, ast::Id, Option<view::graph_editor::Type>)> {
+        let subexpressions = self.displayed.subexpressions_of_node(node);
+        subexpressions
+            .iter()
+            .map(|id| {
+                let a_type = self.expression_type(*id);
+                self.displayed.refresh_expression_type(*id, a_type.clone());
+                (node, *id, a_type)
+            })
+            .collect()
+    }
+
+    fn all_method_pointers_of_node(
+        &self,
+        node: ViewNodeId,
+    ) -> Vec<(ast::Id, Option<view::graph_editor::MethodPointer>)> {
+        let subexpressions = self.displayed.subexpressions_of_node(node);
+        subexpressions.iter().filter_map(|id| self.refresh_expression_method_pointer(*id)).collect()
+    }
+
+    fn refresh_expression_type(
+        &self,
+        id: ast::Id,
+    ) -> Option<(ViewNodeId, ast::Id, Option<view::graph_editor::Type>)> {
+        let a_type = self.expression_type(id);
+        let node_view = self.displayed.refresh_expression_type(id, a_type.clone())?;
+        Some((node_view, id, a_type))
+    }
+
+    fn refresh_expression_method_pointer(
+        &self,
+        id: ast::Id,
+    ) -> Option<(ast::Id, Option<view::graph_editor::MethodPointer>)> {
+        let method_pointer = self.expression_method(id);
+        self.displayed.refresh_expression_method_pointer(id, method_pointer.clone())?;
+        Some((id, method_pointer))
+    }
+
+    fn expression_type(&self, id: ast::Id) -> Option<view::graph_editor::Type> {
+        let registry = self.controller.computed_value_info_registry();
+        let info = registry.get(&id)?;
+        Some(view::graph_editor::Type(info.typename.as_ref()?.clone_ref()))
+    }
+
+    fn expression_method(&self, id: ast::Id) -> Option<view::graph_editor::MethodPointer> {
+        let registry = self.controller.computed_value_info_registry();
+        let method_id = registry.get(&id)?.method_call?;
+        let suggestion_db = self.controller.graph().suggestion_db.clone_ref();
+        let method = suggestion_db.lookup_method_ptr(method_id).ok()?;
+        Some(view::graph_editor::MethodPointer(Rc::new(method)))
     }
 }
 
@@ -446,12 +580,12 @@ impl Graph {
             );
 
             remove_node <= update_data.map(|update| update.nodes_to_remove());
-            set_node_expression <= update_data.map(|update| update.expressions_to_set());
+            update_node_expression <= update_data.map(|update| update.expressions_to_set());
             set_node_position <= update_data.map(|update| update.positions_to_set());
             remove_connection <= update_data.map(|update| update.connections_to_remove());
             add_connection <= update_data.map(|update| update.connections_to_add());
             view.remove_node <+ remove_node;
-            view.set_node_expression <+ set_node_expression;
+            view.set_node_expression <+ update_node_expression;
             view.set_node_position <+ set_node_position;
             view.remove_edge <+ remove_connection;
             view.connect_nodes <+ add_connection;
@@ -460,21 +594,37 @@ impl Graph {
             added_node_update <- view.node_added.filter_map(f!((view_id)
                 model.displayed.assign_newly_created_node(*view_id)
             ));
-            view.set_node_expression <+ added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));
+            init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));
+            view.set_node_expression <+ init_node_expression;
             view.set_node_position <+ added_node_update.filter_map(|update| Some((update.view_id?, update.position)));
+
+            reset_node_types <- any(update_node_expression, init_node_expression)._0();
+            set_expression_type <= reset_node_types.map(f!((view_id) model.all_types_of_node(*view_id)));
+            set_method_pointer <= reset_node_types.map(f!((view_id) model.all_method_pointers_of_node(*view_id)));
+            view.set_expression_usage_type <+ set_expression_type;
+            view.set_method_pointer <+ set_method_pointer;
 
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
             eval view.on_edge_endpoints_set((edge_id) model.new_connection_created(*edge_id));
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
+
+            update_expressions <- source::<Vec<ast::Id>>();
+            update_expression <= update_expressions;
+            view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
+            view.set_method_pointer <+ update_expression.filter_map(f!((id) model.refresh_expression_method_pointer(*id)));
         }
 
-        self.setup_controller_notification_handlers(update_view.clone_ref());
+        self.setup_controller_notification_handlers(update_view, update_expressions);
 
         self
     }
 
-    fn setup_controller_notification_handlers(&self, update_view: frp::Source<()>) {
+    fn setup_controller_notification_handlers(
+        &self,
+        update_view: frp::Source<()>,
+        update_expressions: frp::Source<Vec<ast::Id>>,
+    ) {
         use crate::controller::graph::executed;
         use crate::controller::graph::Notification;
         let graph_notifications = self.model.controller.subscribe();
@@ -482,9 +632,10 @@ impl Graph {
             match notification {
                 executed::Notification::Graph(graph) => match graph {
                     Notification::Invalidate => update_view.emit(()),
-                    Notification::PortsUpdate => {}
+                    Notification::PortsUpdate => update_view.emit(()),
                 },
-                executed::Notification::ComputedValueInfo(_) => {}
+                executed::Notification::ComputedValueInfo(expressions) =>
+                    update_expressions.emit(expressions),
                 executed::Notification::EnteredNode(_) => {}
                 executed::Notification::SteppedOutOfNode(_) => {}
             }
