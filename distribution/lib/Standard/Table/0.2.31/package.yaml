@@ -1,6 +1,6 @@
-name: Base
+name: Table
 namespace: Standard
-version: 0.0.0-SNAPSHOT
+version: 0.2.31
 license: APLv2
 authors:
   - name: Enso Team
