@@ -328,6 +328,7 @@ impl Module {
                     };
                     //id_map goes first, because code change may alter its position.
                     let edits = vec![id_map_change, code_change];
+                    DEBUG!("code changed: {edits:?}");
                     self.notify_language_server(&summary.summary, &new_file, edits).await
                 }
                 NotificationKind::MetadataChanged => {
@@ -335,6 +336,7 @@ impl Module {
                         range: summary.metadata.into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
+                    DEBUG!("metadata changed: {edits:?}");
                     self.notify_language_server(&summary.summary, &new_file, edits).await
                 }
             },

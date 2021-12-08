@@ -62,6 +62,9 @@ impl Module {
             return Ok(());
         }
         trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
+        use engine_protocol::types::Sha3_224;
+        let hash = Sha3_224::new(new_content.serialize().unwrap().content.as_bytes());
+        DEBUG!("Updating module's content: {kind:?}. New content {hash}:\n[[[{new_content}]]]");
         let transaction = self.repository.transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content.borrow().clone());
 
