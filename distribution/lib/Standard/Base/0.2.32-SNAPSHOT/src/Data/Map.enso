@@ -455,3 +455,43 @@ No_Value_For_Key_Error.to_display_text : Text
 No_Value_For_Key_Error.to_display_text =
     "The map contained no value for the key " + this.key.to_text + "."
 
+## UNSTABLE
+
+   Converts the map into a vector of `[key, value]` pairs.
+
+   The returned vector is sorted in the increasing order of keys.
+
+   > Example
+     Convert a map to a vector.
+
+         import Standard.Base.Data.Map
+         import Standard.Examples
+
+         example_to_vector = Examples.map.to Vector
+Vector.from : Map -> Vector
+Vector.from (object : Map) =
+    builder = Vector.new_builder
+    to_vector_with_builder m = case m of
+        Bin _ k v l r ->
+            to_vector_with_builder l
+            builder.append [k, v]
+            to_vector_with_builder r
+            Nothing
+        Tip -> Nothing
+    to_vector_with_builder object
+    result = builder.to_vector
+    result
+
+## UNSTABLE
+
+   Returns a text representation of this map.
+
+   > Example
+     Convert a map to text.
+
+         import Standard.Base.Data.Map
+         import Standard.Examples
+
+         example_to_text = Examples.map.to Text
+Text.from : Map -> Text
+Text.from (object : Map) = object.to Vector . to Text

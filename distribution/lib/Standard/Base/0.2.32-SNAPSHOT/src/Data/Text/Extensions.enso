@@ -862,3 +862,12 @@ Text.to_upper_case : Locale.Locale -> Text
 Text.to_upper_case locale=Locale.default =
     UCharacter.toUpperCase locale.java_locale this
 
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert text to text.
+         new_text = "Hello World!".to Text
+Text.from : Text -> Text
+Text.from (object : Text) = object

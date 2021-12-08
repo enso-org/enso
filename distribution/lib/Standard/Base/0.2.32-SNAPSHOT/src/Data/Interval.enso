@@ -108,4 +108,3 @@ type Interval
              example_not_empty = Interval.inclusive 0 1 . not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
-

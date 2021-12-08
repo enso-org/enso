@@ -132,3 +132,29 @@ type Zone
              example_to_json = Zone.system.to_json
     to_json : Json.Object
     to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
+
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert Zone to itself.
+
+     import Standard.Base.Data.Time.Zone
+
+     example_to_zone = Zone.system.to Zone
+Zone.from : Zone -> Zone
+Zone.from (object : Zone) = object
+
+## UNSTABLE
+
+   Convert the time zone to JSON.
+
+   > Example
+     Convert your system's current timezone to JSON.
+
+         import Standard.Base.Data.Time.Zone
+
+         example_to_json = Zone.system.to Json
+Json.from : Zone -> Json.Object
+Json.from (object : Zone) = Json.from_pairs [["type", "Zone"], ["id", object.zone_id]]

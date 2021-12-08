@@ -1,0 +1,187 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Json
+
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert JSON object to JSON.
+         new_json = Json.parse '{"foo":42}' . to JSON
+Json.from : Json -> Json
+Json.from (object : Json) = object
+
+## UNSTABLE
+
+   Generically converts an atom into a JSON object.
+
+   The input atom is converted into a JSON object, with a `"type"` field set to
+   the atom's type name and all other fields serialized with their name as
+   object key and the value as the object value.
+
+   > Example
+     Convert a vector to JSON array.
+         json_array = [1, 2, 3, 4].to Json
+Json.from : Any -> Json
+Json.from (object : Any) =
+    m = Meta.meta object
+    case m of
+        Meta.Atom _ ->
+            cons = Meta.Constructor m.constructor
+            fs = m.fields
+            fnames = cons.fields
+            json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
+                m.insert (fnames.at i) (fs.at i . to_json)
+            with_tp = json_fs . insert "type" (Json.String cons.name)
+            Json.Object with_tp
+        Meta.Constructor _ ->
+            Json.Object (Map.empty . insert "type" (Json.String m.name))
+
+        ## The following two cases cannot be handled generically and should
+           instead define their own `from` implementations.
+        Meta.Polyglot _ ->
+            Json.Null
+        Meta.Primitive _ ->
+            Json.Null
+
+
+## UNSTABLE
+
+   Create JSON object from Vector.
+
+   > Example
+     Convert a vector to JSON.
+         json_array = [1, 2, 3, 4].to Json
+Json.from Vector -> Json.Array
+Json.from (value : Vector) = Json.Array (value.map Json.from)
+
+## UNSTABLE
+
+   Create JSON object from Array.
+
+   > Example
+     Convert an array to JSON.
+         json_array = Array.new_1 42 . to Json
+Json.from Array -> Json.Array
+Json.from (value : Array) = Json.Array (Vector.from_array value . map Json.from)
+
+## UNSTABLE
+
+   Create JSON object from Vector.
+
+   > Example
+     Convert an array to JSON.
+         json_array = [1, 2, 3].to Json.Array
+Json.Array.from Vector -> Json.Array
+Json.Array.from (value : Vector) = Json.Array (value.map Json.from)
+
+## UNSTABLE
+
+   Create JSON object from Vector.
+
+   > Example
+     Convert an array to JSON.
+         json_array = Array.new_1 42 . to Json.Array
+Json.Array.from Array -> Json.Array
+Json.Array.from (value : Array) = Json.Array (Vector.from_array value . map Json.from)
+
+## UNSTABLE
+
+   Unwrap JSON array.
+
+   > Example
+     Convert an array to JSON.
+         unwrapped_vector = Json.parse "[1, 2]" . to Vector
+Vector.from : Json.Array -> Vector
+Vector.from (object : Json.Array) = object.items
+
+## UNSTABLE
+
+   Create JSON object from Text.
+
+   > Example
+     Convert a text to JSON string.
+         json_string = "Hello World!" . to Json
+Json.from Text -> Json
+Json.from (value : Text) = Json.String value
+
+## UNSTABLE
+
+   Create JSON object from Text.
+
+   > Example
+     Convert a text to JSON string.
+         json_string = "Hello World!" . to Json.String
+Json.String.from : Text -> Json.String
+Json.String.from (value : Text) = Json.String value
+
+## UNSTABLE
+
+   Unwrap Json string.
+
+   > Example
+     Convert a JSON string to Text.
+         unwrapped_json_string = Json.parse '"foo"' . to Text
+Text.from : Json.String -> Text
+Text.from (object : Json.String) = object.value
+
+## UNSTABLE
+
+   Create JSON object from Number.
+
+   > Example
+     Convert a number to JSON number.
+         json_number = 42 . to Json
+Json.from : Number -> Json
+Json.from (value : Number) = Json.Number value
+
+## UNSTABLE
+
+   Create JSON object from Number.
+
+   > Example
+     Convert a number to JSON number.
+         json_number = 42 . to Json.Number
+Json.Number.from : Number -> Json.Number
+Json.Number.from (value : Number) = Json.Number value
+
+## UNSTABLE
+
+   Unwrap JSON number.
+
+   > Example
+     Convert a JSON number to Number.
+         unwrapped_json_number = Json.parse "42" . to Number
+Number.from : Json.Number -> Number
+Number.from (object : Json.Number) = object.value
+
+## UNSTABLE
+
+   Create JSON object from Boolean.
+
+   > Example
+     Convert a boolean to JSON boolean.
+         json_boolean = True . to Json
+Json.from : Boolean -> Json
+Json.from (value : Boolean) = Json.Boolean value
+
+## UNSTABLE
+
+   Create JSON object from Boolean.
+
+   > Example
+     Convert a boolean to JSON boolean.
+         json_boolean = True . to Json.Boolean
+Json.Boolean.from : Boolean -> Json.Boolean
+Json.Boolean.from (value : Boolean) = Json.Boolean value
+
+## UNSTABLE
+
+   Unwrap JSON boolean.
+
+   > Example
+     Convert a JSON number to Number.
+         unwrapped_json_boolean = Json.parse "true" . to Boolean
+Boolean.from : Json.Boolean -> Boolean
+Boolean.from (object : Json.Boolean) = object.value

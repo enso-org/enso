@@ -63,3 +63,18 @@ type Maybe
     is_nothing : Boolean
     is_nothing = this.is_some.not
 
+## UNSTABLE
+
+   Wrap Any in Maybe.
+
+   > Example
+     Wrap value in Maybe.
+
+         import Standard.Base.Data.Maybe
+
+         example_wrap = 42.to Maybe
+Maybe.from : Any -> Maybe
+Maybe.from (object : Any) = case object of
+    Nothing -> object
+    Some _ -> object
+    value -> Some value

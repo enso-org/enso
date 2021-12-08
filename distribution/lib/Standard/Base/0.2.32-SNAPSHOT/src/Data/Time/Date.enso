@@ -336,3 +336,42 @@ type Date
     compare_to that =
         sign = this.internal_local_date.compareTo that.internal_local_date
         Ordering.from_sign sign
+
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert Date to itself.
+
+     import Standard.Base.Data.Time.Date
+
+     example_to_date = Date.now.to Date
+Date.from : Date -> Date
+Date.from (object : Date) = object
+
+## UNSTABLE
+
+   Format this date using the default formatter.
+
+   > Example
+     Convert the current date to text.
+
+         import Standard.Base.Data.Time.Date
+
+         example_to_text = Date.now.to Text
+Text.from : Date -> Text
+Text.from (object : Date) = Time_Utils.default_date_formatter . format object.internal_local_date
+
+## UNSTABLE
+
+   A Date to Json conversion.
+
+   > Example
+     Convert the current date to JSON.
+
+         import Standard.Base.Data.Time.Date
+
+         example_to_json = Date.now.to Json
+Json.from : Date -> Json.Object
+Json.from (object : Date) = Json.from_pairs [["type", "Date"], ["day", object.day], ["month", object.month], ["year", object.year]]

@@ -111,6 +111,19 @@ spec =
                 fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
                 Json.Object fields
 
+        Test.specify "should convert types to JSON" <|
+            1.to Json . should_equal (Json.Number 1)
+            0.1.to Json . should_equal (Json.Number 0.1)
+            "foo".to Json . should_equal (Json.String "foo")
+            ["foo", "bar"].to Json . should_equal <|
+                (Json.Array [Json.String "foo", Json.String "bar"])
+            Author "Tolkien" 1892 . to Json . should_equal <|
+                n = Json.String "Tolkien"
+                y = Json.Number 1892
+                t = Json.String "Author"
+                fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
+                Json.Object fields
+
     Test.group "JSON" <|
 
         Test.specify "should allow getting object fields" <|
@@ -121,4 +134,3 @@ spec =
 
             object.get "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with Json.No_Such_Field_Error
-

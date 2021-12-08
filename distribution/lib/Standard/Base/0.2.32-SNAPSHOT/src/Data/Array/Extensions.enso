@@ -17,3 +17,24 @@ Array.to_default_visualization_data : Text
 Array.to_default_visualization_data =
     Vector.Vector this . to_default_visualization_data
 
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert array to array.
+
+         new_array = Array.new_1 "foo" . to Array
+Array.from : Array -> Array
+Array.from (value : Array) = value
+
+## UNSTABLE
+
+   Convert an Array to Vector.
+
+   > Example
+     Create Vector from Array.
+
+         new_array = [1, 2, 3].to Array
+Array.from : Vector -> Array
+Array.from (value : Vector) = value.to_array

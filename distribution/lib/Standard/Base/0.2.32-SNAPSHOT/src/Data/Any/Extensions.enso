@@ -339,3 +339,18 @@ Any.>> ~that = x -> that (this x)
          2.to_default_visualization_data
 Any.to_default_visualization_data : Text
 Any.to_default_visualization_data = this.to_json.to_text
+
+## UNSTABLE
+
+   The unified conversion. The conversion is based on the `from` method call of
+   the target type.
+
+   Arguments:
+   - target: the target type of conversion.
+
+   > Example
+     Convert anything to vector.
+
+         singleton_vector = 2.to Vector
+Any.to : Any -> Any
+Any.to target = target.from this

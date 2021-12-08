@@ -333,3 +333,42 @@ type Time_Of_Day
     compare_to that =
         sign = this.internal_local_time.compareTo that.internal_local_time
         Ordering.from_sign sign
+
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert Time_Of_Day to itself.
+
+     import Standard.Base.Data.Time.Time_Of_Day
+
+     example_to_time_of_day = Time_Of_Day.now.to Time_Of_Day
+Time_Of_Day.from : Time_Of_Day -> Time_Of_Day
+Time_Of_Day.from (object : Time_Of_Day) = object
+
+## UNSTABLE
+
+   Format this time of day as text using the default formatter.
+
+   > Example
+     Convert the current time to text.
+
+         import Standard.Base.Data.Time.Time_Of_Day
+
+         example_to_text = Time_Of_Day.now.to Text
+Text.from : Time_Of_Day -> Text
+Text.from (object : Time_Of_Day) = Time_Utils.default_time_of_day_formatter . format object.internal_local_time
+
+## UNSTABLE
+
+   A Time_Of_Day to Json conversion.
+
+   > Example
+     Convert the current time to JSON.
+
+         import Standard.Base.Data.Time.Time_Of_Day
+
+         example_to_json = Time_Of_Day.now.to Text
+Json.from : Time_Of_Day -> Json.Object
+Json.from (object : Time_Of_Day) = Json.from_pairs [["type", "Time_Of_Day"], ["hour", object.hour], ["minute", object.minute], ["second", object.second], ["nanosecond", object.nanosecond]]

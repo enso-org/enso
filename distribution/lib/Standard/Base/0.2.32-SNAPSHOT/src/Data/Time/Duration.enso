@@ -463,3 +463,61 @@ Integer.year = Duration (Java_Period.ofYears this . normalized) (Java_Duration.o
 Integer.years : Duration
 Integer.years = this.year
 
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert Duration to itself.
+
+     import Standard.Base.Data.Time.Duration
+
+     example_to_duration = 1.year.to Duration
+Duration.from : Duration -> Duration
+Duration.from (object : Duration) = object
+
+## UNSTABLE
+
+   Convert this duration to a Vector of years, months, days, hours, minutes,
+   seconds and nanosecnods.
+
+   > Example
+     Convert duration of a year and a hour to a vector returning
+     `[1, 0, 0, 1, 0, 0, 0]`.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_to_vec = (1.year + 1.hour).to Vector
+
+   > Example
+     Convert duration of 800 nanoseconds to a vector returning
+     `[0, 0, 0, 0, 0, 0, 800]`
+
+         import Standard.Base.Data.Time.Duration
+
+         example_to_vec = 800.nanoseconds . to Vector
+Vector.from : Duration -> Vector.Vector Integer
+Vector.from (object : Duration) = [object.years, object.months, object.days, object.hours, object.minutes, object.seconds, object.nanoseconds]
+
+## UNSTABLE
+
+   A Duration to Json conversion.
+
+   > Example
+     Convert a duration of 10 seconds to Json.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_to_json = 10.seconds.to Json
+Json.from : Duration -> Json.Object
+Json.from : (object : Duration) =
+    b = Vector.new_builder
+    b.append ["type", "Duration"]
+    if object.years==0 . not then b.append ["years", object.years]
+    if object.months==0 . not then b.append ["months", object.months]
+    if object.days==0 . not then b.append ["days", object.days]
+    if object.hours==0 . not then b.append ["hours", object.hours]
+    if object.minutes==0 . not then b.append ["minutes", object.minutes]
+    if object.seconds==0 . not then b.append ["seconds", object.seconds]
+    if object.nanoseconds==0 . not then b.append ["nanoseconds", object.nanoseconds]
+    Json.from_pairs b.to_vector

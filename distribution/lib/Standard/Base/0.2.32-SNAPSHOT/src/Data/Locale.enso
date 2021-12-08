@@ -414,6 +414,51 @@ type Locale
         if this.variant.is_nothing.not then b.append ["variant", this.variant]
         Json.from_pairs b.to_vector
 
+## UNSTABLE
+
+   Identity conversion.
+
+   > Example
+     Convert Locale to itself.
+
+     import Standard.Base.Data.Locale
+
+     example_to_locale = Locale.default.to Locale
+Locale.from : Locale -> Locale
+Locale.from (object : Locale) = object
+
+## UNSTABLE
+
+   Convert Locale to Json.
+
+   > Example
+     Convert the default locale to JSON.
+
+         import Standard.Base.Data.Locale
+
+         example_to_json = Locale.default.to Json
+Json.from : Locale -> Json
+Json.from (object : Locale) =
+    b = Vector.new_builder
+    b.append ["type", "Locale"]
+    if this.language.is_nothing.not then b.append ["language", this.language]
+    if this.country.is_nothing.not then b.append ["country", this.country]
+    if this.variant.is_nothing.not then b.append ["variant", this.variant]
+    Json.from_pairs b.to_vector
+
+## UNSTABLE
+
+   Converts the locale to text.
+
+   > Example
+     Convert the default locale to text.
+
+         import Standard.Base.Data.Locale
+
+         example_to_text = Locale.default.to Text
+Text.from : Locale -> Text | Nothing
+Text.from (object : Locale) = this.java_locale.toLanguageTag
+
 ## PRIVATE
 
    Convert a java locale to an Enso locale.
@@ -425,4 +470,3 @@ from_java java = Locale java
 
 ## PRIVATE
 javaLocaleBuilder = JavaLocale.Builder
-

@@ -864,4 +864,3 @@ type Singleton_Error vec
 Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
-
