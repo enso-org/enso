@@ -9,7 +9,7 @@ import Standard.Test
 polyglot java import java.lang.System as Java_System
 
 fetch addr file =
-    Process.run "curl" [addr, "--silent", "--remote-name", file.path]
+    Process.run "wget" ["--quiet", "--output-document", file.path, addr]
 
 spec =
     is_ci = Java_System.getenv "CI" == "true"
