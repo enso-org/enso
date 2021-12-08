@@ -16,6 +16,22 @@ function git(command) {
 
 const BUILD_INFO = JSON.parse(require('fs').readFileSync(buildPath, 'utf8'))
 
+// This loader removes all `sourceMappingURL` comments from the source files.
+//
+// We do not generate and do not bundle source maps for JS files at the moment, but some of our dependencies
+// have `sourceMappingURL` in their minified code (notably `firebase`). When DevTools load our bundled JS file,
+// they print a warning about missing source maps. To avoid this warning, we remove all `sourceMappingURL` from
+// our codebase.
+//
+// See https://blog.teamtreehouse.com/introduction-source-maps for basic introduction to `sourceMappingURL`.
+// See https://webpack.js.org/configuration/devtool/ for information on how to enable source map generation.
+const sourceMapLoader = {
+    loader: 'source-map-loader',
+    options: {
+        filterSourceMappingUrl: (_url, _resourcePath) => 'remove',
+    },
+}
+
 module.exports = {
     entry: {
         index: path.resolve(thisPath, 'src', 'index.ts'),
@@ -78,6 +94,11 @@ module.exports = {
             {
                 test: /\.html$/i,
                 loader: 'html-loader',
+            },
+            {
+                test: /\.js$/,
+                enforce: 'pre',
+                loader: sourceMapLoader,
             },
         ],
     },
