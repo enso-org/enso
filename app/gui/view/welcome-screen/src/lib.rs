@@ -4,6 +4,7 @@
 //! displays a list of available projects, template cards and "new project" button.
 
 #![warn(missing_docs)]
+#![recursion_limit = "256"]
 
 
 mod side_menu;
@@ -24,6 +25,8 @@ use ensogl::system::web::NodeInserter;
 use ensogl::system::web::StyleSetter;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
+use web_sys::Element;
 use web_sys::HtmlDivElement;
 use web_sys::MouseEvent;
 
@@ -52,6 +55,55 @@ mod css_id {
 
 
 
+// ========================
+// === ClickableElement ===
+// ========================
+
+
+// === ClickClosure ===
+
+/// Type alias for "on-click" event handlers on buttons.
+type ClickClosure = Closure<dyn FnMut(MouseEvent)>;
+
+
+// === ClickableElement ===
+
+/// Clickable HTML element. It has a single `click` event source that fires an event on each `click`
+/// JS event.
+#[derive(Debug, Clone, CloneRef)]
+struct ClickableElement {
+    pub element: Element,
+    pub click:   frp::Source,
+    pub network: frp::Network,
+}
+
+impl Deref for ClickableElement {
+    type Target = Element;
+    fn deref(&self) -> &Self::Target {
+        &self.element
+    }
+}
+
+impl ClickableElement {
+    pub fn new(element: Element, logger: &Logger) -> Self {
+        frp::new_network! { network
+            click <- source_();
+        }
+        let click_clone = click.clone_ref();
+        let closure = Box::new(move |_event: MouseEvent| {
+            click_clone.emit(());
+        });
+        let closure: ClickClosure = Closure::wrap(closure);
+        let callback = closure.as_ref().unchecked_ref();
+        if element.add_event_listener_with_callback("click", callback).is_err() {
+            error!(logger, "Could not add event listener for ClickableElement.");
+        }
+        network.store(&Rc::new(closure));
+        Self { element, network, click }
+    }
+}
+
+
 // =============
 // === Model ===
 // =============
@@ -60,12 +112,6 @@ mod css_id {
 // === CSS Styles ===
 
 static STYLESHEET: &str = include_str!("../style.css");
-
-
-// === ClickClosure ===
-
-/// Type alias for "on-click" event handlers on buttons.
-type ClickClosure = Closure<dyn FnMut(MouseEvent)>;
 
 
 // === Model ===
@@ -83,17 +129,13 @@ pub struct Model {
 
 impl Model {
     /// Constructor. `frp` is used to set up event handlers on buttons.
-    pub fn new(
-        app: &Application,
-        open_project: OpenProject,
-        create_project: CreateProject,
-    ) -> Self {
+    pub fn new(app: &Application) -> Self {
         let application = app.clone_ref();
         let logger = Logger::new("WelcomeScreen");
         let display_object = display::object::Instance::new(&logger);
 
-        let side_menu = SideMenu::new(&logger, open_project, create_project.clone_ref());
-        let template_cards = TemplateCards::new(&logger, create_project.clone_ref());
+        let side_menu = SideMenu::new(&logger);
+        let template_cards = TemplateCards::new(&logger);
         let dom = Self::create_dom(&logger, &side_menu, &template_cards);
         display_object.add_child(&dom);
 
@@ -105,11 +147,6 @@ impl Model {
         dom.append_or_warn(&style, &logger);
 
         Self { application, logger, dom, display_object, side_menu, template_cards }
-    }
-
-    /// Set displayed projects list.
-    pub fn set_projects_list(&self, projects: &[String]) {
-        self.side_menu.set_projects_list(projects);
     }
 
     fn create_dom(
@@ -124,8 +161,8 @@ impl Model {
         root.set_style_or_warn("pointer-events", "auto", logger);
 
         let container = Self::create_content_container();
-        container.append_or_warn(&side_menu.root_dom, logger);
-        container.append_or_warn(&template_cards.root_dom, logger);
+        container.append_or_warn(&side_menu.model.root_dom, logger);
+        container.append_or_warn(&template_cards.model.root_dom, logger);
         root.append_or_warn(&container, logger);
 
         DomSymbol::new(&root)
@@ -159,12 +196,6 @@ ensogl::define_endpoints! {
 }
 
 
-// === FRP Endpoints Alias ===
-
-type OpenProject = frp::Source<String>;
-type CreateProject = frp::Source<Option<String>>;
-
-
 
 // ============
 // === View ===
@@ -190,14 +221,7 @@ impl View {
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let network = &frp.network;
-        frp::extend! { network
-            open_project <- source();
-            create_project <- source();
-            frp.output.source.open_project <+ open_project;
-            frp.output.source.create_project <+ create_project;
-        }
-
-        let model = Model::new(app, open_project, create_project);
+        let model = Model::new(app);
 
         frp::extend! { network
             // === Update DOM's size so CSS styles work correctly. ===
@@ -206,9 +230,14 @@ impl View {
             eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
 
 
-            // === Receive updates of the projects list. ===
+            // === Setup event handlers for all WelcomeScreen components. ===
 
-            eval frp.set_projects_list((list) model.set_projects_list(list));
+            model.side_menu.set_projects_list <+ frp.set_projects_list;
+            let open_template = model.template_cards.output.source.open_template.clone_ref();
+            let new_project = model.side_menu.output.source.new_project.clone_ref();
+            frp.output.source.create_project <+ open_template.map(|name| Some(name.clone()));
+            frp.output.source.create_project <+ new_project.constant(None);
+            frp.output.source.open_project <+ model.side_menu.output.source.open_project;
         }
 
         Self { model, frp }
