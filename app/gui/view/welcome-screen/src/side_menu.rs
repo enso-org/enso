@@ -41,14 +41,21 @@ impl Model {
         Self { logger, root_dom, projects_list_dom, projects, new_project_button }
     }
 
-    pub fn clear_list(&self) {
+    pub fn set_projects_list(&self, projects: &[String], open_project: &frp::Any<String>) {
+        self.clear_projects_list();
+        for name in projects {
+            self.add_projects_list_entry(name, open_project);
+        }
+    }
+
+    fn clear_projects_list(&self) {
         for entry in self.projects.borrow_mut().iter() {
             entry.element.remove();
         }
         self.projects.borrow_mut().clear();
     }
 
-    pub fn add_entry(&self, name: &str, open_project: &frp::Any<String>) {
+    fn add_projects_list_entry(&self, name: &str, open_project: &frp::Any<String>) {
         let entry = Self::create_project_list_entry(name, &self.logger);
         let network = &entry.network;
         frp::extend! { network
@@ -131,14 +138,8 @@ impl SideMenu {
 
         let network = &frp.network;
         frp::extend! { network
-            new_projects_list_received <- frp.set_projects_list.constant(());
-            eval_ new_projects_list_received(model.clear_list());
-
-            available_project <= frp.set_projects_list;
             let open_project = &frp.output.source.open_project;
-            eval available_project([model, open_project](name) {
-                model.add_entry(name, &open_project);
-            });
+            eval frp.set_projects_list([model, open_project] (list) model.set_projects_list(list, &open_project));
 
             frp.output.source.new_project <+ model.new_project_button.click;
         }
