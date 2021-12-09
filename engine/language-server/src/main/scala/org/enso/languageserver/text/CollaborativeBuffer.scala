@@ -266,9 +266,13 @@ class CollaborativeBuffer(
     EditorOps
       .applyEdits(buffer.contents, edits)
       .leftMap(toEditFailure)
-      .map(rope =>
+      .map(rope => {
+        val mcdbg1 = rope.toString
+        val mcdbg2 = versionCalculator.evalVersion(mcdbg1)
+        logger.error(s"\n----MCDBG logger HASH $mcdbg2 of:\n[[[$mcdbg1]]]")
         Buffer(buffer.file, rope, versionCalculator.evalVersion(rope.toString))
-      )
+      // )
+      })
   }
 
   private val toEditFailure: TextEditValidationFailure => ApplyEditFailure = {

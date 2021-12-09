@@ -62,7 +62,7 @@ object TextApi {
     serverVersion: Version
   ) extends Error(
         3003,
-        s"Invalid version [client version: $clientVersion, server version: $serverVersion]"
+        s"Invalid version MCDBG-3 [client version: $clientVersion, server version: $serverVersion]"
       )
   case object WriteDeniedError extends Error(3004, "Write denied")
 
