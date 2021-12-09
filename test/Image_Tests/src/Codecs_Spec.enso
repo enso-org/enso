@@ -11,7 +11,7 @@ polyglot java import java.lang.System as Java_System
 
 fetch addr file =
     wget = case Platform.os of
-        Platform.Windows -> "wget.ext"
+        Platform.Windows -> "wget.exe"
         _ -> "wget"
     Process.run wget ["--quiet", "--output-document", file.path, addr]
 
