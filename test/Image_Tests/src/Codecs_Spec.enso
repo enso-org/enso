@@ -10,10 +10,7 @@ import Standard.Test
 polyglot java import java.lang.System as Java_System
 
 fetch addr file =
-    wget = case Platform.os of
-        Platform.Windows -> "wget.exe"
-        _ -> "wget"
-    Process.run wget ["--quiet", "--output-document", file.path, addr]
+    Process.run "curl" [addr, "--silent", "--output", file.path]
 
 spec =
     is_ci = Java_System.getenv "CI" == "true"
