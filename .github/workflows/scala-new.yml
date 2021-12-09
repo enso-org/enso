@@ -20,18 +20,30 @@ env:
   nodeVersion: 14.17.2
 
 jobs:
-  test_and_publish:
-    name: Engine
+  test_and_publish_win:
+    name: Engine (Windows)
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:
       matrix:
-        os: [[Windows, self-hosted, engine], [Linux, self-hosted, engine]]
+        os: [[Windows, self-hosted, engine]]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
       - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
         working-directory: C:\ci
+  test_and_publish_ubuntu:
+    name: Engine (Ubuntu)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        os: [[Linux, self-hosted, engine]]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
+        working-directory: /ci
   try_with_gui:
     name: GUI
     runs-on: ${{ matrix.os }}
