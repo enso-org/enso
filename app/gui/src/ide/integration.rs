@@ -84,7 +84,7 @@ impl Model {
                 match managing_api.list_projects().await {
                     Ok(projects) => {
                         let mut projects = projects.into_iter();
-                        let project = projects.find(|project| project.name.0 == name);
+                        let project = projects.find(|project| project.name.as_ref() == name);
                         let uuid = project.map(|project| project.id);
                         if let Some(uuid) = uuid {
                             if let Err(err) = managing_api.open_project(uuid).await {
