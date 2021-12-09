@@ -4,8 +4,6 @@
 //! displays a list of available projects, template cards and "new project" button.
 
 #![warn(missing_docs)]
-#![recursion_limit = "256"]
-
 
 mod side_menu;
 mod template_cards;
@@ -228,16 +226,20 @@ impl View {
 
             let scene_size = app.display.scene().shape().clone_ref();
             eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
-
-
+        }
+        frp::extend! { network
             // === Setup event handlers for all WelcomeScreen components. ===
 
             model.side_menu.set_projects_list <+ frp.set_projects_list;
+
             let open_template = model.template_cards.output.source.open_template.clone_ref();
-            let new_project = model.side_menu.output.source.new_project.clone_ref();
             frp.output.source.create_project <+ open_template.map(|name| Some(name.clone()));
+
+            let new_project = model.side_menu.output.source.new_project.clone_ref();
             frp.output.source.create_project <+ new_project.constant(None);
-            frp.output.source.open_project <+ model.side_menu.output.source.open_project;
+
+            let open_project = model.side_menu.output.source.open_project.clone_ref();
+            frp.output.source.open_project <+ open_project;
         }
 
         Self { model, frp }
