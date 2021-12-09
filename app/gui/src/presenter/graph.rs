@@ -564,8 +564,6 @@ impl Graph {
         let logger = &self.model.logger;
         let network = &self.network;
         let model = &self.model;
-        let displayed = &model.displayed;
-        let controller = &model.controller;
         let view = &self.model.view.frp;
         frp::extend! { network
             update_view <- source::<()>();
@@ -628,7 +626,7 @@ impl Graph {
         use crate::controller::graph::executed;
         use crate::controller::graph::Notification;
         let graph_notifications = self.model.controller.subscribe();
-        self.spawn_sync_stream_handler(graph_notifications, move |notification, model| {
+        self.spawn_sync_stream_handler(graph_notifications, move |notification, _model| {
             match notification {
                 executed::Notification::Graph(graph) => match graph {
                     Notification::Invalidate => update_view.emit(()),
