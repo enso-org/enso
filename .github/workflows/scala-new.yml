@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 120
     strategy:
       matrix:
-        os: [[Windows, self-hosted, gui], [Linux, self-hosted, engine]]
+        os: [[Windows, self-hosted, gui], [Linux, self-hosted, gui]]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
