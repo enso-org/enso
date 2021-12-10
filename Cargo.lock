@@ -2845,6 +2845,7 @@ dependencies = [
  "ordered-float 2.8.0",
  "paste 1.0.6",
  "serde",
+ "serde_json",
  "serde_plain",
  "wasm-bindgen",
  "web-sys",

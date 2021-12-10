@@ -19,130 +19,189 @@
  * Note that this API and encoding formats for messages are synced with the rust equivalent in
  * `lib/rust/profiling/src/lib.rs`.
  */
+import * as assert from 'assert'
 
 // =========================
 // === Profiler Registry ===
 // =========================
 
 /// List of all instantiated profilers.
-const profiler_registry: Profiler[] = []
+const profilerRegistry: Profiler[] = []
+
+// ================
+// === Metadata ===
+// ================
+
+type SourceLocation = {
+    file: String
+    line: number
+}
+
+type Metadata = {
+    source: SourceLocation
+    profiling_level: string
+    label: string
+}
+
+/**
+ * Create a Metadata object that gets populated with the `SourceLocation` of the caller of the
+ * caller of this methods.
+ */
+function makeMetadata(profiling_level: string, label: string): Metadata {
+    const source = callerInfo(2)
+    return {
+        source,
+        profiling_level,
+        label,
+    }
+}
+
+/**
+ * Return the `SourceLocation` of this method call. By supplying the `caller_level` argument, the
+ * `SourceLocation` will be shifted up the call stack by that number of levels.
+ *
+ */
+function callerInfo(caller_level = 0): SourceLocation | null {
+    const e = new Error()
+    const regex = /\((.*):(\d+):(\d+)\)$/
+    const caller = e.stack.split('\n')[2 + caller_level]
+    if (caller === undefined) {
+        return null
+    }
+    const match = regex.exec(caller)
+    if (match === null) {
+        return null
+    }
+    assert(match.length >= 3, 'Regex was expected to produce three matches.')
+    return {
+        file: match[1],
+        line: Number(match[2]),
+    }
+}
+
+// ==============
+// === Labels ===
+// ==============
+
+/// Return a string that encodes the given log level and name for a mark that indicates the start of
+/// an interval. The label encoded the log level, name and event type.
+function startIntervalLabel(metadata: Metadata): string {
+    return `${metadata.label} [START]`
+}
+
+/// Return a string that encodes the given log level and name for a mark that indicates the end of
+/// an interval.
+function endIntervalLabel(metadata: Metadata): string {
+    return `${metadata.label} [END]`
+}
+
+/// Return a string that encodes the given log level and name for display in the developer console
+// performance tool..
+function performanceToolLabel(metadata: Metadata): string {
+    return `${metadata.label} (${metadata.source.file}:${metadata.source.line})`
+}
 
 // ================
 // === Profiler ===
 // ================
 
 /**
- * Class that exposes `start`, `end` and `measure` methods, as well as some utility methods for working with the profiler.
+ * Class that exposes `start`, `end` and `measure` methods, as well as some utility methods for
+ * working with the profiler.
  */
 class Profiler {
-    log_level: string
+    logLevel: string
+    toggledInEnvironment: boolean
 
     constructor(logLevel: string) {
-        this.log_level = logLevel
-        profiler_registry.push(this)
+        this.logLevel = logLevel
+        // The value `process.env.PROFILING_LEVEL` is populated through the [environment plugin](https://webpack.js.org/plugins/environment-plugin/)
+        // at build time from an environment variable.
+        this.toggledInEnvironment = process.env.PROFILING_LEVEL.toLowerCase().includes(
+            logLevel.toLowerCase()
+        )
+
+        profilerRegistry.push(this)
     }
 
     logLevelName(): string {
-        return this.log_level.toUpperCase()
+        return this.logLevel.toUpperCase()
     }
 
     /// Indicate whether this profiler should perform profiling.
     isActive(): boolean {
-        // The value `process.env.PROFILING_LEVEL` is populated through the [environment plugin](https://webpack.js.org/plugins/environment-plugin/)
-        // at build time from an environment variable.
-        return process.env.PROFILING_LEVEL.toLowerCase().includes(this.logLevelName())
+        // We need to check whether this logger, or a logger that is higher in the hierarchy, is activated.
+        // The hierarchy is established by order of instantiation / registration in the `profilerRegistry`.
+        const profilerIndex = profilerRegistry.findIndex(item => item === this)
+        if (profilerIndex < 0) {
+            return false
+        }
+        for (let i = profilerIndex; i; i--) {
+            if (profilerRegistry[i].toggledInEnvironment) {
+                return true
+            }
+        }
+        return false
     }
 
     isLogLevelName(log_level_name: string): boolean {
         return this.logLevelName() == log_level_name.toUpperCase()
     }
 
-    createLabel(interval_name: string, event_name: string): string {
-        return encodeLabel(this, interval_name, event_name)
-    }
-
-    /// Return a string that encodes the given log level and name for a mark that indicates the start of
-    /// an interval. The label encoded the log level, name and event type.
-    private startIntervalLabel(interval_name: string): string {
-        return this.createLabel(interval_name, 'start')
-    }
-
-    /// Return a string that encodes the given log level and name for a mark that indicates the end of
-    /// an interval.
-    private endIntervalLabel(interval_name: string): string {
-        return this.createLabel(interval_name, 'end')
-    }
-
-    /// Return a string that encodes the given log level and name for a measurement.
-    private measureIntervalLabel(interval_name: string): string {
-        return this.createLabel(interval_name, 'measure')
-    }
-
     /// Start the profiling of the named interval.
     start(interval_name: string): IntervalHandle {
         if (this.isActive()) {
-            performance.mark(this.startIntervalLabel(interval_name))
+            const metadata = makeMetadata(this.logLevel, interval_name)
+            performance.mark(startIntervalLabel(metadata))
         }
         return new IntervalHandle(interval_name, this)
     }
 
-    /// End the profiling of the named interval.
-    end(interval_name: string) {
-        let start_label = this.startIntervalLabel(interval_name)
-        let end_label = this.endIntervalLabel(interval_name)
-        let measurement_label = this.measureIntervalLabel(interval_name)
-
+    _end_with_metadata(metadata: Metadata) {
+        const start_label = startIntervalLabel(metadata)
+        const end_label = endIntervalLabel(metadata)
+        const measurement_label = performanceToolLabel(metadata)
         if (this.isActive()) {
             performance.mark(end_label)
-            performance.measure(measurement_label, start_label, end_label)
+            const options = { detail: metadata, start: start_label, end: end_label }
+            try {
+                // @ts-ignore TS does not yet support typing for the next gen API of `measure`.
+                performance.measure(measurement_label, options)
+            } catch (e) {
+                console.warn(`Error during profiling: ${e}`)
+            }
+
         }
+    }
+
+    /// End the profiling of the named interval.
+    end(interval_name: string) {
+        const metadata = makeMetadata(this.logLevel, interval_name)
+        this._end_with_metadata(metadata)
     }
 
     /// Profile the execution of the given callable.
     measure(interval_name: string, closure: CallableFunction) {
+        const metadata = makeMetadata(this.logLevel, interval_name)
         this.start(interval_name)
         const ret = closure()
-        this.end(interval_name)
+        this._end_with_metadata(metadata)
         return ret
     }
 }
 
-// =========================
-// === Encoding/Decoding ===
-// =========================
+// ================
+// === Decoding ===
+// ================
 
-/// Delimiter used to to encode information in the `PerformanceEntry` name.
-const MESSAGE_DELIMITER = '//'
-
-/**
- * Encodes the given information in a string. This is done by separating the information by the `MESSAGE_DELIMITER`.
- * Example output: "TASK//SomeWork//start"
- */
-function encodeLabel(log_level: Profiler, inter_val_name: string, event: string): string {
-    return [log_level.log_level, inter_val_name, event].join(MESSAGE_DELIMITER)
-}
-
-function parseLogLevel(log_level_name: string): Profiler | undefined {
-    for (const profiler of profiler_registry) {
+function parseLogLevel(log_level_name: string): Profiler | null {
+    for (const profiler of profilerRegistry) {
         if (profiler.isLogLevelName(log_level_name)) {
             return profiler
         }
     }
-    return undefined
-}
-
-/**
- * Decodes the given information in a string that was encoded with `encodeLabel`.
- */
-function decodeLabel(label: string): [Profiler, string] | undefined {
-    let parts = label.split(MESSAGE_DELIMITER)
-    try {
-        let [log_level_name, interval_name] = [parts[0], parts[1]]
-        let profiler = parseLogLevel(log_level_name)
-        return [profiler, interval_name]
-    } catch (e) {
-        return undefined
-    }
+    console.warn(`Could not parse log level from "${log_level_name}"`)
+    return null
 }
 
 // ======================
@@ -171,7 +230,8 @@ class IntervalHandle {
 
     /// Measure the interval.
     end() {
-        this.log_level.end(this.interval_name)
+        const metadata = makeMetadata(this.log_level.logLevel, this.interval_name)
+        this.log_level._end_with_metadata(metadata)
         this.released_status.released = true
     }
 
@@ -222,6 +282,9 @@ const handle_registry = new FinalizationRegistry(heldValue => {
 // === Measurement ===
 // ===================
 
+// Number of decimals to show in floating point output.
+const OUTPUT_PRECISION = 2
+
 /**
  * Profiling measurement that contains the profiling information about a measured time interval.
  */
@@ -238,17 +301,17 @@ class Measurement {
         this.name = name
     }
 
-    static fromPerformanceEntry(entry: PerformanceEntry): Measurement | undefined {
+    static fromPerformanceEntry(entry: PerformanceEntry): Measurement | null {
         const startTime = entry.startTime
         const duration = entry.duration
-
-        let decodedLabel = decodeLabel(entry.name)
-        if (decodedLabel === undefined) {
-            console.warn(`Could not decode "${entry.name}" as measurement label.`)
-            return
+        // @ts-ignore TS does not yet support typing for the next gen API of `measure`.
+        const detail = entry.detail
+        const logLevel = parseLogLevel(detail.profiling_level)
+        if (logLevel === null) {
+            console.warn(`Could not parse ${detail.profiling_level} as valid profiling level.`)
+            return null
         }
-        const [logLevel, name] = decodedLabel
-
+        const name = entry.name
         return new Measurement(startTime, duration, logLevel, name)
     }
 
@@ -257,9 +320,9 @@ class Measurement {
     }
 
     prettyString(): string {
-        return `[${this.startTime.toFixed(2)},${this.endTime().toFixed(
-            2
-        )}] (${this.duration.toFixed(2)}) ${this.name}`
+        return `[${this.startTime.toFixed(OUTPUT_PRECISION)},${this.endTime().toFixed(
+            OUTPUT_PRECISION
+        )}] (${this.duration.toFixed(OUTPUT_PRECISION)}) ${this.name}`
     }
 
     prettyPrint() {
@@ -292,8 +355,8 @@ export class Report {
     renderToDevConsole() {
         console.groupCollapsed('PerformanceReport')
 
-        for (const profiler of profiler_registry) {
-            console.groupCollapsed(profiler.log_level)
+        for (const profiler of profilerRegistry) {
+            console.groupCollapsed(profiler.logLevel)
             this.singleLevelMeasurement(profiler).forEach(m => m.prettyPrint())
             console.groupEnd()
         }
@@ -303,7 +366,7 @@ export class Report {
 
     toString() {
         let output = ''
-        for (const profiler of profiler_registry) {
+        for (const profiler of profilerRegistry) {
             this.singleLevelMeasurement(profiler).forEach(
                 m => (output = output.concat(m.prettyString(), '\n'))
             )
@@ -318,5 +381,5 @@ export class Report {
 
 export const section = new Profiler('Section')
 export const task = new Profiler('Task')
-export const symbol = new Profiler('Symbol')
+export const detail = new Profiler('Detail')
 export const debug = new Profiler('Debug')

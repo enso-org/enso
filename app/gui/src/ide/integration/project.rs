@@ -770,12 +770,11 @@ impl Model {
     /// Reload whole displayed content to be up to date with module state.
     pub fn refresh_graph_view(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph view.");
-        let task_handle = profiling::task::start("refresh_graph_view");
+        let task_handle = profiling::start_task!("refresh_graph_view");
         let connections_info = self.graph.connections()?;
         self.refresh_node_views(&connections_info, true)?;
         self.refresh_connection_views(connections_info.connections)?;
         task_handle.end();
-
         Ok(())
     }
 
@@ -784,7 +783,7 @@ impl Model {
         connections_info: &Connections,
         update_position: bool,
     ) -> FallibleResult {
-        let task_handle = profiling::task::start("refresh_node_views");
+        let task_handle = profiling::start_task!("refresh_node_views");
         let base_default_position = default_node_position();
         let mut trees = connections_info.trees.clone();
         let nodes = self.graph.graph().nodes()?;
@@ -835,7 +834,7 @@ impl Model {
     /// Refresh the expressions (e.g., types, ports) for all nodes.
     fn refresh_graph_expressions(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph expressions.");
-        let task_handle = profiling::task::start("refresh_graph_expressions");
+        let task_handle = profiling::start_task!("refresh_graph_expressions");
         let connections = self.graph.connections()?;
         self.refresh_node_views(&connections, false)?;
         let ret = self.refresh_connection_views(connections.connections);
@@ -862,7 +861,7 @@ impl Model {
         trees: NodeTrees,
         default_pos: Vector2,
     ) {
-        let task_handle = profiling::task::start("create_node_view");
+        let task_handle = profiling::start_task!("create_node_view");
         let id = info.info.id();
         let displayed_id = self.view.graph().add_node();
         self.node_views.borrow_mut().insert(id, displayed_id);

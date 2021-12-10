@@ -983,14 +983,15 @@ async function runEntryPoint(config: Config) {
 }
 
 API.main = async function (inputConfig: any) {
-    const urlParams = new URLSearchParams(window.location.search)
-    // @ts-ignore
-    const urlConfig = Object.fromEntries(urlParams.entries())
-    const profilingHandle = profiling.task.start('load_config')
-    const config = Config.default()
-    config.updateFromObject(inputConfig)
-    config.updateFromObject(urlConfig)
-    profilingHandle.end()
+    const config = profiling.task.measure('load_config', () => {
+        const urlParams = new URLSearchParams(window.location.search)
+        // @ts-ignore
+        const urlConfig = Object.fromEntries(urlParams.entries())
+        const config = Config.default()
+        config.updateFromObject(inputConfig)
+        config.updateFromObject(urlConfig)
+        return config
+    })
 
     if (await checkMinSupportedVersion(config)) {
         if (config.authentication_enabled && !Versions.isDevVersion()) {

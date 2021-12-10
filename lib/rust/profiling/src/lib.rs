@@ -12,11 +12,11 @@
 //! let some_task = || "DoWork";
 //!
 //! // Manually start and end the measurement.
-//! let gui_init = profiling::task::start("GUI initialization");
+//! let gui_init = profiling::start_task("GUI initialization");
 //! some_task();
 //! gui_init.end();
 //! // Or use the `measure` method.
-//! profiling::task::measure("GUI initialization", some_task);
+//! profiling::task_measure("GUI initialization", some_task);
 //! ```
 //!
 //! Note that this API and encoding formats for messages are synced with the JS equivalent in
@@ -28,7 +28,10 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+use crate::js::*;
 use enso_prelude::*;
+use wasm_bindgen::prelude::*;
+
 
 use enso_prelude::fmt::Formatter;
 use enso_web::performance;
@@ -37,28 +40,105 @@ use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_plain::from_str;
+use wasm_bindgen::JsValue;
 use web_sys::PerformanceEntry;
 
 
+// ================
+// === Metadata ===
+// ================
 
-// =================
-// === Log Level ===
-// =================
-
-#[derive(Copy, Clone, Debug)]
-#[derive(Serialize, Deserialize)]
+/// Source code location given as file path and line number.
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[allow(missing_docs)]
-pub enum ProfilingLevel {
-    Section,
-    Task,
-    Detail,
-    Debug,
+pub struct SourceLocation {
+    pub file: String,
+    pub line: u32,
 }
+
+/// Measurement metadata. This struct holds information about a measurement and provides
+/// functionality for conversion form/to JS for use in the performance API.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Metadata {
+    /// Source code location of the profiling interval.
+    pub source:          SourceLocation,
+    /// Profiling level of the measurement.
+    pub profiling_level: ProfilingLevel,
+    /// Label of the measurement..
+    pub label:           String,
+}
+
+impl From<Metadata> for JsValue {
+    fn from(metadata: Metadata) -> JsValue {
+        JsValue::from_serde(&metadata).expect("Failed to serialise Metadata struct to JSON.")
+    }
+}
+
+impl TryFrom<JsValue> for Metadata {
+    type Error = serde_json::Error;
+
+    fn try_from(value: JsValue) -> Result<Self, Self::Error> {
+        value.into_serde()
+    }
+}
+
+
+
+// =================================
+// === Custom JS Performance API ===
+// =================================
+
+mod js {
+    use super::*;
+    use js_sys::JsString;
+    use wasm_bindgen::JsValue;
+
+    #[wasm_bindgen(inline_js = "
+export function mark_with_metadata(markName, markOptions) {
+   performance.mark(markName, markOptions)
+}
+
+export function measure_with_start_mark_and_end_mark_and_metadata(measureName, startMark, endMark, measureOptions) {
+    const options = {}
+    options.start = startMark
+    options.end = endMark
+    options.detail = measureOptions
+    performance.measure(measureName, options)
+}
+
+")]
+    extern "C" {
+        #[allow(unsafe_code)]
+        pub fn mark_with_metadata(mark_name: JsString, mark_options: JsValue);
+        #[allow(unsafe_code)]
+        pub fn measure_with_start_mark_and_end_mark_and_metadata(
+            measure_name: JsString,
+            start_mark: JsString,
+            end_mark: JsString,
+            measure_options: JsValue,
+        );
+    }
+}
+
 
 
 // ===============
 // === Loggers ===
 // ===============
+
+/// Create a Metadata struct that has the source location prepopulated via the `file!` and `line!`
+/// macros.
+#[macro_export]
+macro_rules! make_metadata {
+    ($profiling_level:expr, $label:expr, $event_type:expr  ) => {
+        Metadata {
+            source:          SourceLocation { file: file!(), line: line!() },
+            profiling_level: $profiling_level,
+            label:           $label,
+            event_type:      $event_type,
+        }
+    };
+}
 
 /// Define a new boolean variable whose value is determined by a feature flag in the crate.
 /// The name of the variable is `ENABLED` and it will be true if a feature flag
@@ -81,32 +161,66 @@ macro_rules! define_profiling_toggle {
 /// `enable-<profiling_module_name>-profiling`, which will turn the profiling methods into no-ops.
 macro_rules! define_logger {
     ($log_level:expr, $log_level_name_upper:ident, $log_level_name:ident) => {
-        /// Profiler module that exposes methods to measure named intervals.
-        pub mod $log_level_name {
-            use super::*;
+        paste::paste! {
+            /// Profiler module that exposes methods to measure named intervals.
+            pub mod $log_level_name {
 
-            define_profiling_toggle!($log_level_name);
+                define_profiling_toggle!($log_level_name);
 
-            /// Start measuring a named time interval. Return an `IntervalHandle` that can be sued
-            /// to end the profiling.
-            pub fn start(interval_name: &str) -> IntervalHandle {
-                start_interval($log_level, interval_name)
-            }
+                /// Start measuring a named time interval. Return an `IntervalHandle` that can be used
+                /// to end the profiling.
+                #[macro_export]
+                macro_rules! [< start_ $log_level_name >] {
+                    ($interval_name:expr) => {
+                        profiling::start_interval(profiling::Metadata {
+                            source:          profiling::SourceLocation { file: file!().to_string(), line: line!() },
+                            profiling_level: profiling::$log_level,
+                            label:           $interval_name.to_string(),
+                    });
+                    };
+                }
 
-            /// Manually end measuring a named time interval.
-            pub fn end(interval_name: &str) {
-                warn_on_error(end_interval($log_level, interval_name));
-            }
 
-            /// Profile the execution of the given closure.
-            pub fn measure<T, F: FnMut() -> T>(
-                interval_name: &str,
-                closure: F,
-            ) -> IntervalMeasurementResult<T> {
-                measure_interval($log_level, interval_name, closure)
+                /// Manually end measuring a named time interval.
+                #[macro_export]
+                macro_rules! [< end_ $log_level_name >] {
+                    ($interval_name:expr) => {
+                        profiling::end_interval(profiling::Metadata {
+                            source:          profiling::SourceLocation { file: file!().to_string(), line: line!() },
+                            profiling_level: profiling::$log_level,
+                            label:           $interval_name.to_string(),
+                    });
+                    };
+                }
+
+                /// Profile the execution of the given closure.
+                #[macro_export]
+                macro_rules! [< measure_ $log_level_name >] {
+                    ($interval_name:expr, $closure:expr) => {
+                        profiling::measure_interval(profiling::Metadata {
+                            source:          profiling::SourceLocation { file: file!().to_string(), line: line!() },
+                            profiling_level: profiling::$log_level,
+                            label:           $interval_name.to_string(),
+                    }, $closure).value
+                    };
+                }
             }
         }
     };
+}
+
+// =================
+// === Profilers ===
+// =================
+
+#[derive(Copy, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub enum ProfilingLevel {
+    Section,
+    Task,
+    Detail,
+    Debug,
 }
 
 define_logger!(ProfilingLevel::Section, SECTION, section);
@@ -115,12 +229,13 @@ define_logger!(ProfilingLevel::Detail, DETAIL, detail);
 define_logger!(ProfilingLevel::Debug, DEBUG, debug);
 
 /// Check at compile time whether the given log level should perform any logging activity.
-const fn log_level_is_active(log_level: ProfilingLevel) -> bool {
+const fn profiling_level_is_active(log_level: ProfilingLevel) -> bool {
     match log_level {
         ProfilingLevel::Section => section::ENABLED,
-        ProfilingLevel::Task => task::ENABLED,
-        ProfilingLevel::Detail => detail::ENABLED,
-        ProfilingLevel::Debug => detail::ENABLED,
+        ProfilingLevel::Task => task::ENABLED || profiling_level_is_active(ProfilingLevel::Section),
+        ProfilingLevel::Detail =>
+            detail::ENABLED || profiling_level_is_active(ProfilingLevel::Detail),
+        ProfilingLevel::Debug => detail::ENABLED || profiling_level_is_active(ProfilingLevel::Task),
     }
 }
 
@@ -177,10 +292,13 @@ impl TryFrom<PerformanceEntry> for Measurement {
 
         let start_time = measure.start_time();
         let duration = measure.duration();
-        let name_js = measure.name();
-        let name_parts: Vec<_> = name_js.split(MESSAGE_DELIMITER).collect();
-        let name = name_parts.get(1).ok_or(InvalidFormatting)?.to_string();
-        let log_level_name = name_parts.get(0).ok_or(InvalidFormatting)?.to_string();
+        let name = measure.name();
+        let metadata: Metadata = js_sys::Reflect::get(&measure, &"detail".to_string().into())
+            .expect("Could not get details field of PerformanceEntry")
+            .try_into()
+            .or(Err(InvalidFormatting))?;
+
+        let log_level_name = metadata.profiling_level.to_string();
         let log_level_name = log_level_name.to_class_case();
 
         let log_level: ProfilingLevel = from_str(&log_level_name).or(Err(InvalidLogLevel))?;
@@ -197,7 +315,10 @@ pub enum MeasurementError {
     /// No measurement was created in the performance API backend.
     NoMeasurementFound,
     /// A function call to the Performance API failed to execute.
-    PerformanceAPIExecutionFailure,
+    PerformanceAPIExecutionFailure {
+        /// Underlying error returned by the JS API.
+        error: JsValue,
+    },
     /// Profiling for the given profiling level was disabled.
     ProfilingDisabled,
 }
@@ -208,9 +329,6 @@ pub enum MeasurementError {
 // === Internal Profiling Methods ===
 // ==================================
 
-/// Delimiter used to to encode information in the `PerformanceEntry` name.
-const MESSAGE_DELIMITER: &str = "//";
-
 /// Emit a warning if the given result is an error.
 fn warn_on_error(result: Result<Measurement, MeasurementError>) {
     if let Err(e) = result {
@@ -218,68 +336,69 @@ fn warn_on_error(result: Result<Measurement, MeasurementError>) {
     }
 }
 
-fn encode_log_level(log_level: ProfilingLevel) -> String {
-    serde_plain::to_string(&log_level)
-        .expect("Failed to serialise LogLevel as string.")
-        .to_uppercase()
-}
-
 /// Return a string that encodes the given log level and name for a mark that indicates the start of
-/// an interval. This is done by separating the information by the `MESSAGE_DELIMITER`.
-/// Example output: "TASK//SomeWork//start".
-fn start_interval_label(log_level: ProfilingLevel, interval_name: &str) -> String {
-    format!("{1}{0}{2}{0}start", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
+/// an interval.
+/// Example output: "DoThing! (FilePath:22) [START]".
+fn start_interval_label(metadata: &Metadata) -> String {
+    format!("{} [START]", metadata.label)
 }
 
 /// Return a string that encodes the given log level and name for a mark that indicates the end of
-/// an interval. This is done by separating the information by the `MESSAGE_DELIMITER`.
-/// Example output: "TASK//SomeWork//end".
-fn end_interval_label(log_level: ProfilingLevel, interval_name: &str) -> String {
-    format!("{1}{0}{2}{0}end", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
+/// an interval.
+/// Example output: "DoThing! (FilePath:22) [END]".
+fn end_interval_label(metadata: &Metadata) -> String {
+    format!("{} [END]", metadata.label)
 }
 
 /// Return a string that encodes the given log level and name for a measurement.  This is done by
 /// separating the information by the `MESSAGE_DELIMITER`.
-/// Example output: "TASK//SomeWork//measurement".
-fn measure_interval_label(log_level: ProfilingLevel, interval_name: &str) -> String {
-    format!("{1}{0}{2}{0}measure", MESSAGE_DELIMITER, encode_log_level(log_level), interval_name)
+/// Example output: "DoThing! (FilePath:22)".
+fn measure_interval_label(metadata: &Metadata) -> String {
+    format!("{} ({}:{})", metadata.label, metadata.source.file, metadata.source.line)
 }
 
 /// Start measuring an interval. Returns a `IntervalHandle` that an be used to end the created
 /// interval. The interval can also be ended by calling `end_interval` with the same label and log
 /// level.
-fn start_interval(log_level: ProfilingLevel, label: &str) -> IntervalHandle {
-    let interval_name = ImString::from(label);
-    if log_level_is_active(log_level) {
-        performance().mark(&start_interval_label(log_level, &interval_name)).unwrap();
+pub fn start_interval(metadata: Metadata) -> IntervalHandle {
+    let interval_name = start_interval_label(&metadata);
+    if profiling_level_is_active(metadata.profiling_level) {
+        mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
-    IntervalHandle::new(log_level, &interval_name)
+    IntervalHandle::new(metadata)
+}
+
+fn get_latest_performance_entry() -> Option<PerformanceEntry> {
+    let entries: js_sys::Array = performance().get_entries_by_type("measure");
+
+    if entries.length() < 1 {
+        return None;
+    }
+    let measure = entries.get(entries.length() - 1);
+    let measure: PerformanceEntry = measure.into();
+    Some(measure)
 }
 
 /// End measuring an interval. Return the measurement taken between start and end of the interval,
 /// if possible.
-fn end_interval(
-    log_level: ProfilingLevel,
-    interval_name: &str,
-) -> Result<Measurement, MeasurementError> {
-    let start_label = start_interval_label(log_level, interval_name);
-    let end_label = end_interval_label(log_level, interval_name);
-    let measurement_label = measure_interval_label(log_level, interval_name);
-    if !log_level_is_active(log_level) {
+fn end_interval(metadata: Metadata) -> Result<Measurement, MeasurementError> {
+    // metadata.event_type = MeasurementEvent::End;
+    let profiling_level = metadata.profiling_level;
+    let start_label = start_interval_label(&metadata);
+    let end_label = end_interval_label(&metadata);
+    let measurement_label = measure_interval_label(&metadata);
+    if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
-        performance().mark(&end_label).or(Err(MeasurementError::PerformanceAPIExecutionFailure))?;
-        performance()
-            .measure_with_start_mark_and_end_mark(&measurement_label, &start_label, &end_label)
-            .or(Err(MeasurementError::PerformanceAPIExecutionFailure))?;
+        mark_with_metadata(end_label.clone().into(), metadata.clone().into());
+        measure_with_start_mark_and_end_mark_and_metadata(
+            measurement_label.into(),
+            start_label.into(),
+            end_label.into(),
+            metadata.into(),
+        );
 
-        let entries: js_sys::Array = performance().get_entries_by_type("measure");
-
-        if entries.length() < 1 {
-            return Err(MeasurementError::NoMeasurementFound);
-        }
-        let measure = entries.get(entries.length() - 1);
-        let measure: PerformanceEntry = measure.into();
+        let measure = get_latest_performance_entry().ok_or(MeasurementError::NoMeasurementFound)?;
 
         let measurement: Measurement =
             measure.try_into().or(Err(MeasurementError::InvalidMeasurementConversion))?;
@@ -289,14 +408,13 @@ fn end_interval(
 
 /// Measure the execution time of the given interval. The interval is executed and the return value
 /// and the measurement result are returned in the `IntervalMeasurementResult`.
-fn measure_interval<T, F: FnMut() -> T>(
-    log_level: ProfilingLevel,
-    interval_name: &str,
+pub fn measure_interval<T, F: FnMut() -> T>(
+    metadata: Metadata,
     mut closure: F,
 ) -> IntervalMeasurementResult<T> {
-    start_interval(log_level, interval_name);
+    start_interval(metadata.clone()).release();
     let value = closure();
-    let measurement = end_interval(log_level, interval_name);
+    let measurement = end_interval(metadata);
 
     IntervalMeasurementResult { value, measurement }
 }
@@ -320,20 +438,19 @@ pub struct IntervalMeasurementResult<T> {
 /// Handle that allows ending the interval.
 #[derive(Clone, Debug)]
 pub struct IntervalHandle {
-    interval_name: ImString,
-    log_level:     ProfilingLevel,
-    released:      bool,
+    metadata: Metadata,
+    released: bool,
 }
 
 impl IntervalHandle {
-    fn new(log_level: ProfilingLevel, interval_name: &str) -> Self {
-        IntervalHandle { interval_name: interval_name.into(), log_level, released: false }
+    fn new(metadata: Metadata) -> Self {
+        IntervalHandle { metadata, released: false }
     }
 
     /// Measure the interval.
     pub fn end(mut self) {
         self.released = true;
-        warn_on_error(end_interval(self.log_level, &self.interval_name));
+        warn_on_error(end_interval(self.metadata.clone()));
     }
 
     /// Release the handle to manually call `end_interval` without emitting a warning.
@@ -346,7 +463,8 @@ impl IntervalHandle {
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if !self.released {
-            WARNING!(format!("{} was dropped without a call to `measure`.", self.interval_name));
+            warn_on_error(end_interval(self.metadata.clone()));
+            WARNING!(format!("{} was dropped without a call to `measure`.", self.metadata.label));
         }
     }
 }
