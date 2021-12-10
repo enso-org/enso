@@ -229,7 +229,7 @@ impl View {
             model.side_menu.set_projects_list <+ frp.set_projects_list;
 
             let open_template = model.template_cards.output.source.open_template.clone_ref();
-            frp.output.source.create_project <+ open_template.map(|name| Some(name.clone()));
+            frp.output.source.create_project <+ open_template.some();
 
             let new_project = model.side_menu.output.source.new_project.clone_ref();
             frp.output.source.create_project <+ new_project.constant(None);
