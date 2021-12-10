@@ -170,7 +170,6 @@ class Profiler {
             } catch (e) {
                 console.warn(`Error during profiling: ${e}`)
             }
-
         }
     }
 
@@ -222,10 +221,8 @@ class IntervalHandle {
         this.log_level = log_level
         this.released_status = new ReleasedStatus()
         this.released_status.released = false
-        handle_registry.register(
-            this,
-            new IntervalFinalizationRegistryEntry(interval_name, this.released_status)
-        )
+        let entry = new IntervalFinalizationRegistryEntry(interval_name, this.released_status)
+        handle_registry.register(this, entry)
     }
 
     /// Measure the interval.
