@@ -453,7 +453,9 @@ impl IntervalHandle {
         warn_on_error(end_interval(self.metadata.clone()));
     }
 
-    /// Release the handle to manually call `end_interval` without emitting a warning.
+    /// Release the handle to prevent a warning to be emitted when it is garbage collected without
+    /// a call to `end`. This can be useful if one wants to call `end_interval` manually, or the
+    /// equivalent call to `end_interval` is in Rust code.
     pub fn release(mut self) {
         self.released = true;
         drop(self)
