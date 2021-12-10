@@ -166,50 +166,61 @@ macro_rules! define_profiling_toggle {
 /// can be activated and de-activated via a crate feature flag named
 /// `enable-<profiling_module_name>-profiling`, which will turn the profiling methods into no-ops.
 macro_rules! define_logger {
-    ($log_level:expr, $log_level_name_upper:ident, $log_level_name:ident) => {
-        paste::paste! {
-            /// Profiler module that exposes methods to measure named intervals.
-            pub mod $log_level_name {
+    ($log_level:expr, $log_level_name_upper:ident, $log_level_name:ident, $start:ident, $end:ident, $measure:ident) => {
+        /// Profiler module that exposes methods to measure named intervals.
+        pub mod $log_level_name {
 
-                define_profiling_toggle!($log_level_name);
+            define_profiling_toggle!($log_level_name);
 
-                /// Start measuring a named time interval. Return an `IntervalHandle` that can be used
-                /// to end the profiling.
-                #[macro_export]
-                macro_rules! [< start_ $log_level_name >] {
-                    ($interval_name:expr) => {
-                        profiling::start_interval(profiling::Metadata {
-                            source:          profiling::SourceLocation { file: file!().to_string(), line: line!() },
-                            profiling_level: profiling::$log_level,
-                            label:           $interval_name.to_string(),
+            /// Start measuring a named time interval. Return an `IntervalHandle` that can be used
+            /// to end the profiling.
+            #[macro_export]
+            macro_rules! $start {
+                ($interval_name:expr) => {
+                    profiling::start_interval(profiling::Metadata {
+                        source:          profiling::SourceLocation {
+                            file: file!().to_string(),
+                            line: line!(),
+                        },
+                        profiling_level: profiling::$log_level,
+                        label:           $interval_name.to_string(),
                     });
-                    };
-                }
+                };
+            }
 
 
-                /// Manually end measuring a named time interval.
-                #[macro_export]
-                macro_rules! [< end_ $log_level_name >] {
-                    ($interval_name:expr) => {
-                        profiling::end_interval(profiling::Metadata {
-                            source:          profiling::SourceLocation { file: file!().to_string(), line: line!() },
-                            profiling_level: profiling::$log_level,
-                            label:           $interval_name.to_string(),
+            /// Manually end measuring a named time interval.
+            #[macro_export]
+            macro_rules! $end {
+                ($interval_name:expr) => {
+                    profiling::end_interval(profiling::Metadata {
+                        source:          profiling::SourceLocation {
+                            file: file!().to_string(),
+                            line: line!(),
+                        },
+                        profiling_level: profiling::$log_level,
+                        label:           $interval_name.to_string(),
                     });
-                    };
-                }
+                };
+            }
 
-                /// Profile the execution of the given closure.
-                #[macro_export]
-                macro_rules! [< measure_ $log_level_name >] {
-                    ($interval_name:expr, $closure:expr) => {
-                        profiling::measure_interval(profiling::Metadata {
-                            source:          profiling::SourceLocation { file: file!().to_string(), line: line!() },
+            /// Profile the execution of the given closure.
+            #[macro_export]
+            macro_rules! $measure {
+                ($interval_name:expr, $closure:expr) => {
+                    profiling::measure_interval(
+                        profiling::Metadata {
+                            source:          profiling::SourceLocation {
+                                file: file!().to_string(),
+                                line: line!(),
+                            },
                             profiling_level: profiling::$log_level,
                             label:           $interval_name.to_string(),
-                    }, $closure).value
-                    };
-                }
+                        },
+                        $closure,
+                    )
+                    .value
+                };
             }
         }
     };
@@ -229,10 +240,17 @@ pub enum ProfilingLevel {
     Debug,
 }
 
-define_logger!(ProfilingLevel::Section, SECTION, section);
-define_logger!(ProfilingLevel::Task, TASK, task);
-define_logger!(ProfilingLevel::Detail, DETAIL, detail);
-define_logger!(ProfilingLevel::Debug, DEBUG, debug);
+define_logger!(
+    ProfilingLevel::Section,
+    SECTION,
+    section,
+    start_section,
+    end_section,
+    measure_section
+);
+define_logger!(ProfilingLevel::Task, TASK, task, start_task, end_task, measure_task);
+define_logger!(ProfilingLevel::Detail, DETAIL, detail, start_detail, end_detail, measure_detail);
+define_logger!(ProfilingLevel::Debug, DEBUG, debug, start_debug, end_debug, measure_debug);
 
 /// Check at compile time whether the given log level should perform any logging activity.
 const fn profiling_level_is_active(log_level: ProfilingLevel) -> bool {
