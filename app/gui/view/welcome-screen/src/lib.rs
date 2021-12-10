@@ -87,11 +87,7 @@ impl ClickableElement {
         frp::new_network! { network
             click <- source_();
         }
-        let click_clone = click.clone_ref();
-        let closure = Box::new(move |_event: MouseEvent| {
-            click_clone.emit(());
-        });
-        let closure: ClickClosure = Closure::wrap(closure);
+        let closure: ClickClosure = Closure::wrap(Box::new(f_!(click.emit(()))));
         let callback = closure.as_ref().unchecked_ref();
         if element.add_event_listener_with_callback("click", callback).is_err() {
             error!(logger, "Could not add event listener for ClickableElement.");
