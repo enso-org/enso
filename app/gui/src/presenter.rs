@@ -1,18 +1,22 @@
 pub mod graph;
+pub mod project;
 
 pub use graph::Graph;
+pub use project::Project;
 
 use crate::prelude::*;
 
 use crate::controller::ide::StatusNotification;
 use crate::executor::global::spawn_stream_handler;
+use crate::presenter;
+
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;
 
 #[derive(Debug)]
 struct Model {
     logger:          Logger,
-    current_project: RefCell<Option<Graph>>,
+    current_project: RefCell<Option<presenter::Project>>,
     controller:      controller::Ide,
     view:            view::root::View,
 }
@@ -32,14 +36,12 @@ impl Model {
             breadcrumbs.project_name(project_model.name().to_string());
 
             let status_notifications = self.controller.status_notifications().clone_ref();
-            let project = controller::Project::new(project_model, status_notifications.clone_ref());
+            let project_controller =
+                controller::Project::new(project_model, status_notifications.clone_ref());
 
             executor::global::spawn(async move {
-                match project.initialize().await {
-                    Ok(result) => {
-                        let graph_controller = result.main_graph;
-                        let graph_view = project_view.graph().clone_ref();
-                        let project = Graph::new(graph_controller, graph_view);
+                match presenter::Project::initialize(project_controller, project_view).await {
+                    Ok(project) => {
                         *self.current_project.borrow_mut() = Some(project);
                     }
                     Err(err) => {
