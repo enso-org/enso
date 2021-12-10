@@ -626,8 +626,9 @@ have appeared in the `built-distribution` directory.
 
 The IDE will connect to the running project manager to look up the project and
 start the language server. The required version of the language server is
-specified in the `edition` field of the `package.yaml` project description (Enso
-projects are located in the `~/enso` directory).
+specified in the `edition` field of the `package.yaml` project description. Enso
+projects are located in the `~/enso` directory on Unix and `%userprofile%\enso`
+on Windows systems by default.
 
 ```bash
 cat ~/enso/projects/Unnamed/package.yaml
