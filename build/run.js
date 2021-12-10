@@ -101,25 +101,18 @@ function run_project_manager() {
 }
 
 function make_profiling_feature_string(args) {
-    const profiling_level = args['profiling-level']
+    const profiling_level = args['profiling-level'].toString().toLowerCase()
     if (profiling_level === undefined) {
         return ''
     }
-
+    const to_check = ['section', 'task', 'detail', 'debug']
     const features = []
+    for (const feature of to_check) {
+        if (profiling_level.includes('feature')) {
+            features.push(`enable-${feature}-profiling`)
+        }
+    }
 
-    if (profiling_level.includes('section')) {
-        features.push('enable-section-profiling')
-    }
-    if (profiling_level.includes('task')) {
-        features.push('enable-task-profiling')
-    }
-    if (profiling_level.includes('detail')) {
-        features.push('enable-detail-profiling')
-    }
-    if (profiling_level.includes('debug')) {
-        features.push('enable-debug-profiling')
-    }
     return features.join(' ')
 }
 
