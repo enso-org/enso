@@ -259,40 +259,43 @@ impl API for Module {
 // === Synchronizing Language Server ===
 
 impl Module {
-    /// The asynchronous task scheduled during struct creation which listens for all module changes
+    /// Returns the asynchronous task scheduled during struct creation which listens for all module changes
     /// and send proper updates to Language Server.
-    async fn runner(
+    fn runner(
         self: Rc<Self>,
         initial_ls_content: ContentSummary,
         first_invalidation: impl Future<Output = FallibleResult<ParsedContentSummary>>,
-    ) {
-        let first_invalidation = first_invalidation.await;
-        let mut ls_content = self.new_ls_content_info(initial_ls_content, first_invalidation);
+    ) -> impl Future<Output = ()> {
         DEBUG!("MCDBG pre-subscribe");
         let mut subscriber = self.model.subscribe();
         DEBUG!("MCDBG post-subscribe");
-        let weak = Rc::downgrade(&self);
-        drop(self);
 
-        loop {
-            DEBUG!("MCDBG @ new iter");
-            let notification = subscriber.next().await;
-            DEBUG!("MCDBG @ notification received");
-            let this = weak.upgrade();
-            match (notification, this) {
-                (Some(notification), Some(this)) => {
-                    debug!(this.logger, "Processing a notification: {notification:?}");
-                    DEBUG!("MCDBG Processing a notification: {notification:?}");
-                    let result = this.handle_notification(&ls_content, notification).await;
-                    ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
-                },
-                (Some(notification), _) => {
-                    DEBUG!("MCDBG BREAK! notif={notification:?}");
-                    break;
-                },
-                _ => {
-                    DEBUG!("MCDBG BREAK!");
-                    break;
+        async move {
+            let first_invalidation = first_invalidation.await;
+            let mut ls_content = self.new_ls_content_info(initial_ls_content, first_invalidation);
+            let weak = Rc::downgrade(&self);
+            drop(self);
+
+            loop {
+                DEBUG!("MCDBG @ new iter");
+                let notification = subscriber.next().await;
+                DEBUG!("MCDBG @ notification received");
+                let this = weak.upgrade();
+                match (notification, this) {
+                    (Some(notification), Some(this)) => {
+                        debug!(this.logger, "Processing a notification: {notification:?}");
+                        DEBUG!("MCDBG Processing a notification: {notification:?}");
+                        let result = this.handle_notification(&ls_content, notification).await;
+                        ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
+                    },
+                    (Some(notification), _) => {
+                        DEBUG!("MCDBG BREAK! notif={notification:?}");
+                        break;
+                    },
+                    _ => {
+                        DEBUG!("MCDBG BREAK!");
+                        break;
+                    }
                 }
             }
         }
