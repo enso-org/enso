@@ -378,6 +378,7 @@ impl Module {
         debug_assert_eq!(start.column, 0.column());
 
         let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
+        DEBUG!("MCDBG edit: {edit:?}");
         (edit.range.start != edit.range.end)
             .as_some_from(|| edit.move_by_lines(start.line.as_usize()))
     }
