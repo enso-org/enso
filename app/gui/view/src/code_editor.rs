@@ -100,8 +100,9 @@ impl View {
             frp.source.is_visible <+ bool(&frp.input.hide,&frp.input.show);
             frp.source.is_visible <+ frp.toggle.map2(&is_visible, |(),b| !b);
 
+            def init = source_();
             let shape  = app.display.scene().shape();
-            position <- all_with(&height_fraction.value,shape, |height_f,scene_size| {
+            position <- all_with3(&height_fraction.value,shape,&init, |height_f,scene_size,_init| {
                 let height = height_f * scene_size.height;
                 let x      = -scene_size.width  / 2.0 + PADDING_LEFT;
                 let y      = -scene_size.height / 2.0 + height;
@@ -112,6 +113,7 @@ impl View {
             let color = styles.get_color(ensogl_hardcoded_theme::code::syntax::base);
             eval color ((color) model.set_default_color(color));
         }
+        init.emit(());
         model.set_default_color(color.value());
 
         Self { model, styles, frp }
