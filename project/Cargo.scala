@@ -37,9 +37,6 @@ object Cargo {
     if (!cargoOk(log))
       throw new RuntimeException("Cargo isn't installed!")
 
-    if (!EnvironmentCheck.rustVersionOk(rustVersion, log))
-      throw new RuntimeException("Rust version mismatch!")
-
     log.info(cmd)
 
     val exitCode =
