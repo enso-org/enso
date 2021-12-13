@@ -45,7 +45,8 @@ trait NativeTestHelper {
           case Some(oldKey) =>
             throw new IllegalArgumentException(
               s"The environment key `$key` may be shadowed by `$oldKey` " +
-              s"already existing in the environment. Please use `$oldKey`."
+              s"already existing in the environment. Please use `$oldKey`." +
+              s"Keys $existingKeys. Environment: ${builder.environment().asScala}"
             )
           case None =>
         }
