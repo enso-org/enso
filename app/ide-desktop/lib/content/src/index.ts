@@ -879,9 +879,9 @@ class Config {
         this.application_config_url = ok(other.application_config_url)
             ? tryAsString(other.application_config_url)
             : this.application_config_url
-        this.rust_welcome_screen = ok(other.rust_welcome_screen)
-            ? tryAsBoolean(other.rust_welcome_screen)
-            : this.rust_welcome_screen
+        this.rust_new_presentation_layer = ok(other.rust_new_presentation_layer)
+            ? tryAsBoolean(other.rust_new_presentation_layer)
+            : this.rust_new_presentation_layer
     }
 }
 
