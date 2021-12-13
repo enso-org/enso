@@ -113,9 +113,10 @@ ensogl::define_endpoints! {
 
 /// Root View of the IDE. Displays either Welcome Screen or Project View.
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct View {
-    model: Model,
-    frp:   Frp,
+    model:   Model,
+    pub frp: Frp,
 }
 
 impl Deref for View {

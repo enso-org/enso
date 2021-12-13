@@ -671,7 +671,7 @@ impl Searcher {
                             let manage_projects = ide.manage_projects().unwrap();
                             let result = match action {
                                 action::ProjectManagement::CreateNewProject =>
-                                    manage_projects.create_new_project(),
+                                    manage_projects.create_new_project(None),
                                 action::ProjectManagement::OpenProject { id, .. } =>
                                     manage_projects.open_project(*id),
                             };

@@ -21,7 +21,7 @@
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/enso-org/enso/blob/develop/gui/LICENSE">
+  <a href="https://github.com/enso-org/enso/blob/develop/app/gui/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
@@ -144,7 +144,7 @@ always trust the results you get.
 <ul><ul>
     <b>Watch Tutorials</b><br/>
     <ul>
-        <li><a href="https://github.com/enso-org/enso/blob/develop/gui/docs/product/shortcuts.md">Enso keyboard shortcuts</a></li>
+        <li><a href="https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md">Enso keyboard shortcuts</a></li>
         <li><a href="https://youtu.be/3f6FE1dgMNw?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Enso 101</a></li>
         <li><a href="https://youtu.be/hFxugfGbvGI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze trams data</a></li>
         <li><a href="https://youtu.be/gXnojGR6wOI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze GitHub Stargazers data</a></li>
@@ -224,7 +224,7 @@ The Enso Engine is licensed under the
 [LICENSE](https://github.com/enso-org/enso/blob/develop/LICENSE) file. The Enso
 IDE is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0),
 as specified in the
-[LICENSE](https://github.com/enso-org/enso/blob/develop/gui/LICENSE) file.
+[LICENSE](https://github.com/enso-org/enso/blob/develop/app/gui/LICENSE) file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while

@@ -626,8 +626,9 @@ have appeared in the `built-distribution` directory.
 
 The IDE will connect to the running project manager to look up the project and
 start the language server. The required version of the language server is
-specified in the `enso-version` field of the `project.yaml` project description
-(Enso projects are located in the `~/enso` directory).
+specified in the `edition` field of the `package.yaml` project description. Enso
+projects are located in the `~/enso` directory on Unix and `%userprofile%\enso`
+on Windows systems by default.
 
 ```bash
 cat ~/enso/projects/Unnamed/package.yaml
@@ -635,22 +636,24 @@ cat ~/enso/projects/Unnamed/package.yaml
 
 ```yaml
 name: Unnamed
+namespace: local
 version: 0.0.1
-enso-version: 0.0.0-SNAPSHOT
 license: ""
 authors: []
 maintainers: []
+edition: "2021.20-SNAPSHOT"
+prefer-local-libraries: true
 ```
 
-We need to set `enso-version` to a value that will represent the development
-version. It should be different from any Enso versions that have already been
-released. In this case, we chose the `0.0.0-SNAPSHOT`. The project manager will
-look for the appropriate subdirectory in the _engines_ directory of the
-distribution folder. Distribution paths are printed when you run project manager
-with `-v` verbose logging.
+We need to set `edition` to a value that will represent the development version.
+It should be different from any Enso versions that have already been released.
+In this case, we chose the `2021.20-SNAPSHOT` (the current development edition).
+The project manager will look for the appropriate subdirectory in the _engines_
+directory of the distribution folder. Distribution paths are printed when you
+run project manager with `-v` verbose logging.
 
 ```bash
-$ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
+$ ./built-distribution/enso-project-manager-0.2.32-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
 [info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
 [debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
   dataRoot = /home/dbv/.local/share/enso,
@@ -663,7 +666,7 @@ $ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin
 )
 ```
 
-On Linux it looks for the `~/.local/share/enso/dist/0.0.0-SNAPSHOT/` directory.
+On Linux it looks for the `~/.local/share/enso/dist/0.2.32-SNAPSHOT/` directory.
 
 We can build an engine distribution using the `buildEngineDistribution` command
 in SBT.
@@ -680,19 +683,19 @@ sbt buildEngineDistribution
 sbt.bat buildEngineDistribution
 ```
 
-And copy the result to the `0.0.0-SNAPSHOT` engines directory of the
+And copy the result to the `0.2.32-SNAPSHOT` engines directory of the
 distribution folder.
 
 ##### Bash
 
 ```bash
-cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNAPSHOT ~/.local/share/enso/dist/0.0.0-SNAPSHOT
+cp -r built-distribution/enso-engine-0.2.32-SNAPSHOT-linux-amd64/enso-0.2.32-SNAPSHOT ~/.local/share/enso/dist/0.2.32-SNAPSHOT
 ```
 
 ##### PowerShell
 
 ```powershell
-cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNAPSHOT ~/.local/share/enso/dist/0.0.0-SNAPSHOT
+cp -r built-distribution/enso-engine-0.2.32-SNAPSHOT-linux-amd64/enso-0.2.32-SNAPSHOT ~/.local/share/enso/dist/0.2.32-SNAPSHOT
 ```
 
 Now, when the project manager is running and the engines directory contains the
@@ -706,7 +709,7 @@ version of the language server.
 2. Copy or symlink the development version of the engine created with SBT's
    `buildEnginedistribution` command to the engines directory of the Enso
    distribution folder.
-3. Set the `enso-version` field of the `project.yaml` project definition to the
+3. Set the `edition` field of the `package.yaml` project definition to the
    version that you created in the previous step.
 4. Run the IDE with `--no-backend` flag.
 

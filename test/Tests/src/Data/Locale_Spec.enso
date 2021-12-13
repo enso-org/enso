@@ -11,6 +11,7 @@ with_locale locale ~test =
     result = Panic.recover test . catch_primitive e->
         JavaLocale.setDefault default_locale
         Panic.throw e
+    JavaLocale.setDefault default_locale
     result
 
 spec = Test.group "Locale" <|

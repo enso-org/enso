@@ -694,6 +694,12 @@ impl Network {
         self.register(OwnedMap::new(label, src, f))
     }
 
+    /// A shortcut for `.map(|v| Some(v.clone()))`.
+    pub fn some<T>(&self, label: Label, src: &T) -> Stream<Option<Output<T>>>
+    where T: EventOutput {
+        self.map(label, src, |value| Some(value.clone()))
+    }
+
     /// Specialized version of `map`.
     pub fn map2<T1, T2, F, T>(&self, label: Label, t1: &T1, t2: &T2, f: F) -> Stream<T>
     where
