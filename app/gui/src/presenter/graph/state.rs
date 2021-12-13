@@ -566,8 +566,8 @@ mod tests {
                 .enumerate()
                 .map(|(i, node)| {
                     let view = ensogl::display::object::Id::from(i).into();
-                    state.refresh_node_expression(&node, node_trees_of(&node));
-                    state.assign_newly_created_node(view);
+                    state.update_from_controller().set_node_expression(&node, node_trees_of(&node));
+                    state.assign_node_view(view);
                     TestNode { node, view }
                 })
                 .collect();
@@ -575,23 +575,25 @@ mod tests {
         }
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn adding_and_removing_nodes() {
         let state = State::default();
         let node1 = create_test_node("node1 = 2 + 2");
         let node2 = create_test_node("node2 = node1 + 2");
         let node_view_1 = ensogl::display::object::Id::from(1).into();
         let node_view_2 = ensogl::display::object::Id::from(2).into();
+        let from_controller = state.update_from_controller();
+        let from_view = state.update_from_view();
 
-        assert_eq!(state.refresh_node_expression(&node1, node_trees_of(&node1)), None);
-        assert_eq!(state.refresh_node_expression(&node2, node_trees_of(&node2)), None);
+        assert_eq!(from_controller.set_node_expression(&node1, node_trees_of(&node1)), None);
+        assert_eq!(from_controller.set_node_expression(&node2, node_trees_of(&node2)), None);
 
         assert_eq!(state.view_id_of_ast_node(node1.id()), None);
         assert_eq!(state.view_id_of_ast_node(node2.id()), None);
 
-        let assigned = state.assign_newly_created_node(node_view_2);
+        let assigned = state.assign_node_view(node_view_2);
         assert_eq!(assigned.map(|node| node.expression.code), Some("node1 + 2".to_owned()));
-        let assigned = state.assign_newly_created_node(node_view_1);
+        let assigned = state.assign_node_view(node_view_1);
         assert_eq!(assigned.map(|node| node.expression.code), Some("2 + 2".to_owned()));
 
         assert_eq!(state.view_id_of_ast_node(node1.id()), Some(node_view_1));
@@ -604,99 +606,69 @@ mod tests {
             node2.info.main_line.ast().iter_recursive().filter_map(|a| a.id).collect_vec();
         assert_eq!(state.expressions_of_node(node_view_2), node2_exprs);
 
-        let views_to_remove = state.retain_nodes(&[node1.id()].iter().copied().collect());
+        let views_to_remove = from_controller.retain_nodes(&[node1.id()].iter().copied().collect());
         assert_eq!(views_to_remove, vec![node_view_2]);
 
         assert_eq!(state.view_id_of_ast_node(node1.id()), Some(node_view_1));
         assert_eq!(state.view_id_of_ast_node(node2.id()), None);
 
-        assert_eq!(state.node_removed(node_view_1), Some(node1.id()));
+        assert_eq!(from_view.remove_node(node_view_1), Some(node1.id()));
         assert_eq!(state.view_id_of_ast_node(node1.id()), None)
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn adding_and_removing_connections() {
         use controller::graph::Endpoint;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["node1 = 2", "node1 + node1"]);
-        let source = Endpoint {
+        let src = Endpoint {
             node:       nodes[0].node.id(),
             port:       default(),
             var_crumbs: default(),
         };
-        let destination1 = Endpoint {
+        let dest1 = Endpoint {
             node:       nodes[1].node.id(),
             port:       span_tree::Crumbs::new(vec![0]),
             var_crumbs: default(),
         };
-        let destination2 = Endpoint {
+        let dest2 = Endpoint {
             node:       nodes[1].node.id(),
             port:       span_tree::Crumbs::new(vec![2]),
             var_crumbs: default(),
         };
-        let ast_connection1 =
-            AstConnection { source: source.clone(), destination: destination1.clone() };
-        let ast_connection2 =
-            AstConnection { source: source.clone(), destination: destination2.clone() };
-        let view_connection1 = ensogl::display::object::Id::from(1).into();
-        let view_connection2 = ensogl::display::object::Id::from(2).into();
-        let view_source = EdgeEndpoint { node_id: nodes[0].view, port: source.port.clone() };
-        let view_target1 =
-            EdgeEndpoint { node_id: nodes[1].view, port: destination1.port.clone() };
-        let view_target2 =
-            EdgeEndpoint { node_id: nodes[1].view, port: destination2.port.clone() };
-        let view_endpoints1 = (view_source.clone(), view_target1.clone());
-        let view_endpoints2 = (view_source.clone(), view_target2.clone());
+        let ast_con1 = AstConnection { source: src.clone(), destination: dest1.clone() };
+        let ast_con2 = AstConnection { source: src.clone(), destination: dest2.clone() };
+        let view_con1 = ensogl::display::object::Id::from(1).into();
+        let view_con2 = ensogl::display::object::Id::from(2).into();
+        let view_src = EdgeEndpoint { node_id: nodes[0].view, port: src.port.clone() };
+        let view_tgt1 = EdgeEndpoint { node_id: nodes[1].view, port: dest1.port.clone() };
+        let view_tgt2 = EdgeEndpoint { node_id: nodes[1].view, port: dest2.port.clone() };
+        let view_pair1 = (view_src.clone(), view_tgt1.clone());
 
-        assert_eq!(state.view_of_ast_connection(&ast_connection1), None);
-        assert_eq!(state.view_of_ast_connection(&ast_connection2), None);
+        let from_controller = state.update_from_controller();
+        let from_view = state.update_from_view();
+
+        assert_eq!(from_controller.set_connection(ast_con1.clone()), Some(view_pair1.clone()));
 
         assert_eq!(
-            state.refresh_connection(ast_connection1.clone()),
-            Some(view_endpoints1.clone())
-        );
-
-        assert_eq!(state.view_of_ast_connection(&ast_connection1), None);
-        assert_eq!(state.view_of_ast_connection(&ast_connection2), None);
-
-        assert_eq!(
-            state.assign_connection_view_endpoints(
-                view_connection1,
-                view_source.clone(),
-                view_target1
-            ),
+            from_view.create_connection_from_endpoints(view_con1, view_src.clone(), view_tgt1),
             None
         );
         assert_eq!(
-            state.assign_connection_view_endpoints(
-                view_connection2,
-                view_source.clone(),
-                view_target2
-            ),
-            Some(ast_connection2.clone())
+            from_view.create_connection_from_endpoints(view_con2, view_src.clone(), view_tgt2),
+            Some(ast_con2.clone())
         );
 
-        assert_eq!(state.view_of_ast_connection(&ast_connection1), Some(view_connection1));
-        assert_eq!(state.view_of_ast_connection(&ast_connection2), Some(view_connection2));
-
+        let all_connections = [ast_con1.clone(), ast_con2.clone()].into_iter().collect();
+        assert_eq!(from_controller.retain_connections(&all_connections), vec![]);
         assert_eq!(
-            state.retain_connections(
-                &[ast_connection1.clone(), ast_connection2.clone()].into_iter().collect()
-            ),
-            vec![]
-        );
-        assert_eq!(
-            state.retain_connections(&[ast_connection2.clone()].into_iter().collect()),
-            vec![view_connection1]
+            from_controller.retain_connections(&[ast_con2.clone()].into_iter().collect()),
+            vec![view_con1]
         );
 
-        assert_eq!(state.view_of_ast_connection(&ast_connection1), None);
-        assert_eq!(state.view_of_ast_connection(&ast_connection2), Some(view_connection2.clone()));
-
-        assert_eq!(state.connection_removed(view_connection2), Some(ast_connection2.clone()));
-        assert_eq!(state.view_of_ast_connection(&ast_connection2), None);
+        assert_eq!(from_view.remove_connection(view_con2), Some(ast_con2.clone()));
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn refreshing_node_expression() {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
         let node_id = nodes[0].node.id();
@@ -718,29 +690,32 @@ mod tests {
             input_span_tree:     new_trees.inputs.clone(),
             output_span_tree:    default(),
         };
+        let updater = state.update_from_controller();
         assert_eq!(
-            state.refresh_node_expression(&new_node, new_trees.clone()),
+            updater.set_node_expression(&new_node, new_trees.clone()),
             Some((view, expected_new_expression))
         );
-        assert_eq!(state.refresh_node_expression(&new_node, new_trees), None);
+        assert_eq!(updater.set_node_expression(&new_node, new_trees), None);
         assert_eq!(state.expressions_of_node(view), new_subexpressions);
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn updating_node_position() {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo"]);
         let node_id = nodes[0].node.id();
         let view_id = nodes[0].view;
         let position_from_ast = Vector2(1.0, 2.0);
         let position_from_view = Vector2(3.0, 4.0);
+        let from_controller = state.update_from_controller();
+        let from_view = state.update_from_view();
 
-        assert_eq!(state.refresh_node_position(node_id, position_from_ast), Some(view_id));
-        assert_eq!(state.node_position_changed(view_id, position_from_ast), None);
-        assert_eq!(state.node_position_changed(view_id, position_from_view), Some(node_id));
-        assert_eq!(state.refresh_node_position(node_id, position_from_view), None);
+        assert_eq!(from_controller.set_node_position(node_id, position_from_ast), Some(view_id));
+        assert_eq!(from_view.set_node_position(view_id, position_from_ast), None);
+        assert_eq!(from_view.set_node_position(view_id, position_from_view), Some(node_id));
+        assert_eq!(from_controller.set_node_position(node_id, position_from_view), None);
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn refreshing_expression_types() {
         use ast::crumbs::InfixCrumb;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["2 + 3"]);
@@ -748,23 +723,25 @@ mod tests {
         let node_ast = nodes[0].node.main_line.expression();
         let left_operand = node_ast.get(&InfixCrumb::LeftOperand.into()).unwrap().id.unwrap();
         let right_operand = node_ast.get(&InfixCrumb::RightOperand.into()).unwrap().id.unwrap();
+        let updater = state.update_from_controller();
 
         let number_type = Some(view::graph_editor::Type::from("Number".to_owned()));
-        assert_eq!(state.refresh_expression_type(left_operand, number_type.clone()), Some(view));
-        assert_eq!(state.refresh_expression_type(right_operand, number_type.clone()), Some(view));
+        assert_eq!(updater.set_expression_type(left_operand, number_type.clone()), Some(view));
+        assert_eq!(updater.set_expression_type(right_operand, number_type.clone()), Some(view));
 
-        assert_eq!(state.refresh_expression_type(left_operand, number_type.clone()), None);
-        assert_eq!(state.refresh_expression_type(right_operand, number_type), None);
+        assert_eq!(updater.set_expression_type(left_operand, number_type.clone()), None);
+        assert_eq!(updater.set_expression_type(right_operand, number_type), None);
 
-        assert_eq!(state.refresh_expression_type(left_operand, None), Some(view));
-        assert_eq!(state.refresh_expression_type(right_operand, None), Some(view));
+        assert_eq!(updater.set_expression_type(left_operand, None), Some(view));
+        assert_eq!(updater.set_expression_type(right_operand, None), Some(view));
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn refreshing_expression_method_pointers() {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
         let view = nodes[0].view;
         let expr = nodes[0].node.id();
+        let updater = state.update_from_controller();
 
         let method_ptr = MethodPointer {
             module:          "Foo".to_string(),
@@ -772,8 +749,8 @@ mod tests {
             name:            "foo".to_string(),
         };
         let method_ptr = Some(view::graph_editor::MethodPointer::from(method_ptr));
-        assert_eq!(state.refresh_expression_method_pointer(expr, method_ptr.clone()), Some(view));
-        assert_eq!(state.refresh_expression_method_pointer(expr, method_ptr), None);
-        assert_eq!(state.refresh_expression_method_pointer(expr, None), Some(view));
+        assert_eq!(updater.set_expression_method_pointer(expr, method_ptr.clone()), Some(view));
+        assert_eq!(updater.set_expression_method_pointer(expr, method_ptr), None);
+        assert_eq!(updater.set_expression_method_pointer(expr, None), Some(view));
     }
 }
