@@ -21,6 +21,7 @@
  */
 import * as assert from 'assert'
 
+
 // =========================
 // === Profiler Registry ===
 // =========================
@@ -134,6 +135,7 @@ class Profiler {
         // The hierarchy is established by order of instantiation / registration in the `profilerRegistry`.
         const profilerIndex = profilerRegistry.findIndex(item => item === this)
         if (profilerIndex < 0) {
+            console.warn(`Looked for invalid profiler in profilerRegistry: ${this.logLevelName()}`)
             return false
         }
         for (let i = profilerIndex; i; i--) {
@@ -182,7 +184,7 @@ class Profiler {
     /// Profile the execution of the given callable.
     measure(interval_name: string, closure: CallableFunction) {
         const metadata = makeMetadata(this.logLevel, interval_name)
-        this.start(interval_name)
+        this.start(interval_name).release()
         const ret = closure()
         this._end_with_metadata(metadata)
         return ret
@@ -270,7 +272,7 @@ class ReleasedStatus {
 const handle_registry = new FinalizationRegistry(heldValue => {
     if (heldValue instanceof IntervalFinalizationRegistryEntry) {
         if (!heldValue.release_status.released) {
-            console.warn(heldValue.interval_name + 'was dropped without a call to `measure`.')
+            console.warn(heldValue.interval_name + ' was dropped without a call to `measure`.')
         }
     }
 })
@@ -372,11 +374,14 @@ export class Report {
     }
 }
 
-// ==================
-// === Public API ===
-// ==================
+// ================================
+// === Public API for Profilers ===
+// ================================
 
-export const section = new Profiler('Section')
-export const task = new Profiler('Task')
-export const detail = new Profiler('Detail')
-export const debug = new Profiler('Debug')
+const profilingLevels: string[] = require(`./profilers.json`)
+
+export const profilers = {}
+for (const profilingLevel of profilingLevels) {
+    // @ts-ignore
+    profilers[profilingLevel.toLowerCase()] = new Profiler(profilingLevel)
+}

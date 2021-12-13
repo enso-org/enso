@@ -108,7 +108,7 @@ function make_profiling_feature_string(args) {
     const to_check = ['section', 'task', 'detail', 'debug']
     const features = []
     for (const feature of to_check) {
-        if (profiling_level.includes('feature')) {
+        if (profiling_level.includes(feature)) {
             features.push(`enable-${feature}-profiling`)
         }
     }
@@ -127,7 +127,6 @@ function make_performance_logging_feature_flag(args) {
 
 function set_performance_logging_env(args) {
     const feature_string = make_profiling_feature_string(args)
-    console.log(feature_string)
     process.env['PROFILING_LEVEL'] = feature_string
 }
 

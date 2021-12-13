@@ -182,12 +182,11 @@ macro_rules! define_logger {
                             file: file!().to_string(),
                             line: line!(),
                         },
-                        profiling_level: profiling::$log_level,
+                        profiling_level: $log_level.to_string(),
                         label:           $interval_name.to_string(),
                     });
                 };
             }
-
 
             /// Manually end measuring a named time interval.
             #[macro_export]
@@ -230,39 +229,11 @@ macro_rules! define_logger {
 // === Profilers ===
 // =================
 
-#[derive(Copy, Clone, Debug, Display)]
-#[derive(Serialize, Deserialize)]
 #[allow(missing_docs)]
-pub enum ProfilingLevel {
-    Section,
-    Task,
-    Detail,
-    Debug,
-}
+type ProfilingLevel = String;
 
-define_logger!(
-    ProfilingLevel::Section,
-    SECTION,
-    section,
-    start_section,
-    end_section,
-    measure_section
-);
-define_logger!(ProfilingLevel::Task, TASK, task, start_task, end_task, measure_task);
-define_logger!(ProfilingLevel::Detail, DETAIL, detail, start_detail, end_detail, measure_detail);
-define_logger!(ProfilingLevel::Debug, DEBUG, debug, start_debug, end_debug, measure_debug);
 
-/// Check at compile time whether the given log level should perform any logging activity.
-const fn profiling_level_is_active(log_level: ProfilingLevel) -> bool {
-    match log_level {
-        ProfilingLevel::Section => section::ENABLED,
-        ProfilingLevel::Task => task::ENABLED || profiling_level_is_active(ProfilingLevel::Section),
-        ProfilingLevel::Detail =>
-            detail::ENABLED || profiling_level_is_active(ProfilingLevel::Detail),
-        ProfilingLevel::Debug => detail::ENABLED || profiling_level_is_active(ProfilingLevel::Task),
-    }
-}
-
+macros::with_all_profiling_levels!(define_logger);
 
 
 // ====================
@@ -322,7 +293,7 @@ impl TryFrom<PerformanceEntry> for Measurement {
             .try_into()
             .or(Err(InvalidFormatting))?;
 
-        let log_level_name = metadata.profiling_level.to_string();
+        let log_level_name = metadata.profiling_level;
         let log_level_name = log_level_name.to_class_case();
 
         let log_level: ProfilingLevel = from_str(&log_level_name).or(Err(InvalidLogLevel))?;
@@ -386,7 +357,7 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 /// level.
 pub fn start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
-    if profiling_level_is_active(metadata.profiling_level) {
+    if profiling_level_is_active(metadata.profiling_level.clone()) {
         mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
     IntervalHandle::new(metadata)
@@ -407,7 +378,7 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
 /// if possible.
 fn end_interval(metadata: Metadata) -> Result<Measurement, MeasurementError> {
     // metadata.event_type = MeasurementEvent::End;
-    let profiling_level = metadata.profiling_level;
+    let profiling_level = metadata.profiling_level.clone();
     let start_label = start_interval_label(&metadata);
     let end_label = end_interval_label(&metadata);
     let measurement_label = measure_interval_label(&metadata);

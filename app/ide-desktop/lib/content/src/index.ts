@@ -983,7 +983,8 @@ async function runEntryPoint(config: Config) {
 }
 
 API.main = async function (inputConfig: any) {
-    const config = profiling.task.measure('load_config', () => {
+    // @ts-ignore
+    const config = profiling.profilers.task.measure('load_config', () => {
         const urlParams = new URLSearchParams(window.location.search)
         // @ts-ignore
         const urlConfig = Object.fromEntries(urlParams.entries())
