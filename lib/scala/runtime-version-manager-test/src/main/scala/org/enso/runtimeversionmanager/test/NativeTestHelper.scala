@@ -37,21 +37,11 @@ trait NativeTestHelper {
     lazy val existingKeys =
       builder.environment().keySet().asScala
     for ((key, value) <- extraEnv) {
-      if (OS.isWindows) {
-        def shadows(key1: String, key2: String): Boolean =
-          key1.toLowerCase == key2.toLowerCase && key1 != key2
-
-        existingKeys.find(shadows(_, key)) match {
-          case Some(oldKey) =>
-            throw new IllegalArgumentException(
-              s"The environment key `$key` may be shadowed by `$oldKey` " +
-              s"already existing in the environment. Please use `$oldKey`." +
-              s"Keys $existingKeys. Environment: ${builder.environment().asScala}"
-            )
-          case None =>
-        }
-      }
-      builder.environment().put(key, value)
+      val keyName =
+        if (OS.isWindows)
+          existingKeys.find(_.equalsIgnoreCase(key)).getOrElse(key)
+        else key
+      builder.environment().put(keyName, value)
     }
 
     try {
