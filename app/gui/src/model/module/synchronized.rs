@@ -168,7 +168,9 @@ impl Module {
         let this = Rc::new(Module { model, language_server, logger });
         let content = this.model.serialized_content()?;
         let first_invalidation = this.full_invalidation(&summary, content);
+        DEBUG!("MCDBG pre-SPAWN runner");
         executor::global::spawn(Self::runner(this.clone_ref(), summary, first_invalidation));
+        DEBUG!("MCDBG post-SPAWN runner");
         Ok(this)
     }
 
@@ -266,20 +268,32 @@ impl Module {
     ) {
         let first_invalidation = first_invalidation.await;
         let mut ls_content = self.new_ls_content_info(initial_ls_content, first_invalidation);
+        DEBUG!("MCDBG pre-subscribe");
         let mut subscriber = self.model.subscribe();
+        DEBUG!("MCDBG post-subscribe");
         let weak = Rc::downgrade(&self);
         drop(self);
 
         loop {
+            DEBUG!("MCDBG @ new iter");
             let notification = subscriber.next().await;
+            DEBUG!("MCDBG @ notification received");
             let this = weak.upgrade();
             match (notification, this) {
                 (Some(notification), Some(this)) => {
                     debug!(this.logger, "Processing a notification: {notification:?}");
+                    DEBUG!("MCDBG Processing a notification: {notification:?}");
                     let result = this.handle_notification(&ls_content, notification).await;
                     ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
+                },
+                (Some(notification), _) => {
+                    DEBUG!("MCDBG BREAK! notif={notification:?}");
+                    break;
+                },
+                _ => {
+                    DEBUG!("MCDBG BREAK!");
+                    break;
                 }
-                _ => break,
             }
         }
     }
@@ -407,6 +421,7 @@ impl Module {
         new_file: SourceFile,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
         debug!(self.logger, "Handling partial invalidation: {ls_content:?}.");
+        DEBUG!("MCDBG Handling partial invalidation: {ls_content:?}.");
         let edits = vec![
             //id_map and metadata go first, because code change may alter their position.
             Self::edit_for_idmap(ls_content, &new_file),
@@ -416,6 +431,7 @@ impl Module {
         .into_iter()
         .flatten()
         .collect_vec();
+        DEBUG!("MCDBG invalidation edits: {edits:?}");
         self.notify_language_server(&ls_content.summary, &new_file, edits)
     }
 

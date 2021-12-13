@@ -19,6 +19,8 @@ use parser::api::ParsedSourceFile;
 use parser::api::SourceFile;
 use parser::Parser;
 
+use logger::DefaultTraceLogger as Logger;
+
 /// A structure describing the module.
 ///
 /// It implements internal mutability pattern, so the state may be shared between different
@@ -61,7 +63,7 @@ impl Module {
             debug!(self.logger, "Ignoring spurious update.");
             return Ok(());
         }
-        trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
+        // trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
         use engine_protocol::types::Sha3_224;
         let hash = Sha3_224::new(new_content.serialize().unwrap().content.as_bytes());
         DEBUG!("Updating module's content: {kind:?}. New content {hash}:\n[[[{new_content}]]]");

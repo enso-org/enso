@@ -134,12 +134,15 @@ impl Project {
         Self::add_main_if_missing(project.qualified_name(), &main_module_model, &method, &parser)?;
 
         let mut info = main_module_model.info();
+        DEBUG!("MCDBG pre-add_module_import");
         info.add_module_import(
             &project.qualified_module_name(&module_path),
             &project.parser(),
             &QualifiedName::from_text("Standard.Visualization").unwrap(),
         );
+        DEBUG!("MCDBG post-add_module_import");
         main_module_model.update_ast(info.ast)?;
+        DEBUG!("MCDBG post-update_ast");
 
         // Here, we should be relatively certain (except race conditions in case of multiple
         // clients that we currently do not support) that main module exists and contains main
