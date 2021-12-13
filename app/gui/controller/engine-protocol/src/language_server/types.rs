@@ -555,6 +555,7 @@ impl TextEdit {
         let source = source.into();
         let target = target.into();
         let common_lengths = source.common_prefix_and_suffix(&target);
+        DEBUG!("MCDBG\nSOURCE: {source:?}\nTARGET: {target:?}\nCOMMON LENGTHS: {common_lengths:?}\n");
 
         let source_start_byte = common_lengths.prefix;
         let source_end_byte = Bytes::from(source.len()) - common_lengths.suffix;
