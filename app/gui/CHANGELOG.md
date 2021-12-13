@@ -6,10 +6,15 @@
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
   registered.][3181]
+- [Fixed "Invalid version" error during sending text change to Language
+  Server.][3186] The error was necessitating full resynchronizations between IDE
+  and Language Server, adding to startup time and increasing new node creation
+  time.
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
 [3181]: https://github.com/enso-org/enso/pull/3181
+[3186]: https://github.com/enso-org/enso/pull/3186
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
