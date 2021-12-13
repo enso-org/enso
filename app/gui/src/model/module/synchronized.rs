@@ -379,7 +379,7 @@ impl Module {
 
         let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
         DEBUG!("MCDBG edit: {edit:?}");
-        (edit.range.start != edit.range.end)
+        (edit.range.start != edit.range.end || !edit.text.is_empty())
             .as_some_from(|| edit.move_by_lines(start.line.as_usize()))
     }
 
