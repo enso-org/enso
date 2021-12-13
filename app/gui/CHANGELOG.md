@@ -8,7 +8,7 @@
   registered.][3181]
 - [Fixed "Invalid version" error during sending text change to Language
   Server.][3186] The error happened during project opening and after new node
-  creation, increasing delays at those moments.
+  creation.
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
