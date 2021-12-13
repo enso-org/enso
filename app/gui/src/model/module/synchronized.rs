@@ -25,7 +25,6 @@ use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
 
-use logger::DefaultTraceLogger as Logger;
 
 
 // =======================
@@ -168,9 +167,7 @@ impl Module {
         let this = Rc::new(Module { model, language_server, logger });
         let content = this.model.serialized_content()?;
         let first_invalidation = this.full_invalidation(&summary, content);
-        DEBUG!("MCDBG pre-SPAWN runner");
         executor::global::spawn(Self::runner(this.clone_ref(), summary, first_invalidation));
-        DEBUG!("MCDBG post-SPAWN runner");
         Ok(this)
     }
 
@@ -266,9 +263,7 @@ impl Module {
         initial_ls_content: ContentSummary,
         first_invalidation: impl Future<Output = FallibleResult<ParsedContentSummary>>,
     ) -> impl Future<Output = ()> {
-        DEBUG!("MCDBG pre-subscribe");
         let mut subscriber = self.model.subscribe();
-        DEBUG!("MCDBG post-subscribe");
 
         async move {
             let first_invalidation = first_invalidation.await;
@@ -277,24 +272,15 @@ impl Module {
             drop(self);
 
             loop {
-                DEBUG!("MCDBG @ new iter");
                 let notification = subscriber.next().await;
-                DEBUG!("MCDBG @ notification received");
                 let this = weak.upgrade();
                 match (notification, this) {
                     (Some(notification), Some(this)) => {
                         debug!(this.logger, "Processing a notification: {notification:?}");
                         let result = this.handle_notification(&ls_content, notification).await;
                         ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
-                    },
-                    (Some(notification), _) => {
-                        DEBUG!("MCDBG BREAK! notif={notification:?}");
-                        break;
-                    },
-                    _ => {
-                        DEBUG!("MCDBG BREAK!");
-                        break;
                     }
+                    _ => break,
                 }
             }
         }
@@ -344,7 +330,6 @@ impl Module {
                     };
                     //id_map goes first, because code change may alter its position.
                     let edits = vec![id_map_change, code_change];
-                    DEBUG!("code changed: {edits:?}");
                     self.notify_language_server(&summary.summary, &new_file, edits).await
                 }
                 NotificationKind::MetadataChanged => {
@@ -352,7 +337,6 @@ impl Module {
                         range: summary.metadata.into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
-                    DEBUG!("metadata changed: {edits:?}");
                     self.notify_language_server(&summary.summary, &new_file, edits).await
                 }
             },
@@ -378,7 +362,6 @@ impl Module {
         debug_assert_eq!(start.column, 0.column());
 
         let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
-        DEBUG!("MCDBG edit: {edit:?}");
         (edit.range.start != edit.range.end || !edit.text.is_empty())
             .as_some_from(|| edit.move_by_lines(start.line.as_usize()))
     }
@@ -424,7 +407,6 @@ impl Module {
         new_file: SourceFile,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
         debug!(self.logger, "Handling partial invalidation: {ls_content:?}.");
-        DEBUG!("MCDBG Handling partial invalidation: {ls_content:?}.");
         let edits = vec![
             //id_map and metadata go first, because code change may alter their position.
             Self::edit_for_idmap(ls_content, &new_file),
@@ -434,7 +416,6 @@ impl Module {
         .into_iter()
         .flatten()
         .collect_vec();
-        DEBUG!("MCDBG invalidation edits: {edits:?}");
         self.notify_language_server(&ls_content.summary, &new_file, edits)
     }
 
