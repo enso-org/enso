@@ -93,6 +93,7 @@ pub struct Node {
 }
 
 impl Node {
+    /// Get the node's id.
     pub fn id(&self) -> double_representation::node::Id {
         self.main_line.id()
     }

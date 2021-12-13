@@ -1,3 +1,5 @@
+//! The module containing the Graph Presenter [`State`]
+
 use crate::prelude::*;
 
 use crate::presenter::graph::AstConnection;
@@ -17,6 +19,8 @@ use ide_view::graph_editor::EdgeEndpoint;
 // === Nodes ===
 // =============
 
+/// A single node data.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Node {
     pub view_id:    Option<ViewNodeId>,
@@ -24,37 +28,56 @@ pub struct Node {
     pub expression: node_view::Expression,
 }
 
+/// The set of node states.
+///
+/// This structure allows to access data of any node by Ast id, or view id. It also keeps list
+/// of the AST nodes with no view assigned, and allows to assign View Id to the next one.
 #[derive(Clone, Debug, Default)]
 pub struct Nodes {
-    displayed_nodes:     HashMap<AstNodeId, Node>,
+    // Each operation in this structure should keep the following constraints:
+    // * Each `nodes_without_view` entry has an entry in `nodes` with `view_id` being `None`.
+    // * All values in `ast_node_by_view_id` has corresponding element in `nodes` with `view_id`
+    //   being equal to key of the value.
+    nodes:               HashMap<AstNodeId, Node>,
     nodes_without_view:  Vec<AstNodeId>,
     ast_node_by_view_id: HashMap<ViewNodeId, AstNodeId>,
 }
 
 impl Nodes {
+    /// Get the state of the node by Ast id.
     pub fn get(&self, id: AstNodeId) -> Option<&Node> {
-        self.displayed_nodes.get(&id)
+        self.nodes.get(&id)
     }
 
+    /// Get mutable reference of the node's state by Ast id.
     pub fn get_mut(&mut self, id: AstNodeId) -> Option<&mut Node> {
-        self.displayed_nodes.get_mut(&id)
+        self.nodes.get_mut(&id)
     }
 
+    /// Get the mutable reference, creating an default entry without view if it's missing.
+    ///
+    /// The entry will be also present on the "nodes without view" list and may have view assigned
+    /// using [`assign_newly_created_node`] method.
     pub fn get_mut_or_create(&mut self, id: AstNodeId) -> &mut Node {
         let nodes_without_view = &mut self.nodes_without_view;
-        self.displayed_nodes.entry(id).or_insert_with(|| {
+        self.nodes.entry(id).or_insert_with(|| {
             nodes_without_view.push(id);
             default()
         })
     }
 
+    /// Get the AST id of the node represented by given view. Returns None, if the node view does
+    /// not represent any AST node.
     pub fn ast_id_of_view(&self, view_id: ViewNodeId) -> Option<AstNodeId> {
         self.ast_node_by_view_id.get(&view_id).copied()
     }
 
+    /// Assign a node view to the one of AST nodes without view. If there is any of such nodes,
+    /// `None` is returned. Otherwise, returns the node state - the newly created view must be
+    /// refreshed with the data from the state.
     pub fn assign_newly_created_node(&mut self, view_id: ViewNodeId) -> Option<&mut Node> {
         let ast_node = self.nodes_without_view.pop()?;
-        let mut opt_displayed = self.displayed_nodes.get_mut(&ast_node);
+        let mut opt_displayed = self.nodes.get_mut(&ast_node);
         if let Some(displayed) = &mut opt_displayed {
             displayed.view_id = Some(view_id);
             self.ast_node_by_view_id.insert(view_id, ast_node);
@@ -62,9 +85,10 @@ impl Nodes {
         opt_displayed
     }
 
+    /// Update the state retaining given set of nodes. Returns the list of removed nodes' views.
     pub fn retain_nodes(&mut self, nodes: &HashSet<AstNodeId>) -> Vec<ViewNodeId> {
         self.nodes_without_view.drain_filter(|id| !nodes.contains(id));
-        let removed = self.displayed_nodes.drain_filter(|id, _| !nodes.contains(id));
+        let removed = self.nodes.drain_filter(|id, _| !nodes.contains(id));
         let removed_views = removed.filter_map(|(_, data)| data.view_id).collect();
         for view_id in &removed_views {
             self.ast_node_by_view_id.remove(view_id);
@@ -72,9 +96,10 @@ impl Nodes {
         removed_views
     }
 
+    /// Remove node represented by given view (if any) and return it's AST id.
     pub fn remove_node(&mut self, node: ViewNodeId) -> Option<AstNodeId> {
         let ast_id = self.ast_node_by_view_id.remove(&node)?;
-        self.displayed_nodes.remove(&ast_id);
+        self.nodes.remove(&ast_id);
         Some(ast_id)
     }
 }
@@ -85,6 +110,8 @@ impl Nodes {
 // === Connections ===
 // ===================
 
+/// A structure keeping pairs of AST connections with their views (and list of AST connections
+/// without view).
 #[derive(Clone, Debug, Default)]
 pub struct Connections {
     connections:              BiMap<AstConnection, ViewConnection>,
@@ -92,10 +119,9 @@ pub struct Connections {
 }
 
 impl Connections {
-    pub fn view_of_ast_connection(&self, connection: &AstConnection) -> Option<ViewConnection> {
-        self.connections.get_by_left(connection).copied()
-    }
-
+    /// Remove all connections not belonging to the given set.
+    ///
+    /// Returns the views of removed connections.
     pub fn retain_connections(
         &mut self,
         connections: &HashSet<AstConnection>,
@@ -107,6 +133,7 @@ impl Connections {
         to_remove_vec
     }
 
+    /// Add a new AST connection without view.
     pub fn add_ast_connection(&mut self, connection: AstConnection) -> bool {
         if !self.connections.contains_left(&connection) {
             self.connections_without_view.insert(connection)
@@ -115,12 +142,11 @@ impl Connections {
         }
     }
 
-    /// Returns true if the controller needs refreshing.
-    pub fn assign_connection_view(
-        &mut self,
-        connection: AstConnection,
-        view: ViewConnection,
-    ) -> bool {
+    /// Add a connection with view.
+    ///
+    /// Returns `true` if the new connection was added, and `false` if it already existed. In the
+    /// latter case, the new `view` is assigned to it (replacing possible previous view).
+    pub fn add_connection_view(&mut self, connection: AstConnection, view: ViewConnection) -> bool {
         let existed_without_view = self.connections_without_view.remove(&connection);
         match self.connections.insert(connection, view) {
             Overwritten::Neither => !existed_without_view,
@@ -137,6 +163,7 @@ impl Connections {
         }
     }
 
+    /// Remove the connection by view (if any), and return it.
     pub fn remove_connection(&mut self, connection: ViewConnection) -> Option<AstConnection> {
         let (ast_connection, _) = self.connections.remove_by_right(&connection)?;
         Some(ast_connection)
@@ -149,6 +176,7 @@ impl Connections {
 // === Expressions ===
 // ===================
 
+/// A single expression data.
 #[derive(Clone, Debug, Default)]
 pub struct Expression {
     pub node:            AstNodeId,
@@ -156,6 +184,9 @@ pub struct Expression {
     pub method_pointer:  Option<view::graph_editor::MethodPointer>,
 }
 
+/// The data of node's expressions.
+///
+/// The expressions are all AST nodes of the line representing the node in the code.
 #[derive(Clone, Debug, Default)]
 pub struct Expressions {
     expressions:         HashMap<ast::Id, Expression>,
@@ -163,6 +194,7 @@ pub struct Expressions {
 }
 
 impl Expressions {
+    /// Remove all expressions not belonging to the any of the `nodes`.
     pub fn retain_expression_of_nodes(&mut self, nodes: &HashSet<AstNodeId>) {
         let nodes_to_remove =
             self.expressions_of_node.drain_filter(|node_id, _| !nodes.contains(node_id));
@@ -172,7 +204,11 @@ impl Expressions {
         }
     }
 
-    pub fn node_expression_changed(&mut self, node: AstNodeId, expressions: Vec<ast::Id>) {
+    /// Update information about node expressions.
+    ///
+    /// New node's expressions are added, and those which stopped to be part of the node are
+    /// removed.
+    pub fn update_node_expressions(&mut self, node: AstNodeId, expressions: Vec<ast::Id>) {
         let new_set: HashSet<ast::Id> = expressions.iter().copied().collect();
         let old_set = self.expressions_of_node.insert(node, expressions).unwrap_or_default();
         for old_expression in &old_set {
@@ -187,11 +223,13 @@ impl Expressions {
         }
     }
 
+    /// Get mutable reference to given expression data.
     pub fn get_mut(&mut self, id: ast::Id) -> Option<&mut Expression> {
         self.expressions.get_mut(&id)
     }
 
-    pub fn subexpressions_of_node(&self, id: ast::Id) -> &[ast::Id] {
+    /// Get the list of all expressions of the given node.
+    pub fn expressions_of_node(&self, id: AstNodeId) -> &[ast::Id] {
         self.expressions_of_node.get(&id).map_or(&[], |v| v.as_slice())
     }
 }
@@ -202,6 +240,11 @@ impl Expressions {
 // === State ===
 // =============
 
+/// The Graph Presenter State.
+///
+/// This structure keeps the information how the particular graph elements received from controllers
+/// are represented in the view. It also handles updates from the controllers and
+/// the view in `update_from_controller` and `update_from_view` respectively.  
 #[derive(Clone, Debug, Default)]
 pub struct State {
     nodes:       RefCell<Nodes>,
@@ -209,22 +252,13 @@ pub struct State {
     expressions: RefCell<Expressions>,
 }
 
-
-// === Getters ===
-
 impl State {
+    /// Get node's view id by the AST id.
     pub fn view_id_of_ast_node(&self, node: AstNodeId) -> Option<ViewNodeId> {
         self.nodes.borrow().get(node).and_then(|n| n.view_id)
     }
 
-    pub fn ast_id_of_view_node(&self, node: ViewNodeId) -> Option<AstNodeId> {
-        self.nodes.borrow().ast_id_of_view(node)
-    }
-
-    pub fn view_of_ast_connection(&self, connection: &AstConnection) -> Option<ViewConnection> {
-        self.connections.borrow().view_of_ast_connection(connection)
-    }
-
+    /// Convert the AST connection to pair of [`EdgeEndpoint`]s.
     pub fn view_edge_targets_of_ast_connection(
         &self,
         connection: AstConnection,
@@ -237,11 +271,12 @@ impl State {
         Some((src, data))
     }
 
+    /// Convert the pair of [`EdgeEndpoint`]s to AST connection.
     pub fn ast_connection_from_view_edge_targets(
         &self,
         source: EdgeEndpoint,
         target: EdgeEndpoint,
-    ) -> Option<controller::graph::Connection> {
+    ) -> Option<AstConnection> {
         let nodes = self.nodes.borrow();
         let src_node = nodes.ast_id_of_view(source.node_id)?;
         let dst_node = nodes.ast_id_of_view(target.node_id)?;
@@ -251,27 +286,61 @@ impl State {
         })
     }
 
-    pub fn subexpressions_of_node(&self, node: ViewNodeId) -> Vec<ast::Id> {
+    /// Get id of all node's expressions (ids of the all corresponding line AST nodes).
+    pub fn expressions_of_node(&self, node: ViewNodeId) -> Vec<ast::Id> {
         let ast_node = self.nodes.borrow().ast_id_of_view(node);
-        ast_node
-            .map_or_default(|id| self.expressions.borrow().subexpressions_of_node(id).to_owned())
+        ast_node.map_or_default(|id| self.expressions.borrow().expressions_of_node(id).to_owned())
+    }
+
+    /// Apply the update from controller.
+    pub fn update_from_controller(&self) -> ControllerChange {
+        ControllerChange { state: self }
+    }
+
+    /// Apply the update from the view.
+    pub fn update_from_view(&self) -> ViewChange {
+        ViewChange { state: self }
+    }
+
+    /// Assign a node view to the one of AST nodes without view. If there is any of such nodes,
+    /// `None` is returned. Otherwise, returns the node state - the newly created view must be
+    /// refreshed with the data from the state.
+    pub fn assign_node_view(&self, view_id: ViewNodeId) -> Option<Node> {
+        self.nodes.borrow_mut().assign_newly_created_node(view_id).cloned()
     }
 }
 
+// ========================
+// === ControllerChange ===
+// ========================
 
-// === Nodes Refreshing and Changes ===
+/// The wrapper for [`State`] reference providing the API to be called when presenter is notified
+/// by controllers about graph change.
+///
+/// All of its operations updates the [`State`] to synchronize it with the graph in AST, and returns
+/// the information how to update yje view, to have the view synchronized with the state.
+///
+/// In the particular case, when the graph was changed due to user interations with the view, these
+/// method should  discover that no change in state is needed (because it was updated already by
+/// [`ViewChange`]), and so the view's. This way we avoid an infinite synchronization cycle.
+#[derive(Deref, DerefMut, Debug)]
+pub struct ControllerChange<'a> {
+    state: &'a State,
+}
 
-impl State {
-    pub fn assign_newly_created_node(&self, view_id: ViewNodeId) -> Option<Node> {
-        self.nodes.borrow_mut().assign_newly_created_node(view_id).cloned()
-    }
 
+// === Nodes ===
+
+impl<'a> ControllerChange<'a> {
+    /// Remove all nodes not belonging to the given set. Returns the list of to-be-removed views.
     pub fn retain_nodes(&self, nodes: &HashSet<AstNodeId>) -> Vec<ViewNodeId> {
         self.expressions.borrow_mut().retain_expression_of_nodes(nodes);
         self.nodes.borrow_mut().retain_nodes(nodes)
     }
 
-    pub fn refresh_node_position(&self, node: AstNodeId, position: Vector2) -> Option<ViewNodeId> {
+    /// Set the new node position. If the node position actually changed, the to-be-updated view
+    /// is returned.
+    pub fn set_node_position(&self, node: AstNodeId, position: Vector2) -> Option<ViewNodeId> {
         let mut nodes = self.nodes.borrow_mut();
         let mut displayed = nodes.get_mut_or_create(node);
         if displayed.position != position {
@@ -282,7 +351,9 @@ impl State {
         }
     }
 
-    pub fn refresh_node_expression(
+    /// Set the new node expression. If the expression actually changed, the to-be-updated view
+    /// is returned with the new expression to set.
+    pub fn set_node_expression(
         &self,
         node: &controller::graph::Node,
         trees: controller::graph::NodeTrees,
@@ -297,52 +368,25 @@ impl State {
         };
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
-        if &displayed.expression != &new_displayed_expr {
+        if displayed.expression != new_displayed_expr {
             displayed.expression = new_displayed_expr.clone();
             let new_expressions =
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
-            self.expressions.borrow_mut().node_expression_changed(ast_id, new_expressions);
+            self.expressions.borrow_mut().update_node_expressions(ast_id, new_expressions);
             Some((displayed.view_id?, new_displayed_expr))
         } else {
             None
         }
     }
-
-    pub fn node_position_changed(
-        &self,
-        id: ViewNodeId,
-        new_position: Vector2,
-    ) -> Option<AstNodeId> {
-        let mut nodes = self.nodes.borrow_mut();
-        let ast_id = nodes.ast_id_of_view(id)?;
-        let displayed = nodes.get_mut(ast_id)?;
-        if displayed.position != new_position {
-            displayed.position = new_position;
-            Some(ast_id)
-        } else {
-            None
-        }
-    }
-
-    pub fn node_removed(&self, id: ViewNodeId) -> Option<AstNodeId> {
-        self.nodes.borrow_mut().remove_node(id)
-    }
 }
 
 
-// === Connections Refreshing and Changes ===
+// === Connections ===
 
-impl State {
-    pub fn assign_connection_view(
-        &self,
-        connection: view::graph_editor::Edge,
-    ) -> Option<AstConnection> {
-        let source = connection.source()?;
-        let target = connection.target()?;
-        self.assign_connection_view_endpoints(connection.id(), source, target)
-    }
-
-    pub fn refresh_connection(
+impl<'a> ControllerChange<'a> {
+    /// If given connection does not exists yet, add it and return the endpoints of the
+    /// to-be-created edge.
+    pub fn set_connection(
         &self,
         connection: AstConnection,
     ) -> Option<(EdgeEndpoint, EdgeEndpoint)> {
@@ -352,33 +396,20 @@ impl State {
             .and_option_from(move || self.view_edge_targets_of_ast_connection(connection))
     }
 
-    pub fn assign_connection_view_endpoints(
-        &self,
-        connection: ViewConnection,
-        source: EdgeEndpoint,
-        target: EdgeEndpoint,
-    ) -> Option<AstConnection> {
-        let ast_connection = self.ast_connection_from_view_edge_targets(source, target)?;
-        let mut connections = self.connections.borrow_mut();
-        let should_update_controllers =
-            connections.assign_connection_view(ast_connection.clone(), connection);
-        should_update_controllers.then_some(ast_connection)
-    }
-
+    /// Remove all connection not belonging to the given set. Returns the list of to-be-removed
+    /// views.
     pub fn retain_connections(&self, connections: &HashSet<AstConnection>) -> Vec<ViewConnection> {
         self.connections.borrow_mut().retain_connections(connections)
-    }
-
-    pub fn connection_removed(&self, id: ViewConnection) -> Option<AstConnection> {
-        self.connections.borrow_mut().remove_connection(id)
     }
 }
 
 
-// === Expression Refreshing ===
+// === Expressions ===
 
-impl State {
-    pub fn refresh_expression_type(
+impl<'a> ControllerChange<'a> {
+    /// Set the new type of expression. If the type actually changes, the to-be-updated view is
+    /// returned.
+    pub fn set_expression_type(
         &self,
         id: ast::Id,
         new_type: Option<view::graph_editor::Type>,
@@ -393,7 +424,9 @@ impl State {
         }
     }
 
-    pub fn refresh_expression_method_pointer(
+    /// Set the new expression's method pointer. If the method pointer actually changes, the
+    /// to-be-updated view is returned.
+    pub fn set_expression_method_pointer(
         &self,
         id: ast::Id,
         method_ptr: Option<view::graph_editor::MethodPointer>,
@@ -406,6 +439,84 @@ impl State {
         } else {
             None
         }
+    }
+}
+
+
+
+// ==================
+// === ViewChange ===
+// ==================
+
+/// The wrapper for [`State`] reference providing the API to be called when presenter is notified
+/// about view change.
+///
+/// All of its operations updates the [`State`] to synchronize it with the graph view, and returns
+/// the information how to update the AST graph, to have the AST synchronized with the state.
+///
+/// In particular case, when the view was changed due to change in controller, these method should
+/// discover that no change in state is needed (because it was updated already by
+/// [`ControllerChange`]), and so the AST graph's. This way we avoid an infinite synchronization
+/// cycle.
+#[derive(Deref, DerefMut, Debug)]
+pub struct ViewChange<'a> {
+    state: &'a State,
+}
+
+
+// === Nodes ===
+
+impl<'a> ViewChange<'a> {
+    /// Set the new node position. If the node position actually changed, the AST node to-be-updated
+    /// id is returned.
+    pub fn set_node_position(&self, id: ViewNodeId, new_position: Vector2) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.position != new_position {
+            displayed.position = new_position;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Remove the node, and returns its AST id.
+    pub fn remove_node(&self, id: ViewNodeId) -> Option<AstNodeId> {
+        self.nodes.borrow_mut().remove_node(id)
+    }
+}
+
+
+// === Connections ===
+
+impl<'a> ViewChange<'a> {
+    /// If the connections does not already exist, it is created and corresponding to-be-created
+    /// Ast connection is returned.  
+    pub fn create_connection(&self, connection: view::graph_editor::Edge) -> Option<AstConnection> {
+        let source = connection.source()?;
+        let target = connection.target()?;
+        self.create_connection_from_endpoints(connection.id(), source, target)
+    }
+
+    /// If the connections with provided endpoints does not already exist, it is created and
+    /// corresponding to-be-created Ast connection is returned.  
+    pub fn create_connection_from_endpoints(
+        &self,
+        connection: ViewConnection,
+        source: EdgeEndpoint,
+        target: EdgeEndpoint,
+    ) -> Option<AstConnection> {
+        let ast_connection = self.ast_connection_from_view_edge_targets(source, target)?;
+        let mut connections = self.connections.borrow_mut();
+        let should_update_controllers =
+            connections.add_connection_view(ast_connection.clone(), connection);
+        should_update_controllers.then_some(ast_connection)
+    }
+
+    /// Remove the connection and return the corresponding AST connection which should be removed.
+    pub fn remove_connection(&self, id: ViewConnection) -> Option<AstConnection> {
+        self.connections.borrow_mut().remove_connection(id)
     }
 }
 
@@ -488,10 +599,10 @@ mod tests {
 
         let node1_exprs =
             node1.info.main_line.ast().iter_recursive().filter_map(|a| a.id).collect_vec();
-        assert_eq!(state.subexpressions_of_node(node_view_1), node1_exprs);
+        assert_eq!(state.expressions_of_node(node_view_1), node1_exprs);
         let node2_exprs =
             node2.info.main_line.ast().iter_recursive().filter_map(|a| a.id).collect_vec();
-        assert_eq!(state.subexpressions_of_node(node_view_2), node2_exprs);
+        assert_eq!(state.expressions_of_node(node_view_2), node2_exprs);
 
         let views_to_remove = state.retain_nodes(&[node1.id()].iter().copied().collect());
         assert_eq!(views_to_remove, vec![node_view_2]);
@@ -612,7 +723,7 @@ mod tests {
             Some((view, expected_new_expression))
         );
         assert_eq!(state.refresh_node_expression(&new_node, new_trees), None);
-        assert_eq!(state.subexpressions_of_node(view), new_subexpressions);
+        assert_eq!(state.expressions_of_node(view), new_subexpressions);
     }
 
     #[test]

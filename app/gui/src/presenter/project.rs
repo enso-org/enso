@@ -1,9 +1,19 @@
+//! The module with the [`Project`] presenter.
+
 use crate::prelude::*;
 
 use crate::presenter;
 
 use ide_view as view;
 
+
+
+// =============
+// === Model ===
+// =============
+
+// Those fields will be probably used when Searcher and Breadcrumbs integration will be implemented.
+#[allow(unused)]
 #[derive(Debug)]
 struct Model {
     controller: controller::Project,
@@ -12,12 +22,21 @@ struct Model {
 }
 
 
+
+// ===============
+// === Project ===
+// ===============
+
+/// The Project Presenter, synchronizing state between project controller and project view.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Project {
     model: Rc<Model>,
 }
 
 impl Project {
+    /// Construct new project presenter, basing of the project initialization result.
+    ///
+    /// The returned presenter will be already working: it will display the initial main graph,
     pub fn new(
         controller: controller::Project,
         init_result: controller::project::InitializationResult,
@@ -29,6 +48,10 @@ impl Project {
         Self { model: Rc::new(model) }
     }
 
+    /// Initialize project and return working presenter.
+    ///
+    /// This calls the [`controller::Project::initialize`] method and use the initialization result
+    /// to construct working presenter.
     pub async fn initialize(
         controller: controller::Project,
         view: view::project::View,

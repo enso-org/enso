@@ -1,3 +1,10 @@
+//! The Presenter is a layer between logical part of the IDE (controllers, engine models) and the
+//! views (the P letter in MVP pattern). The presenter reacts to changes in the controllers.
+//!
+//! **The presenters are not fully implemented**. Therefore, the old integration defined in
+//! [`crate::integration`] is used by default. The presenters may be tested by passing
+//! --rust-new-presentation-layer commandline argument.
+
 pub mod graph;
 pub mod project;
 
@@ -13,16 +20,22 @@ use crate::presenter;
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;
 
+
+
+// =============
+// === Model ===
+// =============
+
 #[derive(Debug)]
 struct Model {
     logger:          Logger,
-    current_project: RefCell<Option<presenter::Project>>,
+    current_project: RefCell<Option<Project>>,
     controller:      controller::Ide,
     view:            view::root::View,
 }
 
 impl Model {
-    /// Create a new project integration
+    /// Instantiate a new project presenter, which will display current project in the view.
     fn setup_and_display_new_project(self: Rc<Self>) {
         // Remove the old integration first. We want to be sure the old and new integrations will
         // not race for the view.
@@ -55,12 +68,25 @@ impl Model {
     }
 }
 
+
+
+// =================
+// === Presenter ===
+// =================
+
+/// The root presenter, handling the synchronization between IDE controller and root view.
+///
+/// See [`crate::presenter`] docs for information about presenters in general.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Presenter {
     model: Rc<Model>,
 }
 
 impl Presenter {
+    /// Create new root presenter.
+    ///
+    /// The returned presenter is working and does not require any initialization. The current
+    /// project will be displayed (if any).
     pub fn new(controller: controller::Ide, view: ide_view::root::View) -> Self {
         let logger = Logger::new("Presenter");
         let current_project = default();
