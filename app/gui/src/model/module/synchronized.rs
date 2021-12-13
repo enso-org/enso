@@ -256,8 +256,8 @@ impl API for Module {
 // === Synchronizing Language Server ===
 
 impl Module {
-    /// Returns the asynchronous task scheduled during struct creation which listens for all module changes
-    /// and send proper updates to Language Server.
+    /// Returns the asynchronous task scheduled during struct creation which listens for all module
+    /// changes and send proper updates to Language Server.
     fn runner(
         self: Rc<Self>,
         initial_ls_content: ContentSummary,
@@ -724,8 +724,18 @@ pub mod test {
     fn handle_insertion_edits_bug180558676() {
         let source = Text::from("from Standard.Base import all\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
         let target = Text::from("from Standard.Base import all\nimport Standard.Visualization\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
-        let edit = Module::edit_for_snipped(&Location { line: 0.into(), column: 0.into() }, source, target);
-        let expected = Some(TextEdit { range: TextRange { start: Position { line: 1, character: 0 }, end: Position { line: 1, character: 0 } }, text: "import Standard.Visualization\n".to_string() });
+        let edit = Module::edit_for_snipped(
+            &Location { line: 0.into(), column: 0.into() },
+            source,
+            target,
+        );
+        let expected = Some(TextEdit {
+            range: TextRange {
+                start: Position { line: 1, character: 0 },
+                end:   Position { line: 1, character: 0 },
+            },
+            text:  "import Standard.Visualization\n".to_string(),
+        });
         assert_eq!(edit, expected);
     }
 }
