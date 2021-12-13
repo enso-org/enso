@@ -185,7 +185,6 @@ impl<M: Metadata> ParsedSourceFile<M> {
     pub fn serialize(&self) -> std::result::Result<SourceFile, serde_json::Error> {
         let code = self.ast.repr();
         let before_tag = "\n".repeat(NEWLINES_BEFORE_TAG);
-        // (METADATA_TAG)
         let before_idmap = "\n";
         let json_id_map = JsonIdMap::from_id_map(&self.ast.id_map(), &code);
         let id_map = to_json_single_line(&json_id_map)?;
