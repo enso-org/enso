@@ -256,8 +256,8 @@ impl API for Module {
 // === Synchronizing Language Server ===
 
 impl Module {
-    /// Returns the asynchronous task scheduled during struct creation which listens for all module
-    /// changes and send proper updates to Language Server.
+    /// Returns the asynchronous task which listens for all module changes and sends proper updates
+    /// to Language Server.
     fn runner(
         self: Rc<Self>,
         initial_ls_content: ContentSummary,
