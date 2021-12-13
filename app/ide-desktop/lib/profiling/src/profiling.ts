@@ -21,7 +21,6 @@
  */
 import * as assert from 'assert'
 
-
 // =========================
 // === Profiler Registry ===
 // =========================
