@@ -6,9 +6,9 @@
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
   registered.][3181]
-- [Fixed "Invalid version" error during sending text change to Language
-  Server.][3186] The error happened during project opening and after new node
-  creation.
+- [Fixed developer console errors related to Language Server (mentioning code
+  3003 and "Invalid version"), occurring during project opening and after new
+  node cration.][3186]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
