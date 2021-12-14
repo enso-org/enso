@@ -82,7 +82,7 @@ jobs:
     runs-on:
       - ${{ matrix.os }}
       - self-hosted
-      - engine
+      - gui
     timeout-minutes: 120
     strategy:
       matrix:
