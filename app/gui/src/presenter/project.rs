@@ -1,4 +1,5 @@
-//! The module with the [`Project`] presenter.
+//! The module with the [`Project`] presenter. See [`crate::presenter`] documentation to know more
+//! about presenters in general.
 
 use crate::prelude::*;
 
@@ -36,7 +37,8 @@ pub struct Project {
 impl Project {
     /// Construct new project presenter, basing of the project initialization result.
     ///
-    /// The returned presenter will be already working: it will display the initial main graph,
+    /// The returned presenter will be already working: it will display the initial main graph, and
+    /// react to all notifications.
     pub fn new(
         controller: controller::Project,
         init_result: controller::project::InitializationResult,

@@ -33,6 +33,11 @@ const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 // === Ide ===
 // ===========
 
+/// One of the integration implementations.
+///
+/// The new, refactored integration is called "Presenter", but it is not yet fully implemented.
+/// To test it, run IDE with `--rust-new-presentation-layer` option. By default, the old integration
+/// is used.
 #[derive(Debug)]
 enum Integration {
     Old(integration::Integration),

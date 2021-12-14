@@ -1,9 +1,10 @@
 //! The Presenter is a layer between logical part of the IDE (controllers, engine models) and the
-//! views (the P letter in MVP pattern). The presenter reacts to changes in the controllers.
+//! views (the P letter in MVP pattern). The presenter reacts to changes in the controllers, and
+//! actively updates the view. It also passes all user interactions from view to controllers.
 //!
 //! **The presenters are not fully implemented**. Therefore, the old integration defined in
 //! [`crate::integration`] is used by default. The presenters may be tested by passing
-//! --rust-new-presentation-layer commandline argument.
+//! `--rust-new-presentation-layer` commandline argument.
 
 pub mod graph;
 pub mod project;
@@ -108,9 +109,9 @@ impl Presenter {
         let logger = self.model.logger.clone_ref();
         let process_map = SharedHashMap::<ControllerHandle, ViewHandle>::new();
         let status_bar = self.model.view.status_bar().clone_ref();
-        let status_notif_sub = self.model.controller.status_notifications().subscribe();
+        let status_notifications = self.model.controller.status_notifications().subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, status_notif_sub, move |notification, _| {
+        spawn_stream_handler(weak, status_notifications, move |notification, _| {
             match notification {
                 StatusNotification::Event { label } => {
                     status_bar.add_event(ide_view::status_bar::event::Label::new(label));

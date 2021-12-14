@@ -1,4 +1,5 @@
-//! The [`Graph`] presenter module.
+//! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
+//! about presenters in general.
 
 mod state;
 
@@ -207,7 +208,7 @@ impl ViewUpdate {
     }
 
     /// Returns number of nodes view should create.
-    fn add_nodes(&self) -> usize {
+    fn count_nodes_to_add(&self) -> usize {
         self.node_ids().filter(|n| self.state.view_id_of_ast_node(*n).is_none()).count()
     }
 
@@ -319,7 +320,7 @@ impl Graph {
             view.set_node_expression <+ update_node_expression;
             view.set_node_position <+ set_node_position;
 
-            view.add_node <+ update_data.map(|update| update.add_nodes()).repeat();
+            view.add_node <+ update_data.map(|update| update.count_nodes_to_add()).repeat();
             added_node_update <- view.node_added.filter_map(f!((view_id)
                 model.state.assign_node_view(*view_id)
             ));
