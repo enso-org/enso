@@ -21,12 +21,15 @@ env:
 
 jobs:
   test_and_publish_win:
-    name: Engine (Windows)
-    runs-on: ${{ matrix.os }}
+    name: Engine
+    runs-on:
+      - ${{ matrix.os }}
+      - self-hosted
+      - engine
     timeout-minutes: 120
     strategy:
       matrix:
-        os: [[Windows, self-hosted, engine],[Linux, self-hosted, engine]]
+        os: [Windows, Linux]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
@@ -67,14 +70,23 @@ jobs:
         with:
           name: Parser JS Bundle
           path: ${{ env.TARGET_DIR }}/scala-parser.js
+      - name: Publish the Manifest
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
 
-  try_with_gui:
+  gui:
     name: GUI
-    runs-on: ${{ matrix.os }}
+    runs-on:
+      - ${{ matrix.os }}
+      - self-hosted
+      - engine
     timeout-minutes: 120
     strategy:
       matrix:
-        os: [[Windows, self-hosted, gui], [Linux, self-hosted, gui]]
+        os: [Windows, Linux]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
