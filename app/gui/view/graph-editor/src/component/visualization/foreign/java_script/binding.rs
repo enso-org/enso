@@ -166,6 +166,7 @@ impl JsConsArgs {
     /// Helper method to emit an preprocessor change event from the visualisation.
     pub fn emit_preprocessor_change(&self, code: Option<String>, module: Option<String>) {
         let closure = &self.set_preprocessor;
+        // TODO MCDBG 3
         let preprocessor_config = PreprocessorConfiguration::from_options(code, module);
         (*closure)(preprocessor_config);
     }

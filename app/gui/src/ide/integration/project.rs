@@ -1144,6 +1144,7 @@ impl Model {
         self.view.graph().set_node_error_status(node_id, error);
         let metadata =
             has_error.then(graph_editor::builtin::visualization::native::error::metadata);
+        DEBUG!("MCDBG set_error {node_id} {metadata:?}");
         self.update_visualization(node_id, WhichVisualization::Error, metadata)
     }
 
@@ -1668,11 +1669,13 @@ impl Model {
         (node_id, vis_metadata): &(graph_editor::NodeId, visualization::Metadata),
     ) -> FallibleResult {
         debug!(self.logger, "Visualization shown on {node_id}: {vis_metadata:?}.");
+        DEBUG!("MCDBG visualization_shown_in_ui {node_id}: {vis_metadata:?}");
         self.update_visualization(*node_id, WhichVisualization::Normal, Some(vis_metadata.clone()))
     }
 
     fn visualization_hidden_in_ui(&self, node_id: &graph_editor::NodeId) -> FallibleResult {
         debug!(self.logger, "Visualization hidden on {node_id}.");
+        DEBUG!("MCDBG visualization_hidden_in_ui {node_id}");
         self.update_visualization(*node_id, WhichVisualization::Normal, None)
     }
 
@@ -1786,6 +1789,7 @@ impl Model {
         preprocessor: visualization::instance::PreprocessorConfiguration,
     ) -> FallibleResult {
         let metadata = visualization::Metadata { preprocessor };
+        DEBUG!("MCDBG visualization_preprocessor_changed {node_id} {metadata:?}");
         self.update_visualization(node_id, WhichVisualization::Normal, Some(metadata))
     }
 

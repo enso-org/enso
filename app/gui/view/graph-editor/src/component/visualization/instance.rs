@@ -167,6 +167,7 @@ impl Frp {
             def data_receive_error  = source();
             is_active               <- bool(&inputs.deactivate,&inputs.activate);
         };
+        // TODO MCDBG 4
         preprocessor_change.emit(PreprocessorConfiguration::default());
         let on_data_receive_error = data_receive_error.clone_ref().into();
         Self {

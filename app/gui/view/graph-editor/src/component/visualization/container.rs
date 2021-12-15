@@ -368,6 +368,7 @@ impl ContainerModel {
         } else {
             self.view.add_child(&visualization);
         }
+        // TODO MCDBG 2
         self.visualization.replace(Some(visualization));
         self.vis_frp_connection.replace(Some(vis_frp_connection));
     }
