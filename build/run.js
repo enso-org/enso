@@ -46,6 +46,7 @@ let targetArgs = undefined
 async function gzip(input, output) {
     const gzip = zlib.createGzip()
     const source = fss.createReadStream(input)
+    await fs.mkdir(path.dirname(output), { recursive: true })
     const destination = fss.createWriteStream(output)
     await pipe(source, gzip, destination)
 }
@@ -146,6 +147,11 @@ commands.build.js = async function () {
     await run('npm', ['run', 'build'])
 }
 
+// We build WASM binaries from Rust code using `wasm-pack`. Intermediate temporary directory is used
+// before final copy to the Webpack's `dist` location because of two reasons:
+// 1. Webpack triggers recompilation on file changes, and we don't want to bother it until the final binaries are ready
+//   to use.
+// 2. `wasm-pack` clears its output directory before compilation, which breaks Webpack because of missing files.
 commands.build.rust = async function (argv) {
     let crate = argv.crate || DEFAULT_CRATE
     let crate_sfx = crate ? ` '${crate}'` : ``
@@ -155,7 +161,7 @@ commands.build.rust = async function (argv) {
         '--target',
         'web',
         '--out-dir',
-        paths.dist.wasm.root,
+        paths.wasm.root,
         '--out-name',
         'ide',
         crate,
@@ -164,23 +170,26 @@ commands.build.rust = async function (argv) {
         args.push('--dev')
     }
     await run_cargo('wasm-pack', args)
-    await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
-    await fs.rename(paths.dist.wasm.mainRaw, paths.dist.wasm.main)
+    await patch_file(paths.wasm.glue, js_workaround_patcher)
+    await fs.rename(paths.wasm.mainRaw, paths.wasm.main)
     if (!argv.dev) {
-        // TODO: Enable after updating wasm-pack
-        // https://github.com/rustwasm/wasm-pack/issues/696
-        // console.log('Optimizing the WASM binary.')
-        // await cmd.run('npx',['wasm-opt','-O3','-o',paths.dist.wasm.mainOpt,paths.dist.wasm.main])
-        console.log('Minimizing the WASM binary.')
-        await gzip(paths.dist.wasm.main, paths.dist.wasm.mainOptGz) // TODO main -> mainOpt
+        const limit_mb = 4.6
+        await checkWasmSize(limit_mb)
+    }
+    // Copy WASM files from temporary directory to Webpack's `dist` directory.
+    await fs.cp(paths.wasm.root, paths.dist.wasm.root, { recursive: true })
+}
 
-        console.log('Checking the resulting WASM size.')
-        let stats = fss.statSync(paths.dist.wasm.mainOptGz)
-        let limit = 4.6
-        let size = Math.round((100 * stats.size) / 1024 / 1024) / 100
-        if (size > limit) {
-            throw `Output file size exceeds the limit (${size}MB > ${limit}MB).`
-        }
+// Check if compressed WASM binary exceeds the size limit.
+async function checkWasmSize(limit_mb) {
+    console.log('Minimizing the WASM binary.')
+    await gzip(paths.wasm.main, paths.wasm.mainGz)
+
+    console.log('Checking the resulting WASM size.')
+    let stats = fss.statSync(paths.wasm.mainGz)
+    let size = Math.round((100 * stats.size) / 1024 / 1024) / 100
+    if (size > limit_mb) {
+        throw `Output file size exceeds the limit (${size}MB > ${limit_mb}MB).`
     }
 }
 
