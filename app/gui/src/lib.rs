@@ -16,6 +16,7 @@
 #![feature(map_try_insert)]
 #![feature(assert_matches)]
 #![feature(cell_filter_map)]
+#![feature(hash_drain_filter)]
 #![recursion_limit = "512"]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -33,6 +34,7 @@ pub mod executor;
 pub mod ide;
 pub mod model;
 pub mod notification;
+pub mod presenter;
 pub mod sync;
 pub mod test;
 pub mod transport;

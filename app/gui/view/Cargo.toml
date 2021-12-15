@@ -24,6 +24,7 @@ ide-view-graph-editor = { path = "graph-editor" }
 parser = { path = "../language/parser" }
 span-tree = { path = "../language/span-tree" }
 js-sys = { version = "0.3.28" }
+multi-map = { version = "1.3.0" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
 ordered-float = { version = "2.7.0" }
 serde_json = { version = "1.0" }
