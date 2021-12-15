@@ -197,11 +197,11 @@ following options:
 After changing the code it's always a good idea to lint and test the code. We
 have prepared several scripts which maximally automate the process:
 
-- **Size Validation** Use `node ./run build` to check if the size of the
-  final binary did not grew too much in comparison to the previous release.
-  Watching the resulting binary size is one of the most important responsibility
-  of each contributor in order to keep the project small and suitable for
-  web-based usage. In case the size will exceed the limits:
+- **Size Validation** Use `node ./run build` to check if the size of the final
+  binary did not grew too much in comparison to the previous release. Watching
+  the resulting binary size is one of the most important responsibility of each
+  contributor in order to keep the project small and suitable for web-based
+  usage. In case the size will exceed the limits:
 
   - If the PR does not include any new libraries, you are allowed to increase
     the limit by 10KB. In case the limit will be exceeded by more than 10KB,

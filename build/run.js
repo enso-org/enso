@@ -549,8 +549,8 @@ async function downloadJsAssets() {
 
     const assetsArchive = await unzipper.Open.file(path.join(workdir, ideAssetsMainZip))
     await assetsArchive.extract({ path: workdir })
-    await fs.cp(unzippedAssets, jsLibAssets, {recursive: true})
-    await fs.rm(workdir, {recursive: true, force: true})
+    await fs.cp(unzippedAssets, jsLibAssets, { recursive: true })
+    await fs.rm(workdir, { recursive: true, force: true })
 }
 
 async function runCommand(command, argv) {
