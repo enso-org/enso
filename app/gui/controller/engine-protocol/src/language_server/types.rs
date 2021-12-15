@@ -150,6 +150,10 @@ pub enum Notification {
     #[allow(missing_docs)]
     #[serde(rename = "file/rootRemoved")]
     ContentRootRemoved { id: Uuid },
+
+    /// FIXME rustdoc
+    #[serde(rename = "executionContext/visualisationEvaluationFailed")]
+    VisualisationEvaluationFailed(VisualisationEvaluationFailed)
 }
 
 /// Sent from the server to the client to inform about a failure during execution of an execution
@@ -160,6 +164,16 @@ pub enum Notification {
 pub struct ExecutionFailed {
     pub context_id: ContextId,
     pub message:    String,
+}
+
+/// FIXME rustdoc
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(missing_docs)]
+#[serde(rename_all = "camelCase")]
+pub struct VisualisationEvaluationFailed {
+    pub context_id: ContextId,
+    pub message:    String,
+    // TODO: more fields
 }
 
 

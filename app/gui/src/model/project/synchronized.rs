@@ -488,6 +488,14 @@ impl Project {
                         content_roots.remove(id);
                     }
                 }
+                Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
+                    // FIXME add more details
+                    error!(
+                        logger,
+                        "Visualisation evaluation failed in context {update.context_id}. Error: \
+                        {update.message}."
+                    );
+                }
                 Event::Closed => {
                     error!(logger, "Lost JSON-RPC connection with the Language Server!");
                     let which = model::project::BackendConnection::LanguageServerJson;
