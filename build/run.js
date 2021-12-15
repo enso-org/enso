@@ -315,12 +315,15 @@ commands.watch.common = async function (argv) {
             build_args.push(`--crate=${argv.crate}`)
         }
         build_args = build_args.join(' ')
-        const target =
+        const shellCommand =
             '"' +
             `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
             cargoArgs.join(' ') +
             '"'
-        let args = ['watch', '-s', `${target}`]
+        // We ignore changes in README.md because `wasm-pack` copies it, which triggers `cargo watch`
+        // because of this bug: https://github.com/notify-rs/notify/issues/259
+        const ignore = ['--ignore', 'README.md']
+        let args = new Array().concat('watch', ignore, '-s', `${shellCommand}`)
         return cmd.run('cargo', args)
     })
     const js_process = cmd.with_cwd(paths.ide_desktop.root, async () => {
