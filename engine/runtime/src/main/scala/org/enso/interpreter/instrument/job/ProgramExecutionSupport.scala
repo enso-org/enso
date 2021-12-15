@@ -466,6 +466,7 @@ object ProgramExecutionSupport {
           Level.WARNING,
           s"Visualisation evaluation failed: $message."
         )
+        // MCDBG 1
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualisationEvaluationFailed(
