@@ -2059,6 +2059,7 @@ dependencies = [
  "ensogl-text-msdf-sys",
  "ide-view-graph-editor",
  "js-sys",
+ "multi-map",
  "nalgebra 0.26.2",
  "ordered-float 2.8.0",
  "parser",
@@ -2523,6 +2524,12 @@ dependencies = [
  "quote 1.0.10",
  "syn",
 ]
+
+[[package]]
+name = "multi-map"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bba551d6d795f74a01767577ea8339560bf0a65354e0417b7e915ed608443d46"
 
 [[package]]
 name = "nalgebra"
