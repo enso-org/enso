@@ -1,11 +1,9 @@
 const child_process = require('child_process')
 const cmd = require('./cmd')
 const fs = require('fs').promises
-const fse = require('fs-extra')
 const fss = require('fs')
 const unzipper = require('unzipper')
 const glob = require('glob')
-const ncp = require('ncp').ncp
 const os = require('os')
 const path = require('path')
 const paths = require('./paths')
@@ -49,18 +47,6 @@ async function gzip(input, output) {
     await fs.mkdir(path.dirname(output), { recursive: true })
     const destination = fss.createWriteStream(output)
     await pipe(source, gzip, destination)
-}
-
-/// Copy files and directories.
-async function copy(src, tgt) {
-    return new Promise((resolve, reject) => {
-        ncp(src, tgt, err => {
-            if (err) {
-                reject(`${err}`)
-            }
-            resolve()
-        })
-    })
 }
 
 /// Run the command with the provided args and all args passed to this script after the `--` symbol.
@@ -558,8 +544,8 @@ async function downloadJsAssets() {
 
     const assetsArchive = await unzipper.Open.file(path.join(workdir, ideAssetsMainZip))
     await assetsArchive.extract({ path: workdir })
-    await fse.copy(unzippedAssets, jsLibAssets)
-    await fse.remove(workdir)
+    await fs.cp(unzippedAssets, jsLibAssets, {recursive: true})
+    await fs.rm(workdir, {recursive: true, force: true})
 }
 
 async function runCommand(command, argv) {
