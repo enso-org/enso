@@ -425,28 +425,18 @@ object ProgramExecutionSupport {
     expressionId: UUID,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Unit = {
-    // val errorOrVisualisationData =
-    val tmp =
+    val errorOrVisualisationData =
       Either
         .catchNonFatal {
           ctx.executionService.getLogger.log(
             Level.FINEST,
             s"Executing visualisation ${visualisation.expressionId}"
           )
-          System.err.println(s"MCDBG callFunction");
-          System.err.println(s"MCDBG  <-${visualisation.expressionId}");
-          System.err.println(s"MCDBG  <-($expressionValue)");
-          val res = ctx.executionService.callFunction(
+          ctx.executionService.callFunction(
             visualisation.callback,
             expressionValue
           )
-          System.err.println(s"MCDBG  callFunction END");
-          System.err.println(s"MCDBG   callFunction=($res)");
-          res
         }
-    System.err.println(s"MCDBG    --> ($tmp)");
-    val errorOrVisualisationData =
-      tmp
         .flatMap {
           case text: String =>
             Right(text.getBytes("UTF-8"))
@@ -476,7 +466,6 @@ object ProgramExecutionSupport {
           Level.WARNING,
           s"Visualisation evaluation failed: $message."
         )
-        // MCDBG 1
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualisationEvaluationFailed(
