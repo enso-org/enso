@@ -164,23 +164,23 @@ commands.build.rust = async function (argv) {
     await patch_file(paths.wasm.glue, js_workaround_patcher)
     await fs.rename(paths.wasm.mainRaw, paths.wasm.main)
     if (!argv.dev) {
-        const limit_mb = 4.6
-        await checkWasmSize(limit_mb)
+        console.log('Minimizing the WASM binary.')
+        await gzip(paths.wasm.main, paths.wasm.mainGz)
+
+        const limitMb = 4.6
+        await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
     // Copy WASM files from temporary directory to Webpack's `dist` directory.
     await fs.cp(paths.wasm.root, paths.dist.wasm.root, { recursive: true })
 }
 
 // Check if compressed WASM binary exceeds the size limit.
-async function checkWasmSize(limit_mb) {
-    console.log('Minimizing the WASM binary.')
-    await gzip(paths.wasm.main, paths.wasm.mainGz)
-
+async function checkWasmSize(path, limitMb) {
     console.log('Checking the resulting WASM size.')
-    let stats = fss.statSync(paths.wasm.mainGz)
+    let stats = fss.statSync(path)
     let size = Math.round((100 * stats.size) / 1024 / 1024) / 100
-    if (size > limit_mb) {
-        throw `Output file size exceeds the limit (${size}MB > ${limit_mb}MB).`
+    if (size > limitMb) {
+        throw `Output file size exceeds the limit (${size}MB > ${limitMb}MB).`
     }
 }
 

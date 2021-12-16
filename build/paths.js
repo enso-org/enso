@@ -48,9 +48,7 @@ paths.wasm.root = path.resolve(os.tmpdir(), 'enso-wasm')
 paths.wasm.main = path.join(paths.wasm.root, WASM_MAIN)
 paths.wasm.mainRaw = path.join(paths.wasm.root, WASM_MAIN_RAW)
 paths.wasm.glue = path.join(paths.wasm.root, WASM_GLUE)
-// Temporary directory for checking resulting WASM binary size.
-paths.wasm.checkSize = path.join(os.tmpdir(), 'enso-wasm-check-size')
-paths.wasm.mainGz = path.join(paths.wasm.checkSize, 'ide.wasm.gz')
+paths.wasm.mainGz = path.join(paths.wasm.root, 'ide.wasm.gz')
 
 paths.ide_desktop = {}
 paths.ide_desktop.lib = {}
