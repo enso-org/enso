@@ -32,40 +32,13 @@ const PADDING_TEXT: f32 = 10.0;
 pub const PREPROCESSOR_CODE: &str = r#"
 x ->
     result = Builtins.Ref.new '{ message: ""}'
-    tmp = Builtins.Panic.recover (Builtins.Panic.throw x)
-    tmp.catch err->
+    # If x is a PanicSentinel, rethrow it and convert to Error. If x is Error, this keeps it as such.
+    recovered = Builtins.Panic.recover (Builtins.Panic.throw x)
+    recovered.catch err->
         message = err.to_display_text
         Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
     Builtins.Ref.get result
 "#;
-/*
-x ->
-    ee = 1
-    ee.catch sdf->
-        Builtins.IO.println "MCDBG flih"
-    2
-
-#  controller::ide::Plain.Project Controller  [E] Visualisation evaluation failed in context 003316eb-b428-4e51-8d07-5c2c9f8eecc1. Error: Cannot encode class java.lang.Long to byte array.
-MCDBG callFunction
-MCDBG  callFunction END
-MCDBG   callFunction=(2)
-[warn] [2021-12-16T10:39:18.896Z] [enso] Visualisation evaluation failed: Cannot encode class java.lang.Long to byte array.
-
------
-
-    result = Builtins.Ref.new '"bleh"'
-    Builtins.IO.println "MCDBG fleh"
-    x.catch err->
-        Builtins.IO.println "MCDBG floh"
-    Builtins.Ref.get result
-x ->
-    result = Builtins.Ref.new '{ message: ""}'
-    x.catch err->
-        message = err.to_display_text
-        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
-    Builtins.Ref.get result
-
-*/
 
 /// The context module for the `PREPROCESSOR_CODE`. See there.
 pub const PREPROCESSOR_MODULE: &str = "Standard.Base.Main";
