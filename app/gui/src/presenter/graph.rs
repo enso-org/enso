@@ -18,10 +18,10 @@ use ide_view::graph_editor::EdgeEndpoint;
 // === Aliases ===
 // ===============
 
-type ViewNodeId = view::graph_editor::NodeId;
-type AstNodeId = ast::Id;
-type ViewConnection = view::graph_editor::EdgeId;
-type AstConnection = controller::graph::Connection;
+pub type ViewNodeId = view::graph_editor::NodeId;
+pub type AstNodeId = ast::Id;
+pub type ViewConnection = view::graph_editor::EdgeId;
+pub type AstConnection = controller::graph::Connection;
 
 
 
@@ -359,6 +359,7 @@ impl Graph {
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
         }
 
+        view.remove_all_nodes();
         update_view.emit(());
         self.setup_controller_notification_handlers(update_view, update_expressions);
 
@@ -397,5 +398,22 @@ impl Graph {
             handler(item, model);
             futures::future::ready(())
         })
+    }
+}
+
+
+// === State Access ===
+
+impl Graph {
+    pub fn view_id_of_ast_node(&self, id: AstNodeId) -> Option<ViewNodeId> {
+        self.model.state.view_id_of_ast_node(id)
+    }
+
+    pub fn ast_node_of_view(&self, id: ViewNodeId) -> Option<AstNodeId> {
+        self.model.state.ast_node_id_of_view(id)
+    }
+
+    pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
+        self.model.state.assign_node_view_explicitly(view_id, ast_id);
     }
 }

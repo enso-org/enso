@@ -54,13 +54,24 @@ impl Nodes {
         self.nodes.get_mut(&id)
     }
 
+    pub fn ast_id_by_view(&self, id: ViewNodeId) -> Option<AstNodeId> {
+        self.ast_node_by_view_id.get(&id).copied()
+    }
+
     /// Get the mutable reference, creating an default entry without view if it's missing.
     ///
     /// The entry will be also present on the "nodes without view" list and may have view assigned
     /// using [`assign_newly_created_node`] method.
     pub fn get_mut_or_create(&mut self, id: AstNodeId) -> &mut Node {
-        let nodes_without_view = &mut self.nodes_without_view;
-        self.nodes.entry(id).or_insert_with(|| {
+        Self::get_mut_or_create_static(&mut self.nodes, &mut self.nodes_without_view, id)
+    }
+
+    fn get_mut_or_create_static<'a>(
+        nodes: &'a mut HashMap<AstNodeId, Node>,
+        nodes_without_view: &mut Vec<AstNodeId>,
+        id: AstNodeId,
+    ) -> &'a mut Node {
+        nodes.entry(id).or_insert_with(|| {
             nodes_without_view.push(id);
             default()
         })
@@ -83,6 +94,23 @@ impl Nodes {
             self.ast_node_by_view_id.insert(view_id, ast_node);
         }
         opt_displayed
+    }
+
+    pub fn assign_node_view_explicitly(
+        &mut self,
+        view_id: ViewNodeId,
+        ast_id: AstNodeId,
+    ) -> &mut Node {
+        let mut displayed =
+            Self::get_mut_or_create_static(&mut self.nodes, &mut self.nodes_without_view, ast_id);
+        if let Some(old_view) = displayed.view_id {
+            self.ast_node_by_view_id.remove(&old_view);
+        } else {
+            self.nodes_without_view.remove_item(&ast_id);
+        }
+        displayed.view_id = Some(view_id);
+        self.ast_node_by_view_id.insert(view_id, ast_id);
+        displayed
     }
 
     /// Update the state retaining given set of nodes. Returns the list of removed nodes' views.
@@ -258,6 +286,11 @@ impl State {
         self.nodes.borrow().get(node).and_then(|n| n.view_id)
     }
 
+    /// Get node's AST id by the view id.
+    pub fn ast_node_id_of_view(&self, node: ViewNodeId) -> Option<AstNodeId> {
+        self.nodes.borrow().ast_id_of_view(node)
+    }
+
     /// Convert the AST connection to pair of [`EdgeEndpoint`]s.
     pub fn view_edge_targets_of_ast_connection(
         &self,
@@ -307,6 +340,10 @@ impl State {
     /// refreshed with the data from the state.
     pub fn assign_node_view(&self, view_id: ViewNodeId) -> Option<Node> {
         self.nodes.borrow_mut().assign_newly_created_node(view_id).cloned()
+    }
+
+    pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) -> Node {
+        self.nodes.borrow_mut().assign_node_view_explicitly(view_id, ast_id).clone()
     }
 }
 

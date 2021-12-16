@@ -8,9 +8,11 @@
 
 pub mod graph;
 pub mod project;
+pub mod searcher;
 
 pub use graph::Graph;
 pub use project::Project;
+pub use searcher::Searcher;
 
 use crate::prelude::*;
 
@@ -50,11 +52,18 @@ impl Model {
             breadcrumbs.project_name(project_model.name().to_string());
 
             let status_notifications = self.controller.status_notifications().clone_ref();
+            let ide_controller = self.controller.clone_ref();
             let project_controller =
                 controller::Project::new(project_model, status_notifications.clone_ref());
 
             executor::global::spawn(async move {
-                match presenter::Project::initialize(project_controller, project_view).await {
+                match presenter::Project::initialize(
+                    ide_controller,
+                    project_controller,
+                    project_view,
+                )
+                .await
+                {
                     Ok(project) => {
                         *self.current_project.borrow_mut() = Some(project);
                     }
