@@ -31,10 +31,11 @@ const PADDING_TEXT: f32 = 10.0;
 /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
 pub const PREPROCESSOR_CODE: &str = r#"
 x ->
-    result = Builtins.Ref.new '"bleh"'
-    Builtins.IO.println "MCDBG fleh"
-    x.catch err->
-        Builtins.IO.println "MCDBG floh"
+    result = Builtins.Ref.new '{ message: ""}'
+    tmp = Builtins.Panic.recover (x.recover)
+    tmp.catch err->
+        message = err.to_display_text
+        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": "HELLO MCDBG"}')
     Builtins.Ref.get result
 "#;
 /*
