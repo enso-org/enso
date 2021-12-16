@@ -78,28 +78,31 @@ class InteropTest extends InterpreterTest {
     }
 
     "successfully execute panic preprocessor used internally in IDE" in {
-      val moduleName = "Standard.Base.Main"
+      // val moduleName = "Standard.Base.Main"
       val code       =
         // FIXME load from a file in /app/gui/...
         """
+          |
           |x ->
-          |    result = Builtins.Ref.new '{ message: ""}'
+          |    result = Ref.new '{ message: ""}'
           |    # If x is a PanicSentinel, rethrow it and convert to Error. If x is Error, this keeps it as such.
-          |    recovered = Builtins.Panic.recover (Builtins.Panic.throw x)
+          |    recovered = Panic.recover (Panic.throw x)
           |    recovered.catch err->
           |        message = err.to_display_text
-          |        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
-          |    Builtins.Ref.get result
+          |        Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
+          |    Ref.get result
           |""".stripMargin
 
       interpreterContext.output.reset()
       val module = InterpreterException.rethrowPolyglot(
-        interpreterContext.executionContext.evalModule("", moduleName)
+        // interpreterContext.executionContext.evalModule("from Standard.Builtins import all", moduleName)
+        interpreterContext.executionContext.evalModule("from Standard.Builtins import all", "Test")
       )
       val preprocessor = InterpreterException.rethrowPolyglot(
         module.evalExpression(code)
       )
-      val panic = module.evalExpression("Panic.throw 'test-panic'")
+      // val panic = module.evalExpression("Builtins.Panic.throw 'test-panic'")
+      val panic = module.evalExpression("'test-panic'")
       preprocessor.execute(panic) shouldEqual "'asdf'"
     }
   }
