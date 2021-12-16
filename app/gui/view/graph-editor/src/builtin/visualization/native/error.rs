@@ -35,7 +35,7 @@ x ->
     tmp = Builtins.Panic.recover (Builtins.Panic.throw x)
     tmp.catch err->
         message = err.to_display_text
-        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": "HELLO MCDBG"}')
+        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
     Builtins.Ref.get result
 "#;
 /*
