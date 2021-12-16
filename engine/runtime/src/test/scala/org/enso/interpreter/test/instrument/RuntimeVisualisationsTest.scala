@@ -1671,12 +1671,22 @@ class RuntimeVisualisationsTest
       // FIXME load from a file in /app/gui/...
       """
         |x ->
-        |    result = Builtins.Ref.new "{ message: \"\"}"
-        |    x.catch err->
+        |    result = Builtins.Ref.new '{ message: ""}'
+        |    # If x is a PanicSentinel, rethrow it and convert to Error. If x is Error, this keeps it as such.
+        |    recovered = Builtins.Panic.recover (Builtins.Panic.throw x)
+        |    recovered.catch err->
         |        message = err.to_display_text
-        |        Builtins.Ref.put result ("{ \"kind\": \"Dataflow\", \"message\": " + message.to_json.to_text + "}")
+        |        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
         |    Builtins.Ref.get result
         |""".stripMargin
+      // """
+      //   |x ->
+      //   |    result = Builtins.Ref.new "{ message: \"\"}"
+      //   |    x.catch err->
+      //   |        message = err.to_display_text
+      //   |        Builtins.Ref.put result ("{ \"kind\": \"Dataflow\", \"message\": " + message.to_json.to_text + "}")
+      //   |    Builtins.Ref.get result
+      //   |""".stripMargin
     val metadata  = new Metadata
     val idPrintln = metadata.addItem(85, 16)
     val contents  = metadata.appendToCode(
