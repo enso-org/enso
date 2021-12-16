@@ -91,16 +91,16 @@ class InteropTest extends InterpreterTest {
           |        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
           |    Builtins.Ref.get result
           |""".stripMargin
-    }
 
-    interpreterContext.output.reset()
-    val module = InterpreterException.rethrowPolyglot(
-      interpreterContext.executionContext.evalModule("", moduleName)
-    )
-    val preprocessor = InterpreterException.rethrowPolyglot(
-      module.evalExpression(code)
-    )
-    val panic = module.evalExpression("Panic.throw 'test-panic'")
-    preprocessor.execute(panic) shouldEqual "'asdf'"
+      interpreterContext.output.reset()
+      val module = InterpreterException.rethrowPolyglot(
+        interpreterContext.executionContext.evalModule("", moduleName)
+      )
+      val preprocessor = InterpreterException.rethrowPolyglot(
+        module.evalExpression(code)
+      )
+      val panic = module.evalExpression("Panic.throw 'test-panic'")
+      preprocessor.execute(panic) shouldEqual "'asdf'"
+    }
   }
 }
