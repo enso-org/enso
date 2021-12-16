@@ -434,6 +434,8 @@ object ProgramExecutionSupport {
             s"Executing visualisation ${visualisation.expressionId}"
           )
           System.err.println(s"MCDBG callFunction");
+          System.err.println(s"MCDBG  <-${visualisation.expressionId}");
+          System.err.println(s"MCDBG  <-($expressionValue)");
           val res = ctx.executionService.callFunction(
             visualisation.callback,
             expressionValue
