@@ -101,9 +101,14 @@ class InteropTest extends InterpreterTest {
       val preprocessor = InterpreterException.rethrowPolyglot(
         module.evalExpression(code)
       )
-      val panic = the[InterpreterException] thrownBy(module.evalExpression("Panic.throw 'test-panic'"))
+      val panic = the[InterpreterException] thrownBy(
+        InterpreterException.rethrowPolyglot(
+          module.evalExpression("Panic.throw 'test-panic'")
+        )
+      )
       // val panic = module.evalExpression("'test-panic'")
-      preprocessor.execute(panic) shouldEqual "'asdf'"
+      // preprocessor.execute(panic) shouldEqual "'asdf'"
+      preprocessor.execute(panic) shouldEqual s"MCDBG: $panic"
     }
   }
 }
