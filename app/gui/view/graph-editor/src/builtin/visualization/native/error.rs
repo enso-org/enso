@@ -32,7 +32,7 @@ const PADDING_TEXT: f32 = 10.0;
 pub const PREPROCESSOR_CODE: &str = r#"
 x ->
     result = Builtins.Ref.new '{ message: ""}'
-    tmp = Builtins.Panic.recover (x.recover)
+    tmp = Builtins.Panic.recover (Builtins.Panic.throw x)
     tmp.catch err->
         message = err.to_display_text
         Builtins.Ref.put result ('{ "kind": "Dataflow", "message": "HELLO MCDBG"}')
