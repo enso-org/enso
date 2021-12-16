@@ -71,7 +71,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   def toProtocolDiagnostic(diagnostic: Api.ExecutionResult.Diagnostic)(implicit
     ec: ExecutionContext
   ): Future[ContextRegistryProtocol.ExecutionDiagnostic] = {
-    System.err.println(s"MCDBG toProtocolDiagnostic");
+    // System.err.println(s"MCDBG toProtocolDiagnostic");
     val res = for {
       path  <- findRelativePath(diagnostic.file)
       stack <- diagnostic.stack.map(toStackTraceElement).sequence
@@ -83,7 +83,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
       diagnostic.expressionId,
       stack
     )
-    System.err.println(s"MCDBG toProtocolDiagnostic END");
+    // System.err.println(s"MCDBG toProtocolDiagnostic END");
     res
   }
 
@@ -125,7 +125,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   )(implicit ec: ExecutionContext): Future[Option[Path]] =
     path match {
       case Some(value) => {
-        System.err.println(s"MCDBG path: {$value}");
+        // System.err.println(s"MCDBG path: {$value}");
         contentRootManager.findRelativePath(value).recoverWith { error =>
           logger.warn(
             s"Could not resolve a path within a failure, " +
@@ -135,7 +135,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
         }
       }
       case None => {
-        System.err.println(s"MCDBG no path");
+        // System.err.println(s"MCDBG no path");
         Future.successful(None)
       }
     }
