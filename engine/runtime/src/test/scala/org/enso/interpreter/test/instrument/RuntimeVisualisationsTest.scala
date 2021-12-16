@@ -1722,7 +1722,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain allOf Seq(
+    context.receive(6) should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       // ...
       context.executionComplete(contextId)
