@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest, InterpreterException}
 
 class InteropTest extends InterpreterTest {
   override def subject: String = "Interop Library"
