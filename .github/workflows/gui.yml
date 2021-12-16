@@ -105,7 +105,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install Rust
@@ -135,7 +135,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install Rust
@@ -161,7 +161,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install Rust
@@ -220,7 +220,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install Rust
@@ -298,7 +298,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install Rust
