@@ -148,13 +148,6 @@ optParser.options('devtron', {
     describe: 'Install the Devtron Developer Tools extension',
 })
 
-optParser.options('rust-welcome-screen', {
-    group: debugOptionsGroup,
-    describe: 'Use Rust-based Welcome Screen',
-    default: false,
-    type: `boolean`,
-})
-
 // === Style Options ===
 
 let styleOptionsGroup = 'Style Options:'
@@ -539,7 +532,6 @@ function createWindow() {
         data_gathering: args.dataGathering,
         node_labels: args.nodeLabels,
         verbose: args.verbose,
-        rust_welcome_screen: args.rustWelcomeScreen,
     }
 
     if (args.project) {

@@ -62,8 +62,12 @@ trait API {
     /// Request the creation of a new project.
     #[MethodInput=CreateProjectInput,rpc_name="project/create"]
     fn create_project
-    (&self, name:String, version:Option<String>, missing_component_action:MissingComponentAction)
-    -> response::CreateProject;
+    ( &self
+    , name                     : String
+    , project_template         : Option<String>
+    , version                  : Option<String>
+    , missing_component_action : MissingComponentAction
+    ) -> response::CreateProject;
 
     /// Request project renaming.
     #[MethodInput=RenameProject,rpc_name="project/rename"]
@@ -238,6 +242,7 @@ mod mock_client_tests {
         let missing_component_action = MissingComponentAction::Fail;
         expect_call!(mock_client.create_project(
             name                     = "HelloWorld".to_string(),
+            project_template         = None,
             version                  = None,
             missing_component_action = missing_component_action
         ) => Ok(creation_response));
@@ -248,9 +253,9 @@ mod mock_client_tests {
         let delete_result = mock_client.delete_project(&expected_uuid);
         result(delete_result).expect_err("Project shouldn't exist.");
 
-        let creation_response =
-            mock_client.create_project(&"HelloWorld".to_string(), &None, &missing_component_action);
-        let uuid = result(creation_response).expect("Couldn't create project").project_id;
+        let name = String::from("HelloWorld");
+        let response = mock_client.create_project(&name, &None, &None, &missing_component_action);
+        let uuid = result(response).expect("Couldn't create project").project_id;
         assert_eq!(uuid, expected_uuid);
 
         let close_result = result(mock_client.close_project(&uuid));
@@ -421,8 +426,10 @@ mod remote_client_tests {
             "projectNamespace" : "test_ns",
         });
         let project_name = String::from("HelloWorld");
+        let project_template = Some(String::from("template"));
         let project_create_json = json!({
             "name"                   : serde_json::to_value(&project_name).unwrap(),
+            "projectTemplate"        : serde_json::to_value(&project_template).unwrap(),
             "missingComponentAction" : "Install",
             "version"                : "1.0.0",
         });
@@ -500,7 +507,12 @@ mod remote_client_tests {
         );
         test_request(
             |client| {
-                client.create_project(&project_name, &engine_version_opt, &missing_component_action)
+                client.create_project(
+                    &project_name,
+                    &project_template,
+                    &engine_version_opt,
+                    &missing_component_action,
+                )
             },
             "project/create",
             &project_create_json,

@@ -39,6 +39,7 @@ trait NativeTestHelper {
     for ((key, value) <- extraEnv) {
       val keyName =
         if (OS.isWindows)
+          // On Windows, environment variables are case insensitive.
           existingKeys.find(_.equalsIgnoreCase(key)).getOrElse(key)
         else key
       builder.environment().put(keyName, value)

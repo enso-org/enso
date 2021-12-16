@@ -118,7 +118,7 @@ impl API for Handle {
 }
 
 impl ManagingProjectAPI for Handle {
-    fn create_new_project(&self) -> BoxFuture<FallibleResult> {
+    fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult> {
         async move {
             use model::project::Synchronized as Project;
 
@@ -133,7 +133,7 @@ impl ManagingProjectAPI for Handle {
             let action = MissingComponentAction::Install;
 
             let create_result =
-                self.project_manager.create_project(&name, &version, &action).await?;
+                self.project_manager.create_project(&name, &template, &version, &action).await?;
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
             let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
