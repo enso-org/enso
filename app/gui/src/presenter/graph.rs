@@ -1,9 +1,11 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
+pub mod execution_stack;
 pub mod state;
 pub mod visualization;
 
+pub use execution_stack::ExecutionStack;
 pub use visualization::Visualization;
 
 use crate::prelude::*;
@@ -35,11 +37,12 @@ pub type AstConnection = controller::graph::Connection;
 
 #[derive(Debug)]
 struct Model {
-    logger:        Logger,
-    controller:    controller::ExecutedGraph,
-    view:          view::graph_editor::GraphEditor,
-    state:         Rc<State>,
-    visualization: Visualization,
+    logger:          Logger,
+    controller:      controller::ExecutedGraph,
+    view:            view::graph_editor::GraphEditor,
+    state:           Rc<State>,
+    visualization:   Visualization,
+    execution_stack: ExecutionStack,
 }
 
 impl Model {
@@ -56,7 +59,13 @@ impl Model {
             view.clone_ref(),
             state.clone_ref(),
         );
-        Self { logger, controller, view, state, visualization }
+        let execution_stack = ExecutionStack::new(
+            &logger,
+            controller.clone_ref(),
+            view.clone_ref(),
+            state.clone_ref(),
+        );
+        Self { logger, controller, view, state, visualization, execution_stack }
     }
 
     /// Node position was changed in view.
@@ -398,7 +407,8 @@ impl Graph {
         use crate::controller::graph::executed;
         use crate::controller::graph::Notification;
         let graph_notifications = self.model.controller.subscribe();
-        self.spawn_sync_stream_handler(graph_notifications, move |notification, model| {
+        let weak = Rc::downgrade(&self.model);
+        spawn_stream_handler(weak, graph_notifications, move |notification, model| {
             info!(model.logger, "Received controller notification {notification:?}");
             match notification {
                 executed::Notification::Graph(graph) => match graph {
@@ -407,20 +417,10 @@ impl Graph {
                 },
                 executed::Notification::ComputedValueInfo(expressions) =>
                     update_expressions.emit(expressions),
-                executed::Notification::EnteredNode(_) => {}
-                executed::Notification::SteppedOutOfNode(_) => {}
+                executed::Notification::EnteredNode(_) => update_view.emit(()),
+                executed::Notification::SteppedOutOfNode(_) => update_view.emit(()),
             }
-        })
-    }
-
-    fn spawn_sync_stream_handler<Stream, Function>(&self, stream: Stream, handler: Function)
-    where
-        Stream: StreamExt + Unpin + 'static,
-        Function: Fn(Stream::Item, Rc<Model>) + 'static, {
-        let model = Rc::downgrade(&self.model);
-        spawn_stream_handler(model, stream, move |item, model| {
-            handler(item, model);
-            futures::future::ready(())
+            std::future::ready(())
         })
     }
 }
