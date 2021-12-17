@@ -101,14 +101,42 @@ class InteropTest extends InterpreterTest {
       val preprocessor = InterpreterException.rethrowPolyglot(
         module.evalExpression(code)
       )
-      val panic = the[InterpreterException] thrownBy(
+      val bleh =
+        """
+          |a = 1
+          |b = "hello"
+          |c = " world"
+          |IO.println b + c
+          |""".stripMargin
+        // """
+        //   |main =
+        //   |    a = 1
+        //   |    b = "hello"
+        //   |    c = " world"
+        //   |    IO.println b + c
+        //   |""".stripMargin
+
+      // val panic = module.evalExpression(bleh)
+
+      val rawPanic = the[InterpreterException] thrownBy(
         InterpreterException.rethrowPolyglot(
-          module.evalExpression("Panic.throw 'test-panic'")
+          module.evalExpression(bleh)
         )
       )
+      val panic = rawPanic.getGuestObject
+
+      // val rawPanic = the[InterpreterException] thrownBy(
+      //   InterpreterException.rethrowPolyglot(
+      //     // module.evalExpression("Panic.throw 'test-panic'")
+      //     module.evalExpression("1.div 0")
+      //   )
+      // )
+      // val panic = rawPanic.getGuestObject
+
       // val panic = module.evalExpression("'test-panic'")
       // preprocessor.execute(panic) shouldEqual "'asdf'"
-      preprocessor.execute(panic) shouldEqual s"MCDBG: $panic"
+      // preprocessor.execute(panic) shouldEqual s"MCDBG: ${panic.toPolyglotException}"
+      preprocessor.execute(panic) shouldEqual s"MCDBG: ${panic}"
     }
   }
 }
