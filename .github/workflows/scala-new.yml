@@ -7,18 +7,6 @@ on:
     branches: ["*"]
   workflow_dispatch:
 
-env:
-  # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 21.1.0
-  # Please ensure that this is in sync with javaVersion in build.sbt
-  javaVersion: 11
-  # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.5.2
-  # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2021-11-29
-  # Some moderately recent version of Node.JS is needed to run the library download tests.
-  nodeVersion: 14.17.2
-
 jobs:
   test_and_publish_win:
     name: Engine
@@ -34,6 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
+        working-directory: C:\ci
+        if: runner.os == 'Windows'
+      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
+        working-directory: /ci
+        if: runner.os != 'Windows'
 
       #####################
       # PUBLISH ARTIFACTS #
