@@ -1,13 +1,7 @@
 pub mod provider;
 
 use crate::prelude::*;
-use ensogl_component::list_view;
-use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 
-use crate::model::suggestion_database;
-
-use crate::controller::searcher::action::MatchInfo;
-use crate::controller::searcher::Actions;
 use crate::controller::searcher::Notification;
 use crate::controller::searcher::UserAction;
 use crate::executor::global::spawn_stream_handler;
@@ -17,7 +11,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
-use ide_view::searcher::AnyDocumentationProvider;
+
 
 
 #[derive(Clone, CloneRef, Debug)]

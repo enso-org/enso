@@ -38,7 +38,11 @@ impl Model {
         let logger = Logger::new("presenter::Project");
         let graph_controller = init_result.main_graph;
         let module_model = init_result.main_module_model;
-        let graph = presenter::Graph::new(graph_controller.clone_ref(), view.graph().clone_ref());
+        let graph = presenter::Graph::new(
+            controller.model.clone_ref(),
+            graph_controller.clone_ref(),
+            view.graph().clone_ref(),
+        );
         let searcher = default();
         Model {
             logger,

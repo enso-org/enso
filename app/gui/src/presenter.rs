@@ -9,6 +9,7 @@
 pub mod graph;
 pub mod project;
 pub mod searcher;
+pub mod visualization;
 
 pub use graph::Graph;
 pub use project::Project;

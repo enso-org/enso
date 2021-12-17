@@ -1,11 +1,15 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
-mod state;
+pub mod state;
+pub mod visualization;
+
+pub use visualization::Visualization;
 
 use crate::prelude::*;
 
 use crate::executor::global::spawn_stream_handler;
+use crate::presenter::graph::state::State;
 
 use enso_frp as frp;
 use ide_view as view;
@@ -29,22 +33,30 @@ pub type AstConnection = controller::graph::Connection;
 // === Model ===
 // =============
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct Model {
-    logger:     Logger,
-    controller: controller::ExecutedGraph,
-    view:       view::graph_editor::GraphEditor,
-    state:      Rc<state::State>,
+    logger:        Logger,
+    controller:    controller::ExecutedGraph,
+    view:          view::graph_editor::GraphEditor,
+    state:         Rc<State>,
+    visualization: Visualization,
 }
 
 impl Model {
     pub fn new(
+        project: model::Project,
         controller: controller::ExecutedGraph,
         view: view::graph_editor::GraphEditor,
     ) -> Self {
         let logger = Logger::new("presenter::Graph");
-        let state = default();
-        Self { logger, controller, view, state }
+        let state: Rc<State> = default();
+        let visualization = Visualization::new(
+            project,
+            controller.clone_ref(),
+            view.clone_ref(),
+            state.clone_ref(),
+        );
+        Self { logger, controller, view, state, visualization }
     }
 
     /// Node position was changed in view.
@@ -156,6 +168,15 @@ impl Model {
         Some((id, method_pointer))
     }
 
+    fn refresh_node_error(
+        &self,
+        expression: ast::Id,
+    ) -> Option<(ViewNodeId, Option<node_view::Error>)> {
+        let registry = self.controller.computed_value_info_registry();
+        let payload = registry.get(&expression).map(|info| info.payload.clone());
+        self.state.update_from_controller().set_node_error_from_payload(expression, payload)
+    }
+
     /// Extract the expression's current type from controllers.
     fn expression_type(&self, id: ast::Id) -> Option<view::graph_editor::Type> {
         let registry = self.controller.computed_value_info_registry();
@@ -185,7 +206,7 @@ impl Model {
 /// extracted from controllers, the data are cached in this structure.
 #[derive(Clone, Debug, Default)]
 struct ViewUpdate {
-    state:       Rc<state::State>,
+    state:       Rc<State>,
     nodes:       Vec<controller::graph::Node>,
     trees:       HashMap<AstNodeId, controller::graph::NodeTrees>,
     connections: HashSet<AstConnection>,
@@ -285,11 +306,12 @@ impl Graph {
     /// Create graph presenter. The returned structure is working and does not require any
     /// initialization.
     pub fn new(
+        project: model::Project,
         controller: controller::ExecutedGraph,
         view: view::graph_editor::GraphEditor,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
-        let model = Rc::new(Model::new(controller, view));
+        let model = Rc::new(Model::new(project, controller, view));
         Self { network, model }.init()
     }
 
@@ -349,6 +371,8 @@ impl Graph {
             update_expression <= update_expressions;
             view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
             view.set_method_pointer <+ update_expression.filter_map(f!((id) model.refresh_expression_method_pointer(*id)));
+            view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
+            trace view.set_node_error_status;
 
 
             // === Changes from the View ===

@@ -6,7 +6,7 @@ use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 
 pub type Any = (
-    list_view::entry::AnyModelProvider<list_view::entry::GlyphHighlightedLabel>,
+    list_view::entry::AnyModelProvider<GlyphHighlightedLabel>,
     view::searcher::AnyDocumentationProvider,
 );
 

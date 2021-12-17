@@ -9,6 +9,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use bimap::BiMap;
 use bimap::Overwritten;
+use engine_protocol::language_server::ExpressionUpdatePayload;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::EdgeEndpoint;
@@ -26,6 +27,7 @@ pub struct Node {
     pub view_id:    Option<ViewNodeId>,
     pub position:   Vector2,
     pub expression: node_view::Expression,
+    pub error:      Option<node_view::Error>,
 }
 
 /// The set of node states.
@@ -414,6 +416,58 @@ impl<'a> ControllerChange<'a> {
         } else {
             None
         }
+    }
+
+    // This function checks if expression is a node's expression.
+    pub fn set_node_error_from_payload(
+        &self,
+        expression: ast::Id,
+        payload: Option<ExpressionUpdatePayload>,
+    ) -> Option<(ViewNodeId, Option<node_view::Error>)> {
+        let node_id = self.state.nodes.borrow().get(expression).is_some().as_some(expression)?;
+        let new_error = self.convert_payload_to_error(node_id, payload);
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut(node_id)?;
+        if displayed.error != new_error {
+            displayed.error = new_error.clone();
+            Some((displayed.view_id?, new_error))
+        } else {
+            None
+        }
+    }
+
+    fn convert_payload_to_error(
+        &self,
+        node_id: AstNodeId,
+        payload: Option<ExpressionUpdatePayload>,
+    ) -> Option<node_view::error::Error> {
+        use node_view::error::Kind;
+        use ExpressionUpdatePayload::*;
+        let (kind, message, trace) = match payload {
+            None | Some(Value) => None,
+            Some(DataflowError { trace }) => Some((Kind::Dataflow, None, trace)),
+            Some(Panic { message, trace }) => Some((Kind::Panic, Some(message), trace)),
+        }?;
+        let propagated = if kind == Kind::Panic {
+            let nodes = self.nodes.borrow();
+            let root_cause = trace.iter().find(|id| nodes.get(**id).is_some());
+            !root_cause.contains(&&node_id)
+        } else {
+            // TODO[ao]: traces are not available for Dataflow errors.
+            false
+        };
+
+        let kind = Immutable(kind);
+        let message = Rc::new(message.clone());
+        let propagated = Immutable(propagated);
+        Some(node_view::error::Error { kind, message, propagated })
+    }
+
+    /// Get the node being a main cause of some error from the current nodes on the scene. Returns
+    /// [`None`] if the error is not present on the scene at all.
+    fn get_node_causing_error(&self, trace: &[ast::Id]) -> Option<ViewNodeId> {
+        let nodes = self.state.nodes.borrow();
+        trace.iter().find_map(|expr_id| nodes.get(*expr_id)?.view_id)
     }
 }
 
