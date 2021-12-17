@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest, InterpreterException}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class InteropTest extends InterpreterTest {
   override def subject: String = "Interop Library"
@@ -75,68 +75,6 @@ class InteropTest extends InterpreterTest {
       val symbol = eval(code)
       symbol.call(1) shouldEqual "1"
       symbol.execute("Foo") shouldEqual "'Foo'"
-    }
-
-    "successfully execute panic preprocessor used internally in IDE" in {
-      // val moduleName = "Standard.Base.Main"
-      val code       =
-        // FIXME load from a file in /app/gui/...
-        """
-          |
-          |x ->
-          |    result = Ref.new '{ message: ""}'
-          |    # If x is a PanicSentinel, rethrow it and convert to Error. If x is Error, this keeps it as such.
-          |    recovered = Panic.recover (Panic.throw x)
-          |    recovered.catch err->
-          |        message = err.to_display_text
-          |        Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
-          |    Ref.get result
-          |""".stripMargin
-
-      interpreterContext.output.reset()
-      val module = InterpreterException.rethrowPolyglot(
-        // interpreterContext.executionContext.evalModule("from Standard.Builtins import all", moduleName)
-        interpreterContext.executionContext.evalModule("from Standard.Builtins import all", "Test")
-      )
-      val preprocessor = InterpreterException.rethrowPolyglot(
-        module.evalExpression(code)
-      )
-      val bleh =
-        """
-          |a = 1
-          |b = "hello"
-          |c = " world"
-          |IO.println b + c
-          |""".stripMargin
-        // """
-        //   |main =
-        //   |    a = 1
-        //   |    b = "hello"
-        //   |    c = " world"
-        //   |    IO.println b + c
-        //   |""".stripMargin
-
-      // val panic = module.evalExpression(bleh)
-
-      val rawPanic = the[InterpreterException] thrownBy(
-        InterpreterException.rethrowPolyglot(
-          module.evalExpression(bleh)
-        )
-      )
-      val panic = rawPanic.getGuestObject
-
-      // val rawPanic = the[InterpreterException] thrownBy(
-      //   InterpreterException.rethrowPolyglot(
-      //     // module.evalExpression("Panic.throw 'test-panic'")
-      //     module.evalExpression("1.div 0")
-      //   )
-      // )
-      // val panic = rawPanic.getGuestObject
-
-      // val panic = module.evalExpression("'test-panic'")
-      // preprocessor.execute(panic) shouldEqual "'asdf'"
-      // preprocessor.execute(panic) shouldEqual s"MCDBG: ${panic.toPolyglotException}"
-      preprocessor.execute(panic) shouldEqual s"MCDBG: ${panic}"
     }
   }
 }
