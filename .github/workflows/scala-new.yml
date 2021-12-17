@@ -34,11 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
-        working-directory: C:\ci
-        if: runner.os == 'Windows'
-      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
-        working-directory: /ci
-        if: runner.os != 'Windows'
 
       #####################
       # PUBLISH ARTIFACTS #
@@ -76,18 +71,3 @@ jobs:
         with:
           name: manifest
           path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
-
-  gui:
-    name: GUI
-    runs-on:
-      - ${{ matrix.os }}
-      - self-hosted
-      - gui
-    timeout-minutes: 120
-    strategy:
-      matrix:
-        os: [Windows, Linux]
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v2
-      - run: node run dist --skip-version-validation
