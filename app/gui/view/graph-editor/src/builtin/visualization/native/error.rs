@@ -32,9 +32,7 @@ const PADDING_TEXT: f32 = 10.0;
 pub const PREPROCESSOR_CODE: &str = r#"
 x ->
     result = Builtins.Ref.new '{ message: ""}'
-    # If x is a PanicSentinel, rethrow it and convert to Error. If x is Error, this keeps it as such.
-    recovered = Builtins.Panic.recover (Builtins.Panic.throw x)
-    recovered.catch err->
+    x.catch err->
         message = err.to_display_text
         Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
     Builtins.Ref.get result
