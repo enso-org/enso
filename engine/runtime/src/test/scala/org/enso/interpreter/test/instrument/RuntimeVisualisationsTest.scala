@@ -1673,13 +1673,14 @@ class RuntimeVisualisationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(46, 14)
+    val idMain = metadata.addItem(77, 28)
 
     val code =
       """from Standard.Builtins import all
+        |import Standard.Base.Data.List
         |
         |main =
-        |    Error.throw 42
+        |    Error.throw List.Empty_Error
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1716,7 +1717,9 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    val pushContextResponses =
+      context.receive(n = 4, timeoutSeconds = 30)
+    pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1725,6 +1728,11 @@ class RuntimeVisualisationsTest
       ),
       context.executionComplete(contextId)
     )
+    val loadedLibraries = pushContextResponses.collect {
+      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
+        (namespace, name)
+    }
+    loadedLibraries should contain(("Standard", "Base"))
 
     // attach visualisation
     context.send(
@@ -1761,6 +1769,6 @@ class RuntimeVisualisationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual "42"
+    stringified shouldEqual """'{ "kind": "Dataflow", "message": "The List is empty."}'"""
   }
 }
