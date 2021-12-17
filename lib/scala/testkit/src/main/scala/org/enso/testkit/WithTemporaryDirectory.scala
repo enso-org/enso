@@ -2,7 +2,6 @@ package org.enso.testkit
 
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterEach, Suite}
-
 import java.io.{File, IOException}
 import java.nio.file.{Files, Path}
 
@@ -31,7 +30,8 @@ trait WithTemporaryDirectory
   /** Returns the temporary directory for this test. */
   def getTestDirectory: Path = testDirectory.toAbsolutePath.normalize
 
-  /** Tries to remove the directory, retrying every 100ms for 3 seconds.
+  /** Tries to remove the directory, retrying every 200ms for 3 seconds. If
+    * unsuccessful, schedules the directory for deletion on JVM shutdown.
     *
     * This is used because there may be some lag between the test finalizing and
     * the filesystem allowing to remove the files (especially on Windows,
@@ -39,35 +39,25 @@ trait WithTemporaryDirectory
     * terminate even after the test completed).
     */
   def robustDeleteDirectory(dir: File): Unit = {
+    @scala.annotation.tailrec
     def tryRemoving(retry: Int): Unit = {
       try {
         FileUtils.deleteDirectory(dir)
       } catch {
-        case e: IOException =>
+        case _: IOException =>
           if (retry > 0) {
-            Thread.sleep(100)
+            Thread.sleep(200)
             tryRemoving(retry - 1)
           } else {
-            throw new RuntimeException("Cannot remove temporary test files", e)
+            FileUtils.forceDeleteOnExit(dir)
           }
       }
     }
 
-    tryRemoving(30)
+    tryRemoving(15)
   }
 
   private def prepareTemporaryDirectory(): Unit = {
     testDirectory = Files.createTempDirectory("enso-test")
-  }
-
-  /** Overrides the temporary directory with a fresh one so that the test can be
-    * safely retried.
-    *
-    * Without this, retried tests re-use the directory which may cause problems.
-    */
-  def allowForRetry(action: => Unit): Unit = {
-    robustDeleteDirectory(testDirectory.toFile)
-    prepareTemporaryDirectory()
-    action
   }
 }

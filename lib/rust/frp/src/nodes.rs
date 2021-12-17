@@ -892,6 +892,16 @@ impl Network {
     {
         self.register(OwnedAllWith8::new(label, t1, t2, t3, t4, t5, t6, t7, t8, f))
     }
+
+
+    // === Repeat ===
+
+    /// Repeat node listens for input events of type [`usize`] and emits events in number equal to
+    /// the input event value.
+    pub fn repeat<T>(&self, label: Label, src: &T) -> Stream<()>
+    where T: EventOutput<Output = usize> {
+        self.register(OwnedRepeat::new(label, src))
+    }
 }
 
 
@@ -3837,5 +3847,47 @@ where
 impl<T1, T2, T3, T4, T5, T6, T7, T8, F> Debug for AllWith8Data<T1, T2, T3, T4, T5, T6, T7, T8, F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "AllWith8Data")
+    }
+}
+
+
+
+// ==============
+// === Repeat ===
+// ==============
+
+#[derive(Debug)]
+pub struct RepeatData<T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event: T,
+    // behavior: watch::Ref<T2>,
+}
+pub type OwnedRepeat<T> = stream::Node<RepeatData<T>>;
+pub type Repeat<T> = stream::WeakNode<RepeatData<T>>;
+
+impl<T> HasOutput for RepeatData<T> {
+    type Output = ();
+}
+
+impl<T> OwnedRepeat<T>
+where T: EventOutput<Output = usize>
+{
+    /// Constructor.
+    pub fn new(label: Label, src: &T) -> Self {
+        let event = src.clone_ref();
+        let definition = RepeatData { event };
+        Self::construct_and_connect(label, src, definition)
+    }
+}
+
+impl<T> stream::EventConsumer<usize> for OwnedRepeat<T>
+where T: EventOutput<Output = usize>
+{
+    fn on_event(&self, stack: CallStack, event: &Output<T>) {
+        for _ in 0..*event {
+            self.emit_event(stack, &())
+        }
     }
 }
