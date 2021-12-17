@@ -489,11 +489,11 @@ impl Project {
                     }
                 }
                 Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
-                    // FIXME add more details
                     error!(
                         logger,
-                        "Visualisation evaluation failed in context {update.context_id}. Error: \
-                        {update.message}."
+                        "Visualisation evaluation failed in context {update.context_id} \
+                        for visualisation {update.visualisation_id} of expression \
+                        {update.expression_id}. Error: {update.message}."
                     );
                 }
                 Event::Closed => {
