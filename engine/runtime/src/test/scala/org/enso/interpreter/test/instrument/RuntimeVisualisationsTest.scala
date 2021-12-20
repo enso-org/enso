@@ -1863,13 +1863,14 @@ class RuntimeVisualisationsTest
 
     val idMain = metadata.addItem(77, 28)
 
-    val code =
-      """from Standard.Builtins import all
-        |import Standard.Base.Data.List
-        |
-        |main =
-        |    Error.throw List.Empty_Error
-        |""".stripMargin.linesIterator.mkString("\n")
+    val code = Source.fromResource("error_preprocessor.enso").mkString
+    // val code =
+    //   """from Standard.Builtins import all
+    //     |import Standard.Base.Data.List
+    //     |
+    //     |main =
+    //     |    Error.throw List.Empty_Error
+    //     |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
