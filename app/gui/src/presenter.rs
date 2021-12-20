@@ -6,11 +6,13 @@
 //! [`crate::integration`] is used by default. The presenters may be tested by passing
 //! `--rust-new-presentation-layer` commandline argument.
 
+pub mod code;
 pub mod graph;
 pub mod project;
 pub mod searcher;
 pub mod visualization;
 
+pub use code::Code;
 pub use graph::Graph;
 pub use project::Project;
 pub use searcher::Searcher;

@@ -25,6 +25,7 @@ struct Model {
     ide_controller:   controller::Ide,
     view:             view::project::View,
     graph:            presenter::Graph,
+    code:             presenter::Code,
     searcher:         RefCell<Option<presenter::Searcher>>,
 }
 
@@ -37,12 +38,14 @@ impl Model {
     ) -> Self {
         let logger = Logger::new("presenter::Project");
         let graph_controller = init_result.main_graph;
+        let text_controller = init_result.main_module_text;
         let module_model = init_result.main_module_model;
         let graph = presenter::Graph::new(
             controller.model.clone_ref(),
             graph_controller.clone_ref(),
             view.graph().clone_ref(),
         );
+        let code = presenter::Code::new(text_controller, view.code_editor().clone_ref());
         let searcher = default();
         Model {
             logger,
@@ -52,6 +55,7 @@ impl Model {
             ide_controller,
             view,
             graph,
+            code,
             searcher,
         }
     }
