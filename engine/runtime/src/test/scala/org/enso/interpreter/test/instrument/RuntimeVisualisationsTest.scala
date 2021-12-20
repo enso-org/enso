@@ -1876,7 +1876,7 @@ class RuntimeVisualisationsTest
     val visualisationCode =
       // FIXME load from a file in /app/gui/...
       """
-        |x -> x.catch_primitive _.to_text
+        |x -> x.catch_primitive _.to_display_text
         |""".stripMargin
         /*
         |x ->
