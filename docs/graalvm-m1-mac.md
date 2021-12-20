@@ -1,11 +1,19 @@
 ## Installing GraalVM on M1 Mac
 
 This guide describes how to setup the specific version of GraalVM on M1 Mac
-using [`sdkman`](https://sdkman.io/). You can also use
-[`jenv`](https://www.jenv.be/) or setup `PATH` and `JAVA_HOME` environment
-variables manually.
+using [`sdkman`](https://sdkman.io/).
 
-#### Install sdkman
+To install GraalVM on any other platform, you can use 
+
+```
+$ sdk install java 21.1.0.r11-grl
+```
+
+However, on M1 Macs this won't work, and you need to perform manual actions described below.
+
+If you are not using `sdkman`, skip the sections marked with `(Optional)`.
+
+#### (Optional) Install sdkman
 
 ```
 $ curl -s "https://get.sdkman.io" | bash
@@ -37,7 +45,7 @@ If you use MacOS Catalina or later, you need to unquarantine it:
 $ sudo xattr -r -d com.apple.quarantine /Library/Java/JavaVirtualMachines/ graalvm-ee-java11-21.1.0
 ```
 
-#### Add installed JVM to sdkman
+#### (Optional) Add installed JVM to sdkman
 
 ```
 $ sdk install java 21.1.0.r11-grl /Library/Java/JavaVirtualMachines/graalvm-ee-java11-21.1.0/Contents/Home

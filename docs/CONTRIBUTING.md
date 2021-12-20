@@ -164,7 +164,7 @@ helper tools for that. We recommend:
 - [Jenv](http://www.jenv.be/)
 - or [sdkman](https://sdkman.io/)
 
-**For users of M1 Mac**: installing GraalVM on M1 Mac is a bit complicated,
+**For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
 
 The flatbuffers `flatc` compiler can be installed from the following locations:
