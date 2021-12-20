@@ -1878,7 +1878,7 @@ class RuntimeVisualisationsTest
     val visualisationCode   =
       // FIXME load from a file in /app/gui/...
       """
-        |x -> x.catch_primitive err->
+        |x -> x.catch err->
         |    message = err.to_display_text
         |    ('{"message": ' + message.to_json.to_text + '}')
         |""".stripMargin
