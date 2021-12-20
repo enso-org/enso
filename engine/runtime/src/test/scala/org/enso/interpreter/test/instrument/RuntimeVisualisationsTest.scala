@@ -1878,11 +1878,18 @@ class RuntimeVisualisationsTest
     val visualisationCode   =
       // FIXME load from a file in /app/gui/...
       """
+        |x ->
+        |    result = Builtins.Ref.new '{ message: ""}'
+        |    x.catch err->
+        |        message = err.to_display_text
+        |        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
+        |    Builtins.Ref.get result
+        |""".stripMargin
+        /*
         |x -> x.catch err->
         |    message = err.to_display_text
         |    ('{"message": ' + message.to_json.to_text + '}')
-        |""".stripMargin
-        /*
+
         |x ->
         |    result = Builtins.Ref.new '{ message: ""}'
         |    x.catch err->
