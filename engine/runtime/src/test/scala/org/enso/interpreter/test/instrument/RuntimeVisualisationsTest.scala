@@ -1906,7 +1906,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     val pushContextResponses =
-      context.receive(n = 4, timeoutSeconds = 30)
+      context.receive(4, timeoutSeconds = 30)
     pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
@@ -1914,7 +1914,7 @@ class RuntimeVisualisationsTest
         idMain,
         Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
-      context.executionComplete(contextId)
+      // context.executionComplete(contextId)
     )
     val loadedLibraries = pushContextResponses.collect {
       case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
