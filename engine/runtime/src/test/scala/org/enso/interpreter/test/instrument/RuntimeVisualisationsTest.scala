@@ -1875,7 +1875,7 @@ class RuntimeVisualisationsTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
-    // FIXME load from a file in /app/gui/...
+    // NOTE: below values should be kept in sync with what is used internally by Rust IDE code
     val visualisationModule = "Standard.Base.Main"
     val visualisationCode   = Source.fromResource("error_preprocessor.enso").mkString
 
