@@ -1865,29 +1865,19 @@ class RuntimeVisualisationsTest
 
     val idMain = metadata.addItem(77, 28)
 
-    val code = Source.fromResource("error_preprocessor.enso").mkString
-    // val code =
-    //   """from Standard.Builtins import all
-    //     |import Standard.Base.Data.List
-    //     |
-    //     |main =
-    //     |    Error.throw List.Empty_Error
-    //     |""".stripMargin.linesIterator.mkString("\n")
+    val code =
+      """from Standard.Builtins import all
+        |import Standard.Base.Data.List
+        |
+        |main =
+        |    Error.throw List.Empty_Error
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
     // FIXME load from a file in /app/gui/...
     val visualisationModule = "Standard.Base.Main"
-    val visualisationCode   =
-      // FIXME load from a file in /app/gui/...
-      """
-        |x ->
-        |    result = Builtins.Ref.new '{ message: ""}'
-        |    x.catch err->
-        |        message = err.to_display_text
-        |        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
-        |    Builtins.Ref.get result
-        |""".stripMargin
+    val visualisationCode   = Source.fromResource("error_preprocessor.enso").mkString
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
