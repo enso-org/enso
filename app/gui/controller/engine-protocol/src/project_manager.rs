@@ -63,7 +63,7 @@ trait API {
     #[MethodInput=CreateProjectInput,rpc_name="project/create"]
     fn create_project
     ( &self
-    , name                     : String
+    , name                     : ProjectName
     , project_template         : Option<String>
     , version                  : Option<String>
     , missing_component_action : MissingComponentAction
@@ -71,7 +71,7 @@ trait API {
 
     /// Request project renaming.
     #[MethodInput=RenameProject,rpc_name="project/rename"]
-    fn rename_project(&self, project_id:Uuid, name:String) -> ();
+    fn rename_project(&self, project_id:Uuid, name:ProjectName) -> ();
 
     /// Request the deletion of a project.
     #[MethodInput=DeleteProjectInput,rpc_name="project/delete"]
@@ -103,14 +103,34 @@ impl Display for IpWithSocket {
     }
 }
 
+/// Error that is returned from [`ProjectName::new`] constructor.
+///
+/// Project name must not be empty.
+#[derive(Debug, Clone, Copy, Fail)]
+#[fail(display = "Project name cannot be empty")]
+pub struct EmptyProjectName;
+
 /// Project name.
-#[derive(Clone, Debug, Deserialize, Display, Eq, From, Hash, PartialEq, Serialize, Shrinkwrap)]
-#[shrinkwrap(mutable)]
-pub struct ProjectName(pub String);
+#[derive(Clone, Debug, Deserialize, Display, Eq, From, Hash, PartialEq, Serialize)]
+pub struct ProjectName(String);
 
 impl ProjectName {
-    /// Create new ProjectName.
-    pub fn new(name: impl Str) -> Self {
+    /// Create new ProjectName. Returns error if provided string is empty.
+    ///
+    /// First letter of the string will be capitalized, as this is a requirement for project names.
+    pub fn new(name: impl Str) -> FallibleResult<Self> {
+        let name = name.as_ref();
+        let mut chars = name.chars();
+
+        let name = match chars.next() {
+            None => return Err(EmptyProjectName.into()),
+            Some(first_char) => first_char.to_uppercase().to_string() + chars.as_str(),
+        };
+        Ok(Self(name))
+    }
+
+    /// Create new ProjectName without any validation.
+    pub fn new_unchecked(name: impl Str) -> Self {
         Self(name.into())
     }
 }
@@ -235,13 +255,13 @@ mod mock_client_tests {
             engine_version:                 "0.2.1".to_owned(),
             language_server_json_address:   language_server_address.clone(),
             language_server_binary_address: language_server_address,
-            project_name:                   ProjectName::new("Test"),
+            project_name:                   ProjectName::new_unchecked("Test"),
             project_namespace:              "local".to_owned(),
         };
         let open_result = Ok(expected_open_result.clone());
         let missing_component_action = MissingComponentAction::Fail;
         expect_call!(mock_client.create_project(
-            name                     = "HelloWorld".to_string(),
+            name                     = ProjectName::new_unchecked("HelloWorld"),
             project_template         = None,
             version                  = None,
             missing_component_action = missing_component_action
@@ -253,7 +273,7 @@ mod mock_client_tests {
         let delete_result = mock_client.delete_project(&expected_uuid);
         result(delete_result).expect_err("Project shouldn't exist.");
 
-        let name = String::from("HelloWorld");
+        let name = ProjectName::new_unchecked("HelloWorld");
         let response = mock_client.create_project(&name, &None, &None, &missing_component_action);
         let uuid = result(response).expect("Couldn't create project").project_id;
         assert_eq!(uuid, expected_uuid);
@@ -276,14 +296,14 @@ mod mock_client_tests {
     fn list_projects() {
         let mock_client = MockClient::default();
         let project1 = ProjectMetadata {
-            name:           ProjectName::new("project1"),
+            name:           ProjectName::new_unchecked("project1"),
             id:             Uuid::default(),
             last_opened:    Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
             engine_version: Some("0.2.21".to_owned()),
             namespace:      "local".to_owned(),
         };
         let project2 = ProjectMetadata {
-            name:           ProjectName::new("project2"),
+            name:           ProjectName::new_unchecked("project2"),
             id:             Uuid::default(),
             last_opened:    Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
             engine_version: Some("0.2.22".to_owned()),
@@ -291,14 +311,14 @@ mod mock_client_tests {
         };
         let expected_recent_projects = response::ProjectList { projects: vec![project1, project2] };
         let sample1 = ProjectMetadata {
-            name:           ProjectName::new("sample1"),
+            name:           ProjectName::new_unchecked("sample1"),
             id:             Uuid::default(),
             last_opened:    Some(DateTime::parse_from_rfc3339("2019-11-23T05:30:12Z").unwrap()),
             engine_version: Some("0.2.21".to_owned()),
             namespace:      "test".to_owned(),
         };
         let sample2 = ProjectMetadata {
-            name:           ProjectName::new("sample2"),
+            name:           ProjectName::new_unchecked("sample2"),
             id:             Uuid::default(),
             last_opened:    Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap()),
             engine_version: Some("0.2.21".to_owned()),
@@ -403,7 +423,7 @@ mod remote_client_tests {
             IpWithSocket { host: "localhost".to_string(), port: 27015 };
         let language_server_binary_address =
             IpWithSocket { host: "localhost".to_string(), port: 27016 };
-        let project_name = ProjectName::new("Test");
+        let project_name = ProjectName::new_unchecked("Test");
         let project_namespace = "test_ns".to_owned();
         let open_result = response::OpenProject {
             engine_version,
@@ -425,7 +445,7 @@ mod remote_client_tests {
             "projectName"      : "Test",
             "projectNamespace" : "test_ns",
         });
-        let project_name = String::from("HelloWorld");
+        let project_name = ProjectName::new_unchecked("HelloWorld");
         let project_template = Some(String::from("template"));
         let project_create_json = json!({
             "name"                   : serde_json::to_value(&project_name).unwrap(),
@@ -437,14 +457,14 @@ mod remote_client_tests {
         let number_of_projects_json = json!({ "numberOfProjects": number_of_projects });
         let num_projects_json = json!({ "numProjects": number_of_projects });
         let project1 = ProjectMetadata {
-            name:           ProjectName::new("project1"),
+            name:           ProjectName::new_unchecked("project1"),
             id:             Uuid::default(),
             last_opened:    Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
             engine_version: Some("0.2.21".to_owned()),
             namespace:      "local".to_owned(),
         };
         let project2 = ProjectMetadata {
-            name:           ProjectName::new("project2"),
+            name:           ProjectName::new_unchecked("project2"),
             id:             Uuid::default(),
             last_opened:    Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
             engine_version: Some("0.2.22".to_owned()),

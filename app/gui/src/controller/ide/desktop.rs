@@ -123,9 +123,9 @@ impl ManagingProjectAPI for Handle {
             use model::project::Synchronized as Project;
 
             let list = self.project_manager.list_projects(&None).await?;
-            let existing_names = list.projects.into_iter().map(|p| p.name.into());
+            let existing_names: HashSet<_> = list.projects.into_iter().map(|p| p.name).collect();
             let name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
-            let name = choose_new_project_name(existing_names, &name);
+            let name = choose_new_project_name(&existing_names, &name);
             let version = Some(enso_config::engine_version_supported.to_string());
             let action = MissingComponentAction::Install;
 
@@ -165,23 +165,15 @@ impl ManagingProjectAPI for Handle {
 /// Select a new name for the project in a form of <suggested_name>_N, where N is a unique sequence
 /// number.
 fn choose_new_project_name(
-    mut existing_names: impl Iterator<Item = String>,
+    existing_names: &HashSet<ProjectName>,
     suggested_name: &str,
-) -> String {
-    let with_suffix = (1..).map(|i| format!("{}_{}", suggested_name, i));
-    let mut candidates = std::iter::once(suggested_name.to_owned()).chain(with_suffix);
+) -> ProjectName {
+    let first_candidate = ProjectName::new(suggested_name).expect("Empty project name");
+    let nth_project_name =
+        |i| ProjectName::new(iformat!("{suggested_name}_{i}")).expect("Empty project name");
+    let candidates = (1..).map(nth_project_name);
+    let mut candidates = std::iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.
     let name = candidates.find(|c| !existing_names.contains(c)).unwrap();
-    capitalize_first(&name)
-}
-
-/// Capitalize the first letter of the string.
-///
-/// CC-BY-SA 4.0 https://stackoverflow.com/a/38406885
-fn capitalize_first(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first_char) => first_char.to_uppercase().collect::<String>() + chars.as_str(),
-    }
+    ProjectName::new(name).expect("Generated project name is empty")
 }
