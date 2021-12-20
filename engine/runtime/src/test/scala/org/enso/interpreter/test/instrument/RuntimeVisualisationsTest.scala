@@ -1665,4 +1665,192 @@ class RuntimeVisualisationsTest
       context.executionComplete(contextId)
     )
   }
+
+  it should "run visualisation expression catching error" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(46, 14)
+
+    val code =
+      """from Standard.Builtins import all
+        |
+        |main =
+        |    Error.throw 42
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.error(
+        contextId,
+        idMain,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            moduleName,
+            "x -> x.catch_primitive _.to_text"
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receive(3)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data.sameElements("42".getBytes) shouldBe true
+  }
+
+  it should "run visualisation expression propagating panic" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(46, 14)
+
+    val code =
+      """from Standard.Builtins import all
+        |
+        |main =
+        |    Panic.throw 42
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.panic(
+        contextId,
+        idMain,
+        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain))
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            moduleName,
+            "x -> Panic.recover x . catch_primitive _.to_text"
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
+      TestMessages.panic(
+        contextId,
+        idMain,
+        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain))
+      ),
+      Api.Response(
+        Api.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          idMain,
+          "42 (Integer)",
+          Some(
+            Api.ExecutionResult.Diagnostic.error(
+              message = "42 (Integer)",
+              file    = Some(mainFile),
+              location =
+                Some(model.Range(model.Position(3, 4), model.Position(3, 18))),
+              expressionId = Some(idMain),
+              stack = Vector(
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(3, 4), model.Position(3, 18))
+                  ),
+                  Some(idMain)
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
 }
