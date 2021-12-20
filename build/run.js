@@ -152,10 +152,6 @@ commands.build.rust = async function (argv) {
         'ide',
         crate,
     ]
-    // Release builds are disabled on M1 Mac because of https://github.com/rustwasm/wasm-pack/issues/913
-    if (!argv.dev && process.platform == 'darwin' && process.arch == 'arm64') {
-        throw 'Release builds are disabled on M1 Mac at the moment. Please use `--dev` mode'
-    }
 
     if (argv.dev) {
         args.push('--dev')
