@@ -1876,13 +1876,16 @@ class RuntimeVisualisationsTest
     val visualisationCode =
       // FIXME load from a file in /app/gui/...
       """
+        |x -> x.catch_primitive _.to_text
+        |""".stripMargin
+        /*
         |x ->
         |    result = Builtins.Ref.new '{ message: ""}'
         |    x.catch err->
         |        message = err.to_display_text
         |        Builtins.Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
         |    Builtins.Ref.get result
-        |""".stripMargin
+        */
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
