@@ -62,7 +62,7 @@ setup:
   rustup toolchain install nightly-2021-11-29      # Install the nightly channel.
   rustup component add clippy                      # Install the linter.
   rustup toolchain install stable                  # Stable toolchain required for the following tools.
-  cargo +stable install wasm-pack --version 0.10.1 # Install the wasm-pack toolkit.
+  cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
   cargo +stable install cargo-watch                # To enable ./run watch utility
   ```
 

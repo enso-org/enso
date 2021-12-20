@@ -171,8 +171,8 @@ jobs:
           override: true
       - name: Install wasm-pack (macOS)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-apple-darwin
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-apple-darwin
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -182,8 +182,8 @@ jobs:
         if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-pc-windows-msvc
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-pc-windows-msvc
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -193,8 +193,8 @@ jobs:
         if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-unknown-linux-musl
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-unknown-linux-musl
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -230,8 +230,8 @@ jobs:
           override: true
       - name: Install wasm-pack (macOS)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-apple-darwin
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-apple-darwin
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -241,8 +241,8 @@ jobs:
         if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-pc-windows-msvc
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-pc-windows-msvc
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -252,8 +252,8 @@ jobs:
         if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-unknown-linux-musl
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-unknown-linux-musl
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -308,8 +308,8 @@ jobs:
           override: true
       - name: Install wasm-pack (macOS)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-apple-darwin
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-apple-darwin
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -319,8 +319,8 @@ jobs:
         if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-pc-windows-msvc
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-pc-windows-msvc
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -330,8 +330,8 @@ jobs:
         if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.1
-          WASMPACKDIR: wasm-pack-v0.10.1-x86_64-unknown-linux-musl
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-unknown-linux-musl
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .

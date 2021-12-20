@@ -13,7 +13,7 @@ const yaml = require('js-yaml')
 
 const NODE_VERSION = '16.13.1'
 const RUST_VERSION = read_rust_toolchain_version()
-const WASM_PACK_VERSION = '0.10.1'
+const WASM_PACK_VERSION = '0.10.2'
 const FLAG_NO_CHANGELOG_NEEDED = '[ci no changelog needed]'
 const FLAG_FORCE_CI_BUILD = '[ci build]'
 
