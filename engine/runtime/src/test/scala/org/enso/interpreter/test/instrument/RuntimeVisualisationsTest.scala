@@ -1971,6 +1971,6 @@ class RuntimeVisualisationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """'{ "kind": "Dataflow", "message": "The List is empty."}'"""
+    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty."}"""
   }
 }
