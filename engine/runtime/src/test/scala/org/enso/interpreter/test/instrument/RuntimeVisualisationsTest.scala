@@ -1858,7 +1858,6 @@ class RuntimeVisualisationsTest
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()
-    // val moduleName      = "Standard.Base.Main"
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -1874,7 +1873,9 @@ class RuntimeVisualisationsTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
-    val visualisationCode =
+    // FIXME load from a file in /app/gui/...
+    val visualisationModule = "Standard.Base.Main"
+    val visualisationCode   =
       // FIXME load from a file in /app/gui/...
       """
         |x -> x.catch_primitive err->
@@ -1937,7 +1938,7 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Standard.Base.Main",
+            visualisationModule,
             visualisationCode
           )
         )
