@@ -1878,7 +1878,8 @@ class RuntimeVisualisationsTest
       // FIXME load from a file in /app/gui/...
       """
         |x -> x.catch_primitive err->
-        |    err.to_display_text
+        |    message = err.to_display_text
+        |    message.to_json.to_text
         |""".stripMargin
         /*
         |x ->
