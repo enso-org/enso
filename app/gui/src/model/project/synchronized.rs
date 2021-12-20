@@ -493,7 +493,7 @@ impl Project {
                         logger,
                         "Visualisation evaluation failed in context {update.context_id} \
                         for visualisation {update.visualisation_id} of expression \
-                        {update.expression_id}. Error: {update.message}."
+                        {update.expression_id}. Error: {update.message}"
                     );
                 }
                 Event::Closed => {
