@@ -16,21 +16,23 @@ function git(command) {
 
 const BUILD_INFO = JSON.parse(require('fs').readFileSync(buildPath, 'utf8'))
 
-// This loader removes all `sourceMappingURL` comments from the source files.
-//
-// We do not generate and do not bundle source maps for JS files at the moment, but some of our dependencies
-// have `sourceMappingURL` in their minified code (notably `firebase`). When DevTools load our bundled JS file,
-// they print a warning about missing source maps. To avoid this warning, we remove all `sourceMappingURL` from
-// our codebase.
-//
-// See https://blog.teamtreehouse.com/introduction-source-maps for basic introduction to `sourceMappingURL`.
-// See https://webpack.js.org/configuration/devtool/ for information on how to enable source map generation.
-const sourceMapLoader = {
+// scala-parser.js is compiled from Scala code, so no source map is available for it.
+const IGNORE_SOURCE_MAPS = [/scala-parser\.js/]
+
+// Load source maps for JS and TS files, so we will have an accurate source available in DevTools.
+// `ignored` is a list of regexes that are matched against file URL to ignore missing source
+// maps for certain files.
+const sourceMapLoader = ignored => ({
     loader: 'source-map-loader',
     options: {
-        filterSourceMappingUrl: (_url, _resourcePath) => 'remove',
+        filterSourceMappingUrl: (url, _resourcePath) => {
+            for (let regexp of ignored) {
+                if (regexp.test(url)) return 'skip'
+            }
+            return true
+        },
     },
-}
+})
 
 module.exports = {
     entry: {
@@ -62,6 +64,7 @@ module.exports = {
             FIREBASE_API_KEY: JSON.stringify(process.env.FIREBASE_API_KEY),
         }),
     ],
+    devtool: 'eval-source-map',
     devServer: {
         publicPath: '/assets/',
         historyApiFallback: {
@@ -96,9 +99,9 @@ module.exports = {
                 loader: 'html-loader',
             },
             {
-                test: /\.js$/,
+                test: [/\.js$/, /\.tsx?$/],
                 enforce: 'pre',
-                loader: sourceMapLoader,
+                loader: sourceMapLoader(IGNORE_SOURCE_MAPS),
             },
         ],
     },
