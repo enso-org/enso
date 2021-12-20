@@ -1858,6 +1858,7 @@ class RuntimeVisualisationsTest
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()
+    // val moduleName      = "Standard.Base.Main"
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
