@@ -1880,7 +1880,7 @@ class RuntimeVisualisationsTest
       """
         |x -> x.catch_primitive err->
         |    message = err.to_display_text
-        |    message.to_json.to_text
+        |    ('{"message": ' + message.to_json.to_text + '}')
         |""".stripMargin
         /*
         |x ->
