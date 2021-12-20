@@ -21,6 +21,8 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import scala.io.Source
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeVisualisationsTest
     extends AnyFlatSpec
