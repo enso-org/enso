@@ -1134,9 +1134,7 @@ lazy val runtime = (project in file("engine/runtime"))
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
-    Compile / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
-    // Test / unmanagedResourceDirectories += (baseDirectory.value / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
