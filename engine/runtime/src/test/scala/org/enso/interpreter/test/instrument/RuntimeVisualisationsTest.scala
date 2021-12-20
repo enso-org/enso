@@ -1937,7 +1937,7 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            moduleName,
+            "Standard.Base.Main",
             visualisationCode
           )
         )
