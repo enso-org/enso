@@ -3,13 +3,14 @@
 This guide describes how to setup the specific version of GraalVM on M1 Mac
 using [`sdkman`](https://sdkman.io/).
 
-To install GraalVM on any other platform, you can use 
+To install GraalVM on any other platform, you can use
 
 ```
 $ sdk install java 21.1.0.r11-grl
 ```
 
-However, on M1 Macs this won't work, and you need to perform manual actions described below.
+However, on M1 Macs this won't work, and you need to perform manual actions
+described below.
 
 If you are not using `sdkman`, skip the sections marked with `(Optional)`.
 
