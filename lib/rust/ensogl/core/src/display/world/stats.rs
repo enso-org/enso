@@ -18,8 +18,7 @@ shared! { Monitor
 pub struct MonitorData {
     stats    : Stats,
     monitor  : debug::Monitor,
-    panels   : Vec<debug::monitor::Panel>,
-    snapshot : Vec<f64>,
+    panels   : Vec<debug::monitor::Panel>
 }
 
 impl {
@@ -42,8 +41,7 @@ impl {
             monitor.add( debug::monitor::SpriteSystemCount  :: new(&stats) ),
             monitor.add( debug::monitor::SpriteCount        :: new(&stats) ),
         ];
-        let snapshot = Vec::with_capacity(panels.len());
-        Self {stats,monitor,panels,snapshot}
+        Self {stats,monitor,panels}
     }
 
     /// Start measuring data.
@@ -59,22 +57,16 @@ impl {
     pub fn end(&mut self) {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
-        self.snapshot.clear();
+        let mut snapshot = Vec::with_capacity(self.panels.len());
         for panel in &self.panels {
             panel.end();
-            self.snapshot.push(panel.raw_value());
+            snapshot.push(panel.raw_value());
         }
         if self.visible() {
             self.monitor.draw();
         }
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
-    }
-
-    pub fn read_snapshot<F:FnOnce(&Vec<f64>)>(&self, f:F) {
-        // NOTE: cannot just make it `fn snapshot(&self) -> &Vec<f64>` because of the `shared!`
-        // macro
-        f(&self.snapshot);
     }
 
     /// Checks if the monitor is visible.
