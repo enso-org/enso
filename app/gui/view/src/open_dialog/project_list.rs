@@ -6,8 +6,8 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::*;
-use ensogl_gui_component::list_view;
-use ensogl_gui_component::shadow;
+use ensogl_component::list_view;
+use ensogl_component::shadow;
 use ensogl_hardcoded_theme::application::project_list as theme;
 use ensogl_text as text;
 

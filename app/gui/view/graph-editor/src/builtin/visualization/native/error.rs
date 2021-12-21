@@ -29,16 +29,13 @@ use serde::Serialize;
 const PADDING_TEXT: f32 = 10.0;
 /// The Error Visualization preprocessor. See also _Lazy Visualization_ section
 /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
-pub const PREPROCESSOR_CODE: &str = r#"
-x ->
-    result = Builtins.Ref.new "{ message: \"\"}"
-    x.catch err->
-        message = err.to_display_text
-        Builtins.Ref.put result ("{ \"kind\": \"Dataflow\", \"message\": " + message.to_json.to_text + "}")
-    Builtins.Ref.get result
-"#;
+// NOTE: contents of this const need to be kept in sync with Scala test in
+// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+pub const PREPROCESSOR_CODE: &str = include_str!("inc/error_preprocessor.enso");
 
 /// The context module for the `PREPROCESSOR_CODE`. See there.
+// NOTE: contents of this const need to be kept in sync with Scala test in
+// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
 pub const PREPROCESSOR_MODULE: &str = "Standard.Base.Main";
 
 /// Get preprocessor configuration for error visualization.

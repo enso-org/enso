@@ -38,7 +38,12 @@ pub enum BackendService {
     ProjectManager { endpoint: String },
     /// Connect to the language server of some project. The project managing operations will be
     /// unavailable.
-    LanguageServer { json_endpoint: String, binary_endpoint: String, namespace: String },
+    LanguageServer {
+        json_endpoint:   String,
+        binary_endpoint: String,
+        namespace:       String,
+        project_name:    String,
+    },
 }
 
 impl Default for BackendService {
@@ -63,11 +68,16 @@ impl BackendService {
                 (Some(json_endpoint), Some(binary_endpoint)) => {
                     let json_endpoint = json_endpoint.clone();
                     let binary_endpoint = binary_endpoint.clone();
-                    let namespace = args
-                        .namespace
-                        .clone()
-                        .unwrap_or_else(|| constants::DEFAULT_PROJECT_NAMESPACE.to_owned());
-                    Ok(Self::LanguageServer { json_endpoint, binary_endpoint, namespace })
+                    let default_namespace = || constants::DEFAULT_PROJECT_NAMESPACE.to_owned();
+                    let namespace = args.namespace.clone().unwrap_or_else(default_namespace);
+                    let missing_project_name = || MissingOption(args.names().project());
+                    let project_name = args.project.clone().ok_or_else(missing_project_name)?;
+                    Ok(Self::LanguageServer {
+                        json_endpoint,
+                        binary_endpoint,
+                        namespace,
+                        project_name,
+                    })
                 }
                 (None, None) => Ok(default()),
                 (None, _) => Err(MissingOption(args.names().language_server_rpc()).into()),
@@ -84,32 +94,19 @@ impl BackendService {
 // ===============
 
 /// Configuration data necessary to initialize IDE.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Startup {
     /// The configuration of connection to the backend service.
     pub backend:      BackendService,
     /// The project name we want to open on startup.
-    pub project_name: ProjectName,
-}
-
-impl Default for Startup {
-    fn default() -> Self {
-        Self {
-            backend:      default(),
-            project_name: ProjectName(constants::DEFAULT_PROJECT_NAME.to_owned()),
-        }
-    }
+    pub project_name: Option<ProjectName>,
 }
 
 impl Startup {
     /// Read configuration from the web arguments. See also [`web::Arguments`] documentation.
     pub fn from_web_arguments() -> FallibleResult<Startup> {
         let backend = BackendService::from_web_arguments(&ARGS)?;
-        let project_name = ARGS
-            .project
-            .clone()
-            .map(|t| t.into())
-            .unwrap_or_else(|| ProjectName::new(constants::DEFAULT_PROJECT_NAME));
+        let project_name = ARGS.project.clone().map(Into::into);
         Ok(Startup { backend, project_name })
     }
 }

@@ -16,7 +16,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion  = "2.13.6"
-val rustVersion    = "1.58.0-nightly"
+val rustVersion    = "1.59.0-nightly"
 val graalVersion   = "21.1.0"
 val javaVersion    = "11"
 val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
@@ -1134,6 +1134,7 @@ lazy val runtime = (project in file("engine/runtime"))
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
+    Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,

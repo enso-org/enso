@@ -671,6 +671,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-interface"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "enso-frp",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf-sys",
+ "ide-view",
+ "parser",
+ "span-tree",
+ "uuid",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-visualization"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf-sys",
+ "ide-view",
+ "js-sys",
+ "nalgebra 0.26.2",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -842,6 +873,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-debug-scene"
+version = "0.1.0"
+dependencies = [
+ "debug-scene-interface",
+ "debug-scene-visualization",
+]
+
+[[package]]
 name = "enso-flexer"
 version = "0.2.1"
 dependencies = [
@@ -899,6 +938,7 @@ dependencies = [
  "enso-callback",
  "enso-config",
  "enso-data-structures",
+ "enso-debug-scene",
  "enso-frp",
  "enso-logger",
  "enso-prelude",
@@ -906,11 +946,10 @@ dependencies = [
  "enso-text",
  "enso-web",
  "ensogl",
+ "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-examples",
- "ensogl-gui-component",
  "ensogl-hardcoded-theme",
- "ensogl-text",
  "ensogl-text-msdf-sys",
  "failure",
  "flo_stream",
@@ -1131,6 +1170,19 @@ dependencies = [
 [[package]]
 name = "ensogl-component"
 version = "0.1.0"
+dependencies = [
+ "ensogl-drop-down-menu",
+ "ensogl-drop-manager",
+ "ensogl-file-browser",
+ "ensogl-label",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-scrollbar",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ensogl-toggle-button",
+]
 
 [[package]]
 name = "ensogl-core"
@@ -1172,6 +1224,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-drop-down-menu"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text",
+]
+
+[[package]]
 name = "ensogl-drop-manager"
 version = "0.1.0"
 dependencies = [
@@ -1186,27 +1249,173 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-examples"
+name = "ensogl-example-animation"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-logger",
  "enso-prelude",
- "enso-shapely",
- "enso-text",
+ "ensogl-core",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-complex-shape-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-dom-symbols"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "nalgebra 0.26.2",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-drop-manager"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-prelude",
  "ensogl-core",
  "ensogl-drop-manager",
- "ensogl-gui-component",
+ "wasm-bindgen",
+ "wasm-bindgen-futures 0.4.8",
+]
+
+[[package]]
+name = "ensogl-example-easing-animator"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "js-sys",
+ "nalgebra 0.26.2",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "ensogl-example-glyph-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-text",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-list-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-text",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-mouse-events"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-scroll-area"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-scroll-area",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-shape-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-slider"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-sprite-system"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-sprite-system-benchmark"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "nalgebra 0.26.2",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-text-area"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "js-sys",
- "nalgebra 0.26.2",
- "serde",
- "serde_json",
  "wasm-bindgen",
- "wasm-bindgen-futures 0.4.8",
- "web-sys",
+]
+
+[[package]]
+name = "ensogl-examples"
+version = "0.1.0"
+dependencies = [
+ "ensogl-example-animation",
+ "ensogl-example-complex-shape-system",
+ "ensogl-example-dom-symbols",
+ "ensogl-example-drop-manager",
+ "ensogl-example-easing-animator",
+ "ensogl-example-glyph-system",
+ "ensogl-example-list-view",
+ "ensogl-example-mouse-events",
+ "ensogl-example-scroll-area",
+ "ensogl-example-shape-system",
+ "ensogl-example-slider",
+ "ensogl-example-sprite-system",
+ "ensogl-example-sprite-system-benchmark",
+ "ensogl-example-text-area",
+]
+
+[[package]]
+name = "ensogl-file-browser"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
 ]
 
 [[package]]
@@ -1215,12 +1424,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-logger",
- "enso-prelude",
- "enso-shapely",
- "enso-types",
  "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-text",
  "float_eq",
  "wasm-bindgen-test 0.3.8",
 ]
@@ -1230,6 +1434,69 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+]
+
+[[package]]
+name = "ensogl-label"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-list-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-scroll-area"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-scrollbar",
+]
+
+[[package]]
+name = "ensogl-scrollbar"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+]
+
+[[package]]
+name = "ensogl-selector"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ensogl-toggle-button",
+ "float_eq",
+]
+
+[[package]]
+name = "ensogl-shadow"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
 ]
 
 [[package]]
@@ -1270,6 +1537,14 @@ dependencies = [
  "nalgebra 0.26.2",
  "wasm-bindgen",
  "wasm-bindgen-test 0.3.8",
+]
+
+[[package]]
+name = "ensogl-toggle-button"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
 ]
 
 [[package]]
@@ -1779,12 +2054,13 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "ensogl",
- "ensogl-gui-component",
+ "ensogl-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
  "ide-view-graph-editor",
  "js-sys",
+ "multi-map",
  "nalgebra 0.26.2",
  "ordered-float 2.8.0",
  "parser",
@@ -1795,6 +2071,7 @@ dependencies = [
  "uuid",
  "wasm-bindgen",
  "web-sys",
+ "welcome-screen",
 ]
 
 [[package]]
@@ -1812,10 +2089,9 @@ dependencies = [
  "enso-shapely",
  "enso-text",
  "ensogl",
+ "ensogl-component",
  "ensogl-drop-manager",
- "ensogl-gui-component",
  "ensogl-hardcoded-theme",
- "ensogl-text",
  "ensogl-text-msdf-sys",
  "failure",
  "js-sys",
@@ -2261,6 +2537,12 @@ dependencies = [
  "quote 1.0.10",
  "syn",
 ]
+
+[[package]]
+name = "multi-map"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bba551d6d795f74a01767577ea8339560bf0a65354e0417b7e915ed608443d46"
 
 [[package]]
 name = "nalgebra"
@@ -4254,6 +4536,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bb43f70885151e629e2a19ce9e50bd730fd436cfd4b666894c9ce4de9141164"
 dependencies = [
  "nom",
+]
+
+[[package]]
+name = "welcome-screen"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

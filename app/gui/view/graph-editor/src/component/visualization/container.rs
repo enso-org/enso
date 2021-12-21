@@ -32,7 +32,7 @@ use ensogl::Animation;
 
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
-use ensogl_gui_component::shadow;
+use ensogl_component::shadow;
 
 
 

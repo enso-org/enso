@@ -2,7 +2,7 @@
 name    = "enso-flexer"
 version = "0.2.1"
 authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 description  = "A finite-automata-based lexing engine."
 readme       = "README.md"

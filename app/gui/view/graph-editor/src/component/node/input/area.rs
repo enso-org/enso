@@ -13,6 +13,7 @@ use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
+use enso_text::text::Text;
 use enso_text::traits::*;
 use enso_text::unit::*;
 use ensogl::application::Application;
@@ -23,9 +24,8 @@ use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::gui::cursor;
 use ensogl::Animation;
+use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text as text;
-use ensogl_text::Text;
 
 
 
@@ -448,7 +448,7 @@ impl Area {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
             let unit = GLYPH_WIDTH;
-            let range_before = ensogl_text::Range::new(0.bytes(), node.payload.index);
+            let range_before = enso_text::Range::new(0.bytes(), node.payload.index);
             let char_offset: Chars = expr.viz_code[range_before].chars().count().into();
             let char_count: Chars = expr.viz_code[node.payload.range()].chars().count().into();
             let width = unit * (i32::from(char_count) as f32);
@@ -568,7 +568,7 @@ impl Area {
 
             let range_before_start = node.payload.index - node.payload.local_index;
             let range_before_end = node.payload.index;
-            let range_before = ensogl_text::Range::new(range_before_start, range_before_end);
+            let range_before = enso_text::Range::new(range_before_start, range_before_end);
             let local_char_offset: Chars = code[range_before].chars().count().into();
 
             let new_parent = if not_a_port {

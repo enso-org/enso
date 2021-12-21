@@ -2,7 +2,7 @@
 name    = "enso-generics"
 version = "0.2.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
-edition = "2018"
+edition = "2021"
 
 description  = "A library for supporting generic programming."
 readme       = "README.md"

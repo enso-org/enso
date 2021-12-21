@@ -33,8 +33,8 @@ use bimap::BiMap;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_frp as frp;
 use ensogl::display::traits::*;
-use ensogl_gui_component::file_browser::model::AnyFolderContent;
-use ensogl_gui_component::list_view;
+use ensogl_component::file_browser::model::AnyFolderContent;
+use ensogl_component::list_view;
 use futures::future::LocalBoxFuture;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node;
@@ -46,7 +46,9 @@ use ide_view::open_dialog;
 use ide_view::searcher::entry::AnyModelProvider;
 use ide_view::searcher::entry::GlyphHighlightedLabel;
 use ide_view::searcher::new::Icon;
+use ide_view::status_bar;
 use profiling;
+
 
 
 // ==============
@@ -190,6 +192,7 @@ impl Integration {
 struct Model {
     logger:                  Logger,
     view:                    ide_view::project::View,
+    status_bar:              status_bar::View,
     graph:                   controller::ExecutedGraph,
     text:                    controller::Text,
     ide:                     controller::Ide,
@@ -202,7 +205,7 @@ struct Model {
         RefCell<HashMap<graph_editor::NodeId, graph_editor::component::node::Expression>>,
     expression_types:        SharedHashMap<ExpressionId, Option<graph_editor::Type>>,
     connection_views:        RefCell<BiMap<controller::graph::Connection, graph_editor::EdgeId>>,
-    code_view:               CloneRefCell<ensogl_text::Text>,
+    code_view:               CloneRefCell<ensogl_component::text::Text>,
     visualizations:          Rc<VisualizationManager>,
     error_visualizations:    Rc<VisualizationManager>,
     prompt_was_shown:        Cell<bool>,
@@ -216,6 +219,7 @@ impl Integration {
     /// Constructor. It creates GraphEditor and integrates it with given controller handle.
     pub fn new(
         view: ide_view::project::View,
+        status_bar: status_bar::View,
         graph: controller::ExecutedGraph,
         text: controller::Text,
         ide: controller::Ide,
@@ -223,7 +227,7 @@ impl Integration {
         main_module: model::Module,
     ) -> Self {
         let logger = Logger::new("ViewIntegration");
-        let model = Model::new(logger, view, graph, text, ide, project, main_module);
+        let model = Model::new(logger, view, status_bar, graph, text, ide, project, main_module);
         let editor_outs = &model.view.graph().frp.output;
         let code_editor = &model.view.code_editor().text_area();
         let searcher_frp = &model.view.searcher().frp;
@@ -487,7 +491,7 @@ impl Integration {
     fn setup_handling_project_notifications(&self) {
         let stream = self.model.project.subscribe();
         let logger = self.model.logger.clone_ref();
-        let status_bar = self.model.view.status_bar().clone_ref();
+        let status_bar = self.model.status_bar.clone_ref();
         self.spawn_sync_stream_handler(stream, move |notification, _| {
             info!(logger, "Processing notification {notification:?}");
             let message = match notification {
@@ -569,9 +573,11 @@ impl Integration {
 }
 
 impl Model {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         logger: Logger,
         view: ide_view::project::View,
+        status_bar: status_bar::View,
         graph: controller::ExecutedGraph,
         text: controller::Text,
         ide: controller::Ide,
@@ -602,6 +608,7 @@ impl Model {
         let this = Model {
             logger,
             view,
+            status_bar,
             graph,
             text,
             ide,
@@ -629,7 +636,7 @@ impl Model {
 
         let graph_frp = this.view.graph().frp.clone_ref();
         graph_frp.remove_all_nodes();
-        this.view.status_bar().clear_all();
+        this.status_bar.clear_all();
         this.init_project_name();
         this.init_crumbs();
         this.load_visualizations();
@@ -787,7 +794,7 @@ impl Model {
         let base_default_position = default_node_position();
         let mut trees = connections_info.trees.clone();
         let nodes = self.graph.graph().nodes()?;
-        let (without_pos, with_pos): (Vec<_>, Vec<_>) =
+        let (with_pos, without_pos): (Vec<_>, Vec<_>) =
             nodes.iter().partition(|n| n.has_position());
         let bottommost_node_pos = with_pos
             .iter()
@@ -1071,7 +1078,7 @@ impl Model {
         notification: crate::integration::visualization::Notification,
     ) {
         use crate::integration::visualization::Notification;
-        warning!(self.logger, "Received update for {which} visualization: {notification:?}");
+        info!(self.logger, "Received update for {which} visualization: {notification:?}");
         match notification {
             Notification::ValueUpdate { target, data, .. } => {
                 if let Ok(view_id) = self.get_displayed_node_id(target) {
@@ -2019,9 +2026,9 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for SuggestionsProvi
                     if let Some(char) = char_iter.next() {
                         let (char_idx, (byte_id, char)) = char;
                         if char_idx == *idx {
-                            let start = ensogl_text::Bytes(byte_id as i32);
-                            let end = ensogl_text::Bytes((byte_id + char.len_utf8()) as i32);
-                            break Some(ensogl_text::Range::new(start, end));
+                            let start = enso_text::unit::Bytes(byte_id as i32);
+                            let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                            break Some(enso_text::Range::new(start, end));
                         }
                     } else {
                         break None;

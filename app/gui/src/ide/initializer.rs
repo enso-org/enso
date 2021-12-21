@@ -65,11 +65,18 @@ impl Initializer {
             info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
-            let view = application.new_view::<ide_view::project::View>();
+            Initializer::register_views(&application);
+            let view = application.new_view::<ide_view::root::View>();
+
+            // IDE was opened with `project` argument, we should skip the Welcome Screen.
+            // We are doing it early, because Controllers initialization
+            // takes some time and Welcome Screen might be visible for a brief moment while
+            // controllers are not ready.
+            if self.config.project_name.is_some() {
+                view.switch_view_to_project();
+            }
+
             let status_bar = view.status_bar().clone_ref();
-            // We know the name of new project before it loads. We set it right now to avoid
-            // displaying placeholder on the scene during loading.
-            view.graph().model.breadcrumbs.project_name(self.config.project_name.to_string());
             application.display.add_child(&view);
             // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
             //      issues to user, such information should be properly passed
@@ -100,6 +107,29 @@ impl Initializer {
         std::mem::forget(executor);
     }
 
+    fn register_views(app: &Application) {
+        app.views.register::<ide_view::root::View>();
+        app.views.register::<ide_view::graph_editor::GraphEditor>();
+        app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
+        app.views.register::<ide_view::code_editor::View>();
+        app.views.register::<ide_view::project::View>();
+        app.views.register::<ide_view::searcher::View>();
+        app.views.register::<ide_view::welcome_screen::View>();
+        app.views.register::<ensogl_component::text::Area>();
+        app.views.register::<ensogl_component::selector::NumberPicker>();
+        app.views.register::<ensogl_component::selector::NumberRangePicker>();
+
+        // As long as .label() of a View is the same, shortcuts and commands are currently also
+        // expected to be the same, so it should not be important which concrete type parameter of
+        // ListView we use below.
+        type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
+        app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
+
+        if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
+            app.views.register::<ide_view::window_control_buttons::View>();
+        }
+    }
+
     /// Initialize and return a new Ide Controller.
     ///
     /// This will setup all required connections to backend properly, according to the
@@ -110,18 +140,14 @@ impl Initializer {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
                 let project_name = self.config.project_name.clone();
-                let controller = controller::ide::Desktop::new_with_opened_project(
-                    project_manager,
-                    project_name,
-                )
-                .await?;
-                Ok(Rc::new(controller))
+                let controller = controller::ide::Desktop::new(project_manager, project_name);
+                Ok(Rc::new(controller.await?))
             }
-            LanguageServer { json_endpoint, binary_endpoint, namespace } => {
+            LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
                 let json_endpoint = json_endpoint.clone();
                 let binary_endpoint = binary_endpoint.clone();
                 let namespace = namespace.clone();
-                let project_name = self.config.project_name.clone();
+                let project_name = project_name.clone().into();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
                 let version = semver::Version::parse(enso_config::engine_version_supported)?;
@@ -196,7 +222,7 @@ impl WithProjectManager {
         info!(self.logger, "Creating a new project named '{self.project_name}'.");
         let version = Some(enso_config::engine_version_supported.to_owned());
         let ProjectName(name) = &self.project_name;
-        let response = self.project_manager.create_project(name, &version, &Install);
+        let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
     }
 

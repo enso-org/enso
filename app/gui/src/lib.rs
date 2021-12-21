@@ -16,6 +16,7 @@
 #![feature(map_try_insert)]
 #![feature(assert_matches)]
 #![feature(cell_filter_map)]
+#![feature(hash_drain_filter)]
 #![recursion_limit = "512"]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -33,6 +34,7 @@ pub mod executor;
 pub mod ide;
 pub mod model;
 pub mod notification;
+pub mod presenter;
 pub mod sync;
 pub mod test;
 pub mod transport;
@@ -40,10 +42,13 @@ pub mod transport;
 pub use crate::ide::*;
 
 use ensogl::system::web;
-// This import is required to have all EnsoGL examples entry points visible in IDE.
+use wasm_bindgen::prelude::*;
+
+// Those imports are required to have all EnsoGL examples entry points visible in IDE.
+#[allow(unused_imports)]
+use enso_debug_scene::*;
 #[allow(unused_imports)]
 use ensogl_examples::*;
-use wasm_bindgen::prelude::*;
 
 #[cfg(test)]
 mod tests;
@@ -54,8 +59,6 @@ pub mod prelude {
     pub use enso_prelude::*;
     pub use ensogl::prelude::*;
     pub use wasm_bindgen::prelude::*;
-
-    pub use enso_logger::DefaultTraceLogger as Logger;
 
     pub use crate::constants;
     pub use crate::controller;
@@ -89,7 +92,6 @@ pub mod prelude {
 pub fn entry_point_ide() {
     web::forward_panic_hook_to_error();
 
-    // FIXME: This code is temporary. It's used to remove the loader UI.
     ensogl_text_msdf_sys::run_once_initialized(|| {
         // Logging of build information.
         #[cfg(debug_assertions)]

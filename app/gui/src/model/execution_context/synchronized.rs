@@ -121,7 +121,7 @@ impl ExecutionContext {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
-                    WARNING!("Context {self.id} Became ready");
+                    info!(self.logger, "Context {self.id} Became ready");
                 },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
