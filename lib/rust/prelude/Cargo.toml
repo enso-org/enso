@@ -2,7 +2,7 @@
 name    = "enso-prelude"
 version = "0.2.6"
 authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 description  = "An augmented standard library in the vein of Haskell's prelude."
 readme       = "README.md"

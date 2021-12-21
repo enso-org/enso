@@ -215,6 +215,64 @@ class RuntimeInstrumentTest
     )
   }
 
+  it should "instrument conversion methods" in {
+    val contextId   = UUID.randomUUID()
+    val requestId   = UUID.randomUUID()
+    val moduleName  = "Enso_Test.Test.Main"
+    val fooTypeName = s"$moduleName.Foo"
+
+    val metadata = new Metadata
+    val mainBody = metadata.addItem(52, 12)
+
+    val code =
+      """type Foo
+        |type Bar
+        |
+        |Foo.from (_ : Bar) = Foo
+        |
+        |main = Foo.from Bar
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        mainBody,
+        fooTypeName,
+        Api.MethodPointer(moduleName, fooTypeName, "from")
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "instrument expressions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

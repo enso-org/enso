@@ -1,0 +1,136 @@
+.enso-internal-templates-view {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 50px;
+  font-family: "Causten";
+  font-size: 15px;
+  line-height: 1.4;
+  color: #434343;
+}
+
+.enso-internal-templates-view .enso-internal-container {
+  display: flex;
+}
+
+.enso-internal-templates-view .enso-internal-side-menu {
+  flex: 0 0 292px;
+}
+
+.enso-internal-templates-view .enso-internal-side-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14.5px;
+  font-weight: 400;
+}
+
+.enso-internal-templates-view .enso-internal-side-menu ul li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.enso-internal-templates-view .enso-internal-side-menu ul img {
+  width: 14px;
+  padding: 8px;
+  background-color: #4180f1;
+  border-radius: 5px;
+}
+
+.enso-internal-templates-view
+  .enso-internal-side-menu
+  li#enso-internal-projects-list-new-project
+  img {
+  background-color: #efefef;
+}
+
+.enso-internal-templates-view .enso-internal-content {
+  flex-grow: 1;
+}
+
+.enso-internal-templates-view h2 {
+  font-size: 24px;
+  font-weight: 300;
+  margin: 23px 0;
+}
+
+.enso-internal-templates-view h3 {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.enso-internal-templates-view .enso-internal-cards .enso-internal-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.enso-internal-templates-view .enso-internal-card {
+  border-radius: 20px;
+  color: #fcfeff;
+  box-shadow: 0px 36px 51px rgba(0, 0, 0, 0.03),
+    0px 15.0399px 21.3066px rgba(0, 0, 0, 0.0232911),
+    0px 8.04107px 11.3915px rgba(0, 0, 0, 0.0197608),
+    0px 4.50776px 6.38599px rgba(0, 0, 0, 0.0166035),
+    0px 2.39404px 3.39155px rgba(0, 0, 0, 0.0132306),
+    0px 0.996212px 1.4113px rgba(0, 0, 0, 0.00894732);
+}
+
+.enso-internal-templates-view .enso-internal-card {
+  height: 165px;
+  padding: 15px 20px;
+}
+
+.enso-internal-templates-view .enso-internal-card h3 {
+  margin-bottom: 5px;
+}
+
+.enso-internal-templates-view .enso-internal-card p {
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.enso-internal-templates-view .enso-internal-card-spreadsheets {
+  flex: 0 0 240px;
+  background-color: #479366;
+}
+
+.enso-internal-templates-view .enso-internal-card-spreadsheets img {
+  display: block;
+  height: 63px;
+  margin: 15px auto;
+}
+
+.enso-internal-templates-view .enso-internal-card-spreadsheets h3 {
+  margin-top: 24px;
+}
+
+.enso-internal-templates-view .enso-internal-card-geo {
+  flex: 0 0 530px;
+  background-image: url("/assets/geo.png");
+  background-size: 100%;
+}
+
+.enso-internal-templates-view .enso-internal-card-geo h3,
+.enso-internal-templates-view .enso-internal-card-visualize h3 {
+  margin-top: 104px;
+}
+
+.enso-internal-templates-view .enso-internal-card-spreadsheets p,
+.enso-internal-templates-view .enso-internal-card-geo p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.enso-internal-templates-view .enso-internal-card-geo p,
+.enso-internal-templates-view .enso-internal-card-visualize p {
+  width: 220px;
+}
+
+.enso-internal-templates-view .enso-internal-card-visualize {
+  flex: 0 0 820px;
+  background-image: url("/assets/visualize.png");
+  background-size: 100% 100%;
+}

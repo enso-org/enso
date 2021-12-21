@@ -19,6 +19,7 @@ public class MethodNames {
     public static final String GET_NAME = "get_name";
     public static final String REPARSE = "reparse";
     public static final String GENERATE_DOCS = "generate_docs";
+    public static final String GATHER_IMPORT_STATEMENTS = "gather_import_statements";
     public static final String SET_SOURCE = "set_source";
     public static final String SET_SOURCE_FILE = "set_source_file";
   }

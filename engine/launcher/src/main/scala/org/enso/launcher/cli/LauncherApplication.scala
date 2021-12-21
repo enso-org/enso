@@ -124,7 +124,7 @@ object LauncherApplication {
         "(error | warning | info | debug | trace)",
         "Sets logging verbosity for the engine. Defaults to info."
       )
-      .withDefault(LogLevel.Warning)
+      .withDefault(LogLevel.Info)
   }
 
   private def runCommand: Command[Config => Int] =
@@ -244,8 +244,7 @@ object LauncherApplication {
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
             additionalArguments = additionalArgs,
-            logLevel            = engineLogLevel,
-            logMasking          = config.internalOptions.logMasking
+            logLevel            = engineLogLevel
           )
       }
     }
@@ -441,12 +440,47 @@ object LauncherApplication {
       }
     }
 
+  private def installDependenciesCommand: Command[Config => Int] =
+    Command(
+      "dependencies",
+      "Install dependencies of the current project."
+    ) {
+      val additionalArgs = Opts.additionalArguments()
+      (
+        versionOverride,
+        engineLogLevel,
+        systemJVMOverride,
+        jvmOpts,
+        additionalArgs
+      ) mapN {
+        (
+          versionOverride,
+          engineLogLevel,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).runInstallDependencies(
+            versionOverride,
+            engineLogLevel,
+            useSystemJVM = systemJVMOverride,
+            jvmOpts,
+            additionalArgs
+          )
+      }
+    }
+
   private def installCommand: Command[Config => Int] =
     Command(
       "install",
-      "Install a new version of engine or install the distribution locally."
+      "Install a new version of engine, install the distribution locally or " +
+      "install project dependencies."
     ) {
-      Opts.subcommands(installEngineCommand, installDistributionCommand)
+      Opts.subcommands(
+        installEngineCommand,
+        installDistributionCommand,
+        installDependenciesCommand
+      )
     }
 
   private def uninstallEngineCommand: Command[Config => Int] =

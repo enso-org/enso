@@ -471,7 +471,6 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),
-      Import -> search.ImportHandler.props(requestTimeout, suggestionsHandler),
       ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       AttachVisualisation -> AttachVisualisationHandler
@@ -513,10 +512,8 @@ class JsonConnectionController(
         .props(requestTimeout, libraryConfig.localLibraryManager),
       LibraryGetMetadata -> LibraryGetMetadataHandler
         .props(requestTimeout, libraryConfig.localLibraryManager),
-      LibraryPreinstall -> LibraryPreinstallHandler.props(
-        libraryConfig.editionReferenceResolver,
-        libraryConfig.installerConfig
-      ),
+      LibraryPreinstall -> LibraryPreinstallHandler
+        .props(libraryConfig.editionReferenceResolver, libraryConfig),
       LibraryPublish -> LibraryPublishHandler
         .props(requestTimeout, libraryConfig.localLibraryManager),
       LibrarySetMetadata -> LibrarySetMetadataHandler

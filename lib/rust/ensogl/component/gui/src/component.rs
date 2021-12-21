@@ -58,7 +58,7 @@ pub struct Component<Model, Frp> {
     pub frp: Rc<Frp>,
     model:   Rc<Model>,
     /// Reference to the application the Component belongs to. Generally required for implementing
-    /// `application::View` and initialising the `Mode`l and `Frp` and thus provided by the
+    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
     /// `Component`.
     pub app: Application,
 }

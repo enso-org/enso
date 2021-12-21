@@ -2,7 +2,7 @@
 name = "ensogl-core"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["rlib", "cdylib"]
@@ -15,7 +15,7 @@ no_unboxed_callbacks = []
 [dependencies]
 code-builder = { path = "../../code-builder" }
 enso-callback = { path = "../../callback" }
-enso-data = { path = "../../data"}
+enso-data-structures = { path = "../../data-structures" }
 enso-frp = { path = "../../frp" }
 enso-generics = { path = "../../generics"}
 enso-logger = { path = "../../logger"}

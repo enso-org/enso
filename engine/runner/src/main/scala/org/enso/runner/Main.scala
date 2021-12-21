@@ -21,6 +21,7 @@ import java.util.UUID
 import scala.Console.err
 import scala.jdk.CollectionConverters._
 import scala.util.Try
+import scala.util.control.NonFatal
 
 /** The main CLI entry point class. */
 object Main {
@@ -34,6 +35,7 @@ object Main {
   private val PROJECT_AUTHOR_EMAIL_OPTION    = "new-project-author-email"
   private val REPL_OPTION                    = "repl"
   private val DOCS_OPTION                    = "docs"
+  private val PREINSTALL_OPTION              = "preinstall-dependencies"
   private val LANGUAGE_SERVER_OPTION         = "server"
   private val DAEMONIZE_OPTION               = "daemon"
   private val INTERFACE_OPTION               = "interface"
@@ -54,6 +56,7 @@ object Main {
   private val LOGGER_CONNECT                 = "logger-connect"
   private val NO_LOG_MASKING                 = "no-log-masking"
   private val UPLOAD_OPTION                  = "upload"
+  private val UPDATE_MANIFEST_OPTION         = "update-manifest"
   private val HIDE_PROGRESS                  = "hide-progress"
   private val AUTH_TOKEN                     = "auth-token"
   private val AUTO_PARALLELISM_OPTION        = "with-auto-parallelism"
@@ -88,6 +91,10 @@ object Main {
     val docs = CliOption.builder
       .longOpt(DOCS_OPTION)
       .desc("Runs the Enso documentation generator.")
+      .build
+    val preinstall = CliOption.builder
+      .longOpt(PREINSTALL_OPTION)
+      .desc("Installs dependencies of the project.")
       .build
     val newOpt = CliOption.builder
       .hasArg(true)
@@ -230,6 +237,13 @@ object Main {
         "The url defines the repository to upload to."
       )
       .build()
+    val updateManifestOption = CliOption.builder
+      .longOpt(UPDATE_MANIFEST_OPTION)
+      .desc(
+        "Updates the library manifest with the updated list of direct " +
+        "dependencies."
+      )
+      .build()
     val hideProgressOption = CliOption.builder
       .longOpt(HIDE_PROGRESS)
       .desc("If specified, progress bars will not be displayed.")
@@ -299,6 +313,7 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(docs)
+      .addOption(preinstall)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
       .addOption(newProjectTemplateOpt)
@@ -318,6 +333,7 @@ object Main {
       .addOption(loggerConnectOption)
       .addOption(noLogMaskingOption)
       .addOption(uploadOption)
+      .addOption(updateManifestOption)
       .addOption(hideProgressOption)
       .addOption(authTokenOption)
       .addOption(noReadIrCachesOption)
@@ -575,6 +591,34 @@ object Main {
       //   with their corresponding atoms/methods etc.
       // - Save those to files
     }
+  }
+
+  /** Handles the `--preinstall-dependencies` CLI option.
+    *
+    * Gathers imported dependencies and ensures that all of them are installed.
+    *
+    * @param projectPath path of the project
+    * @param logLevel log level to set for the engine runtime
+    */
+  private def preinstallDependencies(
+    projectPath: Option[String],
+    logLevel: LogLevel
+  ): Unit = projectPath match {
+    case Some(path) =>
+      try {
+        DependencyPreinstaller.preinstallDependencies(new File(path), logLevel)
+        exitSuccess()
+      } catch {
+        case NonFatal(error) =>
+          logger.error(
+            s"Dependency installation failed: ${error.getMessage}",
+            error
+          )
+          exitFail()
+      }
+    case None =>
+      println("Dependency installation is only available for projects.")
+      exitFail()
   }
 
   private def runPackage(
@@ -850,7 +894,8 @@ object Main {
           projectRoot  = projectRoot,
           uploadUrl    = line.getOptionValue(UPLOAD_OPTION),
           authToken    = Option(line.getOptionValue(AUTH_TOKEN)),
-          showProgress = !line.hasOption(HIDE_PROGRESS)
+          showProgress = !line.hasOption(HIDE_PROGRESS),
+          logLevel     = logLevel
         )
         exitSuccess()
       } catch {
@@ -859,6 +904,21 @@ object Main {
           // The error itself is already logged.
           exitFail()
       }
+    }
+
+    if (line.hasOption(UPDATE_MANIFEST_OPTION)) {
+      val projectRoot =
+        Option(line.getOptionValue(IN_PROJECT_OPTION))
+          .map(Path.of(_))
+          .getOrElse {
+            logger.error(
+              s"The $IN_PROJECT_OPTION is mandatory."
+            )
+            exitFail()
+          }
+
+      ProjectUploader.updateManifest(projectRoot, logLevel)
+      exitSuccess()
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
@@ -900,6 +960,12 @@ object Main {
         logLevel,
         logMasking,
         shouldEnableIrCaches(line)
+      )
+    }
+    if (line.hasOption(PREINSTALL_OPTION)) {
+      preinstallDependencies(
+        Option(line.getOptionValue(IN_PROJECT_OPTION)),
+        logLevel
       )
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {

@@ -140,7 +140,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
   - [`search/completion`](#searchcompletion)
-  - [`search/import`](#searchimport)
 - [Input/Output Operations](#inputoutput-operations)
   - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
@@ -204,6 +203,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`LocalLibraryNotFound`](#locallibrarynotfound)
   - [`LibraryNotResolved`](#librarynotresolved)
   - [`InvalidLibraryName`](#invalidlibraryname)
+  - [`DependencyDiscoveryError`](#dependencydiscoveryerror)
 
 <!-- /MarkdownTOC -->
 
@@ -3881,49 +3881,6 @@ the type match.
 - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
   cannot be extracted from the provided file path parameter
 
-### `search/import`
-
-Sent from client to the server to receive the information required for module
-import.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  /**
-   * The id of suggestion to import.
-   */
-  id: SuggestionId;
-}
-```
-
-#### Result
-
-```typescript
-{
-  /**
-   * The definition module of the suggestion.
-   */
-  module: String;
-
-  /**
-   * The name of the resolved suggestion.
-   */
-  symbol: String;
-
-  /**
-   * The list of modules that re-export the suggestion. Modules are ordered
-   * from the least to most nested.
-   */
-  exports: Export[];
-}
-```
-
 #### Errors
 
 - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
@@ -4550,6 +4507,8 @@ null;
 
 - [`LibraryNotResolved`](#librarynotresolved) to signal that the requested
   library or one of its dependencies could not be resolved.
+- [`DependencyDiscoveryError`](#dependencydiscoveryerror) to signal that
+  dependencies of the library could not be established.
 - [`LibraryDownloadError`](#librarydownloaderror) to signal that the download
   operation has failed, for network-related reasons, or because the library was
   missing in the repository. The error includes the name and version of the
@@ -5083,5 +5042,17 @@ For example for `FooBar` it will suggest `Foo_Bar`.
   "payload" : {
     "suggestedName" : "<fixed-name>"
   }
+}
+```
+
+### `DependencyDiscoveryError`
+
+Signals that the library preinstall endpoint could not properly find
+dependencies of the requested library.
+
+```typescript
+"error" : {
+  "code" : 8010,
+  "message" : "Error occurred while discovering dependencies: <reason>."
 }
 ```

@@ -10,9 +10,6 @@ pub use movement::*;
 pub use selection::Selection;
 
 use crate::buffer;
-use crate::buffer::data::text::BoundsError;
-use crate::buffer::data::unit::*;
-use crate::buffer::data::Text;
 use crate::buffer::style;
 use crate::buffer::style::Style;
 use crate::buffer::Buffer;
@@ -20,6 +17,10 @@ use crate::buffer::DefaultSetter;
 use crate::buffer::Setter;
 
 use enso_frp as frp;
+use enso_text::text::BoundsError;
+use enso_text::text::Change;
+use enso_text::unit::*;
+use enso_text::Text;
 use ensogl_core::data::color;
 
 
@@ -57,15 +58,6 @@ pub struct HistoryData {
 // ===============
 // === Changes ===
 // ===============
-
-/// A single change done to the text content.
-#[derive(Clone, Debug, Default)]
-pub struct Change<T = Bytes> {
-    /// Range of old text being replaced.
-    pub range: buffer::Range<T>,
-    /// The text inserted in place of `range`.
-    pub text:  Text,
-}
 
 /// The summary of single text modification, usually returned by `modify`-like functions in
 /// `ViewBuffer`.

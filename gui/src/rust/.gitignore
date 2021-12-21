@@ -1,7 +1,0 @@
-# Rust
-target
-**/*.rs.bk
-
-# A thirdparty downloaded js
-/ensogl/msdf-sys/msdfgen_wasm.js
-/ide/parser/pkg/

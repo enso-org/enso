@@ -1,0 +1,9 @@
+[package]
+name = "ensogl-file-browser"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }

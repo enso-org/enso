@@ -22,6 +22,10 @@ import org.enso.logger.masking.ToLogString
       name  = "suggestionMethod"
     ),
     new JsonSubTypes.Type(
+      value = classOf[Suggestion.Conversion],
+      name  = "suggestionConversion"
+    ),
+    new JsonSubTypes.Type(
       value = classOf[Suggestion.Function],
       name  = "suggestionFunction"
     ),
@@ -49,11 +53,12 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Kind =
       suggestion match {
-        case _: Module   => Module
-        case _: Atom     => Atom
-        case _: Method   => Method
-        case _: Function => Function
-        case _: Local    => Local
+        case _: Module     => Module
+        case _: Atom       => Atom
+        case _: Method     => Method
+        case _: Conversion => Conversion
+        case _: Function   => Function
+        case _: Local      => Local
       }
 
     /** The module suggestion. */
@@ -64,6 +69,12 @@ object Suggestion {
 
     /** The method suggestion. */
     case object Method extends Kind
+
+    /** The conversion suggestion. */
+    case object Conversion extends Kind {
+      val From = "from"
+      val To   = "to"
+    }
 
     /** The function suggestion. */
     case object Function extends Kind
@@ -80,6 +91,7 @@ object Suggestion {
         case _: Module      => None
         case _: Atom        => None
         case method: Method => Some(method.selfType)
+        case _: Conversion  => None
         case _: Function    => None
         case _: Local       => None
       }
@@ -227,6 +239,46 @@ object Suggestion {
       s"name=$name," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"selfType=$selfType," +
+      s"returnType=$returnType," +
+      s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                           else documentation) +
+      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
+                                else documentationHtml) +
+      s",reexport=$reexport)"
+  }
+
+  /** A conversion function.
+    *
+    * @param externalId the external id
+    * @param module the module name
+    * @param arguments the list of arguments
+    * @param sourceType the source type of a conversion
+    * @param returnType the return type of a conversion
+    * @param documentation the documentation string
+    * @param documentationHtml the documentation rendered as HTML
+    * @param reexport the module re-exporting this conversion
+    */
+  case class Conversion(
+    externalId: Option[ExternalId],
+    module: String,
+    arguments: Seq[Argument],
+    sourceType: String,
+    returnType: String,
+    documentation: Option[String],
+    documentationHtml: Option[String],
+    reexport: Option[String] = None
+  ) extends Suggestion {
+
+    /** @inheritdoc */
+    override def name: String =
+      Kind.Conversion.From
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Conversion(" +
+      s"module=$module," +
+      s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
+      s"sourceType=$sourceType," +
       s"returnType=$returnType," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +

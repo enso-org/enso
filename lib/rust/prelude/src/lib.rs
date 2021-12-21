@@ -21,6 +21,7 @@ pub mod env;
 mod fail;
 #[cfg(feature = "futures")]
 pub mod future;
+mod leak;
 mod macros;
 mod option;
 mod phantom;
@@ -46,6 +47,8 @@ pub use collections::*;
 pub use data::*;
 pub use debug::*;
 pub use fail::*;
+pub use leak::Leak;
+pub use leak::*;
 pub use macros::*;
 pub use option::*;
 pub use phantom::*;
