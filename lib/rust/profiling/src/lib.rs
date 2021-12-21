@@ -39,7 +39,6 @@ use wasm_bindgen::prelude::*;
 
 
 use enso_prelude::fmt::Formatter;
-use enso_shapely::shared;
 use enso_web::performance;
 use inflector::Inflector;
 use ordered_float::OrderedFloat;
@@ -480,25 +479,13 @@ impl Drop for IntervalHandle {
 
 
 
-// =====================
-// === AttachedStats ===
-// =====================
-// TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact? UX Health Tracking Methods?
+// ==================================
+// === UX Health Tracking Methods ===
+// ==================================
+// TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
 
-shared! { AttachedStats
-#[derive(Debug)]
-pub struct AttachedStatsData {
-    processes: HashMap<String, Vec<StatsAggregate>>,
-}
-
-impl {
-    pub fn push_stats(stats: &Vec<f64>) {
-        // FIXME(akavel): labeled data in `stats`
-    }
-}}
-
-#[derive(Copy, Debug)]
-struct StatsAggregate {
+pub fn attach_stats(stats: &Vec<f64>) {
+    // FIXME(akavel): labeled data in `stats`
 }
 
 

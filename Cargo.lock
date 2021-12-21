@@ -2852,7 +2852,6 @@ dependencies = [
  "chrono",
  "enso-logger",
  "enso-prelude",
- "enso-shapely",
  "enso-web",
  "js-sys",
  "macros",
