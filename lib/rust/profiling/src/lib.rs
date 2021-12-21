@@ -479,6 +479,17 @@ impl Drop for IntervalHandle {
 
 
 
+// ==================================
+// === UX Health Tracking Methods ===
+// ==================================
+// TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
+
+pub fn attach_stats(stats: Vec<f64>) {
+    // FIXME(akavel): labeled data in `stats`
+}
+
+
+
 // ===============
 // === Reports ===
 // ===============
