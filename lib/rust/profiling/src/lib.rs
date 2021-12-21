@@ -21,11 +21,6 @@
 //!
 //! Note that this API and encoding formats for messages are synced with the JS equivalent in
 //! `app/ide-desktop/lib/profiling/src/profiling.ts`.
-//!
-//! Note on adding new profiling levelsThis is done via the
-//! `../../../../../app/ide-desktop/lib/profiling/src/profilers.json` config file. Just add a new
-//! profiler there and add a new feature to this crate that can toggle the new profiling level to be
-//! on/off.
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
