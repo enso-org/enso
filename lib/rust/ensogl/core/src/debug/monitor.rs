@@ -610,6 +610,10 @@ impl PanelData {
         self.normalize_value();
     }
 
+    pub fn raw_value(&self) -> f64 {
+        self.raw_value
+    }
+
     /// Clamp the measured values to the `max_value` and `min_value`.
     fn clamp_value(&mut self) {
         if let Some(max_value) = self.sampler.max_value() {
