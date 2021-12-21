@@ -135,9 +135,10 @@ commands.build.js = async function () {
 
 // We build WASM binaries from Rust code using `wasm-pack`. Intermediate temporary directory is used
 // before final copy to the Webpack's `dist` location because of two reasons:
-// 1. Webpack triggers recompilation on file changes, and we don't want to bother it until the final binaries are ready
-//   to use.
-// 2. `wasm-pack` clears its output directory before compilation, which breaks Webpack because of missing files.
+// 1. Webpack triggers recompilation on file changes, and we don't want to bother it until the final
+// binaries are ready to use.
+// 2. `wasm-pack` clears its output directory before compilation, which breaks Webpack because of
+// missing files.
 commands.build.rust = async function (argv) {
     let crate = argv.crate || DEFAULT_CRATE
     let crate_sfx = crate ? ` '${crate}'` : ``
