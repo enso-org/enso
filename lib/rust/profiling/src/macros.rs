@@ -17,7 +17,7 @@ macro_rules! make_metadata {
 #[macro_export]
 macro_rules! start_interval {
     ($profiling_level:expr, $interval_name:expr) => {
-        $crate::start_interval($crate::make_metadata!($profiling_level, $interval_name))
+        $crate::mark_start_interval($crate::make_metadata!($profiling_level, $interval_name))
     };
 }
 
@@ -25,7 +25,7 @@ macro_rules! start_interval {
 #[macro_export]
 macro_rules! end_interval {
     ($profiling_level:expr, $interval_name:expr) => {
-        let _ = $crate::end_interval($crate::make_metadata!($profiling_level, $interval_name));
+        let _ = $crate::mark_end_interval($crate::make_metadata!($profiling_level, $interval_name));
     };
 }
 
@@ -35,7 +35,7 @@ macro_rules! end_interval {
 macro_rules! measure_interval {
         ($profiling_level:expr, $interval_name:expr, $($body:tt)*) => {
              {
-                 $crate::start_interval!($profiling_level, $interval_name);
+                 $crate::start_interval!($profiling_level, $interval_name).release();
                  let out = { $($body)* };
                  $crate::end_interval!($profiling_level, $interval_name);
                 out

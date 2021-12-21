@@ -319,29 +319,6 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
     }
 }
 
-/// Measure the execution time of the given interval. The interval is executed and the return value
-/// and the measurement result are returned in the `IntervalMeasurementResult`.
-pub fn measure_interval<T, F: FnMut() -> T>(
-    metadata: Metadata,
-    mut closure: F,
-) -> IntervalMeasurementResult<T> {
-    mark_start_interval(metadata.clone()).release();
-    let value = closure();
-    let measurement = mark_end_interval(metadata);
-
-    IntervalMeasurementResult { value, measurement }
-}
-
-/// Result of profiling a closure via `measure_interval`. Contains the measurement result and the
-/// closure return value.
-#[derive(Clone, Debug)]
-pub struct IntervalMeasurementResult<T> {
-    /// Return value of the measured closure.
-    pub value:       T,
-    /// Measurement result.
-    pub measurement: Result<Measurement, MeasurementError>,
-}
-
 
 
 // ======================
