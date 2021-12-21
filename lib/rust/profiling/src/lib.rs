@@ -485,6 +485,8 @@ impl Drop for IntervalHandle {
 // =====================
 // TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
 
+TODO: thread_local!
+
 type AttachedStats = HashMap<String, StatsAggregator>;
 
 lazy_static! {
