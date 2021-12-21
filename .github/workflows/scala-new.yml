@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 120
     strategy:
       matrix:
-        os: [Windows, Linux]
+        os: [Windows, Linux, macOS]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
@@ -26,7 +26,10 @@ jobs:
         if: runner.os == 'Windows'
       - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
         working-directory: /ci
-        if: runner.os != 'Windows'
+        if: runner.os === 'Linux'
+      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
+        working-directory: ~/new-ci/ci
+        if: runner.os === 'macOS'
 
       #####################
       # PUBLISH ARTIFACTS #
