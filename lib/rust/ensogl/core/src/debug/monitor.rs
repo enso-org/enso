@@ -412,6 +412,10 @@ impl Panel {
         self.rc.borrow_mut().end()
     }
 
+    pub fn raw_value(&self) -> f64 {
+        self.rc.borrow().raw_value()
+    }
+
     fn first_draw(&self, dom: &Dom) {
         self.rc.borrow_mut().first_draw(dom)
     }
