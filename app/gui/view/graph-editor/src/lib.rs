@@ -857,7 +857,7 @@ pub struct LocalCall {
 // === EdgeEndpoint ===
 // ==================
 
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, Eq, PartialEq)]
 pub struct EdgeEndpoint {
     pub node_id: NodeId,
     pub port:    span_tree::Crumbs,

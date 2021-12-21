@@ -93,6 +93,11 @@ pub struct Node {
 }
 
 impl Node {
+    /// Get the node's id.
+    pub fn id(&self) -> double_representation::node::Id {
+        self.main_line.id()
+    }
+
     /// Get the node's position.
     pub fn position(&self) -> Option<model::module::Position> {
         self.metadata.as_ref().and_then(|m| m.position)

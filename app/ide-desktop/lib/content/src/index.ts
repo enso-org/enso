@@ -816,6 +816,7 @@ class Config {
     public authentication_enabled: boolean
     public email: string
     public application_config_url: string
+    public rust_new_presentation_layer: boolean
 
     static default() {
         let config = new Config()
@@ -878,6 +879,9 @@ class Config {
         this.application_config_url = ok(other.application_config_url)
             ? tryAsString(other.application_config_url)
             : this.application_config_url
+        this.rust_new_presentation_layer = ok(other.rust_new_presentation_layer)
+            ? tryAsBoolean(other.rust_new_presentation_layer)
+            : this.rust_new_presentation_layer
     }
 }
 
