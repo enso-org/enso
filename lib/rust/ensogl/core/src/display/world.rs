@@ -185,7 +185,7 @@ impl World {
         &self,
         mut callback: F,
     ) -> callback::Handle {
-        self.on_before_frame.add(move |time: &animation::TimeInfo| callback(*time))
+        self.on_after_frame.add(move |time: &animation::TimeInfo| callback(*time))
     }
 
     /// Register a callback which should be run after each animation frame.
