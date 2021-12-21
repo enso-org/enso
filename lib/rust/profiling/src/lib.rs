@@ -487,7 +487,7 @@ impl Drop for IntervalHandle {
 
 TODO: thread_local!
 
-type AttachedStats = HashMap<String, StatsAggregator>;
+type AttachedStats = HashMap<String, StatsAggregate>;
 
 lazy_static! {
     static ref ATTACHED_STATS: Mutex<AttachedStats> = Mutex::new(AttachedStats::new());
@@ -499,7 +499,7 @@ pub fn push_stats(stats: &Vec<f64>) {
 
 // FIXME(akavel): do we need Clone?
 #[derive(Clone, Debug)]
-struct StatsAggregator {
+struct StatsAggregate {
 }
 
 
