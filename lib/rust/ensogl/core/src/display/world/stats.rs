@@ -71,9 +71,11 @@ impl {
         self.stats.reset_per_frame_statistics();
     }
 
-    // pub fn snapshot(&self) -> &Vec<f64> {
-    //     &self.snapshot
-    // }
+    pub fn read_snapshot<F:FnOnce(&Vec<f64>)>(&self, f:F) {
+        // NOTE: cannot just make it `fn snapshot(&self) -> &Vec<f64>` because of the `shared!`
+        // macro
+        f(&self.snapshot);
+    }
 
     /// Checks if the monitor is visible.
     pub fn visible(&self) -> bool {
