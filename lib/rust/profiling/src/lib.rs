@@ -45,6 +45,7 @@ use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_plain::from_str;
+use std::sync::Mutex;
 use wasm_bindgen::JsValue;
 use web_sys::PerformanceEntry;
 
@@ -487,7 +488,7 @@ impl Drop for IntervalHandle {
 type AttachedStats = HashMap<String, StatsAggregator>;
 
 lazy_static! {
-    static ref ATTACHED_STATS: AttachedStats = AttachedStats::new();
+    static ref ATTACHED_STATS: Mutex<AttachedStats> = Mutex::new(AttachedStats::new());
 }
 
 pub fn attach_stats(stats: &Vec<f64>) {
