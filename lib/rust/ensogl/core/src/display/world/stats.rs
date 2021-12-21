@@ -16,9 +16,10 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats   : Stats,
-    monitor : debug::Monitor,
-    panels  : Vec<debug::monitor::Panel>
+    stats    : Stats,
+    monitor  : debug::Monitor,
+    panels   : Vec<debug::monitor::Panel>,
+    snapshot : Vec<f64>,
 }
 
 impl {
@@ -41,7 +42,8 @@ impl {
             monitor.add( debug::monitor::SpriteSystemCount  :: new(&stats) ),
             monitor.add( debug::monitor::SpriteCount        :: new(&stats) ),
         ];
-        Self {stats,monitor,panels}
+        let snapshot = Vec::with_capacity(panels.len());
+        Self {stats,monitor,panels,snapshot}
     }
 
     /// Start measuring data.
@@ -57,8 +59,10 @@ impl {
     pub fn end(&mut self) {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
+        self.snapshot.clear();
         for panel in &self.panels {
             panel.end();
+            self.snapshot.push(panel.raw_value());
         }
         if self.visible() {
             self.monitor.draw();
@@ -66,6 +70,10 @@ impl {
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
     }
+
+    // pub fn snapshot(&self) -> &Vec<f64> {
+    //     &self.snapshot
+    // }
 
     /// Checks if the monitor is visible.
     pub fn visible(&self) -> bool {
