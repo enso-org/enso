@@ -21,6 +21,8 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import scala.io.Source
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeVisualisationsTest
     extends AnyFlatSpec
@@ -1852,5 +1854,104 @@ class RuntimeVisualisationsTest
       ),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "run internal IDE visualisation preprocessor catching error" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(77, 28)
+
+    val code =
+      """from Standard.Builtins import all
+        |import Standard.Base.Data.List
+        |
+        |main =
+        |    Error.throw List.Empty_Error
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // NOTE: below values need to be kept in sync with what is used internally by Rust IDE code
+    val visualisationModule = "Standard.Base.Main"
+    val visualisationCode   = Source.fromResource("error_preprocessor.enso").mkString
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    val pushContextResponses =
+      context.receive(n = 4, timeoutSeconds = 60)
+    pushContextResponses should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.error(
+        contextId,
+        idMain,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      context.executionComplete(contextId)
+    )
+    val loadedLibraries = pushContextResponses.collect {
+      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
+        (namespace, name)
+    }
+    loadedLibraries should contain(("Standard", "Base"))
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            visualisationModule,
+            visualisationCode
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receive(3)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    val stringified = new String(data)
+    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty."}"""
   }
 }
