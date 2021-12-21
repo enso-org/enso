@@ -615,6 +615,7 @@ impl PanelData {
     }
 
     pub fn raw_value(&self) -> f64 {
+        // TODO[LATER]: maybe also return readonly Sampler? (for label, bounds, etc.)
         self.raw_value
     }
 
