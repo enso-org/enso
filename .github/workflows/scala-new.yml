@@ -28,7 +28,7 @@ jobs:
         working-directory: /ci
         if: runner.os == 'Linux'
       - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
-        working-directory: ~/new-ci/ci
+        working-directory: /Users/mwu/new-ci/ci
         if: runner.os == 'macOS'
 
       #####################
