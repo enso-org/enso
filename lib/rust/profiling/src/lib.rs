@@ -49,6 +49,7 @@ use wasm_bindgen::JsValue;
 use web_sys::PerformanceEntry;
 
 
+
 // ================
 // === Metadata ===
 // ================
@@ -103,7 +104,12 @@ export function mark_with_metadata(markName, markOptions) {
    performance.mark(markName, markOptions)
 }
 
-export function measure_with_start_mark_and_end_mark_and_metadata(measureName, startMark, endMark, measureOptions) {
+export function measure_with_start_mark_and_end_mark_and_metadata(
+    measureName,
+    startMark,
+    endMark,
+    measureOptions
+) {
     const options = {}
     options.start = startMark
     options.end = endMark
@@ -131,19 +137,6 @@ export function measure_with_start_mark_and_end_mark_and_metadata(measureName, s
 // === Loggers ===
 // ===============
 
-/// Create a Metadata struct that has the source location prepopulated via the `file!` and `line!`
-/// macros.
-#[macro_export]
-macro_rules! make_metadata {
-    ($profiling_level:expr, $label:expr, $event_type:expr  ) => {
-        Metadata {
-            source:          SourceLocation { file: file!(), line: line!() },
-            profiling_level: $profiling_level,
-            label:           $label,
-            event_type:      $event_type,
-        }
-    };
-}
 
 /// Define a new boolean variable whose value is determined by a feature flag in the crate.
 /// The name of the variable is `ENABLED` and it will be true if a feature flag
@@ -161,6 +154,50 @@ macro_rules! define_profiling_toggle {
     };
 }
 
+pub mod local_macros {
+    /// Create a Metadata struct that has the source location prepopulated via the `file!` and
+    /// `line!` macros.
+    #[macro_export]
+    macro_rules! make_metadata {
+        ($log_level:expr, $interval_name:expr) => {
+            $crate::Metadata {
+                source:          $crate::SourceLocation {
+                    file: file!().to_string(),
+                    line: line!(),
+                },
+                profiling_level: $log_level.to_string(),
+                label:           $interval_name.to_string(),
+            }
+        };
+    }
+
+    #[macro_export]
+    macro_rules! start_interval {
+        ($log_level:expr, $interval_name:expr) => {
+            $crate::start_interval($crate::make_metadata!($log_level, $interval_name));
+        };
+    }
+
+    #[macro_export]
+    macro_rules! end_interval {
+        ($log_level:expr, $interval_name:expr) => {
+            $crate::end_interval($crate::make_metadata!($log_level, $interval_name));
+        };
+    }
+
+    #[macro_export]
+    macro_rules! measure_interval {
+        ($log_level:expr, $interval_name:expr, $($body:expr)*) => {
+             $crate::start_interval!($log_level, $interval_name);
+             let out = $($body)*;
+             $crate::end_interval!($log_level, $interval_name);
+             out
+        };
+    }
+}
+
+
+
 /// Define a new profiling module that exposes `start`, `end` and `measure` methods. The profiling
 /// can be activated and de-activated via a crate feature flag named
 /// `enable-<profiling_module_name>-profiling`, which will turn the profiling methods into no-ops.
@@ -176,14 +213,7 @@ macro_rules! define_logger {
             #[macro_export]
             macro_rules! $start {
                 ($interval_name:expr) => {
-                    profiling::start_interval(profiling::Metadata {
-                        source:          profiling::SourceLocation {
-                            file: file!().to_string(),
-                            line: line!(),
-                        },
-                        profiling_level: $log_level.to_string(),
-                        label:           $interval_name.to_string(),
-                    });
+                    $crate::start_interval!($log_level, $interval_name)
                 };
             }
 
@@ -191,35 +221,17 @@ macro_rules! define_logger {
             #[macro_export]
             macro_rules! $end {
                 ($interval_name:expr) => {
-                    profiling::end_interval(profiling::Metadata {
-                        source:          profiling::SourceLocation {
-                            file: file!().to_string(),
-                            line: line!(),
-                        },
-                        profiling_level: profiling::$log_level,
-                        label:           $interval_name.to_string(),
-                    });
+                    $crate::end_interval!($log_level, $interval_name)
                 };
             }
 
-            /// Profile the execution of the given closure.
-            #[macro_export]
-            macro_rules! $measure {
-                ($interval_name:expr, $closure:expr) => {
-                    profiling::measure_interval(
-                        profiling::Metadata {
-                            source:          profiling::SourceLocation {
-                                file: file!().to_string(),
-                                line: line!(),
-                            },
-                            profiling_level: profiling::$log_level,
-                            label:           $interval_name.to_string(),
-                        },
-                        $closure,
-                    )
-                    .value
-                };
-            }
+            // /// Profile the execution of the given closure.
+            // #[macro_export]
+            // macro_rules! $measure {
+            //     ($interval_name:expr, || $($body:expr)*) => {
+            //         $crate::measure_interval!($log_level, $interval_name, $($body:expr)*)
+            //     };
+            // }
         }
     };
 }
@@ -509,4 +521,26 @@ impl Display for Report {
 /// Return a report on all recorded measurement entries.
 pub fn entries() -> Report {
     Report::generate()
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn macro_expansion() {
+        // Checks that macros work correctly and create valid code.
+        let task_handle = start_task!("sample_task");
+        task_handle.release();
+        end_task!("sample_task");
+
+        // TODO measure example
+    }
 }

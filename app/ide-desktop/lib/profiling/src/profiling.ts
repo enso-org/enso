@@ -1,5 +1,6 @@
 /**
- * Profiling module that supports work with the [Web Performance API](https://developer.mozilla.org/en-US/docs/Web/API/Performance).
+ * Profiling module that supports work with the [Web Performance API]
+ * (https://developer.mozilla.org/en-US/docs/Web/API/Performance).
  *
  * Allows structured profiling of code with a hierarchical API.
  *
@@ -48,7 +49,10 @@ type Metadata = {
  * caller of this methods.
  */
 function makeMetadata(profiling_level: string, label: string): Metadata {
-    const source = callerInfo(2)
+    // We need to move up the stack by 2 levels to end up at the call of the caller of this
+    // function.
+    const callerLevel = 2
+    const source = callerInfo(callerLevel)
     return {
         source,
         profiling_level,
@@ -63,19 +67,18 @@ function makeMetadata(profiling_level: string, label: string): Metadata {
  */
 function callerInfo(caller_level = 0): SourceLocation | null {
     const e = new Error()
-    const regex = /\((.*):(\d+):(\d+)\)$/
+    const regex = /\((?<filePath>.*):(?<line>\d+):(?<column>\d+)\)$/
     const caller = e.stack.split('\n')[2 + caller_level]
-    if (caller === undefined) {
+    if (!caller) {
         return null
     }
     const match = regex.exec(caller)
-    if (match === null) {
+    if (!match) {
         return null
     }
-    assert(match.length >= 3, 'Regex was expected to produce three matches.')
     return {
-        file: match[1],
-        line: Number(match[2]),
+        file: match.groups['filePath'],
+        line: Number(match.groups['line']),
     }
 }
 
@@ -83,20 +86,20 @@ function callerInfo(caller_level = 0): SourceLocation | null {
 // === Labels ===
 // ==============
 
-/// Return a string that encodes the given log level and name for a mark that indicates the start of
-/// an interval. The label encoded the log level, name and event type.
+// Return a string that encodes the given profiler level and name for a mark that indicates the
+// start of an interval. The label encoded the profiler level, name and event type.
 function startIntervalLabel(metadata: Metadata): string {
     return `${metadata.label} [START]`
 }
 
-/// Return a string that encodes the given log level and name for a mark that indicates the end of
-/// an interval.
+// Return a string that encodes the given profiler level and name for a mark that indicates the
+// end of an interval.
 function endIntervalLabel(metadata: Metadata): string {
     return `${metadata.label} [END]`
 }
 
-/// Return a string that encodes the given log level and name for display in the developer console
-// performance tool..
+// Return a string that encodes the given profiler level and name for display in the developer
+// console performance tool.
 function performanceToolLabel(metadata: Metadata): string {
     return `${metadata.label} (${metadata.source.file}:${metadata.source.line})`
 }
@@ -110,31 +113,35 @@ function performanceToolLabel(metadata: Metadata): string {
  * working with the profiler.
  */
 class Profiler {
-    logLevel: string
+    profileLevel: string
     toggledInEnvironment: boolean
 
-    constructor(logLevel: string) {
-        this.logLevel = logLevel
-        // The value `process.env.PROFILING_LEVEL` is populated through the [environment plugin](https://webpack.js.org/plugins/environment-plugin/)
-        // at build time from an environment variable.
+    constructor(profilerLevel: string) {
+        this.profileLevel = profilerLevel
+        // The value `process.env.PROFILING_LEVEL` is populated through the [environment plugin]
+        // (https://webpack.js.org/plugins/environment-plugin/) at build time from an environment
+        // variable.
         this.toggledInEnvironment = process.env.PROFILING_LEVEL.toLowerCase().includes(
-            logLevel.toLowerCase()
+            profilerLevel.toLowerCase()
         )
 
         profilerRegistry.push(this)
     }
 
-    logLevelName(): string {
-        return this.logLevel.toUpperCase()
+    profileLevelName(): string {
+        return this.profileLevel.toUpperCase()
     }
 
-    /// Indicate whether this profiler should perform profiling.
+    // Indicate whether this profiler should perform profiling.
     isActive(): boolean {
-        // We need to check whether this logger, or a logger that is higher in the hierarchy, is activated.
-        // The hierarchy is established by order of instantiation / registration in the `profilerRegistry`.
+        // We need to check whether this profiler, or a profiler that is higher in the hierarchy, is
+        // activated. The hierarchy is established by order of instantiation / registration in the
+        // `profilerRegistry`.
         const profilerIndex = profilerRegistry.findIndex(item => item === this)
         if (profilerIndex < 0) {
-            console.warn(`Looked for invalid profiler in profilerRegistry: ${this.logLevelName()}`)
+            const profilerLevelName = this.profileLevelName()
+            const warning = `Looked for invalid profiler in profilerRegistry: ${profilerLevelName}`
+            console.warn(warning)
             return false
         }
         for (let i = profilerIndex; i; i--) {
@@ -145,17 +152,17 @@ class Profiler {
         return false
     }
 
-    isLogLevelName(log_level_name: string): boolean {
-        return this.logLevelName() == log_level_name.toUpperCase()
+    isProfileLevelName(profilerLevelName: string): boolean {
+        return this.profileLevelName() == profilerLevelName.toUpperCase()
     }
 
-    /// Start the profiling of the named interval.
-    start(interval_name: string): IntervalHandle {
+    // Start the profiling of the named interval.
+    start(intervalName: string): IntervalHandle {
         if (this.isActive()) {
-            const metadata = makeMetadata(this.logLevel, interval_name)
+            const metadata = makeMetadata(this.profileLevel, intervalName)
             performance.mark(startIntervalLabel(metadata))
         }
-        return new IntervalHandle(interval_name, this)
+        return new IntervalHandle(intervalName, this)
     }
 
     _end_with_metadata(metadata: Metadata) {
@@ -166,7 +173,8 @@ class Profiler {
             performance.mark(end_label)
             const options = { detail: metadata, start: start_label, end: end_label }
             try {
-                // @ts-ignore TS does not yet support typing for the next gen API of `measure`.
+                // @ts-ignore TS does not yet support typing for the User Timing Level 3
+                // Specification.
                 performance.measure(measurement_label, options)
             } catch (e) {
                 console.warn(`Error during profiling: ${e}`)
@@ -176,13 +184,13 @@ class Profiler {
 
     /// End the profiling of the named interval.
     end(interval_name: string) {
-        const metadata = makeMetadata(this.logLevel, interval_name)
+        const metadata = makeMetadata(this.profileLevel, interval_name)
         this._end_with_metadata(metadata)
     }
 
     /// Profile the execution of the given callable.
     measure(interval_name: string, closure: CallableFunction) {
-        const metadata = makeMetadata(this.logLevel, interval_name)
+        const metadata = makeMetadata(this.profileLevel, interval_name)
         this.start(interval_name).release()
         const ret = closure()
         this._end_with_metadata(metadata)
@@ -194,13 +202,13 @@ class Profiler {
 // === Decoding ===
 // ================
 
-function parseLogLevel(log_level_name: string): Profiler | null {
+function parseProfilerLevel(profilerLevelName: string): Profiler | null {
     for (const profiler of profilerRegistry) {
-        if (profiler.isLogLevelName(log_level_name)) {
+        if (profiler.isProfileLevelName(profilerLevelName)) {
             return profiler
         }
     }
-    console.warn(`Could not parse log level from "${log_level_name}"`)
+    console.warn(`Could not parse profiler level from "${profilerLevelName}"`)
     return null
 }
 
@@ -213,29 +221,29 @@ function parseLogLevel(log_level_name: string): Profiler | null {
  * the `start` function.
  */
 class IntervalHandle {
-    interval_name: string
-    log_level: Profiler
-    released_status: ReleasedStatus
+    intervalName: string
+    profilerLevel: Profiler
+    releasedStatus: ReleasedStatus
 
-    constructor(interval_name: string, log_level: Profiler) {
-        this.interval_name = interval_name
-        this.log_level = log_level
-        this.released_status = new ReleasedStatus()
-        this.released_status.released = false
-        let entry = new IntervalFinalizationRegistryEntry(interval_name, this.released_status)
+    constructor(intervalName: string, profilerLevel: Profiler) {
+        this.intervalName = intervalName
+        this.profilerLevel = profilerLevel
+        this.releasedStatus = new ReleasedStatus()
+        this.releasedStatus.released = false
+        let entry = new IntervalFinalizationRegistryEntry(intervalName, this.releasedStatus)
         handle_registry.register(this, entry)
     }
 
     /// Measure the interval.
     end() {
-        const metadata = makeMetadata(this.log_level.logLevel, this.interval_name)
-        this.log_level._end_with_metadata(metadata)
-        this.released_status.released = true
+        const metadata = makeMetadata(this.profilerLevel.profileLevel, this.intervalName)
+        this.profilerLevel._end_with_metadata(metadata)
+        this.releasedStatus.released = true
     }
 
     /// Release the handle to manually call `end_interval` without emitting a warning.
     release() {
-        this.released_status.released = true
+        this.releasedStatus.released = true
     }
 }
 
@@ -271,7 +279,8 @@ class ReleasedStatus {
 const handle_registry = new FinalizationRegistry(heldValue => {
     if (heldValue instanceof IntervalFinalizationRegistryEntry) {
         if (!heldValue.release_status.released) {
-            console.warn(heldValue.interval_name + ' was dropped without a call to `measure`.')
+            const interval_name = heldValue.interval_name
+            console.warn(`${interval_name} was dropped without a call to 'measure'.`)
         }
     }
 })
@@ -289,28 +298,30 @@ const OUTPUT_PRECISION = 2
 class Measurement {
     readonly startTime: number
     readonly duration: number
-    readonly logLevel: Profiler
+    readonly profilerLevel: Profiler
     readonly name: string
 
-    constructor(startTime: number, duration: number, logLevel: Profiler, name: string) {
+    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string) {
         this.startTime = startTime
         this.duration = duration
-        this.logLevel = logLevel
+        this.profilerLevel = profilerLevel
         this.name = name
     }
 
     static fromPerformanceEntry(entry: PerformanceEntry): Measurement | null {
         const startTime = entry.startTime
         const duration = entry.duration
-        // @ts-ignore TS does not yet support typing for the next gen API of `measure`.
+        // @ts-ignore TS does not yet support typing for the User Timing Level 3
+        // Specification.
         const detail = entry.detail
-        const logLevel = parseLogLevel(detail.profiling_level)
-        if (logLevel === null) {
-            console.warn(`Could not parse ${detail.profiling_level} as valid profiling level.`)
+        const profilerLevel = parseProfilerLevel(detail.profiling_level)
+        if (profilerLevel === null) {
+            const profiling_level = detail.profiling_level
+            console.warn(`Could not parse ${profiling_level} as valid profiling level.`)
             return null
         }
         const name = entry.name
-        return new Measurement(startTime, duration, logLevel, name)
+        return new Measurement(startTime, duration, profilerLevel, name)
     }
 
     endTime(): number {
@@ -318,9 +329,11 @@ class Measurement {
     }
 
     prettyString(): string {
-        return `[${this.startTime.toFixed(OUTPUT_PRECISION)},${this.endTime().toFixed(
-            OUTPUT_PRECISION
-        )}] (${this.duration.toFixed(OUTPUT_PRECISION)}) ${this.name}`
+        const start = this.startTime.toFixed(OUTPUT_PRECISION)
+        const end = this.endTime().toFixed(OUTPUT_PRECISION)
+        const duration = this.duration.toFixed(OUTPUT_PRECISION)
+        const name = this.name
+        return `[${start},${end}] (${duration}) ${name}`
     }
 
     prettyPrint() {
@@ -344,7 +357,7 @@ export class Report {
     }
 
     singleLevelMeasurement(profiler: Profiler) {
-        return this.measurements.filter(m => m.logLevel === profiler)
+        return this.measurements.filter(m => m.profilerLevel === profiler)
     }
 
     /**
@@ -354,7 +367,7 @@ export class Report {
         console.groupCollapsed('PerformanceReport')
 
         for (const profiler of profilerRegistry) {
-            console.groupCollapsed(profiler.logLevel)
+            console.groupCollapsed(profiler.profileLevel)
             this.singleLevelMeasurement(profiler).forEach(m => m.prettyPrint())
             console.groupEnd()
         }

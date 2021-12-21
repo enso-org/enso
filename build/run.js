@@ -100,14 +100,23 @@ function run_project_manager() {
     })
 }
 
+// Create a feature flag that sets the desired profiling level in the build from the given
+// command line argument. If the arguments contain a `profiling-level` argument that has a value
+// that matches one of the profilers defined in the
+// `../app/ide-desktop/lib/profiling/src/profilers.json` configuration file, that profiler will be
+// enabled. Note that profilers are hierarchical and the highest level profiler will determine the
+// activated profilers.
+// Example Output: "enable-task-profiling"
 function make_profiling_feature_string(args) {
-    const profiling_level = args['profiling-level'].toString().toLowerCase()
+    let profiling_level = args['profiling-level']
     if (profiling_level === undefined) {
         return ''
     }
-    const to_check = ['section', 'task', 'detail', 'debug']
+    profiling_level = profiling_level.toString().toLowerCase()
+    const to_check = require(`../app/ide-desktop/lib/profiling/src/profilers.json`)
     const features = []
-    for (const feature of to_check) {
+    for (let feature of to_check) {
+        feature = feature.toLowerCase()
         if (profiling_level.includes(feature)) {
             features.push(`enable-${feature}-profiling`)
         }
@@ -201,7 +210,6 @@ commands.build.rust = async function (argv) {
         args.push('--')
         args.push(feature_flags)
     }
-    console.log(args)
 
     /// Set environment variables that indicate the profiling mode. This is used in the JS profiling library.
     set_performance_logging_env(argv)
