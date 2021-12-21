@@ -479,13 +479,24 @@ impl Drop for IntervalHandle {
 
 
 
-// ==================================
-// === UX Health Tracking Methods ===
-// ==================================
+// =====================
+// === AttachedStats ===
+// =====================
 // TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
+
+type AttachedStats = HashMap<String, StatsAggregator>;
+
+lazy_static! {
+    static ref ATTACHED_STATS: AttachedStats = AttachedStats::new();
+}
 
 pub fn attach_stats(stats: &Vec<f64>) {
     // FIXME(akavel): labeled data in `stats`
+}
+
+// FIXME(akavel): do we need Clone?
+#[derive(Clone, Debug)]
+struct StatsAggregator {
 }
 
 
