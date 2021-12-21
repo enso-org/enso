@@ -861,23 +861,23 @@ impl Model {
         trees: NodeTrees,
         default_pos: Vector2,
     ) {
-        let task_handle = profiling::start_task!("create_node_view");
-        let id = info.info.id();
-        let displayed_id = self.view.graph().add_node();
-        self.node_views.borrow_mut().insert(id, displayed_id);
-        self.refresh_node_view(displayed_id, info, trees);
-        if info.metadata.as_ref().and_then(|md| md.position).is_none() {
-            self.view.graph().frp.input.set_node_position.emit(&(displayed_id, default_pos));
-            // If position wasn't present in metadata, we initialize it.
-            if let Err(err) = self.graph.graph().set_node_position(id, default_pos) {
-                debug!(
-                    self.logger,
-                    "Failed to set default position information IDs: {id:?} \
-                because of the error: {err:?}"
-                );
+        profiling::measure_task!("create_node_view", || {
+            let id = info.info.id();
+            let displayed_id = self.view.graph().add_node();
+            self.node_views.borrow_mut().insert(id, displayed_id);
+            self.refresh_node_view(displayed_id, info, trees);
+            if info.metadata.as_ref().and_then(|md| md.position).is_none() {
+                self.view.graph().frp.input.set_node_position.emit(&(displayed_id, default_pos));
+                // If position wasn't present in metadata, we initialize it.
+                if let Err(err) = self.graph.graph().set_node_position(id, default_pos) {
+                    debug!(
+                        self.logger,
+                        "Failed to set default position information IDs: {id:?} \
+                    because of the error: {err:?}"
+                    );
+                }
             }
-        }
-        task_handle.end();
+        })
     }
 
     fn deserialize_visualization_data(

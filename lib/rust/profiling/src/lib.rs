@@ -271,10 +271,10 @@ fn measure_interval_label(metadata: &Metadata) -> String {
     format!("{} ({}:{})", metadata.label, metadata.source.file, metadata.source.line)
 }
 
-/// Start measuring an interval. Returns a `IntervalHandle` that an be used to end the created
-/// interval. The interval can also be ended by calling `end_interval` with the same label and log
-/// level.
-pub fn start_interval(metadata: Metadata) -> IntervalHandle {
+/// Mark the start of an interval in the JS APIl. Returns a `IntervalHandle` that an be used to end
+/// the created interval. The interval can also be ended by calling `end_interval` with the same
+/// metadata.
+pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
     if profiling_level_is_active(metadata.profiling_level.clone()) {
         mark_with_metadata(interval_name.into(), metadata.clone().into());
@@ -293,10 +293,9 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
     Some(measure)
 }
 
-/// End measuring an interval. Return the measurement taken between start and end of the interval,
-/// if possible.
-fn end_interval(metadata: Metadata) -> Result<Measurement, MeasurementError> {
-    // metadata.event_type = MeasurementEvent::End;
+/// Mark the end of an measuring an interval in the JS API. Return the measurement taken between
+/// start and end of the interval, if possible.
+pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementError> {
     let profiling_level = metadata.profiling_level.clone();
     let start_label = start_interval_label(&metadata);
     let end_label = end_interval_label(&metadata);
@@ -326,9 +325,9 @@ pub fn measure_interval<T, F: FnMut() -> T>(
     metadata: Metadata,
     mut closure: F,
 ) -> IntervalMeasurementResult<T> {
-    start_interval(metadata.clone()).release();
+    mark_start_interval(metadata.clone()).release();
     let value = closure();
-    let measurement = end_interval(metadata);
+    let measurement = mark_end_interval(metadata);
 
     IntervalMeasurementResult { value, measurement }
 }
@@ -364,7 +363,7 @@ impl IntervalHandle {
     /// Measure the interval.
     pub fn end(mut self) {
         self.released = true;
-        warn_on_error(end_interval(self.metadata.clone()));
+        warn_on_error(mark_end_interval(self.metadata.clone()));
     }
 
     /// Release the handle to prevent a warning to be emitted when it is garbage collected without
@@ -379,7 +378,7 @@ impl IntervalHandle {
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if !self.released {
-            warn_on_error(end_interval(self.metadata.clone()));
+            warn_on_error(mark_end_interval(self.metadata.clone()));
             WARNING!(format!("{} was dropped without a call to `measure`.", self.metadata.label));
         }
     }
