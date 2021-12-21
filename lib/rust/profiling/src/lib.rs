@@ -8,7 +8,7 @@
 //!
 //! Example usage
 //! --------------
-//! ```
+//! ```ignore
 //! let some_task = || "DoWork";
 //!
 //! // Manually start and end the measurement.
@@ -16,7 +16,7 @@
 //! some_task();
 //! gui_init.end();
 //! // Or use the `measure` method.
-//! profiling::task_measure!("GUI initialization", some_task);
+//! profiling::task_measure!("GUI initialization", || { some_task() });
 //! ```
 //!
 //! Note that this API and encoding formats for messages are synced with the JS equivalent in
@@ -33,10 +33,14 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-use crate::js::*;
+
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
+pub mod macros;
+
+use crate::js::*;
+use ::macros::*;
 
 use enso_prelude::fmt::Formatter;
 use enso_web::performance;
@@ -133,109 +137,6 @@ export function measure_with_start_mark_and_end_mark_and_metadata(
 
 
 
-// ===============
-// === Loggers ===
-// ===============
-
-
-/// Define a new boolean variable whose value is determined by a feature flag in the crate.
-/// The name of the variable is `ENABLED` and it will be true if a feature flag
-/// `enable-<log_level_name>-profiling` is set, otherwise it will be false.
-macro_rules! define_profiling_toggle {
-    ($log_level_name:ident) => {
-        paste::item! {
-            #[doc = "Defines whether the log level `" $log_level_name "` should be used."]
-            #[cfg(feature = "enable-" $log_level_name "-profiling")]
-            pub const ENABLED: bool = true;
-            #[doc = "Defines whether the log level `" $log_level_name "` should be used."]
-            #[cfg(not(feature = "enable-" $log_level_name  "-profiling"))]
-            pub const ENABLED: bool = false;
-        }
-    };
-}
-
-pub mod local_macros {
-    /// Create a Metadata struct that has the source location prepopulated via the `file!` and
-    /// `line!` macros.
-    #[macro_export]
-    macro_rules! make_metadata {
-        ($log_level:expr, $interval_name:expr) => {
-            $crate::Metadata {
-                source:          $crate::SourceLocation {
-                    file: file!().to_string(),
-                    line: line!(),
-                },
-                profiling_level: $log_level.to_string(),
-                label:           $interval_name.to_string(),
-            }
-        };
-    }
-
-    #[macro_export]
-    macro_rules! start_interval {
-        ($log_level:expr, $interval_name:expr) => {
-            $crate::start_interval($crate::make_metadata!($log_level, $interval_name));
-        };
-    }
-
-    #[macro_export]
-    macro_rules! end_interval {
-        ($log_level:expr, $interval_name:expr) => {
-            $crate::end_interval($crate::make_metadata!($log_level, $interval_name));
-        };
-    }
-
-    #[macro_export]
-    macro_rules! measure_interval {
-        ($log_level:expr, $interval_name:expr, $($body:expr)*) => {
-             $crate::start_interval!($log_level, $interval_name);
-             let out = $($body)*;
-             $crate::end_interval!($log_level, $interval_name);
-             out
-        };
-    }
-}
-
-
-
-/// Define a new profiling module that exposes `start`, `end` and `measure` methods. The profiling
-/// can be activated and de-activated via a crate feature flag named
-/// `enable-<profiling_module_name>-profiling`, which will turn the profiling methods into no-ops.
-macro_rules! define_logger {
-    ($log_level:expr, $log_level_name_upper:ident, $log_level_name:ident, $start:ident, $end:ident, $measure:ident) => {
-        /// Profiler module that exposes methods to measure named intervals.
-        pub mod $log_level_name {
-
-            define_profiling_toggle!($log_level_name);
-
-            /// Start measuring a named time interval. Return an `IntervalHandle` that can be used
-            /// to end the profiling.
-            #[macro_export]
-            macro_rules! $start {
-                ($interval_name:expr) => {
-                    $crate::start_interval!($log_level, $interval_name)
-                };
-            }
-
-            /// Manually end measuring a named time interval.
-            #[macro_export]
-            macro_rules! $end {
-                ($interval_name:expr) => {
-                    $crate::end_interval!($log_level, $interval_name)
-                };
-            }
-
-            // /// Profile the execution of the given closure.
-            // #[macro_export]
-            // macro_rules! $measure {
-            //     ($interval_name:expr, || $($body:expr)*) => {
-            //         $crate::measure_interval!($log_level, $interval_name, $($body:expr)*)
-            //     };
-            // }
-        }
-    };
-}
-
 // =================
 // === Profilers ===
 // =================
@@ -243,8 +144,15 @@ macro_rules! define_logger {
 #[allow(missing_docs)]
 type ProfilingLevel = String;
 
+define_profiler! {
+    $, "section", Section, section, start_section, end_section, measure_section;
+    $, "task", Task, task, start_task, end_task, measure_task;
+    $, "detail", Detail, detail, start_detail, end_detail, measure_detail;
+    $, "debug", Debug, debug, start_debug, end_debug, measure_debug;
+}
 
-macros::with_all_profiling_levels!(define_logger);
+define_hierarchy!(section, task, detail, debug);
+
 
 
 // ====================
@@ -529,18 +437,20 @@ pub fn entries() -> Report {
 // === Tests ===
 // =============
 
-
-#[cfg(test)]
+#[cfg(wasm_bindgen_test)]
 mod tests {
     use super::*;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn macro_expansion() {
         // Checks that macros work correctly and create valid code.
         let task_handle = start_task!("sample_task");
         task_handle.release();
         end_task!("sample_task");
 
-        // TODO measure example
+        let _value: Option<_> = measure_task!("sample_measurement", || {
+            let a = "DummyExpression".to_string().pop();
+            a
+        });
     }
 }
