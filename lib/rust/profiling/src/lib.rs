@@ -484,7 +484,7 @@ impl Drop for IntervalHandle {
 // ==================================
 // TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
 
-pub fn attach_stats(stats: Vec<f64>) {
+pub fn attach_stats(stats: &Vec<f64>) {
     // FIXME(akavel): labeled data in `stats`
 }
 
