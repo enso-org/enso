@@ -491,7 +491,7 @@ lazy_static! {
     static ref ATTACHED_STATS: Mutex<AttachedStats> = Mutex::new(AttachedStats::new());
 }
 
-pub fn attach_stats(stats: &Vec<f64>) {
+pub fn push_stats(stats: &Vec<f64>) {
     // FIXME(akavel): labeled data in `stats`
 }
 
