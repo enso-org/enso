@@ -73,6 +73,8 @@ pub struct Metadata {
     pub profiling_level: ProfilingLevel,
     /// Label of the measurement..
     pub label:           String,
+
+    pub wip_fps: Option<f64>,
 }
 
 impl From<Metadata> for JsValue {
@@ -301,13 +303,16 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
     if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
-        end_stats(&start_label);
-        mark_with_metadata(end_label.clone().into(), metadata.clone().into());
+        let metadata_with_stats = Metadata{
+            wip_fps: end_stats(&start_label),
+            ..metadata
+        };
+        mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),
             start_label.into(),
             end_label.into(),
-            metadata.into(),
+            metadata_with_stats.into(),
         );
 
         let measure = get_latest_performance_entry().ok_or(MeasurementError::NoMeasurementFound)?;
@@ -384,16 +389,20 @@ fn start_stats(label: &str) {
     });
 }
 
-fn end_stats(label: &str) {
+fn end_stats(label: &str) -> Option<f64> {
     let logger = Logger::new("Profiling_Stats");
     ATTACHED_STATS.with(|attachments| {
         match attachments.borrow_mut().remove(label) {
-            None => warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}"),
+            None => {
+                warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}");
+                None
+            }
             Some(stats) => {
                 DEBUG!("MCDBG STATS: {stats:?} @ {label:?}");
+                Some(stats.wip_fps)
             }
         }
-    });
+    })
 }
 
 pub fn push_stats(stats: &Vec<f64>) {
