@@ -378,7 +378,7 @@ fn start_stats(label: &str) {
     ATTACHED_STATS.with(|attachments| {
         let found = attachments.borrow_mut().insert(label.to_string(), StatsAggregate::default());
         if found.is_some() {
-            warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one: {label}");
+            warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one - values will be skewed for: {label:?}");
         }
     });
 }
