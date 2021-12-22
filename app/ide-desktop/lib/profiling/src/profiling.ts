@@ -42,6 +42,8 @@ type Metadata = {
     source: SourceLocation
     profiling_level: string
     label: string
+
+    wip_fps?: number
 }
 
 /**
@@ -301,11 +303,14 @@ class Measurement {
     readonly profilerLevel: Profiler
     readonly name: string
 
-    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string) {
+    readonly wip_fps?: number
+
+    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, wip_fps?: number) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
         this.name = name
+        this.wip_fps = wip_fps
     }
 
     static fromPerformanceEntry(entry: PerformanceEntry): Measurement | null {
@@ -321,7 +326,8 @@ class Measurement {
             return null
         }
         const name = entry.name
-        return new Measurement(startTime, duration, profilerLevel, name)
+        const wip_fps = detail.wip_fps
+        return new Measurement(startTime, duration, profilerLevel, name, wip_fps)
     }
 
     endTime(): number {
@@ -333,7 +339,8 @@ class Measurement {
         const end = this.endTime().toFixed(OUTPUT_PRECISION)
         const duration = this.duration.toFixed(OUTPUT_PRECISION)
         const name = this.name
-        return `[${start},${end}] (${duration}) ${name}`
+        const wip_stats = (this.wip_fps) ? `[fps avg:${this.wip_fps}]` : ``
+        return `[${start},${end}] (${duration}) ${wip_stats} ${name}`
     }
 
     prettyPrint() {
