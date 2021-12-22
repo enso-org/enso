@@ -100,7 +100,7 @@ fn init(app: &Application) {
     let mut i = 0;
     world
         .on_frame(move |_| {
-            if i == 3 {
+            if i == 100 {
                 DEBUG!("MCDBG i==3");
                 if let Some(t) = task_handle.take() {
                     t.end();
