@@ -27,7 +27,6 @@ paste = "1.0"
 serde = "1.0"
 serde_plain = "1.0"
 serde_json = "1.0"
-uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = {version = "0.2", features = ["serde-serialize"]}
 web-sys = { version = "0.3", features=["PerformanceEntry"] }
 macros = {  path = "./macros" }
