@@ -493,11 +493,26 @@ thread_local! {
 
 pub fn push_stats(stats: &Vec<f64>) {
     // FIXME(akavel): labeled data in `stats`
+    const WIP_FPS_IDX: usize = 1;
+    if stats.len() < WIP_FPS_IDX+1 { return; }
+    let fps = stats[WIP_FPS_IDX];
+
+    ATTACHED_STATS.with(|attachments| {
+        for attachment in attachments.borrow_mut().values_mut() {
+            attachment.wip_fps += fps;
+            attachment.samples_count += 1;
+        }
+    });
 }
 
 // FIXME(akavel): do we need Clone?
 #[derive(Clone, Debug)]
 struct StatsAggregate {
+    // FIXME(akavel): more stats
+    // FIXME(akavel): store appropriate data to allow min:max:avg calc. for each stat
+    // FIXME(akavel): link stat labels for display in reports
+    wip_fps: f64,
+    samples_count: u32,
 }
 
 
