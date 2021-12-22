@@ -110,6 +110,23 @@ case object ComplexType extends IRPass {
     typ: IR.Module.Scope.Definition.Type
   ): List[IR.Module.Scope.Definition] = {
     val annotations = typ.getMetadata(ModuleAnnotations)
+    val typDefLocation = for {
+      typNameLoc <- typ.name.location
+      typLoc     <- typ.location
+    } yield typLoc.copy(location =
+      typLoc.location.copy(end = typNameLoc.location.end)
+    )
+    val typeDef =
+      IR.Module.Scope.Definition.Atom(
+        name        = typ.name,
+        arguments   = typ.arguments,
+        location    = typDefLocation,
+        passData    = typ.passData,
+        diagnostics = typ.diagnostics
+      )
+    annotations
+      .map(ann => typeDef.updateMetadata(ModuleAnnotations -->> ann))
+      .getOrElse(typeDef)
     val atomDefs = typ.body
       .collect { case d: IR.Module.Scope.Definition.Atom => d }
       .map(atom =>
@@ -181,7 +198,10 @@ case object ComplexType extends IRPass {
     }
     val allEntities = entityResults ::: lastSignature.toList
 
-    atomDefs ::: allEntities
+    if (namesToDefineMethodsOn.map(_.name).contains(typeDef.name.name))
+      atomDefs ::: allEntities
+    else
+      typeDef :: atomDefs ::: allEntities
   }
 
   /** Generates a method definition from a definition in complex type def body.
