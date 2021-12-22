@@ -485,12 +485,10 @@ impl Drop for IntervalHandle {
 // =====================
 // TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
 
-TODO: thread_local!
-
 type AttachedStats = HashMap<String, StatsAggregate>;
 
-lazy_static! {
-    static ref ATTACHED_STATS: Mutex<AttachedStats> = Mutex::new(AttachedStats::new());
+thread_local! {
+    static ATTACHED_STATS: RefCell<AttachedStats> = RefCell::new(AttachedStats::new());
 }
 
 pub fn push_stats(stats: &Vec<f64>) {
