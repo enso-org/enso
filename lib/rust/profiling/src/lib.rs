@@ -44,7 +44,7 @@ use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_plain::from_str;
-use std::sync::Mutex;
+use uuid::Uuid;
 use wasm_bindgen::JsValue;
 use web_sys::PerformanceEntry;
 
@@ -72,6 +72,8 @@ pub struct Metadata {
     pub profiling_level: ProfilingLevel,
     /// Label of the measurement..
     pub label:           String,
+    /// Identifier for differentiating this measurement from others with the same label
+    pub id:              Option<Uuid>,
 }
 
 impl From<Metadata> for JsValue {
@@ -383,6 +385,8 @@ pub fn push_stats(stats: &Vec<f64>) {
         }
     });
 }
+
+// TODO[LATER][MAYBE]: instead of adding Uuids, store stats over small intervals in a single timeline?
 
 // FIXME(akavel): do we need Clone?
 #[derive(Clone, Debug)]

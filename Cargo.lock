@@ -2860,6 +2860,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_plain",
+ "uuid",
  "wasm-bindgen",
  "web-sys",
 ]
