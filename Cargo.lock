@@ -949,7 +949,6 @@ dependencies = [
  "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-examples",
- "ensogl-hardcoded-theme",
  "ensogl-text-msdf-sys",
  "failure",
  "flo_stream",
@@ -1214,6 +1213,7 @@ dependencies = [
  "num-traits",
  "num_enum",
  "paste 1.0.6",
+ "profiling",
  "rustc-hash",
  "shrinkwraprs 0.3.0",
  "smallvec 1.7.0",
@@ -1359,6 +1359,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-selector",
  "ensogl-text-msdf-sys",
+ "profiling",
  "wasm-bindgen",
 ]
 
