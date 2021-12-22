@@ -100,13 +100,13 @@ fn init(app: &Application) {
     let mut i = 0;
     world
         .on_frame(move |_| {
-            i += 1;
             if i == 3 {
                 DEBUG!("MCDBG i==3");
                 if let Some(t) = task_handle.take() {
                     t.end();
                 }
             }
+            i += 1;
         })
         .forget(); // FIXME(akavel): what this does?
 }
