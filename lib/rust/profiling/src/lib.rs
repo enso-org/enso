@@ -399,7 +399,8 @@ fn end_stats(label: &str) -> Option<f64> {
             }
             Some(stats) => {
                 DEBUG!("MCDBG STATS: {stats:?} @ {label:?}");
-                Some(stats.wip_fps)
+                // TODO(akavel): instead, return both, and do the calculation when printing report
+                Some(stats.wip_fps / (stats.samples_count as f64))
             }
         }
     })
