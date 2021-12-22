@@ -68,7 +68,6 @@ impl {
             self.monitor.draw();
         }
         profiling::push_stats(&snapshot);
-        DEBUG!("MCDBG push_stats(len={snapshot.len()}), panels.len={self.panels.len()}");
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
     }

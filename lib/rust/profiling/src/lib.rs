@@ -403,7 +403,6 @@ pub fn push_stats(stats: &Vec<f64>) {
     let fps = stats[WIP_FPS_IDX];
 
     ATTACHED_STATS.with(|attachments| {
-        DEBUG!("MCDBG  ATTACHED_STATS.len={attachments.borrow_mut().len()}");
         for attachment in attachments.borrow_mut().values_mut() {
             attachment.wip_fps += fps;
             attachment.samples_count += 1;
