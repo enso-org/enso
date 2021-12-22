@@ -165,5 +165,35 @@ class MethodsTest extends InterpreterTest {
 
       eval(code) shouldEqual 6
     }
+
+    "be defined on a base type" in {
+      val code =
+        """type List
+          |    type Cons h t
+          |    type Nil
+          |
+          |List.empty = Nil
+          |
+          |main = case List.empty of
+          |    Cons _ _ -> 0
+          |    Nil -> 1
+          |""".stripMargin
+
+      eval(code) shouldEqual 1
+    }
+
+    "be defined on an imported base type" in {
+      val code =
+        """from Standard.Builtins import all
+          |
+          |List.empty = Nil
+          |
+          |main = case List.empty of
+          |    Cons _ _ -> 0
+          |    Nil -> 1
+          |""".stripMargin
+
+      eval(code) shouldEqual 1
+    }
   }
 }

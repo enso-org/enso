@@ -112,6 +112,7 @@ public class Builtins {
     text = new Text(language, scope);
     special = new Special(language);
 
+    AtomConstructor list = new AtomConstructor("List", scope).initializeFields();
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
         new AtomConstructor("Cons", scope)
@@ -131,6 +132,7 @@ public class Builtins {
     scope.registerConstructor(any);
     scope.registerConstructor(function);
 
+    scope.registerConstructor(list);
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
     scope.registerConstructor(io);

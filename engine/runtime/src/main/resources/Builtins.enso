@@ -482,6 +482,7 @@ type Polyglot
 type Java
 
     ## A type for operations specific to Java polyglot objects.
+    @Builtin_Type
     type Java
 
     ## Adds the provided entry to the host class path.
@@ -520,6 +521,7 @@ type Prim_Io
     ## PRIVATE
 
        A type for primitive IO operations.
+    @Builtin_Type
     type Prim_Io
 
     ## PRIVATE
@@ -548,6 +550,7 @@ type Prim_Io
 type IO
 
     ## A type containing basic operations for performing input and output.
+    @Builtin_Type
     type IO
 
     ## Prints the provided message to standard error.
@@ -1998,6 +2001,7 @@ type Project_Description
 type Nothing
 
 ## Cons lists.
+@Builtin_Type
 type List
 
     ## The type that indicates the end of a cons list.
@@ -2013,13 +2017,10 @@ type List
     type Cons head tail
 
 ## A representation of the relative ordering between two values.
+
+   These values must be able to be ordered with respect to each other.
+@Builtin_Type
 type Ordering
-
-    ## A representation of the relative ordering between two values.
-
-       These values must be able to be ordered with respect to each other.
-    @Builtin_Type
-    type Ordering
 
     ## A representation that the first value orders as less than the second.
     @Builtin_Type
