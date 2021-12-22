@@ -301,6 +301,7 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
     if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
+        end_stats(&start_label);
         mark_with_metadata(end_label.clone().into(), metadata.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),
@@ -379,6 +380,18 @@ fn start_stats(label: &str) {
         let found = attachments.borrow_mut().insert(label.to_string(), StatsAggregate::default());
         if found.is_some() {
             warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one - values will be skewed for: {label:?}");
+        }
+    });
+}
+
+fn end_stats(label: &str) {
+    let logger = Logger::new("Profiling_Stats");
+    ATTACHED_STATS.with(|attachments| {
+        match attachments.borrow_mut().remove(label) {
+            None => warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}"),
+            Some(stats) => {
+                DEBUG!("MCDBG STATS: {stats:?}");
+            }
         }
     });
 }
