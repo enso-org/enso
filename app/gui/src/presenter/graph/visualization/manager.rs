@@ -1,3 +1,5 @@
+//! A module containing helpers for attaching, detaching and updating visualizations in controllers.
+
 use crate::prelude::*;
 
 use crate::controller::ExecutedGraph;

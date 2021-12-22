@@ -58,6 +58,7 @@ impl Nodes {
         self.nodes.get_mut(&id)
     }
 
+    /// Get id of AST corresponding with the node represented by given view.
     pub fn ast_id_by_view(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.ast_node_by_view_id.get(&id).copied()
     }
@@ -100,6 +101,8 @@ impl Nodes {
         opt_displayed
     }
 
+    /// Assign a node view to a concrete AST node. Returns the node state: the view must be
+    /// refreshed with the data from the state.
     pub fn assign_node_view_explicitly(
         &mut self,
         view_id: ViewNodeId,
@@ -211,8 +214,11 @@ impl Connections {
 /// A single expression data.
 #[derive(Clone, Debug, Default)]
 pub struct Expression {
+    /// A node whose line contains this expression.
     pub node:            AstNodeId,
+    /// The known type of the expression.
     pub expression_type: Option<view::graph_editor::Type>,
+    /// A pointer to the method called by this expression.
     pub method_pointer:  Option<view::graph_editor::MethodPointer>,
 }
 
@@ -346,6 +352,8 @@ impl State {
         self.nodes.borrow_mut().assign_newly_created_node(view_id).cloned()
     }
 
+    /// Assign a node view to a concrete AST node. Returns the node state: the view must be
+    /// refreshed with the data from the state.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) -> Node {
         self.nodes.borrow_mut().assign_node_view_explicitly(view_id, ast_id).clone()
     }
@@ -420,7 +428,9 @@ impl<'a> ControllerChange<'a> {
         }
     }
 
-    // This function checks if expression is a node's expression.
+    /// Set the node error basing of the given expression's payload. If the error is actually
+    /// changed, the to-be-updated node view is returned with the proper error description. If the
+    /// expression is not a whole expression of any node, nothing is updated and `None` is returned.
     pub fn set_node_error_from_payload(
         &self,
         expression: ast::Id,
@@ -460,18 +470,14 @@ impl<'a> ControllerChange<'a> {
         };
 
         let kind = Immutable(kind);
-        let message = Rc::new(message.clone());
+        let message = Rc::new(message);
         let propagated = Immutable(propagated);
         Some(node_view::error::Error { kind, message, propagated })
     }
 
-    /// Get the node being a main cause of some error from the current nodes on the scene. Returns
-    /// [`None`] if the error is not present on the scene at all.
-    fn get_node_causing_error(&self, trace: &[ast::Id]) -> Option<ViewNodeId> {
-        let nodes = self.state.nodes.borrow();
-        trace.iter().find_map(|expr_id| nodes.get(*expr_id)?.view_id)
-    }
-
+    /// Set the node's attached visualization. The `visualization_data` should be the content of
+    /// `visualization` field in node's metadata. If the visualization actually changes, the
+    /// to-be-updated node view is returned with the deserialized visualization path.
     pub fn set_node_visualization(
         &self,
         node_id: AstNodeId,
@@ -485,7 +491,6 @@ impl<'a> ControllerChange<'a> {
 
         let mut nodes = self.state.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(node_id);
-        DEBUG!("CONTROLLERS: Setting new visualization for node {node_id:?}: {displayed.visualization:?} or {controller_path:?}");
         if displayed.visualization != controller_path {
             displayed.visualization = controller_path.clone();
             Some((displayed.view_id?, controller_path))
@@ -601,6 +606,8 @@ impl<'a> ViewChange<'a> {
         self.nodes.borrow_mut().remove_node(id)
     }
 
+    /// Set the new node visualization. If the visualization actually changes, the AST id of the
+    /// affected node is returned.
     pub fn set_node_visualization(
         &self,
         id: ViewNodeId,
@@ -609,7 +616,6 @@ impl<'a> ViewChange<'a> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
-        DEBUG!("VIEW: Setting new visualization for node {ast_id:?}: {displayed.visualization:?} or {new_path:?}");
         if displayed.visualization != new_path {
             displayed.visualization = new_path;
             Some(ast_id)

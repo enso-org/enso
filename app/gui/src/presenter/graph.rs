@@ -13,6 +13,7 @@ use crate::prelude::*;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
+use crate::controller::upload::NodeFromDroppedFileHandler;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
@@ -20,14 +21,20 @@ use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
 
 
-
 // ===============
 // === Aliases ===
 // ===============
 
+/// The node identifier used by view.
 pub type ViewNodeId = view::graph_editor::NodeId;
+
+/// The node identifier used by controllers.
 pub type AstNodeId = ast::Id;
+
+/// The connection identifier used by view.
 pub type ViewConnection = view::graph_editor::EdgeId;
+
+/// The connection identifier used by controllers.
 pub type AstConnection = controller::graph::Connection;
 
 
@@ -62,12 +69,13 @@ pub fn default_node_position() -> Vector2 {
 
 #[derive(Debug)]
 struct Model {
-    logger:          Logger,
-    controller:      controller::ExecutedGraph,
-    view:            view::graph_editor::GraphEditor,
-    state:           Rc<State>,
-    visualization:   Visualization,
-    execution_stack: ExecutionStack,
+    logger:           Logger,
+    project:          model::Project,
+    controller:       controller::ExecutedGraph,
+    view:             view::graph_editor::GraphEditor,
+    state:            Rc<State>,
+    _visualization:   Visualization,
+    _execution_stack: ExecutionStack,
 }
 
 impl Model {
@@ -79,7 +87,7 @@ impl Model {
         let logger = Logger::new("presenter::Graph");
         let state: Rc<State> = default();
         let visualization = Visualization::new(
-            project,
+            project.clone_ref(),
             controller.clone_ref(),
             view.clone_ref(),
             state.clone_ref(),
@@ -90,7 +98,15 @@ impl Model {
             view.clone_ref(),
             state.clone_ref(),
         );
-        Self { logger, controller, view, state, visualization, execution_stack }
+        Self {
+            logger,
+            project,
+            controller,
+            view,
+            state,
+            _visualization: visualization,
+            _execution_stack: execution_stack,
+        }
     }
 
     /// Node position was changed in view.
@@ -258,6 +274,21 @@ impl Model {
         let method = suggestion_db.lookup_method_ptr(method_id).ok()?;
         Some(view::graph_editor::MethodPointer(Rc::new(method)))
     }
+
+    fn file_dropped(&self, file: ensogl_drop_manager::File, position: Vector2<f32>) {
+        let project = self.project.clone_ref();
+        let graph = self.controller.graph();
+        let to_upload = controller::upload::FileToUpload {
+            name: file.name.clone_ref().into(),
+            size: file.size,
+            data: file,
+        };
+        let position = model::module::Position { vector: position };
+        let handler = NodeFromDroppedFileHandler::new(&self.logger, project, graph);
+        if let Err(err) = handler.create_node_and_start_uploading(to_upload, position) {
+            error!(self.logger, "Error when creating node from dropped file: {err}");
+        }
+    }
 }
 
 
@@ -387,8 +418,8 @@ impl ViewUpdate {
 /// The Graph Presenter, synchronizing graph state between graph controller and view.
 ///
 /// This presenter focuses on the graph structure: nodes, their expressions and types, and
-/// connections between them. It does not integrate Searcher nor Breadcrumbs - integration of
-/// these is still to-be-delivered.
+/// connections between them. It does not integrate Searcher nor Breadcrumbs (managed by
+/// [`presenter::Searcher`] and [`presenter::ExecutionStack`] respectively).
 #[derive(Debug)]
 pub struct Graph {
     network: frp::Network,
@@ -401,14 +432,15 @@ impl Graph {
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        project_view: &view::project::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
+        let view = project_view.graph().clone_ref();
         let model = Rc::new(Model::new(project, controller, view));
-        Self { network, model }.init()
+        Self { network, model }.init(project_view)
     }
 
-    fn init(self) -> Self {
+    fn init(self, project_view: &view::project::View) -> Self {
         let logger = &self.model.logger;
         let network = &self.network;
         let model = &self.model;
@@ -448,7 +480,7 @@ impl Graph {
             init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));
             view.set_node_expression <+ init_node_expression;
             view.set_node_position <+ added_node_update.filter_map(|update| Some((update.view_id?, update.position)));
-            view.set_visualization <+ added_node_update.filter_map(|update| Some((update.view_id?, update.visualization.clone())));
+            view.set_visualization <+ added_node_update.filter_map(|update| Some((update.view_id?, Some(update.visualization.clone()?))));
             view.enable_visualization <+ added_node_update.filter_map(|update| update.visualization.is_some().and_option(update.view_id));
 
 
@@ -473,7 +505,6 @@ impl Graph {
             view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
             view.set_method_pointer <+ update_expression.filter_map(f!((id) model.refresh_expression_method_pointer(*id)));
             view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
-            trace view.set_node_error_status;
 
 
             // === Changes from the View ===
@@ -484,6 +515,12 @@ impl Graph {
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
+
+
+            // === Dropping Files ===
+
+            file_upload_requested <- view.file_dropped.gate(&project_view.drop_files_enabled);
+            eval file_upload_requested (((file,position)) model.file_dropped(file.clone_ref(),*position));
         }
 
         view.remove_all_nodes();
@@ -523,14 +560,18 @@ impl Graph {
 // === State Access ===
 
 impl Graph {
+    /// Get the view id of given AST node.
     pub fn view_id_of_ast_node(&self, id: AstNodeId) -> Option<ViewNodeId> {
         self.model.state.view_id_of_ast_node(id)
     }
 
+    /// Get the ast id of given node view.
     pub fn ast_node_of_view(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.model.state.ast_node_id_of_view(id)
     }
 
+    /// Assign a node view to the given AST id. Since next update, the presenter will share the
+    /// node content between the controllers and the view.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);
     }

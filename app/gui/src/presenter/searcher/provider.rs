@@ -1,15 +1,26 @@
+//! A module with the providers for searcher view, taking content from the Action List controller.
+
+use crate::prelude::*;
+
 use crate::controller::searcher::action::MatchInfo;
 use crate::model::suggestion_database;
-use crate::prelude::*;
+
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 
+
+// ============================
+// === Any Provider Helpers ===
+// ============================
+
+/// Wrappers for some instance of the structure being both entry and documentation provider.
 pub type Any = (
     list_view::entry::AnyModelProvider<GlyphHighlightedLabel>,
     view::searcher::AnyDocumentationProvider,
 );
 
+/// Create providers from the current controller's action list.
 pub fn create_providers_from_controller(logger: &Logger, controller: &controller::Searcher) -> Any {
     use controller::searcher::Actions;
     match controller.actions() {
@@ -34,8 +45,15 @@ where P: list_view::entry::ModelProvider<view::searcher::Entry>
     (provider.clone_ref().into(), provider.into())
 }
 
+
+
+// ========================
+// === provider::Action ===
+// ========================
+
+/// An searcher actions provider, based on the action list retrieved from the searcher controller.
 #[derive(Clone, Debug)]
-struct Action {
+pub struct Action {
     actions:           Rc<controller::searcher::action::List>,
     user_action:       controller::searcher::UserAction,
     intended_function: Option<controller::searcher::action::Suggestion>,

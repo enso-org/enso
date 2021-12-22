@@ -1,3 +1,6 @@
+//! The module containing [`Searcher`] presenter. See [`crate::presenter`] documentation to know
+//! more about presenters in general.
+
 pub mod provider;
 
 use crate::prelude::*;
@@ -13,6 +16,10 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 
 
+
+// =============
+// === Model ===
+// =============
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
@@ -55,7 +62,7 @@ impl Model {
         }
     }
 
-    fn editing_committed(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
+    fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
             None => self.controller.commit_node().map(Some),
@@ -80,13 +87,19 @@ impl Model {
     }
 }
 
+/// The Searcher presenter, synchronizing state between searcher view and searcher controller.
+///
+/// The presenter should be created for one instantiated searcher controller (when node starts to
+/// being edited). Alternatively, the [`setup_controller`] method covers constructing the controller
+/// and the presenter.
 #[derive(Debug)]
 pub struct Searcher {
-    network: frp::Network,
-    model:   Rc<Model>,
+    _network: frp::Network,
+    model:    Rc<Model>,
 }
 
 impl Searcher {
+    /// Constructor. The returned structure works rigth away.
     pub fn new(
         parent: impl AnyLogger,
         controller: controller::Searcher,
@@ -128,9 +141,11 @@ impl Searcher {
             std::future::ready(())
         });
 
-        Self { model, network }
+        Self { model, _network: network }
     }
 
+    /// Setup new, appropriate searcher controller for the edition of `node_view`, and construct
+    /// presenter handling it.
     pub fn setup_controller(
         parent: impl AnyLogger,
         ide_controller: controller::Ide,
@@ -153,8 +168,6 @@ impl Searcher {
         let selected_views = view.graph().model.nodes.all_selected();
         let selected_nodes =
             selected_views.iter().filter_map(|view| graph_presenter.ast_node_of_view(*view));
-        DEBUG!("Creating searcher controller for {selected_nodes.clone().collect_vec():?}");
-        DEBUG!("The mode is {mode:?}");
         let searcher_controller = controller::Searcher::new_from_graph_controller(
             &parent,
             ide_controller,
@@ -166,12 +179,28 @@ impl Searcher {
         Ok(Self::new(parent, searcher_controller, view, node_view))
     }
 
-    pub fn editing_committed(
-        self,
-        entry_id: Option<view::searcher::entry::Id>,
-    ) -> Option<AstNodeId> {
-        self.model.editing_committed(entry_id)
+    /// Commit editing.
+    ///
+    /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
+    /// editing finishes. The `entry_id` might be none in case where the searcher should accept
+    /// the node input without any entry selected. If the commitment will result in creating a new
+    /// node, its AST id is returned.
+    pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
+        self.model.commit_editing(entry_id)
     }
 
-    pub fn editing_aborted(self) {}
+    /// Abort editing, without taking any action.
+    ///
+    /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
+    /// editing finishes.
+    pub fn abort_editing(self) {}
+
+    /// Returns true if the entry under given index is one of the examples.
+    pub fn is_entry_an_example(&self, entry: view::searcher::entry::Id) -> bool {
+        use crate::controller::searcher::action::Action::Example;
+
+        let controller = &self.model.controller;
+        let entry = controller.actions().list().and_then(|l| l.get_cloned(entry));
+        entry.map_or(false, |e| matches!(e.action, Example(_)))
+    }
 }

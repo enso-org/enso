@@ -46,7 +46,7 @@ impl Model {
         let graph = presenter::Graph::new(
             controller.model.clone_ref(),
             graph_controller.clone_ref(),
-            view.graph().clone_ref(),
+            &view,
         );
         let code = presenter::Code::new(text_controller, &view);
         let searcher = default();
@@ -91,9 +91,12 @@ impl Model {
     ) -> bool {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
-            if let Some(created_node) = searcher.editing_committed(entry_id) {
-                DEBUG!("Created node {created_node}");
+            let is_example = entry_id.map_or(false, |i| searcher.is_entry_an_example(i));
+            if let Some(created_node) = searcher.commit_editing(entry_id) {
                 self.graph.assign_node_view_explicitly(node, created_node);
+                if is_example {
+                    self.view.graph().enable_visualization(node);
+                }
                 false
             } else {
                 true
@@ -106,7 +109,7 @@ impl Model {
     fn editing_aborted(&self) {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
-            searcher.editing_aborted();
+            searcher.abort_editing();
         } else {
             warning!(self.logger, "Editing aborted without searcher controller.");
         }
@@ -169,10 +172,10 @@ impl Project {
     ) -> Self {
         let network = frp::Network::new("presenter::Project");
         let model = Model::new(ide_controller, controller, init_result, view, status_bar);
-        Self { network, model: Rc::new(model) }.init_frp().setup_notification_handler()
+        Self { network, model: Rc::new(model) }.init()
     }
 
-    fn init_frp(self) -> Self {
+    fn init(self) -> Self {
         let model = &self.model;
         let network = &self.network;
 
@@ -195,9 +198,17 @@ impl Project {
 
             eval_ view.undo (model.undo());
             eval_ view.redo (model.redo());
+
+            values_computed <- source::<()>();
+            values_computed_first_time <- values_computed.constant(true).on_change().constant(());
+            view.show_prompt <+ values_computed_first_time;
         }
 
+        let graph_controller = self.model.graph_controller.clone_ref();
+
         self.init_analytics()
+            .setup_notification_handler()
+            .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
     }
 
     fn init_analytics(self) -> Self {
@@ -234,6 +245,22 @@ impl Project {
             };
             let message = view::status_bar::event::Label::from(message);
             model.status_bar.add_event(message);
+            std::future::ready(())
+        });
+        self
+    }
+
+    fn attach_frp_to_values_computed_notifications(
+        self,
+        graph: controller::ExecutedGraph,
+        values_computed: frp::Source<()>,
+    ) -> Self {
+        let weak = Rc::downgrade(&self.model);
+        let notifications = graph.subscribe();
+        spawn_stream_handler(weak, notifications, move |notification, _| {
+            if let controller::graph::executed::Notification::ComputedValueInfo(_) = notification {
+                values_computed.emit(());
+            }
             std::future::ready(())
         });
         self

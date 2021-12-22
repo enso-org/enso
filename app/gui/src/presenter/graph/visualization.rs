@@ -1,4 +1,7 @@
-mod manager;
+//! The module with the [`Visualization`] presenter. See [`crate::presenter`] documentation to know
+//! more about presenters in general.
+
+pub mod manager;
 
 use crate::prelude::*;
 
@@ -14,17 +17,12 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
-use ide_view::graph_editor::GraphEditor;
 
 
-fn deserialize_visualization_data(
-    data: VisualizationUpdateData,
-) -> FallibleResult<visualization_view::Data> {
-    let binary = data.as_ref();
-    let as_text = std::str::from_utf8(binary)?;
-    let as_json: serde_json::Value = serde_json::from_str(as_text)?;
-    Ok(visualization_view::Data::from(as_json))
-}
+
+// =============
+// === Model ===
+// =============
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
@@ -37,14 +35,17 @@ struct Model {
 }
 
 impl Model {
+    /// Handle the showing visualization UI.
     fn visualization_shown(&self, node_id: ViewNodeId, metadata: visualization_view::Metadata) {
         self.update_visualization(node_id, &self.manager, Some(metadata));
     }
 
+    /// Handle the visualization being shown in UI.
     fn visualization_hidden(&self, node_id: view::graph_editor::NodeId) {
         self.update_visualization(node_id, &self.manager, None);
     }
 
+    /// Handle the preprocessor change requested by visualization.
     fn visualization_preprocessor_changed(
         &self,
         node_id: ViewNodeId,
@@ -54,12 +55,12 @@ impl Model {
         self.update_visualization(node_id, &self.manager, Some(metadata))
     }
 
-    pub fn error_on_node_changed(&self, node_id: ViewNodeId, error: &Option<node_view::Error>) {
+    /// Handle the error change on given node: attach/detach the error visualization if needed.
+    fn error_on_node_changed(&self, node_id: ViewNodeId, error: &Option<node_view::Error>) {
         use view::graph_editor::builtin::visualization::native::error as error_visualization;
         let error_kind = error.as_ref().map(|error| *error.kind);
         let needs_error_vis = error_kind.contains(&node_view::error::Kind::Dataflow);
         let metadata = needs_error_vis.then(error_visualization::metadata);
-        DEBUG!("New errror no node {node_id:?}: {metadata:?}");
         self.update_visualization(node_id, &self.error_manager, metadata);
     }
 
@@ -80,6 +81,10 @@ impl Model {
         }
     }
 
+    /// Pass the value update received from controllers to the Graph view appropriate endpoint.
+    ///
+    /// The `update_endpoint` should be `set_visualization_data` or `set_error_visualization_data`,
+    /// of [`ide_view::graph_editor::GraphEditor`].
     fn handle_value_update(
         &self,
         update_endpoint: &frp::Source<(ViewNodeId, visualization_view::Data)>,
@@ -98,6 +103,8 @@ impl Model {
         }
     }
 
+    /// Handle the visualization update failure by passing the affected view in the given FPR
+    /// endpoint.
     fn handle_controller_failure(
         &self,
         failure_endpoint: &frp::Source<ViewNodeId>,
@@ -108,6 +115,9 @@ impl Model {
         }
     }
 
+    /// Load the available visualizations to the view.
+    ///
+    /// See also [`controller::Visualization`] for information about loaded visualizations.
     fn load_visualizations(&self) {
         self.graph_view.reset_visualization_registry();
         let logger = self.logger.clone_ref();
@@ -131,17 +141,26 @@ impl Model {
     }
 }
 
+
+
+// =====================
+// === Visualization ===
+// =====================
+
+/// Visualization Presenter, synchronizing the visualization attached in the Engine with the
+/// visualization shown in the view, including the error visualizations.
 #[derive(Debug)]
 pub struct Visualization {
-    network: frp::Network,
-    model:   Rc<Model>,
+    _network: frp::Network,
+    model:    Rc<Model>,
 }
 
 impl Visualization {
+    /// Constructor. The returned structure is does not require any further initialization.
     pub fn new(
         project: model::Project,
         graph: controller::ExecutedGraph,
-        view: GraphEditor,
+        view: view::graph_editor::GraphEditor,
         state: Rc<graph::state::State>,
     ) -> Self {
         let logger = Logger::new("presenter::graph::Visualization");
@@ -178,7 +197,7 @@ impl Visualization {
             eval_ view.visualization_registry_reload_requested (model.load_visualizations());
         }
 
-        Self { model, network }
+        Self { model, _network: network }
             .spawn_visualization_handler(notifications, manager, update, visualization_failure)
             .spawn_visualization_handler(
                 error_notifications,
@@ -236,4 +255,19 @@ impl Visualization {
         });
         self
     }
+}
+
+
+
+// ========================
+// === Helper Functions ===
+// ========================
+
+fn deserialize_visualization_data(
+    data: VisualizationUpdateData,
+) -> FallibleResult<visualization_view::Data> {
+    let binary = data.as_ref();
+    let as_text = std::str::from_utf8(binary)?;
+    let as_json: serde_json::Value = serde_json::from_str(as_text)?;
+    Ok(visualization_view::Data::from(as_json))
 }

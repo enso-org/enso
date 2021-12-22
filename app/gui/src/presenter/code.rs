@@ -1,10 +1,19 @@
+//! The module containing [`Code`] presenter. See [`crate::presenter`] documentation to know more
+//! about presenters in general.
+
 use crate::prelude::*;
 
 use crate::controller::text::Notification;
 use crate::executor::global::spawn_stream_handler;
+
 use enso_frp as frp;
 use ide_view as view;
 
+
+
+// =============
+// === Model ===
+// =============
 
 #[derive(Debug)]
 struct Model {
@@ -46,13 +55,21 @@ impl Model {
     }
 }
 
+
+
+// ============
+// === Code ===
+// ============
+
+/// The presenter synchronizing Code Editor view with the module code in controllers.
 #[derive(Debug)]
 pub struct Code {
-    network: frp::Network,
-    model:   Rc<Model>,
+    _network: frp::Network,
+    model:    Rc<Model>,
 }
 
 impl Code {
+    /// Constructor. The returned structure works right away and does not need any initialization.
     pub fn new(controller: controller::Text, project_view: &view::project::View) -> Self {
         let network = frp::Network::new("presenter::code");
         let view = project_view.code_editor().clone_ref();
@@ -76,7 +93,7 @@ impl Code {
 
 
 
-        Self { network, model }
+        Self { _network: network, model }
             .display_initial_code(code_in_controller.clone_ref())
             .setup_notification_handler(code_in_controller)
     }

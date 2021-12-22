@@ -1,11 +1,21 @@
+//! The module with [`ExecutionStack`] presenter. See [`crate::presenter`] documentation to know
+//! more about presenters in general.
+
 use crate::prelude::*;
 
 use crate::executor::global::spawn_stream_handler;
 use crate::model::execution_context::LocalCall;
 use crate::presenter::graph::state::State;
 use crate::presenter::graph::ViewNodeId;
+
 use enso_frp as frp;
 use ide_view as view;
+
+
+
+// =============
+// === Model ===
+// =============
 
 #[derive(Debug)]
 struct Model {
@@ -122,13 +132,22 @@ impl Model {
     }
 }
 
+
+
+// ======================
+// === ExecutionStack ===
+// ======================
+
+/// Execution Stack presenter, synchronizing the execution stack of currently displayed graph with
+/// the breadcrumbs displayed above. It also handles the entering/exiting nodes requests.
 #[derive(Debug)]
 pub struct ExecutionStack {
-    network: frp::Network,
-    model:   Rc<Model>,
+    _network: frp::Network,
+    model:    Rc<Model>,
 }
 
 impl ExecutionStack {
+    /// Constructor. The returned presenter works right away.
     pub fn new(
         parent: impl AnyLogger,
         controller: controller::ExecutedGraph,
@@ -152,7 +171,9 @@ impl ExecutionStack {
             });
         }
 
-        Self { network, model }.initialize_breadcrumbs().setup_controller_notification_handlers()
+        Self { _network: network, model }
+            .initialize_breadcrumbs()
+            .setup_controller_notification_handlers()
     }
 
     fn setup_controller_notification_handlers(self) -> Self {

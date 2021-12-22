@@ -22,6 +22,7 @@ use crate::controller::ide::StatusNotification;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 
+use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;
 
@@ -80,6 +81,59 @@ impl Model {
             });
         }
     }
+
+    /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
+    /// a second one for opening the project.
+    pub fn open_project(&self, project_name: &str) {
+        let logger = self.logger.clone_ref();
+        let controller = self.controller.clone_ref();
+        let name = project_name.to_owned();
+        crate::executor::global::spawn(async move {
+            if let Ok(managing_api) = controller.manage_projects() {
+                match managing_api.list_projects().await {
+                    Ok(projects) => {
+                        let mut projects = projects.into_iter();
+                        let project = projects.find(|project| project.name.as_ref() == name);
+                        let uuid = project.map(|project| project.id);
+                        if let Some(uuid) = uuid {
+                            if let Err(err) = managing_api.open_project(uuid).await {
+                                error!(logger, "Could not open open project `{name}`: {err}.");
+                            }
+                        } else {
+                            error!(logger, "Could not find project `{name}`.")
+                        }
+                    }
+                    Err(err) => error!(logger, "Could not list projects: {err}."),
+                }
+            } else {
+                warning!(logger, "Project opening failed: no ProjectManagingAPI available.");
+            }
+        });
+    }
+
+    /// Create a new project. `template` is an optional name of the project template passed to the
+    /// Engine. It makes a call to Project Manager.
+    fn create_project(&self, template: Option<&str>) {
+        let logger = self.logger.clone_ref();
+        let controller = self.controller.clone_ref();
+        let template = template.map(ToOwned::to_owned);
+        crate::executor::global::spawn(async move {
+            if let Ok(managing_api) = controller.manage_projects() {
+                if let Err(err) = managing_api.create_new_project(template.clone()).await {
+                    if let Some(template) = template {
+                        error!(
+                            logger,
+                            "Could not create new project from template {template}: {err}."
+                        );
+                    } else {
+                        error!(logger, "Could not create new project: {err}.");
+                    }
+                }
+            } else {
+                warning!(logger, "Project creation failed: no ProjectManagingAPI available.");
+            }
+        });
+    }
 }
 
 
@@ -93,7 +147,8 @@ impl Model {
 /// See [`crate::presenter`] docs for information about presenters in general.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Presenter {
-    model: Rc<Model>,
+    network: frp::Network,
+    model:   Rc<Model>,
 }
 
 impl Presenter {
@@ -105,12 +160,25 @@ impl Presenter {
         let logger = Logger::new("Presenter");
         let current_project = default();
         let model = Rc::new(Model { logger, controller, view, current_project });
-        Self { model }.init()
+
+        frp::new_network! { network
+            let welcome_view_frp = &model.view.welcome_screen().frp;
+            eval welcome_view_frp.open_project((name) model.open_project(name));
+            eval welcome_view_frp.create_project((templ) model.create_project(templ.as_deref()));
+
+            let root_frp = &model.view.frp;
+            root_frp.switch_view_to_project <+ welcome_view_frp.create_project.constant(());
+            root_frp.switch_view_to_project <+ welcome_view_frp.open_project.constant(());
+        }
+
+
+        Self { model, network }.init()
     }
 
     fn init(self) -> Self {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
+        self.set_projects_list_on_welcome_screen();
         self.model.clone_ref().setup_and_display_new_project();
         self
     }
@@ -156,6 +224,25 @@ impl Presenter {
                     model.setup_and_display_new_project(),
             }
             futures::future::ready(())
+        });
+    }
+
+    fn set_projects_list_on_welcome_screen(&self) {
+        let controller = self.model.controller.clone_ref();
+        let welcome_view_frp = self.model.view.welcome_screen().frp.clone_ref();
+        let logger = self.model.logger.clone_ref();
+        crate::executor::global::spawn(async move {
+            if let Ok(project_manager) = controller.manage_projects() {
+                match project_manager.list_projects().await {
+                    Ok(projects) => {
+                        let names = projects.into_iter().map(|p| p.name.into()).collect::<Vec<_>>();
+                        welcome_view_frp.set_projects_list(names);
+                    }
+                    Err(err) => {
+                        error!(logger, "Unable to get list of projects: {err}.");
+                    }
+                }
+            }
         });
     }
 }
