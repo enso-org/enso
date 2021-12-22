@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::presenter;
 
+use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
@@ -24,6 +25,7 @@ struct Model {
     graph_controller: controller::ExecutedGraph,
     ide_controller:   controller::Ide,
     view:             view::project::View,
+    status_bar:       view::status_bar::View,
     graph:            presenter::Graph,
     code:             presenter::Code,
     searcher:         RefCell<Option<presenter::Searcher>>,
@@ -35,6 +37,7 @@ impl Model {
         controller: controller::Project,
         init_result: controller::project::InitializationResult,
         view: view::project::View,
+        status_bar: view::status_bar::View,
     ) -> Self {
         let logger = Logger::new("presenter::Project");
         let graph_controller = init_result.main_graph;
@@ -45,7 +48,7 @@ impl Model {
             graph_controller.clone_ref(),
             view.graph().clone_ref(),
         );
-        let code = presenter::Code::new(text_controller, view.code_editor().clone_ref());
+        let code = presenter::Code::new(text_controller, &view);
         let searcher = default();
         Model {
             logger,
@@ -54,6 +57,7 @@ impl Model {
             graph_controller,
             ide_controller,
             view,
+            status_bar,
             graph,
             code,
             searcher,
@@ -107,6 +111,35 @@ impl Model {
             warning!(self.logger, "Editing aborted without searcher controller.");
         }
     }
+
+    fn rename_project(&self, name: impl Str) {
+        if self.controller.model.name() != name.as_ref() {
+            let project = self.controller.model.clone_ref();
+            let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+            let logger = self.logger.clone_ref();
+            let name = name.into();
+            executor::global::spawn(async move {
+                if let Err(e) = project.rename_project(name).await {
+                    error!(logger, "The project couldn't be renamed: {e}");
+                    breadcrumbs.cancel_project_name_editing.emit(());
+                }
+            });
+        }
+    }
+
+    fn undo(&self) {
+        debug!(self.logger, "Undo triggered in UI.");
+        if let Err(e) = self.controller.model.urm().undo() {
+            error!(self.logger, "Undo failed: {e}");
+        }
+    }
+
+    fn redo(&self) {
+        debug!(self.logger, "Redo triggered in UI.");
+        if let Err(e) = self.controller.model.urm().redo() {
+            error!(self.logger, "Redo failed: {e}");
+        }
+    }
 }
 
 
@@ -132,10 +165,11 @@ impl Project {
         controller: controller::Project,
         init_result: controller::project::InitializationResult,
         view: view::project::View,
+        status_bar: view::status_bar::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Project");
-        let model = Model::new(ide_controller, controller, init_result, view);
-        Self { network, model: Rc::new(model) }.init_frp()
+        let model = Model::new(ide_controller, controller, init_result, view, status_bar);
+        Self { network, model: Rc::new(model) }.init_frp().setup_notification_handler()
     }
 
     fn init_frp(self) -> Self {
@@ -143,25 +177,65 @@ impl Project {
         let network = &self.network;
 
         let view = &model.view.frp;
+        let breadcrumbs = &model.view.graph().model.breadcrumbs;
         let graph_view = &model.view.graph().frp;
 
         frp::extend! { network
             searcher_input <- view.searcher_input.filter_map(|view| *view);
-            trace searcher_input;
             eval searcher_input ((node_view) {
                 model.setup_searcher_presenter(*node_view)
             });
 
-            trace view.editing_committed;
-            trace view.editing_aborted;
-
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
                 model.editing_committed(*node_view, *entry).as_some(*node_view)
             }));
-            trace graph_view.remove_node;
             eval_ view.editing_aborted(model.editing_aborted());
+
+            eval breadcrumbs.output.project_name((name) {model.rename_project(name);});
+
+            eval_ view.undo (model.undo());
+            eval_ view.redo (model.redo());
         }
 
+        self.init_analytics()
+    }
+
+    fn init_analytics(self) -> Self {
+        let network = &self.network;
+        let project = &self.model.view;
+        let graph = self.model.view.graph();
+        let searcher = self.model.view.searcher();
+        frp::extend! { network
+            eval_ graph.node_editing_started([]analytics::remote_log_event("graph_editor::node_editing_started"));
+            eval_ graph.node_editing_finished([]analytics::remote_log_event("graph_editor::node_editing_finished"));
+            eval_ graph.node_added([]analytics::remote_log_event("graph_editor::node_added"));
+            eval_ graph.node_removed([]analytics::remote_log_event("graph_editor::node_removed"));
+            eval_ graph.nodes_collapsed([]analytics::remote_log_event("graph_editor::nodes_collapsed"));
+            eval_ graph.node_entered([]analytics::remote_log_event("graph_editor::node_enter_request"));
+            eval_ graph.node_exited([]analytics::remote_log_event("graph_editor::node_exit_request"));
+            eval_ graph.on_edge_endpoints_set([]analytics::remote_log_event("graph_editor::edge_endpoints_set"));
+            eval_ graph.visualization_shown([]analytics::remote_log_event("graph_editor::visualization_shown"));
+            eval_ graph.visualization_hidden([]analytics::remote_log_event("graph_editor::visualization_hidden"));
+            eval_ graph.on_edge_endpoint_unset([]analytics::remote_log_event("graph_editor::connection_removed"));
+            eval_ searcher.used_as_suggestion([]analytics::remote_log_event("searcher::used_as_suggestion"));
+            eval_ project.editing_committed([]analytics::remote_log_event("project::editing_committed"));
+        }
+        self
+    }
+
+    fn setup_notification_handler(self) -> Self {
+        let notifications = self.model.controller.model.subscribe();
+        let weak = Rc::downgrade(&self.model);
+        spawn_stream_handler(weak, notifications, |notification, model| {
+            info!(model.logger, "Processing notification {notification:?}");
+            let message = match notification {
+                model::project::Notification::ConnectionLost(_) =>
+                    crate::BACKEND_DISCONNECTED_MESSAGE,
+            };
+            let message = view::status_bar::event::Label::from(message);
+            model.status_bar.add_event(message);
+            std::future::ready(())
+        });
         self
     }
 
@@ -173,8 +247,9 @@ impl Project {
         ide_controller: controller::Ide,
         controller: controller::Project,
         view: view::project::View,
+        status_bar: view::status_bar::View,
     ) -> FallibleResult<Self> {
         let init_result = controller.initialize().await?;
-        Ok(Self::new(ide_controller, controller, init_result, view))
+        Ok(Self::new(ide_controller, controller, init_result, view, status_bar))
     }
 }

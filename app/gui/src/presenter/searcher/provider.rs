@@ -15,7 +15,6 @@ pub fn create_providers_from_controller(logger: &Logger, controller: &controller
     match controller.actions() {
         Actions::Loading => as_any(Rc::new(list_view::entry::EmptyProvider)),
         Actions::Loaded { list } => {
-            let list_is_empty = list.matching_count() == 0;
             let user_action = controller.current_user_action();
             let intended_function = controller.intended_function_suggestion();
             let provider = Action { actions: list, user_action, intended_function };

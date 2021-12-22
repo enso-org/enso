@@ -97,7 +97,6 @@ impl Searcher {
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.view.graph().frp;
-        let project = &model.view.frp;
         let searcher = &model.view.searcher().frp;
 
         frp::extend! { network

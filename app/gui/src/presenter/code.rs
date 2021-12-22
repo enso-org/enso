@@ -34,6 +34,16 @@ impl Model {
             }
         }
     }
+
+    fn save_module(&self, content: String) {
+        let logger = self.logger.clone_ref();
+        let controller = self.controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.store_content(content).await {
+                error!(logger, "Error while saving module: {err}");
+            }
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -43,8 +53,9 @@ pub struct Code {
 }
 
 impl Code {
-    pub fn new(controller: controller::Text, view: view::code_editor::View) -> Self {
+    pub fn new(controller: controller::Text, project_view: &view::project::View) -> Self {
         let network = frp::Network::new("presenter::code");
+        let view = project_view.code_editor().clone_ref();
         let model = Rc::new(Model::new(controller, view));
 
         let text_area = model.view.text_area();
@@ -58,6 +69,9 @@ impl Code {
             maybe_change_to_apply <= text_area.changed;
             change_to_apply <- maybe_change_to_apply.gate(&desynchronized);
             eval change_to_apply ((change) model.apply_change_from_view(change));
+
+            code_to_save <- code_in_controller.sample(&project_view.save_module);
+            eval code_to_save ((code) model.save_module(code.to_string()));
         }
 
 

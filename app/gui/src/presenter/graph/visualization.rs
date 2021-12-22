@@ -29,6 +29,8 @@ fn deserialize_visualization_data(
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     logger:        Logger,
+    controller:    controller::Visualization,
+    graph_view:    view::graph_editor::GraphEditor,
     manager:       Rc<Manager>,
     error_manager: Rc<Manager>,
     state:         Rc<graph::state::State>,
@@ -105,6 +107,28 @@ impl Model {
             failure_endpoint.emit(node_view);
         }
     }
+
+    fn load_visualizations(&self) {
+        self.graph_view.reset_visualization_registry();
+        let logger = self.logger.clone_ref();
+        let controller = self.controller.clone_ref();
+        let graph_editor = self.graph_view.clone_ref();
+        executor::global::spawn(async move {
+            let identifiers = controller.list_visualizations().await;
+            let identifiers = identifiers.unwrap_or_default();
+            for identifier in identifiers {
+                match controller.load_visualization(&identifier).await {
+                    Ok(visualization) => {
+                        graph_editor.frp.register_visualization.emit(Some(visualization));
+                    }
+                    Err(err) => {
+                        error!(logger, "Error while loading visualization {identifier}: {err:?}");
+                    }
+                }
+            }
+            info!(logger, "Visualizations Initialized.");
+        });
+    }
 }
 
 #[derive(Debug)]
@@ -123,11 +147,14 @@ impl Visualization {
         let logger = Logger::new("presenter::graph::Visualization");
         let network = frp::Network::new("presenter::graph::Visualization");
 
+        let controller = project.visualization().clone_ref();
         let (manager, notifications) =
             Manager::new(&logger, graph.clone_ref(), project.clone_ref());
         let (error_manager, error_notifications) = Manager::new(&logger, graph, project);
         let model = Rc::new(Model {
             logger,
+            controller,
+            graph_view: view.clone_ref(),
             manager: manager.clone_ref(),
             error_manager: error_manager.clone_ref(),
             state,
@@ -147,6 +174,8 @@ impl Visualization {
             view.set_visualization_data <+ update;
             view.set_error_visualization_data <+ error_update;
             view.disable_visualization <+ visualization_failure;
+
+            eval_ view.visualization_registry_reload_requested (model.load_visualizations());
         }
 
         Self { model, network }

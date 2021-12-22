@@ -10,7 +10,6 @@ pub mod code;
 pub mod graph;
 pub mod project;
 pub mod searcher;
-pub mod visualization;
 
 pub use code::Code;
 pub use graph::Graph;
@@ -51,6 +50,7 @@ impl Model {
             // We know the name of new project before it loads. We set it right now to avoid
             // displaying placeholder on the scene during loading.
             let project_view = self.view.project();
+            let status_bar = self.view.status_bar().clone_ref();
             let breadcrumbs = &project_view.graph().model.breadcrumbs;
             breadcrumbs.project_name(project_model.name().to_string());
 
@@ -64,6 +64,7 @@ impl Model {
                     ide_controller,
                     project_controller,
                     project_view,
+                    status_bar,
                 )
                 .await
                 {

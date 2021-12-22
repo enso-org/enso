@@ -12,6 +12,7 @@ use bimap::Overwritten;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
+use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
 
 
@@ -24,10 +25,11 @@ use ide_view::graph_editor::EdgeEndpoint;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Node {
-    pub view_id:    Option<ViewNodeId>,
-    pub position:   Vector2,
-    pub expression: node_view::Expression,
-    pub error:      Option<node_view::Error>,
+    pub view_id:       Option<ViewNodeId>,
+    pub position:      Vector2,
+    pub expression:    node_view::Expression,
+    pub error:         Option<node_view::Error>,
+    pub visualization: Option<visualization_view::Path>,
 }
 
 /// The set of node states.
@@ -469,6 +471,28 @@ impl<'a> ControllerChange<'a> {
         let nodes = self.state.nodes.borrow();
         trace.iter().find_map(|expr_id| nodes.get(*expr_id)?.view_id)
     }
+
+    pub fn set_node_visualization(
+        &self,
+        node_id: AstNodeId,
+        visualization_data: Option<serde_json::Value>,
+    ) -> Option<(ViewNodeId, Option<visualization_view::Path>)> {
+        let controller_path = visualization_data.and_then(|data| {
+            // It is perfectly fine to ignore deserialization errors here. This is metadata, that
+            // might not even be initialized.
+            serde_json::from_value(data).ok()
+        });
+
+        let mut nodes = self.state.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(node_id);
+        DEBUG!("CONTROLLERS: Setting new visualization for node {node_id:?}: {displayed.visualization:?} or {controller_path:?}");
+        if displayed.visualization != controller_path {
+            displayed.visualization = controller_path.clone();
+            Some((displayed.view_id?, controller_path))
+        } else {
+            None
+        }
+    }
 }
 
 
@@ -575,6 +599,23 @@ impl<'a> ViewChange<'a> {
     /// Remove the node, and returns its AST id.
     pub fn remove_node(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.nodes.borrow_mut().remove_node(id)
+    }
+
+    pub fn set_node_visualization(
+        &self,
+        id: ViewNodeId,
+        new_path: Option<visualization_view::Path>,
+    ) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        DEBUG!("VIEW: Setting new visualization for node {ast_id:?}: {displayed.visualization:?} or {new_path:?}");
+        if displayed.visualization != new_path {
+            displayed.visualization = new_path;
+            Some(ast_id)
+        } else {
+            None
+        }
     }
 }
 
