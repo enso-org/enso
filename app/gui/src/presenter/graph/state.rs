@@ -1,0 +1,756 @@
+//! The module containing the Graph Presenter [`State`]
+
+use crate::prelude::*;
+
+use crate::presenter::graph::AstConnection;
+use crate::presenter::graph::AstNodeId;
+use crate::presenter::graph::ViewConnection;
+use crate::presenter::graph::ViewNodeId;
+
+use bimap::BiMap;
+use bimap::Overwritten;
+use ide_view as view;
+use ide_view::graph_editor::component::node as node_view;
+use ide_view::graph_editor::EdgeEndpoint;
+
+
+
+// =============
+// === Nodes ===
+// =============
+
+/// A single node data.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Default)]
+pub struct Node {
+    pub view_id:    Option<ViewNodeId>,
+    pub position:   Vector2,
+    pub expression: node_view::Expression,
+}
+
+/// The set of node states.
+///
+/// This structure allows to access data of any node by Ast id, or view id. It also keeps list
+/// of the AST nodes with no view assigned, and allows to assign View Id to the next one.
+#[derive(Clone, Debug, Default)]
+pub struct Nodes {
+    // Each operation in this structure should keep the following constraints:
+    // * Each `nodes_without_view` entry has an entry in `nodes` with `view_id` being `None`.
+    // * All values in `ast_node_by_view_id` has corresponding element in `nodes` with `view_id`
+    //   being equal to key of the value.
+    nodes:               HashMap<AstNodeId, Node>,
+    nodes_without_view:  Vec<AstNodeId>,
+    ast_node_by_view_id: HashMap<ViewNodeId, AstNodeId>,
+}
+
+impl Nodes {
+    /// Get the state of the node by Ast id.
+    pub fn get(&self, id: AstNodeId) -> Option<&Node> {
+        self.nodes.get(&id)
+    }
+
+    /// Get mutable reference of the node's state by Ast id.
+    pub fn get_mut(&mut self, id: AstNodeId) -> Option<&mut Node> {
+        self.nodes.get_mut(&id)
+    }
+
+    /// Get the mutable reference, creating an default entry without view if it's missing.
+    ///
+    /// The entry will be also present on the "nodes without view" list and may have view assigned
+    /// using [`assign_newly_created_node`] method.
+    pub fn get_mut_or_create(&mut self, id: AstNodeId) -> &mut Node {
+        let nodes_without_view = &mut self.nodes_without_view;
+        self.nodes.entry(id).or_insert_with(|| {
+            nodes_without_view.push(id);
+            default()
+        })
+    }
+
+    /// Get the AST id of the node represented by given view. Returns None, if the node view does
+    /// not represent any AST node.
+    pub fn ast_id_of_view(&self, view_id: ViewNodeId) -> Option<AstNodeId> {
+        self.ast_node_by_view_id.get(&view_id).copied()
+    }
+
+    /// Assign a node view to the one of AST nodes without view. If there is any of such nodes,
+    /// `None` is returned. Otherwise, returns the node state - the newly created view must be
+    /// refreshed with the data from the state.
+    pub fn assign_newly_created_node(&mut self, view_id: ViewNodeId) -> Option<&mut Node> {
+        let ast_node = self.nodes_without_view.pop()?;
+        let mut opt_displayed = self.nodes.get_mut(&ast_node);
+        if let Some(displayed) = &mut opt_displayed {
+            displayed.view_id = Some(view_id);
+            self.ast_node_by_view_id.insert(view_id, ast_node);
+        }
+        opt_displayed
+    }
+
+    /// Update the state retaining given set of nodes. Returns the list of removed nodes' views.
+    pub fn retain_nodes(&mut self, nodes: &HashSet<AstNodeId>) -> Vec<ViewNodeId> {
+        self.nodes_without_view.drain_filter(|id| !nodes.contains(id));
+        let removed = self.nodes.drain_filter(|id, _| !nodes.contains(id));
+        let removed_views = removed.filter_map(|(_, data)| data.view_id).collect();
+        for view_id in &removed_views {
+            self.ast_node_by_view_id.remove(view_id);
+        }
+        removed_views
+    }
+
+    /// Remove node represented by given view (if any) and return it's AST id.
+    pub fn remove_node(&mut self, node: ViewNodeId) -> Option<AstNodeId> {
+        let ast_id = self.ast_node_by_view_id.remove(&node)?;
+        self.nodes.remove(&ast_id);
+        Some(ast_id)
+    }
+}
+
+
+
+// ===================
+// === Connections ===
+// ===================
+
+/// A structure keeping pairs of AST connections with their views (and list of AST connections
+/// without view).
+#[derive(Clone, Debug, Default)]
+pub struct Connections {
+    connections:              BiMap<AstConnection, ViewConnection>,
+    connections_without_view: HashSet<AstConnection>,
+}
+
+impl Connections {
+    /// Remove all connections not belonging to the given set.
+    ///
+    /// Returns the views of removed connections.
+    pub fn retain_connections(
+        &mut self,
+        connections: &HashSet<AstConnection>,
+    ) -> Vec<ViewConnection> {
+        self.connections_without_view.retain(|x| connections.contains(x));
+        let to_remove = self.connections.iter().filter(|(con, _)| !connections.contains(con));
+        let to_remove_vec = to_remove.map(|(_, edge_id)| *edge_id).collect_vec();
+        self.connections.retain(|con, _| connections.contains(con));
+        to_remove_vec
+    }
+
+    /// Add a new AST connection without view.
+    pub fn add_ast_connection(&mut self, connection: AstConnection) -> bool {
+        if !self.connections.contains_left(&connection) {
+            self.connections_without_view.insert(connection)
+        } else {
+            false
+        }
+    }
+
+    /// Add a connection with view.
+    ///
+    /// Returns `true` if the new connection was added, and `false` if it already existed. In the
+    /// latter case, the new `view` is assigned to it (replacing possible previous view).
+    pub fn add_connection_view(&mut self, connection: AstConnection, view: ViewConnection) -> bool {
+        let existed_without_view = self.connections_without_view.remove(&connection);
+        match self.connections.insert(connection, view) {
+            Overwritten::Neither => !existed_without_view,
+            Overwritten::Left(_, _) => false,
+            Overwritten::Right(previous, _) => {
+                self.connections_without_view.insert(previous);
+                !existed_without_view
+            }
+            Overwritten::Pair(_, _) => false,
+            Overwritten::Both(_, (previous, _)) => {
+                self.connections_without_view.insert(previous);
+                false
+            }
+        }
+    }
+
+    /// Remove the connection by view (if any), and return it.
+    pub fn remove_connection(&mut self, connection: ViewConnection) -> Option<AstConnection> {
+        let (ast_connection, _) = self.connections.remove_by_right(&connection)?;
+        Some(ast_connection)
+    }
+}
+
+
+
+// ===================
+// === Expressions ===
+// ===================
+
+/// A single expression data.
+#[derive(Clone, Debug, Default)]
+pub struct Expression {
+    pub node:            AstNodeId,
+    pub expression_type: Option<view::graph_editor::Type>,
+    pub method_pointer:  Option<view::graph_editor::MethodPointer>,
+}
+
+/// The data of node's expressions.
+///
+/// The expressions are all AST nodes of the line representing the node in the code.
+#[derive(Clone, Debug, Default)]
+pub struct Expressions {
+    expressions:         HashMap<ast::Id, Expression>,
+    expressions_of_node: HashMap<AstNodeId, Vec<ast::Id>>,
+}
+
+impl Expressions {
+    /// Remove all expressions not belonging to the any of the `nodes`.
+    pub fn retain_expression_of_nodes(&mut self, nodes: &HashSet<AstNodeId>) {
+        let nodes_to_remove =
+            self.expressions_of_node.drain_filter(|node_id, _| !nodes.contains(node_id));
+        let expr_to_remove = nodes_to_remove.map(|(_, exprs)| exprs).flatten();
+        for expression_id in expr_to_remove {
+            self.expressions.remove(&expression_id);
+        }
+    }
+
+    /// Update information about node expressions.
+    ///
+    /// New node's expressions are added, and those which stopped to be part of the node are
+    /// removed.
+    pub fn update_node_expressions(&mut self, node: AstNodeId, expressions: Vec<ast::Id>) {
+        let new_set: HashSet<ast::Id> = expressions.iter().copied().collect();
+        let old_set = self.expressions_of_node.insert(node, expressions).unwrap_or_default();
+        for old_expression in &old_set {
+            if !new_set.contains(old_expression) {
+                self.expressions.remove(old_expression);
+            }
+        }
+        for new_expression in new_set {
+            if !old_set.contains(&new_expression) {
+                self.expressions.insert(new_expression, Expression { node, ..default() });
+            }
+        }
+    }
+
+    /// Get mutable reference to given expression data.
+    pub fn get_mut(&mut self, id: ast::Id) -> Option<&mut Expression> {
+        self.expressions.get_mut(&id)
+    }
+
+    /// Get the list of all expressions of the given node.
+    pub fn expressions_of_node(&self, id: AstNodeId) -> &[ast::Id] {
+        self.expressions_of_node.get(&id).map_or(&[], |v| v.as_slice())
+    }
+}
+
+
+
+// =============
+// === State ===
+// =============
+
+/// The Graph Presenter State.
+///
+/// This structure keeps the information how the particular graph elements received from controllers
+/// are represented in the view. It also handles updates from the controllers and
+/// the view in `update_from_controller` and `update_from_view` respectively.  
+#[derive(Clone, Debug, Default)]
+pub struct State {
+    nodes:       RefCell<Nodes>,
+    connections: RefCell<Connections>,
+    expressions: RefCell<Expressions>,
+}
+
+impl State {
+    /// Get node's view id by the AST id.
+    pub fn view_id_of_ast_node(&self, node: AstNodeId) -> Option<ViewNodeId> {
+        self.nodes.borrow().get(node).and_then(|n| n.view_id)
+    }
+
+    /// Convert the AST connection to pair of [`EdgeEndpoint`]s.
+    pub fn view_edge_targets_of_ast_connection(
+        &self,
+        connection: AstConnection,
+    ) -> Option<(EdgeEndpoint, EdgeEndpoint)> {
+        let nodes = self.nodes.borrow();
+        let src_node = nodes.get(connection.source.node)?.view_id?;
+        let dst_node = nodes.get(connection.destination.node)?.view_id?;
+        let src = EdgeEndpoint::new(src_node, connection.source.port);
+        let data = EdgeEndpoint::new(dst_node, connection.destination.port);
+        Some((src, data))
+    }
+
+    /// Convert the pair of [`EdgeEndpoint`]s to AST connection.
+    pub fn ast_connection_from_view_edge_targets(
+        &self,
+        source: EdgeEndpoint,
+        target: EdgeEndpoint,
+    ) -> Option<AstConnection> {
+        let nodes = self.nodes.borrow();
+        let src_node = nodes.ast_id_of_view(source.node_id)?;
+        let dst_node = nodes.ast_id_of_view(target.node_id)?;
+        Some(controller::graph::Connection {
+            source:      controller::graph::Endpoint::new(src_node, source.port),
+            destination: controller::graph::Endpoint::new(dst_node, target.port),
+        })
+    }
+
+    /// Get id of all node's expressions (ids of the all corresponding line AST nodes).
+    pub fn expressions_of_node(&self, node: ViewNodeId) -> Vec<ast::Id> {
+        let ast_node = self.nodes.borrow().ast_id_of_view(node);
+        ast_node.map_or_default(|id| self.expressions.borrow().expressions_of_node(id).to_owned())
+    }
+
+    /// Apply the update from controller.
+    pub fn update_from_controller(&self) -> ControllerChange {
+        ControllerChange { state: self }
+    }
+
+    /// Apply the update from the view.
+    pub fn update_from_view(&self) -> ViewChange {
+        ViewChange { state: self }
+    }
+
+    /// Assign a node view to the one of AST nodes without view. If there is any of such nodes,
+    /// `None` is returned. Otherwise, returns the node state - the newly created view must be
+    /// refreshed with the data from the state.
+    pub fn assign_node_view(&self, view_id: ViewNodeId) -> Option<Node> {
+        self.nodes.borrow_mut().assign_newly_created_node(view_id).cloned()
+    }
+}
+
+// ========================
+// === ControllerChange ===
+// ========================
+
+/// The wrapper for [`State`] reference providing the API to be called when presenter is notified
+/// by controllers about graph change.
+///
+/// All of its operations updates the [`State`] to synchronize it with the graph in AST, and returns
+/// the information how to update yje view, to have the view synchronized with the state.
+///
+/// In the particular case, when the graph was changed due to user interations with the view, these
+/// method should  discover that no change in state is needed (because it was updated already by
+/// [`ViewChange`]), and so the view's. This way we avoid an infinite synchronization cycle.
+#[derive(Deref, DerefMut, Debug)]
+pub struct ControllerChange<'a> {
+    state: &'a State,
+}
+
+
+// === Nodes ===
+
+impl<'a> ControllerChange<'a> {
+    /// Remove all nodes not belonging to the given set. Returns the list of to-be-removed views.
+    pub fn retain_nodes(&self, nodes: &HashSet<AstNodeId>) -> Vec<ViewNodeId> {
+        self.expressions.borrow_mut().retain_expression_of_nodes(nodes);
+        self.nodes.borrow_mut().retain_nodes(nodes)
+    }
+
+    /// Set the new node position. If the node position actually changed, the to-be-updated view
+    /// is returned.
+    pub fn set_node_position(&self, node: AstNodeId, position: Vector2) -> Option<ViewNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let mut displayed = nodes.get_mut_or_create(node);
+        if displayed.position != position {
+            displayed.position = position;
+            displayed.view_id
+        } else {
+            None
+        }
+    }
+
+    /// Set the new node expression. If the expression actually changed, the to-be-updated view
+    /// is returned with the new expression to set.
+    pub fn set_node_expression(
+        &self,
+        node: &controller::graph::Node,
+        trees: controller::graph::NodeTrees,
+    ) -> Option<(ViewNodeId, node_view::Expression)> {
+        let ast_id = node.main_line.id();
+        let new_displayed_expr = node_view::Expression {
+            pattern:             node.info.pattern().map(|t| t.repr()),
+            code:                node.info.expression().repr(),
+            whole_expression_id: node.info.expression().id,
+            input_span_tree:     trees.inputs,
+            output_span_tree:    trees.outputs.unwrap_or_else(default),
+        };
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(ast_id);
+        if displayed.expression != new_displayed_expr {
+            displayed.expression = new_displayed_expr.clone();
+            let new_expressions =
+                node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
+            self.expressions.borrow_mut().update_node_expressions(ast_id, new_expressions);
+            Some((displayed.view_id?, new_displayed_expr))
+        } else {
+            None
+        }
+    }
+}
+
+
+// === Connections ===
+
+impl<'a> ControllerChange<'a> {
+    /// If given connection does not exists yet, add it and return the endpoints of the
+    /// to-be-created edge.
+    pub fn set_connection(
+        &self,
+        connection: AstConnection,
+    ) -> Option<(EdgeEndpoint, EdgeEndpoint)> {
+        self.connections
+            .borrow_mut()
+            .add_ast_connection(connection.clone())
+            .and_option_from(move || self.view_edge_targets_of_ast_connection(connection))
+    }
+
+    /// Remove all connection not belonging to the given set. Returns the list of to-be-removed
+    /// views.
+    pub fn retain_connections(&self, connections: &HashSet<AstConnection>) -> Vec<ViewConnection> {
+        self.connections.borrow_mut().retain_connections(connections)
+    }
+}
+
+
+// === Expressions ===
+
+impl<'a> ControllerChange<'a> {
+    /// Set the new type of expression. If the type actually changes, the to-be-updated view is
+    /// returned.
+    pub fn set_expression_type(
+        &self,
+        id: ast::Id,
+        new_type: Option<view::graph_editor::Type>,
+    ) -> Option<ViewNodeId> {
+        let mut expressions = self.expressions.borrow_mut();
+        let to_update = expressions.get_mut(id).filter(|d| d.expression_type != new_type);
+        if let Some(displayed) = to_update {
+            displayed.expression_type = new_type;
+            self.nodes.borrow().get(displayed.node).and_then(|node| node.view_id)
+        } else {
+            None
+        }
+    }
+
+    /// Set the new expression's method pointer. If the method pointer actually changes, the
+    /// to-be-updated view is returned.
+    pub fn set_expression_method_pointer(
+        &self,
+        id: ast::Id,
+        method_ptr: Option<view::graph_editor::MethodPointer>,
+    ) -> Option<ViewNodeId> {
+        let mut expressions = self.expressions.borrow_mut();
+        let to_update = expressions.get_mut(id).filter(|d| d.method_pointer != method_ptr);
+        if let Some(displayed) = to_update {
+            displayed.method_pointer = method_ptr;
+            self.nodes.borrow().get(displayed.node).and_then(|node| node.view_id)
+        } else {
+            None
+        }
+    }
+}
+
+
+
+// ==================
+// === ViewChange ===
+// ==================
+
+/// The wrapper for [`State`] reference providing the API to be called when presenter is notified
+/// about view change.
+///
+/// All of its operations updates the [`State`] to synchronize it with the graph view, and returns
+/// the information how to update the AST graph, to have the AST synchronized with the state.
+///
+/// In particular case, when the view was changed due to change in controller, these method should
+/// discover that no change in state is needed (because it was updated already by
+/// [`ControllerChange`]), and so the AST graph's. This way we avoid an infinite synchronization
+/// cycle.
+#[derive(Deref, DerefMut, Debug)]
+pub struct ViewChange<'a> {
+    state: &'a State,
+}
+
+
+// === Nodes ===
+
+impl<'a> ViewChange<'a> {
+    /// Set the new node position. If the node position actually changed, the AST node to-be-updated
+    /// id is returned.
+    pub fn set_node_position(&self, id: ViewNodeId, new_position: Vector2) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.position != new_position {
+            displayed.position = new_position;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Remove the node, and returns its AST id.
+    pub fn remove_node(&self, id: ViewNodeId) -> Option<AstNodeId> {
+        self.nodes.borrow_mut().remove_node(id)
+    }
+}
+
+
+// === Connections ===
+
+impl<'a> ViewChange<'a> {
+    /// If the connections does not already exist, it is created and corresponding to-be-created
+    /// Ast connection is returned.  
+    pub fn create_connection(&self, connection: view::graph_editor::Edge) -> Option<AstConnection> {
+        let source = connection.source()?;
+        let target = connection.target()?;
+        self.create_connection_from_endpoints(connection.id(), source, target)
+    }
+
+    /// If the connections with provided endpoints does not already exist, it is created and
+    /// corresponding to-be-created Ast connection is returned.  
+    pub fn create_connection_from_endpoints(
+        &self,
+        connection: ViewConnection,
+        source: EdgeEndpoint,
+        target: EdgeEndpoint,
+    ) -> Option<AstConnection> {
+        let ast_connection = self.ast_connection_from_view_edge_targets(source, target)?;
+        let mut connections = self.connections.borrow_mut();
+        let should_update_controllers =
+            connections.add_connection_view(ast_connection.clone(), connection);
+        should_update_controllers.then_some(ast_connection)
+    }
+
+    /// Remove the connection and return the corresponding AST connection which should be removed.
+    pub fn remove_connection(&self, id: ViewConnection) -> Option<AstConnection> {
+        self.connections.borrow_mut().remove_connection(id)
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use engine_protocol::language_server::MethodPointer;
+    use parser::Parser;
+
+    fn create_test_node(expression: &str) -> controller::graph::Node {
+        let parser = Parser::new_or_panic();
+        let ast = parser.parse_line_ast(expression).unwrap();
+        controller::graph::Node {
+            info:     double_representation::node::NodeInfo {
+                documentation: None,
+                main_line:     double_representation::node::MainLine::from_ast(&ast).unwrap(),
+            },
+            metadata: None,
+        }
+    }
+
+    fn node_trees_of(node: &controller::graph::Node) -> controller::graph::NodeTrees {
+        controller::graph::NodeTrees::new(&node.info, &span_tree::generate::context::Empty).unwrap()
+    }
+
+    struct TestNode {
+        node: controller::graph::Node,
+        view: ViewNodeId,
+    }
+
+    struct Fixture {
+        state: State,
+        nodes: Vec<TestNode>,
+    }
+
+    impl Fixture {
+        fn setup_nodes(expressions: impl IntoIterator<Item: AsRef<str>>) -> Self {
+            let nodes = expressions.into_iter().map(|expr| create_test_node(expr.as_ref()));
+            let state = State::default();
+            let displayed_nodes = nodes
+                .enumerate()
+                .map(|(i, node)| {
+                    let view = ensogl::display::object::Id::from(i).into();
+                    state.update_from_controller().set_node_expression(&node, node_trees_of(&node));
+                    state.assign_node_view(view);
+                    TestNode { node, view }
+                })
+                .collect();
+            Fixture { state, nodes: displayed_nodes }
+        }
+    }
+
+    #[wasm_bindgen_test]
+    fn adding_and_removing_nodes() {
+        let state = State::default();
+        let node1 = create_test_node("node1 = 2 + 2");
+        let node2 = create_test_node("node2 = node1 + 2");
+        let node_view_1 = ensogl::display::object::Id::from(1).into();
+        let node_view_2 = ensogl::display::object::Id::from(2).into();
+        let from_controller = state.update_from_controller();
+        let from_view = state.update_from_view();
+
+        assert_eq!(from_controller.set_node_expression(&node1, node_trees_of(&node1)), None);
+        assert_eq!(from_controller.set_node_expression(&node2, node_trees_of(&node2)), None);
+
+        assert_eq!(state.view_id_of_ast_node(node1.id()), None);
+        assert_eq!(state.view_id_of_ast_node(node2.id()), None);
+
+        let assigned = state.assign_node_view(node_view_2);
+        assert_eq!(assigned.map(|node| node.expression.code), Some("node1 + 2".to_owned()));
+        let assigned = state.assign_node_view(node_view_1);
+        assert_eq!(assigned.map(|node| node.expression.code), Some("2 + 2".to_owned()));
+
+        assert_eq!(state.view_id_of_ast_node(node1.id()), Some(node_view_1));
+        assert_eq!(state.view_id_of_ast_node(node2.id()), Some(node_view_2));
+
+        let node1_exprs =
+            node1.info.main_line.ast().iter_recursive().filter_map(|a| a.id).collect_vec();
+        assert_eq!(state.expressions_of_node(node_view_1), node1_exprs);
+        let node2_exprs =
+            node2.info.main_line.ast().iter_recursive().filter_map(|a| a.id).collect_vec();
+        assert_eq!(state.expressions_of_node(node_view_2), node2_exprs);
+
+        let views_to_remove = from_controller.retain_nodes(&[node1.id()].iter().copied().collect());
+        assert_eq!(views_to_remove, vec![node_view_2]);
+
+        assert_eq!(state.view_id_of_ast_node(node1.id()), Some(node_view_1));
+        assert_eq!(state.view_id_of_ast_node(node2.id()), None);
+
+        assert_eq!(from_view.remove_node(node_view_1), Some(node1.id()));
+        assert_eq!(state.view_id_of_ast_node(node1.id()), None)
+    }
+
+    #[wasm_bindgen_test]
+    fn adding_and_removing_connections() {
+        use controller::graph::Endpoint;
+        let Fixture { state, nodes } = Fixture::setup_nodes(&["node1 = 2", "node1 + node1"]);
+        let src = Endpoint {
+            node:       nodes[0].node.id(),
+            port:       default(),
+            var_crumbs: default(),
+        };
+        let dest1 = Endpoint {
+            node:       nodes[1].node.id(),
+            port:       span_tree::Crumbs::new(vec![0]),
+            var_crumbs: default(),
+        };
+        let dest2 = Endpoint {
+            node:       nodes[1].node.id(),
+            port:       span_tree::Crumbs::new(vec![2]),
+            var_crumbs: default(),
+        };
+        let ast_con1 = AstConnection { source: src.clone(), destination: dest1.clone() };
+        let ast_con2 = AstConnection { source: src.clone(), destination: dest2.clone() };
+        let view_con1 = ensogl::display::object::Id::from(1).into();
+        let view_con2 = ensogl::display::object::Id::from(2).into();
+        let view_src = EdgeEndpoint { node_id: nodes[0].view, port: src.port.clone() };
+        let view_tgt1 = EdgeEndpoint { node_id: nodes[1].view, port: dest1.port.clone() };
+        let view_tgt2 = EdgeEndpoint { node_id: nodes[1].view, port: dest2.port.clone() };
+        let view_pair1 = (view_src.clone(), view_tgt1.clone());
+
+        let from_controller = state.update_from_controller();
+        let from_view = state.update_from_view();
+
+        assert_eq!(from_controller.set_connection(ast_con1.clone()), Some(view_pair1.clone()));
+
+        assert_eq!(
+            from_view.create_connection_from_endpoints(view_con1, view_src.clone(), view_tgt1),
+            None
+        );
+        assert_eq!(
+            from_view.create_connection_from_endpoints(view_con2, view_src.clone(), view_tgt2),
+            Some(ast_con2.clone())
+        );
+
+        let all_connections = [ast_con1.clone(), ast_con2.clone()].into_iter().collect();
+        assert_eq!(from_controller.retain_connections(&all_connections), vec![]);
+        assert_eq!(
+            from_controller.retain_connections(&[ast_con2.clone()].into_iter().collect()),
+            vec![view_con1]
+        );
+
+        assert_eq!(from_view.remove_connection(view_con2), Some(ast_con2.clone()));
+    }
+
+    #[wasm_bindgen_test]
+    fn refreshing_node_expression() {
+        let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
+        let node_id = nodes[0].node.id();
+        let new_ast = Parser::new_or_panic().parse_line_ast("foo baz").unwrap().with_id(node_id);
+        let new_node = controller::graph::Node {
+            info:     double_representation::node::NodeInfo {
+                documentation: None,
+                main_line:     double_representation::node::MainLine::from_ast(&new_ast).unwrap(),
+            },
+            metadata: None,
+        };
+        let new_subexpressions = new_ast.iter_recursive().filter_map(|ast| ast.id).collect_vec();
+        let new_trees = node_trees_of(&new_node);
+        let view = nodes[0].view;
+        let expected_new_expression = view::graph_editor::component::node::Expression {
+            pattern:             None,
+            code:                "foo baz".to_string(),
+            whole_expression_id: Some(node_id),
+            input_span_tree:     new_trees.inputs.clone(),
+            output_span_tree:    default(),
+        };
+        let updater = state.update_from_controller();
+        assert_eq!(
+            updater.set_node_expression(&new_node, new_trees.clone()),
+            Some((view, expected_new_expression))
+        );
+        assert_eq!(updater.set_node_expression(&new_node, new_trees), None);
+        assert_eq!(state.expressions_of_node(view), new_subexpressions);
+    }
+
+    #[wasm_bindgen_test]
+    fn updating_node_position() {
+        let Fixture { state, nodes } = Fixture::setup_nodes(&["foo"]);
+        let node_id = nodes[0].node.id();
+        let view_id = nodes[0].view;
+        let position_from_ast = Vector2(1.0, 2.0);
+        let position_from_view = Vector2(3.0, 4.0);
+        let from_controller = state.update_from_controller();
+        let from_view = state.update_from_view();
+
+        assert_eq!(from_controller.set_node_position(node_id, position_from_ast), Some(view_id));
+        assert_eq!(from_view.set_node_position(view_id, position_from_ast), None);
+        assert_eq!(from_view.set_node_position(view_id, position_from_view), Some(node_id));
+        assert_eq!(from_controller.set_node_position(node_id, position_from_view), None);
+    }
+
+    #[wasm_bindgen_test]
+    fn refreshing_expression_types() {
+        use ast::crumbs::InfixCrumb;
+        let Fixture { state, nodes } = Fixture::setup_nodes(&["2 + 3"]);
+        let view = nodes[0].view;
+        let node_ast = nodes[0].node.main_line.expression();
+        let left_operand = node_ast.get(&InfixCrumb::LeftOperand.into()).unwrap().id.unwrap();
+        let right_operand = node_ast.get(&InfixCrumb::RightOperand.into()).unwrap().id.unwrap();
+        let updater = state.update_from_controller();
+
+        let number_type = Some(view::graph_editor::Type::from("Number".to_owned()));
+        assert_eq!(updater.set_expression_type(left_operand, number_type.clone()), Some(view));
+        assert_eq!(updater.set_expression_type(right_operand, number_type.clone()), Some(view));
+
+        assert_eq!(updater.set_expression_type(left_operand, number_type.clone()), None);
+        assert_eq!(updater.set_expression_type(right_operand, number_type), None);
+
+        assert_eq!(updater.set_expression_type(left_operand, None), Some(view));
+        assert_eq!(updater.set_expression_type(right_operand, None), Some(view));
+    }
+
+    #[wasm_bindgen_test]
+    fn refreshing_expression_method_pointers() {
+        let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
+        let view = nodes[0].view;
+        let expr = nodes[0].node.id();
+        let updater = state.update_from_controller();
+
+        let method_ptr = MethodPointer {
+            module:          "Foo".to_string(),
+            defined_on_type: "Foo".to_string(),
+            name:            "foo".to_string(),
+        };
+        let method_ptr = Some(view::graph_editor::MethodPointer::from(method_ptr));
+        assert_eq!(updater.set_expression_method_pointer(expr, method_ptr.clone()), Some(view));
+        assert_eq!(updater.set_expression_method_pointer(expr, method_ptr), None);
+        assert_eq!(updater.set_expression_method_pointer(expr, None), Some(view));
+    }
+}

@@ -15,7 +15,7 @@ use ensogl::display::shape::system::DynamicShape;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::gui::component::ShapeView;
-use ensogl_gui_component::drop_down_menu;
+use ensogl_component::drop_down_menu;
 use ensogl_hardcoded_theme as theme;
 
 

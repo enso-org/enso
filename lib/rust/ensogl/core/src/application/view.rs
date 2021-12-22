@@ -44,6 +44,11 @@ impl Registry {
     }
 
     /// View registration.
+    ///
+    /// Registers any keyboard shortcuts provided by the [View], and registers the View for use
+    /// with commands. Should be called for every View that might potentially be instantiated at
+    /// any point in the future, so that the keyboard shortcuts overview has full information from
+    /// the outset.
     pub fn register<V: View>(&self) {
         let label = V::label().into();
         for shortcut in V::default_shortcuts() {

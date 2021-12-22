@@ -35,10 +35,11 @@ use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::Animation;
-use ensogl_gui_component::shadow;
+use ensogl_component::shadow;
+use ensogl_component::text;
+use ensogl_component::text::Text;
 use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme;
-use ensogl_text::Text;
 use std::f32::EPSILON;
 
 use super::edge;
@@ -407,7 +408,7 @@ pub struct NodeModel {
     pub action_bar:          action_bar::ActionBar,
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
-    pub comment:             ensogl_text::Area,
+    pub comment:             text::Area,
 }
 
 impl NodeModel {
@@ -485,7 +486,7 @@ impl NodeModel {
 
         let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
 
-        let comment = ensogl_text::Area::new(app);
+        let comment = text::Area::new(app);
         display_object.add_child(&comment);
 
         let app = app.clone_ref();

@@ -2,7 +2,7 @@
 name = "enso-gui"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -17,6 +17,7 @@ engine-protocol = { path = "controller/engine-protocol" }
 enso-callback = { path = "../../lib/rust/callback" }
 enso-config = { path = "config" }
 enso-data-structures = { path = "../../lib/rust/data-structures" }
+enso-debug-scene = { path = "view/debug_scene" }
 enso-frp = { path = "../../lib/rust/frp" }
 enso-logger = { path = "../../lib/rust/logger"}
 enso-prelude = { path = "../../lib/rust/prelude"}
@@ -26,9 +27,7 @@ enso-web = { path = "../../lib/rust/web" }
 ensogl = { path = "../../lib/rust/ensogl" }
 ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }
 ensogl-examples = { path = "../../lib/rust/ensogl/example" }
-ensogl-gui-component = { path = "../../lib/rust/ensogl/component/gui" }
-ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }
-ensogl-text = { path = "../../lib/rust/ensogl/component/text" }
+ensogl-component = { path = "../../lib/rust/ensogl/component" }
 ensogl-text-msdf-sys = { path = "../../lib/rust/ensogl/component/text/msdf-sys" }
 failure = { version = "0.1.6" }
 flo_stream = { version = "0.4.0" }

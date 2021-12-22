@@ -13,7 +13,7 @@ env:
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.5.2
   # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2021-11-08
+  rustToolchain: nightly-2021-11-29
   # Please ensure that this is in sync with nodeVersion in scala.yml
   nodeVersion: 14.17.2
 

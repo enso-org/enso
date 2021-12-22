@@ -26,9 +26,9 @@ mod tests {
         executor::global::spawn(client.runner());
 
         let name = "TestProject".to_string();
-        let creation =
-            client.create_project(&name, &None, &Install).await.expect("Couldn't create project.");
-        let uuid = creation.project_id;
+        let creation = client.create_project(&name, &None, &None, &Install);
+        let created = creation.await.expect("Couldn't create project.");
+        let uuid = created.project_id;
         let _address = client.open_project(&uuid, &Install).await.expect("Couldn't open project.");
         client.close_project(&uuid).await.expect("Couldn't close project.");
         let list_response = client.list_projects(&None).await;

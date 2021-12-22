@@ -8,9 +8,9 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::*;
-use ensogl_gui_component::toggle_button;
-use ensogl_gui_component::toggle_button::ColorableShape;
-use ensogl_gui_component::toggle_button::ToggleButton;
+use ensogl_component::toggle_button;
+use ensogl_component::toggle_button::ColorableShape;
+use ensogl_component::toggle_button::ToggleButton;
 use ensogl_hardcoded_theme as theme;
 
 
