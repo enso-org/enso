@@ -44,7 +44,7 @@ use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_plain::from_str;
-use std::sync::Mutex;
+use std::collections::hash_map::Entry;
 use wasm_bindgen::JsValue;
 use web_sys::PerformanceEntry;
 
@@ -364,10 +364,21 @@ impl Drop for IntervalHandle {
 // =====================
 // TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
 
+// FIXME: how to differentiate if multiple entries have same name? -> possibly keep UUID in IntervalHandle & Metadata
 type AttachedStats = HashMap<String, StatsAggregate>;
 
 thread_local! {
     static ATTACHED_STATS: RefCell<AttachedStats> = RefCell::new(AttachedStats::new());
+}
+
+fn start_stats(label: &str) {
+    ATTACHED_STATS.with(|attachments| {
+        // FIXME: avoid .to_str() below!
+        match attachments.borrow_mut().entry(label.to_str()) {
+            Entry::Occupied(_) => warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one: {label}"),
+            Entry::Vacant(stats) => stats.insert(StatsAggregate::default()),
+        }
+    });
 }
 
 pub fn push_stats(stats: &Vec<f64>) {
@@ -385,7 +396,7 @@ pub fn push_stats(stats: &Vec<f64>) {
 }
 
 // FIXME(akavel): do we need Clone?
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct StatsAggregate {
     // FIXME(akavel): more stats
     // FIXME(akavel): store appropriate data to allow min:max:avg calc. for each stat
