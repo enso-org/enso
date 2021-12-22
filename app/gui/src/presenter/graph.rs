@@ -10,11 +10,12 @@ pub use visualization::Visualization;
 
 use crate::prelude::*;
 
+use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
-use crate::controller::upload::NodeFromDroppedFileHandler;
 use enso_frp as frp;
+use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
@@ -574,5 +575,17 @@ impl Graph {
     /// node content between the controllers and the view.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);
+    }
+}
+
+
+
+// ====================================
+// === DataProvider for EnsoGL File ===
+// ====================================
+
+impl controller::upload::DataProvider for ensogl_drop_manager::File {
+    fn next_chunk(&mut self) -> LocalBoxFuture<FallibleResult<Option<Vec<u8>>>> {
+        self.read_chunk().map(|f| f.map_err(|e| e.into())).boxed_local()
     }
 }
