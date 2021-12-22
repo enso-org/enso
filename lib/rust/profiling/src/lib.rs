@@ -390,7 +390,7 @@ fn end_stats(label: &str) {
         match attachments.borrow_mut().remove(label) {
             None => warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}"),
             Some(stats) => {
-                DEBUG!("MCDBG STATS: {stats:?}");
+                DEBUG!("MCDBG STATS: {stats:?} @ {label:?}");
             }
         }
     });
