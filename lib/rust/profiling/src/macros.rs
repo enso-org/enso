@@ -9,6 +9,8 @@ macro_rules! make_metadata {
             source:          $crate::SourceLocation { file: file!().to_string(), line: line!() },
             profiling_level: $profiling_level.to_string(),
             label:           $interval_name.to_string(),
+
+            wip_fps: None,
         }
     };
 }
