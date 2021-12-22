@@ -152,10 +152,12 @@ impl Handle {
             }
             VisualizationPath::File(path) => {
                 let project = visualization::path::Project::CurrentProject;
-                let js_code = self.language_server_rpc.read_file(path).await?.contents;
+                let js_code = self.language_server_rpc.read_file(&path).await?.contents;
                 let wrap_error =
                     |err| Error::js_preparation_error(visualization.clone(), err).into();
-                visualization::java_script::Definition::new(project, &js_code)
+                let file_name = path.file_name().cloned().unwrap_or_else(|| String::from("unknown_file_name"));
+                let sources = visualization::java_script::Sources::from_files(&[(&file_name, &js_code)]);
+                visualization::java_script::Definition::new(project, sources)
                     .map(Into::into)
                     .map_err(wrap_error)
             }

@@ -804,6 +804,7 @@ class ScatterPlot extends Visualization {
 
             zoom.transformedScale.xScale.domain(domainX)
             zoom.transformedScale.yScale.domain(domainY)
+            throw "Error"
 
             self.zoomingHelper(zoom.transformedScale, boxWidth, scatter, points)
         }

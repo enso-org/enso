@@ -101,13 +101,21 @@ impl Registry {
     /// Add default visualizations to the registry.
     pub fn add_default_visualizations(&self) {
         self.add(builtin::visualization::native::RawText::definition());
+        DEBUG!("Scatter");
         self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
+        DEBUG!("Histgram");
         self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
+        DEBUG!("Heatmap");
         self.try_add_java_script(builtin::visualization::java_script::heatmap_visualization());
+        DEBUG!("Table");
         self.try_add_java_script(builtin::visualization::java_script::table_visualization());
+        DEBUG!("Sql");
         self.try_add_java_script(builtin::visualization::java_script::sql_visualization());
+        DEBUG!("GeoMap");
         self.try_add_java_script(builtin::visualization::java_script::geo_map_visualization());
+        DEBUG!("Imagebase64");
         self.try_add_java_script(builtin::visualization::java_script::image_base64_visualization());
+        DEBUG!("End");
     }
 
     /// Return a default visualisation definition.
