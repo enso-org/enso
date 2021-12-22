@@ -37,6 +37,8 @@ pub mod macros;
 use crate::js::*;
 use ::macros::*;
 
+use enso_logger::DefaultWarningLogger as Logger;
+use enso_logger::*;
 use enso_prelude::fmt::Formatter;
 use enso_web::performance;
 use inflector::Inflector;
@@ -44,7 +46,6 @@ use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_plain::from_str;
-use std::collections::hash_map::Entry;
 use wasm_bindgen::JsValue;
 use web_sys::PerformanceEntry;
 
@@ -273,6 +274,7 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
     if profiling_level_is_active(metadata.profiling_level.clone()) {
+        start_stats(&interval_name);
         mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
     IntervalHandle::new(metadata)
@@ -372,11 +374,11 @@ thread_local! {
 }
 
 fn start_stats(label: &str) {
+    let logger = Logger::new("Profiling_Stats");
     ATTACHED_STATS.with(|attachments| {
-        // FIXME: avoid .to_str() below!
-        match attachments.borrow_mut().entry(label.to_str()) {
-            Entry::Occupied(_) => warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one: {label}"),
-            Entry::Vacant(stats) => stats.insert(StatsAggregate::default()),
+        let found = attachments.borrow_mut().insert(label.to_string(), StatsAggregate::default());
+        if found.is_some() {
+            warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one: {label}");
         }
     });
 }
