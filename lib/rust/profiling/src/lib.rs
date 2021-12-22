@@ -375,7 +375,6 @@ thread_local! {
 }
 
 fn start_stats(label: &str) {
-    DEBUG!("MCDBG <[ {label:?}");
     let logger = Logger::new("Profiling_Stats");
     ATTACHED_STATS.with(|attachments| {
         let found = attachments.borrow_mut().insert(label.to_string(), StatsAggregate::default());
@@ -386,7 +385,6 @@ fn start_stats(label: &str) {
 }
 
 fn end_stats(label: &str) {
-    DEBUG!("MCDBG ]> {label:?}");
     let logger = Logger::new("Profiling_Stats");
     ATTACHED_STATS.with(|attachments| {
         match attachments.borrow_mut().remove(label) {
