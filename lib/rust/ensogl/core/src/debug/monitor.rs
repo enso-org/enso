@@ -478,7 +478,7 @@ impl ValueCheck {
 /// the monitor.
 pub trait Sampler: Debug {
     /// Label of the sampler in the monitor window.
-    fn label(&self) -> &str;
+    fn label(&self) -> &'static str;
 
     /// Function which should be run on the beginning of the code we want to measure.
     fn begin(&mut self, _time: f64) {}
@@ -765,7 +765,7 @@ const FRAME_TIME_WARNING_THRESHOLD: f64 = 1000.0 / 55.0;
 const FRAME_TIME_ERROR_THRESHOLD: f64 = 1000.0 / 25.0;
 
 impl Sampler for FrameTime {
-    fn label(&self) -> &str {
+    fn label(&self) -> &'static str {
         "Frame time (ms)"
     }
     fn value(&self) -> f64 {
@@ -810,7 +810,7 @@ const FPS_WARNING_THRESHOLD: f64 = 55.0;
 const FPS_ERROR_THRESHOLD: f64 = 25.0;
 
 impl Sampler for Fps {
-    fn label(&self) -> &str {
+    fn label(&self) -> &'static str {
         "Frames per second"
     }
     fn value(&self) -> f64 {
@@ -856,7 +856,7 @@ const WASM_MEM_WARNING_THRESHOLD: f64 = 50.0;
 const WASM_MEM_ERROR_THRESHOLD: f64 = 100.0;
 
 impl Sampler for WasmMemory {
-    fn label(&self) -> &str {
+    fn label(&self) -> &'static str {
         "WASM memory usage (Mb)"
     }
     fn value(&self) -> f64 {
@@ -902,7 +902,7 @@ macro_rules! stats_sampler {
         }
 
         impl Sampler for $name {
-            fn label(&self) -> &str {
+            fn label(&self) -> &'static str {
                 $label
             }
             fn value(&self) -> f64 {
