@@ -303,14 +303,14 @@ class Measurement {
     readonly profilerLevel: Profiler
     readonly name: string
 
-    readonly wip_fps?: number
+    readonly stats?: object
 
-    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, wip_fps?: number) {
+    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, stats?: object) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
         this.name = name
-        this.wip_fps = wip_fps
+        this.stats = stats
     }
 
     static fromPerformanceEntry(entry: PerformanceEntry): Measurement | null {
@@ -326,8 +326,8 @@ class Measurement {
             return null
         }
         const name = entry.name
-        const wip_fps = detail.wip_fps
-        return new Measurement(startTime, duration, profilerLevel, name, wip_fps)
+        const stats = detail.stats
+        return new Measurement(startTime, duration, profilerLevel, name, stats)
     }
 
     endTime(): number {
@@ -339,7 +339,7 @@ class Measurement {
         const end = this.endTime().toFixed(OUTPUT_PRECISION)
         const duration = this.duration.toFixed(OUTPUT_PRECISION)
         const name = this.name
-        const wip_stats = (this.wip_fps) ? `[fps avg:${this.wip_fps}]` : ``
+        const wip_stats = (this.stats) ? `[${JSON.stringify(this.stats)}]` : ``
         return `[${start},${end}] (${duration}) ${wip_stats} ${name}`
     }
 
