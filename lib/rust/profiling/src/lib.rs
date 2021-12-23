@@ -412,15 +412,9 @@ fn end_stats(label: &str) -> Option<f64> {
 }
 
 pub fn push_stats(stats: &Vec<(&'static str, f64)>) {
-    // FIXME(akavel): labeled data in `stats`
-    const WIP_FPS_IDX: usize = 1;
-    if stats.len() < WIP_FPS_IDX+1 { return; }
-    let fps = stats[WIP_FPS_IDX];
-
     ATTACHED_STATS.with(|attachments| {
         for attachment in attachments.borrow_mut().values_mut() {
-            attachment.wip_fps += fps;
-            attachment.samples_count += 1;
+            attachment.push(stats);
         }
     });
 }
