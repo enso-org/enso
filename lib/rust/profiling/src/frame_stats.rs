@@ -163,4 +163,14 @@ mod tests {
         assert_approx_eq!(result_b.accumulators[0].max, 2.0);
         assert_approx_eq!(result_b.accumulators[0].sum, 3.0);
     }
+
+    #[test]
+    fn empty_interval_discarded() {
+        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
+
+        const INTERVAL_A: &str = "interval-A";
+
+        start_interval(INTERVAL_A);
+        assert!(end_interval(INTERVAL_A).is_none());
+    }
 }
