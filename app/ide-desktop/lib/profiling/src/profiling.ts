@@ -401,7 +401,7 @@ export class Report {
      * Render the report to the developer console.
      */
     renderToDevConsole() {
-        console.groupCollapsed('PerformanceReport')
+        console.group('PerformanceReport')
 
         for (const profiler of profilerRegistry) {
             console.groupCollapsed(profiler.profileLevel)
