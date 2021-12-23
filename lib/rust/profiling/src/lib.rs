@@ -33,12 +33,11 @@ use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
 pub mod macros;
+pub mod frame_stats;
 
 use crate::js::*;
 use ::macros::*;
 
-use enso_logger::DefaultWarningLogger as Logger;
-use enso_logger::*;
 use enso_prelude::fmt::Formatter;
 use enso_web::performance;
 use inflector::Inflector;
@@ -276,7 +275,7 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        start_stats(&interval_name);
+        frame_stats::start_interval(&interval_name);
         mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
     IntervalHandle::new(metadata)
@@ -303,7 +302,7 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
     if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
-        let metadata_with_stats = Metadata { stats: end_stats(&start_label), ..metadata };
+        let metadata_with_stats = Metadata { stats: frame_stats::end_interval(&start_label), ..metadata };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),
@@ -359,103 +358,6 @@ impl Drop for IntervalHandle {
             warn_on_error(mark_end_interval(self.metadata.clone()));
             WARNING!(format!("{} was dropped without a call to `measure`.", self.metadata.label));
         }
-    }
-}
-
-
-
-// =====================
-// === AttachedStats ===
-// =====================
-// TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
-// FIXME(akavel): all funcs & types have "stats" in name - let's move them to sub-module "stats"
-
-type AttachedStats = HashMap<String, StatsAggregate>;
-
-thread_local! {
-    static ATTACHED_STATS: RefCell<AttachedStats> = RefCell::new(AttachedStats::new());
-}
-
-fn start_stats(label: &str) {
-    let logger = Logger::new("Profiling_Stats");
-    ATTACHED_STATS.with(|attachments| {
-        let found = attachments.borrow_mut().insert(label.to_string(), StatsAggregate::default());
-        if found.is_some() {
-            warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one - values will be skewed for: {label:?}");
-        }
-    });
-}
-
-fn end_stats(label: &str) -> Option<StatsAggregate> {
-    let logger = Logger::new("Profiling_Stats");
-    ATTACHED_STATS.with(|attachments| {
-        match attachments.borrow_mut().remove(label) {
-            None => {
-                warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}");
-                None
-            },
-            Some(stats) if stats.samples_count == 0 => None,
-            Some(stats) => Some(stats),
-        }
-    })
-}
-
-pub fn push_stats(stats: &Vec<(&'static str, f64)>) {
-    ATTACHED_STATS.with(|attachments| {
-        for attachment in attachments.borrow_mut().values_mut() {
-            attachment.push(stats);
-        }
-    });
-}
-
-// FIXME(akavel): do we need Clone?
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct StatsAggregate {
-    pub accumulator:   Vec<StatAccumulator>,
-    pub samples_count: u32,
-}
-
-impl StatsAggregate {
-    fn push(&mut self, stats: &Vec<(&'static str, f64)>) {
-        // FIXME: naming - stats, stat, samples, ... - I'm already confused myself
-        // FIXME: type alias for Vec<(...)>
-        if self.samples_count == 0 {
-            self.accumulator = Vec::with_capacity(stats.len());
-            for (label, sample) in stats {
-                self.accumulator.push(StatAccumulator::new(*label, *sample));
-            }
-        } else {
-            // FIXME: verify vec lengths match & labels match, and log an error if not
-            for (acc, (_label, sample)) in self.accumulator.iter_mut().zip(stats) {
-                acc.push(*sample);
-            }
-        }
-        self.samples_count += 1;
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct StatAccumulator {
-    label: CowString,
-    min:   f64,
-    max:   f64,
-    sum:   f64,
-}
-
-impl StatAccumulator {
-    fn new(label: impl Into<CowString>, initial_sample: f64) -> Self {
-        Self {
-            label: label.into(),
-            min:   initial_sample,
-            max:   initial_sample,
-            sum:   initial_sample,
-        }
-    }
-
-    fn push(&mut self, new_sample: f64) {
-        self.min = self.min.min(new_sample);
-        self.max = self.max.max(new_sample);
-        self.sum += new_sample;
     }
 }
 
