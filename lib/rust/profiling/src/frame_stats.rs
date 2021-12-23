@@ -1,3 +1,5 @@
+//! This module helps to aggregate various per-frame performance statistics, collected over labeled
+//! time intervals.
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -18,7 +20,6 @@ use serde::Serialize;
 // ====================
 // === IntervalsMap ===
 // ====================
-// TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
 
 type IntervalsMap = HashMap<String, Bundle>;
 
@@ -63,7 +64,12 @@ pub fn push(samples: &LabeledSamples) {
     });
 }
 
-// FIXME(akavel): do we need Clone?
+
+
+// ==============
+// === Bundle ===
+// ==============
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Bundle {
     pub accumulators: Vec<MetricAccumulator>,
@@ -87,6 +93,12 @@ impl Bundle {
         self.frames_count += 1;
     }
 }
+
+
+
+// =========================
+// === MetricAccumulator ===
+// =========================
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MetricAccumulator {
