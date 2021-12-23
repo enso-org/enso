@@ -42,8 +42,6 @@ type Metadata = {
     source: SourceLocation
     profiling_level: string
     label: string
-
-    wip_fps?: number
 }
 
 /**
