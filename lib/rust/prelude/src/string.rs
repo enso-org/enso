@@ -61,6 +61,7 @@ pub trait Str = Into<String> + AsRef<str>;
 /// but you are not sure if the string will be allocated or not. This way you can store a static
 /// slice as long as you can and switch to allocated String on demand.
 #[derive(Clone, Debug, Default, Display)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CowString(Cow<'static, str>);
 
 // === Conversions From CowString ===

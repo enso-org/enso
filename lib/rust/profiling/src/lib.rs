@@ -420,7 +420,7 @@ pub fn push_stats(stats: &Vec<(&'static str, f64)>) {
 }
 
 // FIXME(akavel): do we need Clone?
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct StatsAggregate {
     pub accumulator: Vec<StatAccumulator>,
     pub samples_count: u32,
@@ -433,7 +433,7 @@ impl StatsAggregate {
         if self.samples_count == 0 {
             self.accumulator = Vec::with_capacity(stats.len());
             for (label, sample) in stats {
-                self.accumulator.push(StatAccumulator::new(label, *sample));
+                self.accumulator.push(StatAccumulator::new(*label, *sample));
             }
         } else {
             // FIXME: verify vec lengths match & labels match, and log an error if not
@@ -445,18 +445,18 @@ impl StatsAggregate {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
-struct StatAccumulator {
-    label: &'static str,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StatAccumulator {
+    label: CowString,
     min: f64,
     max: f64,
     sum: f64,
 }
 
 impl StatAccumulator {
-    fn new(label: &'static str, initial_sample: f64) -> Self {
+    fn new(label: impl Into<CowString>, initial_sample: f64) -> Self {
         Self {
-            label,
+            label: label.into(),
             min: initial_sample,
             max: initial_sample,
             sum: initial_sample,

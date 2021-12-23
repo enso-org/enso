@@ -18,7 +18,7 @@ default = ["enable-section-profiling","enable-task-profiling","enable-detail-pro
 [dependencies]
 chrono = "0.4.19"
 enso-logger = { path = "../logger"}
-enso-prelude = { version = "^0.2.1", path = "../prelude" }
+enso-prelude = { version = "^0.2.1", path = "../prelude", features = ["serde"] }
 enso-web = { path = "../web" }
 Inflector = "0.11.4"
 js-sys = { version = "0.3" }
