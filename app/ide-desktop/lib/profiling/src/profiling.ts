@@ -362,7 +362,7 @@ class Measurement {
     prettyPrint() {
         console.groupCollapsed(this.prettyHeader())
         if (this.stats) {
-            const n = this.stats.samples_count;
+            const n = this.stats.samples_count
             console.table(this.stats.accumulator.map(
                 stat => ({
                     Stat: stat.label,
@@ -371,7 +371,7 @@ class Measurement {
                     avg: stat.sum / n, // FIXME: is this proper f64/f64 division?
                     max: stat.max,
                 })
-            ));
+            ))
         }
         console.groupEnd()
     }
