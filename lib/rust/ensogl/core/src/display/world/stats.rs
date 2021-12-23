@@ -62,7 +62,7 @@ impl {
         let mut snapshot = Vec::with_capacity(self.panels.len());
         for panel in &self.panels {
             panel.end();
-            snapshot.push(panel.raw_value());
+            snapshot.push((panel.label(), panel.raw_value()));
         }
         if self.visible() {
             self.monitor.draw();

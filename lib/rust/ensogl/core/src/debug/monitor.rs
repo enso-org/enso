@@ -417,6 +417,10 @@ impl Panel {
         self.rc.borrow().raw_value
     }
 
+    pub fn label(&self) -> &'static str {
+        self.rc.borrow().sampler.label()
+    }
+
     fn first_draw(&self, dom: &Dom) {
         self.rc.borrow_mut().first_draw(dom)
     }
