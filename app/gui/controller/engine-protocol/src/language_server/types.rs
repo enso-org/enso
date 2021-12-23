@@ -150,6 +150,11 @@ pub enum Notification {
     #[allow(missing_docs)]
     #[serde(rename = "file/rootRemoved")]
     ContentRootRemoved { id: Uuid },
+
+    /// Sent from server to the client to inform about a failure during execution of a
+    /// visualisation.
+    #[serde(rename = "executionContext/visualisationEvaluationFailed")]
+    VisualisationEvaluationFailed(VisualisationEvaluationFailed),
 }
 
 /// Sent from the server to the client to inform about a failure during execution of an execution
@@ -160,6 +165,18 @@ pub enum Notification {
 pub struct ExecutionFailed {
     pub context_id: ContextId,
     pub message:    String,
+}
+
+/// Sent from server to the client to inform about a failure during execution of a visualisation.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(missing_docs)]
+#[serde(rename_all = "camelCase")]
+pub struct VisualisationEvaluationFailed {
+    pub context_id:       ContextId,
+    pub visualisation_id: Uuid,
+    pub expression_id:    ExpressionId,
+    pub message:          String,
+    pub diagnostic:       Option<Diagnostic>,
 }
 
 
