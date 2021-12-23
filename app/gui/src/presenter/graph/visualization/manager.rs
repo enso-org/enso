@@ -622,11 +622,9 @@ mod tests {
                 inner.project.clone_ref(),
                 execution_context,
             );
-            let (manager, notifier) = Manager::new(
-                inner.logger.sub("manager"),
-                executed_graph.clone_ref(),
-                inner.project.clone_ref(),
-            );
+            let logger: Logger = inner.logger.sub("manager");
+            let (manager, notifier) =
+                Manager::new(logger, executed_graph.clone_ref(), inner.project.clone_ref());
             Self { inner, is_ready, manager, notifier, requests }
         }
     }
