@@ -26,6 +26,7 @@ thread_local! {
     static ACTIVE_INTERVALS: RefCell<IntervalsMap> = RefCell::new(IntervalsMap::new());
 }
 
+// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval(label: &str) {
     let logger = Logger::new("Profiling_Stats");
     ACTIVE_INTERVALS.with(|intervals| {
@@ -36,6 +37,8 @@ pub fn start_interval(label: &str) {
     });
 }
 
+// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
+// collected since the start of the the interval.
 pub fn end_interval(label: &str) -> Option<Bundle> {
     let logger = Logger::new("Profiling_Stats");
     ACTIVE_INTERVALS.with(|intervals| {
