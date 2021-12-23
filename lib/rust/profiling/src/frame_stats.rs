@@ -141,17 +141,17 @@ mod tests {
     fn overlapping_intervals() {
         ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
 
-        const interval_a: &str = "interval-A";
-        const interval_b: &str = "interval-B";
-        const stat: &str = "stat";
+        const INTERVAL_A: &str = "interval-A";
+        const INTERVAL_B: &str = "interval-B";
+        const STAT: &str = "stat";
 
-        start_interval(interval_a);
-        push(vec![(stat, 1.0)]);
-        start_interval(interval_b);
-        push(vec![(stat, 1.0)]);
-        let result_a = end_interval(interval_a);
-        push(vec![(stat, 2.0)]);
-        let result_b = end_interval(interval_b);
+        start_interval(INTERVAL_A);
+        push(&vec![(STAT, 1.0)]);
+        start_interval(INTERVAL_B);
+        push(&vec![(STAT, 1.0)]);
+        let result_a = end_interval(INTERVAL_A).unwrap();
+        push(&vec![(STAT, 2.0)]);
+        let result_b = end_interval(INTERVAL_B).unwrap();
 
         assert_eq!(result_a.frames_count, 2);
         assert_approx_eq!(result_a.accumulators[0].min, 1.0);
@@ -159,8 +159,8 @@ mod tests {
         assert_approx_eq!(result_a.accumulators[0].sum, 2.0);
 
         assert_eq!(result_b.frames_count, 2);
-        assert_approx_eq!(result_a.accumulators[0].min, 1.0);
-        assert_approx_eq!(result_a.accumulators[0].max, 2.0);
-        assert_approx_eq!(result_a.accumulators[0].sum, 3.0);
+        assert_approx_eq!(result_b.accumulators[0].min, 1.0);
+        assert_approx_eq!(result_b.accumulators[0].max, 2.0);
+        assert_approx_eq!(result_b.accumulators[0].sum, 3.0);
     }
 }
