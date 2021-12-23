@@ -412,10 +412,12 @@ impl Panel {
         self.rc.borrow_mut().end()
     }
 
+    /// Most recently observed raw measurement value, without any clamping or smoothing.
     pub fn raw_value(&self) -> f64 {
         self.rc.borrow().raw_value
     }
 
+    /// Human-readable description of the measured parameter.
     pub fn label(&self) -> &'static str {
         self.rc.borrow().sampler.label()
     }
