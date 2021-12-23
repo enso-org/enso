@@ -10,7 +10,7 @@ macro_rules! make_metadata {
             profiling_level: $profiling_level.to_string(),
             label:           $interval_name.to_string(),
 
-            wip_fps: None,
+            stats: None,
         }
     };
 }
