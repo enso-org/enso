@@ -115,11 +115,9 @@ impl Searcher {
         frp::extend! { network
             eval graph.node_expression_set ([model]((changed_node, expr)) {
                 if *changed_node == input_view {
-                    DEBUG!("Input changed for {input_view}: {expr}");
                     model.input_changed(expr);
                 }
             });
-            trace graph.node_expression_set;
 
             action_list_changed <- source::<()>();
             new_providers <- action_list_changed.map(f_!(model.create_providers()));

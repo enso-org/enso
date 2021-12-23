@@ -908,10 +908,6 @@ impl Searcher {
         } else {
             return_types.iter().cloned().map(Some).collect()
         };
-        DEBUG!("Requesting new suggestion list: {backtrace()}");
-        DEBUG!("My types are: {return_types:?}");
-        DEBUG!("My input is: {self.data.borrow().input:?}");
-        DEBUG!("My completed fragments are: {self.data.borrow().fragments_added_by_picking:?}");
         executor::global::spawn(async move {
             let this_type = this_type.await;
             info!(this.logger, "Requesting new suggestion list. Type of `this` is {this_type:?}.");

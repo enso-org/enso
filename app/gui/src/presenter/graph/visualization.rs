@@ -182,6 +182,7 @@ impl Visualization {
         frp::extend! { network
             eval view.visualization_shown (((node, metadata)) model.visualization_shown(*node, metadata.clone()));
             eval view.visualization_hidden ((node) model.visualization_hidden(*node));
+            eval view.node_removed ((node) model.visualization_hidden(*node));
             eval view.visualization_preprocessor_changed (((node, preprocessor)) model.visualization_preprocessor_changed(*node, preprocessor.clone_ref()));
             eval view.set_node_error_status (((node, error)) model.error_on_node_changed(*node, error));
 
