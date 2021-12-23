@@ -510,6 +510,14 @@ impl Manager {
             task().await;
         });
     }
+
+    /// Remove (set desired state to None) each visualization not attached to any of the `targets`.
+    pub fn retain_visualizations(self: &Rc<Self>, targets: &HashSet<ast::Id>) {
+        let to_remove = self.visualizations.keys().into_iter().filter(|id| !targets.contains(id));
+        for target in to_remove {
+            self.set_visualization(target, None);
+        }
+    }
 }
 
 

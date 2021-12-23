@@ -19,7 +19,6 @@ use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 
 
-
 // =============
 // === Model ===
 // =============
@@ -40,9 +39,17 @@ impl Model {
         self.update_visualization(node_id, &self.manager, Some(metadata));
     }
 
-    /// Handle the visualization being shown in UI.
+    /// Handle the hiding in UI.
     fn visualization_hidden(&self, node_id: view::graph_editor::NodeId) {
         self.update_visualization(node_id, &self.manager, None);
+    }
+
+    /// Handle the node removal in UI.
+    fn node_removed(&self, node_id: view::graph_editor::NodeId) {
+        if self.state.ast_node_id_of_view(node_id).is_some() {
+            self.update_visualization(node_id, &self.manager, None);
+            self.update_visualization(node_id, &self.error_manager, None);
+        }
     }
 
     /// Handle the preprocessor change requested by visualization.
@@ -169,7 +176,8 @@ impl Visualization {
         let controller = project.visualization().clone_ref();
         let (manager, notifications) =
             Manager::new(&logger, graph.clone_ref(), project.clone_ref());
-        let (error_manager, error_notifications) = Manager::new(&logger, graph, project);
+        let (error_manager, error_notifications) =
+            Manager::new(&logger, graph.clone_ref(), project);
         let model = Rc::new(Model {
             logger,
             controller,
@@ -181,7 +189,7 @@ impl Visualization {
 
         frp::extend! { network
             eval view.visualization_shown (((node, metadata)) model.visualization_shown(*node, metadata.clone()));
-            eval view.visualization_hidden ((node) model.visualization_hidden(*node));
+            eval view.visualization_hidden ((node) model.node_removed(*node));
             eval view.node_removed ((node) model.visualization_hidden(*node));
             eval view.visualization_preprocessor_changed (((node, preprocessor)) model.visualization_preprocessor_changed(*node, preprocessor.clone_ref()));
             eval view.set_node_error_status (((node, error)) model.error_on_node_changed(*node, error));
@@ -206,6 +214,7 @@ impl Visualization {
                 error_update,
                 error_vis_failure,
             )
+            .setup_graph_listener(graph)
     }
 
     fn spawn_visualization_handler(
@@ -251,6 +260,35 @@ impl Visualization {
                     // path anymore.
                     model.handle_controller_failure(&failure_endpoint, desired.expression_id);
                 }
+            }
+            std::future::ready(())
+        });
+        self
+    }
+
+    fn setup_graph_listener(self, graph_controller: controller::ExecutedGraph) -> Self {
+        use controller::graph;
+        use controller::graph::executed::Notification;
+        let notifications = graph_controller.subscribe();
+        let weak = Rc::downgrade(&self.model);
+        spawn_stream_handler(weak, notifications, move |notification, model| {
+            match notification {
+                Notification::Graph(graph::Notification::Invalidate)
+                | Notification::EnteredNode(_)
+                | Notification::SteppedOutOfNode(_) => match graph_controller.graph().nodes() {
+                    Ok(nodes) => {
+                        let nodes_set = nodes.into_iter().map(|n| n.id()).collect();
+                        model.manager.retain_visualizations(&nodes_set);
+                        model.error_manager.retain_visualizations(&nodes_set);
+                    }
+                    Err(err) => {
+                        error!(
+                            model.logger,
+                            "Cannot update visualization after graph change: {err}"
+                        );
+                    }
+                },
+                _ => {}
             }
             std::future::ready(())
         });
