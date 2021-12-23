@@ -3131,6 +3131,7 @@ name = "profiling"
 version = "0.1.0"
 dependencies = [
  "Inflector",
+ "assert_approx_eq",
  "chrono",
  "enso-logger",
  "enso-prelude",

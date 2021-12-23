@@ -30,3 +30,6 @@ serde_json = "1.0"
 wasm-bindgen = {version = "0.2", features = ["serde-serialize"]}
 web-sys = { version = "0.3", features=["PerformanceEntry"] }
 macros = {  path = "./macros" }
+
+[dev-dependencies]
+assert_approx_eq = { version = "1.1.0" }

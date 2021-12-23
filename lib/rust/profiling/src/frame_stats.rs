@@ -124,3 +124,43 @@ impl MetricAccumulator {
         self.sum += new_sample;
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use assert_approx_eq::*;
+
+    #[test]
+    fn overlapping_intervals() {
+        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
+
+        const interval_a: &str = "interval-A";
+        const interval_b: &str = "interval-B";
+        const stat: &str = "stat";
+
+        start_interval(interval_a);
+        push(vec![(stat, 1.0)]);
+        start_interval(interval_b);
+        push(vec![(stat, 1.0)]);
+        let result_a = end_interval(interval_a);
+        push(vec![(stat, 2.0)]);
+        let result_b = end_interval(interval_b);
+
+        assert_eq!(result_a.frames_count, 2);
+        assert_approx_eq!(result_a.accumulators[0].min, 1.0);
+        assert_approx_eq!(result_a.accumulators[0].max, 1.0);
+        assert_approx_eq!(result_a.accumulators[0].sum, 2.0);
+
+        assert_eq!(result_b.frames_count, 2);
+        assert_approx_eq!(result_a.accumulators[0].min, 1.0);
+        assert_approx_eq!(result_a.accumulators[0].max, 2.0);
+        assert_approx_eq!(result_a.accumulators[0].sum, 3.0);
+    }
+}
