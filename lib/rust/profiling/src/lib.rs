@@ -390,7 +390,7 @@ fn start_stats(label: &str) {
     });
 }
 
-fn end_stats(label: &str) -> Option<f64> {
+fn end_stats(label: &str) -> Option<StatsAggregate> {
     let logger = Logger::new("Profiling_Stats");
     ATTACHED_STATS.with(|attachments| {
         match attachments.borrow_mut().remove(label) {
@@ -404,7 +404,7 @@ fn end_stats(label: &str) -> Option<f64> {
                     None
                 } else {
                     // TODO(akavel): instead, return both, and do the calculation when printing report
-                    Some(stats.wip_fps / (stats.samples_count as f64))
+                    Some(stats)
                 }
             }
         }
@@ -420,10 +420,10 @@ pub fn push_stats(stats: &Vec<(&'static str, f64)>) {
 }
 
 // FIXME(akavel): do we need Clone?
-#[derive(Clone, Debug, Default)]
-struct StatsAggregate {
-    accumulator: Vec<StatAccumulator>,
-    samples_count: u32,
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct StatsAggregate {
+    pub accumulator: Vec<StatAccumulator>,
+    pub samples_count: u32,
 }
 
 impl StatsAggregate {
@@ -445,7 +445,7 @@ impl StatsAggregate {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize)]
 struct StatAccumulator {
     label: &'static str,
     min: f64,
