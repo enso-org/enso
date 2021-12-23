@@ -54,8 +54,11 @@ pub fn end_interval(label: &str) -> Option<Bundle> {
     })
 }
 
+/// A snapshot of values of different metrics at a particular frame, together with human-readable descriptions of those metrics.
 pub type LabeledSamples = Vec<(&'static str, f64)>;
 
+/// Include the provided samples into statistics for all intervals that are currently started and
+/// not yet ended.
 pub fn push(samples: &LabeledSamples) {
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().values_mut() {
@@ -70,6 +73,7 @@ pub fn push(samples: &LabeledSamples) {
 // === Bundle ===
 // ==============
 
+/// Statistics of various metrics, collected over several frames.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Bundle {
     pub accumulators: Vec<MetricAccumulator>,
@@ -77,6 +81,8 @@ pub struct Bundle {
 }
 
 impl Bundle {
+    /// Aggregate the provided samples into statistics.
+    /// Note: empty samples will be ignored.
     fn push(&mut self, samples: &LabeledSamples) {
         if samples.len() == 0 {
             return;
