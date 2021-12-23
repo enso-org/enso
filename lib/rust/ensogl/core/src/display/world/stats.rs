@@ -18,9 +18,9 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats    : Stats,
-    monitor  : debug::Monitor,
-    panels   : Vec<debug::monitor::Panel>
+    stats   : Stats,
+    monitor : debug::Monitor,
+    panels  : Vec<debug::monitor::Panel>
 }
 
 impl {

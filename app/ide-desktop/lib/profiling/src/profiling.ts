@@ -367,7 +367,7 @@ class Measurement {
                     Stat: stat.label,
                     min: stat.min,
                     // FIXME(akavel): use OUTPUT_PRECISION
-                    avg: stat.sum / n, // FIXME: is this proper f64/f64 division?
+                    avg: stat.sum / n,
                     max: stat.max,
                 })
             ))

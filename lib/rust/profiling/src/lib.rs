@@ -397,16 +397,9 @@ fn end_stats(label: &str) -> Option<StatsAggregate> {
             None => {
                 warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}");
                 None
-            }
-            Some(stats) => {
-                DEBUG!("MCDBG STATS: {stats:?} @ {label:?}");
-                if stats.samples_count == 0 {
-                    None
-                } else {
-                    // TODO(akavel): instead, return both, and do the calculation when printing report
-                    Some(stats)
-                }
-            }
+            },
+            Some(stats) if stats.samples_count == 0 => None,
+            Some(stats) => Some(stats),
         }
     })
 }
