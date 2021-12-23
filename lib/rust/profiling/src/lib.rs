@@ -433,7 +433,21 @@ struct StatsAggregate {
 }
 
 impl StatsAggregate {
-    fn push(stats: &Vec<(&'static str, f64)>) {
+    fn push(&mut self, stats: &Vec<(&'static str, f64)>) {
+        // FIXME: naming - stats, stat, samples, ... - I'm already confused myself
+        // FIXME: type alias for Vec<(...)>
+        if self.samples_count == 0 {
+            self.accumulator = Vec::with_capacity(stats.len());
+            for (label, sample) in stats {
+                self.accumulator.push(StatAccumulator::new(label, *sample));
+            }
+        } else {
+            // FIXME: verify vec lengths match & labels match, and log an error if not
+            for (acc, (_label, sample)) in self.accumulator.iter_mut().zip(stats) {
+                acc.push(*sample);
+            }
+        }
+        self.samples_count += 1;
     }
 }
 
