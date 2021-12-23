@@ -73,7 +73,7 @@ pub struct Metadata {
     /// Label of the measurement..
     pub label:           String,
 
-    pub stats: Option<StatsAggregate>,
+    pub stats: Option<frame_stats::Bundle>,
 }
 
 impl From<Metadata> for JsValue {

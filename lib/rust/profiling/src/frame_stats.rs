@@ -77,7 +77,7 @@ impl Bundle {
             }
         } else {
             // FIXME: verify vec lengths match & labels match, and log an error if not
-            for (acc, (_label, sample)) in self.accumulators.iter_mut().zip(stats) {
+            for (acc, (_label, sample)) in self.accumulators.iter_mut().zip(samples) {
                 acc.push(*sample);
             }
         }
