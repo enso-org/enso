@@ -363,6 +363,7 @@ class Measurement {
         console.groupCollapsed(this.prettyHeader())
         if (this.stats) {
             const n = this.stats.samples_count
+            console.log(`Performance statistics over ${n} frames:`)
             console.table(this.stats.accumulator.map(
                 stat => ({
                     Stat: stat.label,
