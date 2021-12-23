@@ -371,7 +371,7 @@ impl Drop for IntervalHandle {
 // === AttachedStats ===
 // =====================
 // TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
-// FIXME(akavel): all funcs & types have "stats" in name - let's move them to sub-crate "stats"
+// FIXME(akavel): all funcs & types have "stats" in name - let's move them to sub-module "stats"
 
 // FIXME: how to differentiate if multiple entries have same name? -> possibly keep UUID in IntervalHandle & Metadata
 type AttachedStats = HashMap<String, StatsAggregate>;
