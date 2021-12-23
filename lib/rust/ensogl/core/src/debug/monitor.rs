@@ -413,7 +413,8 @@ impl Panel {
     }
 
     pub fn raw_value(&self) -> f64 {
-        self.rc.borrow().raw_value()
+        // TODO[LATER]: maybe also return readonly Sampler? (for label, bounds, etc.)
+        self.rc.borrow().raw_value
     }
 
     fn first_draw(&self, dom: &Dom) {
@@ -612,11 +613,6 @@ impl PanelData {
         self.clamp_value();
         self.smooth_value();
         self.normalize_value();
-    }
-
-    pub fn raw_value(&self) -> f64 {
-        // TODO[LATER]: maybe also return readonly Sampler? (for label, bounds, etc.)
-        self.raw_value
     }
 
     /// Clamp the measured values to the `max_value` and `min_value`.
