@@ -287,6 +287,23 @@ const handle_registry = new FinalizationRegistry(heldValue => {
     }
 })
 
+// ======================
+// === StatsAggregate ===
+// ======================
+// FIXME(akavel): type docs
+
+class StatAccumulator {
+    readonly label: string
+    readonly min: number
+    readonly max: number
+    readonly sum: number
+}
+
+class StatsAggregate {
+    readonly accumulator: StatAccumulator[]
+    readonly samples_count: number
+}
+
 // ===================
 // === Measurement ===
 // ===================
@@ -303,9 +320,9 @@ class Measurement {
     readonly profilerLevel: Profiler
     readonly name: string
 
-    readonly stats?: object
+    readonly stats?: StatsAggregate
 
-    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, stats?: object) {
+    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, stats?: StatsAggregate) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
@@ -334,17 +351,29 @@ class Measurement {
         return this.startTime + this.duration
     }
 
-    prettyString(): string {
+    prettyHeader(): string {
         const start = this.startTime.toFixed(OUTPUT_PRECISION)
         const end = this.endTime().toFixed(OUTPUT_PRECISION)
         const duration = this.duration.toFixed(OUTPUT_PRECISION)
         const name = this.name
-        const wip_stats = (this.stats) ? `[${JSON.stringify(this.stats)}]` : ``
-        return `[${start},${end}] (${duration}) ${wip_stats} ${name}`
+        return `[${start},${end}] (${duration}) ${name}`
     }
 
     prettyPrint() {
-        console.log(this.prettyString())
+        console.groupCollapsed(this.prettyHeader())
+        if (this.stats) {
+            const n = this.stats.samples_count;
+            console.table(this.stats.accumulator.map(
+                stat => ({
+                    Stat: stat.label,
+                    min: stat.min,
+                    // FIXME(akavel): use OUTPUT_PRECISION
+                    avg: stat.sum / n, // FIXME: is this proper f64/f64 division?
+                    max: stat.max,
+                })
+            ));
+        }
+        console.groupEnd()
     }
 }
 
@@ -386,7 +415,7 @@ export class Report {
         let output = ''
         for (const profiler of profilerRegistry) {
             this.singleLevelMeasurement(profiler).forEach(
-                m => (output = output.concat(m.prettyString(), '\n'))
+                m => (output = output.concat(m.prettyHeader(), '\n'))
             )
         }
         return output
