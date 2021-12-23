@@ -38,7 +38,7 @@ macro_rules! measure_interval {
                  $crate::start_interval!($profiling_level, $interval_name).release();
                  let out = { $($body)* };
                  $crate::end_interval!($profiling_level, $interval_name);
-                out
+                 out
              }
         };
     }
@@ -68,7 +68,8 @@ macro_rules! define_profiling_toggle {
 /// `enable-<profiling_module_name>-profiling`, which will turn the profiling methods into no-ops.
 #[macro_export]
 macro_rules! define_profiler {
-    ($($d:tt, $profiling_level:expr, $profiling_level_name_upper:ident, $profiling_level_name:ident, $start:ident, $end:ident, $measure:ident ;)*) => {$(
+    ($($d:tt, $profiling_level:expr, $profiling_level_name_upper:ident, $profiling_level_name:ident,
+    $start:ident, $end:ident, $measure:ident ;)*) => {$(
         /// Profiler module that exposes methods to measure named intervals.
         pub mod $profiling_level_name {
 
@@ -95,7 +96,10 @@ macro_rules! define_profiler {
             #[macro_export]
             macro_rules! $measure {
                         ($interval_name:expr, || $d($d body:tt)*) => {
-                            $crate::measure_interval!($profiling_level, $interval_name, $d($d body)*)
+                            $crate::measure_interval!(
+                                $profiling_level,
+                                $interval_name,
+                                $d($d body)*)
                         };
                     }
         })*
