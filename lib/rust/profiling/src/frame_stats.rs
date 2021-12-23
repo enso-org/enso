@@ -63,7 +63,7 @@ pub fn push_stats(stats: &LabeledSample) {
 // FIXME(akavel): do we need Clone?
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Bundle {
-    pub accumulator:   Vec<StatAccumulator>,
+    pub accumulators:  Vec<MetricAccumulator>,
     pub samples_count: u32,
 }
 
@@ -71,13 +71,13 @@ impl Bundle {
     fn push(&mut self, stats: &LabeledSample) {
         // FIXME: naming - stats, stat, samples, ... - I'm already confused myself
         if self.samples_count == 0 {
-            self.accumulator = Vec::with_capacity(stats.len());
+            self.accumulators = Vec::with_capacity(stats.len());
             for (label, sample) in stats {
-                self.accumulator.push(StatAccumulator::new(*label, *sample));
+                self.accumulators.push(MetricAccumulator::new(*label, *sample));
             }
         } else {
             // FIXME: verify vec lengths match & labels match, and log an error if not
-            for (acc, (_label, sample)) in self.accumulator.iter_mut().zip(stats) {
+            for (acc, (_label, sample)) in self.accumulators.iter_mut().zip(stats) {
                 acc.push(*sample);
             }
         }
@@ -86,14 +86,14 @@ impl Bundle {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct StatAccumulator {
+pub struct MetricAccumulator {
     label: CowString,
     min:   f64,
     max:   f64,
     sum:   f64,
 }
 
-impl StatAccumulator {
+impl MetricAccumulator {
     fn new(label: impl Into<CowString>, initial_sample: f64) -> Self {
         Self {
             label: label.into(),
