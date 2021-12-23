@@ -174,5 +174,5 @@ fn choose_new_project_name(existing_names: &HashSet<String>, suggested_name: &st
     let mut candidates = std::iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.
     let name = candidates.find(|c| !existing_names.contains(c)).unwrap();
-    ReferentName::from_lowercase(name).expect("Empty project name provided")
+    ReferentName::from_identifier_text(name).expect("Empty project name provided")
 }
