@@ -285,21 +285,21 @@ const handle_registry = new FinalizationRegistry(heldValue => {
     }
 })
 
-// ======================
-// === StatsAggregate ===
-// ======================
+// ==================
+// === FrameStats ===
+// ==================
 // FIXME(akavel): type docs
 
-class StatAccumulator {
+class MetricAccumulator {
     readonly label: string
     readonly min: number
     readonly max: number
     readonly sum: number
 }
 
-class StatsAggregate {
-    readonly accumulator: StatAccumulator[]
-    readonly samples_count: number
+class FrameStatsBundle {
+    readonly accumulators: MetricAccumulator[]
+    readonly frames_count: number
 }
 
 // ===================
@@ -318,9 +318,9 @@ class Measurement {
     readonly profilerLevel: Profiler
     readonly name: string
 
-    readonly stats?: StatsAggregate
+    readonly stats?: FrameStatsBundle
 
-    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, stats?: StatsAggregate) {
+    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, stats?: FrameStatsBundle) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
@@ -360,9 +360,9 @@ class Measurement {
     prettyPrint() {
         console.groupCollapsed(this.prettyHeader())
         if (this.stats) {
-            const n = this.stats.samples_count
+            const n = this.stats.frames_count
             console.log(`Performance statistics over ${n} frames:`)
-            console.table(this.stats.accumulator.map(
+            console.table(this.stats.accumulators.map(
                 stat => ({
                     Stat: stat.label,
                     min: stat.min,
