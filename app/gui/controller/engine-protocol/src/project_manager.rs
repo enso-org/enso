@@ -103,13 +103,6 @@ impl Display for IpWithSocket {
     }
 }
 
-/// Error that is returned from [`ProjectName::new`] constructor.
-///
-/// Project name must not be empty.
-#[derive(Debug, Clone, Copy, Fail)]
-#[fail(display = "Project name cannot be empty")]
-pub struct EmptyProjectName;
-
 /// Project name.
 #[derive(Clone, Debug, Deserialize, Display, Eq, From, Hash, PartialEq, Serialize)]
 pub struct ProjectName(String);
