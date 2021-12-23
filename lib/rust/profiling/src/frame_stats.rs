@@ -44,18 +44,18 @@ pub fn end_interval(label: &str) -> Option<Bundle> {
                 warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}");
                 None
             },
-            Some(stats) if stats.samples_count == 0 => None,
-            Some(stats) => Some(stats),
+            Some(bundle) if bundle.frames_count == 0 => None,
+            Some(bundle) => Some(bundle),
         }
     })
 }
 
-type LabeledSample = Vec<(&'static str, f64)>;
+type LabeledSamples = Vec<(&'static str, f64)>;
 
-pub fn push_stats(stats: &LabeledSample) {
+pub fn push(samples: &LabeledSamples) {
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().values_mut() {
-            interval.push(stats);
+            interval.push(samples);
         }
     });
 }
@@ -63,16 +63,16 @@ pub fn push_stats(stats: &LabeledSample) {
 // FIXME(akavel): do we need Clone?
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Bundle {
-    pub accumulators:  Vec<MetricAccumulator>,
-    pub samples_count: u32,
+    pub accumulators: Vec<MetricAccumulator>,
+    pub frames_count: u32,
 }
 
 impl Bundle {
-    fn push(&mut self, stats: &LabeledSample) {
+    fn push(&mut self, samples: &LabeledSamples) {
         // FIXME: naming - stats, stat, samples, ... - I'm already confused myself
-        if self.samples_count == 0 {
-            self.accumulators = Vec::with_capacity(stats.len());
-            for (label, sample) in stats {
+        if self.frames_count == 0 {
+            self.accumulators = Vec::with_capacity(samples.len());
+            for (label, sample) in samples {
                 self.accumulators.push(MetricAccumulator::new(*label, *sample));
             }
         } else {
@@ -81,7 +81,7 @@ impl Bundle {
                 acc.push(*sample);
             }
         }
-        self.samples_count += 1;
+        self.frames_count += 1;
     }
 }
 
@@ -109,6 +109,3 @@ impl MetricAccumulator {
         self.sum += new_sample;
     }
 }
-
-
-
