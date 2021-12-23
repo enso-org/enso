@@ -290,6 +290,49 @@ impl Model {
             error!(self.logger, "Error when creating node from dropped file: {err}");
         }
     }
+
+    /// Look through all graph's nodes in AST and set position where it is missing.
+    fn initialize_nodes_positions(&self, default_gap_between_nodes: f32) {
+        match self.controller.graph().nodes() {
+            Ok(nodes) => {
+                use model::module::Position;
+
+                let base_default_position = default_node_position();
+                let node_positions =
+                    nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
+                let bottommost_pos = node_positions
+                    .min_by(Position::ord_by_y)
+                    .map(|p| p.vector)
+                    .unwrap_or(base_default_position);
+
+                let offset = default_gap_between_nodes + node_view::HEIGHT;
+                let mut next_default_position =
+                    Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
+
+                let transaction =
+                    self.controller.get_or_open_transaction("Setting default positions.");
+                transaction.ignore();
+                for node in nodes {
+                    if !node.has_position() {
+                        if let Err(err) = self
+                            .controller
+                            .graph()
+                            .set_node_position(node.id(), next_default_position)
+                        {
+                            warning!(
+                                self.logger,
+                                "Failed to initialize position of node {node.id()}: {err}"
+                            );
+                        }
+                        next_default_position.y -= offset;
+                    }
+                }
+            }
+            Err(err) => {
+                warning!(self.logger, "Failed to initialize nodes positions: {err}");
+            }
+        }
+    }
 }
 
 
@@ -304,22 +347,21 @@ impl Model {
 /// extracted from controllers, the data are cached in this structure.
 #[derive(Clone, Debug, Default)]
 struct ViewUpdate {
-    state:                     Rc<State>,
-    nodes:                     Vec<controller::graph::Node>,
-    trees:                     HashMap<AstNodeId, controller::graph::NodeTrees>,
-    connections:               HashSet<AstConnection>,
-    default_gap_between_nodes: f32,
+    state:       Rc<State>,
+    nodes:       Vec<controller::graph::Node>,
+    trees:       HashMap<AstNodeId, controller::graph::NodeTrees>,
+    connections: HashSet<AstConnection>,
 }
 
 impl ViewUpdate {
     /// Create ViewUpdate information from Graph Presenter's model.
-    fn new(model: &Model, default_gap_between_nodes: f32) -> FallibleResult<Self> {
+    fn new(model: &Model) -> FallibleResult<Self> {
         let state = model.state.clone_ref();
         let nodes = model.controller.graph().nodes()?;
         let connections_and_trees = model.controller.connections()?;
         let connections = connections_and_trees.connections.into_iter().collect();
         let trees = connections_and_trees.trees;
-        Ok(Self { state, nodes, trees, connections, default_gap_between_nodes })
+        Ok(Self { state, nodes, trees, connections })
     }
 
     /// Remove nodes from the state and return node views to be removed.
@@ -352,27 +394,11 @@ impl ViewUpdate {
     ///
     /// The nodes not having views are also updated in the state.
     fn set_node_positions(&self) -> Vec<(ViewNodeId, Vector2)> {
-        use model::module::Position;
-
-        let base_default_position = default_node_position();
-        let node_positions = self.nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
-        let bottommost_pos = node_positions
-            .min_by(Position::ord_by_y)
-            .map(|p| p.vector)
-            .unwrap_or(base_default_position);
-
-        let offset = self.default_gap_between_nodes + node_view::HEIGHT;
-        let mut next_default_position = Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
         self.nodes
             .iter()
             .filter_map(|node| {
                 let id = node.main_line.id();
-                let metadata_position = node.position().map(|p| p.vector);
-                let position = metadata_position.unwrap_or_else(|| {
-                    let position = next_default_position;
-                    next_default_position.y -= offset;
-                    position
-                });
+                let position = node.position().map(|p| p.vector)?;
                 let view_id =
                     self.state.update_from_controller().set_node_position(id, position)?;
                 Some((view_id, position))
@@ -448,15 +474,16 @@ impl Graph {
         let view = &self.model.view.frp;
         frp::extend! { network
             update_view <- source::<()>();
-            update_data <- update_view.map2(&view.default_y_gap_between_nodes,
-                f!([logger,model] (_, gap) match ViewUpdate::new(&*model, *gap) {
-                    Ok(update) => Rc::new(update),
-                    Err(err) => {
-                        error!(logger,"Failed to update view: {err:?}");
-                        Rc::new(default())
-                    }
-                })
-            );
+            // Position initialization should go before emitting `update_data` event.
+            update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view);
+            eval update_with_gap ((gap) model.initialize_nodes_positions(*gap));
+            update_data <- update_view.map(f_!([logger,model] match ViewUpdate::new(&*model) {
+                Ok(update) => Rc::new(update),
+                Err(err) => {
+                    error!(logger,"Failed to update view: {err:?}");
+                    Rc::new(default())
+                }
+            }));
 
 
             // === Refreshing Nodes ===
