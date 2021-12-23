@@ -214,10 +214,12 @@ mod tests {
 
         assert_eq!(result.frames_count, 3);
 
+        assert_eq!(result.accumulators[0].label.as_ref(), STAT_1);
         assert_approx_eq!(result.accumulators[0].min, 1.0);
         assert_approx_eq!(result.accumulators[0].max, 1.0);
         assert_approx_eq!(result.accumulators[0].sum, 3.0);
 
+        assert_eq!(result.accumulators[1].label.as_ref(), STAT_2);
         assert_approx_eq!(result.accumulators[1].min, 2.0);
         assert_approx_eq!(result.accumulators[1].max, 2.0);
         assert_approx_eq!(result.accumulators[1].sum, 6.0);
