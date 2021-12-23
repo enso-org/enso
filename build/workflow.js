@@ -12,7 +12,6 @@ const yaml = require('js-yaml')
 // =================
 
 const NODE_VERSION = '14.15.0'
-const RUST_VERSION = read_rust_toolchain_version()
 const WASM_PACK_VERSION = '0.9.1'
 const FLAG_NO_CHANGELOG_NEEDED = '[ci no changelog needed]'
 const FLAG_FORCE_CI_BUILD = '[ci build]'
@@ -27,13 +26,6 @@ const WINDOWS_RUNNER_GITHUB_HOSTED = ['windows-latest']
 
 function cached_linux_runner(cache_label) {
     return ['Linux', cache_label]
-}
-
-function read_rust_toolchain_version() {
-    return fss
-        .readFileSync(paths.root + '/rust-toolchain')
-        .toString()
-        .trim()
 }
 
 function job(runners, name, steps, cfg) {
@@ -100,15 +92,6 @@ dumpGitHubContext = {
 // ====================
 // === Dependencies ===
 // ====================
-
-let installRust = {
-    name: 'Install Rust',
-    uses: 'actions-rs/toolchain@v1',
-    with: {
-        toolchain: RUST_VERSION,
-        override: true,
-    },
-}
 
 let installNode = {
     name: 'Install Node',
@@ -438,7 +421,6 @@ let workflow = {
         lint: job_on_linux_cached('linter', 'Linter', [
             installNode,
             installTypeScript,
-            installRust,
             installClippy,
             installFmt,
             lintRust,
@@ -446,20 +428,17 @@ let workflow = {
         test: job_on_linux_cached('test_native', 'Native Tests', [
             installNode,
             installTypeScript,
-            installRust,
             testNoWASM,
         ]),
         'wasm-test': job_on_linux_cached('test_wasm', 'WASM Tests', [
             installNode,
             installTypeScript,
-            installRust,
             installWasmPack,
             testWASM,
         ]),
         build_wasm: job_on_linux_cached('build_wasm', 'Build WASM', [
             installNode,
             installTypeScript,
-            installRust,
             installWasmPack,
             installJava,
             buildWASM,
@@ -476,7 +455,6 @@ let workflow = {
                 getCurrentReleaseChangelogInfo,
                 installNode,
                 installTypeScript,
-                installRust,
                 installWasmPack,
                 installJava,
 
