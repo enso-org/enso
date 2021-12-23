@@ -434,6 +434,31 @@ struct StatsAggregate {
     samples_count: u32,
 }
 
+#[derive(Copy, Debug)]
+struct StatAggregate {
+    label: &'static str,
+    min: f64,
+    max: f64,
+    sum: f64,
+}
+
+impl StatAggregate {
+    fn new(label: &'static str, initial_sample: f64) -> Self {
+        Self {
+            label,
+            min: initial_sample,
+            max: initial_sample,
+            sum: initial_sample,
+        }
+    }
+
+    fn push(&mut self, new_sample: f64) {
+        self.min = self.min.min(new_sample);
+        self.max = self.max.max(new_sample);
+        self.sum += new_sample;
+    }
+}
+
 
 
 // ===============
