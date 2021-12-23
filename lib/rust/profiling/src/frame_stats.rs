@@ -50,7 +50,7 @@ pub fn end_interval(label: &str) -> Option<Bundle> {
     })
 }
 
-type LabeledSamples = Vec<(&'static str, f64)>;
+pub type LabeledSamples = Vec<(&'static str, f64)>;
 
 pub fn push(samples: &LabeledSamples) {
     ACTIVE_INTERVALS.with(|intervals| {

@@ -59,7 +59,7 @@ impl {
     pub fn end(&mut self) {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
-        let mut snapshot = Vec::with_capacity(self.panels.len());
+        let mut snapshot = profiling::frame_stats::LabeledSamples::with_capacity(self.panels.len());
         for panel in &self.panels {
             panel.end();
             snapshot.push((panel.label(), panel.raw_value()));
