@@ -95,6 +95,10 @@ lto = false
 debug = true
 debug-assertions = true
 
+[profile.watch]
+inherits = "dev"
+opt-level = 2
+
 [profile.release]
 opt-level = 3
 lto = true
