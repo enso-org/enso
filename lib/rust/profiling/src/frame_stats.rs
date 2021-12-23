@@ -78,7 +78,10 @@ pub struct Bundle {
 
 impl Bundle {
     fn push(&mut self, samples: &LabeledSamples) {
-        // FIXME: naming - stats, stat, samples, ... - I'm already confused myself
+        if samples.len() == 0 {
+            return;
+        }
+
         if self.frames_count == 0 {
             self.accumulators = Vec::with_capacity(samples.len());
             for (label, sample) in samples {
@@ -172,5 +175,24 @@ mod tests {
 
         start_interval(INTERVAL_A);
         assert!(end_interval(INTERVAL_A).is_none());
+    }
+
+    #[test]
+    fn empty_samples_ignored() {
+        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
+
+        const INTERVAL_A: &str = "interval-A";
+        const STAT: &str = "stat";
+
+        start_interval(INTERVAL_A);
+        push(&vec![]);
+        push(&vec![(STAT, 1.0)]);
+        push(&vec![]);
+        let result = end_interval(INTERVAL_A).unwrap();
+
+        assert_eq!(result.frames_count, 1);
+        assert_approx_eq!(result.accumulators[0].min, 1.0);
+        assert_approx_eq!(result.accumulators[0].max, 1.0);
+        assert_approx_eq!(result.accumulators[0].sum, 1.0);
     }
 }
