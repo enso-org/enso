@@ -303,10 +303,7 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
     if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
-        let metadata_with_stats = Metadata{
-            stats: end_stats(&start_label),
-            ..metadata
-        };
+        let metadata_with_stats = Metadata { stats: end_stats(&start_label), ..metadata };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),
@@ -415,7 +412,7 @@ pub fn push_stats(stats: &Vec<(&'static str, f64)>) {
 // FIXME(akavel): do we need Clone?
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct StatsAggregate {
-    pub accumulator: Vec<StatAccumulator>,
+    pub accumulator:   Vec<StatAccumulator>,
     pub samples_count: u32,
 }
 
@@ -441,18 +438,18 @@ impl StatsAggregate {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StatAccumulator {
     label: CowString,
-    min: f64,
-    max: f64,
-    sum: f64,
+    min:   f64,
+    max:   f64,
+    sum:   f64,
 }
 
 impl StatAccumulator {
     fn new(label: impl Into<CowString>, initial_sample: f64) -> Self {
         Self {
             label: label.into(),
-            min: initial_sample,
-            max: initial_sample,
-            sum: initial_sample,
+            min:   initial_sample,
+            max:   initial_sample,
+            sum:   initial_sample,
         }
     }
 
