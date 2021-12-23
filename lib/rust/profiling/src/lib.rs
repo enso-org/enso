@@ -74,7 +74,7 @@ pub struct Metadata {
     /// Label of the measurement..
     pub label:           String,
 
-    pub wip_fps: Option<f64>,
+    pub stats: Option<StatsAggregate>,
 }
 
 impl From<Metadata> for JsValue {
@@ -304,7 +304,7 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
         Err(MeasurementError::ProfilingDisabled)
     } else {
         let metadata_with_stats = Metadata{
-            wip_fps: end_stats(&start_label),
+            stats: end_stats(&start_label),
             ..metadata
         };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
