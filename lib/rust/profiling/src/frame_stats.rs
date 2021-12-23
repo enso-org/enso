@@ -195,4 +195,31 @@ mod tests {
         assert_approx_eq!(result.accumulators[0].max, 1.0);
         assert_approx_eq!(result.accumulators[0].sum, 1.0);
     }
+
+    #[test]
+    fn multiple_metrics_collected() {
+        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
+
+        const INTERVAL_A: &str = "interval-A";
+        const STAT_1: &str = "stat-1";
+        const STAT_2: &str = "stat-2";
+
+
+        start_interval(INTERVAL_A);
+        push(&vec![(STAT_1, 1.0), (STAT_2, 2.0)]);
+        push(&vec![(STAT_1, 1.0), (STAT_2, 2.0)]);
+        push(&vec![(STAT_1, 1.0), (STAT_2, 2.0)]);
+        let result = end_interval(INTERVAL_A).unwrap();
+
+
+        assert_eq!(result.frames_count, 3);
+
+        assert_approx_eq!(result.accumulators[0].min, 1.0);
+        assert_approx_eq!(result.accumulators[0].max, 1.0);
+        assert_approx_eq!(result.accumulators[0].sum, 3.0);
+
+        assert_approx_eq!(result.accumulators[1].min, 2.0);
+        assert_approx_eq!(result.accumulators[1].max, 2.0);
+        assert_approx_eq!(result.accumulators[1].sum, 6.0);
+    }
 }
