@@ -76,7 +76,9 @@ pub fn push(samples: &LabeledSamples) {
 /// Statistics of various metrics, collected over several frames.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Bundle {
+    /// Aggregated data of each metric.
     pub accumulators: Vec<MetricAccumulator>,
+    /// Over how many frames the data was aggregated.
     pub frames_count: u32,
 }
 
@@ -109,6 +111,7 @@ impl Bundle {
 // === MetricAccumulator ===
 // =========================
 
+/// Accumulated data for a single metric.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MetricAccumulator {
     label: CowString,

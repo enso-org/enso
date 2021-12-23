@@ -72,7 +72,7 @@ pub struct Metadata {
     pub profiling_level: ProfilingLevel,
     /// Label of the measurement..
     pub label:           String,
-
+    /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
     pub stats: Option<frame_stats::Bundle>,
 }
 
