@@ -233,6 +233,20 @@ impl ReferentName {
         Self::validate(name.as_ref()).map(|_| ReferentName(name.into()))
     }
 
+    /// Convert given string into a referent name. First letter would be capitalized.
+    ///
+    /// Fails if the given string is empty.
+    pub fn from_lowercase(name: impl Str) -> Result<Self, NotReferentName> {
+        let name = name.as_ref();
+        let mut chars = name.chars();
+
+        let name = match chars.next() {
+            None => return Err(NotReferentName(name.into())),
+            Some(first_char) => first_char.to_uppercase().to_string() + chars.as_str(),
+        };
+        Ok(Self(name))
+    }
+
     /// Get a normalized version of this identifier.
     pub fn normalized(&self) -> NormalizedName {
         NormalizedName::new(self)

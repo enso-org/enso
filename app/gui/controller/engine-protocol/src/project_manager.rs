@@ -115,21 +115,10 @@ pub struct EmptyProjectName;
 pub struct ProjectName(String);
 
 impl ProjectName {
-    /// Create new ProjectName. Returns error if provided string is empty.
-    ///
-    /// First letter of the string will be capitalized, as this is a requirement for project names.
-    pub fn new(name: impl Str) -> FallibleResult<Self> {
-        let name = name.as_ref();
-        let mut chars = name.chars();
-
-        let name = match chars.next() {
-            None => return Err(EmptyProjectName.into()),
-            Some(first_char) => first_char.to_uppercase().to_string() + chars.as_str(),
-        };
-        Ok(Self(name))
-    }
-
     /// Create new ProjectName without any validation.
+    ///
+    /// The caller is responsible for making sure that provided string is a valid project name
+    /// (e.g. not empty and starts with a capital letter).
     pub fn new_unchecked(name: impl Str) -> Self {
         Self(name.into())
     }

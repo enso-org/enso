@@ -611,7 +611,7 @@ impl model::project::API for Project {
             let referent_name = name.as_str().try_into()?;
             let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
             let project_id = self.properties.borrow().id;
-            let project_name = ProjectName::new(name)?;
+            let project_name = ProjectName::new_unchecked(name);
             project_manager.rename_project(&project_id, &project_name).await?;
             self.properties.borrow_mut().name.project = referent_name;
             Ok(())

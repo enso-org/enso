@@ -10,6 +10,7 @@ use crate::controller::ide::StatusNotificationPublisher;
 use crate::controller::ide::API;
 use crate::ide::initializer;
 use crate::notification;
+use double_representation::identifier::ReferentName;
 
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
@@ -123,9 +124,11 @@ impl ManagingProjectAPI for Handle {
             use model::project::Synchronized as Project;
 
             let list = self.project_manager.list_projects(&None).await?;
-            let existing_names: HashSet<_> = list.projects.into_iter().map(|p| p.name).collect();
+            let existing_names: HashSet<_> =
+                list.projects.into_iter().map(|p| p.name.into()).collect();
             let name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
             let name = choose_new_project_name(&existing_names, &name);
+            let name = ProjectName::new_unchecked(name);
             let version = Some(enso_config::engine_version_supported.to_string());
             let action = MissingComponentAction::Install;
 
@@ -164,16 +167,12 @@ impl ManagingProjectAPI for Handle {
 
 /// Select a new name for the project in a form of <suggested_name>_N, where N is a unique sequence
 /// number.
-fn choose_new_project_name(
-    existing_names: &HashSet<ProjectName>,
-    suggested_name: &str,
-) -> ProjectName {
-    let first_candidate = ProjectName::new(suggested_name).expect("Empty project name");
-    let nth_project_name =
-        |i| ProjectName::new(iformat!("{suggested_name}_{i}")).expect("Empty project name");
+fn choose_new_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> ReferentName {
+    let first_candidate = suggested_name.to_owned();
+    let nth_project_name = |i| iformat!("{suggested_name}_{i}");
     let candidates = (1..).map(nth_project_name);
     let mut candidates = std::iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.
     let name = candidates.find(|c| !existing_names.contains(c)).unwrap();
-    ProjectName::new(name).expect("Generated project name is empty")
+    ReferentName::from_lowercase(name).expect("Empty project name provided")
 }
