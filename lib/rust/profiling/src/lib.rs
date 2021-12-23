@@ -371,6 +371,7 @@ impl Drop for IntervalHandle {
 // === AttachedStats ===
 // =====================
 // TODO(akavel): naming: Metrics? Stats? Correlates? Health? Impact?
+// FIXME(akavel): all funcs & types have "stats" in name - let's move them to sub-crate "stats"
 
 // FIXME: how to differentiate if multiple entries have same name? -> possibly keep UUID in IntervalHandle & Metadata
 type AttachedStats = HashMap<String, StatsAggregate>;
@@ -410,7 +411,7 @@ fn end_stats(label: &str) -> Option<f64> {
     })
 }
 
-pub fn push_stats(stats: &Vec<f64>) {
+pub fn push_stats(stats: &Vec<(&'static str, f64)>) {
     // FIXME(akavel): labeled data in `stats`
     const WIP_FPS_IDX: usize = 1;
     if stats.len() < WIP_FPS_IDX+1 { return; }
@@ -427,22 +428,24 @@ pub fn push_stats(stats: &Vec<f64>) {
 // FIXME(akavel): do we need Clone?
 #[derive(Clone, Debug, Default)]
 struct StatsAggregate {
-    // FIXME(akavel): more stats
-    // FIXME(akavel): store appropriate data to allow min:max:avg calc. for each stat
-    // FIXME(akavel): link stat labels for display in reports
-    wip_fps: f64,
+    accumulator: Vec<StatAccumulator>,
     samples_count: u32,
 }
 
-#[derive(Copy, Debug)]
-struct StatAggregate {
+impl StatsAggregate {
+    fn push(stats: &Vec<(&'static str, f64)>) {
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct StatAccumulator {
     label: &'static str,
     min: f64,
     max: f64,
     sum: f64,
 }
 
-impl StatAggregate {
+impl StatAccumulator {
     fn new(label: &'static str, initial_sample: f64) -> Self {
         Self {
             label,
