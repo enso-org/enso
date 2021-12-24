@@ -9,6 +9,7 @@ mod tests {
     use enso_gui::transport::web::WebSocket;
 
     use engine_protocol::project_manager::MissingComponentAction::Install;
+    use engine_protocol::project_manager::ProjectName;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -25,7 +26,7 @@ mod tests {
 
         executor::global::spawn(client.runner());
 
-        let name = "TestProject".to_string();
+        let name = ProjectName::new_unchecked("TestProject");
         let creation = client.create_project(&name, &None, &None, &Install);
         let created = creation.await.expect("Couldn't create project.");
         let uuid = created.project_id;
@@ -33,19 +34,19 @@ mod tests {
         client.close_project(&uuid).await.expect("Couldn't close project.");
         let list_response = client.list_projects(&None).await;
         let list_response = list_response.expect("Couldn't list recent projects.");
-        assert!(list_response.projects.iter().any(|project| *project.name.deref() == name));
+        assert!(list_response.projects.iter().any(|project| project.name == name));
 
-        let new_name = "NewTestProject".to_string();
+        let new_name = ProjectName::new_unchecked("NewTestProject");
         client.rename_project(&uuid, &new_name).await.expect("Couldn't rename project.");
         let list_response = client.list_projects(&None).await;
         let list_response = list_response.expect("Couldn't list recent projects.");
-        assert!(!list_response.projects.iter().any(|project| *project.name.deref() == name));
-        assert!(list_response.projects.iter().any(|project| *project.name.deref() == new_name));
+        assert!(!list_response.projects.iter().any(|project| project.name == name));
+        assert!(list_response.projects.iter().any(|project| project.name == new_name));
 
         client.delete_project(&uuid).await.expect("Couldn't delete project.");
         let list_response = client.list_projects(&None).await;
         let list_response = list_response.expect("Couldn't list recent projects.");
-        assert!(!list_response.projects.iter().any(|project| *project.name.deref() == name));
+        assert!(!list_response.projects.iter().any(|project| project.name == name));
         // FIXME[dg]: project/listSample isn't implemented on the server-side yet.
         //client.list_samples(10).await.expect("Couldn't list samples.");
     }
