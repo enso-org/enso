@@ -298,7 +298,7 @@ into_helper fmt json = case fmt of
         String v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     _ ->
-        m = Meta.meta fmt
+        m = Meta.repr fmt
         case m of
             Meta.Atom _ -> case json of
                 Object json_fields ->

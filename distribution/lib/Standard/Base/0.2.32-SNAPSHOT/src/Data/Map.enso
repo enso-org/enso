@@ -7,7 +7,7 @@ import Standard.Base.Data.Map.Internal
    > Example
      Create an empty map.
 
-         import Standard.Base.Data.Map.Internal
+         import Standard.Base.Data.Map
 
          example_empty = Map.empty
 empty : Map
@@ -22,7 +22,7 @@ empty = Tip
    > Example
      Create a single element map storing the key 1 and the value 2.
 
-         import Standard.Base.Data.Map.Internal
+         import Standard.Base.Data.Map
 
          example_singleton = Map.singleton 1 2
 singleton : Any -> Any -> Map
@@ -36,11 +36,11 @@ singleton key value = Bin 1 key value Tip Tip
    > Example
      Building a map containing two key-value pairs.
 
-         import Standard.Base.Data.Map.Internal
+         import Standard.Base.Data.Map
 
          example_from_vector = Map.from_vector [[1, 2], [3, 4]]
 from_vector : Vector.Vector Any -> Map
-from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
+from_vector vec = vec.fold here.empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
@@ -454,4 +454,3 @@ type No_Value_For_Key_Error key
 No_Value_For_Key_Error.to_display_text : Text
 No_Value_For_Key_Error.to_display_text =
     "The map contained no value for the key " + this.key.to_text + "."
-

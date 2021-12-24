@@ -15,7 +15,7 @@ from Standard.Base import all
              error.method_name
 No_Such_Method_Error.method_name : Text
 No_Such_Method_Error.method_name =
-    Meta.meta this.symbol . name
+    Meta.repr this.symbol . name
 
 ## UNSTABLE
 

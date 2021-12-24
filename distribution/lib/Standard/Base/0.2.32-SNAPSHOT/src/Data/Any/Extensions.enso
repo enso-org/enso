@@ -34,8 +34,8 @@ from Standard.Base import all
              a == 147
 Any.== : Any -> Boolean
 Any.== that = if Meta.is_same_object this that then True else
-    this_meta = Meta.meta this
-    that_meta = Meta.meta that
+    this_meta = Meta.repr this
+    that_meta = Meta.repr that
     case Cons this_meta that_meta of
         Cons (Meta.Atom _) (Meta.Atom _) ->
             c_1 = this_meta.constructor

@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding Array, Number, Boolean
 
 import Standard.Base.Data.Json.Internal
 
@@ -135,12 +135,12 @@ type Json
              example_unwrap = Json.Number 3 . unwrap
     unwrap : Any
     unwrap = case this of
-        Json.Array its -> its.map .unwrap
-        Json.Boolean b -> b
-        Json.Number n -> n
-        Json.String t -> t
-        Json.Null -> Nothing
-        Json.Object f -> f.map .unwrap
+        Array its -> its.map .unwrap
+        Boolean b -> b
+        Number n -> n
+        String t -> t
+        Null -> Nothing
+        Object f -> f.map .unwrap
 
 ## UNSTABLE
 
@@ -243,7 +243,7 @@ type Marshalling_Error
      Convert a vector to JSON.
          [1, 2, 3, 4].to_json
 Any.to_json =
-    m = Meta.meta this
+    m = Meta.repr this
     case m of
         Meta.Atom _ ->
             cons = Meta.Constructor m.constructor
@@ -284,4 +284,3 @@ Base.Boolean.to_json = Boolean this
          Nothing.to_json
 Nothing.to_json : Null
 Nothing.to_json = Null
-

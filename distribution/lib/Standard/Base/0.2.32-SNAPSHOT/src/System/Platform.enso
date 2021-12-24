@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Builtins import System
 
 ## A representation of the various operating systems on which Enso can run.
-type Os
+type Platform
 
     ## The Linux operating system.
     type Linux
@@ -25,13 +25,13 @@ type Os
          import Standard.Base.System.Platform
 
          example_os = Platform.os
-os : Os
+os : Platform
 os = here.from_text System.os
 
 ## PRIVATE
 
    Create an Os object from text.
-from_text: Text -> Os
+from_text: Text -> Platform
 from_text os =
     if os == "linux" then Linux else
         if os == "macos" then MacOS else
