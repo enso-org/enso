@@ -224,8 +224,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    ## Do another thing
           |    z = x * y
           |""".stripMargin.preprocessModule.resolve
-      val body = ir
-        .bindings.head
+      val body = ir.bindings.head
         .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
         .body
         .asInstanceOf[IR.Expression.Block]
@@ -247,8 +246,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    ## Return thing
           |    f 1
           |""".stripMargin.preprocessModule.resolve
-      val body = ir
-        .bindings.head
+      val body = ir.bindings.head
         .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
         .body
         .asInstanceOf[IR.Expression.Block]
@@ -342,9 +340,11 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        _ -> 50
           |""".stripMargin.preprocessModule
 
-      val t1 = ir.bindings.head
-      getDoc(t1) shouldEqual " the constructor Bar"
-      inside(ir.bindings(1)) {
+      val tFoo = ir.bindings.head
+      getDoc(tFoo) shouldEqual " the type Foo"
+      val tBar = ir.bindings(1)
+      getDoc(tBar) shouldEqual " the constructor Bar"
+      inside(ir.bindings(2)) {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           getDoc(method) shouldEqual " a method"
           inside(method.body) { case lambda: IR.Function.Lambda =>
@@ -355,7 +355,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           }
       }
 
-      inside(ir.bindings(2)) {
+      inside(ir.bindings(3)) {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           inside(method.body) { case lambda: IR.Function.Lambda =>
             inside(lambda.body) { case block: IR.Expression.Block =>

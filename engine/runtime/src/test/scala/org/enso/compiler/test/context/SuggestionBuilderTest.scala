@@ -713,7 +713,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build conersion method for complex type" in {
+    "build conversion method for complex type" in {
       pending
       implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
@@ -734,6 +734,18 @@ class SuggestionBuilderTest extends CompilerTest {
       build(code, module) shouldEqual Tree.Root(
         Vector(
           ModuleNode,
+          Tree.Node(
+            Suggestion.Atom(
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "MyMaybe",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.MyMaybe",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
           Tree.Node(
             Suggestion.Atom(
               externalId = None,
@@ -1413,6 +1425,18 @@ class SuggestionBuilderTest extends CompilerTest {
             Suggestion.Atom(
               externalId        = None,
               module            = "Unnamed.Test",
+              name              = "Maybe",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Maybe",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Atom(
+              externalId        = None,
+              module            = "Unnamed.Test",
               name              = "Nothing",
               arguments         = Seq(),
               returnType        = "Unnamed.Test.Nothing",
@@ -1473,6 +1497,19 @@ class SuggestionBuilderTest extends CompilerTest {
       build(code, module) shouldEqual Tree.Root(
         Vector(
           DoccedModuleNode,
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Maybe",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Maybe",
+              documentation = Some(" When in doubt"),
+              documentationHtml =
+                Some(DocParserWrapper.runOnPureDoc(" When in doubt", "Maybe"))
+            ),
+            Vector()
+          ),
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -1544,6 +1581,18 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Atom(
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "List",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.List",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Atom(
               externalId    = None,
               module        = "Unnamed.Test",
               name          = "Cons",
@@ -1578,7 +1627,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.Cons", false, false, None)
               ),
               selfType      = "Unnamed.Test.Cons",
-              returnType    = "List",
+              returnType    = "Unnamed.Test.List",
               documentation = Some(" a method"),
               documentationHtml =
                 Some(DocParserWrapper.runOnPureDoc(" a method", "empty"))
@@ -1595,7 +1644,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.Nil", false, false, None)
               ),
               selfType      = "Unnamed.Test.Nil",
-              returnType    = "List",
+              returnType    = "Unnamed.Test.List",
               documentation = Some(" a method"),
               documentationHtml =
                 Some(DocParserWrapper.runOnPureDoc(" a method", "empty"))
@@ -1621,6 +1670,18 @@ class SuggestionBuilderTest extends CompilerTest {
       build(code, module) shouldEqual Tree.Root(
         Vector(
           ModuleNode,
+          Tree.Node(
+            Suggestion.Atom(
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Maybe",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Maybe",
+              documentation     = None,
+              documentationHtml = None
+            ),
+            Vector()
+          ),
           Tree.Node(
             Suggestion.Atom(
               externalId        = None,

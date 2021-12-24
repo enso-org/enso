@@ -978,6 +978,21 @@ class RuntimeSuggestionUpdatesTest
                   Suggestion.Atom(
                     None,
                     "Enso_Test.Test.A",
+                    "MyType",
+                    List(),
+                    "Enso_Test.Test.A.MyType",
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Atom(
+                    None,
+                    "Enso_Test.Test.A",
                     "MkA",
                     List(
                       Suggestion
@@ -1078,6 +1093,7 @@ class RuntimeSuggestionUpdatesTest
               ModuleExports(
                 "Enso_Test.Test.Main",
                 Set(
+                  ExportedSymbol.Atom("Enso_Test.Test.A", "MyType"),
                   ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"),
                   ExportedSymbol.Method("Enso_Test.Test.A", "hello")
                 )
@@ -1204,7 +1220,10 @@ class RuntimeSuggestionUpdatesTest
             Api.ExportsUpdate(
               ModuleExports(
                 "Enso_Test.Test.Main",
-                Set(ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"))
+                Set(
+                  ExportedSymbol.Atom("Enso_Test.Test.A", "MyType"),
+                  ExportedSymbol.Atom("Enso_Test.Test.A", "MkA")
+                )
               ),
               Api.ExportsAction.Remove()
             )
