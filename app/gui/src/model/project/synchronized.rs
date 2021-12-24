@@ -22,6 +22,7 @@ use engine_protocol::language_server::ExpressionUpdates;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
+use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -610,7 +611,8 @@ impl model::project::API for Project {
             let referent_name = name.as_str().try_into()?;
             let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
             let project_id = self.properties.borrow().id;
-            project_manager.rename_project(&project_id, &name).await?;
+            let project_name = ProjectName::new_unchecked(name);
+            project_manager.rename_project(&project_id, &project_name).await?;
             self.properties.borrow_mut().name.project = referent_name;
             Ok(())
         }
