@@ -101,16 +101,6 @@ let installNode = {
     },
 }
 
-let installClippy = {
-    name: 'Install Clippy',
-    run: 'rustup component add clippy',
-}
-
-let installFmt = {
-    name: 'Install Clippy',
-    run: 'rustup component add rustfmt',
-}
-
 // Install fixed version to avoid upgrading to a breaking version.
 // Should be removed once this has a better solution as described here:
 // https://github.com/enso-org/ide/issues/1772
@@ -421,8 +411,6 @@ let workflow = {
         lint: job_on_linux_cached('linter', 'Linter', [
             installNode,
             installTypeScript,
-            installClippy,
-            installFmt,
             lintRust,
         ]),
         test: job_on_linux_cached('test_native', 'Native Tests', [
