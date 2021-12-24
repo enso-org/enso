@@ -408,11 +408,7 @@ let workflow = {
             getCurrentReleaseChangelogInfo,
             assertions,
         ]),
-        lint: job_on_linux_cached('linter', 'Linter', [
-            installNode,
-            installTypeScript,
-            lintRust,
-        ]),
+        lint: job_on_linux_cached('linter', 'Linter', [installNode, installTypeScript, lintRust]),
         test: job_on_linux_cached('test_native', 'Native Tests', [
             installNode,
             installTypeScript,
