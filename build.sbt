@@ -16,7 +16,6 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion  = "2.13.6"
-val rustVersion    = "1.59.0-nightly"
 val graalVersion   = "21.1.0"
 val javaVersion    = "11"
 val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
@@ -1054,14 +1053,12 @@ lazy val `language-server` = (project in file("engine/language-server"))
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
-    Cargo.rustVersion := rustVersion,
     Compile / sourceGenerators += GenerateAST.task
   )
 
 lazy val parser = (project in file("lib/scala/parser"))
   .settings(
     fork := true,
-    Cargo.rustVersion := rustVersion,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(Cargo("build --project parser"))
       .value,
@@ -1335,7 +1332,7 @@ lazy val launcher = project
   .settings(
     (Test / test) := (Test / test)
       .dependsOn(buildNativeImage)
-      .dependsOn(LauncherShimsForTest.prepare(rustcVersion = rustVersion))
+      .dependsOn(LauncherShimsForTest.prepare())
       .value,
     Test / parallelExecution := false
   )

@@ -1,0 +1,66 @@
+name: Engine CI V2
+
+on:
+  push:
+    branches: [develop, "release/*"]
+  pull_request:
+    branches: ["*"]
+  workflow_dispatch:
+
+jobs:
+  test_and_publish:
+    name: Engine
+    runs-on:
+      - ${{ matrix.os }}
+      - self-hosted
+      - engine
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        os: [Windows, Linux]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
+        working-directory: C:\ci
+        if: runner.os == 'Windows'
+      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
+        working-directory: /ci
+        if: runner.os != 'Windows'
+
+      #####################
+      # PUBLISH ARTIFACTS #
+      #####################
+      - name: Publish the Engine Distribution Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ENGINE_DIST_NAME }}
+          path: ${{ env.ENGINE_DIST_ROOT }}/${{ env.ENGINE_DIST_NAME }}.zip
+      - name: Publish the Launcher
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.LAUNCHER_DIST_NAME }}
+          path: ${{ env.LAUNCHER_DIST_ROOT }}
+      - name: Publish the Project Manager
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PROJECTMANAGER_DIST_NAME }}
+          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+      - name: Publish the FlatBuffers Schemas
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Engine Protocol FlatBuffers Schemas
+          path: ${{ env.TARGET_DIR }}/fbs-upload/fbs-schema.zip
+      - name: Publish the Parser JS Bundle
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Parser JS Bundle
+          path: ${{ env.TARGET_DIR }}/scala-parser.js
+      - name: Publish the Manifest
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml

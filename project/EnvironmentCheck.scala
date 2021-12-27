@@ -64,36 +64,6 @@ object EnvironmentCheck {
     graalOk && javaOk
   }
 
-  /** Runs `rustc --version` to ensure that it is properly installed and
-    * checks if the reported version is consistent with expectations.
-    *
-    * @param expectedVersion rust version that is expected to be installed,
-    *                        should be based on project settings
-    * @return either an error message explaining what is wrong with the rust
-    *         version or Unit meaning it is correct
-    */
-  def rustVersionOk(expectedVersion: String, log: ManagedLogger): Boolean = {
-    val cmd = "rustc --version"
-
-    try {
-      val versionStr = cmd.!!.trim
-
-      val contained = versionStr.contains(expectedVersion)
-
-      if (!contained) {
-        log.error(
-          s"Rust version mismatch. $expectedVersion is expected, " +
-          s"but it seems $versionStr is installed."
-        )
-      }
-      contained
-    } catch {
-      case _ @(_: RuntimeException | _: IOException) =>
-        log.error("Rust version check failed. Make sure rustc is in your PATH.")
-        false
-    }
-  }
-
   /** Augments a state transition to do a Rust and GraalVM version check.
     *
     * @param graalVersion the GraalVM version that should be used for
