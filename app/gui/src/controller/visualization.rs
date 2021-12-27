@@ -10,6 +10,7 @@ use crate::constants::VISUALIZATION_DIRECTORY;
 use engine_protocol::language_server;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::definition;
+use ide_view::graph_editor::component::visualization::java_script::Sources;
 use std::rc::Rc;
 
 
@@ -158,7 +159,7 @@ impl Handle {
                 let unknown_file_name = || String::from("unknown_file_name");
                 let file_name = path.file_name().cloned().unwrap_or_else(unknown_file_name);
                 let sources: &[(&str, &str)] = &[(&file_name, &js_code)];
-                let sources = visualization::java_script::Sources::from_files(sources);
+                let sources = Sources::from_files(sources);
                 visualization::java_script::Definition::new(project, sources)
                     .map(Into::into)
                     .map_err(wrap_error)
@@ -251,8 +252,10 @@ mod tests {
         assert_eq!(visualizations.len(), 3);
 
         let owner = visualization::Project::CurrentProject;
-        let javascript_vis0 = js_vis::Definition::new(owner.clone_ref(), &file_content0);
-        let javascript_vis1 = js_vis::Definition::new(owner, &file_content1);
+        let sources_vis0 = Sources::from_files(&[("file0.js", &file_content0)]);
+        let javascript_vis0 = js_vis::Definition::new(owner.clone_ref(), sources_vis0);
+        let sources_vis1 = Sources::from_files(&[("file0.js", &file_content1)]);
+        let javascript_vis1 = js_vis::Definition::new(owner, sources_vis1);
         let javascript_vis0 = javascript_vis0.expect("Couldn't create visualization class.");
         let javascript_vis1 = javascript_vis1.expect("Couldn't create visualization class.");
         let javascript_vis0: visualization::Definition = javascript_vis0.into();
