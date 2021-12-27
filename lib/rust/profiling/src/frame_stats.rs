@@ -25,7 +25,7 @@ type IntervalsMap = HashMap<String, Bundle>;
 
 thread_local! {
     static ACTIVE_INTERVALS: RefCell<IntervalsMap> = RefCell::new(IntervalsMap::new());
-    static METRICS_LABELS: RefCell<Vec<Rc<String>>> = RefCell::new(Vec::new());
+    static METRICS_LABELS: RefCell<Vec<ImString>> = RefCell::new(Vec::new());
 }
 
 /// Starts a new named time interval, during which frame statistics will be collected.
@@ -61,13 +61,13 @@ pub type LabeledSample<'a> = (&'a str, f64);
 /// Include the provided samples into statistics for all intervals that are currently started and
 /// not yet ended.
 pub fn push(samples: &[LabeledSample]) {
-    let mut owned_samples = Vec::<(Rc<String>, f64)>::with_capacity(samples.len());
+    let mut owned_samples = Vec::<(ImString, f64)>::with_capacity(samples.len());
     METRICS_LABELS.with(|labels| {
         let mut labels = labels.borrow_mut();
         for (i, (label, value)) in samples.iter().enumerate() {
             if i >= labels.len() {
-                labels.push(Rc::new(label.to_string()));
-            } else if *label != labels[i].as_ref() {
+                labels.push(label.into());
+            } else if *label != labels[i].as_str() {
                 let logger = Logger::new("Profiling_Stats");
                 warning!(logger, "Trying to profile stats for a process with a different label {label:?} at position {i} than before ({labels[i]:?}); rejecting the sample.");
                 return;
@@ -100,7 +100,7 @@ pub struct Bundle {
 impl Bundle {
     /// Aggregate the provided samples into statistics.
     /// Note: empty samples will be ignored.
-    fn push(&mut self, samples: &[(Rc<String>, f64)]) {
+    fn push(&mut self, samples: &[(ImString, f64)]) {
         if samples.len() == 0 {
             return;
         }
@@ -129,14 +129,14 @@ impl Bundle {
 /// Accumulated data for a single metric.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MetricAccumulator {
-    label: Rc<String>,
+    label: ImString,
     min:   f64,
     max:   f64,
     sum:   f64,
 }
 
 impl MetricAccumulator {
-    fn new(label: Rc<String>, initial_sample: f64) -> Self {
+    fn new(label: ImString, initial_sample: f64) -> Self {
         Self {
             label,
             min:   initial_sample,
