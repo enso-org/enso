@@ -25,7 +25,7 @@ type IntervalsMap = HashMap<String, Bundle>;
 
 thread_local! {
     static ACTIVE_INTERVALS: RefCell<IntervalsMap> = RefCell::new(IntervalsMap::new());
-    static METRICS_LABELS: Vec<Rc<String>> = Vec::new();
+    static METRICS_LABELS: RefCell<Vec<Rc<String>>> = RefCell::new(Vec::new());
 }
 
 /// Starts a new named time interval, during which frame statistics will be collected.
@@ -61,8 +61,10 @@ pub type LabeledSample<'a> = (&'a str, f64);
 /// Include the provided samples into statistics for all intervals that are currently started and
 /// not yet ended.
 pub fn push(samples: &[LabeledSample]) {
+    let mut owned_samples = Vec::<(Rc<String>, f64)>::with_capacity(samples.len());
     METRICS_LABELS.with(|labels| {
-        for (i, (label, _value)) in samples.iter().enumerate() {
+        let mut labels = labels.borrow_mut();
+        for (i, (label, value)) in samples.iter().enumerate() {
             if i >= labels.len() {
                 labels.push(Rc::new(label.to_string()));
             } else if *label != labels[i].as_ref() {
@@ -70,11 +72,12 @@ pub fn push(samples: &[LabeledSample]) {
                 warning!(logger, "Trying to profile stats for a process with a different label {label:?} at position {i} than before ({labels[i]:?}); rejecting the sample.");
                 return;
             }
+            owned_samples.push((labels[i].clone(), *value));
         }
     });
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().values_mut() {
-            interval.push(samples);
+            interval.push(&owned_samples);
         }
     });
 }
@@ -97,7 +100,7 @@ pub struct Bundle {
 impl Bundle {
     /// Aggregate the provided samples into statistics.
     /// Note: empty samples will be ignored.
-    fn push(&mut self, samples: &[LabeledSample]) {
+    fn push(&mut self, samples: &[(Rc<String>, f64)]) {
         if samples.len() == 0 {
             return;
         }
@@ -105,7 +108,7 @@ impl Bundle {
         if self.frames_count == 0 {
             self.accumulators = Vec::with_capacity(samples.len());
             for (label, sample) in samples {
-                self.accumulators.push(MetricAccumulator::new(*label, *sample));
+                self.accumulators.push(MetricAccumulator::new(label.clone(), *sample));
             }
         } else {
             // FIXME: verify vec lengths match & labels match, and log an error if not
@@ -126,16 +129,16 @@ impl Bundle {
 /// Accumulated data for a single metric.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MetricAccumulator {
-    label: CowString,
+    label: Rc<String>,
     min:   f64,
     max:   f64,
     sum:   f64,
 }
 
 impl MetricAccumulator {
-    fn new(label: impl Into<CowString>, initial_sample: f64) -> Self {
+    fn new(label: Rc<String>, initial_sample: f64) -> Self {
         Self {
-            label: label.into(),
+            label,
             min:   initial_sample,
             max:   initial_sample,
             sum:   initial_sample,
