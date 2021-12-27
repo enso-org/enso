@@ -151,7 +151,8 @@ impl Sources {
 // === Helper macro ===
 // ====================
 
-/// Same as `Sources::from_files(&[(file1, include_str!(file1)), (file2, include_str!(file2)), ...])`.
+/// Same as `Sources::from_files(&[(file1, include_str!(file1)), (file2, include_str!(file2)),
+/// ...])`.
 macro_rules! from_files {
     ($($file:literal),*) => {
         $crate::visualization::java_script::Sources::from_files(&[$(($file, include_str!($file))),*])
