@@ -2,13 +2,13 @@ name: Engine CI V2
 
 on:
   push:
-    branches: ["*"]
+    branches: [develop, "release/*"]
   pull_request:
     branches: ["*"]
   workflow_dispatch:
 
 jobs:
-  test_and_publish_win:
+  test_and_publish:
     name: Engine
     runs-on:
       - ${{ matrix.os }}
