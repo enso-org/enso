@@ -286,7 +286,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
         with:
-          clean: true
+          clean: false
       - name: Read changelog info
         id: changelog
         run: |2-
