@@ -56,20 +56,20 @@ pub fn end_interval(label: &str) -> Option<Bundle> {
 }
 
 /// A snapshot of values of different metrics at a particular frame, together with human-readable descriptions of those metrics.
-pub type LabeledSample<'a> = (&'a str, f64);
+pub type LabeledSample = (ImString, f64);
 
 /// Include the provided samples into statistics for all intervals that are currently started and
 /// not yet ended.
-pub fn push<'a>(samples: impl Iterator<Item=LabeledSample<'a>>) {
-    let owned_samples = METRICS_LABELS.with(|labels| -> Vec<(ImString, f64)>{
+pub fn push(samples: impl Iterator<Item=LabeledSample>) {
+    let owned_samples = METRICS_LABELS.with(|labels| -> Vec<LabeledSample>{
         let mut labels = labels.borrow_mut();
-        let mut owned_samples = Vec::<(ImString, f64)>::with_capacity(labels.len());
+        let mut owned_samples = Vec::with_capacity(labels.len());
         for (i, (label, value)) in samples.enumerate() {
             if i >= labels.len() {
-                labels.push(label.into());
+                labels.push(label);
             } else if label != labels[i].as_str() {
                 let logger = Logger::new("Profiling_Stats");
-                warning!(logger, "Trying to profile stats for a process with a different label {label:?} at position {i} than before ({labels[i]:?}); rejecting the sample.");
+                warning!(logger, "Trying to push a sample with a different label {label:?} at position {i} than before ({labels[i]:?}); rejecting the sample.");
                 return Vec::new();
             }
             owned_samples.push((labels[i].clone(), value));

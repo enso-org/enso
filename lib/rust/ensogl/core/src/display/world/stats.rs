@@ -69,8 +69,7 @@ impl {
         }
         profiling::frame_stats::push(
             self.panels.iter()
-                .map(|panel| (panel.label().clone(), panel.raw_value()))
-                .map(|(l, v)| (l.as_str(), v)));
+                .map(|panel| (panel.label().clone(), panel.raw_value())));
             //snapshot.into_iter());
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
