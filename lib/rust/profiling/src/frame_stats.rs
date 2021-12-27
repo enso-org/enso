@@ -182,11 +182,11 @@ mod tests {
         const STAT: &str = "stat";
 
         start_interval(INTERVAL_A);
-        push(&vec![(STAT, 1.0)]);
+        push(&[(STAT.into(), 1.0)]);
         start_interval(INTERVAL_B);
-        push(&vec![(STAT, 1.0)]);
+        push(&[(STAT.into(), 1.0)]);
         let result_a = end_interval(INTERVAL_A).unwrap();
-        push(&vec![(STAT, 2.0)]);
+        push(&[(STAT.into(), 2.0)]);
         let result_b = end_interval(INTERVAL_B).unwrap();
 
         assert_eq!(result_a.frames_count, 2);
@@ -218,9 +218,9 @@ mod tests {
         const STAT: &str = "stat";
 
         start_interval(INTERVAL_A);
-        push(&vec![]);
-        push(&vec![(STAT, 1.0)]);
-        push(&vec![]);
+        push(&[]);
+        push(&[(STAT.into(), 1.0)]);
+        push(&[]);
         let result = end_interval(INTERVAL_A).unwrap();
 
         assert_eq!(result.frames_count, 1);
@@ -239,20 +239,20 @@ mod tests {
 
 
         start_interval(INTERVAL_A);
-        push(&vec![(STAT_1, 1.0), (STAT_2, 2.0)]);
-        push(&vec![(STAT_1, 1.0), (STAT_2, 2.0)]);
-        push(&vec![(STAT_1, 1.0), (STAT_2, 2.0)]);
+        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
+        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
+        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
         let result = end_interval(INTERVAL_A).unwrap();
 
 
         assert_eq!(result.frames_count, 3);
 
-        assert_eq!(result.accumulators[0].label.as_ref(), STAT_1);
+        assert_eq!(result.accumulators[0].label.as_str(), STAT_1);
         assert_approx_eq!(result.accumulators[0].min, 1.0);
         assert_approx_eq!(result.accumulators[0].max, 1.0);
         assert_approx_eq!(result.accumulators[0].sum, 3.0);
 
-        assert_eq!(result.accumulators[1].label.as_ref(), STAT_2);
+        assert_eq!(result.accumulators[1].label.as_str(), STAT_2);
         assert_approx_eq!(result.accumulators[1].min, 2.0);
         assert_approx_eq!(result.accumulators[1].max, 2.0);
         assert_approx_eq!(result.accumulators[1].sum, 6.0);
