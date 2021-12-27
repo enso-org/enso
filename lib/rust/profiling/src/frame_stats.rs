@@ -109,7 +109,7 @@ pub struct Bundle {
 impl Bundle {
     /// Aggregate the provided samples into statistics.
     /// Note: empty samples will be ignored.
-    fn push(&mut self, samples: &[(ImString, f64)]) {
+    fn push(&mut self, samples: &[LabeledSample]) {
         if samples.len() == 0 {
             return;
         }
