@@ -419,7 +419,7 @@ impl Panel {
 
     /// Human-readable description of the measured parameter.
     pub fn label(&self) -> ImString {
-        self.rc.borrow().label
+        self.rc.borrow().label.clone()
     }
 
     fn first_draw(&self, dom: &Dom) {
