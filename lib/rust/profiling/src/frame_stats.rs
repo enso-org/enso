@@ -74,6 +74,11 @@ pub fn push(samples: impl Iterator<Item=LabeledSample>) {
             }
             owned_samples.push((labels[i].clone(), value));
         }
+        if owned_samples.len() < labels.len() {
+            let logger = Logger::new("Profiling_Stats");
+            warning!(logger, "Trying to push a sample with less items ({owned_samples.len()}) than before ({labels.len()}); rejecting the sample.");
+            return Vec::new();
+        }
         owned_samples
     });
     if owned_samples.len() == 0 {
