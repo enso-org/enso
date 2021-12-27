@@ -291,7 +291,7 @@ const handle_registry = new FinalizationRegistry(heldValue => {
 // FIXME(akavel): type docs
 
 class MetricAccumulator {
-    readonly label: string
+    readonly label: {content: string}
     readonly min: number
     readonly max: number
     readonly sum: number
@@ -364,7 +364,7 @@ class Measurement {
             console.log(`Performance statistics over ${n} frames:`)
             console.table(this.stats.accumulators.map(
                 stat => ({
-                    Stat: stat.label,
+                    Stat: stat.label.content,
                     min: stat.min,
                     // FIXME(akavel): use OUTPUT_PRECISION
                     avg: stat.sum / n,
