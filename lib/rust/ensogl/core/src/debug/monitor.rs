@@ -418,8 +418,10 @@ impl Panel {
     }
 
     /// Human-readable description of the measured parameter.
-    pub fn label(&self) -> &str {
-        self.rc.borrow().sampler.label()
+    pub fn label(&self) -> Ref<'_, &str> {
+        // Ref::map(self.rc.borrow(), |panel| panel.sampler.label())
+        Ref::map(self.rc.borrow(), |panel| &panel.sampler.label())
+        // self.rc.borrow().sampler.label()
     }
 
     fn first_draw(&self, dom: &Dom) {
