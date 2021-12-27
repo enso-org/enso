@@ -418,10 +418,8 @@ impl Panel {
     }
 
     /// Human-readable description of the measured parameter.
-    pub fn label(&self) -> Ref<'_, &str> {
-        // Ref::map(self.rc.borrow(), |panel| panel.sampler.label())
-        Ref::map(self.rc.borrow(), |panel| &panel.sampler.label())
-        // self.rc.borrow().sampler.label()
+    pub fn label(&self) -> ImString {
+        self.rc.borrow().label
     }
 
     fn first_draw(&self, dom: &Dom) {
@@ -549,7 +547,7 @@ pub trait Sampler: Debug {
 /// A `Panel` is a single row in the monitor view.
 #[derive(Debug)]
 pub struct PanelData {
-    label:       String,
+    label:       ImString,
     performance: web::Performance,
     config:      SamplerConfig,
     min_value:   f64,
