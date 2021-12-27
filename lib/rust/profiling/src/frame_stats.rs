@@ -60,33 +60,33 @@ pub type LabeledSample = (ImString, f64);
 
 /// Include the provided samples into statistics for all intervals that are currently started and
 /// not yet ended.
-pub fn push(samples: impl Iterator<Item=LabeledSample>) {
-    let owned_samples = METRICS_LABELS.with(|labels| -> Vec<LabeledSample>{
+pub fn push(samples: &[LabeledSample]) {
+    let ok = METRICS_LABELS.with(|labels| {
         let mut labels = labels.borrow_mut();
-        let mut owned_samples = Vec::with_capacity(labels.len());
-        for (i, (label, value)) in samples.enumerate() {
+
+        if samples.len() < labels.len() {
+            let logger = Logger::new("Profiling_Stats");
+            warning!(logger, "Trying to push a sample with less items ({samples.len()}) than before ({labels.len()}); rejecting the sample.");
+            return false;
+        }
+
+        for (i, (label, _value)) in samples.iter().enumerate() {
             if i >= labels.len() {
-                labels.push(label);
-            } else if label != labels[i].as_str() {
+                labels.push(label.clone());
+            } else if label != &labels[i] {
                 let logger = Logger::new("Profiling_Stats");
                 warning!(logger, "Trying to push a sample with a different label {label:?} at position {i} than before ({labels[i]:?}); rejecting the sample.");
-                return Vec::new();
+                return false;
             }
-            owned_samples.push((labels[i].clone(), value));
         }
-        if owned_samples.len() < labels.len() {
-            let logger = Logger::new("Profiling_Stats");
-            warning!(logger, "Trying to push a sample with less items ({owned_samples.len()}) than before ({labels.len()}); rejecting the sample.");
-            return Vec::new();
-        }
-        owned_samples
+        return true;
     });
-    if owned_samples.len() == 0 {
+    if !ok {
         return;
     }
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().values_mut() {
-            interval.push(&owned_samples);
+            interval.push(samples);
         }
     });
 }
