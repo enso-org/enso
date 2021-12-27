@@ -55,7 +55,7 @@ pub fn end_interval(label: &str) -> Option<Bundle> {
 }
 
 /// A snapshot of values of different metrics at a particular frame, together with human-readable descriptions of those metrics.
-pub type LabeledSample = (&'static str, f64);
+pub type LabeledSample<'a> = (&'a str, f64);
 
 /// Include the provided samples into statistics for all intervals that are currently started and
 /// not yet ended.
