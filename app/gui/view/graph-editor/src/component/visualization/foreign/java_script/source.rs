@@ -1,8 +1,6 @@
 //! Contains [`Sources`] definition, a set of JS source code files with attached source map.
 use crate::prelude::*;
 
-pub(crate) use from_files;
-
 use crate::visualization::Project;
 
 use sourcemap::SourceMapBuilder;
@@ -69,6 +67,12 @@ impl Debug for Sources {
     }
 }
 
+impl Default for Sources {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Sources {
     /// Constructor. Typically [`Sources::from_files`] should be used instead.
     pub fn new() -> Self {
@@ -95,7 +99,7 @@ impl Sources {
     /// map information.
     pub fn add_file(&mut self, path: &str, content: &str) {
         let source_id = self.source_map_builder.add_source(path);
-        self.source_map_builder.set_source_contents(source_id, Some(&content));
+        self.source_map_builder.set_source_contents(source_id, Some(content));
         let added_lines_count = content.lines().count() as u32;
         for line in 0..added_lines_count {
             // This offset is needed because of how DevTools handle source maps for
@@ -151,10 +155,11 @@ impl Sources {
 // === Helper macro ===
 // ====================
 
-/// Same as `Sources::from_files(&[(file1, include_str!(file1)), (file2, include_str!(file2)),
-/// ...])`.
+/// Transform list of file paths `file1, file2, ...` into
+/// `Sources::from_files(&[(file1, include_str!(file1)), (file2, include_str!(file2)), ...])`.
 macro_rules! from_files {
     ($($file:literal),*) => {
         $crate::visualization::java_script::Sources::from_files(&[$(($file, include_str!($file))),*])
     }
 }
+pub(crate) use from_files;
