@@ -60,21 +60,25 @@ pub type LabeledSample<'a> = (&'a str, f64);
 
 /// Include the provided samples into statistics for all intervals that are currently started and
 /// not yet ended.
-pub fn push(samples: &[LabeledSample]) {
-    let mut owned_samples = Vec::<(ImString, f64)>::with_capacity(samples.len());
-    METRICS_LABELS.with(|labels| {
+pub fn push<'a>(samples: impl Iterator<Item=LabeledSample<'a>>) {
+    let owned_samples = METRICS_LABELS.with(|labels| -> Vec<(ImString, f64)>{
         let mut labels = labels.borrow_mut();
-        for (i, (label, value)) in samples.iter().enumerate() {
+        let mut owned_samples = Vec::<(ImString, f64)>::with_capacity(labels.len());
+        for (i, (label, value)) in samples.enumerate() {
             if i >= labels.len() {
                 labels.push(label.into());
-            } else if *label != labels[i].as_str() {
+            } else if label != labels[i].as_str() {
                 let logger = Logger::new("Profiling_Stats");
                 warning!(logger, "Trying to profile stats for a process with a different label {label:?} at position {i} than before ({labels[i]:?}); rejecting the sample.");
-                return;
+                return Vec::new();
             }
-            owned_samples.push((labels[i].clone(), *value));
+            owned_samples.push((labels[i].clone(), value));
         }
+        owned_samples
     });
+    if owned_samples.len() == 0 {
+        return;
+    }
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().values_mut() {
             interval.push(&owned_samples);
