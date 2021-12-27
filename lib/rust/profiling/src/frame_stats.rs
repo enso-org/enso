@@ -25,6 +25,7 @@ type IntervalsMap = HashMap<String, Bundle>;
 
 thread_local! {
     static ACTIVE_INTERVALS: RefCell<IntervalsMap> = RefCell::new(IntervalsMap::new());
+    static METRICS_LABELS: Vec<String> = Vec::new();
 }
 
 /// Starts a new named time interval, during which frame statistics will be collected.
@@ -60,6 +61,17 @@ pub type LabeledSample<'a> = (&'a str, f64);
 /// Include the provided samples into statistics for all intervals that are currently started and
 /// not yet ended.
 pub fn push(samples: &[LabeledSample]) {
+    METRICS_LABELS.with(|labels| {
+        for (i, (label, _value)) in samples.iter().enumerate() {
+            if i >= labels.len() {
+                labels.push(label.to_string());
+            } else if *label != labels[i] {
+                let logger = Logger::new("Profiling_Stats");
+                warning!(logger, "Trying to profile stats for a process with a different label {label:?} at position {i} than before ({labels[i]:?}); rejecting the sample.");
+                return;
+            }
+        }
+    });
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().values_mut() {
             interval.push(samples);
