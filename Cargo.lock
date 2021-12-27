@@ -2108,7 +2108,6 @@ dependencies = [
  "js-sys",
  "nalgebra 0.26.2",
  "ordered-float 1.1.1",
- "ress",
  "serde",
  "serde_json",
  "sourcemap",
@@ -3467,16 +3466,6 @@ dependencies = [
  "wasm-bindgen-futures 0.4.8",
  "web-sys",
  "winreg",
-]
-
-[[package]]
-name = "ress"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6e4a5e63c0b065c6e29630b59c9c2635d4f0c3297a6703d3ce981068a5cf512"
-dependencies = [
- "log 0.4.14",
- "unicode-xid 0.2.2",
 ]
 
 [[package]]

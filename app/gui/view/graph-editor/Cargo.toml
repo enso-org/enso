@@ -34,7 +34,6 @@ uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = { version = "=0.2.58", features = ["nightly", "serde-serialize"] }
 sourcemap = "6.0"
 base64 = "0.13"
-ress = "0.11"
 
 [dependencies.web-sys]
 version = "0.3.4"
