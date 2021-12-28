@@ -1,11 +1,6 @@
 //! The Presenter is a layer between logical part of the IDE (controllers, engine models) and the
 //! views (the P letter in MVP pattern). The presenter reacts to changes in the controllers, and
 //! actively updates the view. It also passes all user interactions from view to controllers.
-//!
-//! **The presenters are not fully implemented**. Therefore, the old integration defined in
-//! [`crate::integration`] is used by default. The presenters may be tested by passing
-//! `--rust-new-presentation-layer` commandline argument.
-
 pub mod code;
 pub mod graph;
 pub mod project;
@@ -84,26 +79,13 @@ impl Model {
 
     /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
     /// a second one for opening the project.
-    pub fn open_project(&self, project_name: &str) {
+    pub fn open_project(&self, project_name: String) {
         let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
-        let name = project_name.to_owned();
         crate::executor::global::spawn(async move {
             if let Ok(managing_api) = controller.manage_projects() {
-                match managing_api.list_projects().await {
-                    Ok(projects) => {
-                        let mut projects = projects.into_iter();
-                        let project = projects.find(|project| project.name.as_ref() == name);
-                        let uuid = project.map(|project| project.id);
-                        if let Some(uuid) = uuid {
-                            if let Err(err) = managing_api.open_project(uuid).await {
-                                error!(logger, "Could not open open project `{name}`: {err}.");
-                            }
-                        } else {
-                            error!(logger, "Could not find project `{name}`.")
-                        }
-                    }
-                    Err(err) => error!(logger, "Could not list projects: {err}."),
+                if let Err(err) = managing_api.open_project_by_name(project_name).await {
+                    error!(logger, "Cannot open project by name: {err}.");
                 }
             } else {
                 warning!(logger, "Project opening failed: no ProjectManagingAPI available.");
@@ -163,7 +145,7 @@ impl Presenter {
 
         frp::new_network! { network
             let welcome_view_frp = &model.view.welcome_screen().frp;
-            eval welcome_view_frp.open_project((name) model.open_project(name));
+            eval welcome_view_frp.open_project((name) model.open_project(name.to_owned()));
             eval welcome_view_frp.create_project((templ) model.create_project(templ.as_deref()));
 
             let root_frp = &model.view.frp;
