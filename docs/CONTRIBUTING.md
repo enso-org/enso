@@ -198,15 +198,10 @@ git clone git@github.com:enso-org/enso.git
 
 ### Getting Set Up (Rust)
 
-The SBT project requires a specific nightly rust toolchain. To get it set up,
-you will need to install [rustup](https://rustup.rs/) and then run the following
-commands:
-
-```bash
-rustup toolchain install nightly-2021-11-29
-rustup override set nightly-2021-11-29
-rustup component add clippy
-```
+The Rust code in this repository requires a specific nightly rust toolchain, as
+defined by [rust-toolchain](../rust-toolchain.toml) override file. The `rustup`
+will automatically download the appropriate compiler version along with the
+necessary components.
 
 ### Getting Set Up (JVM)
 

@@ -13,6 +13,24 @@ function git(command) {
 
 const BUILD_INFO = JSON.parse(require('fs').readFileSync(paths.dist.buildInfo, 'utf8'))
 
+// scala-parser.js is compiled from Scala code, so no source map is available for it.
+const IGNORE_SOURCE_MAPS = [/scala-parser\.js/]
+
+// Load source maps for JS and TS files, so we will have an accurate source available in DevTools.
+// `ignored` is a list of regexes that are matched against file URL to ignore missing source
+// maps for certain files.
+const sourceMapLoader = ignored => ({
+    loader: 'source-map-loader',
+    options: {
+        filterSourceMappingUrl: (url, _resourcePath) => {
+            for (let regexp of ignored) {
+                if (regexp.test(url)) return 'skip'
+            }
+            return true
+        },
+    },
+})
+
 module.exports = {
     entry: {
         index: path.resolve(thisPath, 'src', 'index.ts'),
@@ -43,6 +61,7 @@ module.exports = {
             FIREBASE_API_KEY: JSON.stringify(process.env.FIREBASE_API_KEY),
         }),
     ],
+    devtool: 'eval-source-map',
     devServer: {
         publicPath: '/assets/',
         historyApiFallback: {
@@ -75,6 +94,11 @@ module.exports = {
             {
                 test: /\.html$/i,
                 loader: 'html-loader',
+            },
+            {
+                test: [/\.js$/, /\.tsx?$/],
+                enforce: 'pre',
+                loader: sourceMapLoader(IGNORE_SOURCE_MAPS),
             },
         ],
     },
