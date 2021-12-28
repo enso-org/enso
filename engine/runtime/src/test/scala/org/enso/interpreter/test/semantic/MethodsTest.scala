@@ -160,7 +160,6 @@ class MethodsTest extends InterpreterTest {
           |main =
           |    myList = Cons 1 (Cons 2 (Cons 3 Nil))
           |    myList.sum
-          |
           |""".stripMargin
 
       eval(code) shouldEqual 6

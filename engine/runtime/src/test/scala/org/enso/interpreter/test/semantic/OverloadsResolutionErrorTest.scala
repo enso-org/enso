@@ -18,7 +18,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
     interpreterContext: InterpreterContext
   ): Unit = {
 
-    "result in an error at runtime for methods" in {
+    "result in an error at runtime for method overloads" in {
       val code =
         """from Standard.Builtins import all
           |
@@ -38,7 +38,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       )
     }
 
-    "result in an error at runtime for atoms" in {
+    "result in an error at runtime for atom overloads" in {
       val code =
         """
           |type MyAtom
@@ -56,6 +56,25 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
         "Test[3:1-3:11]: Redefining atoms is not supported: MyAtom is defined multiple times in this module."
       )
     }
-  }
 
+    "result in an error at runtime for methods overloading atoms" in {
+      val code =
+        """
+          |type Foo
+          |foo = 0
+          |""".stripMargin.linesIterator.mkString("\n")
+
+      the[InterpreterException] thrownBy eval(code) should have message
+      "Compilation aborted due to errors."
+
+      val diagnostics = consumeOut
+      diagnostics
+        .filterNot(_.contains("Compiler encountered"))
+        .filterNot(_.contains("In module"))
+        .toSet shouldEqual Set(
+        "Test[3:1-3:7]: Method definitions with the same name as atoms are not supported. Method foo clashes with the atom Foo in this module."
+      )
+    }
+
+  }
 }
