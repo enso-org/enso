@@ -8,6 +8,7 @@ use crate::system::web::StyleSetter;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
+use profiling::frame_stats::StatsSnapshot;
 use std::collections::VecDeque;
 use std::f64;
 use wasm_bindgen;
@@ -408,8 +409,8 @@ impl Panel {
     }
 
     /// Stop measuring the data.
-    pub fn end(&self) {
-        self.rc.borrow_mut().end()
+    pub fn end(&self, snapshot: &mut StatsSnapshot) {
+        self.rc.borrow_mut().end(snapshot)
     }
 
     /// Most recently observed raw measurement value, without any clamping or smoothing.
@@ -494,6 +495,10 @@ pub trait Sampler: Debug {
 
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
     fn value(&self) -> f64;
+
+    /// Insert raw (unsmoothed, unscaled, unclamped) value of the sampler into an appropriate field
+    /// in `StatsSnapshot`. Should be called only after `end`.
+    fn snapshot_into(&self, snapshot: &mut StatsSnapshot);
 
     /// Check whether the newest value is correct, or should be displayed as warning or error.
     fn check(&self) -> ValueCheck {
@@ -609,9 +614,10 @@ impl PanelData {
     }
 
     /// Stop measuring the data.
-    pub fn end(&mut self) {
+    pub fn end(&mut self, snapshot: &mut StatsSnapshot) {
         let time = self.performance.now();
         self.sampler.end(time);
+        self.sampler.snapshot_into(snapshot);
         self.value_check = self.sampler.check();
         self.raw_value = self.sampler.value();
         self.value = self.raw_value;
