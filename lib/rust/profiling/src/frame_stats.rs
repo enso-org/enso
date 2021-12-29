@@ -87,27 +87,32 @@ pub struct StatsAggregate {
     pub shader_compile_count : MetricSummary<usize>,
 }
 
+macro_rules! summarize {
+    ($first:expr, $iter:expr, $field_name:tt) => {
+        MetricSummary::summarize($first.$field_name, $iter.clone().map(|x| x.$field_name))
+    };
+}
+
 impl StatsAggregate {
     fn aggregate(snapshots: Vec<StatsSnapshot>) -> Option<Self> {
         let mut iter = snapshots.iter();
         match iter.next() {
             None => None,
             Some(first) => Some(Self {
-                frame_time           : MetricSummary::summarize(
-                                           first.frame_time, iter.clone().map(|x| x.frame_time),
-                fps                  : MetricSummary<f64>,
-                wasm_memory_usage    : MetricSummary<f64>,
-                gpu_memory_usage     : MetricSummary<u32>,
-                draw_call_count      : MetricSummary<usize>,
-                buffer_count         : MetricSummary<usize>,
-                data_upload_count    : MetricSummary<usize>,
-                data_upload_size     : MetricSummary<u32>,
-                sprite_system_count  : MetricSummary<usize>,
-                sprite_count         : MetricSummary<usize>,
-                symbol_count         : MetricSummary<usize>,
-                mesh_count           : MetricSummary<usize>,
-                shader_count         : MetricSummary<usize>,
-                shader_compile_count : MetricSummary<usize>,
+                frame_time           : summarize!(first, iter, frame_time),
+                fps                  : summarize!(first, iter, fps),
+                wasm_memory_usage    : summarize!(first, iter, wasm_memory_usage),
+                gpu_memory_usage     : summarize!(first, iter, gpu_memory_usage),
+                draw_call_count      : summarize!(first, iter, draw_call_count),
+                buffer_count         : summarize!(first, iter, buffer_count),
+                data_upload_count    : summarize!(first, iter, data_upload_count),
+                data_upload_size     : summarize!(first, iter, data_upload_size),
+                sprite_system_count  : summarize!(first, iter, sprite_system_count),
+                sprite_count         : summarize!(first, iter, sprite_count),
+                symbol_count         : summarize!(first, iter, symbol_count),
+                mesh_count           : summarize!(first, iter, mesh_count),
+                shader_count         : summarize!(first, iter, shader_count),
+                shader_compile_count : summarize!(first, iter, shader_compile_count),
             })
         }
     }
@@ -138,17 +143,17 @@ pub struct MetricSummary<T> {
 }
 
 impl<T> MetricSummary<T>
-    where T: Clone + Ord + std::convert::Into<f64>
+    where T: Clone + MinMax
 {
     fn summarize(first: T, rest: impl Iterator<Item=T>) -> Self {
         let mut min = first.clone();
         let mut max = first.clone();
-        let mut sum: f64 = first.into();
+        let mut sum: f64 = first.to_f64();
         let mut n: usize = 1;
         for sample in rest {
-            min = std::cmp::min(min, sample.clone());
-            max = std::cmp::max(max, sample.clone());
-            sum += sample.into();
+            min = min.min(sample.clone());
+            max = max.max(sample.clone());
+            sum += sample.to_f64();
             n += 1;
         }
         Self {
@@ -156,6 +161,30 @@ impl<T> MetricSummary<T>
             avg: sum / (n as f64),
         }
     }
+}
+
+pub trait MinMax {
+    fn min(&self, other: Self) -> Self;
+    fn max(&self, other: Self) -> Self;
+    fn to_f64(&self) -> f64;
+}
+
+impl MinMax for f64 {
+    fn min(&self, other: f64) -> f64 { f64::min(*self, other) }
+    fn max(&self, other: f64) -> f64 { f64::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self }
+}
+
+impl MinMax for u32 {
+    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
+    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self as f64 }
+}
+
+impl MinMax for usize {
+    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
+    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self as f64 }
 }
 
 
