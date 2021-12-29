@@ -65,16 +65,51 @@ pub fn end_interval(index: usize) -> Option<StatsAggregate> {
                 None
             },
             Some(snapshots) if snapshots.is_empty() => None,
-            Some(snapshots) => Some(StatsAggregate::new(snapshots)),
+            Some(snapshots) => StatsAggregate::aggregate(snapshots),
         }
     })
 }
 
 pub struct StatsAggregate {
+    pub frame_time           : MetricSummary<f64>,
+    pub fps                  : MetricSummary<f64>,
+    pub wasm_memory_usage    : MetricSummary<f64>,
+    pub gpu_memory_usage     : MetricSummary<u32>,
+    pub draw_call_count      : MetricSummary<usize>,
+    pub buffer_count         : MetricSummary<usize>,
+    pub data_upload_count    : MetricSummary<usize>,
+    pub data_upload_size     : MetricSummary<u32>,
+    pub sprite_system_count  : MetricSummary<usize>,
+    pub sprite_count         : MetricSummary<usize>,
+    pub symbol_count         : MetricSummary<usize>,
+    pub mesh_count           : MetricSummary<usize>,
+    pub shader_count         : MetricSummary<usize>,
+    pub shader_compile_count : MetricSummary<usize>,
 }
 
 impl StatsAggregate {
-    fn new(snapshots: Vec<StatsSnapshot>) -> Self {
+    fn aggregate(snapshots: Vec<StatsSnapshot>) -> Option<Self> {
+        let mut iter = snapshots.iter();
+        match iter.next() {
+            None => None,
+            Some(first) => Some(Self {
+                frame_time           : MetricSummary::summarize(
+                                           first.frame_time, iter.clone().map(|x| x.frame_time),
+                fps                  : MetricSummary<f64>,
+                wasm_memory_usage    : MetricSummary<f64>,
+                gpu_memory_usage     : MetricSummary<u32>,
+                draw_call_count      : MetricSummary<usize>,
+                buffer_count         : MetricSummary<usize>,
+                data_upload_count    : MetricSummary<usize>,
+                data_upload_size     : MetricSummary<u32>,
+                sprite_system_count  : MetricSummary<usize>,
+                sprite_count         : MetricSummary<usize>,
+                symbol_count         : MetricSummary<usize>,
+                mesh_count           : MetricSummary<usize>,
+                shader_count         : MetricSummary<usize>,
+                shader_compile_count : MetricSummary<usize>,
+            })
+        }
     }
 }
 
@@ -103,27 +138,22 @@ pub struct MetricSummary<T> {
 }
 
 impl<T> MetricSummary<T>
-    where T: Ord + std::convert::Into<f64>
+    where T: Clone + Ord + std::convert::Into<f64>
 {
-    fn summarize(samples: impl Iterator<Item=T>) -> Option<Self> {
-        match samples.next() {
-            None => None,
-            Some(first) => {
-                let mut min = first;
-                let mut max = first;
-                let mut sum: f64 = first.into();
-                let mut n: usize = 1;
-                for sample in samples {
-                    min = std::cmp::min(min, sample);
-                    max = std::cmp::max(max, sample);
-                    sum += sample.into();
-                    n += 1;
-                }
-                Some(Self {
-                    min, max,
-                    avg: sum / (n as f64),
-                })
-            }
+    fn summarize(first: T, rest: impl Iterator<Item=T>) -> Self {
+        let mut min = first.clone();
+        let mut max = first.clone();
+        let mut sum: f64 = first.into();
+        let mut n: usize = 1;
+        for sample in rest {
+            min = std::cmp::min(min, sample.clone());
+            max = std::cmp::max(max, sample.clone());
+            sum += sample.into();
+            n += 1;
+        }
+        Self {
+            min, max,
+            avg: sum / (n as f64),
         }
     }
 }
