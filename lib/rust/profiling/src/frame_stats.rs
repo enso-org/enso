@@ -103,7 +103,7 @@ pub struct MetricSummary<T> {
 }
 
 impl<T> MetricSummary<T>
-    where T: std::convert::Into<f64>
+    where T: Ord + std::convert::Into<f64>
 {
     fn summarize(samples: impl Iterator<Item=T>) -> Option<Self> {
         match samples.next() {
@@ -114,8 +114,8 @@ impl<T> MetricSummary<T>
                 let mut sum: f64 = first.into();
                 let mut n: usize = 1;
                 for sample in samples {
-                    min = min!(min, sample);
-                    max = max!(max, sample);
+                    min = std::cmp::min(min, sample);
+                    max = std::cmp::max(max, sample);
                     sum += sample.into();
                     n += 1;
                 }
