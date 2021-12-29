@@ -119,9 +119,9 @@ are plugins for many IDEs available to do this for you.
 
 ### Repository Structure Overview
 
-**Note**: Currently, the Enso repository is going through a process of refactoring,
-and it is not finished yet: the Engine files are still not in the `app/engine` where
-they ought to be, but in the root directory instead.
+**Note**: Currently, the Enso repository is going through a process of
+refactoring, and it is not finished yet: the Engine files are still not in the
+`app/engine` where they ought to be, but in the root directory instead.
 
 The root directory contains `Cargo.toml` and `build.sbt` files, allowing to open
 all rust or scala code as a single project in your favourite IDE. There is also
@@ -129,16 +129,19 @@ a `run` script used for building and running the Enso IDE (see next section for
 details).
 
 The subdirectories of interests are:
+
 - `app`: The actual products delivered in this repository:
   - `gui`: A rust crate compiled to a WASM library with all the logic of the GUI
     layer. The library is used by both the desktop application and the cloud
-    environment. For further documentation see the documentation of the crate (at the top of the `src/lib.rs` file).
+    environment. For further documentation see the documentation of the crate
+    (at the top of the `src/lib.rs` file).
   - `ide-desktop`: The desktop version of the Enso IDE. Implemented as an
     electron application which spawns backend services, loads the WASM gui
     library and run the main entry point.
-  - `engine`: (In the future: see the note at the section beginning). The implementation of the language itself: CLI tools like compiler
-    or interpreter, as well as the services used as backend for the Enso IDE
-    (Language Server and Project Manager). **
+  - `engine`: (In the future: see the note at the section beginning). The
+    implementation of the language itself: CLI tools like compiler or
+    interpreter, as well as the services used as backend for the Enso IDE
+    (Language Server and Project Manager). \*\*
 - `lib`: All libraries not being a main component of our application. They are
   grouped by the language. The most prominent are:
   - `rust/prelude`: A library containing most popular utilities and imports.
