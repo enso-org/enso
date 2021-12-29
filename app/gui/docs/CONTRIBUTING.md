@@ -137,7 +137,7 @@ The subdirectories of interests are:
     (at the top of the `src/lib.rs` file).
   - `ide-desktop`: The desktop version of the Enso IDE. Implemented as an
     electron application which spawns backend services, loads the WASM gui
-    library and run the main entry point.
+    library and runs the main entry point.
   - `engine`: (In the future: see the note at the section beginning). The
     implementation of the language itself: CLI tools like compiler or
     interpreter, as well as the services used as backend for the Enso IDE
