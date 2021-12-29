@@ -124,8 +124,8 @@ refactoring, and it is not finished yet: the Engine files are still not in the
 `app/engine` where they ought to be, but in the root directory instead.
 
 The root directory contains `Cargo.toml` and `build.sbt` files, allowing to open
-all rust or scala code as a single project in your favorite IDE. There is also
-a `run` script used for building and running the Enso IDE (see next section for
+all rust or scala code as a single project in your favorite IDE. There is also a
+`run` script used for building and running the Enso IDE (see next section for
 details).
 
 The subdirectories of interests are:
@@ -141,15 +141,15 @@ The subdirectories of interests are:
   - `engine`: (In the future: see the note at the section beginning). The
     implementation of the language itself: CLI tools like compiler or
     interpreter, as well as the services used as a backend for the Enso IDE
-    (Language Server and Project Manager). \*\*
-- `lib`: All libraries not being the main components of our application. They are
-  grouped by language. The most prominent are:
+    (Language Server and Project Manager).
+- `lib`: All libraries not being the main components of our application. They
+  are grouped by language. The most prominent are:
   - `rust/prelude`: A library containing the most popular utilities and imports.
     Should be imported in each rust module - see Contributing guidelines.
   - `rust/ensogl`: EnsoGL Framework for creating efficient GUI applications in
     WASM.
-  - `rust/frp`: The library allows following the Functional Reactive
-    Programming paradigm in rust.
+  - `rust/frp`: The library allows following the Functional Reactive Programming
+    paradigm in rust.
 - `build`: All building scripts and utilities, mostly the logic of the `./run`
   script.
 
