@@ -28,6 +28,7 @@ thread_local! {
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
 }
 
+#[derive(Clone, Debug)]
 struct StatsSnapshot {
     fps                  : f64,
     wasm_memory_usage    : f64,
@@ -74,12 +75,12 @@ pub fn end_interval(label: &str) -> Option<Bundle> {
 /// A snapshot of values of different metrics at a particular frame, together with human-readable descriptions of those metrics.
 pub type LabeledSample = (ImString, f64);
 
-/// Include the provided samples into statistics for all intervals that are currently started and
+/// Include the provided stats snapshot into statistics for all intervals that are currently started and
 /// not yet ended.
-pub fn push(samples: &[LabeledSample]) {
+pub fn push(snapshot: StatsSnapshot) {
     ACTIVE_INTERVALS.with(|intervals| {
-        for interval in intervals.borrow_mut().values_mut() {
-            interval.push(samples);
+        for interval in intervals.borrow_mut().iter_mut() {
+            interval.push(snapshot.clone());
         }
     });
 }
