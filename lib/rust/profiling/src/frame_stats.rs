@@ -30,6 +30,7 @@ thread_local! {
 
 #[derive(Clone, Debug)]
 struct StatsSnapshot {
+    frame_time           : f64,
     fps                  : f64,
     wasm_memory_usage    : f64,
     gpu_memory_usage     : u32,

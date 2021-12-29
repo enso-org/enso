@@ -778,6 +778,9 @@ impl Sampler for FrameTime {
     fn value(&self) -> f64 {
         self.value
     }
+    fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
+        snapshot.frame_time = self.value;
+    }
     fn check(&self) -> ValueCheck {
         self.value_check
     }
@@ -822,6 +825,9 @@ impl Sampler for Fps {
     }
     fn value(&self) -> f64 {
         self.value
+    }
+    fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
+        snapshot.fps = self.value;
     }
     fn check(&self) -> ValueCheck {
         self.value_check
@@ -869,6 +875,9 @@ impl Sampler for WasmMemory {
     fn value(&self) -> f64 {
         self.value
     }
+    fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
+        snapshot.wasm_memory_usage = self.value;
+    }
     fn check(&self) -> ValueCheck {
         self.value_check
     }
@@ -915,6 +924,9 @@ macro_rules! stats_sampler {
             }
             fn value(&self) -> f64 {
                 self.stats.$stats_method() as f64 / $value_divisor
+            }
+            fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
+                snapshot.$stats_method = self.stats.$stats_method();
             }
             fn min_size(&self) -> Option<f64> {
                 Some($t1)
