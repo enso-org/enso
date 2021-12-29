@@ -1,4 +1,4 @@
-//! The module with [`ExecutionStack`] presenter. See [`crate::presenter`] documentation to know
+//! The module with [`CallStack`] presenter. See [`crate::presenter`] documentation to know
 //! more about presenters in general.
 
 use crate::prelude::*;
@@ -32,7 +32,7 @@ impl Model {
         view: view::graph_editor::GraphEditor,
         state: Rc<State>,
     ) -> Self {
-        let logger = parent.sub("presenter::graph::ExecutionStack");
+        let logger = parent.sub("presenter::graph::CallStack");
         Self { logger, controller, view, state }
     }
 
@@ -78,7 +78,7 @@ impl Model {
                         error!(logger, "Failed to store an updated call stack: {err}");
                     },
                 Err(err) => {
-                    error!(logger, "Exiting node failed: {err}.");
+                    error!(logger, "Exiting node failed: {err}");
 
                     let event = "integration::exiting_node_failed";
                     let field = "error";
@@ -135,18 +135,18 @@ impl Model {
 
 
 // ======================
-// === ExecutionStack ===
+// === CallStack ===
 // ======================
 
-/// Execution Stack presenter, synchronizing the execution stack of currently displayed graph with
+/// Call Stack presenter, synchronizing the call stack of currently displayed graph with
 /// the breadcrumbs displayed above. It also handles the entering/exiting nodes requests.
 #[derive(Debug)]
-pub struct ExecutionStack {
+pub struct CallStack {
     _network: frp::Network,
     model:    Rc<Model>,
 }
 
-impl ExecutionStack {
+impl CallStack {
     /// Constructor. The returned presenter works right away.
     pub fn new(
         parent: impl AnyLogger,
@@ -154,7 +154,7 @@ impl ExecutionStack {
         view: view::graph_editor::GraphEditor,
         state: Rc<State>,
     ) -> Self {
-        let network = frp::Network::new("presenter::graph::ExecutionStack");
+        let network = frp::Network::new("presenter::graph::CallStack");
         let model = Rc::new(Model::new(parent, controller, view, state));
         let view = &model.view;
         let breadcrumbs = &view.model.breadcrumbs;

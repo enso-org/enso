@@ -1,11 +1,11 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
-pub mod execution_stack;
+pub mod call_stack;
 pub mod state;
 pub mod visualization;
 
-pub use execution_stack::ExecutionStack;
+pub use call_stack::CallStack;
 pub use visualization::Visualization;
 
 use crate::prelude::*;
@@ -76,7 +76,7 @@ struct Model {
     view:             view::graph_editor::GraphEditor,
     state:            Rc<State>,
     _visualization:   Visualization,
-    _execution_stack: ExecutionStack,
+    _execution_stack: CallStack,
 }
 
 impl Model {
@@ -93,12 +93,8 @@ impl Model {
             view.clone_ref(),
             state.clone_ref(),
         );
-        let execution_stack = ExecutionStack::new(
-            &logger,
-            controller.clone_ref(),
-            view.clone_ref(),
-            state.clone_ref(),
-        );
+        let execution_stack =
+            CallStack::new(&logger, controller.clone_ref(), view.clone_ref(), state.clone_ref());
         Self {
             logger,
             project,
@@ -446,7 +442,7 @@ impl ViewUpdate {
 ///
 /// This presenter focuses on the graph structure: nodes, their expressions and types, and
 /// connections between them. It does not integrate Searcher nor Breadcrumbs (managed by
-/// [`presenter::Searcher`] and [`presenter::ExecutionStack`] respectively).
+/// [`presenter::Searcher`] and [`presenter::CallStack`] respectively).
 #[derive(Debug)]
 pub struct Graph {
     network: frp::Network,
