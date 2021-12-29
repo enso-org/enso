@@ -53,21 +53,30 @@ pub fn start_interval() -> usize {
     })
 }
 
-// /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
-// /// collected since the start of the the interval.
-// pub fn end_interval(label: &str) -> Option<Bundle> {
-//     let logger = Logger::new("Profiling_Stats");
-//     ACTIVE_INTERVALS.with(|intervals| {
-//         match intervals.borrow_mut().remove(label) {
-//             None => {
-//                 warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}");
-//                 None
-//             },
-//             Some(bundle) if bundle.frames_count == 0 => None,
-//             Some(bundle) => Some(bundle),
-//         }
-//     })
-// }
+/// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
+/// collected since the start of the the interval.
+/// TODO: should use IntervalGuard instead of passing usize around
+pub fn end_interval(index: usize) -> Option<StatsAggregate> {
+    ACTIVE_INTERVALS.with(|intervals| {
+        match intervals.borrow_mut().remove(index) {
+            None => {
+                let logger = Logger::new("Profiling_Stats");
+                warning!(logger, "Trying to finalize profiling stats for a process not registered before.");
+                None
+            },
+            Some(snapshots) if snapshots.is_empty() => None,
+            Some(snapshots) => Some(StatsAggregate::new(snapshots)),
+        }
+    })
+}
+
+pub struct StatsAggregate {
+}
+
+impl StatsAggregate {
+    fn new(snapshots: Vec<StatsSnapshot>) -> Self {
+    }
+}
 
 /// Include the provided stats snapshot into statistics for all intervals that are currently started and
 /// not yet ended.
@@ -81,73 +90,41 @@ pub fn push(snapshot: StatsSnapshot) {
 
 
 
-// // ==============
-// // === Bundle ===
-// // ==============
+// =====================
+// === MetricSummary ===
+// =====================
 
-// /// Statistics of various metrics, collected over several frames.
-// #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-// pub struct Bundle {
-//     /// Aggregated data of each metric.
-//     pub accumulators: Vec<MetricAccumulator>,
-//     /// Over how many frames the data was aggregated.
-//     pub frames_count: u32,
-// }
+/// Summarized data for a single metric.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MetricSummary<T> {
+    min:   T,
+    max:   T,
+    avg:   f64,
+}
 
-// impl Bundle {
-//     /// Aggregate the provided samples into statistics.
-//     /// Note: empty samples will be ignored.
-//     fn push(&mut self, samples: &[LabeledSample]) {
-//         if samples.len() == 0 {
-//             return;
-//         }
-
-//         if self.frames_count == 0 {
-//             self.accumulators = Vec::with_capacity(samples.len());
-//             for (label, sample) in samples {
-//                 self.accumulators.push(MetricAccumulator::new(label.clone(), *sample));
-//             }
-//         } else {
-//             // FIXME: verify vec lengths match & labels match, and log an error if not
-//             for (acc, (_label, sample)) in self.accumulators.iter_mut().zip(samples) {
-//                 acc.push(*sample);
-//             }
-//         }
-//         self.frames_count += 1;
-//     }
-// }
-
-
-
-// // =========================
-// // === MetricAccumulator ===
-// // =========================
-
-// /// Accumulated data for a single metric.
-// #[derive(Clone, Debug, Serialize, Deserialize)]
-// pub struct MetricAccumulator {
-//     label: ImString,
-//     min:   f64,
-//     max:   f64,
-//     sum:   f64,
-// }
-
-// impl MetricAccumulator {
-//     fn new(label: ImString, initial_sample: f64) -> Self {
-//         Self {
-//             label,
-//             min:   initial_sample,
-//             max:   initial_sample,
-//             sum:   initial_sample,
-//         }
-//     }
-
-//     fn push(&mut self, new_sample: f64) {
-//         self.min = self.min.min(new_sample);
-//         self.max = self.max.max(new_sample);
-//         self.sum += new_sample;
-//     }
-// }
+impl<T> MetricSummary<T> {
+    fn summarize(samples: impl Iterator<Item=T>) -> Option<Self> {
+        match samples.next() {
+            None => None,
+            Some(first) => {
+                let mut min = first;
+                let mut max = first;
+                let mut sum = first as f64;
+                let mut n: usize = 1;
+                for sample in samples {
+                    min = min!(min, sample);
+                    max = max!(max, sample);
+                    sum += sample as f64;
+                    n += 1;
+                }
+                Some(Self {
+                    min, max,
+                    avg: sum / (n as f64),
+                })
+            }
+        }
+    }
+}
 
 
 
