@@ -26,8 +26,8 @@ macro_rules! start_interval {
 /// End measuring the interval of the given profiling level and name.
 #[macro_export]
 macro_rules! end_interval {
-    ($profiling_level:expr, $interval_name:expr) => {
-        let _ = $crate::mark_end_interval($crate::make_metadata!($profiling_level, $interval_name));
+    ($profiling_level:expr, $interval_name:expr, $stat_index:expr) => {
+        let _ = $crate::mark_end_interval($crate::make_metadata!($profiling_level, $interval_name), $stat_index);
     };
 }
 
@@ -37,9 +37,9 @@ macro_rules! end_interval {
 macro_rules! measure_interval {
         ($profiling_level:expr, $interval_name:expr, $($body:tt)*) => {
              {
-                 $crate::start_interval!($profiling_level, $interval_name).release();
+                 let stat_index = $crate::start_interval!($profiling_level, $interval_name).release();
                  let out = { $($body)* };
-                 $crate::end_interval!($profiling_level, $interval_name);
+                 $crate::end_interval!($profiling_level, $interval_name, stat_index);
                 out
              }
         };
