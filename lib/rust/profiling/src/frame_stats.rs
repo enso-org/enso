@@ -29,21 +29,21 @@ thread_local! {
 }
 
 #[derive(Clone, Debug)]
-struct StatsSnapshot {
-    frame_time           : f64,
-    fps                  : f64,
-    wasm_memory_usage    : f64,
-    gpu_memory_usage     : u32,
-    draw_call_count      : usize,
-    buffer_count         : usize,
-    data_upload_count    : usize,
-    data_upload_size     : u32,
-    sprite_system_count  : usize,
-    sprite_count         : usize,
-    symbol_count         : usize,
-    mesh_count           : usize,
-    shader_count         : usize,
-    shader_compile_count : usize,
+pub struct StatsSnapshot {
+    pub frame_time           : f64,
+    pub fps                  : f64,
+    pub wasm_memory_usage    : f64,
+    pub gpu_memory_usage     : u32,
+    pub draw_call_count      : usize,
+    pub buffer_count         : usize,
+    pub data_upload_count    : usize,
+    pub data_upload_size     : u32,
+    pub sprite_system_count  : usize,
+    pub sprite_count         : usize,
+    pub symbol_count         : usize,
+    pub mesh_count           : usize,
+    pub shader_count         : usize,
+    pub shader_compile_count : usize,
 }
 
 // /// Starts a new named time interval, during which frame statistics will be collected.
