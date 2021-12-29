@@ -351,7 +351,7 @@ impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if !self.released {
             warn_on_error(mark_end_interval(self.metadata.clone()));
-            WARNING!(format!("{} was dropped without a call to `measure`.", self.metadata.label));
+            WARNING!(format!("{} was dropped without explicitly being ended.", self.metadata.label));
         }
     }
 }
