@@ -80,16 +80,18 @@ macro_rules! collapsed_to_bool {
 /// - `warning!(logger,|| expr)`, where expr returns a string-like variable.
 ///
 /// Moreover, for each form, you can pass a third parameter. If passed, the macro will become a
-/// group, like `warning!(logger,"test",|| { ... }`. You can also use macro-keywords `collapsed`
+/// group, like `warning!(logger,"test",|| { ... })`. You can also use macro-keywords `collapsed`
 /// or `expanded` just before `||` to print the group collapsed or expanded by default,
-/// respectively. If not provided, the warning and error group macros are collapsed by default.
+/// respectively. If not provided, the `warning` and `error` group macros are collapsed by default,
+/// while all other group macros are expanded by default.
 ///
 /// # Implementation Details
 /// Please note that the special pattern `$d` expands to just `$` in the generated macro from this
 /// macro.
 macro_rules! define_log_macros {
     ($($d:tt $name:ident $tp_name:ident $expand:ident;)*) => {$(
-        /// $tp_name logging macro.
+        #[doc = stringify!($tp_name)]
+        #[doc = " logging macro."]
         #[macro_export]
         macro_rules! $name {
             ($d($d ts:tt)*) => {
