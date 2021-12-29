@@ -872,6 +872,7 @@ impl Sampler for WasmMemory {
     fn end(&mut self, _time: f64) {
         let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
         let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
+        // FIXME(akavel): store an integer, recalc as MBs in value() as in GpuMemoryUsage
         self.value = (buffer.byte_length() as f64) / (1024.0 * 1024.0);
         self.value_check =
             self.check_by_threshold(WASM_MEM_WARNING_THRESHOLD, WASM_MEM_ERROR_THRESHOLD);

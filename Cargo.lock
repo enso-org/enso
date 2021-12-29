@@ -3133,6 +3133,7 @@ dependencies = [
  "Inflector",
  "assert_approx_eq",
  "chrono",
+ "enso-data-structures",
  "enso-logger",
  "enso-prelude",
  "enso-web",

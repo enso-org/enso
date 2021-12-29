@@ -10,6 +10,7 @@
 
 use enso_prelude::*;
 
+use enso_data_structures::opt_vec::OptVec;
 use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
 use serde::Deserialize;
@@ -17,14 +18,30 @@ use serde::Serialize;
 
 
 
-// ====================
-// === IntervalsMap ===
-// ====================
+// =================
+// === Intervals ===
+// =================
 
-type IntervalsMap = HashMap<String, Bundle>;
+type Intervals = OptVec<Vec<StatsSnapshot>>;
 
 thread_local! {
-    static ACTIVE_INTERVALS: RefCell<IntervalsMap> = RefCell::new(IntervalsMap::new());
+    static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
+}
+
+struct StatsSnapshot {
+    fps                  : f64,
+    wasm_memory_usage    : f64,
+    gpu_memory_usage     : u32,
+    draw_call_count      : usize,
+    buffer_count         : usize,
+    data_upload_count    : usize,
+    data_upload_size     : u32,
+    sprite_system_count  : usize,
+    sprite_count         : usize,
+    symbol_count         : usize,
+    mesh_count           : usize,
+    shader_count         : usize,
+    shader_compile_count : usize,
 }
 
 /// Starts a new named time interval, during which frame statistics will be collected.
