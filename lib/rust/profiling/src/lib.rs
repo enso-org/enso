@@ -72,8 +72,8 @@ pub struct Metadata {
     pub profiling_level: ProfilingLevel,
     /// Label of the measurement..
     pub label:           String,
-    /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
-    pub stats: Option<frame_stats::Bundle>,
+    // /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
+    // FIXME(akavel): pub stats: Option<frame_stats::Bundle>,
 }
 
 impl From<Metadata> for JsValue {
@@ -275,7 +275,7 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        frame_stats::start_interval(&interval_name);
+        // FIXME(akavel): frame_stats::start_interval(&interval_name);
         mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
     IntervalHandle::new(metadata)
@@ -302,7 +302,8 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
     if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
-        let metadata_with_stats = Metadata { stats: frame_stats::end_interval(&start_label), ..metadata };
+        let metadata_with_stats = Metadata { ..metadata }; // FIXME(akavel)
+        // let metadata_with_stats = Metadata { stats: frame_stats::end_interval(&start_label), ..metadata };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),
