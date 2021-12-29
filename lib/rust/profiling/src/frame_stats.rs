@@ -102,19 +102,21 @@ pub struct MetricSummary<T> {
     avg:   f64,
 }
 
-impl<T> MetricSummary<T> {
+impl<T> MetricSummary<T>
+    where T: std::convert::Into<f64>
+{
     fn summarize(samples: impl Iterator<Item=T>) -> Option<Self> {
         match samples.next() {
             None => None,
             Some(first) => {
                 let mut min = first;
                 let mut max = first;
-                let mut sum = first as f64;
+                let mut sum: f64 = first.into();
                 let mut n: usize = 1;
                 for sample in samples {
                     min = min!(min, sample);
                     max = max!(max, sample);
-                    sum += sample as f64;
+                    sum += sample.into();
                     n += 1;
                 }
                 Some(Self {
