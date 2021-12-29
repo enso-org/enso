@@ -142,13 +142,13 @@ The subdirectories of interests are:
     implementation of the language itself: CLI tools like compiler or
     interpreter, as well as the services used as a backend for the Enso IDE
     (Language Server and Project Manager). \*\*
-- `lib`: All libraries not being a main component of our application. They are
-  grouped by the language. The most prominent are:
-  - `rust/prelude`: A library containing most popular utilities and imports.
+- `lib`: All libraries not being the main components of our application. They are
+  grouped by language. The most prominent are:
+  - `rust/prelude`: A library containing the most popular utilities and imports.
     Should be imported in each rust module - see Contributing guidelines.
   - `rust/ensogl`: EnsoGL Framework for creating efficient GUI applications in
     WASM.
-  - `rust/frp`: The library allowing following the Functional Reactive
+  - `rust/frp`: The library allows following the Functional Reactive
     Programming paradigm in rust.
 - `build`: All building scripts and utilities, mostly the logic of the `./run`
   script.
