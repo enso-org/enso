@@ -46,16 +46,12 @@ pub struct StatsSnapshot {
     pub shader_compile_count : usize,
 }
 
-// /// Starts a new named time interval, during which frame statistics will be collected.
-// pub fn start_interval(label: &str) {
-//     let logger = Logger::new("Profiling_Stats");
-//     ACTIVE_INTERVALS.with(|intervals| {
-//         let found = intervals.borrow_mut().insert(label.to_string(), Bundle::default());
-//         if found.is_some() {
-//             warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one - values will be skewed for: {label:?}");
-//         }
-//     });
-// }
+/// Starts a new named time interval, during which frame statistics will be collected.
+pub fn start_interval() -> usize {
+    ACTIVE_INTERVALS.with(|intervals| -> usize {
+        intervals.borrow_mut().insert(Vec::new())
+    })
+}
 
 // /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
 // /// collected since the start of the the interval.
