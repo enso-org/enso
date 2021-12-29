@@ -124,7 +124,7 @@ refactoring, and it is not finished yet: the Engine files are still not in the
 `app/engine` where they ought to be, but in the root directory instead.
 
 The root directory contains `Cargo.toml` and `build.sbt` files, allowing to open
-all rust or scala code as a single project in your favourite IDE. There is also
+all rust or scala code as a single project in your favorite IDE. There is also
 a `run` script used for building and running the Enso IDE (see next section for
 details).
 
