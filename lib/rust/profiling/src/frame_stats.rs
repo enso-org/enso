@@ -89,7 +89,7 @@ pub struct StatsAggregate {
 
 macro_rules! summarize {
     ($first:expr, $iter:expr, $field_name:tt) => {
-        MetricSummary::summarize($first.$field_name, $iter.clone().map(|x| x.$field_name))
+        summarize($first.$field_name, $iter.clone().map(|x| x.$field_name))
     };
 }
 
@@ -142,28 +142,24 @@ pub struct MetricSummary<T> {
     avg:   f64,
 }
 
-impl<T> MetricSummary<T>
-    where T: Clone + MinMax
-{
-    fn summarize(first: T, rest: impl Iterator<Item=T>) -> Self {
-        let mut min = first.clone();
-        let mut max = first.clone();
-        let mut sum: f64 = first.to_f64();
-        let mut n: usize = 1;
-        for sample in rest {
-            min = min.min(sample.clone());
-            max = max.max(sample.clone());
-            sum += sample.to_f64();
-            n += 1;
-        }
-        Self {
-            min, max,
-            avg: sum / (n as f64),
-        }
+fn summarize<T: Clone + MinMax>(first: T, rest: impl Iterator<Item=T>) -> MetricSummary<T> {
+    let mut min = first.clone();
+    let mut max = first.clone();
+    let mut sum: f64 = first.to_f64();
+    let mut n: usize = 1;
+    for sample in rest {
+        min = min.min(sample.clone());
+        max = max.max(sample.clone());
+        sum += sample.to_f64();
+        n += 1;
+    }
+    MetricSummary {
+        min, max,
+        avg: sum / (n as f64),
     }
 }
 
-pub trait MinMax {
+trait MinMax {
     fn min(&self, other: Self) -> Self;
     fn max(&self, other: Self) -> Self;
     fn to_f64(&self) -> f64;
