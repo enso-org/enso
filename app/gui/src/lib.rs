@@ -3,7 +3,7 @@
 //! This rust crate is compiled to WASM library with all the logic of the Enso IDE GUI layer.
 //! See README of the repository for the presentation of Enso IDE and its features.
 //!
-//! ## Where Things Starts
+//! ## Where Things Start
 //!
 //! The function point which should be called by the web page embedding the Enso IDE is
 //! `entry_point_main`.
