@@ -1,6 +1,5 @@
 //! This module contains the IDE object implementation.
 pub mod initializer;
-pub mod integration;
 
 pub use initializer::Initializer;
 
@@ -33,17 +32,6 @@ const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 // === Ide ===
 // ===========
 
-/// One of the integration implementations.
-///
-/// The new, refactored integration is called "Presenter", but it is not yet fully implemented.
-/// To test it, run IDE with `--rust-new-presentation-layer` option. By default, the old integration
-/// is used.
-#[derive(Debug)]
-enum Integration {
-    Old(integration::Integration),
-    New(Presenter),
-}
-
 /// The main Ide structure.
 ///
 /// This structure is a root of all objects in our application. It includes both layers:
@@ -52,9 +40,9 @@ enum Integration {
 pub struct Ide {
     application: Application,
     #[allow(dead_code)]
-    /// The integration layer is never directly accessed, but needs to be kept alive to keep
+    /// The presenter layer is never directly accessed, but needs to be kept alive to keep
     /// performing its function.
-    integration: Integration,
+    presenter:   Presenter,
     network:     frp::Network,
 }
 
@@ -65,13 +53,9 @@ impl Ide {
         view: ide_view::root::View,
         controller: controller::Ide,
     ) -> Self {
-        let integration = if enso_config::ARGS.rust_new_presentation_layer.unwrap_or(false) {
-            Integration::New(Presenter::new(controller, view))
-        } else {
-            Integration::Old(integration::Integration::new(controller, view))
-        };
+        let presenter = Presenter::new(controller, view);
         let network = frp::Network::new("Ide");
-        Ide { application, integration, network }.init()
+        Ide { application, presenter, network }.init()
     }
 
     fn init(self) -> Self {
