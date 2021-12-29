@@ -75,7 +75,9 @@ class BinaryWebSocketServer[A, B](
     * @return a representation of the binding state of the server.
     */
   def bind(interface: String, port: Int): Future[Http.ServerBinding] =
-    Http().bindAndHandle(route, interface, port)
+    Http()
+      .newServerAt(interface, port)
+      .bind(route)
 
   private def newConnection(
     ip: RemoteAddress.IP

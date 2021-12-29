@@ -337,10 +337,10 @@ object Pattern {
       }
   }
   object _MatchOf {
-    def ftorMatch: Functor[MatchOf]  = semi.functor
-    def travMatch: Traverse[MatchOf] = semi.traverse[MatchOf]
+    def ftorMatch: Functor[MatchOf]  = semiauto.functor
+    def travMatch: Traverse[MatchOf] = semiauto.traverse[MatchOf]
     def foldMatch: Foldable[MatchOf] = {
-      semi.foldable[MatchOf]
+      semiauto.foldable[MatchOf]
     }
   }
 }

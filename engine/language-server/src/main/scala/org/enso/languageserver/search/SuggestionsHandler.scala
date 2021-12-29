@@ -4,7 +4,7 @@ import java.util.UUID
 import java.util.concurrent.Executors
 
 import akka.actor.{Actor, ActorRef, Props, Stash, Status}
-import akka.pattern.{ask, pipe}
+import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
@@ -161,9 +161,7 @@ final class SuggestionsHandler(
           pkg => self ! ProjectNameUpdated(pkg.config.name)
         )
       val requestId = UUID.randomUUID()
-      runtimeConnector
-        .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
-        .pipeTo(self)
+      runtimeConnector ! Api.Request(requestId, Api.GetTypeGraphRequest())
 
     case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
       logger.info("Initializing: got type graph response.")
@@ -475,17 +473,18 @@ final class SuggestionsHandler(
     * @param state current initialization state
     */
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
+    logger.debug("Trying to initialize with state [{}]", state)
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
         logger.debug("Initialized with state [{}].", state)
         val requestId = UUID.randomUUID()
         suggestionsRepo.getAllModules
-          .flatMap { modules =>
-            runtimeConnector.ask(
-              Api.Request(requestId, Api.VerifyModulesIndexRequest(modules))
-            )(timeout, self)
+          .map { modules =>
+            runtimeConnector ! Api.Request(
+              requestId,
+              Api.VerifyModulesIndexRequest(modules)
+            )
           }
-          .pipeTo(self)
         context.become(verifying(name, graph))
         unstashAll()
     }
