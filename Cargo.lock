@@ -949,7 +949,6 @@ dependencies = [
  "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-examples",
- "ensogl-hardcoded-theme",
  "ensogl-text-msdf-sys",
  "failure",
  "flo_stream",
