@@ -72,8 +72,8 @@ pub struct Metadata {
     pub profiling_level: ProfilingLevel,
     /// Label of the measurement..
     pub label:           String,
-    // /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
-    // FIXME(akavel): pub stats: Option<frame_stats::Bundle>,
+    /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
+    pub rendering: Option<frame_stats::StatsAggregate>,
 }
 
 impl From<Metadata> for JsValue {
@@ -274,11 +274,12 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 /// metadata.
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
+    let mut stat_index = None;
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        // FIXME(akavel): frame_stats::start_interval(&interval_name);
+        stat_index = Some(frame_stats::start_interval());
         mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
-    IntervalHandle::new(metadata)
+    IntervalHandle::new(metadata, stat_index)
 }
 
 fn get_latest_performance_entry() -> Option<PerformanceEntry> {
@@ -294,7 +295,7 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
 
 /// Mark the end of an measuring an interval in the JS API. Return the measurement taken between
 /// start and end of the interval, if possible.
-pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementError> {
+pub fn mark_end_interval(metadata: Metadata, stat_index: Option<usize>) -> Result<Measurement, MeasurementError> {
     let profiling_level = metadata.profiling_level.clone();
     let start_label = start_interval_label(&metadata);
     let end_label = end_interval_label(&metadata);
@@ -302,8 +303,10 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
     if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
-        let metadata_with_stats = Metadata { ..metadata }; // FIXME(akavel)
-        // let metadata_with_stats = Metadata { stats: frame_stats::end_interval(&start_label), ..metadata };
+        let metadata_with_stats = Metadata {
+            rendering: stat_index.and_then(frame_stats::end_interval),
+            ..metadata
+        };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),
@@ -330,33 +333,36 @@ pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementE
 #[derive(Clone, Debug)]
 pub struct IntervalHandle {
     metadata: Metadata,
+    stat_index: Option<usize>,
     released: bool,
 }
 
 impl IntervalHandle {
-    fn new(metadata: Metadata) -> Self {
-        IntervalHandle { metadata, released: false }
+    fn new(metadata: Metadata, stat_index: Option<usize>) -> Self {
+        IntervalHandle { metadata, stat_index, released: false }
     }
 
     /// Measure the interval.
     pub fn end(mut self) {
         self.released = true;
-        warn_on_error(mark_end_interval(self.metadata.clone()));
+        warn_on_error(mark_end_interval(self.metadata.clone(), self.stat_index));
     }
 
     /// Release the handle to prevent a warning to be emitted when it is garbage collected without
     /// a call to `end`. This can be useful if one wants to call `end_interval` manually, or the
     /// equivalent call to `end_interval` is in Rust code.
-    pub fn release(mut self) {
+    pub fn release(mut self) -> Option<usize> {
         self.released = true;
-        drop(self)
+        let i = self.stat_index;
+        drop(self);
+        i
     }
 }
 
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if !self.released {
-            warn_on_error(mark_end_interval(self.metadata.clone()));
+            warn_on_error(mark_end_interval(self.metadata.clone(), self.stat_index));
             WARNING!(format!("{} was dropped without a call to `measure`.", self.metadata.label));
         }
     }

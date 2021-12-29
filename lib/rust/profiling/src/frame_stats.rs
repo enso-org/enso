@@ -70,6 +70,7 @@ pub fn end_interval(index: usize) -> Option<StatsAggregate> {
     })
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StatsAggregate {
     pub frame_time           : MetricSummary<f64>,
     pub fps                  : MetricSummary<f64>,
