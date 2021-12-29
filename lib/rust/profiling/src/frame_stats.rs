@@ -46,35 +46,32 @@ struct StatsSnapshot {
     shader_compile_count : usize,
 }
 
-/// Starts a new named time interval, during which frame statistics will be collected.
-pub fn start_interval(label: &str) {
-    let logger = Logger::new("Profiling_Stats");
-    ACTIVE_INTERVALS.with(|intervals| {
-        let found = intervals.borrow_mut().insert(label.to_string(), Bundle::default());
-        if found.is_some() {
-            warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one - values will be skewed for: {label:?}");
-        }
-    });
-}
+// /// Starts a new named time interval, during which frame statistics will be collected.
+// pub fn start_interval(label: &str) {
+//     let logger = Logger::new("Profiling_Stats");
+//     ACTIVE_INTERVALS.with(|intervals| {
+//         let found = intervals.borrow_mut().insert(label.to_string(), Bundle::default());
+//         if found.is_some() {
+//             warning!(logger, "Trying to collect profiling stats for a process with same label as already existing one - values will be skewed for: {label:?}");
+//         }
+//     });
+// }
 
-/// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
-/// collected since the start of the the interval.
-pub fn end_interval(label: &str) -> Option<Bundle> {
-    let logger = Logger::new("Profiling_Stats");
-    ACTIVE_INTERVALS.with(|intervals| {
-        match intervals.borrow_mut().remove(label) {
-            None => {
-                warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}");
-                None
-            },
-            Some(bundle) if bundle.frames_count == 0 => None,
-            Some(bundle) => Some(bundle),
-        }
-    })
-}
-
-/// A snapshot of values of different metrics at a particular frame, together with human-readable descriptions of those metrics.
-pub type LabeledSample = (ImString, f64);
+// /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
+// /// collected since the start of the the interval.
+// pub fn end_interval(label: &str) -> Option<Bundle> {
+//     let logger = Logger::new("Profiling_Stats");
+//     ACTIVE_INTERVALS.with(|intervals| {
+//         match intervals.borrow_mut().remove(label) {
+//             None => {
+//                 warning!(logger, "Trying to finalize profiling stats for a process with a label not registered before: {label:?}");
+//                 None
+//             },
+//             Some(bundle) if bundle.frames_count == 0 => None,
+//             Some(bundle) => Some(bundle),
+//         }
+//     })
+// }
 
 /// Include the provided stats snapshot into statistics for all intervals that are currently started and
 /// not yet ended.
@@ -88,73 +85,73 @@ pub fn push(snapshot: StatsSnapshot) {
 
 
 
-// ==============
-// === Bundle ===
-// ==============
+// // ==============
+// // === Bundle ===
+// // ==============
 
-/// Statistics of various metrics, collected over several frames.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct Bundle {
-    /// Aggregated data of each metric.
-    pub accumulators: Vec<MetricAccumulator>,
-    /// Over how many frames the data was aggregated.
-    pub frames_count: u32,
-}
+// /// Statistics of various metrics, collected over several frames.
+// #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+// pub struct Bundle {
+//     /// Aggregated data of each metric.
+//     pub accumulators: Vec<MetricAccumulator>,
+//     /// Over how many frames the data was aggregated.
+//     pub frames_count: u32,
+// }
 
-impl Bundle {
-    /// Aggregate the provided samples into statistics.
-    /// Note: empty samples will be ignored.
-    fn push(&mut self, samples: &[LabeledSample]) {
-        if samples.len() == 0 {
-            return;
-        }
+// impl Bundle {
+//     /// Aggregate the provided samples into statistics.
+//     /// Note: empty samples will be ignored.
+//     fn push(&mut self, samples: &[LabeledSample]) {
+//         if samples.len() == 0 {
+//             return;
+//         }
 
-        if self.frames_count == 0 {
-            self.accumulators = Vec::with_capacity(samples.len());
-            for (label, sample) in samples {
-                self.accumulators.push(MetricAccumulator::new(label.clone(), *sample));
-            }
-        } else {
-            // FIXME: verify vec lengths match & labels match, and log an error if not
-            for (acc, (_label, sample)) in self.accumulators.iter_mut().zip(samples) {
-                acc.push(*sample);
-            }
-        }
-        self.frames_count += 1;
-    }
-}
+//         if self.frames_count == 0 {
+//             self.accumulators = Vec::with_capacity(samples.len());
+//             for (label, sample) in samples {
+//                 self.accumulators.push(MetricAccumulator::new(label.clone(), *sample));
+//             }
+//         } else {
+//             // FIXME: verify vec lengths match & labels match, and log an error if not
+//             for (acc, (_label, sample)) in self.accumulators.iter_mut().zip(samples) {
+//                 acc.push(*sample);
+//             }
+//         }
+//         self.frames_count += 1;
+//     }
+// }
 
 
 
-// =========================
-// === MetricAccumulator ===
-// =========================
+// // =========================
+// // === MetricAccumulator ===
+// // =========================
 
-/// Accumulated data for a single metric.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MetricAccumulator {
-    label: ImString,
-    min:   f64,
-    max:   f64,
-    sum:   f64,
-}
+// /// Accumulated data for a single metric.
+// #[derive(Clone, Debug, Serialize, Deserialize)]
+// pub struct MetricAccumulator {
+//     label: ImString,
+//     min:   f64,
+//     max:   f64,
+//     sum:   f64,
+// }
 
-impl MetricAccumulator {
-    fn new(label: ImString, initial_sample: f64) -> Self {
-        Self {
-            label,
-            min:   initial_sample,
-            max:   initial_sample,
-            sum:   initial_sample,
-        }
-    }
+// impl MetricAccumulator {
+//     fn new(label: ImString, initial_sample: f64) -> Self {
+//         Self {
+//             label,
+//             min:   initial_sample,
+//             max:   initial_sample,
+//             sum:   initial_sample,
+//         }
+//     }
 
-    fn push(&mut self, new_sample: f64) {
-        self.min = self.min.min(new_sample);
-        self.max = self.max.max(new_sample);
-        self.sum += new_sample;
-    }
-}
+//     fn push(&mut self, new_sample: f64) {
+//         self.min = self.min.min(new_sample);
+//         self.max = self.max.max(new_sample);
+//         self.sum += new_sample;
+//     }
+// }
 
 
 
