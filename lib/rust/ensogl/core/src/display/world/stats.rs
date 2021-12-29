@@ -59,15 +59,14 @@ impl {
     pub fn end(&mut self) {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
-        let mut snapshot = Vec::with_capacity(self.panels.len());
+        let mut stats_snapshot = profiling::frame_stats::StatsSnapshot::default();
         for panel in &self.panels {
-            panel.end();
-            snapshot.push((panel.label().clone(), panel.raw_value()));
+            panel.end(&mut stats_snapshot);
         }
         if self.visible() {
             self.monitor.draw();
         }
-        profiling::frame_stats::push(&snapshot);
+        profiling::frame_stats::push(stats_snapshot);
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
     }

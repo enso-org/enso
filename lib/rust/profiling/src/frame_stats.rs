@@ -28,7 +28,7 @@ thread_local! {
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct StatsSnapshot {
     pub frame_time           : f64,
     pub fps                  : f64,
