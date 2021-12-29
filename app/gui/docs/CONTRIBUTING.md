@@ -140,7 +140,7 @@ The subdirectories of interests are:
     library and runs the main entry point.
   - `engine`: (In the future: see the note at the section beginning). The
     implementation of the language itself: CLI tools like compiler or
-    interpreter, as well as the services used as backend for the Enso IDE
+    interpreter, as well as the services used as a backend for the Enso IDE
     (Language Server and Project Manager). \*\*
 - `lib`: All libraries not being a main component of our application. They are
   grouped by the language. The most prominent are:
