@@ -290,17 +290,13 @@ const handle_registry = new FinalizationRegistry(heldValue => {
 // ==================
 // FIXME(akavel): type docs
 
-class MetricAccumulator {
-    readonly label: {content: string}
+class FrameStatsSummary {
     readonly min: number
     readonly max: number
-    readonly sum: number
+    readonly avg: number
 }
 
-class FrameStatsBundle {
-    readonly accumulators: MetricAccumulator[]
-    readonly frames_count: number
-}
+type FrameStatsAggregate = { [stat: string]: FrameStatsSummary }
 
 // ===================
 // === Measurement ===
@@ -318,14 +314,14 @@ class Measurement {
     readonly profilerLevel: Profiler
     readonly name: string
 
-    readonly stats?: FrameStatsBundle
+    readonly rendering?: FrameStatsAggregate
 
-    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, stats?: FrameStatsBundle) {
+    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, rendering?: FrameStatsAggregate) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
         this.name = name
-        this.stats = stats
+        this.rendering = rendering
     }
 
     static fromPerformanceEntry(entry: PerformanceEntry): Measurement | null {
@@ -341,8 +337,8 @@ class Measurement {
             return null
         }
         const name = entry.name
-        const stats = detail.stats
-        return new Measurement(startTime, duration, profilerLevel, name, stats)
+        const rendering = detail.rendering
+        return new Measurement(startTime, duration, profilerLevel, name, rendering)
     }
 
     endTime(): number {
@@ -359,16 +355,13 @@ class Measurement {
 
     prettyPrint() {
         console.groupCollapsed(this.prettyHeader())
-        if (this.stats) {
-            const n = this.stats.frames_count
-            console.log(`Performance statistics over ${n} frames:`)
-            console.table(this.stats.accumulators.map(
-                stat => ({
-                    Stat: stat.label.content,
-                    min: stat.min,
-                    // FIXME(akavel): use OUTPUT_PRECISION
-                    avg: stat.sum / n,
-                    max: stat.max,
+        if (this.rendering) {
+            console.table(Object.entries(this.rendering).map(
+                ([name, summary]) => ({
+                    Stat: name,
+                    min: summary.min,
+                    avg: summary.avg,
+                    max: summary.max,
                 })
             ))
         }
