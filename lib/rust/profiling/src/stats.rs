@@ -84,8 +84,9 @@ macro_rules! gen_stats {
 
         )* }
 
-        #[derive(Debug,Default)]
-        struct StatsAccumulator {
+        #[derive(Debug, Default)]
+        #[allow(missing_docs)]
+        pub struct StatsAccumulator {
             /// How many samples were accumulated.
             samples_count: u32,
 
@@ -93,7 +94,7 @@ macro_rules! gen_stats {
         }
 
         impl StatsAccumulator {
-            fn push(&mut self, sample: &StatsData) {
+            pub fn push(&mut self, sample: &StatsData) {
                 self.samples_count += 1;
                 if self.samples_count == 1 {
                     $( self.$field = Accumulator::new(sample.$field); )*
