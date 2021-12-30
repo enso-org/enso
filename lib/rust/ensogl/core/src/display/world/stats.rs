@@ -32,7 +32,7 @@ impl {
         let performance = web::performance();
         let mut monitor = debug::Monitor::new();
         let panels = vec![
-            monitor.add( debug::monitor::FrameTime          :: new()       ),
+            monitor.add( debug::monitor::FrameTime          :: new(&stats) ),
             monitor.add( debug::monitor::Fps                :: new()       ),
             monitor.add( debug::monitor::WasmMemory         :: new(&stats) ),
             monitor.add( debug::monitor::GpuMemoryUsage     :: new(&stats) ),

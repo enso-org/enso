@@ -87,6 +87,7 @@ macro_rules! gen_stats {
 gen_stats! {
     begin_time           : f64,
 
+    frame_time           : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_call_count      : usize,
@@ -102,10 +103,13 @@ gen_stats! {
 }
 
 impl StatsData {
-    pub fn begin(&mut self, _time: f64) {
+    pub fn begin(&mut self, time: f64) {
+        self.begin_time = time;
     }
 
-    pub fn end(&mut self, _time: f64) {
+    pub fn end(&mut self, time: f64) {
+        self.frame_time = time - self.begin_time;
+
         let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
         let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
         self.wasm_memory_usage = buffer.byte_length();

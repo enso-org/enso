@@ -742,54 +742,6 @@ impl PanelData {
 // === Samplers ====================================================================================
 // =================================================================================================
 
-// =================
-// === FrameTime ===
-// =================
-
-/// Sampler measuring the time for a given operation.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct FrameTime {
-    begin_time:  f64,
-    value:       f64,
-    value_check: ValueCheck,
-}
-
-impl FrameTime {
-    /// Constructor
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-const FRAME_TIME_WARNING_THRESHOLD: f64 = 1000.0 / 55.0;
-const FRAME_TIME_ERROR_THRESHOLD: f64 = 1000.0 / 25.0;
-
-impl Sampler for FrameTime {
-    fn label(&self) -> &str {
-        "Frame time (ms)"
-    }
-    fn value(&self) -> f64 {
-        self.value
-    }
-    fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
-        snapshot.frame_time = self.value;
-    }
-    fn check(&self) -> ValueCheck {
-        self.value_check
-    }
-    fn begin(&mut self, time: f64) {
-        self.begin_time = time;
-    }
-    fn end(&mut self, time: f64) {
-        let end_time = time;
-        self.value = end_time - self.begin_time;
-        self.value_check =
-            self.check_by_threshold(FRAME_TIME_WARNING_THRESHOLD, FRAME_TIME_ERROR_THRESHOLD);
-    }
-}
-
-
-
 // ===========
 // === Fps ===
 // ===========
@@ -867,6 +819,7 @@ macro_rules! stats_sampler {
                 $label
             }
             fn value(&self) -> f64 {
+                #![allow(trivial_numeric_casts)]
                 self.stats.$stats_method() as f64 / $value_divisor
             }
             fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
@@ -887,6 +840,7 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
+stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
 stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
 stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
 stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0);
