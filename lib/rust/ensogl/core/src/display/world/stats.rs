@@ -55,9 +55,6 @@ impl {
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
         let time = self.performance.now();
         self.stats.begin(time);
-        for panel in &self.panels {
-            panel.begin(time);
-        }
     }
 
     /// Finish measuring data.
@@ -68,7 +65,7 @@ impl {
         let mut stats_snapshot = profiling::frame_stats::StatsSnapshot::default();
         self.stats.end(time);
         for panel in &self.panels {
-            panel.end(time, &mut stats_snapshot);
+            panel.end(&mut stats_snapshot);
         }
         if self.visible() {
             self.monitor.draw();

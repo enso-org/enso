@@ -401,14 +401,9 @@ impl Panel {
         self.rc.borrow_mut().draw(dom)
     }
 
-    /// Start measuring the data.
-    pub fn begin(&self, time: f64) {
-        self.rc.borrow_mut().begin(time)
-    }
-
     /// Stop measuring the data.
-    pub fn end(&self, time: f64, snapshot: &mut StatsSnapshot) {
-        self.rc.borrow_mut().end(time, snapshot)
+    pub fn end(&self, snapshot: &mut StatsSnapshot) {
+        self.rc.borrow_mut().end(snapshot)
     }
 
     /// Most recently observed raw measurement value, without any clamping or smoothing.
@@ -484,12 +479,6 @@ impl ValueCheck {
 pub trait Sampler: Debug {
     /// Label of the sampler in the monitor window.
     fn label(&self) -> &str;
-
-    /// Function which should be run on the beginning of the code we want to measure.
-    fn begin(&mut self, _time: f64) {}
-
-    /// Function which should be run on the end of the code we want to measure.
-    fn end(&mut self, _time: f64) {}
 
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
     fn value(&self) -> f64;
@@ -602,14 +591,8 @@ impl PanelData {
 // === Begin / End ===
 
 impl PanelData {
-    /// Start measuring the data.
-    pub fn begin(&mut self, time: f64) {
-        self.sampler.begin(time);
-    }
-
     /// Stop measuring the data.
-    pub fn end(&mut self, time: f64, snapshot: &mut StatsSnapshot) {
-        self.sampler.end(time);
+    pub fn end(&mut self, snapshot: &mut StatsSnapshot) {
         self.sampler.snapshot_into(snapshot);
         self.value_check = self.sampler.check();
         self.raw_value = self.sampler.value();
