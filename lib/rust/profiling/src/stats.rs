@@ -48,7 +48,7 @@ macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
 
         #[derive(Debug,Default,Clone,Copy)]
-        struct StatsData {
+        pub struct StatsData {
             $($field : $field_type),*
         }
 

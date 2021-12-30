@@ -33,7 +33,7 @@ thread_local! {
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> usize {
     ACTIVE_INTERVALS.with(|intervals| -> usize {
-        intervals.borrow_mut().insert(StatsAccumulator::default())
+        intervals.borrow_mut().insert(stats::StatsAccumulator::default())
     })
 }
 
@@ -55,10 +55,10 @@ pub fn end_interval(index: usize) -> Option<stats::StatsSummary> {
 
 /// Include the provided stats snapshot into statistics for all intervals that are currently started and
 /// not yet ended.
-pub fn push(snapshot: StatsData) {
+pub fn push(snapshot: &stats::StatsData) {
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().iter_mut() {
-            interval.push(snapshot.clone());
+            interval.push(snapshot);
         }
     });
 }
