@@ -81,6 +81,10 @@ macro_rules! gen_stats {
             }
 
         )* }
+
+        struct StatsAggregator {
+            $($field : Aggregator<$field_type>),*
+        }
     }};
 }
 
@@ -126,4 +130,11 @@ impl StatsData {
         self.data_upload_count = 0;
         self.data_upload_size = 0;
     }
+}
+
+#[derive(Debug, Default)]
+struct Aggregator<T> {
+    pub min: T,
+    pub max: T,
+    pub avg: f64,
 }
