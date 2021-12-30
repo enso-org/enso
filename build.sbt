@@ -284,10 +284,10 @@ lazy val enso = (project in file("."))
 def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
-val akkaVersion               = "2.6.17"
+val akkaVersion               = "2.6.18"
 val akkaHTTPVersion           = "10.2.7"
 val akkaMockSchedulerVersion  = "0.5.5"
-val logbackClassicVersion     = "1.2.7"
+val logbackClassicVersion     = "1.2.10"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -310,7 +310,7 @@ val akka =
 
 // === Cats ===================================================================
 
-val catsVersion    = "2.6.1"
+val catsVersion    = "2.7.0"
 val kittensVersion = "2.3.2"
 val cats = {
   Seq(
@@ -351,7 +351,7 @@ val commons = Seq(
 
 // === Jackson ================================================================
 
-val jacksonVersion = "2.13.0"
+val jacksonVersion = "2.13.1"
 val jackson = Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
   "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
@@ -368,7 +368,7 @@ val jaxb = Seq(
 
 // === JMH ====================================================================
 
-val jmhVersion = "1.33"
+val jmhVersion = "1.34"
 val jmh = Seq(
   "org.openjdk.jmh" % "jmh-core"                 % jmhVersion % Benchmark,
   "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
@@ -398,7 +398,7 @@ val icuVersion = "67.1"
 
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.12"
+val zioVersion            = "1.0.13"
 val zioInteropCatsVersion = "3.2.9.0"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
@@ -407,7 +407,7 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version      = "1.69"
+val bcpkixJdk15Version      = "1.70"
 val bumpVersion             = "0.1.3"
 val declineVersion          = "2.2.0"
 val directoryWatcherVersion = "0.9.10"
@@ -415,22 +415,22 @@ val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "31.0.1-jre"
 val jlineVersion            = "3.21.0"
 val kindProjectorVersion    = "0.13.2"
-val mockitoScalaVersion     = "1.16.46"
+val mockitoScalaVersion     = "1.16.49"
 val newtypeVersion          = "0.4.4"
-val pprintVersion           = "0.6.6"
+val pprintVersion           = "0.7.1"
 val pureconfigVersion       = "0.17.1"
 val refinedVersion          = "0.9.27"
 val scalacheckVersion       = "1.15.4"
 val scalacticVersion        = "3.3.0-SNAP3"
 val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
-val scalatagsVersion        = "0.10.0"
+val scalatagsVersion        = "0.11.0"
 val scalatestVersion        = "3.3.0-SNAP3"
 val shapelessVersion        = "2.4.0-M1"
 val slf4jVersion            = "1.7.32"
 val slickVersion            = "3.3.3"
 val sqliteVersion           = "3.36.0.3"
-val tikaVersion             = "2.1.0"
+val tikaVersion             = "2.2.1"
 val typesafeConfigVersion   = "1.4.1"
 
 // ============================================================================
