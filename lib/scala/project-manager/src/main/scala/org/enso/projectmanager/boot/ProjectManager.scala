@@ -49,7 +49,7 @@ object ProjectManager extends App with LazyLogging {
 
   /** ZIO runtime. */
   implicit val runtime: Runtime[ZEnv] =
-    Runtime(Globals.zioEnvironment, new ZioPlatform(computeExecutionContext))
+    Runtime(environment, new ZioPlatform(computeExecutionContext))
 
   /** Main process starting up the server. */
   def mainProcess(logLevel: LogLevel): ZIO[ZEnv, IOException, Unit] = {
