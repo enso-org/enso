@@ -34,7 +34,7 @@ impl {
         let panels = vec![
             monitor.add( debug::monitor::FrameTime          :: new()       ),
             monitor.add( debug::monitor::Fps                :: new()       ),
-            monitor.add( debug::monitor::WasmMemory         :: new()       ),
+            monitor.add( debug::monitor::WasmMemory         :: new(&stats) ),
             monitor.add( debug::monitor::GpuMemoryUsage     :: new(&stats) ),
             monitor.add( debug::monitor::DrawCallCount      :: new(&stats) ),
             monitor.add( debug::monitor::DataUploadCount    :: new(&stats) ),

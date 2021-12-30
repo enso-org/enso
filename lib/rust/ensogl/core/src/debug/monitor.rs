@@ -847,16 +847,15 @@ impl Sampler for Fps {
 // ==================
 
 /// Sampler measuring the memory usage of the WebAssembly part of the program.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct WasmMemory {
-    value:       f64,
-    value_check: ValueCheck,
+    stats: Stats,
 }
 
 impl WasmMemory {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new(stats: &Stats) -> Self {
+        Self { stats: stats.clone() }
     }
 }
 
@@ -868,13 +867,13 @@ impl Sampler for WasmMemory {
         "WASM memory usage (Mb)"
     }
     fn value(&self) -> f64 {
-        self.value
+        self.stats.wasm_memory_usage() as f64 / MB
     }
     fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
-        snapshot.wasm_memory_usage = self.value;
+        snapshot.wasm_memory_usage = self.stats.wasm_memory_usage();
     }
     fn check(&self) -> ValueCheck {
-        self.value_check
+        self.check_by_threshold(WASM_MEM_WARNING_THRESHOLD, WASM_MEM_ERROR_THRESHOLD)
     }
     fn min_size(&self) -> Option<f64> {
         Some(100.0)
@@ -882,10 +881,7 @@ impl Sampler for WasmMemory {
     fn end(&mut self, _time: f64) {
         let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
         let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
-        // FIXME(akavel): store an integer, recalc as MBs in value() as in GpuMemoryUsage
-        self.value = (buffer.byte_length() as f64) / (1024.0 * 1024.0);
-        self.value_check =
-            self.check_by_threshold(WASM_MEM_WARNING_THRESHOLD, WASM_MEM_ERROR_THRESHOLD);
+        self.stats.set_wasm_memory_usage(buffer.byte_length());
     }
 }
 

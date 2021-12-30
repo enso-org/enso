@@ -71,6 +71,7 @@ macro_rules! gen_stats {
 }
 
 gen_stats! {
+    wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_call_count      : usize,
     buffer_count         : usize,

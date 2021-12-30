@@ -33,7 +33,7 @@ thread_local! {
 pub struct StatsSnapshot {
     pub frame_time           : f64,
     pub fps                  : f64,
-    pub wasm_memory_usage    : f64,
+    pub wasm_memory_usage    : u32,
     pub gpu_memory_usage     : u32,
     pub draw_call_count      : usize,
     pub buffer_count         : usize,
@@ -77,7 +77,7 @@ pub fn end_interval(index: usize) -> Option<StatsAggregate> {
 pub struct StatsAggregate {
     pub frame_time           : MetricSummary<f64>,
     pub fps                  : MetricSummary<f64>,
-    pub wasm_memory_usage    : MetricSummary<f64>,
+    pub wasm_memory_usage    : MetricSummary<u32>,
     pub gpu_memory_usage     : MetricSummary<u32>,
     pub draw_call_count      : MetricSummary<usize>,
     pub buffer_count         : MetricSummary<usize>,
