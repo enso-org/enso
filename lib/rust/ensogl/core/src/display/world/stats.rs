@@ -69,7 +69,7 @@ impl {
         if self.visible() {
             self.monitor.draw();
         }
-        profiling::frame_stats::push(stats_snapshot);
+        profiling::frame_stats::push(&self.stats.data());
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
     }

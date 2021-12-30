@@ -42,7 +42,18 @@ impl Stats {
     pub fn reset_per_frame_statistics(&self) {
         self.rc.borrow_mut().reset_per_frame_statistics();
     }
+
+    pub fn data(&self) -> Ref<StatsData> {
+        self.rc.borrow()
+    }
 }
+
+// impl AsRef<StatsData> for Stats {
+//     fn as_ref(&self) -> &StatsData {
+//         use std::borrow::Borrow;
+//         self.rc.borrow().borrow()
+//     }
+// }
 
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
