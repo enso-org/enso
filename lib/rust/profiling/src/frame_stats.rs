@@ -29,6 +29,7 @@ thread_local! {
 }
 
 #[derive(Clone, Debug, Default)]
+#[allow(missing_docs)]
 pub struct StatsSnapshot {
     pub frame_time           : f64,
     pub fps                  : f64,
@@ -71,6 +72,8 @@ pub fn end_interval(index: usize) -> Option<StatsAggregate> {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[allow(missing_docs)]
+#[serde(rename_all = "camelCase")]
 pub struct StatsAggregate {
     pub frame_time           : MetricSummary<f64>,
     pub fps                  : MetricSummary<f64>,
