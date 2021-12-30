@@ -151,4 +151,3 @@ define_bindings! {
     MouseEvent::mouseleave => on_leave (OnLeave),
     WheelEvent::wheel      => on_wheel (OnWheel),
 }
-
