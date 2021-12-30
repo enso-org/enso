@@ -104,9 +104,10 @@ macro_rules! gen_stats {
         }
 
         #[derive(Clone, Debug, Serialize, Deserialize)]
+        #[allow(missing_docs)]
         #[serde(rename_all = "camelCase")]
         pub struct StatsSummary {
-            pub $($field : Summary<$field_type>),*
+            $(pub $field : Summary<$field_type>),*
         }
 
         impl TryFrom<StatsAccumulator> for StatsSummary {
