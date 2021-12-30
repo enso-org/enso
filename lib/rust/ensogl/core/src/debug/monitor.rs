@@ -2,13 +2,13 @@
 
 use crate::prelude::*;
 
-use crate::debug::stats::Stats;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use profiling::frame_stats::StatsSnapshot;
+use profiling::stats::Stats;
 use std::collections::VecDeque;
 use std::f64;
 use wasm_bindgen;
@@ -961,3 +961,14 @@ stats_sampler!(
     0,
     1.0
 );
+
+/// Keeps the body if the `statistics` compilation flag was enabled.
+#[macro_export]
+macro_rules! if_compiled_with_stats {
+    ($($tok:tt)*) => {
+        #[cfg(feature = "statistics")]
+        {$($tok)*}
+        #[cfg(not(feature = "statistics"))]
+        {}
+    };
+}

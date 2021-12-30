@@ -17,7 +17,6 @@ use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
-use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
@@ -42,6 +41,7 @@ use crate::system::web::StyleSetter;
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
+use profiling::stats::Stats;
 use std::any::TypeId;
 use web_sys::HtmlElement;
 

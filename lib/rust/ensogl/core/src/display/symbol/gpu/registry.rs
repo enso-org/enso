@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::data::dirty::traits::*;
 
 use crate::data::dirty;
-use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -14,6 +13,7 @@ use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
 
 use data::opt_vec::OptVec;
+use profiling::stats::Stats;
 
 
 

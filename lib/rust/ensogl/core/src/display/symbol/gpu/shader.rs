@@ -8,7 +8,6 @@ use crate::prelude::*;
 use crate::control::callback::CallbackFn;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
-use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
@@ -16,6 +15,7 @@ use crate::display::symbol::ScopeType;
 use crate::system::gpu::shader::Context;
 use crate::system::gpu::shader::*;
 
+use profiling::stats::Stats;
 use web_sys::WebGlProgram;
 
 use enso_shapely::shared;

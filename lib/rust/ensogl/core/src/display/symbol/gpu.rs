@@ -13,7 +13,6 @@ use crate::prelude::*;
 
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
-use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::symbol::geometry::primitive::mesh;
 use crate::system::gpu::data::buffer::IsBuffer;
@@ -24,6 +23,7 @@ use crate::system::gpu::data::uniform::AnyTextureUniform;
 use crate::system::gpu::data::uniform::AnyUniform;
 
 use enso_shapely::newtype_prim;
+use profiling::stats::Stats;
 use shader::Shader;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;

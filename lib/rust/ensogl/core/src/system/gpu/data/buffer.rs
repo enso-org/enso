@@ -10,7 +10,6 @@ use crate::control::callback::Callback;
 use crate::control::callback::CallbackFn;
 use crate::data::dirty;
 use crate::data::seq::observable::Observable;
-use crate::debug::stats::Stats;
 use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
@@ -23,6 +22,7 @@ use crate::system::gpu::data::gl_enum::traits::*;
 use crate::system::gpu::data::prim::*;
 
 use enso_shapely::shared;
+use profiling::stats::Stats;
 use std::iter::Extend;
 use std::ops::RangeInclusive;
 use web_sys::WebGlBuffer;

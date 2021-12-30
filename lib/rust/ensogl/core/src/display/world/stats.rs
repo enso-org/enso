@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 use crate::debug;
-use crate::debug::stats::Stats;
 
 use profiling;
+use profiling::stats::Stats;
 
 
 

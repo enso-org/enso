@@ -2,7 +2,7 @@
 //! an amazing tool for debugging what is really happening under the hood and understanding the
 //! performance characteristics.
 
-use crate::prelude::*;
+use enso_prelude::*;
 
 
 
@@ -91,15 +91,4 @@ impl StatsData {
         self.data_upload_count = 0;
         self.data_upload_size = 0;
     }
-}
-
-/// Keeps the body if the `statistics` compilation flag was enabled.
-#[macro_export]
-macro_rules! if_compiled_with_stats {
-    ($($tok:tt)*) => {
-        #[cfg(feature = "statistics")]
-        {$($tok)*}
-        #[cfg(not(feature = "statistics"))]
-        {}
-    };
 }
