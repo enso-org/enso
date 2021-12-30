@@ -84,7 +84,21 @@ macro_rules! gen_stats {
 
         #[derive(Debug,Default)]
         struct StatsAccumulator {
+            /// How many samples were accumulated.
+            samples_count: u32,
+
             $($field : Accumulator<$field_type>),*
+        }
+
+        impl StatsAccumulator {
+            fn push(&mut self, sample: &StatsData) {
+                self.samples_count += 1;
+                if self.samples_count == 1 {
+                    $( self.$field = Accumulator::new(sample.$field); )*
+                } else {
+                    $( self.$field.push(sample.$field); )*
+                }
+            }
         }
     }};
 }
@@ -137,5 +151,42 @@ impl StatsData {
 struct Accumulator<T> {
     pub min: T,
     pub max: T,
-    pub avg: f64,
+    pub sum: f64,
+}
+
+impl<T: MinMax + Clone> Accumulator<T> {
+    fn new(v: T) -> Self {
+        #![allow(trivial_numeric_casts)]
+        Self { min: v.clone(), max: v.clone(), sum: v.to_f64() }
+    }
+
+    fn push(&mut self, v: T) {
+        self.min = self.min.min(v.clone());
+        self.max = self.min.max(v.clone());
+        self.sum += v.to_f64();
+    }
+}
+
+trait MinMax {
+    fn min(&self, other: Self) -> Self;
+    fn max(&self, other: Self) -> Self;
+    fn to_f64(&self) -> f64;
+}
+
+impl MinMax for f64 {
+    fn min(&self, other: f64) -> f64 { f64::min(*self, other) }
+    fn max(&self, other: f64) -> f64 { f64::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self }
+}
+
+impl MinMax for u32 {
+    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
+    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self as f64 }
+}
+
+impl MinMax for usize {
+    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
+    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self as f64 }
 }
