@@ -70,12 +70,14 @@ macro_rules! gen_stats {
 
             /// Increments field's value.
             pub fn [<inc _ $field>](&self) {
-                self.[<mod _ $field>](|t| t+1);
+                #[allow(trivial_numeric_casts)]
+                self.[<mod _ $field>](|t| t + (1 as $field_type));
             }
 
             /// Decrements field's value.
             pub fn [<dec _ $field>](&self) {
-                self.[<mod _ $field>](|t| t-1);
+                #[allow(trivial_numeric_casts)]
+                self.[<mod _ $field>](|t| t - (1 as $field_type));
             }
 
         )* }
@@ -83,6 +85,8 @@ macro_rules! gen_stats {
 }
 
 gen_stats! {
+    begin_time           : f64,
+
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_call_count      : usize,
