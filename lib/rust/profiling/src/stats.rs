@@ -82,8 +82,9 @@ macro_rules! gen_stats {
 
         )* }
 
-        struct StatsAggregator {
-            $($field : Aggregator<$field_type>),*
+        #[derive(Debug,Default)]
+        struct StatsAccumulator {
+            $($field : Accumulator<$field_type>),*
         }
     }};
 }
@@ -133,7 +134,7 @@ impl StatsData {
 }
 
 #[derive(Debug, Default)]
-struct Aggregator<T> {
+struct Accumulator<T> {
     pub min: T,
     pub max: T,
     pub avg: f64,
