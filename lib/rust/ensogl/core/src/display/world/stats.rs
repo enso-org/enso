@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::debug;
+use crate::system::web;
 
 use profiling;
 use profiling::stats::Stats;
@@ -18,15 +19,17 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats   : Stats,
-    monitor : debug::Monitor,
-    panels  : Vec<debug::monitor::Panel>
+    stats       : Stats,
+    performance : web::Performance,
+    monitor     : debug::Monitor,
+    panels      : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
         let stats       = stats.clone_ref();
+        let performance = web::performance();
         let mut monitor = debug::Monitor::new();
         let panels = vec![
             monitor.add( debug::monitor::FrameTime          :: new()       ),
@@ -43,15 +46,16 @@ impl {
             monitor.add( debug::monitor::SpriteSystemCount  :: new(&stats) ),
             monitor.add( debug::monitor::SpriteCount        :: new(&stats) ),
         ];
-        Self {stats,monitor,panels}
+        Self {stats,performance,monitor,panels}
     }
 
     /// Start measuring data.
     pub fn begin(&mut self) {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
+        let time = self.performance.now();
         for panel in &self.panels {
-            panel.begin();
+            panel.begin(time);
         }
     }
 
@@ -59,9 +63,10 @@ impl {
     pub fn end(&mut self) {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
+        let time = self.performance.now();
         let mut stats_snapshot = profiling::frame_stats::StatsSnapshot::default();
         for panel in &self.panels {
-            panel.end(&mut stats_snapshot);
+            panel.end(time, &mut stats_snapshot);
         }
         if self.visible() {
             self.monitor.draw();

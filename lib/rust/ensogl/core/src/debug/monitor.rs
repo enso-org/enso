@@ -404,13 +404,13 @@ impl Panel {
     }
 
     /// Start measuring the data.
-    pub fn begin(&self) {
-        self.rc.borrow_mut().begin()
+    pub fn begin(&self, time: f64) {
+        self.rc.borrow_mut().begin(time)
     }
 
     /// Stop measuring the data.
-    pub fn end(&self, snapshot: &mut StatsSnapshot) {
-        self.rc.borrow_mut().end(snapshot)
+    pub fn end(&self, time: f64, snapshot: &mut StatsSnapshot) {
+        self.rc.borrow_mut().end(time, snapshot)
     }
 
     /// Most recently observed raw measurement value, without any clamping or smoothing.
@@ -553,7 +553,6 @@ pub trait Sampler: Debug {
 #[derive(Debug)]
 pub struct PanelData {
     label:       ImString,
-    performance: web::Performance,
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
@@ -574,7 +573,6 @@ impl PanelData {
     /// Constructor.
     pub fn new<S: Sampler + 'static>(config: SamplerConfig, sampler: S) -> Self {
         let label = sampler.label().into();
-        let performance = web::performance();
         let min_value = f64::INFINITY;
         let max_value = f64::NEG_INFINITY;
         let raw_value = default();
@@ -587,7 +585,6 @@ impl PanelData {
         let precision = sampler.precision();
         Self {
             label,
-            performance,
             config,
             min_value,
             max_value,
@@ -608,14 +605,12 @@ impl PanelData {
 
 impl PanelData {
     /// Start measuring the data.
-    pub fn begin(&mut self) {
-        let time = self.performance.now();
+    pub fn begin(&mut self, time: f64) {
         self.sampler.begin(time);
     }
 
     /// Stop measuring the data.
-    pub fn end(&mut self, snapshot: &mut StatsSnapshot) {
-        let time = self.performance.now();
+    pub fn end(&mut self, time: f64, snapshot: &mut StatsSnapshot) {
         self.sampler.end(time);
         self.sampler.snapshot_into(snapshot);
         self.value_check = self.sampler.check();
