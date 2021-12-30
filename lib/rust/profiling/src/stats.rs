@@ -6,6 +6,8 @@ use enso_prelude::*;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
+use serde::Deserialize;
+use serde::Serialize;
 use wasm_bindgen::JsCast;
 
 
@@ -100,6 +102,31 @@ macro_rules! gen_stats {
                 }
             }
         }
+
+        #[derive(Clone, Debug, Serialize, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        pub struct StatsSummary {
+            pub $($field : Summary<$field_type>),*
+        }
+
+        impl TryFrom<StatsAccumulator> for StatsSummary {
+            type Error = NoSamplesError;
+            fn try_from(acc: StatsAccumulator) -> Result<Self, NoSamplesError> {
+                if acc.samples_count == 0 {
+                    Err(NoSamplesError{})
+                } else {
+                    let n = acc.samples_count as f64;
+                    Ok(StatsSummary {
+                        $($field : Summary{
+                            min: acc.$field.min,
+                            max: acc.$field.max,
+                            avg: acc.$field.sum / n,
+                        }),*
+                    })
+                }
+            }
+        }
+
     }};
 }
 
@@ -165,6 +192,17 @@ impl<T: MinMax + Clone> Accumulator<T> {
         self.max = self.min.max(v.clone());
         self.sum += v.to_f64();
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct NoSamplesError {}
+
+/// Summarized data for a single metric.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Summary<T> {
+    pub min: T,
+    pub max: T,
+    pub avg: f64,
 }
 
 trait MinMax {
