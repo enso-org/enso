@@ -74,7 +74,7 @@ pub struct Metadata {
     /// Label of the measurement..
     pub label:           String,
     /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
-    pub rendering: Option<frame_stats::StatsAggregate>,
+    pub rendering: Option<stats::StatsSummary>,
 }
 
 impl From<Metadata> for JsValue {

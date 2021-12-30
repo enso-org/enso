@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 
-use profiling::frame_stats::StatsSnapshot;
 use profiling::stats::Stats;
 use std::collections::VecDeque;
 use std::f64;
@@ -402,8 +401,8 @@ impl Panel {
     }
 
     /// Stop measuring the data.
-    pub fn end(&self, snapshot: &mut StatsSnapshot) {
-        self.rc.borrow_mut().end(snapshot)
+    pub fn end(&self) {
+        self.rc.borrow_mut().end()
     }
 
     /// Most recently observed raw measurement value, without any clamping or smoothing.
@@ -482,10 +481,6 @@ pub trait Sampler: Debug {
 
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
     fn value(&self) -> f64;
-
-    /// Insert raw (unsmoothed, unscaled, unclamped) value of the sampler into an appropriate field
-    /// in `StatsSnapshot`. Should be called only after `end`.
-    fn snapshot_into(&self, snapshot: &mut StatsSnapshot);
 
     /// Check whether the newest value is correct, or should be displayed as warning or error.
     fn check(&self) -> ValueCheck {
@@ -592,8 +587,7 @@ impl PanelData {
 
 impl PanelData {
     /// Stop measuring the data.
-    pub fn end(&mut self, snapshot: &mut StatsSnapshot) {
-        self.sampler.snapshot_into(snapshot);
+    pub fn end(&mut self) {
         self.value_check = self.sampler.check();
         self.raw_value = self.sampler.value();
         self.value = self.raw_value;
@@ -752,9 +746,6 @@ impl Sampler for Fps {
     fn value(&self) -> f64 {
         self.stats.fps()
     }
-    fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
-        snapshot.fps = self.stats.fps();
-    }
     fn check(&self) -> ValueCheck {
         self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD)
     }
@@ -794,9 +785,6 @@ macro_rules! stats_sampler {
             fn value(&self) -> f64 {
                 #![allow(trivial_numeric_casts)]
                 self.stats.$stats_method() as f64 / $value_divisor
-            }
-            fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
-                snapshot.$stats_method = self.stats.$stats_method();
             }
             fn min_size(&self) -> Option<f64> {
                 Some($t1)
