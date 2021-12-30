@@ -108,15 +108,6 @@ jobs:
           node-version: 14.15.0
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2021-11-29
-          override: true
-      - name: Install Clippy
-        run: rustup component add clippy
-      - name: Install Clippy
-        run: rustup component add rustfmt
       - name: Lint Rust sources
         run: node ./run lint --skip-version-validation
   test:
@@ -138,11 +129,6 @@ jobs:
           node-version: 14.15.0
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2021-11-29
-          override: true
       - name: Run tests (no WASM)
         run: node ./run test --no-wasm --skip-version-validation
   wasm-test:
@@ -164,11 +150,6 @@ jobs:
           node-version: 14.15.0
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2021-11-29
-          override: true
       - name: Install wasm-pack (macOS)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -223,11 +204,6 @@ jobs:
           node-version: 14.15.0
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2021-11-29
-          override: true
       - name: Install wasm-pack (macOS)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -301,11 +277,6 @@ jobs:
           node-version: 14.15.0
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2021-11-29
-          override: true
       - name: Install wasm-pack (macOS)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1

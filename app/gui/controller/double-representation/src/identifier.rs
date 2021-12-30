@@ -233,6 +233,21 @@ impl ReferentName {
         Self::validate(name.as_ref()).map(|_| ReferentName(name.into()))
     }
 
+    /// Convert given string into a referent name.
+    ///
+    /// First letter of each "word" (underscore-separated segment) will be capitalized. All other
+    /// letters will be turned into lower case.
+    ///
+    /// Fails if the given string is empty.
+    pub fn from_identifier_text(name: impl Str) -> Result<Self, NotReferentName> {
+        let name = name.as_ref();
+        if name.is_empty() {
+            return Err(NotReferentName(name.into()));
+        }
+        let name = name.split('_').map(str::to_lowercase).map(capitalize_first).join("_");
+        Ok(Self(name))
+    }
+
     /// Get a normalized version of this identifier.
     pub fn normalized(&self) -> NormalizedName {
         NormalizedName::new(self)
@@ -362,4 +377,40 @@ pub fn generate_name(
         })
         .unwrap(); // It never yields `None`, as we iterate infinite sequence until we find match.
     Identifier::from_text(name)
+}
+
+/// Capitalize the first letter of the passed string.
+fn capitalize_first(string: String) -> String {
+    let mut chars = string.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first_char) => first_char.to_uppercase().to_string() + chars.as_str(),
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn referent_name_from_identifier_text() {
+        let cases = [
+            ("identifier", "Identifier"),
+            ("project_1", "Project_1"),
+            ("muLti_Word_iDenTiFier", "Multi_Word_Identifier"),
+        ];
+        for (input, expected) in cases {
+            let referent_name =
+                ReferentName::from_identifier_text(input).expect("ReferentName creation failed");
+            assert_eq!(referent_name, expected);
+        }
+
+        assert!(ReferentName::from_identifier_text("").is_err());
+    }
 }
