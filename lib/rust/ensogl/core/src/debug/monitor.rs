@@ -747,17 +747,15 @@ impl PanelData {
 // ===========
 
 /// Sampler measuring the frames per second count for a given operation.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Fps {
-    begin_time:  f64,
-    value:       f64,
-    value_check: ValueCheck,
+    stats: Stats,
 }
 
 impl Fps {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new(stats: &Stats) -> Self {
+        Self { stats: stats.clone() }
     }
 }
 
@@ -769,24 +767,16 @@ impl Sampler for Fps {
         "Frames per second"
     }
     fn value(&self) -> f64 {
-        self.value
+        self.stats.fps()
     }
     fn snapshot_into(&self, snapshot: &mut StatsSnapshot) {
-        snapshot.fps = self.value;
+        snapshot.fps = self.stats.fps();
     }
     fn check(&self) -> ValueCheck {
-        self.value_check
+        self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD)
     }
     fn max_value(&self) -> Option<f64> {
         Some(60.0)
-    }
-    fn begin(&mut self, time: f64) {
-        if self.begin_time > 0.0 {
-            let end_time = time;
-            self.value = 1000.0 / (end_time - self.begin_time);
-            self.value_check = self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD);
-        }
-        self.begin_time = time;
     }
 }
 

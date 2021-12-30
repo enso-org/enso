@@ -88,6 +88,7 @@ gen_stats! {
     begin_time           : f64,
 
     frame_time           : f64,
+    fps                  : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_call_count      : usize,
@@ -104,6 +105,10 @@ gen_stats! {
 
 impl StatsData {
     pub fn begin(&mut self, time: f64) {
+        if self.begin_time > 0.0 {
+            let end_time = time;
+            self.fps = 1000.0 / (end_time - self.begin_time);
+        }
         self.begin_time = time;
     }
 
