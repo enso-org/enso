@@ -9,8 +9,10 @@ use crate::presenter::graph::ViewNodeId;
 
 use bimap::BiMap;
 use bimap::Overwritten;
+use engine_protocol::language_server::ExpressionUpdatePayload;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
+use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
 
 
@@ -23,9 +25,11 @@ use ide_view::graph_editor::EdgeEndpoint;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Node {
-    pub view_id:    Option<ViewNodeId>,
-    pub position:   Vector2,
-    pub expression: node_view::Expression,
+    pub view_id:       Option<ViewNodeId>,
+    pub position:      Vector2,
+    pub expression:    node_view::Expression,
+    pub error:         Option<node_view::Error>,
+    pub visualization: Option<visualization_view::Path>,
 }
 
 /// The set of node states.
@@ -54,13 +58,25 @@ impl Nodes {
         self.nodes.get_mut(&id)
     }
 
+    /// Get id of AST corresponding with the node represented by given view.
+    pub fn ast_id_by_view(&self, id: ViewNodeId) -> Option<AstNodeId> {
+        self.ast_node_by_view_id.get(&id).copied()
+    }
+
     /// Get the mutable reference, creating an default entry without view if it's missing.
     ///
     /// The entry will be also present on the "nodes without view" list and may have view assigned
     /// using [`assign_newly_created_node`] method.
     pub fn get_mut_or_create(&mut self, id: AstNodeId) -> &mut Node {
-        let nodes_without_view = &mut self.nodes_without_view;
-        self.nodes.entry(id).or_insert_with(|| {
+        Self::get_mut_or_create_static(&mut self.nodes, &mut self.nodes_without_view, id)
+    }
+
+    fn get_mut_or_create_static<'a>(
+        nodes: &'a mut HashMap<AstNodeId, Node>,
+        nodes_without_view: &mut Vec<AstNodeId>,
+        id: AstNodeId,
+    ) -> &'a mut Node {
+        nodes.entry(id).or_insert_with(|| {
             nodes_without_view.push(id);
             default()
         })
@@ -83,6 +99,25 @@ impl Nodes {
             self.ast_node_by_view_id.insert(view_id, ast_node);
         }
         opt_displayed
+    }
+
+    /// Assign a node view to a concrete AST node. Returns the node state: the view must be
+    /// refreshed with the data from the state.
+    pub fn assign_node_view_explicitly(
+        &mut self,
+        view_id: ViewNodeId,
+        ast_id: AstNodeId,
+    ) -> &mut Node {
+        let mut displayed =
+            Self::get_mut_or_create_static(&mut self.nodes, &mut self.nodes_without_view, ast_id);
+        if let Some(old_view) = displayed.view_id {
+            self.ast_node_by_view_id.remove(&old_view);
+        } else {
+            self.nodes_without_view.remove_item(&ast_id);
+        }
+        displayed.view_id = Some(view_id);
+        self.ast_node_by_view_id.insert(view_id, ast_id);
+        displayed
     }
 
     /// Update the state retaining given set of nodes. Returns the list of removed nodes' views.
@@ -179,8 +214,11 @@ impl Connections {
 /// A single expression data.
 #[derive(Clone, Debug, Default)]
 pub struct Expression {
+    /// A node whose line contains this expression.
     pub node:            AstNodeId,
+    /// The known type of the expression.
     pub expression_type: Option<view::graph_editor::Type>,
+    /// A pointer to the method called by this expression.
     pub method_pointer:  Option<view::graph_editor::MethodPointer>,
 }
 
@@ -258,6 +296,11 @@ impl State {
         self.nodes.borrow().get(node).and_then(|n| n.view_id)
     }
 
+    /// Get node's AST id by the view id.
+    pub fn ast_node_id_of_view(&self, node: ViewNodeId) -> Option<AstNodeId> {
+        self.nodes.borrow().ast_id_of_view(node)
+    }
+
     /// Convert the AST connection to pair of [`EdgeEndpoint`]s.
     pub fn view_edge_targets_of_ast_connection(
         &self,
@@ -307,6 +350,12 @@ impl State {
     /// refreshed with the data from the state.
     pub fn assign_node_view(&self, view_id: ViewNodeId) -> Option<Node> {
         self.nodes.borrow_mut().assign_newly_created_node(view_id).cloned()
+    }
+
+    /// Assign a node view to a concrete AST node. Returns the node state: the view must be
+    /// refreshed with the data from the state.
+    pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) -> Node {
+        self.nodes.borrow_mut().assign_node_view_explicitly(view_id, ast_id).clone()
     }
 }
 
@@ -374,6 +423,77 @@ impl<'a> ControllerChange<'a> {
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
             self.expressions.borrow_mut().update_node_expressions(ast_id, new_expressions);
             Some((displayed.view_id?, new_displayed_expr))
+        } else {
+            None
+        }
+    }
+
+    /// Set the node error basing of the given expression's payload. If the error is actually
+    /// changed, the to-be-updated node view is returned with the proper error description. If the
+    /// expression is not a whole expression of any node, nothing is updated and `None` is returned.
+    pub fn set_node_error_from_payload(
+        &self,
+        expression: ast::Id,
+        payload: Option<ExpressionUpdatePayload>,
+    ) -> Option<(ViewNodeId, Option<node_view::Error>)> {
+        let node_id = self.state.nodes.borrow().get(expression).is_some().as_some(expression)?;
+        let new_error = self.convert_payload_to_error(node_id, payload);
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut(node_id)?;
+        if displayed.error != new_error {
+            displayed.error = new_error.clone();
+            Some((displayed.view_id?, new_error))
+        } else {
+            None
+        }
+    }
+
+    fn convert_payload_to_error(
+        &self,
+        node_id: AstNodeId,
+        payload: Option<ExpressionUpdatePayload>,
+    ) -> Option<node_view::error::Error> {
+        use node_view::error::Kind;
+        use ExpressionUpdatePayload::*;
+        let (kind, message, trace) = match payload {
+            None | Some(Value) => None,
+            Some(DataflowError { trace }) => Some((Kind::Dataflow, None, trace)),
+            Some(Panic { message, trace }) => Some((Kind::Panic, Some(message), trace)),
+        }?;
+        let propagated = if kind == Kind::Panic {
+            let nodes = self.nodes.borrow();
+            let root_cause = trace.iter().find(|id| nodes.get(**id).is_some());
+            !root_cause.contains(&&node_id)
+        } else {
+            // TODO[ao]: traces are not available for Dataflow errors.
+            false
+        };
+
+        let kind = Immutable(kind);
+        let message = Rc::new(message);
+        let propagated = Immutable(propagated);
+        Some(node_view::error::Error { kind, message, propagated })
+    }
+
+    /// Set the node's attached visualization. The `visualization_data` should be the content of
+    /// `visualization` field in node's metadata. If the visualization actually changes, the
+    /// to-be-updated node view is returned with the deserialized visualization path.
+    pub fn set_node_visualization(
+        &self,
+        node_id: AstNodeId,
+        visualization_data: Option<serde_json::Value>,
+    ) -> Option<(ViewNodeId, Option<visualization_view::Path>)> {
+        let controller_path = visualization_data.and_then(|data| {
+            // It is perfectly fine to ignore deserialization errors here. This is metadata, that
+            // might not even be initialized.
+            serde_json::from_value(data).ok()
+        });
+
+        let mut nodes = self.state.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(node_id);
+        if displayed.visualization != controller_path {
+            displayed.visualization = controller_path.clone();
+            Some((displayed.view_id?, controller_path))
         } else {
             None
         }
@@ -484,6 +604,24 @@ impl<'a> ViewChange<'a> {
     /// Remove the node, and returns its AST id.
     pub fn remove_node(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.nodes.borrow_mut().remove_node(id)
+    }
+
+    /// Set the new node visualization. If the visualization actually changes, the AST id of the
+    /// affected node is returned.
+    pub fn set_node_visualization(
+        &self,
+        id: ViewNodeId,
+        new_path: Option<visualization_view::Path>,
+    ) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.visualization != new_path {
+            displayed.visualization = new_path;
+            Some(ast_id)
+        } else {
+            None
+        }
     }
 }
 
