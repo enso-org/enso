@@ -10,6 +10,8 @@
 
 use enso_prelude::*;
 
+use crate::stats;
+
 use enso_data_structures::opt_vec::OptVec;
 use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
@@ -22,42 +24,23 @@ use serde::Serialize;
 // === Intervals ===
 // =================
 
-type Intervals = OptVec<Vec<StatsSnapshot>>;
+type Intervals = OptVec<stats::StatsAccumulator>;
 
 thread_local! {
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
 }
 
-#[derive(Clone, Debug, Default)]
-#[allow(missing_docs)]
-pub struct StatsSnapshot {
-    pub frame_time           : f64,
-    pub fps                  : f64,
-    pub wasm_memory_usage    : u32,
-    pub gpu_memory_usage     : u32,
-    pub draw_call_count      : usize,
-    pub buffer_count         : usize,
-    pub data_upload_count    : usize,
-    pub data_upload_size     : u32,
-    pub sprite_system_count  : usize,
-    pub sprite_count         : usize,
-    pub symbol_count         : usize,
-    pub mesh_count           : usize,
-    pub shader_count         : usize,
-    pub shader_compile_count : usize,
-}
-
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> usize {
     ACTIVE_INTERVALS.with(|intervals| -> usize {
-        intervals.borrow_mut().insert(Vec::new())
+        intervals.borrow_mut().insert(StatsAccumulator::default())
     })
 }
 
 /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
 /// collected since the start of the the interval.
 /// TODO: should use IntervalGuard instead of passing usize around
-pub fn end_interval(index: usize) -> Option<StatsAggregate> {
+pub fn end_interval(index: usize) -> Option<stats::StatsSummary> {
     ACTIVE_INTERVALS.with(|intervals| {
         match intervals.borrow_mut().remove(index) {
             None => {
@@ -65,126 +48,19 @@ pub fn end_interval(index: usize) -> Option<StatsAggregate> {
                 warning!(logger, "Trying to finalize profiling stats for a process not registered before.");
                 None
             },
-            Some(snapshots) if snapshots.is_empty() => None,
-            Some(snapshots) => StatsAggregate::aggregate(snapshots),
+            Some(accumulator) => accumulator.try_into().ok(),
         }
     })
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[allow(missing_docs)]
-#[serde(rename_all = "camelCase")]
-pub struct StatsAggregate {
-    pub frame_time           : MetricSummary<f64>,
-    pub fps                  : MetricSummary<f64>,
-    pub wasm_memory_usage    : MetricSummary<u32>,
-    pub gpu_memory_usage     : MetricSummary<u32>,
-    pub draw_call_count      : MetricSummary<usize>,
-    pub buffer_count         : MetricSummary<usize>,
-    pub data_upload_count    : MetricSummary<usize>,
-    pub data_upload_size     : MetricSummary<u32>,
-    pub sprite_system_count  : MetricSummary<usize>,
-    pub sprite_count         : MetricSummary<usize>,
-    pub symbol_count         : MetricSummary<usize>,
-    pub mesh_count           : MetricSummary<usize>,
-    pub shader_count         : MetricSummary<usize>,
-    pub shader_compile_count : MetricSummary<usize>,
-}
-
-macro_rules! summarize {
-    ($first:expr, $iter:expr, $field_name:tt) => {
-        summarize($first.$field_name, $iter.clone().map(|x| x.$field_name))
-    };
-}
-
-impl StatsAggregate {
-    fn aggregate(snapshots: Vec<StatsSnapshot>) -> Option<Self> {
-        let mut iter = snapshots.iter();
-        match iter.next() {
-            None => None,
-            Some(first) => Some(Self {
-                frame_time           : summarize!(first, iter, frame_time),
-                fps                  : summarize!(first, iter, fps),
-                wasm_memory_usage    : summarize!(first, iter, wasm_memory_usage),
-                gpu_memory_usage     : summarize!(first, iter, gpu_memory_usage),
-                draw_call_count      : summarize!(first, iter, draw_call_count),
-                buffer_count         : summarize!(first, iter, buffer_count),
-                data_upload_count    : summarize!(first, iter, data_upload_count),
-                data_upload_size     : summarize!(first, iter, data_upload_size),
-                sprite_system_count  : summarize!(first, iter, sprite_system_count),
-                sprite_count         : summarize!(first, iter, sprite_count),
-                symbol_count         : summarize!(first, iter, symbol_count),
-                mesh_count           : summarize!(first, iter, mesh_count),
-                shader_count         : summarize!(first, iter, shader_count),
-                shader_compile_count : summarize!(first, iter, shader_compile_count),
-            })
-        }
-    }
-}
-
 /// Include the provided stats snapshot into statistics for all intervals that are currently started and
 /// not yet ended.
-pub fn push(snapshot: StatsSnapshot) {
+pub fn push(snapshot: StatsData) {
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().iter_mut() {
             interval.push(snapshot.clone());
         }
     });
-}
-
-
-
-// =====================
-// === MetricSummary ===
-// =====================
-
-/// Summarized data for a single metric.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MetricSummary<T> {
-    min:   T,
-    max:   T,
-    avg:   f64,
-}
-
-fn summarize<T: Clone + MinMax>(first: T, rest: impl Iterator<Item=T>) -> MetricSummary<T> {
-    let mut min = first.clone();
-    let mut max = first.clone();
-    let mut sum: f64 = first.to_f64();
-    let mut n: usize = 1;
-    for sample in rest {
-        min = min.min(sample.clone());
-        max = max.max(sample.clone());
-        sum += sample.to_f64();
-        n += 1;
-    }
-    MetricSummary {
-        min, max,
-        avg: sum / (n as f64),
-    }
-}
-
-trait MinMax {
-    fn min(&self, other: Self) -> Self;
-    fn max(&self, other: Self) -> Self;
-    fn to_f64(&self) -> f64;
-}
-
-impl MinMax for f64 {
-    fn min(&self, other: f64) -> f64 { f64::min(*self, other) }
-    fn max(&self, other: f64) -> f64 { f64::max(*self, other) }
-    fn to_f64(&self) -> f64 { *self }
-}
-
-impl MinMax for u32 {
-    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
-    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
-    fn to_f64(&self) -> f64 { *self as f64 }
-}
-
-impl MinMax for usize {
-    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
-    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
-    fn to_f64(&self) -> f64 { *self as f64 }
 }
 
 
