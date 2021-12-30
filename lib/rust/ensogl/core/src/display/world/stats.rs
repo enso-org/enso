@@ -54,6 +54,7 @@ impl {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
         let time = self.performance.now();
+        self.stats.begin(time);
         for panel in &self.panels {
             panel.begin(time);
         }
@@ -65,6 +66,7 @@ impl {
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
         let time = self.performance.now();
         let mut stats_snapshot = profiling::frame_stats::StatsSnapshot::default();
+        self.stats.end(time);
         for panel in &self.panels {
             panel.end(time, &mut stats_snapshot);
         }

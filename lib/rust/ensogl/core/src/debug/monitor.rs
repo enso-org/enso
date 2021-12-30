@@ -879,9 +879,9 @@ impl Sampler for WasmMemory {
         Some(100.0)
     }
     fn end(&mut self, _time: f64) {
-        let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
-        let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
-        self.stats.set_wasm_memory_usage(buffer.byte_length());
+        // let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
+        // let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
+        // self.stats.set_wasm_memory_usage(buffer.byte_length());
     }
 }
 

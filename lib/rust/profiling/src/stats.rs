@@ -4,6 +4,10 @@
 
 use enso_prelude::*;
 
+use js_sys::ArrayBuffer;
+use js_sys::WebAssembly::Memory;
+use wasm_bindgen::JsCast;
+
 
 
 // =============
@@ -24,6 +28,14 @@ impl Default for Stats {
 }
 
 impl Stats {
+    pub fn begin(&self, time: f64) {
+        self.rc.borrow_mut().begin(time);
+    }
+
+    pub fn end(&self, time: f64) {
+        self.rc.borrow_mut().end(time);
+    }
+
     /// Resets the per-frame statistics.
     pub fn reset_per_frame_statistics(&self) {
         self.rc.borrow_mut().reset_per_frame_statistics();
@@ -86,6 +98,15 @@ gen_stats! {
 }
 
 impl StatsData {
+    pub fn begin(&mut self, _time: f64) {
+    }
+
+    pub fn end(&mut self, _time: f64) {
+        let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
+        let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
+        self.wasm_memory_usage = buffer.byte_length();
+    }
+
     fn reset_per_frame_statistics(&mut self) {
         self.draw_call_count = 0;
         self.shader_compile_count = 0;
