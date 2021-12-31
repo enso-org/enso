@@ -437,6 +437,8 @@ mod tests {
             }
             a
         });
+
+        let _value = early_return_case();
     }
 
     fn early_return_case() -> Option<()> {
