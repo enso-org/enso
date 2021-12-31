@@ -202,7 +202,7 @@ impl<T: MinMax + Clone> Accumulator<T> {
 
     fn push(&mut self, v: T) {
         self.min = self.min.min(v.clone());
-        self.max = self.min.max(v.clone());
+        self.max = self.max.max(v.clone());
         self.sum += v.to_f64();
     }
 }
