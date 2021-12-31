@@ -86,7 +86,6 @@ pub fn push_stats(snapshot: &frame_stats::StatsData) {
 
 
 
-/*
 // =============
 // === Tests ===
 // =============
@@ -95,91 +94,59 @@ pub fn push_stats(snapshot: &frame_stats::StatsData) {
 mod tests {
     use super::*;
 
+    use crate::frame_stats::StatsData;
+
     use assert_approx_eq::*;
 
     #[test]
     fn overlapping_intervals() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
+        let guard_a = start_interval();
+        push_stats(&StatsData {
+            fps: 55.0,
+            wasm_memory_usage: 1,
+            buffer_count: 1,
+            ..Default::default()
+        });
+        let guard_b = start_interval();
+        push_stats(&StatsData {
+            fps: 57.0,
+            wasm_memory_usage: 1,
+            buffer_count: 1,
+            ..Default::default()
+        });
+        let result_a = guard_a.end().unwrap();
+        push_stats(&StatsData {
+            fps: 59.0,
+            wasm_memory_usage: 2,
+            buffer_count: 2,
+            ..Default::default()
+        });
+        let result_b = guard_b.end().unwrap();
 
-        const INTERVAL_A: &str = "interval-A";
-        const INTERVAL_B: &str = "interval-B";
-        const STAT: &str = "stat";
+        assert_approx_eq!(result_a.fps.min, 55.0);
+        assert_approx_eq!(result_a.fps.avg, 56.0);
+        assert_approx_eq!(result_a.fps.max, 57.0);
+        assert_eq!(       result_a.wasm_memory_usage.min, 1);
+        assert_approx_eq!(result_a.wasm_memory_usage.avg, 1.0);
+        assert_eq!(       result_a.wasm_memory_usage.max, 1);
+        assert_eq!(       result_a.buffer_count.min, 1);
+        assert_approx_eq!(result_a.buffer_count.avg, 1.0);
+        assert_eq!(       result_a.buffer_count.max, 1);
 
-        start_interval(INTERVAL_A);
-        push(&[(STAT.into(), 1.0)]);
-        start_interval(INTERVAL_B);
-        push(&[(STAT.into(), 1.0)]);
-        let result_a = end_interval(INTERVAL_A).unwrap();
-        push(&[(STAT.into(), 2.0)]);
-        let result_b = end_interval(INTERVAL_B).unwrap();
-
-        assert_eq!(result_a.frames_count, 2);
-        assert_approx_eq!(result_a.accumulators[0].min, 1.0);
-        assert_approx_eq!(result_a.accumulators[0].max, 1.0);
-        assert_approx_eq!(result_a.accumulators[0].sum, 2.0);
-
-        assert_eq!(result_b.frames_count, 2);
-        assert_approx_eq!(result_b.accumulators[0].min, 1.0);
-        assert_approx_eq!(result_b.accumulators[0].max, 2.0);
-        assert_approx_eq!(result_b.accumulators[0].sum, 3.0);
+        assert_approx_eq!(result_b.fps.min, 57.0);
+        assert_approx_eq!(result_b.fps.avg, 58.0);
+        assert_approx_eq!(result_b.fps.max, 59.0);
+        assert_eq!(       result_b.wasm_memory_usage.min, 1);
+        assert_approx_eq!(result_b.wasm_memory_usage.avg, 1.5);
+        assert_eq!(       result_b.wasm_memory_usage.max, 2);
+        assert_eq!(       result_b.buffer_count.min, 1);
+        assert_approx_eq!(result_b.buffer_count.avg, 1.5);
+        assert_eq!(       result_b.buffer_count.max, 2);
     }
 
     #[test]
     fn empty_interval_discarded() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
-
-        const INTERVAL_A: &str = "interval-A";
-
-        start_interval(INTERVAL_A);
-        assert!(end_interval(INTERVAL_A).is_none());
-    }
-
-    #[test]
-    fn empty_samples_ignored() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
-
-        const INTERVAL_A: &str = "interval-A";
-        const STAT: &str = "stat";
-
-        start_interval(INTERVAL_A);
-        push(&[]);
-        push(&[(STAT.into(), 1.0)]);
-        push(&[]);
-        let result = end_interval(INTERVAL_A).unwrap();
-
-        assert_eq!(result.frames_count, 1);
-        assert_approx_eq!(result.accumulators[0].min, 1.0);
-        assert_approx_eq!(result.accumulators[0].max, 1.0);
-        assert_approx_eq!(result.accumulators[0].sum, 1.0);
-    }
-
-    #[test]
-    fn multiple_metrics_collected() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
-
-        const INTERVAL_A: &str = "interval-A";
-        const STAT_1: &str = "stat-1";
-        const STAT_2: &str = "stat-2";
-
-
-        start_interval(INTERVAL_A);
-        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
-        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
-        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
-        let result = end_interval(INTERVAL_A).unwrap();
-
-
-        assert_eq!(result.frames_count, 3);
-
-        assert_eq!(result.accumulators[0].label.as_str(), STAT_1);
-        assert_approx_eq!(result.accumulators[0].min, 1.0);
-        assert_approx_eq!(result.accumulators[0].max, 1.0);
-        assert_approx_eq!(result.accumulators[0].sum, 3.0);
-
-        assert_eq!(result.accumulators[1].label.as_str(), STAT_2);
-        assert_approx_eq!(result.accumulators[1].min, 2.0);
-        assert_approx_eq!(result.accumulators[1].max, 2.0);
-        assert_approx_eq!(result.accumulators[1].sum, 6.0);
+        let guard = start_interval();
+        assert!(guard.end().is_none());
     }
 }
-*/
