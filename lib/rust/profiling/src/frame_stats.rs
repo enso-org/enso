@@ -87,6 +87,7 @@ pub fn push(snapshot: &stats::StatsData) {
 
 
 
+/*
 // =============
 // === Tests ===
 // =============
@@ -182,3 +183,4 @@ mod tests {
         assert_approx_eq!(result.accumulators[1].sum, 6.0);
     }
 }
+*/
