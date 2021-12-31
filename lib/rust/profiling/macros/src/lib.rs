@@ -52,13 +52,15 @@ fn make_profiling_level_is_active_function(profilers: &[String]) -> proc_macro::
             match log_level.as_str() {
                 #match_arms
                 invalid_level => {
-                    WARNING!(format!("Tried to check for invalid profiling level: {:?}", invalid_level));
+                    WARNING!(
+                        format!("Tried to check for invalid profiling level: {:?}", invalid_level)
+                    );
                     false
                 }
             }
         }
     }
-        .into();
+    .into();
 
     is_active_fn_tokens
 }
@@ -72,7 +74,10 @@ fn make_match_line(current: &str, next: Option<&str>) -> TokenStream {
     if let Some(next_profiling_level) = next {
         let next_profiling_level = next_profiling_level.to_lowercase();
         quote! {
-             #current => #current_profiler_mod::ENABLED || profiling_level_is_active(#next_profiling_level.to_string()),
+             #current => {
+                #current_profiler_mod::ENABLED
+                    || profiling_level_is_active(#next_profiling_level.to_string())
+             }
         }
     } else {
         quote! {

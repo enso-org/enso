@@ -777,12 +777,12 @@ impl Model {
     /// Reload whole displayed content to be up to date with module state.
     pub fn refresh_graph_view(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph view.");
-        let task_handle = profiling::start_task!("refresh_graph_view");
-        let connections_info = self.graph.connections()?;
-        self.refresh_node_views(&connections_info, true)?;
-        self.refresh_connection_views(connections_info.connections)?;
-        task_handle.end();
-        Ok(())
+        profiling::measure_task!("refresh_graph_view", || {
+            let connections_info = self.graph.connections()?;
+            self.refresh_node_views(&connections_info, true)?;
+            self.refresh_connection_views(connections_info.connections)?;
+            Ok(())
+        })
     }
 
     fn refresh_node_views(
@@ -790,63 +790,63 @@ impl Model {
         connections_info: &Connections,
         update_position: bool,
     ) -> FallibleResult {
-        let task_handle = profiling::start_task!("refresh_node_views");
-        let base_default_position = default_node_position();
-        let mut trees = connections_info.trees.clone();
-        let nodes = self.graph.graph().nodes()?;
-        let (with_pos, without_pos): (Vec<_>, Vec<_>) =
-            nodes.iter().partition(|n| n.has_position());
-        let bottommost_node_pos = with_pos
-            .iter()
-            .filter_map(|node| node.metadata.as_ref()?.position)
-            .min_by(model::module::Position::ord_by_y)
-            .map(|pos| pos.vector)
-            .unwrap_or(base_default_position);
+        profiling::measure_task!("refresh_node_views", || {
+            let base_default_position = default_node_position();
+            let mut trees = connections_info.trees.clone();
+            let nodes = self.graph.graph().nodes()?;
+            let (with_pos, without_pos): (Vec<_>, Vec<_>) =
+                nodes.iter().partition(|n| n.has_position());
+            let bottommost_node_pos = with_pos
+                .iter()
+                .filter_map(|node| node.metadata.as_ref()?.position)
+                .min_by(model::module::Position::ord_by_y)
+                .map(|pos| pos.vector)
+                .unwrap_or(base_default_position);
 
-        let default_positions: HashMap<_, _> = (1..)
-            .zip(&without_pos)
-            .map(|(i, node)| {
-                let gap_between_nodes = self.view.graph().default_y_gap_between_nodes.value();
-                let offset_between_nodes = gap_between_nodes + node::HEIGHT;
-                let dy = i as f32 * offset_between_nodes;
-                let pos = Vector2::new(bottommost_node_pos.x, bottommost_node_pos.y - dy);
-                (node.info.id(), pos)
-            })
-            .collect();
+            let default_positions: HashMap<_, _> = (1..)
+                .zip(&without_pos)
+                .map(|(i, node)| {
+                    let gap_between_nodes = self.view.graph().default_y_gap_between_nodes.value();
+                    let offset_between_nodes = gap_between_nodes + node::HEIGHT;
+                    let dy = i as f32 * offset_between_nodes;
+                    let pos = Vector2::new(bottommost_node_pos.x, bottommost_node_pos.y - dy);
+                    (node.info.id(), pos)
+                })
+                .collect();
 
-        let ids = nodes.iter().map(|node| node.info.id()).collect();
-        self.retain_node_views(&ids);
-        for node_info in &nodes {
-            let id = node_info.info.id();
-            let node_trees = trees.remove(&id).unwrap_or_else(default);
-            let default_pos = default_positions.get(&id).unwrap_or(&base_default_position);
-            let displayed = self.node_views.borrow_mut().get_by_left(&id).cloned();
-            match displayed {
-                Some(displayed) => {
-                    if update_position {
-                        self.refresh_node_position(displayed, node_info);
-                        self.refresh_node_selection(displayed, node_info);
-                        self.refresh_node_visualization(displayed, node_info);
-                    };
-                    self.refresh_node_comment(displayed, node_info);
-                    self.refresh_node_expression(displayed, node_info, node_trees);
+            let ids = nodes.iter().map(|node| node.info.id()).collect();
+            self.retain_node_views(&ids);
+            for node_info in &nodes {
+                let id = node_info.info.id();
+                let node_trees = trees.remove(&id).unwrap_or_else(default);
+                let default_pos = default_positions.get(&id).unwrap_or(&base_default_position);
+                let displayed = self.node_views.borrow_mut().get_by_left(&id).cloned();
+                match displayed {
+                    Some(displayed) => {
+                        if update_position {
+                            self.refresh_node_position(displayed, node_info);
+                            self.refresh_node_selection(displayed, node_info);
+                            self.refresh_node_visualization(displayed, node_info);
+                        };
+                        self.refresh_node_comment(displayed, node_info);
+                        self.refresh_node_expression(displayed, node_info, node_trees);
+                    }
+                    None => self.create_node_view(node_info, node_trees, *default_pos),
                 }
-                None => self.create_node_view(node_info, node_trees, *default_pos),
             }
-        }
-        task_handle.end();
-        Ok(())
+            Ok(())
+        })
+
     }
 
     /// Refresh the expressions (e.g., types, ports) for all nodes.
     fn refresh_graph_expressions(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph expressions.");
-        let task_handle = profiling::start_task!("refresh_graph_expressions");
-        let connections = self.graph.connections()?;
-        self.refresh_node_views(&connections, false)?;
-        let ret = self.refresh_connection_views(connections.connections);
-        task_handle.end();
-        ret
+        profiling::measure_task!("refresh_graph_expressions", || {
+            let connections = self.graph.connections()?;
+            self.refresh_node_views(&connections, false)?;
+            self.refresh_connection_views(connections.connections)
+        })
     }
 
     /// Retain only given nodes in displayed graph.

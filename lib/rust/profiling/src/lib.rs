@@ -243,7 +243,7 @@ pub enum MeasurementError {
 // ==================================
 
 /// Emit a warning if the given result is an error.
-fn warn_on_error(result: Result<Measurement, MeasurementError>) {
+pub fn warn_on_error(result: Result<Measurement, MeasurementError>) {
     if let Err(e) = result {
         WARNING!(format!("Failed to do profiling for an interval due to error: {:?}", e));
     }
@@ -364,7 +364,7 @@ impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if !self.released {
             warn_on_error(mark_end_interval(self.metadata.clone(), self.stat_index));
-            WARNING!(format!("{} was dropped without a call to `measure`.", self.metadata.label));
+            WARNING!(format!("{} was dropped without explicitly being ended.", self.metadata.label));
         }
     }
 }
@@ -425,16 +425,27 @@ pub fn entries() -> Report {
 mod tests {
     use super::*;
 
+    // Checks that macros work correctly and create valid code.
     #[wasm_bindgen_test]
     fn macro_expansion() {
-        // Checks that macros work correctly and create valid code.
         let task_handle = start_task!("sample_task");
         task_handle.release();
         end_task!("sample_task");
 
         let _value: Option<_> = measure_task!("sample_measurement", || {
             let a = "DummyExpression".to_string().pop();
+            if false {
+                println!("foobar")
+            }
             a
         });
+
+    }
+
+    fn early_return_case() -> Option<()> {
+        measure_task!("sample_measurement", || {
+            None?;
+            Some(())
+        })
     }
 }
