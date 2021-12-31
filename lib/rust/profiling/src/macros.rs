@@ -131,15 +131,12 @@ macro_rules! end_interval {
 macro_rules! measure_interval {
         ($d:tt, $profiling_level:expr, $interval_name:expr, $($body:tt)*) => {
              {
-                 fn start() {
-                     $crate::start_interval!($profiling_level,$interval_name).release();
-                 }
-
-                 fn end() {
-                     $crate::end_interval!($profiling_level,$interval_name);
-                 }
-
-                 $crate::wrap_block! { start end $($body)* }
+                 $crate::start_interval!($profiling_level,$interval_name).release();
+                 let ret = {
+                     $($body)*
+                 };
+                 $crate::end_interval!($profiling_level,$interval_name);
+                 ret
              }
         }
     }
