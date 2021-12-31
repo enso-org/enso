@@ -149,8 +149,10 @@ define_profiler! {
     $, "debug", Debug, debug, start_debug, measure_debug;
 }
 
-define_hierarchy!(section, task, detail, debug);
+/// Defines whether any profiling is enabled.
+pub const ENABLED: bool = section::ENABLED;
 
+define_hierarchy!(section, task, detail, debug);
 
 
 // ====================

@@ -51,25 +51,25 @@ impl {
 
     /// Start measuring data.
     pub fn begin(&mut self) {
-        // FIXME: before, there was optimisation to only collect data if visible; how to do similar
-        // optimization w.r.t. Profiling Framework collecting/not-collecting?
-        let time = self.performance.now();
-        self.stats.begin_frame(time);
+        if self.visible() || profiling::ENABLED {
+            let time = self.performance.now();
+            self.stats.begin_frame(time);
+        }
     }
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        // FIXME: before, there was optimisation to only collect data if visible; how to do similar
-        // optimization w.r.t. Profiling Framework collecting/not-collecting?
-        let time = self.performance.now();
-        self.stats.end_frame(time);
-        for panel in &self.panels {
-            panel.end();
+        if self.visible() || profiling::ENABLED {
+            let time = self.performance.now();
+            self.stats.end_frame(time);
+            if self.visible() {
+                for panel in &self.panels {
+                    panel.end();
+                }
+                self.monitor.draw();
+            }
+            profiling::frame_stats::intervals::push_stats(&self.stats.data());
         }
-        if self.visible() {
-            self.monitor.draw();
-        }
-        profiling::frame_stats::intervals::push_stats(&self.stats.data());
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
     }
