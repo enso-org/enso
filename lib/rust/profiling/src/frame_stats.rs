@@ -110,6 +110,21 @@ macro_rules! gen_stats {
                     $( self.$field.push(sample.$field); )*
                 }
             }
+
+            pub fn summarize(&self) -> Option<Summary> {
+                if self.samples_count == 0 {
+                    None
+                } else {
+                    let n = self.samples_count as f64;
+                    Some(Summary {
+                        $($field : ValueSummary{
+                            min: self.$field.min,
+                            max: self.$field.max,
+                            avg: self.$field.sum / n,
+                        }),*
+                    })
+                }
+            }
         }
 
         #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -118,25 +133,6 @@ macro_rules! gen_stats {
         pub struct Summary {
             $(pub $field : ValueSummary<$field_type>),*
         }
-
-        impl TryFrom<Accumulator> for Summary {
-            type Error = NoSamplesError;
-            fn try_from(acc: Accumulator) -> Result<Self, NoSamplesError> {
-                if acc.samples_count == 0 {
-                    Err(NoSamplesError{})
-                } else {
-                    let n = acc.samples_count as f64;
-                    Ok(Summary {
-                        $($field : ValueSummary{
-                            min: acc.$field.min,
-                            max: acc.$field.max,
-                            avg: acc.$field.sum / n,
-                        }),*
-                    })
-                }
-            }
-        }
-
     }};
 }
 
@@ -201,9 +197,6 @@ impl<T: MinMax + Clone> ValueAccumulator<T> {
         self.sum += v.to_f64();
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct NoSamplesError {}
 
 /// Summarized data for a single metric.
 #[derive(Clone, Debug, Serialize, Deserialize)]

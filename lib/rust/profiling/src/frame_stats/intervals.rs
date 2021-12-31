@@ -58,7 +58,7 @@ impl Guard {
                     warning!(logger, "Trying to finalize profiling stats for a process not registered before.");
                     None
                 },
-                Some(accumulator) => accumulator.try_into().ok(),
+                Some(accumulator) => accumulator.summarize(),
             }
         })
     }
