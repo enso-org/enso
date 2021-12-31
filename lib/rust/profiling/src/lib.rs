@@ -275,12 +275,12 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 /// metadata.
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
-    let mut stat_index = None;
+    let mut stats_guard = None;
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        stat_index = Some(frame_stats::start_interval());
+        stats_guard = Some(frame_stats::start_interval());
         mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
-    IntervalHandle::new(metadata, stat_index)
+    IntervalHandle::new(metadata, stats_guard)
 }
 
 fn get_latest_performance_entry() -> Option<PerformanceEntry> {
@@ -296,7 +296,7 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
 
 /// Mark the end of an measuring an interval in the JS API. Return the measurement taken between
 /// start and end of the interval, if possible.
-pub fn mark_end_interval(metadata: Metadata, stat_index: Option<usize>) -> Result<Measurement, MeasurementError> {
+pub fn mark_end_interval(metadata: Metadata, stats_guard: Option<frame_stats::IntervalGuard>) -> Result<Measurement, MeasurementError> {
     let profiling_level = metadata.profiling_level.clone();
     let start_label = start_interval_label(&metadata);
     let end_label = end_interval_label(&metadata);
@@ -305,7 +305,7 @@ pub fn mark_end_interval(metadata: Metadata, stat_index: Option<usize>) -> Resul
         Err(MeasurementError::ProfilingDisabled)
     } else {
         let metadata_with_stats = Metadata {
-            rendering: stat_index.and_then(frame_stats::end_interval),
+            rendering: stats_guard.and_then(|guard| guard.end()),
             ..metadata
         };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
@@ -331,39 +331,37 @@ pub fn mark_end_interval(metadata: Metadata, stat_index: Option<usize>) -> Resul
 // ======================
 
 /// Handle that allows ending the interval.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct IntervalHandle {
     metadata: Metadata,
-    stat_index: Option<usize>,
+    stats_guard: Option<frame_stats::IntervalGuard>,
     released: bool,
 }
 
 impl IntervalHandle {
-    fn new(metadata: Metadata, stat_index: Option<usize>) -> Self {
-        IntervalHandle { metadata, stat_index, released: false }
+    fn new(metadata: Metadata, stats_guard: Option<frame_stats::IntervalGuard>) -> Self {
+        IntervalHandle { metadata, stats_guard, released: false }
     }
 
     /// Measure the interval.
     pub fn end(mut self) {
         self.released = true;
-        warn_on_error(mark_end_interval(self.metadata.clone(), self.stat_index));
+        warn_on_error(mark_end_interval(self.metadata.clone(), self.stats_guard.take()));
     }
 
     /// Release the handle to prevent a warning to be emitted when it is garbage collected without
     /// a call to `end`. This can be useful if one wants to call `end_interval` manually, or the
     /// equivalent call to `end_interval` is in Rust code.
-    pub fn release(mut self) -> Option<usize> {
+    pub fn release(mut self) {
         self.released = true;
-        let i = self.stat_index;
-        drop(self);
-        i
+        drop(self)
     }
 }
 
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if !self.released {
-            warn_on_error(mark_end_interval(self.metadata.clone(), self.stat_index));
+            warn_on_error(mark_end_interval(self.metadata.clone(), self.stats_guard.take()));
             WARNING!(format!("{} was dropped without explicitly being ended.", self.metadata.label));
         }
     }
