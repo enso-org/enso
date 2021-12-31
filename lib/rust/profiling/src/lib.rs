@@ -266,7 +266,7 @@ fn measure_interval_label(metadata: &Metadata) -> String {
     format!("{} ({}:{})", metadata.label, metadata.source.file, metadata.source.line)
 }
 
-/// Mark the start of an interval in the JS APIl. Returns a `IntervalHandle` that an be used to end
+/// Mark the start of an interval in the JS API. Returns a `IntervalHandle` that an be used to end
 /// the created interval. The interval can also be ended by calling `end_interval` with the same
 /// metadata.
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
@@ -419,7 +419,7 @@ mod tests {
         task_handle.release();
         end_task!("sample_task");
 
-        let _value: Option<_> = measure_task!("sample_measurement", || {
+        let _value: Option<_> = measure_task!("sample_measurement", {
             let a = "DummyExpression".to_string().pop();
             if false {
                 println!("foobar")
@@ -430,7 +430,7 @@ mod tests {
     }
 
     fn early_return_case() -> Option<()> {
-        measure_task!("sample_measurement", || {
+        measure_task!("sample_measurement", {
             None?;
             Some(())
         })

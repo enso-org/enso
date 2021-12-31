@@ -124,8 +124,6 @@ class Profiler {
         this.toggledInEnvironment = process.env.PROFILING_LEVEL.toLowerCase().includes(
             profilerLevel.toLowerCase()
         )
-        console.log(process.env.PROFILING_LEVEL, profilerLevel)
-        console.log(this.toggledInEnvironment)
 
         profilerRegistry.push(this)
     }
@@ -160,7 +158,6 @@ class Profiler {
 
     // Start the profiling of the named interval.
     start(intervalName: string): IntervalHandle {
-        console.log(this.profileLevel, this.isActive())
         if (this.isActive()) {
             const metadata = makeMetadata(this.profileLevel, intervalName)
             performance.mark(startIntervalLabel(metadata))

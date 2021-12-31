@@ -203,15 +203,19 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
-    if (cargoArgs) {
-        args.push('--')
-    }
+
     /// Set compile time features to toggle profiling mode. This is used for the Rust profiling
     // crate.
     const feature_flags = make_performance_logging_feature_flag(argv)
-    if (feature_flags) {
-        args.push(feature_flags)
+
+    if (cargoArgs || feature_flags) {
+        args.push('--')
     }
+
+    if (feature_flags) {
+        cargoArgs.push(feature_flags)
+    }
+    console.log(args)
 
     /// Set environment variables that indicate the profiling mode. This is used in the JS profiling library.
     set_performance_logging_env(argv)

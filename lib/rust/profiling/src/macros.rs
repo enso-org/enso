@@ -126,7 +126,6 @@ macro_rules! end_interval {
 macro_rules! measure_interval {
         ($d:tt, $profiling_level:expr, $interval_name:expr, $($body:tt)*) => {
              {
-
                  fn start() {
                      $crate::start_interval!($profiling_level,$interval_name).release();
                  }
@@ -194,7 +193,7 @@ macro_rules! define_profiler {
             /// Profile the execution of the given closure.
             #[macro_export]
             macro_rules! $measure {
-                ($interval_name:expr, || $d($d body:tt)*) => {
+                ($interval_name:expr, $d($d body:tt)*) => {
                     $crate::measure_interval!(
                         A, $profiling_level, $interval_name, $d($d body)*)
                 };
