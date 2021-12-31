@@ -524,7 +524,7 @@ pub trait Sampler: Debug {
 /// A `Panel` is a single row in the monitor view.
 #[derive(Debug)]
 pub struct PanelData {
-    label:       ImString,
+    label:       String,
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
