@@ -127,12 +127,17 @@ impl Project {
             let module_path = self.initial_module_path()?;
             let file_path = module_path.file_path().clone();
 
-            // TODO [mwu] This solution to recreate missing main file should be considered provisional
-            //   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
+            // TODO [mwu] This solution to recreate missing main file should be considered
+            // provisional   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
             self.recreate_if_missing(&file_path, default_main_method_code()).await?;
             let method = main_method_ptr(project.qualified_name(), &module_path);
             let main_module_model = self.model.module(module_path.clone()).await?;
-            Self::add_main_if_missing(project.qualified_name(), &main_module_model, &method, &parser)?;
+            Self::add_main_if_missing(
+                project.qualified_name(),
+                &main_module_model,
+                &method,
+                &parser,
+            )?;
 
             let mut info = main_module_model.info();
             info.add_module_import(
