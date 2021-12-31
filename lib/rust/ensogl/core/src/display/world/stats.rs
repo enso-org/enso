@@ -54,7 +54,7 @@ impl {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
         let time = self.performance.now();
-        self.stats.begin(time);
+        self.stats.begin_frame(time);
     }
 
     /// Finish measuring data.
@@ -62,7 +62,7 @@ impl {
         // FIXME: before, there was optimisation to only collect data if visible; how to do similar
         // optimization w.r.t. Profiling Framework collecting/not-collecting?
         let time = self.performance.now();
-        self.stats.end(time);
+        self.stats.end_frame(time);
         for panel in &self.panels {
             panel.end();
         }

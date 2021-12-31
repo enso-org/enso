@@ -32,12 +32,12 @@ impl Default for Stats {
 }
 
 impl Stats {
-    pub fn begin(&self, time: f64) {
-        self.rc.borrow_mut().begin(time);
+    pub fn begin_frame(&self, time: f64) {
+        self.rc.borrow_mut().begin_frame(time);
     }
 
-    pub fn end(&self, time: f64) {
-        self.rc.borrow_mut().end(time);
+    pub fn end_frame(&self, time: f64) {
+        self.rc.borrow_mut().end_frame(time);
     }
 
     /// Resets the per-frame statistics.
@@ -158,7 +158,7 @@ gen_stats! {
 }
 
 impl StatsData {
-    pub fn begin(&mut self, time: f64) {
+    pub fn begin_frame(&mut self, time: f64) {
         if self.begin_time > 0.0 {
             let end_time = time;
             self.fps = 1000.0 / (end_time - self.begin_time);
@@ -166,7 +166,7 @@ impl StatsData {
         self.begin_time = time;
     }
 
-    pub fn end(&mut self, time: f64) {
+    pub fn end_frame(&mut self, time: f64) {
         self.frame_time = time - self.begin_time;
 
         let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
