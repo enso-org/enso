@@ -439,7 +439,11 @@ mod tests {
             a
         });
 
-        let _value = early_return_case();
+        let _value2 = early_return_case();
+
+        measure_task!("returns_nothing", {
+            let _zzz = ();
+        });
     }
 
     fn early_return_case() -> Option<()> {
