@@ -295,8 +295,10 @@ try {
 const handleRegistry = finalizationRegistry
 
 if (!finalizationRegistry) {
-    console.error('Browser does not support use of `FinalizationRegistry`. ' +
-        'Profiling might not work correctly if handles are dropped.')
+    console.error(
+        'Browser does not support use of `FinalizationRegistry`. ' +
+            'Profiling might not work correctly if handles are dropped.'
+    )
 }
 
 // ===================

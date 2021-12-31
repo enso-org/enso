@@ -6,12 +6,7 @@
     "declaration": true,
     "outDir": "./lib",
     "types": ["node"],
-    "lib": [
-      "dom",
-      "es5",
-      "scripthost",
-      "esnext.weakref"
-    ]
+    "lib": ["dom", "es5", "scripthost", "esnext.weakref"]
   },
   "exclude": ["node_modules", "**/*.spec.ts"],
   "include": ["./src"]
