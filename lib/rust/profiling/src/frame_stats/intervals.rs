@@ -30,7 +30,7 @@ thread_local! {
 
 #[derive(Debug)]
 pub struct Guard {
-    index: usize,
+    index:    usize,
     released: bool,
 }
 
@@ -51,15 +51,16 @@ impl Guard {
     }
 
     fn finalize(&mut self) -> Option<frame_stats::Summary> {
-        ACTIVE_INTERVALS.with(|intervals| {
-            match intervals.borrow_mut().remove(self.index) {
-                None => {
-                    let logger = Logger::new("Profiling_Stats");
-                    warning!(logger, "Trying to finalize profiling stats for a process not registered before.");
-                    None
-                },
-                Some(accumulator) => accumulator.summarize(),
+        ACTIVE_INTERVALS.with(|intervals| match intervals.borrow_mut().remove(self.index) {
+            None => {
+                let logger = Logger::new("Profiling_Stats");
+                warning!(
+                    logger,
+                    "Trying to finalize profiling stats for a process not registered before."
+                );
+                None
             }
+            Some(accumulator) => accumulator.summarize(),
         })
     }
 }
@@ -74,8 +75,8 @@ impl Drop for Guard {
     }
 }
 
-/// Include the provided stats snapshot into statistics for all intervals that are currently started and
-/// not yet ended.
+/// Include the provided stats snapshot into statistics for all intervals that are currently started
+/// and not yet ended.
 pub fn push_stats(snapshot: &frame_stats::StatsData) {
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().iter_mut() {
@@ -126,22 +127,22 @@ mod tests {
         assert_approx_eq!(result_a.fps.min, 55.0);
         assert_approx_eq!(result_a.fps.avg, 56.0);
         assert_approx_eq!(result_a.fps.max, 57.0);
-        assert_eq!(       result_a.wasm_memory_usage.min, 1);
+        assert_eq!(result_a.wasm_memory_usage.min, 1);
         assert_approx_eq!(result_a.wasm_memory_usage.avg, 1.0);
-        assert_eq!(       result_a.wasm_memory_usage.max, 1);
-        assert_eq!(       result_a.buffer_count.min, 1);
+        assert_eq!(result_a.wasm_memory_usage.max, 1);
+        assert_eq!(result_a.buffer_count.min, 1);
         assert_approx_eq!(result_a.buffer_count.avg, 1.0);
-        assert_eq!(       result_a.buffer_count.max, 1);
+        assert_eq!(result_a.buffer_count.max, 1);
 
         assert_approx_eq!(result_b.fps.min, 57.0);
         assert_approx_eq!(result_b.fps.avg, 58.0);
         assert_approx_eq!(result_b.fps.max, 59.0);
-        assert_eq!(       result_b.wasm_memory_usage.min, 1);
+        assert_eq!(result_b.wasm_memory_usage.min, 1);
         assert_approx_eq!(result_b.wasm_memory_usage.avg, 1.5);
-        assert_eq!(       result_b.wasm_memory_usage.max, 2);
-        assert_eq!(       result_b.buffer_count.min, 1);
+        assert_eq!(result_b.wasm_memory_usage.max, 2);
+        assert_eq!(result_b.buffer_count.min, 1);
         assert_approx_eq!(result_b.buffer_count.avg, 1.5);
-        assert_eq!(       result_b.buffer_count.max, 2);
+        assert_eq!(result_b.buffer_count.max, 2);
     }
 
     #[test]

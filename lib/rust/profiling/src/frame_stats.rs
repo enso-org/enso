@@ -213,19 +213,37 @@ trait MinMax {
 }
 
 impl MinMax for f64 {
-    fn min(&self, other: f64) -> f64 { f64::min(*self, other) }
-    fn max(&self, other: f64) -> f64 { f64::max(*self, other) }
-    fn to_f64(&self) -> f64 { *self }
+    fn min(&self, other: f64) -> f64 {
+        f64::min(*self, other)
+    }
+    fn max(&self, other: f64) -> f64 {
+        f64::max(*self, other)
+    }
+    fn to_f64(&self) -> f64 {
+        *self
+    }
 }
 
 impl MinMax for u32 {
-    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
-    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
-    fn to_f64(&self) -> f64 { *self as f64 }
+    fn min(&self, other: Self) -> Self {
+        std::cmp::min(*self, other)
+    }
+    fn max(&self, other: Self) -> Self {
+        std::cmp::max(*self, other)
+    }
+    fn to_f64(&self) -> f64 {
+        *self as f64
+    }
 }
 
 impl MinMax for usize {
-    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
-    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
-    fn to_f64(&self) -> f64 { *self as f64 }
+    fn min(&self, other: Self) -> Self {
+        std::cmp::min(*self, other)
+    }
+    fn max(&self, other: Self) -> Self {
+        std::cmp::max(*self, other)
+    }
+    fn to_f64(&self) -> f64 {
+        *self as f64
+    }
 }

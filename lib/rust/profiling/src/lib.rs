@@ -32,8 +32,8 @@
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
-pub mod macros;
 pub mod frame_stats;
+pub mod macros;
 
 use crate::js::*;
 use ::macros::*;
@@ -295,7 +295,10 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
 
 /// Mark the end of an measuring an interval in the JS API. Return the measurement taken between
 /// start and end of the interval, if possible.
-pub fn mark_end_interval(metadata: Metadata, stats_guard: Option<frame_stats::intervals::Guard>) -> Result<Measurement, MeasurementError> {
+pub fn mark_end_interval(
+    metadata: Metadata,
+    stats_guard: Option<frame_stats::intervals::Guard>,
+) -> Result<Measurement, MeasurementError> {
     let profiling_level = metadata.profiling_level.clone();
     let start_label = start_interval_label(&metadata);
     let end_label = end_interval_label(&metadata);
@@ -303,10 +306,8 @@ pub fn mark_end_interval(metadata: Metadata, stats_guard: Option<frame_stats::in
     if !profiling_level_is_active(profiling_level) {
         Err(MeasurementError::ProfilingDisabled)
     } else {
-        let metadata_with_stats = Metadata {
-            rendering: stats_guard.and_then(|guard| guard.end()),
-            ..metadata
-        };
+        let metadata_with_stats =
+            Metadata { rendering: stats_guard.and_then(|guard| guard.end()), ..metadata };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),
@@ -361,7 +362,10 @@ impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if !self.released {
             warn_on_error(mark_end_interval(self.metadata.clone(), self.stats_guard.take()));
-            WARNING!(format!("{} was dropped without explicitly being ended.", self.metadata.label));
+            WARNING!(format!(
+                "{} was dropped without explicitly being ended.",
+                self.metadata.label
+            ));
         }
     }
 }
