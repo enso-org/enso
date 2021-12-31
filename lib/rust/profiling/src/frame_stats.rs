@@ -28,27 +28,51 @@ thread_local! {
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
 }
 
-/// Starts a new named time interval, during which frame statistics will be collected.
-pub fn start_interval() -> usize {
-    ACTIVE_INTERVALS.with(|intervals| -> usize {
-        intervals.borrow_mut().insert(stats::StatsAccumulator::default())
-    })
+#[derive(Debug)]
+pub struct IntervalGuard {
+    index: usize,
+    released: bool,
 }
 
-/// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
-/// collected since the start of the the interval.
-/// TODO: should use IntervalGuard instead of passing usize around
-pub fn end_interval(index: usize) -> Option<stats::StatsSummary> {
-    ACTIVE_INTERVALS.with(|intervals| {
-        match intervals.borrow_mut().remove(index) {
-            None => {
-                let logger = Logger::new("Profiling_Stats");
-                warning!(logger, "Trying to finalize profiling stats for a process not registered before.");
-                None
-            },
-            Some(accumulator) => accumulator.try_into().ok(),
+/// Starts a new named time interval, during which frame statistics will be collected.
+pub fn start_interval() -> IntervalGuard {
+    let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
+        intervals.borrow_mut().insert(stats::StatsAccumulator::default())
+    });
+    IntervalGuard { index, released: false }
+}
+
+impl IntervalGuard {
+    /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
+    /// collected since the start of the the interval.
+    /// TODO: should use IntervalGuard instead of passing usize around
+    pub fn end(mut self) -> Option<stats::StatsSummary> {
+        self.released = true;
+        self.finalize()
+    }
+
+    fn finalize(&mut self) -> Option<stats::StatsSummary> {
+        ACTIVE_INTERVALS.with(|intervals| {
+            match intervals.borrow_mut().remove(self.index) {
+                None => {
+                    let logger = Logger::new("Profiling_Stats");
+                    warning!(logger, "Trying to finalize profiling stats for a process not registered before.");
+                    None
+                },
+                Some(accumulator) => accumulator.try_into().ok(),
+            }
+        })
+    }
+}
+
+impl Drop for IntervalGuard {
+    fn drop(&mut self) {
+        if !self.released {
+            let logger = Logger::new("Profiling_Stats");
+            warning!(logger, "Stats profiling interval dropped without a matching `end` call.");
+            let _ = self.finalize();
         }
-    })
+    }
 }
 
 /// Include the provided stats snapshot into statistics for all intervals that are currently started and
