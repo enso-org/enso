@@ -419,12 +419,14 @@ pub fn entries() -> Report {
 // === Tests ===
 // =============
 
-#[cfg(wasm_bindgen_test)]
+// #[cfg(wasm_bindgen_test)]
+#[cfg(test)]
 mod tests {
     use super::*;
 
     // Checks that macros work correctly and create valid code.
-    #[wasm_bindgen_test]
+    // #[wasm_bindgen_test]
+    #[test]
     fn macro_expansion() {
         let task_handle = start_task!("sample_task");
         task_handle.release();
