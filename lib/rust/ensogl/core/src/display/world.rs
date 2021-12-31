@@ -18,7 +18,7 @@ use crate::display::render::*;
 use crate::display::scene::Scene;
 use crate::system::web;
 
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;

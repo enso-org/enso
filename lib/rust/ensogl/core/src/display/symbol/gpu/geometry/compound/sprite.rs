@@ -15,7 +15,7 @@ use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::types::*;
 
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 
 
 

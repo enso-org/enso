@@ -11,7 +11,7 @@ use crate::data::dirty::traits::*;
 use crate::system::gpu::types::*;
 
 use enso_shapely::newtype_prim;
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 use std::collections::BTreeSet;
 
 

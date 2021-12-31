@@ -23,7 +23,7 @@ use crate::system::gpu::data::uniform::AnyTextureUniform;
 use crate::system::gpu::data::uniform::AnyUniform;
 
 use enso_shapely::newtype_prim;
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 use shader::Shader;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;

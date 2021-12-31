@@ -15,7 +15,7 @@ use crate::display::symbol::ScopeType;
 use crate::system::gpu::shader::Context;
 use crate::system::gpu::shader::*;
 
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 use web_sys::WebGlProgram;
 
 use enso_shapely::shared;

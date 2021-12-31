@@ -10,7 +10,7 @@ use crate::system::gpu::shader::Context;
 use num_enum::IntoPrimitive;
 
 use enso_shapely::shared;
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 
 
 

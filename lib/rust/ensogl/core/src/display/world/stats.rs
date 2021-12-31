@@ -6,7 +6,7 @@ use crate::debug;
 use crate::system::web;
 
 use profiling;
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 
 
 
@@ -69,7 +69,7 @@ impl {
         if self.visible() {
             self.monitor.draw();
         }
-        profiling::frame_stats::push(&self.stats.data());
+        profiling::frame_stats::intervals::push_stats(&self.stats.data());
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
     }

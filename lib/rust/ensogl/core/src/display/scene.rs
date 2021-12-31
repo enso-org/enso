@@ -41,7 +41,7 @@ use crate::system::web::StyleSetter;
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 use std::any::TypeId;
 use web_sys::HtmlElement;
 

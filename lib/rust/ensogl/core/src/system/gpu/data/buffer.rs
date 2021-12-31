@@ -22,7 +22,7 @@ use crate::system::gpu::data::gl_enum::traits::*;
 use crate::system::gpu::data::prim::*;
 
 use enso_shapely::shared;
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 use std::iter::Extend;
 use std::ops::RangeInclusive;
 use web_sys::WebGlBuffer;

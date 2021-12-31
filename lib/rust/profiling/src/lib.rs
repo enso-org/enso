@@ -73,7 +73,7 @@ pub struct Metadata {
     /// Label of the measurement..
     pub label:           String,
     /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
-    pub rendering: Option<stats::StatsSummary>,
+    pub rendering: Option<frame_stats::Summary>,
 }
 
 impl From<Metadata> for JsValue {
@@ -276,7 +276,7 @@ pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
     let mut stats_guard = None;
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        stats_guard = Some(frame_stats::start_interval());
+        stats_guard = Some(frame_stats::intervals::start_interval());
         mark_with_metadata(interval_name.into(), metadata.clone().into());
     }
     IntervalHandle::new(metadata, stats_guard)
@@ -295,7 +295,7 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
 
 /// Mark the end of an measuring an interval in the JS API. Return the measurement taken between
 /// start and end of the interval, if possible.
-pub fn mark_end_interval(metadata: Metadata, stats_guard: Option<frame_stats::IntervalGuard>) -> Result<Measurement, MeasurementError> {
+pub fn mark_end_interval(metadata: Metadata, stats_guard: Option<frame_stats::intervals::Guard>) -> Result<Measurement, MeasurementError> {
     let profiling_level = metadata.profiling_level.clone();
     let start_label = start_interval_label(&metadata);
     let end_label = end_interval_label(&metadata);
@@ -333,12 +333,12 @@ pub fn mark_end_interval(metadata: Metadata, stats_guard: Option<frame_stats::In
 #[derive(Debug)]
 pub struct IntervalHandle {
     metadata: Metadata,
-    stats_guard: Option<frame_stats::IntervalGuard>,
+    stats_guard: Option<frame_stats::intervals::Guard>,
     released: bool,
 }
 
 impl IntervalHandle {
-    fn new(metadata: Metadata, stats_guard: Option<frame_stats::IntervalGuard>) -> Self {
+    fn new(metadata: Metadata, stats_guard: Option<frame_stats::intervals::Guard>) -> Self {
         IntervalHandle { metadata, stats_guard, released: false }
     }
 

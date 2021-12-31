@@ -22,7 +22,7 @@ use enso_logger::*;
 // === Intervals ===
 // =================
 
-type Intervals = OptVec<stats::StatsAccumulator>;
+type Intervals = OptVec<frame_stats::Accumulator>;
 
 thread_local! {
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
@@ -37,7 +37,7 @@ pub struct Guard {
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> Guard {
     let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
-        intervals.borrow_mut().insert(stats::StatsAccumulator::default())
+        intervals.borrow_mut().insert(frame_stats::Accumulator::default())
     });
     Guard { index, released: false }
 }
@@ -45,12 +45,12 @@ pub fn start_interval() -> Guard {
 impl Guard {
     /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
     /// collected since the start of the the interval.
-    pub fn end(mut self) -> Option<stats::StatsSummary> {
+    pub fn end(mut self) -> Option<frame_stats::Summary> {
         self.released = true;
         self.finalize()
     }
 
-    fn finalize(&mut self) -> Option<stats::StatsSummary> {
+    fn finalize(&mut self) -> Option<frame_stats::Summary> {
         ACTIVE_INTERVALS.with(|intervals| {
             match intervals.borrow_mut().remove(self.index) {
                 None => {
@@ -64,7 +64,7 @@ impl Guard {
     }
 }
 
-impl Drop for IntervalGuard {
+impl Drop for Guard {
     fn drop(&mut self) {
         if !self.released {
             let logger = Logger::new("Profiling_Stats");
@@ -76,7 +76,7 @@ impl Drop for IntervalGuard {
 
 /// Include the provided stats snapshot into statistics for all intervals that are currently started and
 /// not yet ended.
-pub fn push_stats(snapshot: &stats::StatsData) {
+pub fn push_stats(snapshot: &frame_stats::StatsData) {
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().iter_mut() {
             interval.push(snapshot);

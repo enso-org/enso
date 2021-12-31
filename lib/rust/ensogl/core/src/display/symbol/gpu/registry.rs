@@ -13,7 +13,7 @@ use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
 
 use data::opt_vec::OptVec;
-use profiling::stats::Stats;
+use profiling::frame_stats::Stats;
 
 
 
