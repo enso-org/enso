@@ -29,7 +29,7 @@ pub enum Kind {
 }
 
 /// Additional error information (beside the error value itself) for some erroneous node.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Error {
     pub kind:       Immutable<Kind>,

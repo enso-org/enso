@@ -163,6 +163,9 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
+    if (cargoArgs) {
+        args.push('--')
+    }
     await run_cargo('wasm-pack', args)
     await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
     await fs.rename(paths.dist.wasm.mainRaw, paths.dist.wasm.main)

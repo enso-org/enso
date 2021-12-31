@@ -1,4 +1,4 @@
-//! Utilities facilitating integration for visualizations.
+//! A module containing helpers for attaching, detaching and updating visualizations in controllers.
 
 use crate::prelude::*;
 
@@ -15,6 +15,8 @@ use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::instance::ContextModule;
 use ide_view::graph_editor::component::visualization::Metadata;
 use ide_view::graph_editor::SharedHashMap;
+
+
 
 // ================================
 // === Resolving Context Module ===
@@ -233,10 +235,11 @@ impl Manager {
     /// Return a handle to the Manager and the receiver for notifications.
     /// Note that receiver cannot be re-retrieved or changed in the future.
     pub fn new(
-        logger: Logger,
+        logger: impl AnyLogger,
         executed_graph: ExecutedGraph,
         project: model::Project,
     ) -> (Rc<Self>, UnboundedReceiver<Notification>) {
+        let logger = logger.sub("visualization::Manager");
         let (notification_sender, notification_receiver) = futures::channel::mpsc::unbounded();
         let ret = Self {
             logger,
@@ -507,6 +510,14 @@ impl Manager {
             task().await;
         });
     }
+
+    /// Remove (set desired state to None) each visualization not attached to any of the `targets`.
+    pub fn retain_visualizations(self: &Rc<Self>, targets: &HashSet<ast::Id>) {
+        let to_remove = self.visualizations.keys().into_iter().filter(|id| !targets.contains(id));
+        for target in to_remove {
+            self.set_visualization(target, None);
+        }
+    }
 }
 
 
@@ -619,11 +630,9 @@ mod tests {
                 inner.project.clone_ref(),
                 execution_context,
             );
-            let (manager, notifier) = Manager::new(
-                inner.logger.sub("manager"),
-                executed_graph.clone_ref(),
-                inner.project.clone_ref(),
-            );
+            let logger: Logger = inner.logger.sub("manager");
+            let (manager, notifier) =
+                Manager::new(logger, executed_graph.clone_ref(), inner.project.clone_ref());
             Self { inner, is_ready, manager, notifier, requests }
         }
     }

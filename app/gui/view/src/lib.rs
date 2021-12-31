@@ -1,7 +1,7 @@
 //! The Visual Part of IDE.
 //!
 //! This crate has the all code for displaying GUI of Enso IDE application. The views provides
-//! the FRP endpoints to communicate with controllers. It also have a mocked debug scenes of IDE.
+//! the FRP endpoints to communicate with presenter. It also have a mocked debug scenes of IDE.
 
 #![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]
