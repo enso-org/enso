@@ -121,26 +121,27 @@ macro_rules! end_interval {
     };
 }
 
-/// Measure an interval with the given profiling level and name that starts before the given
-/// expressions and ends after the given expressions.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! measure_interval {
-        ($d:tt, $profiling_level:expr, $interval_name:expr, $($body:tt)*) => {
-             {
-
-                 fn start() {
-                     $crate::start_interval!($profiling_level,$interval_name).release();
-                 }
-
-                 fn end() {
-                     $crate::end_interval!($profiling_level,$interval_name);
-                 }
-
-                 $crate::wrap_block! { start end $($body)* }
-             }
-        }
-    }
+// FIXME[MC,MM]: commented-out due to difficulty reconciling with frame_stats::interval::Guard
+// /// Measure an interval with the given profiling level and name that starts before the given
+// /// expressions and ends after the given expressions.
+// #[doc(hidden)]
+// #[macro_export]
+// macro_rules! measure_interval {
+//         ($d:tt, $profiling_level:expr, $interval_name:expr, $($body:tt)*) => {
+//              {
+//
+//                  fn start() {
+//                      $crate::start_interval!($profiling_level,$interval_name).release();
+//                  }
+//
+//                  fn end() {
+//                      $crate::end_interval!($profiling_level,$interval_name);
+//                  }
+//
+//                  $crate::wrap_block! { start end $($body)* }
+//              }
+//         }
+//     }
 
 
 
