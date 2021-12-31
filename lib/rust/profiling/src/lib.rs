@@ -332,9 +332,9 @@ pub fn mark_end_interval(metadata: Metadata, stats_guard: Option<frame_stats::in
 /// Handle that allows ending the interval.
 #[derive(Debug)]
 pub struct IntervalHandle {
-    metadata: Metadata,
+    metadata:    Metadata,
     stats_guard: Option<frame_stats::intervals::Guard>,
-    released: bool,
+    released:    bool,
 }
 
 impl IntervalHandle {
