@@ -150,7 +150,7 @@ define_profiler! {
 }
 
 /// Defines whether any profiling is enabled.
-pub const ENABLED: bool = section::ENABLED;
+pub const ENABLED: bool = section::ENABLED || task::ENABLED || detail::ENABLED || debug::ENABLED;
 
 define_hierarchy!(section, task, detail, debug);
 
