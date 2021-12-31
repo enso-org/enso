@@ -21,7 +21,7 @@ import 'firebase/auth'
 import semver from 'semver'
 
 // @ts-ignore
-import * as profiling from 'profiling/src/profiling'
+import * as profiling from '../../profiling/src/profiling'
 
 // ==================
 // === Global API ===
