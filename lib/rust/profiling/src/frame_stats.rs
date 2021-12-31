@@ -15,8 +15,6 @@ use crate::stats;
 use enso_data_structures::opt_vec::OptVec;
 use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
-use serde::Deserialize;
-use serde::Serialize;
 
 
 
