@@ -1058,6 +1058,7 @@ class SuggestionsHandlerSpec
         suggestionsRepo,
         fileVersionsRepo
       )
+
     handler ! SuggestionsHandler.ProjectNameUpdated("Test")
     handler ! InitializedEvent.TruffleContextInitialized
     runtimeConnector.receiveN(1)
@@ -1065,6 +1066,22 @@ class SuggestionsHandlerSpec
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(buildTestTypeGraph)
     )
+
+    val suggestionsInit = suggestionsRepo.init
+    val versionsInit    = fileVersionsRepo.init
+    suggestionsInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize Suggestions repo")
+    }
+    versionsInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize FileVersions repo")
+    }
+
     runtimeConnector.receiveN(1)
     handler ! Api.Response(
       UUID.randomUUID(),
@@ -1184,20 +1201,6 @@ class SuggestionsHandlerSpec
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
-
-    suggestionsRepo.init.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
-      case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize Suggestions repo")
-    }
-    versionsRepo.init.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
-      case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize FileVersions repo")
-    }
-
     val handler = newInitializedSuggestionsHandler(
       config,
       router,

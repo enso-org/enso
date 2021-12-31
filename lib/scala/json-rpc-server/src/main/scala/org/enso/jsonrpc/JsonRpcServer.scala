@@ -101,7 +101,9 @@ class JsonRpcServer(
     * @return a server binding object.
     */
   def bind(interface: String, port: Int): Future[Http.ServerBinding] =
-    Http().bindAndHandle(route, interface, port)
+    Http()
+      .newServerAt(interface, port)
+      .bind(route)
 }
 
 object JsonRpcServer {

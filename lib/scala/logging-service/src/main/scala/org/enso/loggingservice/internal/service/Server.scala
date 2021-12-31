@@ -78,11 +78,8 @@ class Server(
 
     import actorSystem.dispatcher
     Http()
-      .bindAndHandleSync(
-        requestHandler,
-        interface = interface,
-        port      = port
-      )
+      .newServerAt(interface, port)
+      .bindSync(requestHandler)
       .map { serverBinding =>
         bindingOption = Some(serverBinding)
       }
