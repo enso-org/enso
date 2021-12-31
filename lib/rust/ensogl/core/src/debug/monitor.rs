@@ -405,16 +405,6 @@ impl Panel {
         self.rc.borrow_mut().end()
     }
 
-    /// Most recently observed raw measurement value, without any clamping or smoothing.
-    pub fn raw_value(&self) -> f64 {
-        self.rc.borrow().raw_value
-    }
-
-    /// Human-readable description of the measured parameter.
-    pub fn label(&self) -> ImString {
-        self.rc.borrow().label.clone()
-    }
-
     fn first_draw(&self, dom: &Dom) {
         self.rc.borrow_mut().first_draw(dom)
     }
@@ -538,7 +528,6 @@ pub struct PanelData {
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
-    raw_value:   f64,
     value:       f64,
     last_values: VecDeque<f64>,
     norm_value:  f64,
@@ -557,7 +546,6 @@ impl PanelData {
         let label = sampler.label().into();
         let min_value = f64::INFINITY;
         let max_value = f64::NEG_INFINITY;
-        let raw_value = default();
         let value = default();
         let last_values = default();
         let norm_value = default();
@@ -570,7 +558,6 @@ impl PanelData {
             config,
             min_value,
             max_value,
-            raw_value,
             value,
             last_values,
             norm_value,
@@ -589,8 +576,7 @@ impl PanelData {
     /// Stop measuring the data.
     pub fn end(&mut self) {
         self.value_check = self.sampler.check();
-        self.raw_value = self.sampler.value();
-        self.value = self.raw_value;
+        self.value = self.sampler.value();
         self.clamp_value();
         self.smooth_value();
         self.normalize_value();
