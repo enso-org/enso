@@ -144,10 +144,10 @@ export function measure_with_start_mark_and_end_mark_and_metadata(
 type ProfilingLevel = String;
 
 define_profiler! {
-    $, "section", Section, section, start_section, end_section, measure_section;
-    $, "task", Task, task, start_task, end_task, measure_task;
-    $, "detail", Detail, detail, start_detail, end_detail, measure_detail;
-    $, "debug", Debug, debug, start_debug, end_debug, measure_debug;
+    $, "section", Section, section, start_section, measure_section;
+    $, "task", Task, task, start_task, measure_task;
+    $, "detail", Detail, detail, start_detail, measure_detail;
+    $, "debug", Debug, debug, start_debug, measure_debug;
 }
 
 define_hierarchy!(section, task, detail, debug);
@@ -429,8 +429,7 @@ mod tests {
     #[test]
     fn macro_expansion() {
         let task_handle = start_task!("sample_task");
-        task_handle.release();
-        end_task!("sample_task");
+        task_handle.end();
 
         let _value: Option<_> = measure_task!("sample_measurement", {
             let a = "DummyExpression".to_string().pop();

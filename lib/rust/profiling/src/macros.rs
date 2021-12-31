@@ -25,18 +25,6 @@ macro_rules! start_interval {
     };
 }
 
-/// End measuring the interval of the given profiling level and name.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! end_interval {
-    ($profiling_level:expr, $interval_name:expr) => {
-        $crate::warn_on_error($crate::mark_end_interval($crate::make_metadata!(
-            $profiling_level,
-            $interval_name
-        )))
-    };
-}
-
 /// Measure an interval with the given profiling level and name that starts before the given
 /// expressions and ends after the given expressions.
 #[doc(hidden)]
@@ -44,11 +32,11 @@ macro_rules! end_interval {
 macro_rules! measure_interval {
         ($d:tt, $profiling_level:expr, $interval_name:expr, $($body:tt)*) => {
              {
-                 $crate::start_interval!($profiling_level,$interval_name).release();
+                 let guard = $crate::start_interval!($profiling_level,$interval_name);
                  let ret = {
                      $($body)*
                  };
-                 $crate::end_interval!($profiling_level,$interval_name);
+                 guard.end();
                  ret
              }
         }
@@ -82,7 +70,7 @@ macro_rules! define_profiling_toggle {
 #[macro_export]
 macro_rules! define_profiler {
     ($($d:tt, $profiling_level:expr, $profiling_level_name_upper:ident, $profiling_level_name:ident,
-    $start:ident, $end:ident, $measure:ident ;)*) => {$(
+    $start:ident, $measure:ident ;)*) => {$(
         /// Profiler module that exposes methods to measure named intervals.
         pub mod $profiling_level_name {
 
@@ -94,14 +82,6 @@ macro_rules! define_profiler {
             macro_rules! $start {
                 ($interval_name:expr) => {
                     $crate::start_interval!($profiling_level, $interval_name)
-                };
-            }
-
-            /// Manually end measuring a named time interval.
-            #[macro_export]
-            macro_rules! $end {
-                ($interval_name:expr) => {
-                    $crate::end_interval!($profiling_level, $interval_name)
                 };
             }
 
