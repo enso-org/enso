@@ -60,6 +60,8 @@ macro_rules! gen_stats {
 
         #[derive(Debug,Default,Clone,Copy)]
         pub struct StatsData {
+            begin_time: f64,
+
             $($field : $field_type),*
         }
 
@@ -144,8 +146,6 @@ macro_rules! gen_stats {
 }
 
 gen_stats! {
-    begin_time           : f64,
-
     frame_time           : f64,
     fps                  : f64,
     wasm_memory_usage    : u32,
