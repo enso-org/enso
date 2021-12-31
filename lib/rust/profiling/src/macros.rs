@@ -115,7 +115,10 @@ macro_rules! start_interval {
 #[macro_export]
 macro_rules! end_interval {
     ($profiling_level:expr, $interval_name:expr) => {
-        $crate::warn_on_error($crate::mark_end_interval($crate::make_metadata!($profiling_level, $interval_name)))
+        $crate::warn_on_error($crate::mark_end_interval($crate::make_metadata!(
+            $profiling_level,
+            $interval_name
+        )))
     };
 }
 

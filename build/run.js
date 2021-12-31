@@ -215,7 +215,6 @@ commands.build.rust = async function (argv) {
     if (feature_flags) {
         cargoArgs.push(feature_flags)
     }
-    console.log(args)
 
     /// Set environment variables that indicate the profiling mode. This is used in the JS profiling library.
     set_performance_logging_env(argv)
