@@ -106,6 +106,14 @@ pub enum Notification {
 // === API ===
 // ===========
 
+// === Errors ===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "Project with name \"{}\" not found.", 0)]
+struct ProjectNotFound(String);
+
+
 // === Managing API ===
 
 /// The API of all project management operations.
@@ -124,6 +132,23 @@ pub trait ManagingProjectAPI {
 
     /// Open the project with given UUID.
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult>;
+
+    /// Open project by name. It makes two calls to the Project Manager: one for listing projects
+    /// and then for the project opening.
+    fn open_project_by_name(&self, name: String) -> BoxFuture<FallibleResult> {
+        async move {
+            let projects = self.list_projects().await?;
+            let mut projects = projects.into_iter();
+            let project = projects.find(|project| project.name.as_ref() == name);
+            let uuid = project.map(|project| project.id);
+            if let Some(uuid) = uuid {
+                self.open_project(uuid).await
+            } else {
+                Err(ProjectNotFound(name).into())
+            }
+        }
+        .boxed_local()
+    }
 }
 
 

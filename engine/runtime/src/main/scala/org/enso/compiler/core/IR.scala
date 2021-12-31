@@ -7476,6 +7476,126 @@ object IR {
           s"(Redefined (Method $atomName.$methodName))"
       }
 
+      /** An error representing the redefinition of a method in a given module,
+        * when the module defines a method with the same name as an atom.
+        * This is also known as a name clash.
+        *
+        * @param atomName the name of the atom that clashes with the method
+        * @param methodName the method name being redefined in the module
+        * @param location the location in the source to which this error
+        *                 corresponds
+        * @param passData the pass metadata for the error
+        * @param diagnostics any diagnostics associated with this error.
+        */
+      sealed case class MethodClashWithAtom(
+        atomName: IR.Name,
+        methodName: IR.Name,
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Redefined
+          with Diagnostic.Kind.Interactive
+          with Module.Scope.Definition
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param atomName the name of the atom that clashes with the method
+          * @param methodName the method name being redefined in the module
+          * @param location the location in the source to which this error
+          *                 corresponds
+          * @param passData the pass metadata for the error
+          * @param diagnostics any diagnostics associated with this error.
+          * @param id the identifier for the node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          atomName: IR.Name                    = atomName,
+          methodName: IR.Name                  = methodName,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
+        ): MethodClashWithAtom = {
+          val res = MethodClashWithAtom(
+            atomName,
+            methodName,
+            location,
+            passData,
+            diagnostics
+          )
+          res.id = id
+          res
+        }
+
+        /** @inheritdoc */
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true,
+          keepIdentifiers: Boolean = false
+        ): MethodClashWithAtom =
+          copy(
+            atomName = atomName.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            ),
+            methodName = methodName
+              .duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
+            location = if (keepLocations) location else None,
+            passData =
+              if (keepMetadata) passData.duplicate else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+            id = if (keepIdentifiers) id else randomId
+          )
+
+        /** @inheritdoc */
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): MethodClashWithAtom =
+          copy(location = location)
+
+        /** @inheritdoc */
+        override def message: String =
+          s"Method definitions with the same name as atoms are not supported. " +
+          s"Method ${methodName.name} clashes with the atom ${atomName.name} in this module."
+
+        /** @inheritdoc */
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): MethodClashWithAtom =
+          this
+
+        /** @inheritdoc */
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.MethodClashWithAtom(
+             |atomName = $atomName,
+             |methodName = $methodName,
+             |location = $location,
+             |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
+             |id = $id
+             |)
+             |""".stripMargin
+
+        /** @inheritdoc */
+        override def children: List[IR] = List(atomName, methodName)
+
+        /** @inheritdoc */
+        override def showCode(indent: Int): String =
+          s"(Redefined (MethodClash $atomName $methodName))"
+      }
+
       /** An error representing the redefinition of an atom in a given module.
         *
         * @param atomName the name of the atom being redefined

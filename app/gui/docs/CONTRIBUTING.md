@@ -56,11 +56,12 @@ setup:
 
   This project uses several features available only in the nightly Rust
   toolchain. Please use the [the Rust toolchain installer](https://rustup.rs) to
-  install it:
+  manage Rust toolchains. It will automatically download the toolchain needed to
+  build the project.
+
+  In addition, some custom CLI programs need to be installed manually:
 
   ```bash
-  rustup toolchain install nightly-2021-05-12     # Install the nightly channel.
-  rustup component add clippy                     # Install the linter.
   rustup toolchain install stable                 # Stable toolchain required for the following tools.
   cargo +stable install wasm-pack --version 0.9.1 # Install the wasm-pack toolkit.
   cargo +stable install cargo-watch               # To enable ./run watch utility
@@ -115,6 +116,45 @@ Markdown files in our code base. If you have not installed it already you can do
 so via `npm install prettier`. To use it manually via command line run
 `prettier --write` to all JavaScript files in the project. Alternatively, there
 are plugins for many IDEs available to do this for you.
+
+### Repository Structure Overview
+
+**Note**: Currently, the Enso repository is going through a process of
+refactoring, and it is not finished yet: the Engine files are still not in the
+`app/engine` where they ought to be, but in the root directory instead.
+
+The root directory contains `Cargo.toml` and `build.sbt` files, allowing to open
+all rust or scala code as a single project in your favorite IDE. There is also a
+`run` script used for building and running the Enso IDE (see next section for
+details).
+
+The subdirectories of interests are:
+
+- `app`: The actual products delivered in this repository:
+  - `gui`: A rust crate compiled to a WASM library with all the logic of the GUI
+    layer. The library is used by both the desktop application and the cloud
+    environment. For further documentation see the documentation of the crate
+    (at the top of the `src/lib.rs` file).
+  - `ide-desktop`: The desktop version of the Enso IDE. Implemented as an
+    electron application which spawns backend services, loads the WASM gui
+    library and runs the main entry point.
+  - `engine`: (In the future: see the note at the section beginning). The
+    implementation of the language itself: CLI tools like compiler or
+    interpreter, as well as the services used as a backend for the Enso IDE
+    (Language Server and Project Manager).
+- `lib`: All libraries not being the main components of our application. They
+  are grouped by language. The most prominent are:
+  - `rust/prelude`: A library containing the most popular utilities and imports.
+    Should be imported in each rust module - see Contributing guidelines.
+  - `rust/ensogl`: EnsoGL Framework for creating efficient GUI applications in
+    WASM.
+  - `rust/frp`: The library allows following the Functional Reactive Programming
+    paradigm in rust.
+- `build`: All building scripts and utilities, mostly the logic of the `./run`
+  script.
+
+Other directories are auto-generated `dist` and `target`, or (currently) are the
+Engine files, which will be moved to `app/engine` soon.
 
 ### Development
 
@@ -231,6 +271,22 @@ have prepared several scripts which maximally automate the process:
 
 - **Linting** Please be sure to fix all errors reported by `node ./run lint`
   before creating a pull request to this repository.
+
+### Profiling
+
+If you are working on performance critical code, or on improving the performance
+of parts of the GUI we have some tools available to help you. Especially there
+is a profiling framework integrated that can help you measure the timing of your
+code. There is a JS API (`app/ide-desktop/lib/profiling/src/profiling.ts`) and a
+Rust API (`lib/rust/profiling/src/lib.rs`) and you can read their respective
+docs for details on the API usage. To activate the profiling framework you need
+to pass `--profiling <name of the desired profiling level>` to the run script.
+Available profiling levels are “Section”, “Task”, “Details”, “Debug” For
+example, `./run start --profiling-level debug --dev`. In the Chrome developer
+console, you can then see the profiled intervals in the Performance tab when
+recording performance statistics. You can also see a performance report when
+running `showPerformanceReport()` in the Chrome developer console. You will then
+see a textual overview of the profiled intervals.
 
 ### Development Branches
 

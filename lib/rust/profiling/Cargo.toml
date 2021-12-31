@@ -13,7 +13,7 @@ enable-task-profiling = []
 enable-detail-profiling = []
 enable-debug-profiling = []
 
-default = ["enable-debug-profiling"]
+default = []
 
 [dependencies]
 chrono = "0.4.19"
