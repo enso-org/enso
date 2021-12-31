@@ -34,7 +34,6 @@ use wasm_bindgen::prelude::*;
 
 pub mod macros;
 pub mod frame_stats;
-pub mod stats;
 
 use crate::js::*;
 use ::macros::*;

@@ -1,186 +1,238 @@
-//! This module helps to aggregate various per-frame performance statistics, collected over labeled
-//! time intervals.
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
-
+//! This module defines a structure gathering statistics of the running engine. The statistics are
+//! an amazing tool for debugging what is really happening under the hood and understanding the
+//! performance characteristics.
 
 use enso_prelude::*;
 
-use crate::stats;
+pub mod intervals;
 
-use enso_data_structures::opt_vec::OptVec;
-use enso_logger::DefaultWarningLogger as Logger;
-use enso_logger::*;
+use js_sys::ArrayBuffer;
+use js_sys::WebAssembly::Memory;
+use serde::Deserialize;
+use serde::Serialize;
+use wasm_bindgen::JsCast;
 
 
 
-// =================
-// === Intervals ===
-// =================
+// =============
+// === Stats ===
+// =============
 
-type Intervals = OptVec<stats::StatsAccumulator>;
-
-thread_local! {
-    static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
+/// Structure containing all the gathered stats.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Stats {
+    rc: Rc<RefCell<StatsData>>,
 }
 
-#[derive(Debug)]
-pub struct IntervalGuard {
-    index: usize,
-    released: bool,
+impl Default for Stats {
+    fn default() -> Self {
+        let rc = Rc::new(RefCell::new(default()));
+        Self { rc }
+    }
 }
 
-/// Starts a new named time interval, during which frame statistics will be collected.
-pub fn start_interval() -> IntervalGuard {
-    let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
-        intervals.borrow_mut().insert(stats::StatsAccumulator::default())
-    });
-    IntervalGuard { index, released: false }
-}
-
-impl IntervalGuard {
-    /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
-    /// collected since the start of the the interval.
-    /// TODO: should use IntervalGuard instead of passing usize around
-    pub fn end(mut self) -> Option<stats::StatsSummary> {
-        self.released = true;
-        self.finalize()
+impl Stats {
+    pub fn begin(&self, time: f64) {
+        self.rc.borrow_mut().begin(time);
     }
 
-    fn finalize(&mut self) -> Option<stats::StatsSummary> {
-        ACTIVE_INTERVALS.with(|intervals| {
-            match intervals.borrow_mut().remove(self.index) {
-                None => {
-                    let logger = Logger::new("Profiling_Stats");
-                    warning!(logger, "Trying to finalize profiling stats for a process not registered before.");
-                    None
-                },
-                Some(accumulator) => accumulator.try_into().ok(),
+    pub fn end(&self, time: f64) {
+        self.rc.borrow_mut().end(time);
+    }
+
+    /// Resets the per-frame statistics.
+    pub fn reset_per_frame_statistics(&self) {
+        self.rc.borrow_mut().reset_per_frame_statistics();
+    }
+
+    pub fn data(&self) -> Ref<StatsData> {
+        self.rc.borrow()
+    }
+}
+
+macro_rules! gen_stats {
+    ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
+
+        #[derive(Debug,Default,Clone,Copy)]
+        pub struct StatsData {
+            begin_time: f64,
+
+            $($field : $field_type),*
+        }
+
+        impl Stats { $(
+            /// Field getter.
+            pub fn $field(&self) -> $field_type {
+                self.rc.borrow().$field
             }
-        })
-    }
-}
 
-impl Drop for IntervalGuard {
-    fn drop(&mut self) {
-        if !self.released {
-            let logger = Logger::new("Profiling_Stats");
-            warning!(logger, "Stats profiling interval dropped without a matching `end` call.");
-            let _ = self.finalize();
+            /// Field setter.
+            pub fn [<set _ $field>](&self, value:$field_type) {
+                self.rc.borrow_mut().$field = value;
+            }
+
+            /// Field modifier.
+            pub fn [<mod _ $field>]<F:FnOnce($field_type)->$field_type>(&self, f:F) {
+                let value = self.$field();
+                let value = f(value);
+                self.[<set _ $field>](value);
+            }
+
+            /// Increments field's value.
+            pub fn [<inc _ $field>](&self) {
+                #[allow(trivial_numeric_casts)]
+                self.[<mod _ $field>](|t| t + (1 as $field_type));
+            }
+
+            /// Decrements field's value.
+            pub fn [<dec _ $field>](&self) {
+                #[allow(trivial_numeric_casts)]
+                self.[<mod _ $field>](|t| t - (1 as $field_type));
+            }
+
+        )* }
+
+        #[derive(Debug, Default)]
+        #[allow(missing_docs)]
+        pub struct Accumulator {
+            /// How many samples were accumulated.
+            samples_count: u32,
+
+            $($field : ValueAccumulator<$field_type>),*
         }
-    }
-}
 
-/// Include the provided stats snapshot into statistics for all intervals that are currently started and
-/// not yet ended.
-pub fn push(snapshot: &stats::StatsData) {
-    ACTIVE_INTERVALS.with(|intervals| {
-        for interval in intervals.borrow_mut().iter_mut() {
-            interval.push(snapshot);
+        impl Accumulator {
+            pub fn push(&mut self, sample: &StatsData) {
+                self.samples_count += 1;
+                if self.samples_count == 1 {
+                    $( self.$field = ValueAccumulator::new(sample.$field); )*
+                } else {
+                    $( self.$field.push(sample.$field); )*
+                }
+            }
         }
-    });
+
+        #[derive(Clone, Debug, Serialize, Deserialize)]
+        #[allow(missing_docs)]
+        #[serde(rename_all = "camelCase")]
+        pub struct Summary {
+            $(pub $field : ValueSummary<$field_type>),*
+        }
+
+        impl TryFrom<Accumulator> for Summary {
+            type Error = NoSamplesError;
+            fn try_from(acc: Accumulator) -> Result<Self, NoSamplesError> {
+                if acc.samples_count == 0 {
+                    Err(NoSamplesError{})
+                } else {
+                    let n = acc.samples_count as f64;
+                    Ok(Summary {
+                        $($field : ValueSummary{
+                            min: acc.$field.min,
+                            max: acc.$field.max,
+                            avg: acc.$field.sum / n,
+                        }),*
+                    })
+                }
+            }
+        }
+
+    }};
 }
 
+gen_stats! {
+    frame_time           : f64,
+    fps                  : f64,
+    wasm_memory_usage    : u32,
+    gpu_memory_usage     : u32,
+    draw_call_count      : usize,
+    buffer_count         : usize,
+    data_upload_count    : usize,
+    data_upload_size     : u32,
+    sprite_system_count  : usize,
+    sprite_count         : usize,
+    symbol_count         : usize,
+    mesh_count           : usize,
+    shader_count         : usize,
+    shader_compile_count : usize,
+}
 
-
-/*
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use assert_approx_eq::*;
-
-    #[test]
-    fn overlapping_intervals() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
-
-        const INTERVAL_A: &str = "interval-A";
-        const INTERVAL_B: &str = "interval-B";
-        const STAT: &str = "stat";
-
-        start_interval(INTERVAL_A);
-        push(&[(STAT.into(), 1.0)]);
-        start_interval(INTERVAL_B);
-        push(&[(STAT.into(), 1.0)]);
-        let result_a = end_interval(INTERVAL_A).unwrap();
-        push(&[(STAT.into(), 2.0)]);
-        let result_b = end_interval(INTERVAL_B).unwrap();
-
-        assert_eq!(result_a.frames_count, 2);
-        assert_approx_eq!(result_a.accumulators[0].min, 1.0);
-        assert_approx_eq!(result_a.accumulators[0].max, 1.0);
-        assert_approx_eq!(result_a.accumulators[0].sum, 2.0);
-
-        assert_eq!(result_b.frames_count, 2);
-        assert_approx_eq!(result_b.accumulators[0].min, 1.0);
-        assert_approx_eq!(result_b.accumulators[0].max, 2.0);
-        assert_approx_eq!(result_b.accumulators[0].sum, 3.0);
+impl StatsData {
+    pub fn begin(&mut self, time: f64) {
+        if self.begin_time > 0.0 {
+            let end_time = time;
+            self.fps = 1000.0 / (end_time - self.begin_time);
+        }
+        self.begin_time = time;
     }
 
-    #[test]
-    fn empty_interval_discarded() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
+    pub fn end(&mut self, time: f64) {
+        self.frame_time = time - self.begin_time;
 
-        const INTERVAL_A: &str = "interval-A";
-
-        start_interval(INTERVAL_A);
-        assert!(end_interval(INTERVAL_A).is_none());
+        let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
+        let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
+        self.wasm_memory_usage = buffer.byte_length();
     }
 
-    #[test]
-    fn empty_samples_ignored() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
-
-        const INTERVAL_A: &str = "interval-A";
-        const STAT: &str = "stat";
-
-        start_interval(INTERVAL_A);
-        push(&[]);
-        push(&[(STAT.into(), 1.0)]);
-        push(&[]);
-        let result = end_interval(INTERVAL_A).unwrap();
-
-        assert_eq!(result.frames_count, 1);
-        assert_approx_eq!(result.accumulators[0].min, 1.0);
-        assert_approx_eq!(result.accumulators[0].max, 1.0);
-        assert_approx_eq!(result.accumulators[0].sum, 1.0);
-    }
-
-    #[test]
-    fn multiple_metrics_collected() {
-        ACTIVE_INTERVALS.with(|intervals| intervals.borrow_mut().clear());
-
-        const INTERVAL_A: &str = "interval-A";
-        const STAT_1: &str = "stat-1";
-        const STAT_2: &str = "stat-2";
-
-
-        start_interval(INTERVAL_A);
-        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
-        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
-        push(&[(STAT_1.into(), 1.0), (STAT_2.into(), 2.0)]);
-        let result = end_interval(INTERVAL_A).unwrap();
-
-
-        assert_eq!(result.frames_count, 3);
-
-        assert_eq!(result.accumulators[0].label.as_str(), STAT_1);
-        assert_approx_eq!(result.accumulators[0].min, 1.0);
-        assert_approx_eq!(result.accumulators[0].max, 1.0);
-        assert_approx_eq!(result.accumulators[0].sum, 3.0);
-
-        assert_eq!(result.accumulators[1].label.as_str(), STAT_2);
-        assert_approx_eq!(result.accumulators[1].min, 2.0);
-        assert_approx_eq!(result.accumulators[1].max, 2.0);
-        assert_approx_eq!(result.accumulators[1].sum, 6.0);
+    fn reset_per_frame_statistics(&mut self) {
+        self.draw_call_count = 0;
+        self.shader_compile_count = 0;
+        self.data_upload_count = 0;
+        self.data_upload_size = 0;
     }
 }
-*/
+
+#[derive(Debug, Default)]
+struct ValueAccumulator<T> {
+    pub min: T,
+    pub max: T,
+    pub sum: f64,
+}
+
+impl<T: MinMax + Clone> ValueAccumulator<T> {
+    fn new(v: T) -> Self {
+        #![allow(trivial_numeric_casts)]
+        Self { min: v.clone(), max: v.clone(), sum: v.to_f64() }
+    }
+
+    fn push(&mut self, v: T) {
+        self.min = self.min.min(v.clone());
+        self.max = self.max.max(v.clone());
+        self.sum += v.to_f64();
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NoSamplesError {}
+
+/// Summarized data for a single metric.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ValueSummary<T> {
+    pub min: T,
+    pub max: T,
+    pub avg: f64,
+}
+
+trait MinMax {
+    fn min(&self, other: Self) -> Self;
+    fn max(&self, other: Self) -> Self;
+    fn to_f64(&self) -> f64;
+}
+
+impl MinMax for f64 {
+    fn min(&self, other: f64) -> f64 { f64::min(*self, other) }
+    fn max(&self, other: f64) -> f64 { f64::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self }
+}
+
+impl MinMax for u32 {
+    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
+    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self as f64 }
+}
+
+impl MinMax for usize {
+    fn min(&self, other: Self) -> Self { std::cmp::min(*self, other) }
+    fn max(&self, other: Self) -> Self { std::cmp::max(*self, other) }
+    fn to_f64(&self) -> f64 { *self as f64 }
+}
