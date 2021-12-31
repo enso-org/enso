@@ -231,7 +231,9 @@ class IntervalHandle {
         this.releasedStatus = new ReleasedStatus()
         this.releasedStatus.released = false
         let entry = new IntervalFinalizationRegistryEntry(intervalName, this.releasedStatus)
-        handle_registry.register(this, entry)
+        if (handleRegistry) {
+            handleRegistry.register(this, entry)
+        }
     }
 
     /// Measure the interval.
@@ -273,17 +275,31 @@ class ReleasedStatus {
     }
 }
 
-// We need to ts-ignore here as `FinalizationRegistry` is not recognised by TypeScript as being in
-// scope even though it is.
-// @ts-ignore
-const handle_registry = new FinalizationRegistry(heldValue => {
-    if (heldValue instanceof IntervalFinalizationRegistryEntry) {
-        if (!heldValue.release_status.released) {
-            const interval_name = heldValue.interval_name
-            console.warn(`${interval_name} was dropped without a call to 'measure'.`)
+let finalizationRegistry
+try {
+    // We need to ts-ignore here as `FinalizationRegistry` is not recognised by TypeScript as being in
+    // scope even though it is.
+    // @ts-ignore
+    finalizationRegistry = new FinalizationRegistry(heldValue => {
+        if (heldValue instanceof IntervalFinalizationRegistryEntry) {
+            if (!heldValue.release_status.released) {
+                const interval_name = heldValue.interval_name
+                console.warn(`${interval_name} was dropped without explicit end of measurement.`)
+            }
         }
-    }
-})
+    })
+} catch (e) {
+    console.warn(`Initialisation of FinalizationRegistry registry failed because of ${e}.`)
+}
+
+const handleRegistry = finalizationRegistry
+
+if (!finalizationRegistry) {
+    console.error(
+        'Browser does not support use of `FinalizationRegistry`. ' +
+            'Profiling might not work correctly if handles are dropped.'
+    )
+}
 
 // ==================
 // === FrameStats ===

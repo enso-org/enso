@@ -5,7 +5,8 @@
     "module": "es2020",
     "declaration": true,
     "outDir": "./lib",
-    "types": ["node"]
+    "types": ["node"],
+    "lib": ["dom", "es5", "scripthost", "esnext.weakref"]
   },
   "exclude": ["node_modules", "**/*.spec.ts"],
   "include": ["./src"]
