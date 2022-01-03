@@ -304,7 +304,6 @@ if (!finalizationRegistry) {
 // ==================
 // === FrameStats ===
 // ==================
-// FIXME(akavel): type docs
 
 /**
  * Summary of the observed values of all GUI rendering statistics, over a
