@@ -201,8 +201,11 @@ impl<T: MinMax + Clone> ValueAccumulator<T> {
 /// Summarized data for a single metric.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ValueSummary<T> {
+    /// Smallest observed value of the metric.
     pub min: T,
+    /// Largest observed value of the metric.
     pub max: T,
+    /// Average of the observed values of the metric.
     pub avg: f64,
 }
 
