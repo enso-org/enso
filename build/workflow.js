@@ -165,15 +165,6 @@ let lintRust = {
     run: 'node ./run lint --skip-version-validation',
 }
 
-// TODO[MC,MWU]: this step should not be necessary, but without it incremental
-// compilation can trigger panics, see:
-// - https://github.com/enso-org/enso/runs/4690831447?check_suite_focus=true#step:5:18
-// - https://github.com/rust-lang/rust/issues/90594
-let clear = {
-    name: 'Ensure clean build environment',
-    run: 'node ./run clean --skip-version-validation',
-}
-
 let testNoWASM = {
     name: 'Run tests (no WASM)',
     run: 'node ./run test --no-wasm --skip-version-validation',
@@ -421,14 +412,12 @@ let workflow = {
         test: job_on_linux_cached('test_native', 'Native Tests', [
             installNode,
             installTypeScript,
-            clear,
             testNoWASM,
         ]),
         'wasm-test': job_on_linux_cached('test_wasm', 'WASM Tests', [
             installNode,
             installTypeScript,
             installWasmPack,
-            clear,
             testWASM,
         ]),
         build_wasm: job_on_linux_cached('build_wasm', 'Build WASM', [
