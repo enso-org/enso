@@ -47,6 +47,7 @@ impl Stats {
         self.rc.borrow_mut().reset_per_frame_statistics();
     }
 
+    /// Returns a read-only reference to the underlying raw data.
     pub fn data(&self) -> Ref<StatsData> {
         self.rc.borrow()
     }
@@ -55,7 +56,9 @@ impl Stats {
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
 
+        /// Raw data of all the gathered stats.
         #[derive(Debug,Default,Clone,Copy)]
+        #[allow(missing_docs)]
         pub struct StatsData {
             begin_time: f64,
 
