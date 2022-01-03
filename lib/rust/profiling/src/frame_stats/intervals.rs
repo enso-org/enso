@@ -1,12 +1,5 @@
 //! This module helps to aggregate various per-frame performance statistics, collected over
 //! intervals spanning multiple GUI rendering frames.
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
-
 
 use enso_prelude::*;
 
