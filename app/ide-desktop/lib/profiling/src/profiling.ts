@@ -370,8 +370,8 @@ class Measurement {
     }
 
     prettyPrint() {
-        console.groupCollapsed(this.prettyHeader())
         if (this.rendering) {
+            console.groupCollapsed(this.prettyHeader())
             console.table(Object.entries(this.rendering).map(
                 ([name, summary]) => ({
                     Stat: name,
@@ -380,8 +380,10 @@ class Measurement {
                     max: summary.max,
                 })
             ))
+            console.groupEnd()
+        } else {
+            console.log(this.prettyHeader())
         }
-        console.groupEnd()
     }
 }
 
