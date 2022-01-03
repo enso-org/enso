@@ -130,7 +130,7 @@ jobs:
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Ensure clean build environment
-        run: node ./run clean
+        run: node ./run clean --skip-version-validation
       - name: Run tests (no WASM)
         run: node ./run test --no-wasm --skip-version-validation
   wasm-test:
@@ -186,7 +186,7 @@ jobs:
         shell: bash
         if: startsWith(matrix.os,'ubuntu')
       - name: Ensure clean build environment
-        run: node ./run clean
+        run: node ./run clean --skip-version-validation
       - name: Run tests (WASM)
         run: node ./run test --no-native --skip-version-validation
   build_wasm:
