@@ -91,11 +91,9 @@ trait Server {
     */
   def start(config: Server.Config): Unit = {
     val bindingFuture =
-      Http().bindAndHandleSync(
-        handleRequest,
-        interface = config.interface,
-        port      = config.port
-      )
+      Http()
+        .newServerAt(config.interface, config.port)
+        .bindSync(handleRequest)
 
     bindingFuture.onComplete({
       case Success(_) =>

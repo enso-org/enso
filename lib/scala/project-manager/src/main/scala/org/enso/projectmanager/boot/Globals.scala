@@ -1,37 +1,15 @@
 package org.enso.projectmanager.boot
 
-import zio.{ExitCode, Has, ZEnv}
-import zio.blocking.Blocking
-import zio.clock.Clock
-import zio.console.Console
-import zio.random.Random
-import zio.system.System
+import zio.ExitCode
 
-/** Constants manager for app constants.
-  */
+/** Constants manager for app constants. */
 object Globals {
 
-  val FailureExitCode = ExitCode(1)
+  val FailureExitCode: ExitCode = ExitCode(1)
 
-  val SuccessExitCode = ExitCode(0)
+  val SuccessExitCode: ExitCode = ExitCode(0)
 
   val ConfigFilename = "application.conf"
 
   val ConfigNamespace = "project-manager"
-
-  val zioEnvironment: ZEnv =
-    Has.allOf[
-      Clock.Service,
-      Console.Service,
-      System.Service,
-      Random.Service,
-      Blocking.Service
-    ](
-      Clock.Service.live,
-      Console.Service.live,
-      System.Service.live,
-      Random.Service.live,
-      Blocking.Service.live
-    )
-
 }
