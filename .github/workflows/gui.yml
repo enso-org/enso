@@ -130,6 +130,10 @@ jobs:
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Ensure clean build environment
+        # TODO[MC,MWU]: this should not be necessary, but without it
+        # incremental compilation can trigger panics, see:
+        # - https://github.com/enso-org/enso/runs/4690831447?check_suite_focus=true#step:5:18
+        # - https://github.com/rust-lang/rust/issues/90594
         run: node ./run clean --skip-version-validation
       - name: Run tests (no WASM)
         run: node ./run test --no-wasm --skip-version-validation
@@ -186,6 +190,10 @@ jobs:
         shell: bash
         if: startsWith(matrix.os,'ubuntu')
       - name: Ensure clean build environment
+        # TODO[MC,MWU]: this should not be necessary, but without it
+        # incremental compilation can trigger panics, see:
+        # - https://github.com/enso-org/enso/runs/4690831447?check_suite_focus=true#step:5:18
+        # - https://github.com/rust-lang/rust/issues/90594
         run: node ./run clean --skip-version-validation
       - name: Run tests (WASM)
         run: node ./run test --no-native --skip-version-validation
