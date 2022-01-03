@@ -338,7 +338,6 @@ class Measurement {
     readonly duration: number
     readonly profilerLevel: Profiler
     readonly name: string
-
     readonly rendering?: FrameStatsSummary
 
     constructor(
