@@ -1,5 +1,5 @@
-//! This module helps to aggregate various per-frame performance statistics, collected over labeled
-//! time intervals.
+//! This module helps to aggregate various per-frame performance statistics, collected over
+//! intervals spanning multiple GUI rendering frames.
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
