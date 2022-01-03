@@ -32,10 +32,12 @@ impl Default for Stats {
 }
 
 impl Stats {
+    /// Starts tracking data for a new animation frame.
     pub fn begin_frame(&self, time: f64) {
         self.rc.borrow_mut().begin_frame(time);
     }
 
+    /// Ends tracking data for the current animation frame.
     pub fn end_frame(&self, time: f64) {
         self.rc.borrow_mut().end_frame(time);
     }
@@ -102,6 +104,7 @@ macro_rules! gen_stats {
         }
 
         impl Accumulator {
+            /// Includes the data of the sample into the Accumulator.
             pub fn push(&mut self, sample: &StatsData) {
                 self.samples_count += 1;
                 if self.samples_count == 1 {
@@ -111,6 +114,8 @@ macro_rules! gen_stats {
                 }
             }
 
+            /// Calculates a summary of data pushed into the Accumulator till now. Returns a
+            /// meaningful result only if `push` was called at least once.
             pub fn summarize(&self) -> Option<Summary> {
                 if self.samples_count == 0 {
                     None
@@ -154,7 +159,7 @@ gen_stats! {
 }
 
 impl StatsData {
-    pub fn begin_frame(&mut self, time: f64) {
+    fn begin_frame(&mut self, time: f64) {
         if self.begin_time > 0.0 {
             let end_time = time;
             self.fps = 1000.0 / (end_time - self.begin_time);
@@ -162,7 +167,7 @@ impl StatsData {
         self.begin_time = time;
     }
 
-    pub fn end_frame(&mut self, time: f64) {
+    fn end_frame(&mut self, time: f64) {
         self.frame_time = time - self.begin_time;
 
         let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
