@@ -276,12 +276,13 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 /// metadata.
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
-    let mut stats_guard = None;
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        stats_guard = Some(frame_stats::intervals::start_interval());
+        let stats_guard = Some(frame_stats::intervals::start_interval());
         mark_with_metadata(interval_name.into(), metadata.clone().into());
+        IntervalHandle::new(Some(metadata), stats_guard)
+    } else {
+        IntervalHandle::new(None, None)
     }
-    IntervalHandle::new(metadata, stats_guard)
 }
 
 fn get_latest_performance_entry() -> Option<PerformanceEntry> {
@@ -335,20 +336,22 @@ pub fn mark_end_interval(
 /// Handle that allows ending the interval.
 #[derive(Debug)]
 pub struct IntervalHandle {
-    metadata:    Metadata,
+    metadata:    Option<Metadata>,
     stats_guard: Option<frame_stats::intervals::Guard>,
     released:    bool,
 }
 
 impl IntervalHandle {
-    fn new(metadata: Metadata, stats_guard: Option<frame_stats::intervals::Guard>) -> Self {
+    fn new(metadata: Option<Metadata>, stats_guard: Option<frame_stats::intervals::Guard>) -> Self {
         IntervalHandle { metadata, stats_guard, released: false }
     }
 
     /// Measure the interval.
     pub fn end(mut self) {
         self.released = true;
-        warn_on_error(mark_end_interval(self.metadata.clone(), self.stats_guard.take()));
+        if let Some(metadata) = self.metadata.clone() {
+            warn_on_error(mark_end_interval(metadata, self.stats_guard.take()));
+        }
     }
 
     /// Release the handle to prevent a warning to be emitted when it is garbage collected without
@@ -362,12 +365,15 @@ impl IntervalHandle {
 
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
-        if !self.released {
-            warn_on_error(mark_end_interval(self.metadata.clone(), self.stats_guard.take()));
+        if self.released {
+            return;
+        }
+        if let Some(metadata) = self.metadata.take() {
             WARNING!(format!(
-                "{} was dropped without explicitly being ended.",
-                self.metadata.label
+                "{} is dropped without explicitly being ended.",
+                &metadata.label
             ));
+            warn_on_error(mark_end_interval(metadata, self.stats_guard.take()));
         }
     }
 }
