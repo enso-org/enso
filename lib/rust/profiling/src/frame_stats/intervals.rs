@@ -28,12 +28,6 @@ thread_local! {
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
 }
 
-#[derive(Debug)]
-pub struct Guard {
-    index:    usize,
-    released: bool,
-}
-
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> Guard {
     let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
@@ -42,8 +36,15 @@ pub fn start_interval() -> Guard {
     Guard { index, released: false }
 }
 
+/// Object that allows ending the interval.
+#[derive(Debug)]
+pub struct Guard {
+    index:    usize,
+    released: bool,
+}
+
 impl Guard {
-    /// Finishes collecting frame statistics for a specific named interval. Returns aggregate data
+    /// Finishes collecting frame statistics for a specific interval. Returns aggregate data
     /// collected since the start of the the interval.
     pub fn end(mut self) -> Option<frame_stats::Summary> {
         self.released = true;
