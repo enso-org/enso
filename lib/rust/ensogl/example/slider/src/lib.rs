@@ -28,7 +28,6 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_selector as selector;
 use ensogl_selector::Bounds;
 use ensogl_text_msdf_sys::run_once_initialized;
-use profiling;
 
 
 
@@ -93,20 +92,4 @@ fn init(app: &Application) {
     slider4.inner().frp.use_overflow_bounds(Bounds::new(-2.0, 3.0));
     slider4.inner().frp.set_caption(Some("Caption".to_string()));
     slider4.inner().set_track_color(color::Rgba::new(0.5, 0.70, 0.70, 1.0));
-
-    let world = &app.display;
-
-    let mut task_handle = Some(Box::new(profiling::start_task!("mcdbg_test_task")));
-    let mut i = 0;
-    world
-        .on_frame(move |_| {
-            if i == 100 {
-                DEBUG!("MCDBG i==3");
-                if let Some(t) = task_handle.take() {
-                    t.end();
-                }
-            }
-            i += 1;
-        })
-        .forget(); // FIXME(akavel): what this does?
 }
