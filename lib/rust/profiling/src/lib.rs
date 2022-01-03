@@ -369,10 +369,7 @@ impl Drop for IntervalHandle {
             return;
         }
         if let Some(metadata) = self.metadata.take() {
-            WARNING!(format!(
-                "{} is dropped without explicitly being ended.",
-                &metadata.label
-            ));
+            WARNING!(format!("{} is dropped without explicitly being ended.", &metadata.label));
             warn_on_error(mark_end_interval(metadata, self.stats_guard.take()));
         }
     }
