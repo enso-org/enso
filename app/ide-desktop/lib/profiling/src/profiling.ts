@@ -306,13 +306,23 @@ if (!finalizationRegistry) {
 // ==================
 // FIXME(akavel): type docs
 
-class FrameStatsSummary {
+/**
+ * Summary of the observed values of all GUI rendering statistics, over a
+ * number of frames.
+ */
+type FrameStatsSummary = {
+    [stat: string]: FrameStatsValueSummary
+}
+
+/**
+ * Summary of the observed values of a single statistic (related to GUI
+ * rendering) over a number of frames.
+ */
+class FrameStatsValueSummary {
     readonly min: number
     readonly max: number
     readonly avg: number
 }
-
-type FrameStatsAggregate = { [stat: string]: FrameStatsSummary }
 
 // ===================
 // === Measurement ===
@@ -330,9 +340,9 @@ class Measurement {
     readonly profilerLevel: Profiler
     readonly name: string
 
-    readonly rendering?: FrameStatsAggregate
+    readonly rendering?: FrameStatsSummary
 
-    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, rendering?: FrameStatsAggregate) {
+    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, rendering?: FrameStatsSummary) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
