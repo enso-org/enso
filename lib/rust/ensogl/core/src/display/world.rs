@@ -120,8 +120,8 @@ impl World {
     // Any code repeated on each iteration of the Main Loop (each "frame") must be written with
     // high care for performance. Any changes that has a chance of negatively impacting the
     // constant overhead of the main loop needs *explicit* explanation, review, and acceptance *at
-    // design stage* of the proposed changes, from performance perspective, with an explicit note
-    // of the fact of Main Loop impact.
+    // design stage* of the proposed new implementation, from performance perspective, with an
+    // explicit note of the fact of Main Loop impact.
     //
     // Rationale: the "Main Loop" contains the code comprising a GUI rendering "frame" (term
     // originating from a "still frame" term in filmmaking). The speed at which the Main Loop
