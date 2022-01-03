@@ -342,7 +342,13 @@ class Measurement {
 
     readonly rendering?: FrameStatsSummary
 
-    constructor(startTime: number, duration: number, profilerLevel: Profiler, name: string, rendering?: FrameStatsSummary) {
+    constructor(
+        startTime: number,
+        duration: number,
+        profilerLevel: Profiler,
+        name: string,
+        rendering?: FrameStatsSummary
+    ) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
@@ -382,14 +388,14 @@ class Measurement {
     prettyPrint() {
         if (this.rendering) {
             console.groupCollapsed(this.prettyHeader())
-            console.table(Object.entries(this.rendering).map(
-                ([name, summary]) => ({
+            console.table(
+                Object.entries(this.rendering).map(([name, summary]) => ({
                     Stat: name,
                     min: summary.min,
                     avg: summary.avg,
                     max: summary.max,
-                })
-            ))
+                }))
+            )
             console.groupEnd()
         } else {
             console.log(this.prettyHeader())
