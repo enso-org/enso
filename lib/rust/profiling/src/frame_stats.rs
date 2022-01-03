@@ -2,9 +2,9 @@
 //! an amazing tool for debugging what is really happening under the hood and understanding the
 //! performance characteristics.
 
-use enso_prelude::*;
-
 pub mod intervals;
+
+use enso_prelude::*;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
