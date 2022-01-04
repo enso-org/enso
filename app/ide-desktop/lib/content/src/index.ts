@@ -80,6 +80,7 @@ async function wasm_instantiate_streaming(
 /// Downloads the WASM binary and its dependencies. Displays loading progress bar unless provided
 /// with `{use_loader:false}` option.
 async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: RequestInfo }) {
+    let download_profiler = profiling.section.start('GUI (WASM + JS) download')
     let wasm_glue_fetch = await fetch(config.wasm_glue_url)
     let wasm_fetch = await fetch(config.wasm_url)
     let loader = new loader_module.Loader([wasm_glue_fetch, wasm_fetch], config)
@@ -93,6 +94,7 @@ async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: 
     loader.cap_progress_at = 0.3
 
     loader.done.then(() => {
+        download_profiler.end()
         console.groupEnd()
         console.log('Download finished. Finishing WASM compilation.')
     })
