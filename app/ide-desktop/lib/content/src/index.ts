@@ -81,6 +81,7 @@ async function wasm_instantiate_streaming(
 /// with `{use_loader:false}` option.
 async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: RequestInfo }) {
     let download_profiler = profiling.section.start('GUI (WASM + JS) download')
+    let glue_download_profiler = profiling.task.start('JS glue download')
     let wasm_glue_fetch = await fetch(config.wasm_glue_url)
     let wasm_fetch = await fetch(config.wasm_url)
     let loader = new loader_module.Loader([wasm_glue_fetch, wasm_fetch], config)
@@ -102,7 +103,6 @@ async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: 
     let download_size = loader.show_total_bytes()
     let download_info = `Downloading WASM binary and its dependencies (${download_size}).`
     let wasm_loader = html_utils.log_group_collapsed(download_info, async () => {
-        let glue_download_profiler = profiling.task.start('JS glue download')
         let wasm_glue_js = await wasm_glue_fetch.text()
         glue_download_profiler.end()
         let wasm_glue = profiling.task.measure('JS glue eval', () => {
