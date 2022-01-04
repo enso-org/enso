@@ -107,7 +107,9 @@ async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: 
         let imports = wasm_glue.wasm_imports()
         console.log('WASM dependencies loaded.')
         console.log('Starting online WASM compilation.')
+        let compiling_profiler = profiling.section.start('WASM compiling')
         let wasm_loader = await wasm_instantiate_streaming(wasm_fetch, imports)
+        compiling_profiler.end()
         // @ts-ignore
         wasm_loader.wasm_glue = wasm_glue
         return wasm_loader
