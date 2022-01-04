@@ -102,8 +102,12 @@ async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: 
     let download_size = loader.show_total_bytes()
     let download_info = `Downloading WASM binary and its dependencies (${download_size}).`
     let wasm_loader = html_utils.log_group_collapsed(download_info, async () => {
+        let glue_download_profiler = profiling.task.start('JS glue download')
         let wasm_glue_js = await wasm_glue_fetch.text()
-        let wasm_glue = Function('let exports = {};' + wasm_glue_js + '; return exports')()
+        glue_download_profiler.end()
+        let wasm_glue = profiling.task.measure('JS glue eval', () => {
+            return Function('let exports = {};' + wasm_glue_js + '; return exports')()
+        })
         let imports = wasm_glue.wasm_imports()
         console.log('WASM dependencies loaded.')
         console.log('Starting online WASM compilation.')
