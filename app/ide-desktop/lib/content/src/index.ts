@@ -937,6 +937,7 @@ function tryAsString(value: any): string {
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function runEntryPoint(config: Config) {
+    let entrypoint_initialization_profiler = profiling.task.start('EntryPoint initialization')
     // @ts-ignore
     API[globalConfig.windowAppScopeConfigName] = config
 
@@ -964,6 +965,7 @@ async function runEntryPoint(config: Config) {
 
     API.remoteLog('window_show_animation')
     await windowShowAnimation()
+    entrypoint_initialization_profiler.end()
     API.remoteLog('download_content')
     let { wasm, loader } = await download_content(config)
     API.remoteLog('wasm_loaded')
