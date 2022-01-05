@@ -965,8 +965,8 @@ async function runEntryPoint(config: Config) {
 
     API.remoteLog('window_show_animation')
     await windowShowAnimation()
-    entrypoint_initialization_profiler.end()
     API.remoteLog('download_content')
+    entrypoint_initialization_profiler.end()
     let { wasm, loader } = await download_content(config)
     API.remoteLog('wasm_loaded')
     if (entryTarget) {
