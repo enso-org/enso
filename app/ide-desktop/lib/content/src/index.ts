@@ -984,6 +984,7 @@ async function runEntryPoint(config: Config) {
 }
 
 API.main = async function (inputConfig: any) {
+    let initialization_profiler = profiling.section.start('Config initialization')
     const config = profiling.task.measure('load_config', () => {
         const urlParams = new URLSearchParams(window.location.search)
         // @ts-ignore
@@ -995,6 +996,7 @@ API.main = async function (inputConfig: any) {
     })
 
     if (await checkMinSupportedVersion(config)) {
+        initialization_profiler.end()
         if (config.authentication_enabled && !Versions.isDevVersion()) {
             let login_profiler = profiling.section.start('Log-in')
             new FirebaseAuthentication(function (user: any) {
