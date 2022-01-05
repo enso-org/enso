@@ -571,6 +571,7 @@ async function fetchApplicationConfig(url: string) {
 /// one of the compared versions does not match the semver scheme, it returns
 /// `true`.
 async function checkMinSupportedVersion(config: Config) {
+    let version_check_profiler = profiling.task.start('Version check')
     try {
         const appConfig: any = await fetchApplicationConfig(config.application_config_url)
         const clientVersion = Versions.clientVersion
@@ -581,6 +582,8 @@ async function checkMinSupportedVersion(config: Config) {
     } catch (e) {
         console.error('Minimum version check failed.', e)
         return true
+    } finally {
+        version_check_profiler.end()
     }
 }
 
