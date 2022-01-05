@@ -937,7 +937,7 @@ function tryAsString(value: any): string {
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function runEntryPoint(config: Config) {
-    let entrypoint_initialization_profiler = profiling.task.start('EntryPoint initialization')
+    let entrypoint_initialization_profiler = profiling.section.start('EntryPoint initialization')
     // @ts-ignore
     API[globalConfig.windowAppScopeConfigName] = config
 
