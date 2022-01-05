@@ -985,7 +985,7 @@ async function runEntryPoint(config: Config) {
 
 API.main = async function (inputConfig: any) {
     let initialization_profiler = profiling.section.start('Config initialization')
-    const config = profiling.task.measure('load_config', () => {
+    const config = profiling.task.measure('Config load', () => {
         const urlParams = new URLSearchParams(window.location.search)
         // @ts-ignore
         const urlConfig = Object.fromEntries(urlParams.entries())
