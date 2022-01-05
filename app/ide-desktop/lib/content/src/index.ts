@@ -996,8 +996,10 @@ API.main = async function (inputConfig: any) {
 
     if (await checkMinSupportedVersion(config)) {
         if (config.authentication_enabled && !Versions.isDevVersion()) {
+            let login_profiler = profiling.section.start('Log-in')
             new FirebaseAuthentication(function (user: any) {
                 config.email = user.email
+                login_profiler.end()
                 runEntryPoint(config)
             })
         } else {
