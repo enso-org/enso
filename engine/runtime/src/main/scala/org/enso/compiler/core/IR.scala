@@ -4244,6 +4244,8 @@ object IR {
       keepDiagnostics: Boolean = true,
       keepIdentifiers: Boolean = false
     ): DefinitionArgument
+
+    def withName(ir: IR.Name): DefinitionArgument
   }
   object DefinitionArgument {
 
@@ -4309,6 +4311,8 @@ object IR {
         res.id = id
         res
       }
+
+      override def withName(ir: Name): DefinitionArgument = copy(name=ir)
 
       /** @inheritdoc */
       override def duplicate(
@@ -6564,8 +6568,14 @@ object IR {
 
       case class SuspendedSourceArgument(argName: String) extends Reason {
         override def explain: String =
-          s"The source type argument in a conversion (here $argName) cannot " +
+          s"The `that` type argument in a conversion (here $argName) cannot " +
           s"be suspended."
+      }
+
+      case class InvalidSourceArgumentName(argName: String) extends Reason {
+        override def explain: String =
+          s"The source type argument must be ignored or named `that`, but" +
+          s" ${argName} was found."
       }
     }
 

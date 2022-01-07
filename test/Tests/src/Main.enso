@@ -4,6 +4,7 @@ import Standard.Test
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
+import project.Semantic.Conversion_Spec
 import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
@@ -49,6 +50,7 @@ main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
     Case_Spec.spec
+    Conversion_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
     Examples_Spec.spec
