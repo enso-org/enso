@@ -121,37 +121,44 @@ impl Project {
     ///
     /// Returns the controllers of module and graph which should be displayed in the view.
     pub async fn initialize(&self) -> FallibleResult<InitializationResult> {
-        let project = self.model.clone_ref();
-        let parser = self.model.parser();
-        let module_path = self.initial_module_path()?;
-        let file_path = module_path.file_path().clone();
+        profiling::measure_task!("project_initialise", {
+            let project = self.model.clone_ref();
+            let parser = self.model.parser();
+            let module_path = self.initial_module_path()?;
+            let file_path = module_path.file_path().clone();
 
-        // TODO [mwu] This solution to recreate missing main file should be considered provisional
-        //   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
-        self.recreate_if_missing(&file_path, default_main_method_code()).await?;
-        let method = main_method_ptr(project.qualified_name(), &module_path);
-        let main_module_model = self.model.module(module_path.clone()).await?;
-        Self::add_main_if_missing(project.qualified_name(), &main_module_model, &method, &parser)?;
+            // TODO [mwu] This solution to recreate missing main file should be considered
+            // provisional   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
+            self.recreate_if_missing(&file_path, default_main_method_code()).await?;
+            let method = main_method_ptr(project.qualified_name(), &module_path);
+            let main_module_model = self.model.module(module_path.clone()).await?;
+            Self::add_main_if_missing(
+                project.qualified_name(),
+                &main_module_model,
+                &method,
+                &parser,
+            )?;
 
-        let mut info = main_module_model.info();
-        info.add_module_import(
-            &project.qualified_module_name(&module_path),
-            &project.parser(),
-            &QualifiedName::from_text("Standard.Visualization").unwrap(),
-        );
-        main_module_model.update_ast(info.ast)?;
+            let mut info = main_module_model.info();
+            info.add_module_import(
+                &project.qualified_module_name(&module_path),
+                &project.parser(),
+                &QualifiedName::from_text("Standard.Visualization").unwrap(),
+            );
+            main_module_model.update_ast(info.ast)?;
 
-        // Here, we should be relatively certain (except race conditions in case of multiple
-        // clients that we currently do not support) that main module exists and contains main
-        // method. Thus, we should be able to successfully create a graph controller for it.
-        let main_module_text = controller::Text::new(&self.logger, &project, file_path).await?;
-        let main_graph = controller::ExecutedGraph::new(&self.logger, project, method).await?;
+            // Here, we should be relatively certain (except race conditions in case of multiple
+            // clients that we currently do not support) that main module exists and contains main
+            // method. Thus, we should be able to successfully create a graph controller for it.
+            let main_module_text = controller::Text::new(&self.logger, &project, file_path).await?;
+            let main_graph = controller::ExecutedGraph::new(&self.logger, project, method).await?;
 
-        self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
-        self.notify_about_compiling_process(&main_graph);
-        self.display_warning_on_unsupported_engine_version();
+            self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
+            self.notify_about_compiling_process(&main_graph);
+            self.display_warning_on_unsupported_engine_version();
 
-        Ok(InitializationResult { main_module_text, main_module_model, main_graph })
+            Ok(InitializationResult { main_module_text, main_module_model, main_graph })
+        })
     }
 }
 

@@ -486,8 +486,10 @@ impl Area {
 
             // === Changes ===
 
-            self.frp.source.changed <+ m.buffer.frp.text_change;
+            // The `content` event should be fired first, as any listener for `changed` may want to
+            // read the new content, so it should be up-to-date.
             self.frp.source.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
+            self.frp.source.changed <+ m.buffer.frp.text_change;
         }
         self
     }
