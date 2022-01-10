@@ -19,7 +19,16 @@ const child_process = require('child_process')
 const { dist } = require('../../../../../build/paths')
 const { ENGINE_VERSION } = require('../../../../../build/release')
 
-const contentRoot = path.join(dist.root, 'client', 'mac', 'Enso.app', 'Contents')
+// `electron-builder`'s output directory name.
+function contentDirName() {
+    if (process.arch == 'arm64') {
+        return 'mac-arm64'
+    } else {
+        return 'mac'
+    }
+}
+
+const contentRoot = path.join(dist.root, 'client', contentDirName(), 'Enso.app', 'Contents')
 const resRoot = path.join(contentRoot, 'Resources')
 
 const ID = '"Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)"'

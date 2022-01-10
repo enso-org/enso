@@ -105,7 +105,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Lint Rust sources
@@ -126,7 +126,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Run tests (no WASM)
@@ -147,13 +147,13 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install wasm-pack (macOS)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-apple-darwin
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-apple-darwin
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -163,8 +163,8 @@ jobs:
         if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-pc-windows-msvc
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-pc-windows-msvc
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -174,8 +174,8 @@ jobs:
         if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-unknown-linux-musl
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-unknown-linux-musl
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -201,13 +201,13 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install wasm-pack (macOS)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-apple-darwin
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-apple-darwin
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -217,8 +217,8 @@ jobs:
         if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-pc-windows-msvc
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-pc-windows-msvc
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -228,8 +228,8 @@ jobs:
         if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-unknown-linux-musl
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-unknown-linux-musl
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -274,13 +274,13 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.0
+          node-version: 16.13.1
       - name: Install TypeScript
         run: npm install -g ts-node@10.1.0
       - name: Install wasm-pack (macOS)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-apple-darwin
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-apple-darwin
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -290,8 +290,8 @@ jobs:
         if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-pc-windows-msvc
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-pc-windows-msvc
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
@@ -301,8 +301,8 @@ jobs:
         if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
-          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-unknown-linux-musl
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
+          WASMPACKDIR: wasm-pack-v0.10.2-x86_64-unknown-linux-musl
         run: |2-
 
                       curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .

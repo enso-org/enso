@@ -2,19 +2,16 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const CompressionPlugin = require('compression-webpack-plugin')
 const path = require('path')
 const webpack = require('webpack')
+const paths = require('../../../../build/paths')
 
 const thisPath = path.resolve(__dirname)
-const root = path.resolve(thisPath, '..', '..', '..', '..')
-const distPath = path.resolve(root, 'dist')
-const wasmPath = path.resolve(distPath, 'wasm')
-const buildPath = path.resolve(distPath, 'build.json')
 
 const child_process = require('child_process')
 function git(command) {
     return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
-const BUILD_INFO = JSON.parse(require('fs').readFileSync(buildPath, 'utf8'))
+const BUILD_INFO = JSON.parse(require('fs').readFileSync(paths.dist.buildInfo, 'utf8'))
 
 // scala-parser.js is compiled from Scala code, so no source map is available for it.
 const IGNORE_SOURCE_MAPS = [/scala-parser\.js/]
@@ -40,7 +37,7 @@ module.exports = {
         wasm_imports: './src/wasm_imports.js',
     },
     output: {
-        path: path.resolve(root, 'dist', 'content', 'assets'),
+        path: paths.dist.assets,
         filename: '[name].js',
         libraryTarget: 'umd',
     },
@@ -55,7 +52,7 @@ module.exports = {
             path.resolve(thisPath, 'src', 'style.css'),
             path.resolve(thisPath, 'src', 'docsStyle.css'),
             path.resolve(thisPath, 'assets'),
-            path.resolve(wasmPath, 'ide.wasm'),
+            paths.dist.wasm.main,
         ]),
         new webpack.DefinePlugin({
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
@@ -76,7 +73,7 @@ module.exports = {
     },
     resolve: {
         alias: {
-            wasm_rust_glue$: path.resolve(wasmPath, 'ide.js'),
+            wasm_rust_glue$: paths.dist.wasm.glue,
         },
         extensions: ['.ts', '.js'],
     },
