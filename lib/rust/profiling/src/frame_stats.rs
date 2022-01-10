@@ -58,6 +58,14 @@ impl Stats {
     }
 }
 
+/// Emits the 2nd argument only if the 1st argument is an integer type. A helper macro for
+/// gen_stats!, supports only the types currently used with gen_stats!.
+macro_rules! emit_if_integer {
+    (u32, $($block:tt)*) => ($($block)*);
+    (usize, $($block:tt)*) => ($($block)*);
+    (f64, $($block:tt)*) => ();
+}
+
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
 
@@ -88,17 +96,17 @@ macro_rules! gen_stats {
                 self.[<set _ $field>](value);
             }
 
-            /// Increments field's value.
-            pub fn [<inc _ $field>](&self) {
-                #[allow(trivial_numeric_casts)]
-                self.[<mod _ $field>](|t| t + (1 as $field_type));
-            }
+            emit_if_integer!($field_type,
+                /// Increments field's value.
+                pub fn [<inc _ $field>](&self) {
+                    self.[<mod _ $field>](|t| t + 1);
+                }
 
-            /// Decrements field's value.
-            pub fn [<dec _ $field>](&self) {
-                #[allow(trivial_numeric_casts)]
-                self.[<mod _ $field>](|t| t - (1 as $field_type));
-            }
+                /// Decrements field's value.
+                pub fn [<dec _ $field>](&self) {
+                    self.[<mod _ $field>](|t| t - 1);
+                }
+            );
 
         )* }
 
