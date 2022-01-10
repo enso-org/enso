@@ -3,10 +3,8 @@
 use crate::prelude::*;
 
 use crate::debug;
+use crate::debug::stats::Stats;
 use crate::system::web;
-
-use profiling;
-use profiling::frame_stats::Stats;
 
 
 

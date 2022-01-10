@@ -6,6 +6,7 @@ use crate::prelude::*;
 
 use crate::display::traits::*;
 
+use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::layout::alignment;
 use crate::display::layout::Alignment;
@@ -14,8 +15,6 @@ use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::types::*;
-
-use profiling::frame_stats::Stats;
 
 
 

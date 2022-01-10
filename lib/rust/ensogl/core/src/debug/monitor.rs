@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
+use crate::debug::stats::Stats;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 
-use profiling::frame_stats::Stats;
 use std::collections::VecDeque;
 use std::f64;
 use wasm_bindgen;

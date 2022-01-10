@@ -21,6 +21,7 @@ enso-data-structures = { path = "../data-structures" }
 enso-logger = { path = "../logger"}
 enso-prelude = { version = "^0.2.1", path = "../prelude", features = ["serde"] }
 enso-web = { path = "../web" }
+ensogl-core = { path = "../ensogl/core" }
 Inflector = "0.11.4"
 js-sys = { version = "0.3" }
 ordered-float = "2.8.0"

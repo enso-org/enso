@@ -5,13 +5,13 @@ use crate::prelude::*;
 use crate::control::callback::CallbackFn;
 use crate::data::dirty;
 use crate::data::OptVec;
+use crate::debug::stats::Stats;
 use crate::system::gpu::Context;
 
 use crate::data::dirty::traits::*;
 use crate::system::gpu::types::*;
 
 use enso_shapely::newtype_prim;
-use profiling::frame_stats::Stats;
 use std::collections::BTreeSet;
 
 

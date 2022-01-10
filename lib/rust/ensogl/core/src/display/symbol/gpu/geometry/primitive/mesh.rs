@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::control::callback::CallbackFn;
+use crate::debug::stats::Stats;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::system::gpu::shader::Context;
@@ -10,7 +11,6 @@ use crate::system::gpu::shader::Context;
 use num_enum::IntoPrimitive;
 
 use enso_shapely::shared;
-use profiling::frame_stats::Stats;
 
 
 
