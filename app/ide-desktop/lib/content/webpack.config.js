@@ -63,6 +63,9 @@ module.exports = {
             BUILD_INFO: JSON.stringify(BUILD_INFO),
             FIREBASE_API_KEY: JSON.stringify(process.env.FIREBASE_API_KEY),
         }),
+        /// Makes the `PROFILING_LEVEL` environment variable which is set at build time  accessible
+        /// at runtime. See: https://webpack.js.org/plugins/environment-plugin/
+        new webpack.EnvironmentPlugin({ PROFILING_LEVEL: '' }),
     ],
     devtool: 'eval-source-map',
     devServer: {

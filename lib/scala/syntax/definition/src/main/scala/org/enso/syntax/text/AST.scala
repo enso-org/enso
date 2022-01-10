@@ -392,16 +392,16 @@ object Shape extends ShapeImplicit {
   }
 
   object Unrecognized {
-    implicit def ftor: Functor[Unrecognized]         = semi.functor
-    implicit def fold: Foldable[Unrecognized]        = semi.foldable
+    implicit def ftor: Functor[Unrecognized]         = semiauto.functor
+    implicit def fold: Foldable[Unrecognized]        = semiauto.foldable
     implicit def repr[T]: Repr[Unrecognized[T]]      = _.str
     implicit def ozip[T]: OffsetZip[Unrecognized, T] = t => t.coerce
     implicit def span[T]: HasSpan[Unrecognized[T]]   = _.str.length
   }
 
   object Unexpected {
-    implicit def ftor: Functor[Unexpected]          = semi.functor
-    implicit def fold: Foldable[Unexpected]         = semi.foldable
+    implicit def ftor: Functor[Unexpected]          = semiauto.functor
+    implicit def fold: Foldable[Unexpected]         = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Unexpected[T]] = t => Repr(t.stream)
     implicit def ozip[T: HasSpan]: OffsetZip[Unexpected, T] =
       t => t.copy(stream = OffsetZip(t.stream))
@@ -409,58 +409,58 @@ object Shape extends ShapeImplicit {
       t => t.stream.span()
   }
   object Ident {
-    implicit def ftor: Functor[Ident]    = semi.functor
-    implicit def fold: Foldable[Ident]   = semi.foldable
+    implicit def ftor: Functor[Ident]    = semiauto.functor
+    implicit def fold: Foldable[Ident]   = semiauto.foldable
     implicit def repr[T]: Repr[Ident[T]] = _.name
     implicit def ozip[T: HasSpan]: OffsetZip[Ident, T] = { ident =>
       OffsetZip[Shape, T](ident).asInstanceOf
     }
   }
   object Blank {
-    implicit def ftor: Functor[Blank]         = semi.functor
-    implicit def fold: Foldable[Blank]        = semi.foldable
+    implicit def ftor: Functor[Blank]         = semiauto.functor
+    implicit def fold: Foldable[Blank]        = semiauto.foldable
     implicit def repr[T]: Repr[Blank[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Blank, T] = t => t.coerce
     implicit def span[T]: HasSpan[Blank[T]]   = _ => 1
   }
   object Var {
-    implicit def ftor: Functor[Var]         = semi.functor
-    implicit def fold: Foldable[Var]        = semi.foldable
+    implicit def ftor: Functor[Var]         = semiauto.functor
+    implicit def fold: Foldable[Var]        = semiauto.foldable
     implicit def repr[T]: Repr[Var[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Var, T] = t => t.coerce
     implicit def span[T]: HasSpan[Var[T]]   = t => t.name.length
   }
   object Cons {
-    implicit def ftor: Functor[Cons]         = semi.functor
-    implicit def fold: Foldable[Cons]        = semi.foldable
+    implicit def ftor: Functor[Cons]         = semiauto.functor
+    implicit def fold: Foldable[Cons]        = semiauto.foldable
     implicit def repr[T]: Repr[Cons[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Cons, T] = t => t.coerce
     implicit def span[T]: HasSpan[Cons[T]]   = t => t.name.length
   }
   object Mod {
-    implicit def ftor: Functor[Mod]         = semi.functor
-    implicit def fold: Foldable[Mod]        = semi.foldable
+    implicit def ftor: Functor[Mod]         = semiauto.functor
+    implicit def fold: Foldable[Mod]        = semiauto.foldable
     implicit def repr[T]: Repr[Mod[T]]      = R + _.name + "="
     implicit def ozip[T]: OffsetZip[Mod, T] = t => t.coerce
     implicit def span[T]: HasSpan[Mod[T]]   = t => t.name.length + 1
   }
   object Opr {
-    implicit def ftor: Functor[Opr]         = semi.functor
-    implicit def fold: Foldable[Opr]        = semi.foldable
+    implicit def ftor: Functor[Opr]         = semiauto.functor
+    implicit def fold: Foldable[Opr]        = semiauto.foldable
     implicit def repr[T]: Repr[Opr[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Opr, T] = t => t.coerce
     implicit def span[T]: HasSpan[Opr[T]]   = t => t.name.length
   }
   object Annotation {
-    implicit def ftor: Functor[Annotation]         = semi.functor
-    implicit def fold: Foldable[Annotation]        = semi.foldable
+    implicit def ftor: Functor[Annotation]         = semiauto.functor
+    implicit def fold: Foldable[Annotation]        = semiauto.foldable
     implicit def repr[T]: Repr[Annotation[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Annotation, T] = t => t.coerce
     implicit def span[T]: HasSpan[Annotation[T]]   = t => t.name.length
   }
   object InvalidSuffix {
-    implicit def ftor: Functor[InvalidSuffix]         = semi.functor
-    implicit def fold: Foldable[InvalidSuffix]        = semi.foldable
+    implicit def ftor: Functor[InvalidSuffix]         = semiauto.functor
+    implicit def fold: Foldable[InvalidSuffix]        = semiauto.foldable
     implicit def ozip[T]: OffsetZip[InvalidSuffix, T] = t => t.coerce
     implicit def repr[T]: Repr[InvalidSuffix[T]] =
       t => R + t.elem.repr + t.suffix
@@ -468,16 +468,16 @@ object Shape extends ShapeImplicit {
       t => t.elem.span() + t.suffix.length
   }
   object Literal extends IntermediateTrait[Literal] {
-    implicit def ftor: Functor[Literal]  = semi.functor
-    implicit def fold: Foldable[Literal] = semi.foldable
+    implicit def ftor: Functor[Literal]  = semiauto.functor
+    implicit def fold: Foldable[Literal] = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Literal, T] = { t =>
       OffsetZip[Shape, T](t).asInstanceOf
     }
   }
   object Number {
     implicit def fromInt[T](int: Int): AST.Number = AST.Number(int)
-    implicit def ftor: Functor[Number]            = semi.functor
-    implicit def fold: Foldable[Number]           = semi.foldable
+    implicit def ftor: Functor[Number]            = semiauto.functor
+    implicit def fold: Foldable[Number]           = semiauto.foldable
     implicit def ozip[T]: OffsetZip[Number, T]    = t => t.coerce
     implicit def repr[T]: Repr[Number[T]] =
       t => t.base.map(_ + "_").getOrElse("") + t.int
@@ -485,23 +485,23 @@ object Shape extends ShapeImplicit {
       t => t.base.map(_.length + 1).getOrElse(0) + t.int.length
   }
   object DanglingBase {
-    implicit def ftor: Functor[DanglingBase]         = semi.functor
-    implicit def fold: Foldable[DanglingBase]        = semi.foldable
+    implicit def ftor: Functor[DanglingBase]         = semiauto.functor
+    implicit def fold: Foldable[DanglingBase]        = semiauto.foldable
     implicit def repr[T]: Repr[DanglingBase[T]]      = R + _.base + '_'
     implicit def ozip[T]: OffsetZip[DanglingBase, T] = t => t.coerce
     implicit def span[T]: HasSpan[DanglingBase[T]] =
       t => t.base.length + 1
   }
   object Text extends IntermediateTrait[Text] {
-    implicit def ftor: Functor[Text]  = semi.functor
-    implicit def fold: Foldable[Text] = semi.foldable
+    implicit def ftor: Functor[Text]  = semiauto.functor
+    implicit def fold: Foldable[Text] = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Text, T] = { t =>
       OffsetZip[Shape, T](t).asInstanceOf
     }
   }
   object TextUnclosed {
-    implicit def ftor: Functor[TextUnclosed]  = semi.functor
-    implicit def fold: Foldable[TextUnclosed] = semi.foldable
+    implicit def ftor: Functor[TextUnclosed]  = semiauto.functor
+    implicit def fold: Foldable[TextUnclosed] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[TextUnclosed[T]] = {
       case TextUnclosed(t: TextLineRaw[T]) => t.quote + t.text
       case TextUnclosed(t: TextLineFmt[T]) => t.quote + t.text
@@ -514,30 +514,30 @@ object Shape extends ShapeImplicit {
     }
   }
   object InvalidQuote {
-    implicit def ftor: Functor[InvalidQuote]          = semi.functor
-    implicit def fold: Foldable[InvalidQuote]         = semi.foldable
+    implicit def ftor: Functor[InvalidQuote]          = semiauto.functor
+    implicit def fold: Foldable[InvalidQuote]         = semiauto.foldable
     implicit def repr[T: Repr]: Repr[InvalidQuote[T]] = _.quote
     implicit def ozip[T]: OffsetZip[InvalidQuote, T]  = t => t.coerce
     implicit def span[T]: HasSpan[InvalidQuote[T]]    = _.quote.span
   }
   object InlineBlock {
-    implicit def ftor: Functor[InlineBlock]         = semi.functor
-    implicit def fold: Foldable[InlineBlock]        = semi.foldable
+    implicit def ftor: Functor[InlineBlock]         = semiauto.functor
+    implicit def fold: Foldable[InlineBlock]        = semiauto.foldable
     implicit def repr[T]: Repr[InlineBlock[T]]      = _.quote
     implicit def ozip[T]: OffsetZip[InlineBlock, T] = t => t.coerce
     implicit def span[T]: HasSpan[InlineBlock[T]]   = _.quote.span
   }
   object TextLine extends IntermediateTrait[TextLine] {
-    implicit def ftor: Functor[TextLine]  = semi.functor
-    implicit def fold: Foldable[TextLine] = semi.foldable
+    implicit def ftor: Functor[TextLine]  = semiauto.functor
+    implicit def fold: Foldable[TextLine] = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[TextLine, T] = {
       case t: TextLineRaw[T] => OffsetZip(t)
       case t: TextLineFmt[T] => OffsetZip(t)
     }
   }
   object TextLineRaw {
-    implicit def ftor: Functor[TextLineRaw]  = semi.functor
-    implicit def fold: Foldable[TextLineRaw] = semi.foldable
+    implicit def ftor: Functor[TextLineRaw]  = semiauto.functor
+    implicit def fold: Foldable[TextLineRaw] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[TextLineRaw[T]] =
       t => t.quote + t.text + t.quote
     implicit def ozip[T]: OffsetZip[TextLineRaw, T] = t => t.coerce
@@ -545,8 +545,8 @@ object Shape extends ShapeImplicit {
       t => (2 * t.quote.span) + t.text.map(_.span()).sum
   }
   object TextLineFmt {
-    implicit def ftor: Functor[TextLineFmt]  = semi.functor
-    implicit def fold: Foldable[TextLineFmt] = semi.foldable
+    implicit def ftor: Functor[TextLineFmt]  = semiauto.functor
+    implicit def fold: Foldable[TextLineFmt] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[TextLineFmt[T]] =
       t => t.quote + t.text + t.quote
     implicit def ozip[T: HasSpan]: OffsetZip[TextLineFmt, T] = { t =>
@@ -570,8 +570,8 @@ object Shape extends ShapeImplicit {
       emptyLinesSpan + newline.span + off + l.text.span()
     }
 
-    implicit def ftor: Functor[TextBlock]  = semi.functor
-    implicit def fold: Foldable[TextBlock] = semi.foldable
+    implicit def ftor: Functor[TextBlock]  = semiauto.functor
+    implicit def fold: Foldable[TextBlock] = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[TextBlock, T] = {
       case body: TextBlockRaw[T] => OffsetZip(body)
       case body: TextBlockFmt[T] => OffsetZip(body)
@@ -579,8 +579,8 @@ object Shape extends ShapeImplicit {
   }
 
   object TextBlockRaw {
-    implicit def ftor: Functor[TextBlockRaw]  = semi.functor
-    implicit def fold: Foldable[TextBlockRaw] = semi.foldable
+    implicit def ftor: Functor[TextBlockRaw]  = semiauto.functor
+    implicit def fold: Foldable[TextBlockRaw] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[TextBlockRaw[T]] =
       t => t.quote + t.spaces + t.text.map(TextBlock.lineRepr(t.offset, _))
     implicit def ozip[T: HasSpan]: OffsetZip[TextBlockRaw, T] = t => t.coerce
@@ -591,8 +591,8 @@ object Shape extends ShapeImplicit {
   }
 
   object TextBlockFmt {
-    implicit def ftor: Functor[TextBlockFmt]  = semi.functor
-    implicit def fold: Foldable[TextBlockFmt] = semi.foldable
+    implicit def ftor: Functor[TextBlockFmt]  = semiauto.functor
+    implicit def fold: Foldable[TextBlockFmt] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[TextBlockFmt[T]] =
       t => t.quote + t.spaces + t.text.map(TextBlock.lineRepr(t.offset, _))
     implicit def ozip[T: HasSpan]: OffsetZip[TextBlockFmt, T] = { body =>
@@ -617,8 +617,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Segment {
-    implicit def ftor: Functor[Segment]  = semi.functor
-    implicit def fold: Foldable[Segment] = semi.foldable
+    implicit def ftor: Functor[Segment]  = semiauto.functor
+    implicit def fold: Foldable[Segment] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Segment[T]] = {
       case t: SegmentRaw[T] => Repr(t)
       case t: SegmentFmt[T] => Repr(t)
@@ -633,8 +633,8 @@ object Shape extends ShapeImplicit {
     }
   }
   object SegmentFmt {
-    implicit def ftor[T]: Functor[SegmentFmt] = semi.functor
-    implicit def fold: Foldable[SegmentFmt]   = semi.foldable
+    implicit def ftor[T]: Functor[SegmentFmt] = semiauto.functor
+    implicit def fold: Foldable[SegmentFmt]   = semiauto.foldable
     implicit def repr[T: Repr]: Repr[SegmentFmt[T]] = {
       case t: SegmentPlain[T]     => Repr(t)
       case t: SegmentExpr[T]      => Repr(t)
@@ -655,8 +655,8 @@ object Shape extends ShapeImplicit {
     }
   }
   object SegmentRaw {
-    implicit def ftor[T]: Functor[SegmentRaw] = semi.functor
-    implicit def fold: Foldable[SegmentRaw]   = semi.foldable
+    implicit def ftor[T]: Functor[SegmentRaw] = semiauto.functor
+    implicit def fold: Foldable[SegmentRaw]   = semiauto.foldable
     implicit def repr[T]: Repr[SegmentRaw[T]] = {
       case t: SegmentPlain[T]     => Repr(t)
       case t: SegmentRawEscape[T] => Repr(t)
@@ -674,8 +674,8 @@ object Shape extends ShapeImplicit {
     implicit def txtFromString[T](str: String): SegmentPlain[T] =
       SegmentPlain(str)
 
-    implicit def fold: Foldable[SegmentPlain]   = semi.foldable
-    implicit def ftor[T]: Functor[SegmentPlain] = semi.functor
+    implicit def fold: Foldable[SegmentPlain]   = semiauto.foldable
+    implicit def ftor[T]: Functor[SegmentPlain] = semiauto.functor
     implicit def repr[T]: Repr[SegmentPlain[T]] = _.value
     implicit def ozip[T]: OffsetZip[SegmentPlain, T] =
       t => t.coerce
@@ -684,8 +684,8 @@ object Shape extends ShapeImplicit {
   object SegmentExpr {
     val quote: Repr.Builder = "`"
 
-    implicit def ftor[T]: Functor[SegmentExpr] = semi.functor
-    implicit def fold: Foldable[SegmentExpr]   = semi.foldable
+    implicit def ftor[T]: Functor[SegmentExpr] = semiauto.functor
+    implicit def fold: Foldable[SegmentExpr]   = semiauto.foldable
     implicit def repr[T: Repr]: Repr[SegmentExpr[T]] =
       R + quote + _.value + quote
     implicit def ozip[T]: OffsetZip[SegmentExpr, T] =
@@ -696,8 +696,8 @@ object Shape extends ShapeImplicit {
   object SegmentEscape {
     val introducer: Repr.Builder = "\\"
 
-    implicit def ftor: Functor[SegmentEscape]  = semi.functor
-    implicit def fold: Foldable[SegmentEscape] = semi.foldable
+    implicit def ftor: Functor[SegmentEscape]  = semiauto.functor
+    implicit def fold: Foldable[SegmentEscape] = semiauto.foldable
     implicit def repr[T]: Repr[SegmentEscape[T]] =
       t => introducer + t.code.repr
     implicit def ozip[T]: OffsetZip[SegmentEscape, T] =
@@ -708,8 +708,8 @@ object Shape extends ShapeImplicit {
   object SegmentRawEscape {
     val introducer: Repr.Builder = "\\"
 
-    implicit def ftor: Functor[SegmentRawEscape]  = semi.functor
-    implicit def fold: Foldable[SegmentRawEscape] = semi.foldable
+    implicit def ftor: Functor[SegmentRawEscape]  = semiauto.functor
+    implicit def fold: Foldable[SegmentRawEscape] = semiauto.foldable
     implicit def repr[T]: Repr[SegmentRawEscape[T]] =
       t => introducer + t.code.repr
     implicit def ozip[T]: OffsetZip[SegmentRawEscape, T] =
@@ -718,14 +718,14 @@ object Shape extends ShapeImplicit {
       introducer.span + _.code.repr.length
   }
   object App extends IntermediateTrait[App] {
-    implicit def ftor[T]: Functor[App] = semi.functor
-    implicit def fold: Foldable[App]   = semi.foldable
+    implicit def ftor[T]: Functor[App] = semiauto.functor
+    implicit def fold: Foldable[App]   = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[App, T] =
       t => OffsetZip[Shape, T](t).asInstanceOf
   }
   object Prefix {
-    implicit def ftor: Functor[Prefix]  = semi.functor
-    implicit def fold: Foldable[Prefix] = semi.foldable
+    implicit def ftor: Functor[Prefix]  = semiauto.functor
+    implicit def fold: Foldable[Prefix] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Prefix[T]] =
       t => R + t.func + t.off + t.arg
     implicit def ozip[T: HasSpan]: OffsetZip[Prefix, T] =
@@ -739,8 +739,8 @@ object Shape extends ShapeImplicit {
 
   }
   object Infix {
-    implicit def ftor: Functor[Infix]  = semi.functor
-    implicit def fold: Foldable[Infix] = semi.foldable
+    implicit def ftor: Functor[Infix]  = semiauto.functor
+    implicit def fold: Foldable[Infix] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Infix[T]] =
       t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
     implicit def ozip[T: HasSpan]: OffsetZip[Infix, T] =
@@ -756,14 +756,14 @@ object Shape extends ShapeImplicit {
   }
 
   object Section extends IntermediateTrait[Section] {
-    implicit def ftor[T]: Functor[Section] = semi.functor
-    implicit def fold: Foldable[Section]   = semi.foldable
+    implicit def ftor[T]: Functor[Section] = semiauto.functor
+    implicit def fold: Foldable[Section]   = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Section, T] =
       t => OffsetZip[Shape, T](t).asInstanceOf
   }
   object SectionLeft {
-    implicit def ftor: Functor[SectionLeft]  = semi.functor
-    implicit def fold: Foldable[SectionLeft] = semi.foldable
+    implicit def ftor: Functor[SectionLeft]  = semiauto.functor
+    implicit def fold: Foldable[SectionLeft] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[SectionLeft[T]] =
       t => R + t.arg + t.off + t.opr
     implicit def ozip[T]: OffsetZip[SectionLeft, T] =
@@ -772,8 +772,8 @@ object Shape extends ShapeImplicit {
       t => t.arg.span() + t.off + t.opr.span
   }
   object SectionRight {
-    implicit def ftor: Functor[SectionRight]  = semi.functor
-    implicit def fold: Foldable[SectionRight] = semi.foldable
+    implicit def ftor: Functor[SectionRight]  = semiauto.functor
+    implicit def fold: Foldable[SectionRight] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[SectionRight[T]] =
       t => R + t.opr + t.off + t.arg
     implicit def ozip[T]: OffsetZip[SectionRight, T] =
@@ -782,8 +782,8 @@ object Shape extends ShapeImplicit {
       t => t.opr.span + t.off + t.arg.span()
   }
   object SectionSides {
-    implicit def ftor: Functor[SectionSides]          = semi.functor
-    implicit def fold: Foldable[SectionSides]         = semi.foldable
+    implicit def ftor: Functor[SectionSides]          = semiauto.functor
+    implicit def fold: Foldable[SectionSides]         = semiauto.foldable
     implicit def repr[T: Repr]: Repr[SectionSides[T]] = t => R + t.opr
     implicit def ozip[T]: OffsetZip[SectionSides, T]  = t => t.coerce
     implicit def span[T: HasSpan]: HasSpan[SectionSides[T]] =
@@ -791,8 +791,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Block {
-    implicit def ftorBlock: Functor[Block] = semi.functor
-    implicit def fold: Foldable[Block]     = semi.foldable
+    implicit def ftorBlock: Functor[Block] = semiauto.functor
+    implicit def fold: Foldable[Block]     = semiauto.foldable
     implicit def reprBlock[T: Repr]: Repr[Block[T]] =
       t => {
         val headRepr       = if (t.isOrphan) R else newline
@@ -846,8 +846,8 @@ object Shape extends ShapeImplicit {
       def toOptional: Line[Option[T]] = copy(elem = Some(elem))
     }
     object Line {
-      implicit def ftor: Functor[Line]          = semi.functor
-      implicit def fold: Foldable[Line]         = semi.foldable
+      implicit def ftor: Functor[Line]          = semiauto.functor
+      implicit def fold: Foldable[Line]         = semiauto.foldable
       implicit def repr[T: Repr]: Repr[Line[T]] = t => R + t.elem + t.off
       implicit def span[T: HasSpan]: HasSpan[Line[T]] =
         t => t.elem.span() + t.off
@@ -857,8 +857,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Module {
-    implicit def ftor: Functor[Module]  = semi.functor
-    implicit def fold: Foldable[Module] = semi.foldable
+    implicit def ftor: Functor[Module]  = semiauto.functor
+    implicit def fold: Foldable[Module] = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Module, T] =
       t => {
         var index = 0
@@ -877,16 +877,16 @@ object Shape extends ShapeImplicit {
   }
 
   object Macro extends IntermediateTrait[Macro] {
-    implicit def ftor[T]: Functor[Macro] = semi.functor
-    implicit def fold: Foldable[Macro]   = semi.foldable
+    implicit def ftor[T]: Functor[Macro] = semiauto.functor
+    implicit def fold: Foldable[Macro]   = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Macro, T] =
       t => OffsetZip[Shape, T](t).asInstanceOf
   }
 
   object Match {
     /// Instances ///
-    implicit def ftor: Functor[Match]  = semi.functor
-    implicit def fold: Foldable[Match] = semi.foldable
+    implicit def ftor: Functor[Match]  = semiauto.functor
+    implicit def fold: Foldable[Match] = semiauto.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Match, T] =
       t => {
         var off = 0
@@ -942,8 +942,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Ambiguous {
-    implicit def ftor: Functor[Ambiguous]  = semi.functor
-    implicit def fold: Foldable[Ambiguous] = semi.foldable
+    implicit def ftor: Functor[Ambiguous]  = semiauto.functor
+    implicit def fold: Foldable[Ambiguous] = semiauto.foldable
     implicit def repr[T]: Repr[Ambiguous[T]] =
       t => R + t.segs.map(Repr(_))
     implicit def ozip[T]: OffsetZip[Ambiguous, T] =
@@ -960,8 +960,8 @@ object Shape extends ShapeImplicit {
 
   object Comment {
     val symbol                           = "#"
-    implicit def ftor: Functor[Comment]  = semi.functor
-    implicit def fold: Foldable[Comment] = semi.foldable
+    implicit def ftor: Functor[Comment]  = semiauto.functor
+    implicit def fold: Foldable[Comment] = semiauto.foldable
     implicit def repr[T]: Repr[Comment[T]] =
       R + symbol + symbol + _.lines.mkString("\n")
     // FIXME: How to make it automatic for non-spaced AST?
@@ -971,8 +971,8 @@ object Shape extends ShapeImplicit {
 
   object Documented {
     import Comment.symbol
-    implicit def ftor[T]: Functor[Documented]  = semi.functor
-    implicit def fold[T]: Foldable[Documented] = semi.foldable
+    implicit def ftor[T]: Functor[Documented]  = semiauto.functor
+    implicit def fold[T]: Foldable[Documented] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Documented[T]] =
       t => {
         val symbolRepr = R + symbol + symbol
@@ -989,8 +989,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Import {
-    implicit def ftor: Functor[Import]  = semi.functor
-    implicit def fold: Foldable[Import] = semi.foldable
+    implicit def ftor: Functor[Import]  = semiauto.functor
+    implicit def fold: Foldable[Import] = semiauto.foldable
     implicit def repr[T]: Repr[Import[T]] =
       t => R + "import" + t.path.repr.build()
 
@@ -1000,8 +1000,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Export {
-    implicit def ftor: Functor[Export]  = semi.functor
-    implicit def fold: Foldable[Export] = semi.foldable
+    implicit def ftor: Functor[Export]  = semiauto.functor
+    implicit def fold: Foldable[Export] = semiauto.foldable
     implicit def repr[T]: Repr[Export[T]] =
       t => R + "export" + t.path.repr.build()
 
@@ -1011,8 +1011,8 @@ object Shape extends ShapeImplicit {
   }
 
   object JavaImport {
-    implicit def ftor: Functor[JavaImport]  = semi.functor
-    implicit def fold: Foldable[JavaImport] = semi.foldable
+    implicit def ftor: Functor[JavaImport]  = semiauto.functor
+    implicit def fold: Foldable[JavaImport] = semiauto.foldable
     implicit def repr[T]: Repr[JavaImport[T]] =
       t =>
         R + ("polyglot java import " + t.path
@@ -1026,8 +1026,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Mixfix {
-    implicit def ftor: Functor[Mixfix]  = semi.functor
-    implicit def fold: Foldable[Mixfix] = semi.foldable
+    implicit def ftor: Functor[Mixfix]  = semiauto.functor
+    implicit def fold: Foldable[Mixfix] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Mixfix[T]] =
       t => {
         val lastRepr = if (t.name.length == t.args.length) List() else List(R)
@@ -1041,8 +1041,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Group {
-    implicit def ftor: Functor[Group]  = semi.functor
-    implicit def fold: Foldable[Group] = semi.foldable
+    implicit def ftor: Functor[Group]  = semiauto.functor
+    implicit def fold: Foldable[Group] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Group[T]] =
       R + "(" + _.body + ")"
     // FIXME: How to make it automatic for non-spaced AST?
@@ -1051,8 +1051,8 @@ object Shape extends ShapeImplicit {
   }
 
   object SequenceLiteral {
-    implicit def ftor: Functor[SequenceLiteral]  = semi.functor
-    implicit def fold: Foldable[SequenceLiteral] = semi.foldable
+    implicit def ftor: Functor[SequenceLiteral]  = semiauto.functor
+    implicit def fold: Foldable[SequenceLiteral] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[SequenceLiteral[T]] =
       t => R + "[" + t.items.map(_.repr.build()).mkString(", ") + "]"
     implicit def ozip[T]: OffsetZip[SequenceLiteral, T] =
@@ -1062,8 +1062,8 @@ object Shape extends ShapeImplicit {
   }
 
   object TypesetLiteral {
-    implicit def ftor: Functor[TypesetLiteral] = semi.functor
-    implicit def fold: Foldable[Def]           = semi.foldable
+    implicit def ftor: Functor[TypesetLiteral] = semiauto.functor
+    implicit def fold: Foldable[Def]           = semiauto.foldable
     implicit def repr[T: Repr]: Repr[TypesetLiteral[T]] =
       t => s"{ ${t.expression.repr.build()} }"
     implicit def ozip[T]: OffsetZip[TypesetLiteral, T] = _.map(Index.Start -> _)
@@ -1071,8 +1071,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Def {
-    implicit def ftor: Functor[Def]  = semi.functor
-    implicit def fold: Foldable[Def] = semi.foldable
+    implicit def ftor: Functor[Def]  = semiauto.functor
+    implicit def fold: Foldable[Def] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Def[T]] =
       t => R + Def.symbol + 1 + t.name + t.args.map(R + 1 + _) + t.body
     // FIXME: How to make it automatic for non-spaced AST?
@@ -1083,8 +1083,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Foreign {
-    implicit def ftor: Functor[Foreign]  = semi.functor
-    implicit def fold: Foldable[Foreign] = semi.foldable
+    implicit def ftor: Functor[Foreign]  = semiauto.functor
+    implicit def fold: Foldable[Foreign] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Foreign[T]] =
       t => {
         val code2 = t.code.map(R + t.indent + _).mkString("\n")
@@ -1096,8 +1096,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Modified {
-    implicit def ftor: Functor[Modified]  = semi.functor
-    implicit def fold: Foldable[Modified] = semi.foldable
+    implicit def ftor: Functor[Modified]  = semiauto.functor
+    implicit def fold: Foldable[Modified] = semiauto.foldable
     implicit def repr[T: Repr]: Repr[Modified[T]] =
       t => {
         R + t.modifier + t.definition.repr.build()
@@ -1139,8 +1139,8 @@ object Shape extends ShapeImplicit {
 sealed trait ShapeImplicit {
   import Shape._
 
-  implicit def ftor: Functor[Shape]  = semi.functor
-  implicit def fold: Foldable[Shape] = semi.foldable
+  implicit def ftor: Functor[Shape]  = semiauto.functor
+  implicit def fold: Foldable[Shape] = semiauto.foldable
   implicit def repr[T: Repr]: Repr[Shape[T]] = {
     case s: Unrecognized[T]  => s.repr
     case s: Unexpected[T]    => s.repr
