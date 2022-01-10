@@ -774,6 +774,8 @@ macro_rules! stats_sampler {
                 $label
             }
             fn value(&self) -> f64 {
+                // Disable lint warning for cases when `$stats_method()` is f64, making
+                // `$stats_method() as f64` a trivial cast of a f64 value to f64.
                 #![allow(trivial_numeric_casts)]
                 self.stats.$stats_method() as f64 / $value_divisor
             }
