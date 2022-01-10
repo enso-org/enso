@@ -90,6 +90,7 @@ pub struct EmbeddedVisualizations {
 pub struct Handle {
     language_server_rpc:     Rc<language_server::Connection>,
     embedded_visualizations: Rc<RefCell<EmbeddedVisualizations>>,
+    logger:                  Logger,
 }
 
 impl Handle {
@@ -97,9 +98,11 @@ impl Handle {
     pub fn new(
         language_server_rpc: Rc<language_server::Connection>,
         embedded_visualizations: EmbeddedVisualizations,
+        logger: &Logger,
     ) -> Self {
+        let logger = logger.sub("VisualizationController");
         let embedded_visualizations = Rc::new(RefCell::new(embedded_visualizations));
-        Self { language_server_rpc, embedded_visualizations }
+        Self { language_server_rpc, embedded_visualizations, logger }
     }
 
     async fn list_project_specific_visualizations(&self) -> FallibleResult<Vec<VisualizationPath>> {
@@ -156,10 +159,14 @@ impl Handle {
                 let js_code = self.language_server_rpc.read_file(path).await?.contents;
                 let wrap_error =
                     |err| Error::js_preparation_error(visualization.clone(), err).into();
-                let unknown_file_name = || String::from("unknown_file_name");
-                let file_name = path.file_name().cloned().unwrap_or_else(unknown_file_name);
-                let sources: &[(&str, &str)] = &[(&file_name, &js_code)];
-                let sources = Sources::from_files(sources);
+                let sources = if let Some(file_name) = path.file_name() {
+                    let sources: &[(&str, &str)] = &[(&file_name, &js_code)];
+                    Sources::from_files(sources)
+                } else {
+                    warning!(self.logger, "Unable to get a file name from {path}. \
+                             Visualization source map will not be provided.");
+                    Sources::new()
+                };
                 visualization::java_script::Definition::new(project, sources)
                     .map(Into::into)
                     .map_err(wrap_error)
@@ -238,7 +245,8 @@ mod tests {
         let embedded_visualization = builtin::visualization::native::BubbleChart::definition();
         embedded_visualizations
             .insert("[Demo] Bubble Visualization".to_string(), embedded_visualization.clone());
-        let vis_controller = Handle::new(language_server, embedded_visualizations);
+        let logger = Logger::new("Mock logger");
+        let vis_controller = Handle::new(language_server, embedded_visualizations, &logger);
 
         let visualizations = vis_controller.list_visualizations().await;
         let visualizations = visualizations.expect("Couldn't list visualizations.");
