@@ -191,11 +191,6 @@ impl World {
         &self.scene
     }
 
-    /// Stats accessor.
-    pub fn stats(&self) -> &Stats {
-        &self.stats
-    }
-
     /// Stats monitor accessor.
     pub fn stats_monitor(&self) -> &stats::Monitor {
         &self.stats_monitor

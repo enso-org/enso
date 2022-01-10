@@ -71,10 +71,9 @@ impl Initializer {
 
             if profiling::ENABLED {
                 application.display.stats_monitor().force_profiling();
-                let stats = application.display.stats().clone();
-                application.display.on_after_frame(f_!([]
+                application.display.on_stats_available(|stats| {
                     profiling::frame_stats::intervals::push_stats(&stats.data());
-                ));
+                });
             }
 
             // IDE was opened with `project` argument, we should skip the Welcome Screen.
