@@ -85,7 +85,7 @@ impl World {
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_stats_available = <callback::SharedRegistryMut1<Stats>>::new();
         let main_loop_frame = main_loop.on_frame(
-            f!([stats_monitor,stats,on_before_frame,on_after_frame,uniforms,scene_dirty,scene]
+            f!([stats_monitor,stats,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
