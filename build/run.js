@@ -1,11 +1,9 @@
 const child_process = require('child_process')
 const cmd = require('./cmd')
 const fs = require('fs').promises
-const fse = require('fs-extra')
 const fss = require('fs')
 const unzipper = require('unzipper')
 const glob = require('glob')
-const ncp = require('ncp').ncp
 const os = require('os')
 const path = require('path')
 const paths = require('./paths')
@@ -46,20 +44,9 @@ let targetArgs = undefined
 async function gzip(input, output) {
     const gzip = zlib.createGzip()
     const source = fss.createReadStream(input)
+    await fs.mkdir(path.dirname(output), { recursive: true })
     const destination = fss.createWriteStream(output)
     await pipe(source, gzip, destination)
-}
-
-/// Copy files and directories.
-async function copy(src, tgt) {
-    return new Promise((resolve, reject) => {
-        ncp(src, tgt, err => {
-            if (err) {
-                reject(`${err}`)
-            }
-            resolve()
-        })
-    })
 }
 
 /// Run the command with the provided args and all args passed to this script after the `--` symbol.
@@ -185,6 +172,12 @@ commands.build.js = async function () {
     await run('npm', ['run', 'build'])
 }
 
+// We build WASM binaries from Rust code using `wasm-pack`. Intermediate temporary directory is used
+// before final copy to the Webpack's `dist` location because of two reasons:
+// 1. Webpack triggers recompilation on file changes, and we don't want to bother it until the final
+// binaries are ready to use.
+// 2. `wasm-pack` clears its output directory before compilation, which breaks Webpack because of
+// missing files.
 commands.build.rust = async function (argv) {
     let crate = argv.crate || DEFAULT_CRATE
     let crate_sfx = crate ? ` '${crate}'` : ``
@@ -195,11 +188,12 @@ commands.build.rust = async function (argv) {
         '--target',
         'web',
         '--out-dir',
-        paths.dist.wasm.root,
+        paths.wasm.root,
         '--out-name',
         'ide',
         crate,
     ]
+
     if (argv.dev) {
         args.push('--dev')
     }
@@ -220,23 +214,26 @@ commands.build.rust = async function (argv) {
     set_performance_logging_env(argv)
 
     await run_cargo('wasm-pack', args)
-    await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
-    await fs.rename(paths.dist.wasm.mainRaw, paths.dist.wasm.main)
+    await patch_file(paths.wasm.glue, js_workaround_patcher)
+    await fs.rename(paths.wasm.mainRaw, paths.wasm.main)
     if (!argv.dev) {
-        // TODO: Enable after updating wasm-pack
-        // https://github.com/rustwasm/wasm-pack/issues/696
-        // console.log('Optimizing the WASM binary.')
-        // await cmd.run('npx',['wasm-opt','-O3','-o',paths.dist.wasm.mainOpt,paths.dist.wasm.main])
         console.log('Minimizing the WASM binary.')
-        await gzip(paths.dist.wasm.main, paths.dist.wasm.mainOptGz) // TODO main -> mainOpt
+        await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        console.log('Checking the resulting WASM size.')
-        let stats = fss.statSync(paths.dist.wasm.mainOptGz)
-        let limit = 4.6
-        let size = Math.round((100 * stats.size) / 1024 / 1024) / 100
-        if (size > limit) {
-            throw `Output file size exceeds the limit (${size}MB > ${limit}MB).`
-        }
+        const limitMb = 4.6
+        await checkWasmSize(paths.wasm.mainGz, limitMb)
+    }
+    // Copy WASM files from temporary directory to Webpack's `dist` directory.
+    await fs.cp(paths.wasm.root, paths.dist.wasm.root, { recursive: true })
+}
+
+// Check if compressed WASM binary exceeds the size limit.
+async function checkWasmSize(path, limitMb) {
+    console.log('Checking the resulting WASM size.')
+    let stats = fss.statSync(path)
+    let size = Math.round((100 * stats.size) / 1024 / 1024) / 100
+    if (size > limitMb) {
+        throw `Output file size exceeds the limit (${size}MB > ${limitMb}MB).`
     }
 }
 
@@ -362,12 +359,15 @@ commands.watch.common = async function (argv) {
             build_args.push(`--crate=${argv.crate}`)
         }
         build_args = build_args.join(' ')
-        const target =
+        const shellCommand =
             '"' +
             `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
             cargoArgs.join(' ') +
             '"'
-        let args = ['watch', '-s', `${target}`]
+        // We ignore changes in README.md because `wasm-pack` copies it, which triggers `cargo watch`
+        // because of this bug: https://github.com/notify-rs/notify/issues/259
+        const ignore = ['--ignore', 'README.md']
+        let args = new Array().concat('watch', ignore, '-s', `${shellCommand}`)
         return cmd.run('cargo', args)
     })
     const js_process = cmd.with_cwd(paths.ide_desktop.root, async () => {
@@ -602,8 +602,8 @@ async function downloadJsAssets() {
 
     const assetsArchive = await unzipper.Open.file(path.join(workdir, ideAssetsMainZip))
     await assetsArchive.extract({ path: workdir })
-    await fse.copy(unzippedAssets, jsLibAssets)
-    await fse.remove(workdir)
+    await fs.cp(unzippedAssets, jsLibAssets, { recursive: true })
+    await fs.rm(workdir, { recursive: true, force: true })
 }
 
 async function runCommand(command, argv) {

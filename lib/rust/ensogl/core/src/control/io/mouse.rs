@@ -151,32 +151,3 @@ define_bindings! {
     MouseEvent::mouseleave => on_leave (OnLeave),
     WheelEvent::wheel      => on_wheel (OnWheel),
 }
-
-/// A handles of callbacks emitting events on bound FRP graph. See `callback::Handle`.
-#[derive(Debug)]
-pub struct MouseFrpCallbackHandles {
-    on_move:  callback::Handle,
-    on_down:  callback::Handle,
-    on_up:    callback::Handle,
-    on_wheel: callback::Handle,
-}
-
-// FIXME: This is obsolete. Use mouse bindings from scene instead.
-/// Bind FRP graph to MouseManager.
-pub fn bind_frp_to_mouse(frp: &Mouse, mouse_manager: &MouseManager) -> MouseFrpCallbackHandles {
-    let dom_shape = mouse_manager.dom.clone_ref().shape();
-    let on_move = enclose!((frp.position => frp) move |e:&OnMove| {
-        let position = Vector2(e.client_x() as f32,e.client_y() as f32);
-        let position = position - Vector2(dom_shape.width,dom_shape.height) / 2.0;
-        frp.emit(position);
-    });
-    let on_down = enclose!((frp.down  => frp) move |_:&OnDown | frp.emit(Button0));
-    let on_up = enclose!((frp.up    => frp) move |_:&OnUp   | frp.emit(Button0));
-    let on_wheel = enclose!((frp.wheel => frp) move |_:&OnWheel| frp.emit(()));
-    MouseFrpCallbackHandles {
-        on_move:  mouse_manager.on_move.add(on_move),
-        on_down:  mouse_manager.on_down.add(on_down),
-        on_up:    mouse_manager.on_up.add(on_up),
-        on_wheel: mouse_manager.on_wheel.add(on_wheel),
-    }
-}

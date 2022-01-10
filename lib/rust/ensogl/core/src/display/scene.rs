@@ -306,7 +306,7 @@ pub struct Mouse {
     pub position:      Uniform<Vector2<i32>>,
     pub hover_ids:     Uniform<Vector4<u32>>,
     pub target:        Rc<Cell<PointerTarget>>,
-    pub handles:       Rc<[callback::Handle; 3]>,
+    pub handles:       Rc<[callback::Handle; 4]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
     pub logger:        Logger,
@@ -355,7 +355,10 @@ impl Mouse {
             current_js_event
                 .make_event_handler(f!((event:&mouse::OnUp) frp.up.emit(event.button()))),
         );
-        let handles = Rc::new([on_move, on_down, on_up]);
+        let on_wheel = mouse_manager
+            .on_wheel
+            .add(current_js_event.make_event_handler(f_!(frp.wheel.emit(()))));
+        let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
         Self {
             mouse_manager,
             last_position,

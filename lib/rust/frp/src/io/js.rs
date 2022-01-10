@@ -185,7 +185,7 @@ impl CurrentJsEvent {
         // asked to.
         if let Some(e) = current {
             if !is_passed {
-                // Prevent events from propagating ot user agent, so default browser actions will
+                // Prevent events from propagating to user agent, so default browser actions will
                 // not be triggered.
                 e.prevent_default();
                 e.stop_propagation();

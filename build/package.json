@@ -4,10 +4,8 @@
   "description": "Build Scripts",
   "repository": "git@github.com:enso-org/ide.git",
   "dependencies": {
-    "fs-extra": "^10.0.0",
     "glob": "^7.1.6",
     "js-yaml": "4.0.0",
-    "ncp": "^2.0.0",
     "semver": "7.3.4",
     "unzipper": "^0.10.11",
     "yargs": "^15.3.0"

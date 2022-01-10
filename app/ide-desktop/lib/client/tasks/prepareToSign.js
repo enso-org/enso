@@ -1,4 +1,4 @@
-const { beforeSign } = require('./signArchives')
+const { beforeSign } = require('./signArchivesMacOs')
 
 // ================
 // === Callback ===
