@@ -17,18 +17,20 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats       : Stats,
-    performance : web::Performance,
-    monitor     : debug::Monitor,
-    panels      : Vec<debug::monitor::Panel>
+    stats            : Stats,
+    performance      : web::Performance,
+    forced_profiling : bool,
+    monitor          : debug::Monitor,
+    panels           : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
-        let stats       = stats.clone_ref();
-        let performance = web::performance();
-        let mut monitor = debug::Monitor::new();
+        let stats            = stats.clone_ref();
+        let forced_profiling = false;
+        let performance      = web::performance();
+        let mut monitor      = debug::Monitor::new();
         let panels = vec![
             monitor.add( debug::monitor::FrameTime          :: new(&stats) ),
             monitor.add( debug::monitor::Fps                :: new(&stats) ),
@@ -44,12 +46,18 @@ impl {
             monitor.add( debug::monitor::SpriteSystemCount  :: new(&stats) ),
             monitor.add( debug::monitor::SpriteCount        :: new(&stats) ),
         ];
-        Self {stats,performance,monitor,panels}
+        Self {stats,performance,forced_profiling,monitor,panels}
+    }
+
+    /// Force data measurements to be always performed, regardless of whether the monitor is
+    /// visible.
+    pub fn force_profiling(&mut self) {
+        self.forced_profiling = true;
     }
 
     /// Start measuring data.
     pub fn begin(&mut self) {
-        if self.visible() || profiling::ENABLED {
+        if self.profiling_enabled() {
             let time = self.performance.now();
             self.stats.begin_frame(time);
         }
@@ -57,7 +65,7 @@ impl {
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        if self.visible() || profiling::ENABLED {
+        if self.profiling_enabled() {
             let time = self.performance.now();
             self.stats.end_frame(time);
             if self.visible() {
@@ -66,10 +74,14 @@ impl {
                 }
                 self.monitor.draw();
             }
-            profiling::frame_stats::intervals::push_stats(&self.stats.data());
+            // FIXME[MC]: profiling::frame_stats::intervals::push_stats(&self.stats.data());
         }
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
+    }
+
+    fn profiling_enabled(&self) -> bool {
+        self.forced_profiling || self.visible()
     }
 
     /// Checks if the monitor is visible.
