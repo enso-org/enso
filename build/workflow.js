@@ -11,8 +11,8 @@ const yaml = require('js-yaml')
 // === Constants ===
 // =================
 
-const NODE_VERSION = '14.15.0'
-const WASM_PACK_VERSION = '0.9.1'
+const NODE_VERSION = '16.13.1'
+const WASM_PACK_VERSION = '0.10.2'
 const FLAG_NO_CHANGELOG_NEEDED = '[ci no changelog needed]'
 const FLAG_FORCE_CI_BUILD = '[ci build]'
 

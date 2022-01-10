@@ -52,7 +52,7 @@ application icon if built on Linux or Windows due to non-trivial icon generation
 on these platforms. To develop the source code you will need the following
 setup:
 
-- **The Rust Toolchain (nightly-2021-05-12)**
+- **The Rust Toolchain (nightly-2021-11-29)**
 
   This project uses several features available only in the nightly Rust
   toolchain. Please use the [the Rust toolchain installer](https://rustup.rs) to
@@ -62,9 +62,9 @@ setup:
   In addition, some custom CLI programs need to be installed manually:
 
   ```bash
-  rustup toolchain install stable                 # Stable toolchain required for the following tools.
-  cargo +stable install wasm-pack --version 0.9.1 # Install the wasm-pack toolkit.
-  cargo +stable install cargo-watch               # To enable ./run watch utility
+  rustup toolchain install stable                  # Stable toolchain required for the following tools.
+  cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
+  cargo +stable install cargo-watch                # To enable ./run watch utility
   ```
 
   Make sure that your `PATH` environment variable is set up correctly, so that
@@ -237,11 +237,11 @@ following options:
 After changing the code it's always a good idea to lint and test the code. We
 have prepared several scripts which maximally automate the process:
 
-- **Size Validation** Use `node ./run check-size` to check if the size of the
-  final binary did not grew too much in comparison to the previous release.
-  Watching the resulting binary size is one of the most important responsibility
-  of each contributor in order to keep the project small and suitable for
-  web-based usage. In case the size will exceed the limits:
+- **Size Validation** Use `node ./run build` to check if the size of the final
+  binary did not grew too much in comparison to the previous release. Watching
+  the resulting binary size is one of the most important responsibility of each
+  contributor in order to keep the project small and suitable for web-based
+  usage. In case the size will exceed the limits:
 
   - If the PR does not include any new libraries, you are allowed to increase
     the limit by 10KB. In case the limit will be exceeded by more than 10KB,
