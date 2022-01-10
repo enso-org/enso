@@ -1,0 +1,55 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Column as Column_Module import Column
+
+polyglot java import org.enso.table.util.MatchHelper
+
+type Matching_Strategy
+   ## UNSTABLE
+      Exact column matching.
+
+      A column is matched if its exact name is provided.
+   type Exact case_sensitive=True
+
+   ## UNSTABLE
+      Regex-based column matching.
+
+      A column is matched if its name matches the provided regular expression.
+   type Regex case_sensitive=True
+
+type Missing_Behavior
+    ## UNSTABLE
+       Missing columns are ignored.
+    type Ignore
+
+    ## UNSTABLE
+       A warning is reported when a column is missing but the computation
+       proceeds without it.
+    type Warn
+
+    ## UNSTABLE
+       Missing columns raise errors.
+    type Error
+
+normalize_criteria : Vector (Text | Column) -> Vector Text
+normalize_criteria criteria = criteria.map cr->
+    case cr of
+        Column _ -> cr.name
+        Text -> cr
+        _ ->
+            # TODO maybe write the runtime type, not the value
+            Error.throw "Expected a Text or a Column, but got " + cr
+
+match : Vector Column -> Vector (Text | Column) -> Matching_Strategy -> Missing_Behavior -> Vector Column
+match present_columns columns_to_match matching_strategy missing_behavior =
+    normalized_criteria = here.normalize_criteria columns_to_match
+    case matching_strategy of
+        Exact case_sensitive ->
+            present_names = present_columns.map .name
+            MatchHelper.matchExact present_names.to_array
+        Regex case_sensitive ->
+
+is_column_matching_criterion : Column -> Text | Column -> Matching_Strategy -> Boolean
+is_column_matching_criterion column criterion matching_strategy =
+    matched = match [col] [criterion] matching_strategy Ignore
+    matched.not_empty
