@@ -160,12 +160,14 @@ impl Handle {
                 let wrap_error =
                     |err| Error::js_preparation_error(visualization.clone(), err).into();
                 let sources = if let Some(file_name) = path.file_name() {
-                    let sources: &[(&str, &str)] = &[(&file_name, &js_code)];
+                    let sources: &[(&str, &str)] = &[(file_name, &js_code)];
                     Sources::from_files(sources)
                 } else {
-                    warning!(self.logger, "Unable to get a file name from {path}. \
-                             Visualization source map will not be provided.");
-                    Sources::new()
+                    warning!(
+                        self.logger,
+                        "Unable to get a file name from {path}. Visualization source map will not be provided."
+                    );
+                    Sources::empty()
                 };
                 visualization::java_script::Definition::new(project, sources)
                     .map(Into::into)

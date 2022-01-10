@@ -69,13 +69,13 @@ impl Debug for Sources {
 
 impl Default for Sources {
     fn default() -> Self {
-        Self::new()
+        Self::empty()
     }
 }
 
 impl Sources {
     /// Constructor. Typically [`Sources::from_files`] should be used instead.
-    pub fn new() -> Self {
+    pub fn empty() -> Self {
         Self {
             code:               default(),
             lines_count:        0,
@@ -88,7 +88,7 @@ impl Sources {
     ///
     /// `file_name` should be a file name or a relative path to the file.
     pub fn from_files(files: &[(&str, &str)]) -> Self {
-        let mut sources = Self::new();
+        let mut sources = Self::empty();
         for (path, content) in files {
             sources.add_file(path, content);
         }
@@ -121,10 +121,10 @@ impl Sources {
         self.code += content;
     }
 
-    /// Get the final source string consisted of concatenated files and an inlined source map.
+    /// Get the final source string consisting of concatenated files and an inlined source map.
     pub fn to_string(mut self, project: &Project) -> String {
         self.set_file_names(project);
-        let encoded_source_map = Self::source_map_to_string(self.source_map_builder);
+        let encoded_source_map = Self::source_map_to_base64(self.source_map_builder);
         const SOURCE_MAPPING_URL: &str =
             "\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,";
         [&self.code, SOURCE_MAPPING_URL, &encoded_source_map].concat()
@@ -140,8 +140,8 @@ impl Sources {
         }
     }
 
-    /// Convert source map into a base64-encoded JSON for further inlining.
-    fn source_map_to_string(builder: SourceMapBuilder) -> String {
+    /// Helper function to convert source map into a base64-encoded JSON.
+    fn source_map_to_base64(builder: SourceMapBuilder) -> String {
         let mut buf = Vec::new();
         let source_map = builder.into_sourcemap();
         source_map.to_writer(&mut buf).expect("Source map serialization failed.");

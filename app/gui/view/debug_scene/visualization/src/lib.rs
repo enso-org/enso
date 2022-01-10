@@ -81,7 +81,7 @@ fn constructor_graph() -> visualization::java_script::Definition {
 
         return Graph
     "#;
-    let mut sources = visualization::java_script::Sources::new();
+    let mut sources = visualization::java_script::Sources::empty();
     sources.add_file("demo.js", source);
     visualization::java_script::Definition::new_builtin(sources).unwrap()
 }
