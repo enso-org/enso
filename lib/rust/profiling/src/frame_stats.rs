@@ -47,6 +47,11 @@ impl Stats {
         self.rc.borrow_mut().reset_per_frame_statistics();
     }
 
+    /// Field getter. Returns the ordinal number of the current animation frame.
+    pub fn frame_counter(&self) -> u64 {
+        self.rc.borrow().frame_counter
+    }
+
     /// Returns a read-only reference to the underlying raw data.
     pub fn data(&self) -> Ref<StatsData> {
         self.rc.borrow()
@@ -61,6 +66,7 @@ macro_rules! gen_stats {
         #[allow(missing_docs)]
         pub struct StatsData {
             frame_begin_time: f64,
+            frame_counter:    u64,
             $($field : $field_type),*
         }
 
@@ -161,6 +167,8 @@ gen_stats! {
 
 impl StatsData {
     fn begin_frame(&mut self, time: f64) {
+        self.frame_counter += 1;
+
         if self.frame_begin_time > 0.0 {
             let end_time = time;
             self.fps = 1000.0 / (end_time - self.frame_begin_time);

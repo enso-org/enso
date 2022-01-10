@@ -733,7 +733,12 @@ impl Sampler for Fps {
         self.stats.fps()
     }
     fn check(&self) -> ValueCheck {
-        self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD)
+        if self.stats.frame_counter() > 1 {
+            self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD)
+        } else {
+            // On the first frame, the FPS will be 0, which in (only) this case is a correct value.
+            ValueCheck::Correct
+        }
     }
     fn max_value(&self) -> Option<f64> {
         Some(60.0)
