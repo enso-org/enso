@@ -20,6 +20,9 @@ import 'firebase/auth'
 // @ts-ignore
 import semver from 'semver'
 
+// @ts-ignore
+import * as profiling from '../../profiling/src/profiling'
+
 // ==================
 // === Global API ===
 // ==================
@@ -331,6 +334,14 @@ function showLogs() {
 
 // @ts-ignore
 window.showLogs = showLogs
+
+function showPerformanceReport() {
+    const report = new profiling.Report()
+    report.renderToDevConsole()
+}
+
+// @ts-ignore
+window.showPerformanceReport = showPerformanceReport
 
 // ======================
 // === Crash Handling ===
@@ -960,13 +971,15 @@ async function runEntryPoint(config: Config) {
 }
 
 API.main = async function (inputConfig: any) {
-    const urlParams = new URLSearchParams(window.location.search)
-    // @ts-ignore
-    const urlConfig = Object.fromEntries(urlParams.entries())
-
-    const config = Config.default()
-    config.updateFromObject(inputConfig)
-    config.updateFromObject(urlConfig)
+    const config = profiling.task.measure('load_config', () => {
+        const urlParams = new URLSearchParams(window.location.search)
+        // @ts-ignore
+        const urlConfig = Object.fromEntries(urlParams.entries())
+        const config = Config.default()
+        config.updateFromObject(inputConfig)
+        config.updateFromObject(urlConfig)
+        return config
+    })
 
     if (await checkMinSupportedVersion(config)) {
         if (config.authentication_enabled && !Versions.isDevVersion()) {

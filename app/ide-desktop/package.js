@@ -7,6 +7,7 @@ let config = {
         webpack: '^4.42.1',
         'webpack-cli': '^3.3.11',
         'webpack-dev-server': '^3.1.5',
+        typescript: `^3.4`,
     },
     scripts: {
         // IMPORTANT! Please remember to run "bootstrap" before "build" or "watch" to install

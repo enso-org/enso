@@ -100,6 +100,45 @@ function run_project_manager() {
     })
 }
 
+// Create a feature flag that sets the desired profiling level in the build from the given
+// command line argument. If the arguments contain a `profiling-level` argument that has a value
+// that matches one of the profilers defined in the
+// `../app/ide-desktop/lib/profiling/src/profilers.json` configuration file, that profiler will be
+// enabled. Note that profilers are hierarchical and the highest level profiler will determine the
+// activated profilers.
+// Example Output: "enable-task-profiling"
+function make_profiling_feature_string(args) {
+    let profiling_level = args['profiling-level']
+    if (profiling_level === undefined) {
+        return ''
+    }
+    profiling_level = profiling_level.toString().toLowerCase()
+    const to_check = require(`../app/ide-desktop/lib/profiling/src/profilers.json`)
+    const features = []
+    for (let feature of to_check) {
+        feature = feature.toLowerCase()
+        if (profiling_level.includes(feature)) {
+            features.push(`enable-${feature}-profiling`)
+        }
+    }
+
+    return features.join(' ')
+}
+
+function make_performance_logging_feature_flag(args) {
+    const feature_string = make_profiling_feature_string(args)
+    if (feature_string.length === 0) {
+        return ''
+    } else {
+        return '--features ' + '"' + feature_string + '"'
+    }
+}
+
+function set_performance_logging_env(args) {
+    const feature_string = make_profiling_feature_string(args)
+    process.env['PROFILING_LEVEL'] = feature_string
+}
+
 // ================
 // === Commands ===
 // ================
@@ -149,6 +188,7 @@ commands.build.js = async function () {
 commands.build.rust = async function (argv) {
     let crate = argv.crate || DEFAULT_CRATE
     let crate_sfx = crate ? ` '${crate}'` : ``
+
     console.log(`Building WASM target${crate_sfx}.`)
     let args = [
         'build',
@@ -163,9 +203,22 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
-    if (cargoArgs) {
+
+    /// Set compile time features to toggle profiling mode. This is used for the Rust profiling
+    // crate.
+    const feature_flags = make_performance_logging_feature_flag(argv)
+
+    if (cargoArgs || feature_flags) {
         args.push('--')
     }
+
+    if (feature_flags) {
+        cargoArgs.push(feature_flags)
+    }
+
+    /// Set environment variables that indicate the profiling mode. This is used in the JS profiling library.
+    set_performance_logging_env(argv)
+
     await run_cargo('wasm-pack', args)
     await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
     await fs.rename(paths.dist.wasm.mainRaw, paths.dist.wasm.main)

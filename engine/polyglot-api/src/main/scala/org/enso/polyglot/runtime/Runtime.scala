@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
-  ScalaObjectMapper
+  ClassTagExtensions
 }
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.polyglot.{ModuleExports, Suggestion}
@@ -1489,7 +1489,7 @@ object Runtime {
 
     private lazy val mapper = {
       val factory = new CBORFactory()
-      val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
+      val mapper  = new ObjectMapper(factory) with ClassTagExtensions
       mapper.registerModule(DefaultScalaModule)
     }
 

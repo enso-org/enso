@@ -48,8 +48,8 @@ object ProjectManager extends App with LazyLogging {
     )
 
   /** ZIO runtime. */
-  implicit val runtime =
-    Runtime(Globals.zioEnvironment, new ZioPlatform(computeExecutionContext))
+  implicit val runtime: Runtime[ZEnv] =
+    Runtime(environment, new ZioPlatform(computeExecutionContext))
 
   /** Main process starting up the server. */
   def mainProcess(logLevel: LogLevel): ZIO[ZEnv, IOException, Unit] = {
@@ -99,18 +99,26 @@ object ProjectManager extends App with LazyLogging {
   override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
     Cli.parse(args.toArray) match {
       case Right(opts) =>
-        runOpts(opts)
+        runOpts(opts).catchAll(th =>
+          effectTotal(
+            logger.error("An error occurred during the program startup", th)
+          ) *>
+          ZIO.succeed(FailureExitCode)
+        )
       case Left(error) =>
-        putStrLn(error) *>
+        (putStrLn(error) *>
         effectTotal(Cli.printHelp()) *>
-        ZIO.succeed(FailureExitCode)
+        ZIO.succeed(FailureExitCode)).catchAll(th =>
+          effectTotal(logger.error("Unexpected error", th)) *>
+          ZIO.succeed(FailureExitCode)
+        )
     }
   }
 
   /** The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  def runOpts(options: CommandLine): ZIO[ZEnv, Nothing, ExitCode] = {
+  def runOpts(options: CommandLine): ZIO[ZEnv, IOException, ExitCode] = {
     if (options.hasOption(Cli.HELP_OPTION)) {
       ZIO.effectTotal(Cli.printHelp()) *>
       ZIO.succeed(SuccessExitCode)
@@ -136,7 +144,7 @@ object ProjectManager extends App with LazyLogging {
   private def setupLogging(
     verbosityLevel: Int,
     logMasking: Boolean
-  ): ZIO[Console, Nothing, LogLevel] = {
+  ): ZIO[Console, IOException, LogLevel] = {
     val level = verbosityLevel match {
       case 0 => LogLevel.Info
       case 1 => LogLevel.Debug
@@ -159,7 +167,7 @@ object ProjectManager extends App with LazyLogging {
 
   private def displayVersion(
     useJson: Boolean
-  ): ZIO[Console, Nothing, ExitCode] = {
+  ): ZIO[Console, IOException, ExitCode] = {
     val versionDescription = VersionDescription.make(
       "Enso Project Manager",
       includeRuntimeJVMInfo         = false,

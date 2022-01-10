@@ -12,6 +12,7 @@ let config = {
         'copy-webpack-plugin': '^5.1.1',
         'html-loader': '^1.3.2',
         'mixpanel-browser': '2.40.1',
+        profiling: '1.0.0',
     },
     devDependencies: {
         'compression-webpack-plugin': '^3.1.0',

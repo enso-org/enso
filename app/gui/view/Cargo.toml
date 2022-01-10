@@ -22,6 +22,7 @@ ensogl-text-msdf-sys = { path = "../../../lib/rust/ensogl/component/text/msdf-sy
 ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded" }
 ide-view-graph-editor = { path = "graph-editor" }
 parser = { path = "../language/parser" }
+profiling = { path = "../../../lib/rust/profiling"}
 span-tree = { path = "../language/span-tree" }
 js-sys = { version = "0.3.28" }
 multi-map = { version = "1.3.0" }
