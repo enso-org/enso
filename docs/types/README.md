@@ -67,7 +67,5 @@ Information on the type system is broken up into the following sections:
   system.
 - [**Type Inference and Checking:**](./inference-and-checking.md) A description
   of Enso's type inference and checking system.
-- [**Dependent Typing:**](./dependent-typing.md) A description of the dependent
-  nature of Enso's type system.
 - [**References:**](./references.md) Useful references for working on the type
   system and its theory.
