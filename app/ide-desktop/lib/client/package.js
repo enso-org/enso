@@ -29,7 +29,7 @@ let config = {
         'compression-webpack-plugin': '^3.1.0',
         'copy-webpack-plugin': '^5.1.1',
         devtron: '^1.4.0',
-        electron: '11.1.1',
+        electron: '12.2.3',
         'electron-builder': '^22.10.5',
         'crypto-js': '4.0.0',
         'electron-notarize': '1.0.0',
