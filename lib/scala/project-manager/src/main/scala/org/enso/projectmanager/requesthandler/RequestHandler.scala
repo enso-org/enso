@@ -48,22 +48,23 @@ abstract class RequestHandler[
   /** Waits for the request, tries to pass it into the [[handleRequest]]
     * function, sets up the timeout and routing of the result.
     */
-  private def requestStage: Receive = { case request: Request[M, Params] =>
-    val result = handleRequest(request.params)
-    Exec[F]
-      .exec(result)
-      .map(_.map(ResponseResult(method, request.id, _)))
-      .pipeTo(self)
-    val timeoutCancellable = {
-      requestTimeout.map { timeout =>
-        context.system.scheduler.scheduleOnce(
-          timeout,
-          self,
-          RequestTimeout
-        )
+  private def requestStage: Receive = {
+    case request: Request[M, Params] @unchecked =>
+      val result = handleRequest(request.params)
+      Exec[F]
+        .exec(result)
+        .map(_.map(ResponseResult(method, request.id, _)))
+        .pipeTo(self)
+      val timeoutCancellable = {
+        requestTimeout.map { timeout =>
+          context.system.scheduler.scheduleOnce(
+            timeout,
+            self,
+            RequestTimeout
+          )
+        }
       }
-    }
-    context.become(responseStage(request.id, sender(), timeoutCancellable))
+      context.become(responseStage(request.id, sender(), timeoutCancellable))
   }
 
   /** Defines the actual logic for handling the request.

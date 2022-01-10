@@ -27,7 +27,8 @@ impl<T: AsRef<str> + Display> GithubRelease<T> {
             format!("{}/releases/download/{}/{}", self.project_url, self.version, self.filename);
         let destination_file = destination_dir.join(self.filename.as_ref());
         Self::remove_old_file(&destination_file);
-        let mut resp = reqwest::blocking::get(&url).expect("Download failed.");
+        let resp = reqwest::blocking::get(&url).expect("Download failed.");
+        let mut resp = resp.error_for_status().expect("Received error from server.");
         let mut out = std::fs::File::create(destination_file).expect("Failed to create file.");
         std::io::copy(&mut resp, &mut out).expect("Failed to copy file content.");
     }

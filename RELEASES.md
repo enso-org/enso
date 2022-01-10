@@ -7,6 +7,8 @@
   any libraries ([#1981](https://github.com/enso-org/enso/pull/1981)).
   Additionally, made the `library/preinstall` endpoint able to install any
   transitive dependencies of the library.
+- Updated the Scala compiler and dependencies
+  ([#3214](https://github.com/enso-org/enso/pull/3214)).
 
 ## Enso 0.2.31 (2021-10-01)
 
