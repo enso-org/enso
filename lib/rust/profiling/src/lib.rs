@@ -40,6 +40,7 @@ use ::macros::*;
 
 use enso_prelude::fmt::Formatter;
 use enso_web::performance;
+use ensogl_core::debug::stats;
 use inflector::Inflector;
 use ordered_float::OrderedFloat;
 use serde::Deserialize;
@@ -73,7 +74,7 @@ pub struct Metadata {
     /// Label of the measurement..
     pub label:           String,
     /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
-    pub rendering:       Option<frame_stats::Summary>,
+    pub rendering:       Option<stats::Summary>,
 }
 
 impl From<Metadata> for JsValue {

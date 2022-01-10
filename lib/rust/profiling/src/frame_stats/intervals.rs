@@ -3,11 +3,10 @@
 
 use enso_prelude::*;
 
-use crate::frame_stats;
-
 use enso_data_structures::opt_vec::OptVec;
 use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
+use ensogl_core::debug::stats;
 
 
 
@@ -15,7 +14,7 @@ use enso_logger::*;
 // === Intervals ===
 // =================
 
-type Intervals = OptVec<frame_stats::Accumulator>;
+type Intervals = OptVec<stats::Accumulator>;
 
 thread_local! {
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
@@ -24,7 +23,7 @@ thread_local! {
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> Guard {
     let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
-        intervals.borrow_mut().insert(frame_stats::Accumulator::default())
+        intervals.borrow_mut().insert(stats::Accumulator::default())
     });
     Guard { index, released: false }
 }
@@ -39,12 +38,12 @@ pub struct Guard {
 impl Guard {
     /// Finishes collecting frame statistics for a specific interval. Returns aggregate data
     /// collected since the start of the the interval.
-    pub fn end(mut self) -> Option<frame_stats::Summary> {
+    pub fn end(mut self) -> Option<stats::Summary> {
         self.released = true;
         self.finalize()
     }
 
-    fn finalize(&mut self) -> Option<frame_stats::Summary> {
+    fn finalize(&mut self) -> Option<stats::Summary> {
         ACTIVE_INTERVALS.with(|intervals| match intervals.borrow_mut().remove(self.index) {
             None => {
                 let logger = Logger::new("Profiling_Stats");
@@ -71,7 +70,7 @@ impl Drop for Guard {
 
 /// Include the provided stats snapshot into statistics for all intervals that are currently started
 /// and not yet ended.
-pub fn push_stats(snapshot: &frame_stats::StatsData) {
+pub fn push_stats(snapshot: &stats::StatsData) {
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().iter_mut() {
             interval.push(snapshot);
@@ -89,7 +88,7 @@ pub fn push_stats(snapshot: &frame_stats::StatsData) {
 mod tests {
     use super::*;
 
-    use crate::frame_stats::StatsData;
+    use ensogl_core::debug::stats::StatsData;
 
     use assert_approx_eq::*;
 
