@@ -61,7 +61,6 @@ macro_rules! gen_stats {
         #[allow(missing_docs)]
         pub struct StatsData {
             frame_begin_time: f64,
-
             $($field : $field_type),*
         }
 
@@ -102,7 +101,6 @@ macro_rules! gen_stats {
         pub struct Accumulator {
             /// How many samples were accumulated.
             samples_count: u32,
-
             $($field : ValueAccumulator<$field_type>),*
         }
 
