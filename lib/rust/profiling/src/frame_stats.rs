@@ -60,7 +60,7 @@ macro_rules! gen_stats {
         #[derive(Debug,Default,Clone,Copy)]
         #[allow(missing_docs)]
         pub struct StatsData {
-            begin_time: f64,
+            frame_begin_time: f64,
 
             $($field : $field_type),*
         }
@@ -163,15 +163,15 @@ gen_stats! {
 
 impl StatsData {
     fn begin_frame(&mut self, time: f64) {
-        if self.begin_time > 0.0 {
+        if self.frame_begin_time > 0.0 {
             let end_time = time;
-            self.fps = 1000.0 / (end_time - self.begin_time);
+            self.fps = 1000.0 / (end_time - self.frame_begin_time);
         }
-        self.begin_time = time;
+        self.frame_begin_time = time;
     }
 
     fn end_frame(&mut self, time: f64) {
-        self.frame_time = time - self.begin_time;
+        self.frame_time = time - self.frame_begin_time;
 
         let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
         let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
