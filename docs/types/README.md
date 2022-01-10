@@ -19,8 +19,7 @@ system that makes it feel dynamic. It will infer sensible types in many cases,
 but as users move from exploratory pipelines to production systems, they are
 able to add more and more type information to their programs, proving more and
 more properties using the type system. This is based on a novel type-inference
-engine, and a fusion of nominal and structural typing, combined with dependent
-types.
+engine, and a fusion of nominal and structural typing.
 
 All in all, the type system should stay out of the users' ways unless they make
 a mistake, but give more experienced users the tools to build the programs that
