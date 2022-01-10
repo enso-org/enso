@@ -10,6 +10,7 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use ensogl::application::Application;
 use ensogl::system::web;
+use profiling;
 use uuid::Uuid;
 
 
@@ -67,6 +68,14 @@ impl Initializer {
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
             Initializer::register_views(&application);
             let view = application.new_view::<ide_view::root::View>();
+
+            if profiling::ENABLED {
+                application.display.stats_monitor().force_profiling();
+                let stats = application.display.stats().clone();
+                application.display.on_after_frame(f_!([]
+                    profiling::frame_stats::intervals::push_stats(&stats.data());
+                ));
+            }
 
             // IDE was opened with `project` argument, we should skip the Welcome Screen.
             // We are doing it early, because Controllers initialization
