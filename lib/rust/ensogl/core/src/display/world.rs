@@ -100,6 +100,7 @@ impl World {
                 on_after_frame.run_all(&t);
                 stats_monitor.end();
                 on_stats_available.run_all(&stats);
+                stats_monitor.reset_per_frame_statistics();
             }),
         );
 

@@ -76,7 +76,11 @@ impl {
             }
             // FIXME[MC]: profiling::frame_stats::intervals::push_stats(&self.stats.data());
         }
-        // This should be done even when hidden in order for the stats not to overflow limits.
+    }
+
+    /// This should be done after `end`, even when the Monitor is hidden, in order for the stats
+    /// not to overflow limits.
+    pub fn reset_per_frame_statistics(&mut self) {
         self.stats.reset_per_frame_statistics();
     }
 
