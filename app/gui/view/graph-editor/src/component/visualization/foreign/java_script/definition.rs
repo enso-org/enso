@@ -15,6 +15,7 @@ use super::instance::Instance;
 use crate::component::visualization;
 use crate::component::visualization::InstantiationError;
 use crate::component::visualization::InstantiationResult;
+use crate::visualization::foreign::java_script::Sources;
 
 use ensogl::display::Scene;
 use ensogl::system::web::JsValue;
@@ -59,14 +60,10 @@ pub struct Definition {
 
 impl Definition {
     /// Create a visualization source from piece of JS source code. Signature needs to be inferred.
-    pub fn new(
-        project: visualization::path::Project,
-        source: impl AsRef<str>,
-    ) -> Result<Self, Error> {
-        let source = source.as_ref();
-        let source = source;
+    pub fn new(project: visualization::path::Project, sources: Sources) -> Result<Self, Error> {
+        let source = sources.to_string(&project);
         let context = JsValue::NULL;
-        let function = Function::new_with_args(binding::JS_CLASS_NAME, source)
+        let function = Function::new_with_args(binding::JS_CLASS_NAME, &source)
             .map_err(Error::InvalidFunction)?;
         let js_class = binding::js_class();
         let class = function.call1(&context, &js_class).map_err(Error::InvalidFunction)?;
@@ -84,8 +81,8 @@ impl Definition {
     }
 
     /// Create a definition of visualization that is built into the IDE.
-    pub fn new_builtin(source: impl AsRef<str>) -> Result<Self, Error> {
-        Self::new(visualization::path::Project::Builtin, source)
+    pub fn new_builtin(sources: Sources) -> Result<Self, Error> {
+        Self::new(visualization::path::Project::Builtin, sources)
     }
 
     fn new_instance(&self, scene: &Scene) -> InstantiationResult {

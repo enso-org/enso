@@ -265,7 +265,7 @@ impl Project {
         let module_registry = default();
         let execution_contexts = default();
         let visualization =
-            controller::Visualization::new(language_server, embedded_visualizations);
+            controller::Visualization::new(language_server, embedded_visualizations, &logger);
         let parser = Parser::new_or_panic();
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);

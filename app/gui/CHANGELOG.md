@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [Added support of source maps for JS-based visualizations.][3208]
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
@@ -17,6 +18,7 @@
 [3181]: https://github.com/enso-org/enso/pull/3181
 [3186]: https://github.com/enso-org/enso/pull/3186
 [3193]: https://github.com/enso-org/enso/pull/3193
+[3208]: https://github.com/enso-org/enso/pull/3208
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
