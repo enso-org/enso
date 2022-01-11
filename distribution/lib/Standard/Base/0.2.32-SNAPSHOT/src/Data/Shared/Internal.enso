@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+## PRIVATE
+
+   A helper used to select columns in both Standard.Table.Data.Table and Standard.Database.Data.Table
+
+   Arguments:
+   - columns: The current set of columns (must have a name property)
+   - column_list: The list of column names to filter down to
+   - reorder:
+select_columns : Vector -> Vector -> Boolean -> Vector
+select_columns = columns -> column_list -> (reorder=False) ->
+    mapper = x-> case x of
+        Text -> x
+        _ -> x.name
+    column_names = column_list.map mapper
+
+    new_columns = case reorder of
+        False -> columns.filter c->(column_names.contains c.name)
+        True -> column_names.map n->((columns.filter (c->c.name==n)).at 0)
+    new_columns
