@@ -7,6 +7,7 @@ import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 
+import Standard.Base.Data.Shared.Internal
 from Standard.Database.Data.Column as Column_Module import all
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
@@ -307,6 +308,24 @@ type Table
         find_col name = candidates.find (p -> p.name == name)
         selected_cols = columns.map (find_col >> .catch) . filter (c -> c.is_nothing.not)
         this.updated_columns selected_cols
+
+    ## ALIAS Select Columns
+
+       Selects a subset of columns from this table by name.
+
+       > Example
+         Get the item name and price columns from the shop inventory.
+
+             import Standard.Examples
+
+             example_select =
+                 Examples.inventory_table.select_columns ["item_name", "price"] reorder=True
+    select_columns : Vector -> Boolean -> Table
+    select_columns column_list reorder=False =
+        columns = this.internal_columns + this.context.meta_index
+        selected_cols = Internal.select_columns columns column_list reorder
+        this.updated_columns selected_cols
+
 
     ## UNSTABLE
 
