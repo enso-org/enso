@@ -69,12 +69,14 @@ impl Initializer {
             Initializer::register_views(&application);
             let view = application.new_view::<ide_view::root::View>();
 
-            if profiling::ENABLED {
+            let _profiling_handler = if profiling::ENABLED {
                 application.display.stats_monitor().force_profiling();
-                application.display.on_stats_available(|stats| {
+                Some(application.display.on_stats_available(move |stats| {
                     profiling::frame_stats::intervals::push_stats(&stats.data());
-                });
-            }
+                }))
+            } else {
+                None
+            };
 
             // IDE was opened with `project` argument, we should skip the Welcome Screen.
             // We are doing it early, because Controllers initialization
