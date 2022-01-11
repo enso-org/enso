@@ -21,12 +21,14 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
-      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
-        working-directory: C:\ci
-        if: runner.os == 'Windows'
-      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
-        working-directory: /ci
-        if: runner.os != 'Windows'
+        with:
+          repository: enso-org/ci-build
+          path: ci-build
+      - uses: actions/checkout@v2
+        with:
+          path: enso
+      - run: cargo run --release --bin enso-build -- ${{ github.workspace }}/enso
+        working-directory: ${{ github.workspace }}/ci-build
 
       #####################
       # PUBLISH ARTIFACTS #
