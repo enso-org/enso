@@ -87,7 +87,6 @@ We went the way of the variadic call for multiple reasons:
   subtyping and overloading).
 - It is flexible and easy to expand in the future.
 - We can easily build a more Enso-feeling interface on top of it.
-- It can still be typed due to our plans for dependent vector types.
 
 By way of illustrative example, Java supports method overloading and subtyping,
 two things which have no real equivalent in the Enso type system.
