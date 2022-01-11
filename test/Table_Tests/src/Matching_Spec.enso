@@ -1,0 +1,32 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Matching import all
+import Standard.Test
+
+spec = Test.group 'Matching Helper' <|
+    Test.specify 'Should match a single name with a single exact criterion' <|
+        Matching.match_single_criterion "foo" "foo" (Exact) . should_equal True
+        Matching.match_single_criterion "foo" "f.*" (Exact) . should_equal False
+        Matching.match_single_criterion "foo" "Foo" (Exact) . should_equal False
+
+    Test.specify 'Should match a single name with a single regex criterion' <|
+        Matching.match_single_criterion "foo" "foo" (Regex) . should_equal True
+        Matching.match_single_criterion "foo" "f.*" (Regex) . should_equal True
+        Matching.match_single_criterion "foo" "F.*" (Regex) . should_equal False
+
+    Test.specify 'Should support case-insensitive matching' <|
+        Matching.match_single_criterion "foo" "F.*" (Regex case_sensitivity=Insensitive) . should_equal True
+        Matching.match_single_criterion "foo" "Foo" (Exact case_sensitivity=Insensitive) . should_equal True
+
+        Matching.match_single_criterion "foo" "fF.*" (Regex case_sensitivity=Insensitive) . should_equal False
+        Matching.match_single_criterion "foo" "Foos" (Exact case_sensitivity=Insensitive) . should_equal False
+
+        ## TODO this may not be how we want this to work, but this test is
+           included to explicitly illustrate how the current implementation
+           behaves in such corner cases
+        Matching.match_single_criterion "β" "B" Exact . should_equal False
+
+    Test.specify 'Should match a list of names with a list of criteria' <|
+        Nothing # TODO [RW]
+
+main = Test.Suite.run_main here.spec
