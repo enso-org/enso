@@ -24,8 +24,8 @@ From a technical point of view, Enso incorporates many of the recent innovations
 in the design and development of programming languages to improve the user
 experience. It provides higher-order functions, strict semantics with opt-in
 laziness, and opt-in algebraic data types, all under the auspices of a novel
-type system that merges dependent typing with a great user experience. Enso is
-the culmination of many years of research into functional programming languages,
+type system that merges gradual typing with a great user experience. Enso is the
+culmination of many years of research into functional programming languages,
 consolidating the work trail-blazed by Haskell, Idris and Agda, but also
 improvements in user-experience and ergonomics.
 
