@@ -1,4 +1,104 @@
 //! Extensible logger implementation.
+//!
+//! ### Main Features
+//!
+//! This crate is designed to provide extensible and easy-to-use abstractions for logging
+//! arbitrary string messages to (primarily) the DevTools console. The code is designed with the
+//! following features in mind:
+//!
+//! - Customizable hierarchical log levels.
+//! - Compile-time level filtering.
+//! - Support for JS console features, like message grouping.
+//! - Customizable logs processing pipeline.
+//!
+//! ### How to Use
+//!
+//! The usage is similar to the [`log`](https://docs.rs/log) logging facade, though there are some
+//! important differences.
+//!
+//! #### Logging Macros
+//!
+//! First of all, logging macros (like [`info!`]) accept [`AnyLogger`] type as the first argument:
+//!
+//! ```no_run
+//! # use enso_logger::DefaultInfoLogger as Logger;
+//! # use enso_logger::{AnyLogger, info};
+//! # use enso_prelude::iformat;
+//! let logger = Logger::new("my_logger");
+//! info!(logger, "Here comes some log message");
+//! ```
+//!
+//! Each `Logger` has a so-called `path`, a unique string identifier of the logger, that is
+//! attached to each log message. Loggers can create hierarchies with the help of
+//! [`AnyLogger::new_sub`] constructor. This allows to semantically distinguish log messages from
+//! different modules of the program.
+//!
+//! The second argument of the logging macros might be any type implementing [`Message`] trait:
+//!
+//! ```no_run
+//! # use enso_logger::DefaultInfoLogger as Logger;
+//! # use enso_logger::{AnyLogger, info};
+//! # use enso_prelude::iformat;
+//! # let logger = Logger::new("my_logger");
+//! info!(logger, "String literal");
+//! let string_variable = String::from("Owned string");
+//! info!(logger, string_variable);
+//! info!(logger, || "A closure returning string");
+//! let some_var = 3.14;
+//! info!(logger, "String interpolation using iformat! macro also works: {some_var}");
+//! // will output "String interpolation using iformat! macro also works: 3.14"
+//! ```
+//!
+//! #### Message Grouping
+//!
+//! Also, a third argument may be provided. It groups log messages in the DevTools console under a
+//! group with the provided name. For example:
+//!
+//! ```no_run
+//! # use enso_logger::DefaultInfoLogger as Logger;
+//! # use enso_logger::{AnyLogger, info};
+//! # use enso_prelude::iformat;
+//! # let logger = Logger::new("my_logger");
+//! # fn some_computation() {}
+//! info!(logger, "group name", || {
+//!     some_computation();
+//!     info!(logger, "this message will go into group");
+//! });
+//! ```
+//! You can also use macro-keywords `collapsed`
+//! or `expanded` just before `||` to print the group collapsed or expanded by default,
+//! respectively. If not provided, the [`warning`] and [`error`] group macros are collapsed by
+//! default, while all other group macros are expanded by default.
+
+//! #### Compile-time Log Level Filtering
+//!
+//! The crate provides a set of predefined loggers that can be used together with reexport
+//! mechanism to easily control log level filtering with zero run-time overhead.
+//!
+//! ```no_run
+//! mod prelude {
+//!     // Reexport needed loggers in the crate prelude.
+//!     pub use enso_logger::DefaultInfoLogger as Logger;
+//!     pub use enso_logger::DefaultTraceLogger as DebugLogger;
+//! }
+//!
+//! // Use it in the code.
+//! // Changing this line to `use prelude::DebugLogger as Logger;`
+//! // will enable debug logs for this module.
+//! use prelude::Logger;
+//! # use enso_logger::{AnyLogger, debug, warning};
+//! # use enso_prelude::iformat;
+//!
+//! let logger = Logger::new("MyModule");
+//! warning!(logger, "This will be printed to the logs");
+//! debug!(logger, "This would not");
+//! ```
+//!
+//! ### Extensibility
+//!
+//! You can define your own log levels (see [`define_levels!`], [`define_levels_group!`] and
+//! [`define_compile_time_filtering_rules!`] macros), formatters (see [`processor::formatter`]), and
+//! log processing pipelines (see [`processor`]).
 
 #![deny(unconditional_recursion)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
@@ -99,10 +199,10 @@ pub trait AnyLogger {
     /// Constructor.
     fn new(path: impl Into<ImString>) -> Self::Owned;
 
-    /// Path that is used as an unique identifier of this logger.
+    /// The path that is used as a unique identifier of this logger.
     fn path(&self) -> &str;
 
-    /// Creates a new logger with this logger as a parent. It can be useful when we need to create
+    /// Create a new logger with this logger as a parent. It can be useful when we need to create
     /// a sub-logger for a generic type parameter.
     fn sub<T>(&self, id: impl AsRef<str>) -> T
     where
@@ -111,7 +211,7 @@ pub trait AnyLogger {
         <T as AnyLogger>::new_sub(self, id)
     }
 
-    /// Creates a new logger with this logger as a parent. It can be useful when we need to create
+    /// Create a new logger with `logger` as a parent. It can be useful when we need to create
     /// a sub-logger for a generic type parameter.
     fn new_sub(logger: impl AnyLogger, id: impl AsRef<str>) -> Self::Owned
     where Self::Owned: AnyLogger<Owned = Self::Owned> {
@@ -137,10 +237,14 @@ impl<T: AnyLogger> AnyLogger for &T {
 
 macro_rules! define_logger_aliases {
     ($($tp:ident $name:ident $default_name:ident;)*) => {$(
-        /// A logger which compile-time filters out all messages with log levels smaller than $tp.
+        #[doc = "A logger which compile-time filters out all messages with log levels smaller than "]
+        #[doc = stringify!($tp)]
+        #[doc = "."]
         pub type $name <S=DefaultProcessor,L=DefaultLevels> = Logger<entry::filter_from::$tp,S,L>;
 
-        /// The same as $name, but with all type arguments applied, for convenient usage.
+        #[doc = "The same as "]
+        #[doc = stringify!($name)]
+        #[doc = ", but with all type arguments applied, for convenient usage."]
         pub type $default_name = $name;
     )*};
 }
