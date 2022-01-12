@@ -373,7 +373,8 @@ impl IntervalHandle {
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
         if let Some(data) = self.0.take() {
-            WARNING!(format!("{} is dropped without explicitly being ended.", &data.metadata.label));
+            let label = &data.metadata.label;
+            WARNING!(format!("{} is dropped without explicitly being ended.", label));
             warn_on_error(mark_end_interval(data.metadata, Some(data.stats_guard)));
         }
     }
