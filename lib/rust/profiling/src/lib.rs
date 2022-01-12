@@ -283,7 +283,7 @@ pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
         mark_with_metadata(interval_name.into(), metadata.clone().into());
         IntervalHandle::new(metadata, stats_guard)
     } else {
-        IntervalHandle::inactive(metadata.label)
+        IntervalHandle::inactive()
     }
 }
 
@@ -342,8 +342,7 @@ pub struct IntervalHandle(IntervalHandleData);
 #[derive(Debug)]
 enum IntervalHandleData {
     Active { metadata: Metadata, stats_guard: frame_stats::IntervalGuard },
-    Inactive { label: String },
-    Released,
+    Inactive,
 }
 
 impl IntervalHandle {
@@ -352,18 +351,17 @@ impl IntervalHandle {
         IntervalHandle(data)
     }
 
-    fn inactive(label: String) -> Self {
-        let data = IntervalHandleData::Inactive { label };
-        IntervalHandle(data)
+    fn inactive() -> Self {
+        IntervalHandle(IntervalHandleData::Inactive)
     }
 
     /// Measure the interval.
     pub fn end(mut self) {
-        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Released);
+        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Inactive);
         match old_value {
             IntervalHandleData::Active { metadata, stats_guard } =>
                 warn_on_error(mark_end_interval(metadata, Some(stats_guard))),
-            IntervalHandleData::Inactive { .. } | IntervalHandleData::Released => (),
+            IntervalHandleData::Inactive => (),
         };
     }
 
@@ -371,21 +369,19 @@ impl IntervalHandle {
     /// a call to `end`. This can be useful if one wants to call `end_interval` manually, or the
     /// equivalent call to `end_interval` is in Rust code.
     pub fn release(mut self) {
-        self.0 = IntervalHandleData::Released;
+        self.0 = IntervalHandleData::Inactive;
     }
 }
 
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
-        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Released);
+        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Inactive);
         match old_value {
             IntervalHandleData::Active { metadata, stats_guard } => {
                 WARNING!(format!("{} is dropped without explicitly being ended.", &metadata.label));
                 warn_on_error(mark_end_interval(metadata, Some(stats_guard)));
             }
-            IntervalHandleData::Inactive { label } =>
-                WARNING!(format!("{} is dropped without explicitly being ended.", &label)),
-            IntervalHandleData::Released => (),
+            IntervalHandleData::Inactive => (),
         }
     }
 }
