@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 use crate::control::callback::CallbackFn;
-use crate::debug::stats::Stats;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
+use crate::debug::stats::Stats;
 use crate::system::gpu::shader::Context;
 
 use num_enum::IntoPrimitive;
