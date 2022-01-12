@@ -52,9 +52,9 @@ impl Stats {
         self.rc.borrow().frame_counter
     }
 
-    /// Returns a read-only reference to the underlying raw data.
-    pub fn data(&self) -> Ref<StatsData> {
-        self.rc.borrow()
+    /// Returns a copy of the underlying raw data.
+    pub fn snapshot(&self) -> StatsData {
+        *self.rc.borrow()
     }
 }
 
