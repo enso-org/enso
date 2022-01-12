@@ -22,8 +22,10 @@ thread_local! {
 
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> IntervalGuard {
-    let index =
-        ACTIVE_INTERVALS.with(|intervals| -> usize { intervals.borrow_mut().insert(default()) });
+    let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
+        let mut intervals_vec = intervals.borrow_mut();
+        intervals_vec.insert(default())
+    });
     IntervalGuard { index, released: false }
 }
 
