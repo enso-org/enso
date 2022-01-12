@@ -10,6 +10,7 @@ use crate::constants::VISUALIZATION_DIRECTORY;
 use engine_protocol::language_server;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::definition;
+use ide_view::graph_editor::component::visualization::java_script::Sources;
 use std::rc::Rc;
 
 
@@ -89,6 +90,7 @@ pub struct EmbeddedVisualizations {
 pub struct Handle {
     language_server_rpc:     Rc<language_server::Connection>,
     embedded_visualizations: Rc<RefCell<EmbeddedVisualizations>>,
+    logger:                  Logger,
 }
 
 impl Handle {
@@ -96,9 +98,11 @@ impl Handle {
     pub fn new(
         language_server_rpc: Rc<language_server::Connection>,
         embedded_visualizations: EmbeddedVisualizations,
+        logger: &Logger,
     ) -> Self {
+        let logger = logger.sub("VisualizationController");
         let embedded_visualizations = Rc::new(RefCell::new(embedded_visualizations));
-        Self { language_server_rpc, embedded_visualizations }
+        Self { language_server_rpc, embedded_visualizations, logger }
     }
 
     async fn list_project_specific_visualizations(&self) -> FallibleResult<Vec<VisualizationPath>> {
@@ -155,7 +159,17 @@ impl Handle {
                 let js_code = self.language_server_rpc.read_file(path).await?.contents;
                 let wrap_error =
                     |err| Error::js_preparation_error(visualization.clone(), err).into();
-                visualization::java_script::Definition::new(project, &js_code)
+                let sources = if let Some(file_name) = path.file_name() {
+                    let sources: &[(&str, &str)] = &[(file_name, &js_code)];
+                    Sources::from_files(sources)
+                } else {
+                    warning!(
+                        self.logger,
+                        "Unable to get a file name from {path}. Visualization source map will not be provided."
+                    );
+                    Sources::empty()
+                };
+                visualization::java_script::Definition::new(project, sources)
                     .map(Into::into)
                     .map_err(wrap_error)
             }
@@ -233,7 +247,8 @@ mod tests {
         let embedded_visualization = builtin::visualization::native::BubbleChart::definition();
         embedded_visualizations
             .insert("[Demo] Bubble Visualization".to_string(), embedded_visualization.clone());
-        let vis_controller = Handle::new(language_server, embedded_visualizations);
+        let logger = Logger::new("Mock logger");
+        let vis_controller = Handle::new(language_server, embedded_visualizations, &logger);
 
         let visualizations = vis_controller.list_visualizations().await;
         let visualizations = visualizations.expect("Couldn't list visualizations.");
@@ -247,8 +262,10 @@ mod tests {
         assert_eq!(visualizations.len(), 3);
 
         let owner = visualization::Project::CurrentProject;
-        let javascript_vis0 = js_vis::Definition::new(owner.clone_ref(), &file_content0);
-        let javascript_vis1 = js_vis::Definition::new(owner, &file_content1);
+        let sources_vis0 = Sources::from_files(&[("file0.js", &file_content0)]);
+        let javascript_vis0 = js_vis::Definition::new(owner.clone_ref(), sources_vis0);
+        let sources_vis1 = Sources::from_files(&[("file0.js", &file_content1)]);
+        let javascript_vis1 = js_vis::Definition::new(owner, sources_vis1);
         let javascript_vis0 = javascript_vis0.expect("Couldn't create visualization class.");
         let javascript_vis1 = javascript_vis1.expect("Couldn't create visualization class.");
         let javascript_vis0: visualization::Definition = javascript_vis0.into();

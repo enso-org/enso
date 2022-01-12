@@ -493,10 +493,6 @@ the types ascribed to values in Enso are not the be-all and end-all.
 - Type signatures must be subsumed by the inferred type of the value, otherwise
   the compiler will raise an error. This includes
 
-Additionally, as Enso is a dependently-typed language, the expression `b` may
-contain arbitrary Enso expressions. The type-checking of such signatures is
-discussed further in the section on [dependency](./dependent-typing.md).
-
 ### Scoping in Type Ascription
 
 Enso intends to support some form of mutual scoping between the left and right

@@ -30,11 +30,6 @@ The high-level goals for the Enso type system are as follows:
 - Error messages must be informative. This is usually down to the details of the
   implementation, but we'd rather not employ an algorithm that discards
   contextual information that would be useful for crafting useful errors.
-- Dependent types are a big boon for safety in programming languages, allowing
-  the users that _want to_ to express additional properties of their programs in
-  their types. We would like to introduce dependent types in future, but would
-  welcome insight on whether it is perhaps easier to do so from the get go. If
-  doing so, we would prefer to go with `Type : Type`.
 - Our aim is to create a powerful type system to support development, rather
   than turn Enso into a research language. We want users to be able to add
   safety gradually.
