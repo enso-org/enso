@@ -361,12 +361,9 @@ impl IntervalHandle {
     pub fn end(mut self) {
         let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Released);
         match old_value {
-            IntervalHandleData::Active { metadata, stats_guard } => {
-                warn_on_error(mark_end_interval(metadata, Some(stats_guard)));
-                IntervalHandleData::Released
-            }
-            IntervalHandleData::Inactive { .. } | IntervalHandleData::Released =>
-                IntervalHandleData::Released,
+            IntervalHandleData::Active { metadata, stats_guard } =>
+                warn_on_error(mark_end_interval(metadata, Some(stats_guard))),
+            IntervalHandleData::Inactive { .. } | IntervalHandleData::Released => (),
         };
     }
 
