@@ -202,9 +202,9 @@ build tool). The most common options are presented below:
 JS parts of the project are using [`lerna`](https://lerna.js.org/) to manage JS
 dependencies. When you add a new JS dependency or update an old one to the new
 version, `lerna` must be re-run to trigger `npm install` for all projects. The
-easiest way to do so is to remove `dist/init` file before the next build. You
-can also manually call `npm run install` in `app/ide-desktop/` directory with a
-similar result. Our CI does that for every build at the moment.
+easiest way to do so is to run `./run clean --no-rust` command. You can also
+manually call `npm run install` in `app/ide-desktop/` directory with a similar
+result. Our CI does that for every build at the moment.
 
 ### Testing IDE with a specific version of a backend
 
