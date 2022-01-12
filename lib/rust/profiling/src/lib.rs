@@ -74,7 +74,8 @@ pub struct Metadata {
     /// Label of the measurement..
     pub label:           String,
     /// Aggregate statistics for various frame metrics, collected over the time of the measurement.
-    pub rendering:       Option<stats::Summary>,
+    #[serde(rename = "runtime")]
+    pub runtime_stats:   Option<stats::Summary>,
 }
 
 impl From<Metadata> for JsValue {
@@ -311,7 +312,7 @@ pub fn mark_end_interval(
         Err(MeasurementError::ProfilingDisabled)
     } else {
         let metadata_with_stats =
-            Metadata { rendering: stats_guard.and_then(|guard| guard.end()), ..metadata };
+            Metadata { runtime_stats: stats_guard.and_then(|guard| guard.end()), ..metadata };
         mark_with_metadata(end_label.clone().into(), metadata_with_stats.clone().into());
         measure_with_start_mark_and_end_mark_and_metadata(
             measurement_label.into(),

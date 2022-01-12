@@ -306,7 +306,7 @@ if (!finalizationRegistry) {
 // ==================
 
 /**
- * Summary of the observed values of all GUI rendering statistics, over a
+ * Summary of the observed values of all GUI runtime statistics, over a
  * number of frames.
  */
 type FrameStatsSummary = {
@@ -315,7 +315,7 @@ type FrameStatsSummary = {
 
 /**
  * Summary of the observed values of a single statistic (related to GUI
- * rendering) over a number of frames.
+ * runtime) over a number of frames.
  */
 class FrameStatsValueSummary {
     readonly min: number
@@ -338,20 +338,20 @@ class Measurement {
     readonly duration: number
     readonly profilerLevel: Profiler
     readonly name: string
-    readonly rendering?: FrameStatsSummary
+    readonly runtime?: FrameStatsSummary
 
     constructor(
         startTime: number,
         duration: number,
         profilerLevel: Profiler,
         name: string,
-        rendering?: FrameStatsSummary
+        runtime_stats?: FrameStatsSummary
     ) {
         this.startTime = startTime
         this.duration = duration
         this.profilerLevel = profilerLevel
         this.name = name
-        this.rendering = rendering
+        this.runtime = runtime_stats
     }
 
     static fromPerformanceEntry(entry: PerformanceEntry): Measurement | null {
@@ -367,8 +367,8 @@ class Measurement {
             return null
         }
         const name = entry.name
-        const rendering = detail.rendering
-        return new Measurement(startTime, duration, profilerLevel, name, rendering)
+        const runtime = detail.runtime
+        return new Measurement(startTime, duration, profilerLevel, name, runtime)
     }
 
     endTime(): number {
@@ -384,10 +384,10 @@ class Measurement {
     }
 
     prettyPrint() {
-        if (this.rendering) {
+        if (this.runtime) {
             console.groupCollapsed(this.prettyHeader())
             console.table(
-                Object.entries(this.rendering).map(([name, summary]) => ({
+                Object.entries(this.runtime).map(([name, summary]) => ({
                     Stat: name,
                     min: summary.min,
                     avg: summary.avg,
