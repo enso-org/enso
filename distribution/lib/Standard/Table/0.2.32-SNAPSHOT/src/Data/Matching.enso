@@ -67,9 +67,21 @@ match_criteria column_names criteria reorder=False matching_strategy=(Exact case
         criteria.map criterion->
             here.match_single_criterion column_name criterion matching_strategy
 
-    is_column_matched_by_anything i = ???
+    # Checks if the ith column is matched by any criterion.
+    is_column_matched_by_anything : Integer -> Boolean
+    is_column_matched_by_anything i =
+        match_matrix.at i . any x->x
 
-    does_criterion_match_anything j = ???
+    # Checks if the jth criterion matches any columns.
+    does_criterion_match_anything : Integer -> Boolean
+    does_criterion_match_anything j =
+        match_matrix.map (col -> col.at j) . any x->x
+
+    # Selects columns whose indices satisfy the provided predicate.
+    select_matching_columns : (Integer -> Boolean) -> Vector Text
+    select_matching_columns matcher =
+        indices_to_select = 0.up_to column_names.length . filter matcher
+        indices_to_select . map column_names.at
 
     # Check consistency
     case on_missing of
@@ -87,10 +99,13 @@ match_criteria column_names criteria reorder=False matching_strategy=(Exact case
 
     case reorder of
         True ->
-            TODO
+            nested = 0.up_to criteria.length . map j->
+                is_column_matched_by_this_criterion i->
+                    match_matrix.at i . at j
+                select_matching_columns is_column_matched_by_this_criterion
+            nested.flat_map x->x
         False ->
-            indices_to_select = 0.up_to column_names.length . filter is_column_matched_by_anything
-            indices_to_select . map column_names.at
+            select_matching_columns is_column_matched_by_anything
 
 ## UNSTABLE
    TODO
