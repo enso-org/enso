@@ -88,18 +88,36 @@ pub fn push_stats(snapshot: &stats::StatsData) {
 mod tests {
     use super::*;
 
-    use ensogl_core::debug::stats::StatsData;
+    use ensogl_core::debug::stats::Stats;
 
     use assert_approx_eq::*;
 
     #[test]
     fn overlapping_intervals() {
         let guard_a = start_interval();
-        push_stats(&StatsData { fps: 55.0, wasm_memory_usage: 1, buffer_count: 1, ..default() });
+
+        let stats: Stats = default();
+        stats.set_fps(55.0);
+        stats.set_wasm_memory_usage(1);
+        stats.set_buffer_count(1);
+        push_stats(&stats.snapshot());
+
         let guard_b = start_interval();
-        push_stats(&StatsData { fps: 57.0, wasm_memory_usage: 1, buffer_count: 1, ..default() });
+
+        let stats: Stats = default();
+        stats.set_fps(57.0);
+        stats.set_wasm_memory_usage(1);
+        stats.set_buffer_count(1);
+        push_stats(&stats.snapshot());
+
         let result_a = guard_a.end().unwrap();
-        push_stats(&StatsData { fps: 59.0, wasm_memory_usage: 2, buffer_count: 2, ..default() });
+
+        let stats: Stats = default();
+        stats.set_fps(59.0);
+        stats.set_wasm_memory_usage(2);
+        stats.set_buffer_count(2);
+        push_stats(&stats.snapshot());
+
         let result_b = guard_b.end().unwrap();
 
         assert_approx_eq!(result_a.fps.min, 55.0);
