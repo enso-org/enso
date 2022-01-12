@@ -7,6 +7,7 @@ use enso_types::*;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
+use num_traits::cast;
 use serde::Deserialize;
 use serde::Serialize;
 use wasm_bindgen::JsCast;
@@ -207,15 +208,15 @@ struct ValueAccumulator<T> {
     pub sum: f64,
 }
 
-impl<T: Min + Max + PartialOrd + ToF64 + Copy> ValueAccumulator<T> {
+impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator<T> {
     fn new(v: T) -> Self {
-        Self { min: v, max: v, sum: v.to_f64() }
+        Self { min: v, max: v, sum: v.as_() }
     }
 
     fn push(&mut self, v: T) {
         self.min = min(self.min, v);
         self.max = max(self.max, v);
-        self.sum += v.to_f64();
+        self.sum += v.as_();
     }
 }
 
@@ -228,27 +229,4 @@ pub struct ValueSummary<T> {
     pub max: T,
     /// Average of the observed values of the metric.
     pub avg: f64,
-}
-
-// FIXME[MC] try using convert crate's ApproxTryInto instead
-trait ToF64 {
-    fn to_f64(&self) -> f64;
-}
-
-impl ToF64 for f64 {
-    fn to_f64(&self) -> f64 {
-        *self
-    }
-}
-
-impl ToF64 for u32 {
-    fn to_f64(&self) -> f64 {
-        *self as f64
-    }
-}
-
-impl ToF64 for usize {
-    fn to_f64(&self) -> f64 {
-        *self as f64
-    }
 }
