@@ -119,23 +119,19 @@ pub mod prelude {
 pub fn entry_point_ide() {
     web::forward_panic_hook_to_error();
 
-    ensogl_text_msdf_sys::run_once_initialized(|| {
-        // Logging of build information.
-        #[cfg(debug_assertions)]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(true),
-        );
-        #[cfg(not(debug_assertions))]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(false),
-        );
+    // Logging of build information.
+    #[cfg(debug_assertions)]
+    let debug_mode_is_active = true;
+    #[cfg(not(debug_assertions))]
+    let debug_mode_is_active = false;
+    analytics::remote_log_value(
+        "debug_mode",
+        "debug_mode_is_active",
+        analytics::AnonymousData(debug_mode_is_active),
+    );
 
-        let config =
-            crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
-        crate::ide::Initializer::new(config).start_and_forget();
-    });
+    let config =
+        crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
+
+    crate::ide::Initializer::new(config).start_and_forget();
 }

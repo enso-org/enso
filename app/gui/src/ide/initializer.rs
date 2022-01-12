@@ -61,9 +61,10 @@ impl Initializer {
     /// and forget them to keep them alive.
     pub fn start_and_forget(self) {
         let executor = setup_global_executor();
-        executor::global::spawn(async move {
-            info!(self.logger, "Starting IDE with the following config: {self.config:?}");
-
+        info!(self.logger, "Starting IDE with the following config: {self.config:?}");
+        let have_project_argument = self.config.project_name.is_some();
+        let app_and_view = async move {
+            ensogl_text_msdf_sys::initialized().await;
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
             Initializer::register_views(&application);
             let view = application.new_view::<ide_view::root::View>();
@@ -72,29 +73,29 @@ impl Initializer {
             // We are doing it early, because Controllers initialization
             // takes some time and Welcome Screen might be visible for a brief moment while
             // controllers are not ready.
-            if self.config.project_name.is_some() {
+            if have_project_argument {
                 view.switch_view_to_project();
             }
 
-            let status_bar = view.status_bar().clone_ref();
             application.display.add_child(&view);
+            (application, view)
+        };
+        executor::global::spawn(async move {
+            let controller = self.initialize_ide_controller();
+            let (controller, (application, view)) = futures::join!(controller, app_and_view);
             // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
             //      issues to user, such information should be properly passed
             //      in case of setup failure.
-            let result: FallibleResult<Ide> = (async {
-                let controller = self.initialize_ide_controller().await?;
-                Ok(Ide::new(application, view.clone_ref(), controller).await)
-            })
-            .await;
-
-            match result {
-                Ok(ide) => {
+            match controller {
+                Ok(controller) => {
+                    let ide = Ide::new(application, view, controller).await;
                     info!(self.logger, "Setup done.");
                     std::mem::forget(ide);
                 }
                 Err(err) => {
                     let message = iformat!("Failed to initialize application: {err}");
                     error!(self.logger, "{message}");
+                    let status_bar = &view.status_bar();
                     status_bar.add_event(ide_view::status_bar::event::Label::new(message));
                     std::mem::forget(view);
                 }
@@ -138,7 +139,8 @@ impl Initializer {
         use crate::config::BackendService::*;
         match &self.config.backend {
             ProjectManager { endpoint } => {
-                let project_manager = self.setup_project_manager(endpoint).await?;
+                let project_manager = self.setup_project_manager(endpoint);
+                let project_manager = profiling::measure_detail!("setup PM", project_manager.await?);
                 let project_name = self.config.project_name.clone();
                 let controller = controller::ide::Desktop::new(project_manager, project_name);
                 Ok(Rc::new(controller.await?))
@@ -157,8 +159,8 @@ impl Initializer {
                     version,
                     json_endpoint,
                     binary_endpoint,
-                )
-                .await?;
+                );
+                let controller = profiling::measure_detail!("from_ls_endpoints", controller.await?);
                 Ok(Rc::new(controller))
             }
         }
@@ -166,11 +168,12 @@ impl Initializer {
 
     /// Create and configure a new project manager client and register it within the global
     /// executor.
-    pub async fn setup_project_manager(
+    async fn setup_project_manager(
         &self,
         endpoint: &str,
     ) -> FallibleResult<Rc<dyn project_manager::API>> {
-        let transport = WebSocket::new_opened(self.logger.clone_ref(), endpoint).await?;
+        let transport = WebSocket::new_opened(self.logger.clone_ref(), endpoint);
+        let transport = profiling::measure_detail!("open PM WS", transport.await?);
         let mut project_manager = project_manager::Client::new(transport);
         project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
         executor::global::spawn(project_manager.runner());

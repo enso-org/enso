@@ -146,7 +146,8 @@ impl ManagingProjectAPI for Handle {
 
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>> {
         async move {
-            let pm_response = self.project_manager.list_projects(&None).await?;
+            let pm_response = self.project_manager.list_projects(&None);
+            let pm_response = profiling::measure_task!("list_projects", pm_response.await?);
             Ok(pm_response.projects)
         }
         .boxed_local()
