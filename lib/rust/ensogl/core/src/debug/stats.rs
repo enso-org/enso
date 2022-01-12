@@ -134,13 +134,14 @@ macro_rules! gen_stats {
                     None
                 } else {
                     let n = self.samples_count as f64;
-                    Some(Summary {
+                    let summary = Summary {
                         $($field : ValueSummary{
                             min: self.$field.min,
                             max: self.$field.max,
                             avg: self.$field.sum / n,
                         }),*
-                    })
+                    };
+                    Some(summary)
                 }
             }
         }
