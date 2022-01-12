@@ -3,6 +3,7 @@
 //! performance characteristics.
 
 use enso_prelude::*;
+use enso_types::*;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
@@ -206,15 +207,14 @@ struct ValueAccumulator<T> {
     pub sum: f64,
 }
 
-impl<T: MinMax + Clone> ValueAccumulator<T> {
+impl<T: Min + Max + PartialOrd + ToF64 + Copy> ValueAccumulator<T> {
     fn new(v: T) -> Self {
-        #![allow(trivial_numeric_casts)]
-        Self { min: v.clone(), max: v.clone(), sum: v.to_f64() }
+        Self { min: v, max: v, sum: v.to_f64() }
     }
 
     fn push(&mut self, v: T) {
-        self.min = self.min.min(v.clone());
-        self.max = self.max.max(v.clone());
+        self.min = min(self.min, v);
+        self.max = max(self.max, v);
         self.sum += v.to_f64();
     }
 }
@@ -230,43 +230,24 @@ pub struct ValueSummary<T> {
     pub avg: f64,
 }
 
-trait MinMax {
-    fn min(&self, other: Self) -> Self;
-    fn max(&self, other: Self) -> Self;
+// FIXME[MC] try using convert crate's ApproxTryInto instead
+trait ToF64 {
     fn to_f64(&self) -> f64;
 }
 
-impl MinMax for f64 {
-    fn min(&self, other: f64) -> f64 {
-        f64::min(*self, other)
-    }
-    fn max(&self, other: f64) -> f64 {
-        f64::max(*self, other)
-    }
+impl ToF64 for f64 {
     fn to_f64(&self) -> f64 {
         *self
     }
 }
 
-impl MinMax for u32 {
-    fn min(&self, other: Self) -> Self {
-        std::cmp::min(*self, other)
-    }
-    fn max(&self, other: Self) -> Self {
-        std::cmp::max(*self, other)
-    }
+impl ToF64 for u32 {
     fn to_f64(&self) -> f64 {
         *self as f64
     }
 }
 
-impl MinMax for usize {
-    fn min(&self, other: Self) -> Self {
-        std::cmp::min(*self, other)
-    }
-    fn max(&self, other: Self) -> Self {
-        std::cmp::max(*self, other)
-    }
+impl ToF64 for usize {
     fn to_f64(&self) -> f64 {
         *self as f64
     }
