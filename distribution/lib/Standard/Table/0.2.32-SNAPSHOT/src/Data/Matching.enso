@@ -4,6 +4,7 @@ import Standard.Base.Data.Text.Regex as Regex_Module
 
 from Standard.Table.Data.Column as Column_Module import Column
 
+## Strategy for matching column names.
 type Matching_Strategy
    ## UNSTABLE
       Exact column matching.
@@ -17,6 +18,9 @@ type Matching_Strategy
       A column is matched if its name matches the provided regular expression.
    type Regex case_sensitivity=Sensitive
 
+## Specifies how missing columns should be handled.
+
+   TODO: make this type more general
 type Missing_Behavior
     ## UNSTABLE
        Missing columns are ignored.
@@ -31,14 +35,67 @@ type Missing_Behavior
        Missing columns raise errors.
     type Error
 
+## Specifies whether an operation should be case-sensitive or not.
 type Case_Sensitivity
+
+   ## Specifies that the operation should be case-sensitive.
    type Sensitive
+
+   ## UNSTABLE
+      Specifies that the operation should ignore case.
+
+      TODO: Since case-sensitive can be locale dependent, in the future this may
+            be extended with a `locale` setting.
    type Insensitive
 
-match_criteria : Vector Text -> Vector Text -> Matching_Strategy -> Missing_Behavior -> Vector Text
-match_criteria column_names criteria matching_strategy missing_behavior =
-    Error.throw "TODO"
+## An error indicating that no column matching the provided criterion has
+   been found in the input.
+type Column_Missing criterion
+    to_display_text : Text
+    to_display_text =
+        "The criterion ["+criterion+"] did not match any columns."
 
+
+## UNSTABLE
+   TODO
+
+   TODO
+match_criteria : Vector Text -> Vector Text -> Boolean -> Matching_Strategy -> Missing_Behavior -> (Text -> Nothing) -> Vector Text ! Column_Missing
+match_criteria column_names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Warn warning_callback=here.warn = Panic.recover <|
+    ## match_matrix . at i . at j specifies whether column_names.at i matches criteria.at j
+    match_matrix = column_names.map column_name->
+        criteria.map criterion->
+            here.match_single_criterion column_name criterion matching_strategy
+
+    is_column_matched_by_anything i = ???
+
+    does_criterion_match_anything j = ???
+
+    # Check consistency
+    case on_missing of
+        Ignore -> Nothing
+        Warn ->
+            criteria.map_with_index j-> criterion->
+                if does_criterion_match_anything j then Nothing else
+                    error = Column_Missing criterion
+                    warning_callback error.to_display_text
+        Error ->
+            criteria.map_with_index j-> criterion->
+                if does_criterion_match_anything j then Nothing else
+                    error = Column_Missing criterion
+                    Panic.throw error
+
+    case reorder of
+        True ->
+            TODO
+        False ->
+            indices_to_select = 0.up_to column_names.length . filter is_column_matched_by_anything
+            indices_to_select . map column_names.at
+
+## UNSTABLE
+   TODO
+
+   TODO
 match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
 match_single_criterion column_name criterion matching_strategy = case matching_strategy of
     Exact case_sensitivity -> case case_sensitivity of
@@ -52,3 +109,11 @@ match_single_criterion column_name criterion matching_strategy = case matching_s
             Insensitive -> True
         re = Regex_Module.compile criterion case_insensitive=insensitive
         re.matches column_name
+
+## PRIVATE
+   A placeholder for reporting warnings. It should be replaced once the warning
+   mechanism is designed and implemented. The argument type will likely change
+   too.
+warn : Text -> Nothing
+warn message =
+    IO.println "[WARNING] "+message
