@@ -23,7 +23,7 @@ thread_local! {
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> IntervalGuard {
     let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
-        intervals.borrow_mut().insert(stats::Accumulator::default())
+        intervals.borrow_mut().insert(default())
     });
     IntervalGuard { index, released: false }
 }
@@ -99,21 +99,21 @@ mod tests {
             fps: 55.0,
             wasm_memory_usage: 1,
             buffer_count: 1,
-            ..Default::default()
+            ..default()
         });
         let guard_b = start_interval();
         push_stats(&StatsData {
             fps: 57.0,
             wasm_memory_usage: 1,
             buffer_count: 1,
-            ..Default::default()
+            ..default()
         });
         let result_a = guard_a.end().unwrap();
         push_stats(&StatsData {
             fps: 59.0,
             wasm_memory_usage: 2,
             buffer_count: 2,
-            ..Default::default()
+            ..default()
         });
         let result_b = guard_b.end().unwrap();
 
