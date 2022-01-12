@@ -279,11 +279,11 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        let stats_guard = Some(frame_stats::start_interval());
+        let stats_guard = frame_stats::start_interval();
         mark_with_metadata(interval_name.into(), metadata.clone().into());
-        IntervalHandle::new(Some(metadata), stats_guard)
+        IntervalHandle::new(metadata, stats_guard)
     } else {
-        IntervalHandle::new(None, None)
+        IntervalHandle::inactive(metadata.label)
     }
 }
 
@@ -337,42 +337,58 @@ pub fn mark_end_interval(
 
 /// Handle that allows ending the interval.
 #[derive(Debug)]
-pub struct IntervalHandle {
-    metadata:    Option<Metadata>,
-    stats_guard: Option<frame_stats::IntervalGuard>,
-    released:    bool,
+pub struct IntervalHandle(IntervalHandleData);
+
+#[derive(Debug)]
+enum IntervalHandleData {
+    Active { metadata: Metadata, stats_guard: frame_stats::IntervalGuard },
+    Inactive { label: String },
+    Released,
 }
 
 impl IntervalHandle {
-    fn new(metadata: Option<Metadata>, stats_guard: Option<frame_stats::IntervalGuard>) -> Self {
-        IntervalHandle { metadata, stats_guard, released: false }
+    fn new(metadata: Metadata, stats_guard: frame_stats::IntervalGuard) -> Self {
+        let data = IntervalHandleData::Active { metadata, stats_guard };
+        IntervalHandle(data)
+    }
+
+    fn inactive(label: String) -> Self {
+        let data = IntervalHandleData::Inactive { label };
+        IntervalHandle(data)
     }
 
     /// Measure the interval.
     pub fn end(mut self) {
-        self.released = true;
-        if let Some(metadata) = self.metadata.clone() {
-            warn_on_error(mark_end_interval(metadata, self.stats_guard.take()));
-        }
+        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Released);
+        match old_value {
+            IntervalHandleData::Active { metadata, stats_guard } => {
+                warn_on_error(mark_end_interval(metadata, Some(stats_guard)));
+                IntervalHandleData::Released
+            }
+            IntervalHandleData::Inactive { .. } | IntervalHandleData::Released =>
+                IntervalHandleData::Released,
+        };
     }
 
     /// Release the handle to prevent a warning to be emitted when it is garbage collected without
     /// a call to `end`. This can be useful if one wants to call `end_interval` manually, or the
     /// equivalent call to `end_interval` is in Rust code.
     pub fn release(mut self) {
-        self.released = true;
-        drop(self)
+        self.0 = IntervalHandleData::Released;
     }
 }
 
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
-        if self.released {
-            return;
-        }
-        if let Some(metadata) = self.metadata.take() {
-            WARNING!(format!("{} is dropped without explicitly being ended.", &metadata.label));
-            warn_on_error(mark_end_interval(metadata, self.stats_guard.take()));
+        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Released);
+        match old_value {
+            IntervalHandleData::Active { metadata, stats_guard } => {
+                WARNING!(format!("{} is dropped without explicitly being ended.", &metadata.label));
+                warn_on_error(mark_end_interval(metadata, Some(stats_guard)));
+            }
+            IntervalHandleData::Inactive { label } =>
+                WARNING!(format!("{} is dropped without explicitly being ended.", &label)),
+            IntervalHandleData::Released => (),
         }
     }
 }
