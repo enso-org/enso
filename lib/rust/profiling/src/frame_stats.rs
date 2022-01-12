@@ -47,10 +47,8 @@ impl IntervalGuard {
         ACTIVE_INTERVALS.with(|intervals| match intervals.borrow_mut().remove(self.index) {
             None => {
                 let logger = Logger::new("Profiling_Stats");
-                warning!(
-                    logger,
-                    "Trying to finalize profiling stats for a process not registered before."
-                );
+                let warn_msg: &str = "Trying to finalize profiling stats for a process not registered before.";
+                warning!(logger, warn_msg);
                 None
             }
             Some(accumulator) => accumulator.summarize(),
