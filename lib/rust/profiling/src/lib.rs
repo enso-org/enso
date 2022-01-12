@@ -337,51 +337,44 @@ pub fn mark_end_interval(
 
 /// Handle that allows ending the interval.
 #[derive(Debug)]
-pub struct IntervalHandle(IntervalHandleData);
+pub struct IntervalHandle(Option<Box<IntervalHandleData>>);
 
 #[derive(Debug)]
-enum IntervalHandleData {
-    Active { metadata: Metadata, stats_guard: frame_stats::IntervalGuard },
-    Inactive,
+struct IntervalHandleData {
+    metadata:    Metadata,
+    stats_guard: frame_stats::IntervalGuard,
 }
 
 impl IntervalHandle {
     fn new(metadata: Metadata, stats_guard: frame_stats::IntervalGuard) -> Self {
-        let data = IntervalHandleData::Active { metadata, stats_guard };
-        IntervalHandle(data)
+        let data = IntervalHandleData { metadata, stats_guard };
+        IntervalHandle(Some(Box::new(data)))
     }
 
     fn inactive() -> Self {
-        IntervalHandle(IntervalHandleData::Inactive)
+        IntervalHandle(None)
     }
 
     /// Measure the interval.
     pub fn end(mut self) {
-        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Inactive);
-        match old_value {
-            IntervalHandleData::Active { metadata, stats_guard } =>
-                warn_on_error(mark_end_interval(metadata, Some(stats_guard))),
-            IntervalHandleData::Inactive => (),
-        };
+        if let Some(data) = self.0.take() {
+            warn_on_error(mark_end_interval(data.metadata, Some(data.stats_guard)));
+        }
     }
 
     /// Release the handle to prevent a warning to be emitted when it is garbage collected without
     /// a call to `end`. This can be useful if one wants to call `end_interval` manually, or the
     /// equivalent call to `end_interval` is in Rust code.
     pub fn release(mut self) {
-        self.0 = IntervalHandleData::Inactive;
+        self.0 = None;
     }
 }
 
 impl Drop for IntervalHandle {
     fn drop(&mut self) {
-        let old_value = std::mem::replace(&mut self.0, IntervalHandleData::Inactive);
-        match old_value {
-            IntervalHandleData::Active { metadata, stats_guard } => {
-                WARNING!(format!("{} is dropped without explicitly being ended.", &metadata.label));
-                warn_on_error(mark_end_interval(metadata, Some(stats_guard)));
-            }
-            IntervalHandleData::Inactive => (),
+        if let Some(data) = self.0.take() {
+            WARNING!(format!("{} is dropped without explicitly being ended.", &data.metadata.label));
+            warn_on_error(mark_end_interval(data.metadata, Some(data.stats_guard)));
         }
     }
 }
