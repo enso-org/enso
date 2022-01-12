@@ -278,7 +278,7 @@ fn measure_interval_label(metadata: &Metadata) -> String {
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
     if profiling_level_is_active(metadata.profiling_level.clone()) {
-        let stats_guard = Some(frame_stats::intervals::start_interval());
+        let stats_guard = Some(frame_stats::start_interval());
         mark_with_metadata(interval_name.into(), metadata.clone().into());
         IntervalHandle::new(Some(metadata), stats_guard)
     } else {
@@ -301,7 +301,7 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
 /// start and end of the interval, if possible.
 pub fn mark_end_interval(
     metadata: Metadata,
-    stats_guard: Option<frame_stats::intervals::Guard>,
+    stats_guard: Option<frame_stats::IntervalGuard>,
 ) -> Result<Measurement, MeasurementError> {
     let profiling_level = metadata.profiling_level.clone();
     let start_label = start_interval_label(&metadata);
@@ -338,12 +338,12 @@ pub fn mark_end_interval(
 #[derive(Debug)]
 pub struct IntervalHandle {
     metadata:    Option<Metadata>,
-    stats_guard: Option<frame_stats::intervals::Guard>,
+    stats_guard: Option<frame_stats::IntervalGuard>,
     released:    bool,
 }
 
 impl IntervalHandle {
-    fn new(metadata: Option<Metadata>, stats_guard: Option<frame_stats::intervals::Guard>) -> Self {
+    fn new(metadata: Option<Metadata>, stats_guard: Option<frame_stats::IntervalGuard>) -> Self {
         IntervalHandle { metadata, stats_guard, released: false }
     }
 

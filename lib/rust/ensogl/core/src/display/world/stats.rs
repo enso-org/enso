@@ -74,7 +74,6 @@ impl {
                 }
                 self.monitor.draw();
             }
-            // FIXME[MC]: profiling::frame_stats::intervals::push_stats(&self.stats.data());
         }
     }
 

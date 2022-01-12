@@ -72,7 +72,7 @@ impl Initializer {
             if profiling::ENABLED {
                 application.display.stats_monitor().force_profiling();
                 let callback_handle = application.display.on_stats_available(move |stats| {
-                    profiling::frame_stats::intervals::push_stats(&stats.data());
+                    profiling::frame_stats::push_stats(&stats.data());
                 });
                 std::mem::forget(callback_handle);
             }
