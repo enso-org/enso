@@ -1,6 +1,8 @@
 from Standard.Base import all
 from Standard.Builtins import Array
 
+polyglot java import java.util.HashSet
+
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
 
@@ -744,7 +746,17 @@ type Vector
              [[1, "a"], [2, "b"], [1, "c"]] . distinct on=.first == [[1, "a"], [2, "b"]]
     distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
-        Error.throw "Not implemented yet"
+        builder = here.new_builder
+        existing_elements = HashSet.new
+
+        this.each elem->
+            proj = on elem
+            if existing_elements.contains proj then Nothing else
+                existing_elements.add proj
+                builder.append elem
+
+        builder.to_vector
+
 
     ## UNSTABLE
 
