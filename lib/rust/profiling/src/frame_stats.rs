@@ -79,7 +79,7 @@ thread_local! {
 //  [1]: https://matklad.github.io/2020/10/03/fast-thread-locals-in-rust.html
 //  [2]: https://github.com/rust-lang/rust/issues/29594
 
-/// Starts a new named time interval, during which per-frame statistics will be collected.
+/// Starts tracking a new time interval, during which per-frame statistics will be collected.
 pub fn start_interval() -> IntervalGuard {
     let index = ACTIVE_INTERVALS.with(|intervals| -> usize {
         let mut intervals_vec = intervals.borrow_mut();
@@ -88,7 +88,8 @@ pub fn start_interval() -> IntervalGuard {
     IntervalGuard { index, released: false }
 }
 
-/// Object that allows ending the interval.
+/// An object providing a way to end collection of statistics for a particular time interval
+/// started with [`start_interval`].
 #[derive(Debug)]
 pub struct IntervalGuard {
     index:    usize,
@@ -127,8 +128,8 @@ impl Drop for IntervalGuard {
     }
 }
 
-/// Include the provided stats snapshot into statistics for all intervals that are currently started
-/// and not yet ended.
+/// Ensures that the statistics from the provided snapshot will be aggregated for all the intervals
+/// that are currently started (see [`start_interval`]) and not yet ended ([`IntervalGuard::end`]).
 pub fn push_stats(snapshot: &stats::StatsData) {
     // Note [Frame Stats Active Intervals]
     ACTIVE_INTERVALS.with(|intervals| {
