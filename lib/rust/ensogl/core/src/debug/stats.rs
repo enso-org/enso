@@ -110,6 +110,8 @@ macro_rules! gen_stats {
 
         )* }
 
+        /// Accumulated data of all the gathered stats, collected over many animation frames, one
+        /// sample of all stats per frame.
         #[derive(Debug, Default)]
         #[allow(missing_docs)]
         pub struct Accumulator {
@@ -130,7 +132,7 @@ macro_rules! gen_stats {
             }
 
             /// Calculates a summary of data pushed into the Accumulator till now. Returns a
-            /// meaningful result only if `push` was called at least once.
+            /// meaningful result only if [`push`] was called at least once.
             pub fn summarize(&self) -> Option<Summary> {
                 if self.samples_count == 0 {
                     None
@@ -148,6 +150,7 @@ macro_rules! gen_stats {
             }
         }
 
+        /// Summary of all the gathered stats, calculated over a number of animation frames.
         #[derive(Clone, Debug, Serialize, Deserialize)]
         #[allow(missing_docs)]
         #[serde(rename_all = "camelCase")]
@@ -220,13 +223,11 @@ impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator
     }
 }
 
-/// Summarized data for a single metric.
+/// Summarized data observed for a single stat over a number of animation frames.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[allow(missing_docs)]
 pub struct ValueSummary<T> {
-    /// Smallest observed value of the metric.
     pub min: T,
-    /// Largest observed value of the metric.
     pub max: T,
-    /// Average of the observed values of the metric.
     pub avg: f64,
 }
