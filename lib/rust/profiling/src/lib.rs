@@ -35,15 +35,13 @@ use wasm_bindgen::prelude::*;
 pub mod macros;
 
 use crate::js::*;
-use ::macros::*;
 
 use enso_prelude::fmt::Formatter;
 use enso_web::performance;
-use inflector::Inflector;
 use ordered_float::OrderedFloat;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_plain::from_str;
+use std::str::FromStr;
 use wasm_bindgen::JsValue;
 use web_sys::PerformanceEntry;
 
@@ -62,13 +60,13 @@ pub struct SourceLocation {
 }
 
 /// Measurement metadata. This struct holds information about a measurement and provides
-/// functionality for conversion form/to JS for use in the performance API.
+/// functionality for conversion from/to JS for use in the performance API.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Metadata {
     /// Source code location of the profiling interval.
     pub source:          SourceLocation,
     /// Profiling level of the measurement.
-    pub profiling_level: ProfilingLevel,
+    pub profiling_level: String,
     /// Label of the measurement..
     pub label:           String,
 }
@@ -136,18 +134,24 @@ export function measure_with_start_mark_and_end_mark_and_metadata(
 // === Profilers ===
 // =================
 
-#[allow(missing_docs)]
-type ProfilingLevel = String;
-
-define_profiler! {
-    $, "section", Section, section, start_section, end_section, measure_section;
-    $, "task", Task, task, start_task, end_task, measure_task;
-    $, "detail", Detail, detail, start_detail, end_detail, measure_detail;
-    $, "debug", Debug, debug, start_debug, end_debug, measure_debug;
+define_profiling_levels! {
+    $, Section, section, start_section, end_section, measure_section;
+    $, Task, task, start_task, end_task, measure_task;
+    $, Detail, detail, start_detail, end_detail, measure_detail;
+    $, Debug, debug, start_debug, end_debug, measure_debug;
 }
 
-define_hierarchy!(section, task, detail, debug);
-
+#[allow(unreachable_code)]
+#[allow(clippy::never_loop)]
+#[rustfmt::skip]
+const PROFILING_LEVEL_ENABLED: Option<ProfilingLevel> = loop {
+    // ordered from most-inclusive to least
+    #[cfg(feature = "enable-debug-profiling")]   break Some(ProfilingLevel::Debug);
+    #[cfg(feature = "enable-detail-profiling")]  break Some(ProfilingLevel::Detail);
+    #[cfg(feature = "enable-task-profiling")]    break Some(ProfilingLevel::Task);
+    #[cfg(feature = "enable-section-profiling")] break Some(ProfilingLevel::Section);
+    break None;
+};
 
 
 // ====================
@@ -190,7 +194,7 @@ pub enum MeasurementConversionError {
     /// `Measurement`.
     InvalidFormatting,
     /// The log level encoded in the `PerformanceEntry`s name is not a valid log level.
-    InvalidLogLevel,
+    InvalidLogLevel(String),
 }
 
 impl TryFrom<PerformanceEntry> for Measurement {
@@ -207,10 +211,7 @@ impl TryFrom<PerformanceEntry> for Measurement {
             .try_into()
             .or(Err(InvalidFormatting))?;
 
-        let log_level_name = metadata.profiling_level;
-        let log_level_name = log_level_name.to_class_case();
-
-        let log_level: ProfilingLevel = from_str(&log_level_name).or(Err(InvalidLogLevel))?;
+        let log_level = metadata.profiling_level.parse()?;
         Ok(Measurement { start_time, duration, name, log_level })
     }
 }
@@ -266,13 +267,18 @@ fn measure_interval_label(metadata: &Metadata) -> String {
     format!("{} ({}:{})", metadata.label, metadata.source.file, metadata.source.line)
 }
 
-/// Mark the start of an interval in the JS API. Returns a `IntervalHandle` that an be used to end
+/// Mark the start of an interval in the JS API. Returns a `IntervalHandle` that can be used to end
 /// the created interval. The interval can also be ended by calling `end_interval` with the same
 /// metadata.
 pub fn mark_start_interval(metadata: Metadata) -> IntervalHandle {
     let interval_name = start_interval_label(&metadata);
-    if profiling_level_is_active(metadata.profiling_level.clone()) {
-        mark_with_metadata(interval_name.into(), metadata.clone().into());
+    match ProfilingLevel::from_str(&metadata.profiling_level) {
+        Ok(level) =>
+            if level.is_active() {
+                mark_with_metadata(interval_name.into(), metadata.clone().into());
+            },
+        Err(invalid_level) =>
+            WARNING!(format!("Tried to check for invalid profiling level: {:?}", invalid_level)),
     }
     IntervalHandle::new(metadata)
 }
@@ -291,27 +297,30 @@ fn get_latest_performance_entry() -> Option<PerformanceEntry> {
 /// Mark the end of an measuring an interval in the JS API. Return the measurement taken between
 /// start and end of the interval, if possible.
 pub fn mark_end_interval(metadata: Metadata) -> Result<Measurement, MeasurementError> {
-    let profiling_level = metadata.profiling_level.clone();
+    let profiling_level: ProfilingLevel = metadata
+        .profiling_level
+        .parse()
+        .map_err(|_| MeasurementError::InvalidMeasurementConversion)?;
     let start_label = start_interval_label(&metadata);
     let end_label = end_interval_label(&metadata);
     let measurement_label = measure_interval_label(&metadata);
-    if !profiling_level_is_active(profiling_level) {
-        Err(MeasurementError::ProfilingDisabled)
-    } else {
-        mark_with_metadata(end_label.clone().into(), metadata.clone().into());
-        measure_with_start_mark_and_end_mark_and_metadata(
-            measurement_label.into(),
-            start_label.into(),
-            end_label.into(),
-            metadata.into(),
-        );
-
-        let measure = get_latest_performance_entry().ok_or(MeasurementError::NoMeasurementFound)?;
-
-        let measurement: Measurement =
-            measure.try_into().or(Err(MeasurementError::InvalidMeasurementConversion))?;
-        Ok(measurement)
+    if !profiling_level.is_active() {
+        return Err(MeasurementError::ProfilingDisabled);
     }
+
+    mark_with_metadata(end_label.clone().into(), metadata.clone().into());
+    measure_with_start_mark_and_end_mark_and_metadata(
+        measurement_label.into(),
+        start_label.into(),
+        end_label.into(),
+        metadata.into(),
+    );
+
+    let measure = get_latest_performance_entry().ok_or(MeasurementError::NoMeasurementFound)?;
+
+    let measurement: Measurement =
+        measure.try_into().or(Err(MeasurementError::InvalidMeasurementConversion))?;
+    Ok(measurement)
 }
 
 

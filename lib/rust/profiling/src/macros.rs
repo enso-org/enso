@@ -144,44 +144,23 @@ macro_rules! measure_interval {
 
 
 
-/// Define a new boolean variable whose value is determined by a feature flag in the crate.
-/// The name of the variable is `ENABLED` and it will be true if a feature flag
-/// `enable-<profiling_level_name>-profiling` is set, otherwise it will be false.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! define_profiling_toggle {
-    ($profiling_level_name:ident) => {
-        paste::item! {
-            #[doc = "Defines whether the log level `" $profiling_level_name "` should be used."]
-            #[cfg(feature = "enable-" $profiling_level_name "-profiling")]
-            pub const ENABLED: bool = true;
-            #[doc = "Defines whether the log level `" $profiling_level_name "` should be used."]
-            #[cfg(not(feature = "enable-" $profiling_level_name  "-profiling"))]
-            pub const ENABLED: bool = false;
-        }
-    };
-}
-
-
 /// Define a new profiling module that exposes `start`, `end` and `measure` methods. The profiling
 /// can be activated and de-activated via a crate feature flag named
 /// `enable-<profiling_module_name>-profiling`, which will turn the profiling methods into no-ops.
 #[doc(hidden)]
 #[macro_export]
-macro_rules! define_profiler {
-    ($($d:tt, $profiling_level:expr, $profiling_level_name_upper:ident, $profiling_level_name:ident,
+macro_rules! define_profiling_levels {
+    ($($d:tt, $profiling_level_name_upper:ident, $profiling_level_name:ident,
     $start:ident, $end:ident, $measure:ident ;)*) => {$(
         /// Profiler module that exposes methods to measure named intervals.
         pub mod $profiling_level_name {
-
-            $crate::define_profiling_toggle!($profiling_level_name);
-
             /// Start measuring a named time interval. Return an `IntervalHandle` that can be used
             /// to end the profiling.
             #[macro_export]
             macro_rules! $start {
                 ($interval_name:expr) => {
-                    $crate::start_interval!($profiling_level, $interval_name)
+                    $crate::start_interval!($crate::ProfilingLevel::$profiling_level_name_upper,
+                                            $interval_name)
                 };
             }
 
@@ -189,7 +168,8 @@ macro_rules! define_profiler {
             #[macro_export]
             macro_rules! $end {
                 ($interval_name:expr) => {
-                    $crate::end_interval!($profiling_level, $interval_name)
+                    $crate::end_interval!($crate::ProfilingLevel::$profiling_level_name_upper,
+                                          $interval_name)
                 };
             }
 
@@ -198,9 +178,46 @@ macro_rules! define_profiler {
             macro_rules! $measure {
                 ($interval_name:expr, $d($d body:tt)*) => {
                     $crate::measure_interval!(
-                        A, $profiling_level, $interval_name, $d($d body)*)
+                        A, $crate::ProfilingLevel::$profiling_level_name_upper,
+                        $interval_name,
+                        $d($d body)*)
                 };
             }
         })*
+
+        /// Indicates the granularity of profiling at which a particular measurement is enabled.
+        #[derive(Copy, Clone, Debug)]
+        pub enum ProfilingLevel {
+            $( #[allow(missing_docs)] $profiling_level_name_upper ),*
+        }
+
+        impl FromStr for ProfilingLevel {
+            type Err = MeasurementConversionError;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                use ProfilingLevel::*;
+                Ok(match s {
+                    $( stringify!($profiling_level_name) => $profiling_level_name_upper, )*
+                    x => return Err(MeasurementConversionError::InvalidLogLevel(x.to_owned())),
+                })
+            }
+        }
+
+        impl std::fmt::Display for ProfilingLevel {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                use ProfilingLevel::*;
+                f.write_str(match self {
+                    $( $profiling_level_name_upper => stringify!($profiling_level_name), )*
+                })
+            }
+        }
+
+        impl ProfilingLevel {
+            const fn is_active(self) -> bool {
+                match PROFILING_LEVEL_ENABLED {
+                    Some(level) => level as u32 >= self as u32,
+                    None => false,
+                }
+            }
+        }
     }
 }
