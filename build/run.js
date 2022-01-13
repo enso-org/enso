@@ -567,18 +567,33 @@ async function updateBuildVersion(argv) {
 }
 
 async function installJsDeps() {
-    let initialized = fss.existsSync(paths.dist.init)
-    if (!initialized) {
-        console.log('Downloading binary assets.')
-        await downloadJsAssets()
+    let initialized = isInitialized()
+    let isCI = process.env.hasOwnProperty('CI')
+    // We update JS dependencies on CI every time to ensure that incremental build is always possible.
+    // Otherwise adding new dependency will require a clean build on CI.
+    if (!initialized || isCI) {
         console.log('Installing application dependencies.')
         await cmd.with_cwd(paths.ide_desktop.root, async () => {
             await cmd.run('npm', ['run', 'install'])
         })
-        await fs.mkdir(paths.dist.root, { recursive: true })
-        let handle = await fs.open(paths.dist.init, 'w')
-        await handle.close()
     }
+    if (!initialized) {
+        console.log('Downloading binary assets.')
+        await downloadJsAssets()
+        markAsInitialized()
+    }
+}
+
+// Return true if markAsInitialized was run in the past, otherwise return false.
+function isInitialized() {
+    return fss.existsSync(paths.dist.init)
+}
+
+// Create an empty file at paths.dist.init to signal that the initialization was done.
+async function markAsInitialized() {
+    await fs.mkdir(paths.dist.root, { recursive: true })
+    let handle = await fs.open(paths.dist.init, 'w')
+    await handle.close()
 }
 
 async function downloadJsAssets() {
