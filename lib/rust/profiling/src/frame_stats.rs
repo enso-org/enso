@@ -1,5 +1,30 @@
-//! This module helps to aggregate various per-frame performance statistics, collected over
-//! intervals spanning multiple GUI rendering frames.
+//! This module provides utilities for aggregating and summarizing per-frame [runtime performance
+//! statistics][stats::Stats] over multiple GUI rendering frames.
+//!
+//! The API allows tracking the statistics over multiple distinct, possibly overlapping intervals.
+//! The per-frame statistics are not collected in an automated way behind the scenes, but they need
+//! to be explicitly pushed into the API on every rendering frame. On every push, they are
+//! internally aggregated separately for each currently active interval. After ending a particular
+//! interval, summary stats are calculated and returned based on the aggregated data.
+//!
+//! Example usage
+//! --------------
+//! ```ignore
+//! // Manually start a new measurement interval.
+//! let reticulating_splines = frame_stats::start_interval();
+//! // ...
+//!
+//! // On every rendering frame, push stats for that frame into the API.
+//! frame_stats::push_stats(calculatePerFrameStats());
+//!
+//! // ...
+//! // When the interval of interest has finished, retrieve summarized stats.
+//! let stats_summary = reticulating_splines.end();
+//! println!("Summary stats while reticulating splines: {}", stats_summary);
+//! ```
+//!
+//! Note: See also the [`profiling`][crate::profiling] module for a higher level API for intervals
+//! profiling.
 
 use enso_prelude::*;
 

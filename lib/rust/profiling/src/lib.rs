@@ -21,6 +21,10 @@
 //!
 //! Note that this API and encoding formats for messages are synced with the JS equivalent in
 //! `app/ide-desktop/lib/profiling/src/profiling.ts`.
+//!
+//! For intervals during which runtime stats were pushed with [`frame_stats::push_stats`] into the
+//! [`frame_stats`] module's API, summary of those stats will also be collected and made available
+//! as part of the measurements details (see the Web Performance API linked above).
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
