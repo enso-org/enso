@@ -69,6 +69,9 @@ macro_rules! emit_if_integer {
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
 
+
+        // === StatsData ===
+
         /// Raw data of all the gathered stats.
         #[derive(Debug,Default,Clone,Copy)]
         #[allow(missing_docs)]
@@ -77,6 +80,9 @@ macro_rules! gen_stats {
             frame_counter:    u64,
             $($field : $field_type),*
         }
+
+
+        // === Stats accessors of StatsData fields ===
 
         impl Stats { $(
             /// Field getter.
@@ -109,6 +115,9 @@ macro_rules! gen_stats {
             );
 
         )* }
+
+
+        // === Accumulator ===
 
         /// Accumulated data of all the gathered stats, collected over many animation frames, one
         /// sample of all stats per frame.
@@ -150,6 +159,9 @@ macro_rules! gen_stats {
             }
         }
 
+
+        // === Summary ===
+
         /// Summary of all the gathered stats, calculated over a number of animation frames.
         #[derive(Clone, Debug, Serialize, Deserialize)]
         #[allow(missing_docs)]
@@ -176,6 +188,9 @@ gen_stats! {
     shader_count         : usize,
     shader_compile_count : usize,
 }
+
+
+// === StatsData methods ===
 
 impl StatsData {
     fn begin_frame(&mut self, time: f64) {
@@ -204,6 +219,12 @@ impl StatsData {
     }
 }
 
+
+
+// ========================
+// === ValueAccumulator ===
+// ========================
+
 #[derive(Debug, Default)]
 struct ValueAccumulator<T> {
     pub min: T,
@@ -222,6 +243,12 @@ impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator
         self.sum += v.as_();
     }
 }
+
+
+
+// ====================
+// === ValueSummary ===
+// ====================
 
 /// Summarized data observed for a single stat over a number of animation frames.
 #[derive(Clone, Debug, Serialize, Deserialize)]
