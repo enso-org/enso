@@ -2,6 +2,8 @@
 
 const cmd   = require('./build/cmd')
 const fs    = require('fs').promises
+const path  = require('path')
+const os    = require('os')
 const fss   = require('fs')
 const paths = require('./build/paths')
 
@@ -36,7 +38,18 @@ async function init () {
     }
 }
 
+// Check the location of the repository root. It must not be located at `~/enso`, as this directory
+// is used by project manager to store Enso's projects.
+function throwIfInvalidRootLocation() {
+    let rootPath = path.resolve(__dirname)
+    let homeDir = os.homedir()
+    if (rootPath == path.resolve(homeDir, 'enso')) {
+        throw '~/enso location cannot be used as a repository root, please use a different location'
+    }
+}
+
 async function main() {
+    throwIfInvalidRootLocation()
     await init()
     cmd.run('node',[paths.script.run].concat(args))
 }

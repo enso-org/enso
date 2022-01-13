@@ -3,6 +3,7 @@
 // These implementations are neither efficient nor pretty, but get the idea across.
 
 use crate::component::visualization;
+use crate::component::visualization::java_script::source::from_files;
 
 
 
@@ -12,60 +13,66 @@ use crate::component::visualization;
 
 /// Return a `JavaScript` Table visualization.
 pub fn table_visualization() -> visualization::java_script::FallibleDefinition {
-    let loading_scripts = include_str!("java_script/helpers/loading.js");
-    let scrollable = include_str!("java_script/helpers/scrollable.js");
-    let source = include_str!("java_script/table.js");
-    let source = format!("{}{}{}", loading_scripts, scrollable, source);
+    let source = from_files!(
+        "java_script/helpers/loading.js",
+        "java_script/helpers/scrollable.js",
+        "java_script/table.js"
+    );
 
     visualization::java_script::Definition::new_builtin(source)
 }
 
 /// Return a `JavaScript` SQL visualization.
 pub fn sql_visualization() -> visualization::java_script::FallibleDefinition {
-    let loading_scripts = include_str!("java_script/helpers/loading.js");
-    let scrollable = include_str!("java_script/helpers/scrollable.js");
-    let source = include_str!("java_script/sql.js");
-    let source = format!("{}{}{}", loading_scripts, scrollable, source);
+    let source = from_files!(
+        "java_script/helpers/loading.js",
+        "java_script/helpers/scrollable.js",
+        "java_script/sql.js"
+    );
 
     visualization::java_script::Definition::new_builtin(source)
 }
 
 /// Return a `JavaScript` Scatter plot visualization.
 pub fn scatter_plot_visualization() -> visualization::java_script::FallibleDefinition {
-    let loading_scripts = include_str!("java_script/helpers/loading.js");
-    let number = include_str!("java_script/helpers/number.js");
-    let source = include_str!("java_script/scatterPlot.js");
-    let source = format!("{}{}{}", loading_scripts, number, source);
+    let source = from_files!(
+        "java_script/helpers/loading.js",
+        "java_script/helpers/number.js",
+        "java_script/scatterPlot.js"
+    );
 
     visualization::java_script::Definition::new_builtin(source)
 }
 
 /// Return a `JavaScript` Histogram visualization.
 pub fn histogram_visualization() -> visualization::java_script::FallibleDefinition {
-    let loading_scripts = include_str!("java_script/helpers/loading.js");
-    let number = include_str!("java_script/helpers/number.js");
-    let source = include_str!("java_script/histogram.js");
-    let source = format!("{}{}{}", loading_scripts, number, source);
+    let source = from_files!(
+        "java_script/helpers/loading.js",
+        "java_script/helpers/number.js",
+        "java_script/histogram.js"
+    );
 
     visualization::java_script::Definition::new_builtin(source)
 }
 
 /// Return a `JavaScript` Heatmap visualization.
 pub fn heatmap_visualization() -> visualization::java_script::FallibleDefinition {
-    let loading_scripts = include_str!("java_script/helpers/loading.js");
-    let number = include_str!("java_script/helpers/number.js");
-    let source = include_str!("java_script/heatmap.js");
-    let source = format!("{}{}{}", loading_scripts, number, source);
+    let source = from_files!(
+        "java_script/helpers/loading.js",
+        "java_script/helpers/number.js",
+        "java_script/heatmap.js"
+    );
 
     visualization::java_script::Definition::new_builtin(source)
 }
 
 /// Return a `JavaScript` Map visualization.
 pub fn geo_map_visualization() -> visualization::java_script::FallibleDefinition {
-    let loading_scripts = include_str!("java_script/helpers/loading.js");
-    let number = include_str!("java_script/helpers/number.js");
-    let source = include_str!("java_script/geoMap.js");
-    let source = format!("{}{}{}", loading_scripts, number, source);
+    let source = from_files!(
+        "java_script/helpers/loading.js",
+        "java_script/helpers/number.js",
+        "java_script/geoMap.js"
+    );
 
     visualization::java_script::Definition::new_builtin(source)
 }
@@ -73,16 +80,14 @@ pub fn geo_map_visualization() -> visualization::java_script::FallibleDefinition
 /// Return a `JavaScript` Bubble visualization. This should not be used as it is a demo
 /// visualization.
 pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition {
-    let source = include_str!("java_script/bubbleVisualization.js");
+    let source = from_files!("java_script/bubbleVisualization.js");
 
     visualization::java_script::Definition::new_builtin(source)
 }
 
 /// Return a `JavaScript` Image visualization.
 pub fn image_base64_visualization() -> visualization::java_script::FallibleDefinition {
-    let loading_scripts = include_str!("java_script/helpers/loading.js");
-    let source = include_str!("java_script/imageBase64.js");
-    let source = format!("{}{}", loading_scripts, source);
+    let source = from_files!("java_script/helpers/loading.js", "java_script/imageBase64.js");
 
     visualization::java_script::Definition::new_builtin(source)
 }
@@ -93,6 +98,8 @@ pub fn empty_visualization() -> visualization::java_script::FallibleDefinition {
         class EmptyVisualization extends Visualization {}
         return EmptyVisualization;
     "#;
+    let files = [("java_script/empty.js", source)];
+    let source = visualization::java_script::Sources::from_files(&files);
 
     visualization::java_script::Definition::new_builtin(source)
 }

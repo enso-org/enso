@@ -1614,7 +1614,7 @@ lazy val `std-google-api` = project
   .settings(
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      `google-api-polyglot-root` / "std-image.jar",
+      `google-api-polyglot-root` / "std-google-api.jar",
     libraryDependencies ++= Seq(
       "com.google.api-client" % "google-api-client"          % "1.32.1",
       "com.google.apis"       % "google-api-services-sheets" % "v4-rev612-1.25.0"

@@ -81,7 +81,9 @@ fn constructor_graph() -> visualization::java_script::Definition {
 
         return Graph
     "#;
-    visualization::java_script::Definition::new_builtin(source).unwrap()
+    let mut sources = visualization::java_script::Sources::empty();
+    sources.add_file("demo.js", source);
+    visualization::java_script::Definition::new_builtin(sources).unwrap()
 }
 
 #[wasm_bindgen]

@@ -131,12 +131,14 @@ The following operating systems are supported for developing Enso:
 - macOS 10.14 and above
 - Linux 4.4 and above
 
-Currently only the x86_64 (amd64) architecture is supported. You may be able to
-develop Enso on other systems, but issues arising from unsupported
-configurations will not be fixed by the core team.
+Currently we support `x86_64` (all mentioned OS) and `arm64` (Mac only)
+architectures. You may be able to develop Enso on other systems, but issues
+arising from unsupported configurations will not be fixed by the core team.
 
 In order to build and run Enso you will need the following tools:
 
+- [NodeJS](https://nodejs.org/) with the latest LTS version. We recommend using
+  [`nvm`](https://github.com/nvm-sh/nvm) for managing NodeJS installation.
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
   [`project/build.properties`](../project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.
@@ -146,8 +148,6 @@ In order to build and run Enso you will need the following tools:
   for the same Java version as specified in [`build.sbt`](../build.sbt).
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
-- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
-  the rust build tool.
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
 - On MacOS and Linux, the `tar` command is required for running some tests. It
   should be installed by default on most distributions.
@@ -158,8 +158,14 @@ In order to build and run Enso you will need the following tools:
   need to configure the Developer Command Prompt for Microsoft Visual C++ for
   the x64 architecture.
 
-Managing multiple JVM installations can be a pain, so some of the team use
-[Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
+Managing multiple JVM installations can be a pain, so you can consider using
+helper tools for that. We recommend:
+
+- [Jenv](http://www.jenv.be/)
+- or [sdkman](https://sdkman.io/)
+
+**For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
+please refer to a [dedicated documentation](./graalvm-m1-mac.md).
 
 The flatbuffers `flatc` compiler can be installed from the following locations:
 
@@ -196,11 +202,6 @@ The Rust code in this repository requires a specific nightly rust toolchain, as
 defined by [rust-toolchain](../rust-toolchain.toml) override file. The `rustup`
 will automatically download the appropriate compiler version along with the
 necessary components.
-
-You will also need `node` in order to run the `wasm` tests. We only support the
-latest LTS version of [NodeJS](https://nodejs.org/en/download) and NPM. We
-recommend using [`nvm`](https://github.com/nvm-sh/nvm) to manage node versions.
-The current LTS is `v14.16.1.
 
 ### Getting Set Up (JVM)
 
@@ -478,8 +479,8 @@ in our issue tracker and we will get back to you as soon as possible.
 ### Testing Enso
 
 Running the tests for the JVM enso components is as simple as running
-`sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
-can run the WASM tests for the rust components by using `./run --test-wasm`.
+`sbt / test`. To test the Rust components you can run `./run test`. Finally, you
+can run the WASM tests for the rust components by using `./run test --wasm`.
 
 #### Testing Enso Libraries
 
