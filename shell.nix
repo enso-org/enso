@@ -27,17 +27,10 @@ let
   }).graalvm11-ce;
 
   sbt_graal = pkgs.sbt.override { jre = graalvm_11_1_0; };
-
-  wasm-pack_0_9 = with pkgs; callPackage ./nix/wasm-pack_0_9 {
-    inherit (darwin.apple_sdk.frameworks) Security;
-    libressl = libressl_3_2;
-  };
-
 in pkgs.mkShell {
   packages = with pkgs; [
     # IDE (and common)
-    rust-bin nodejs cargo-watch pkgconfig openssl.dev wasm-pack_0_9
-
+    rust-bin nodejs cargo-watch pkgconfig openssl.dev wasm-pack
     # Engine
     sbt_graal maven flatbuffers_1_12 graalvm_11_1_0
   ];

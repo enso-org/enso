@@ -24,16 +24,11 @@ let
 
   graal = pkgs.graalvm11-ce;
 
-  wasm-pack_0_9 = with pkgs; callPackage ./nix/wasm-pack_0_9 {
-    inherit (darwin.apple_sdk.frameworks) Security;
-    libressl = libressl_3_2;
-  };
-
 in (pkgs.buildFHSUserEnv {
   name = "enso-env";
   targetPkgs = pkgs: (with pkgs; [
     # IDE
-    rust-bin nodejs cargo-watch pkgconfig openssl.dev wasm-pack_0_9
+    rust-bin nodejs cargo-watch pkgconfig openssl.dev wasm-pack
     # Engine: runtime deps (FHS)
     zlib clang bintools
   ]);
