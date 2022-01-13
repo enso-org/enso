@@ -1,7 +1,7 @@
 //!The performance-logger library allows to create performance reports via the
 //! [Web Performance API](https://developer.mozilla.org/en-US/docs/Web/API/Performance).
 //!
-//! The API provided allows the marking of intervals between a start and end, which the gets
+//! The API provided allows the marking of intervals between a start and end, which then gets
 //! measured and marked in the Chrome DevTools Performance Monitor. Intervals can be assigned a
 //! log level, for example, `TASK`, SECTION` or `DEBUG` to allow filtering based on the current
 //! needs.
@@ -16,7 +16,7 @@
 //! some_task();
 //! gui_init.end();
 //! // Or use the `measure` method.
-//! profiling::task_measure!("GUI initialization", || { some_task() });
+//! profiling::measure_task!("GUI initialization", { some_task() });
 //! ```
 //!
 //! Note that this API and encoding formats for messages are synced with the JS equivalent in
