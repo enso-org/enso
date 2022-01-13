@@ -743,7 +743,7 @@ type Vector
        > Example
          Keeping only pairs whose first elements are unique.
 
-             [[1, "a"], [2, "b"], [1, "c"]] . distinct on=.first == [[1, "a"], [2, "b"]]
+             [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
     distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
         builder = here.new_builder
