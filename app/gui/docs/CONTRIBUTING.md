@@ -280,13 +280,13 @@ is a profiling framework integrated that can help you measure the timing of your
 code. There is a JS API (`app/ide-desktop/lib/profiling/src/profiling.ts`) and a
 Rust API (`lib/rust/profiling/src/lib.rs`) and you can read their respective
 docs for details on the API usage. To activate the profiling framework you need
-to pass `--profiling-level <name of the desired profiling level>` to the run script.
-Available profiling levels are “Section”, “Task”, “Details”, “Debug” For
+to pass `--profiling-level <name of the desired profiling level>` to the run
+script. Available profiling levels are “Section”, “Task”, “Details”, “Debug” For
 example, `./run start --profiling-level debug --dev`. In the Chrome developer
 console, you can then see the profiled intervals in the Performance tab when
 recording performance statistics. You can also see a performance report when
-running `showLogs()` and then `showPerformanceReport()` in the Chrome developer console. You will then
-see a textual overview of the profiled intervals.
+running `showLogs()` and then `showPerformanceReport()` in the Chrome developer
+console. You will then see a textual overview of the profiled intervals.
 
 ### Development Branches
 
