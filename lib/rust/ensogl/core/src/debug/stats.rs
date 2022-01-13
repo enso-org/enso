@@ -1,6 +1,11 @@
-//! This module defines a structure gathering statistics of the running engine. The statistics are
-//! an amazing tool for debugging what is really happening under the hood and understanding the
-//! performance characteristics.
+//! This module provides utilities for gathering runtime performance statistics of the GUI.
+//!
+//! The module provides a structure which defines the statistics we are interested in ([`Stats`]),
+//! and contains methods for modifying as well as retrieving the current values of the statistics
+//! (often also referred to with the shortcut term "stats"). It also provides methods that need
+//! to be called to ensure that some of the statistics are properly calculated per each frame, and
+//! helper utility types for accumulating and summarizing stats over multiple frames. The intention
+//! behind this module is to aid in detecting and debugging possible performance issues in the GUI.
 //!
 //! Note: some statistics will not be collected (the fields will be present but always zero) when
 //! this crate is compiled without the `statistics` feature flag. This is mediated by the
@@ -39,11 +44,13 @@ impl Default for Stats {
 
 impl Stats {
     /// Starts tracking data for a new animation frame.
+    /// Also, calculates the `fps` stat and updates `frame_counter`.
     pub fn begin_frame(&self, time: f64) {
         self.rc.borrow_mut().begin_frame(time);
     }
 
     /// Ends tracking data for the current animation frame.
+    /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
     pub fn end_frame(&self, time: f64) {
         self.rc.borrow_mut().end_frame(time);
     }
