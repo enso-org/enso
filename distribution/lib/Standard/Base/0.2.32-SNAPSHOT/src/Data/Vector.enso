@@ -721,6 +721,32 @@ type Vector
         Vector new_vec_arr
 
     ## UNSTABLE
+       Keeps only unique elements within the Vector, removing any duplicates.
+
+       Arguments:
+       - on: A projection from the element type to the value of that element
+             which determines the uniqueness criteria.
+
+       The returned unique elements are kept in the same order as they appeared
+       in the input.
+
+       Out of multiple equivalent (equal up to the `on` projection) elements,
+       always the one appearing first in the input is kept.
+
+       > Example
+         Removing repeating entries.
+
+             [1, 3, 1, 2, 2, 1] . distinct == [1, 3, 2]
+
+       > Example
+         Keeping only pairs whose first elements are unique.
+
+             [[1, "a"], [2, "b"], [1, "c"]] . distinct on=.first == [[1, "a"], [2, "b"]]
+    distinct : (Any -> Any) -> Vector Any
+    distinct (on = x->x) =
+        Error.throw "Not implemented yet"
+
+    ## UNSTABLE
 
        Transform the vector into text for displaying as part of its default
        visualization.
