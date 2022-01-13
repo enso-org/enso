@@ -51,9 +51,11 @@ type Case_Sensitivity
 ## An error indicating that no column matching the provided criterion has
    been found in the input.
 type Column_Missing criterion
-    to_display_text : Text
-    to_display_text =
-        "The criterion ["+criterion+"] did not match any columns."
+
+
+Column_Missing.to_display_text : Text
+Column_Missing.to_display_text =
+    "The criterion ["+this.criterion+"] did not match any columns."
 
 
 ## UNSTABLE
@@ -61,8 +63,8 @@ type Column_Missing criterion
 
    TODO
 match_criteria : Vector Text -> Vector Text -> Boolean -> Matching_Strategy -> Missing_Behavior -> (Text -> Nothing) -> Vector Text ! Column_Missing
-match_criteria column_names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Warn warning_callback=here.warn = Panic.recover <|
-    ## match_matrix . at i . at j specifies whether column_names.at i matches criteria.at j
+match_criteria column_names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Warn warning_callback=here.report_warning = Panic.recover <|
+    # match_matrix . at i . at j specifies whether column_names.at i matches criteria.at j
     match_matrix = column_names.map column_name->
         criteria.map criterion->
             here.match_single_criterion column_name criterion matching_strategy
@@ -77,11 +79,10 @@ match_criteria column_names criteria reorder=False matching_strategy=(Exact case
     does_criterion_match_anything j =
         match_matrix.map (col -> col.at j) . any x->x
 
-    # Selects columns whose indices satisfy the provided predicate.
-    select_matching_columns : (Integer -> Boolean) -> Vector Text
-    select_matching_columns matcher =
-        indices_to_select = 0.up_to column_names.length . filter matcher
-        indices_to_select . map column_names.at
+    # Selects column indices which satisfy the provided predicate.
+    select_matching_indices : (Integer -> Boolean) -> Vector Text
+    select_matching_indices matcher =
+        0.up_to column_names.length . to_vector . filter matcher
 
     # Check consistency
     case on_missing of
@@ -97,15 +98,16 @@ match_criteria column_names criteria reorder=False matching_strategy=(Exact case
                     error = Column_Missing criterion
                     Panic.throw error
 
-    case reorder of
+    selected_indices = case reorder of
         True ->
-            nested = 0.up_to criteria.length . map j->
-                is_column_matched_by_this_criterion i->
+            nested_indices = 0.up_to criteria.length . map j->
+                is_column_matched_by_this_criterion i =
                     match_matrix.at i . at j
-                select_matching_columns is_column_matched_by_this_criterion
-            nested.flat_map x->x
+                select_matching_indices is_column_matched_by_this_criterion
+            nested_indices.flat_map x->x # TODO . distinct
         False ->
-            select_matching_columns is_column_matched_by_anything
+            select_matching_indices is_column_matched_by_anything
+    selected_indices.map column_names.at
 
 ## UNSTABLE
    TODO
@@ -129,6 +131,6 @@ match_single_criterion column_name criterion matching_strategy = case matching_s
    A placeholder for reporting warnings. It should be replaced once the warning
    mechanism is designed and implemented. The argument type will likely change
    too.
-warn : Text -> Nothing
-warn message =
+report_warning : Text -> Nothing
+report_warning message =
     IO.println "[WARNING] "+message
