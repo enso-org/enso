@@ -132,8 +132,7 @@ macro_rules! gen_stats {
 
         // === Accumulator ===
 
-        /// Accumulated data of all the gathered stats, collected over many animation frames, one
-        /// sample of all stats per frame.
+        /// Accumulated data of all the gathered stats, collected over many GUI rendering frames.
         // Note [Stats Accumulator]
         #[derive(Debug, Default)]
         #[allow(missing_docs)]
@@ -181,7 +180,7 @@ macro_rules! gen_stats {
 
         // === Summary ===
 
-        /// Summary of all the gathered stats, calculated over a number of animation frames.
+        /// Summary of all the gathered stats, calculated over a number of GUI rendering frames.
         #[derive(Clone, Debug, Serialize, Deserialize)]
         #[allow(missing_docs)]
         #[serde(rename_all = "camelCase")]
@@ -280,7 +279,7 @@ impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator
 // === ValueSummary ===
 // ====================
 
-/// Summarized data observed for a single stat over a number of animation frames.
+/// Summarized data observed for a single stat over a number of GUI rendering frames.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub struct ValueSummary<T> {
