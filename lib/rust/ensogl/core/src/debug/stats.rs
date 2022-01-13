@@ -225,6 +225,17 @@ impl StatsData {
     }
 }
 
+/// Keeps the body if the `statistics` compilation flag was enabled.
+#[macro_export]
+macro_rules! if_compiled_with_stats {
+    ($($tok:tt)*) => {
+        #[cfg(feature = "statistics")]
+        {$($tok)*}
+        #[cfg(not(feature = "statistics"))]
+        {}
+    };
+}
+
 
 
 // ========================
