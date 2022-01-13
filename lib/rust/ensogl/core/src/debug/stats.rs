@@ -1,6 +1,12 @@
 //! This module defines a structure gathering statistics of the running engine. The statistics are
 //! an amazing tool for debugging what is really happening under the hood and understanding the
 //! performance characteristics.
+//!
+//! Note: some statistics will not be collected (the fields will be present but always zero) when
+//! this crate is compiled without the `statistics` feature flag. This is mediated by the
+//! [`if_compiled_with_stats!`] macro. At the time of writing this doc, the affected stats are:
+//!  - `gpu_memory_usage`
+//!  - `data_upload_size`
 
 use enso_prelude::*;
 use enso_types::*;
