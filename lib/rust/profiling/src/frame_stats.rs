@@ -39,11 +39,45 @@ use ensogl_core::debug::stats;
 // === Intervals ===
 // =================
 
+// Note [Frame Stats Active Intervals]
 type Intervals = OptVec<stats::Accumulator>;
 
 thread_local! {
+    /// Tracks all currently active (started and not yet ended) intervals, and accumulates
+    /// per-frame stats separately for each one.
+    // Note [Frame Stats Active Intervals]
     static ACTIVE_INTERVALS: RefCell<Intervals> = RefCell::new(Intervals::new());
 }
+
+// Note [Frame Stats Active Intervals]
+// ===================================
+//
+// The `push_stats` function is intended to be run on every frame of the GUI main rendering loop.
+// As such, the function and the data structures it works on need to be written with high care for
+// performance (see: Note [Main Loop Performance]). Based on that, the following design choices
+// were currently taken:
+//
+//  - **`ACTIVE_INTERVALS` is `thread_local!`.**
+//    The whole GUI is currently designed and implemented under assumption of running
+//    single-threaded. Thanks to this, we are safe to use thread-local storage knowing, that only
+//    one instance of it will ever be crated, and this one instance will be globally available in
+//    the whole program. This allows us to avoid expensive thread synchronization primitives. On
+//    the other hand, the `thread_local!` macro is not the fastest it could possibly be (see:
+//    https://matklad.github.io/2020/10/03/fast-thread-locals-in-rust.html). However, we consider
+//    it fast enough for this use case (taking into account it will be a single access per frame),
+//    that we prefer to play it safe vs. going all the way and risking use of homemade `unsafe`
+//    constructs. Notably, an alternative in the shape of the `#[thread_local]` attribute was also
+//    considered, but rejected due to having unsoundness problems at the time of writing (see:
+//    https://github.com/rust-lang/rust/issues/29594).
+//  - **`ACTIVE_INTERVALS` entries are `stats::Accumulator` per active interval.**
+//    It is assumed that not many intervals will be active simultaneously at any given time -
+//    roughly: `profiling_lvls_available * intevals_overlap_factor`, which shouldn't exceed a
+//    dozen. The `stats::Accumulator` is a fixed-size struct (thus avoiding overhead of memory
+//    allocations/deallocations), and pushing data into it comprises of a bunch of fairly simple
+//    arithmetic operations per each stat.
+//  - **`ACTIVE_INTERVALS` is an `OptVec`.**
+//    `OptVec` is a sparse vector type, presumed to have better performance characteristics vs.
+//    `HashMap`.
 
 /// Starts a new named time interval, during which frame statistics will be collected.
 pub fn start_interval() -> IntervalGuard {
@@ -96,6 +130,7 @@ impl Drop for IntervalGuard {
 /// Include the provided stats snapshot into statistics for all intervals that are currently started
 /// and not yet ended.
 pub fn push_stats(snapshot: &stats::StatsData) {
+    // Note [Frame Stats Active Intervals]
     ACTIVE_INTERVALS.with(|intervals| {
         for interval in intervals.borrow_mut().iter_mut() {
             interval.push(snapshot);

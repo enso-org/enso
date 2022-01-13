@@ -121,6 +121,7 @@ macro_rules! gen_stats {
 
         /// Accumulated data of all the gathered stats, collected over many animation frames, one
         /// sample of all stats per frame.
+        // Note [Stats Accumulator]
         #[derive(Debug, Default)]
         #[allow(missing_docs)]
         pub struct Accumulator {
@@ -128,6 +129,11 @@ macro_rules! gen_stats {
             samples_count: u32,
             $($field : ValueAccumulator<$field_type>),*
         }
+
+        // Note [Stats Accumulator]
+        // ========================
+        //
+        // See: Note [Frame Stats Active Intervals] in `lib/rust/profiling/src/frame_stats.rs`
 
         impl Accumulator {
             /// Includes the data of the sample into the Accumulator.
