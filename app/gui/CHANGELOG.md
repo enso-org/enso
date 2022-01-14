@@ -13,12 +13,18 @@
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
 
+#### Enso Standard Library
+
+- [Implemented `Vector.distinct` allowing to remove duplicate elements from a
+  Vector][3224]
+
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
 [3181]: https://github.com/enso-org/enso/pull/3181
 [3186]: https://github.com/enso-org/enso/pull/3186
 [3193]: https://github.com/enso-org/enso/pull/3193
 [3208]: https://github.com/enso-org/enso/pull/3208
+[3224]: https://github.com/enso-org/enso/pull/3224
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
