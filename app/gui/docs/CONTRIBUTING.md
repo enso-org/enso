@@ -281,22 +281,6 @@ have prepared several scripts which maximally automate the process:
 - **Linting** Please be sure to fix all errors reported by `node ./run lint`
   before creating a pull request to this repository.
 
-### Profiling
-
-If you are working on performance critical code, or on improving the performance
-of parts of the GUI we have some tools available to help you. Especially there
-is a profiling framework integrated that can help you measure the timing of your
-code. There is a JS API (`app/ide-desktop/lib/profiling/src/profiling.ts`) and a
-Rust API (`lib/rust/profiling/src/lib.rs`) and you can read their respective
-docs for details on the API usage. To activate the profiling framework you need
-to pass `--profiling <name of the desired profiling level>` to the run script.
-Available profiling levels are “Section”, “Task”, “Details”, “Debug” For
-example, `./run start --profiling-level debug --dev`. In the Chrome developer
-console, you can then see the profiled intervals in the Performance tab when
-recording performance statistics. You can also see a performance report when
-running `showPerformanceReport()` in the Chrome developer console. You will then
-see a textual overview of the profiled intervals.
-
 ### Development Branches
 
 The following branches are used to develop the product:
