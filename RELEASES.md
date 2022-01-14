@@ -8,6 +8,11 @@
   Additionally, made the `library/preinstall` endpoint able to install any
   transitive dependencies of the library.
 
+## Interpreter/Runtime
+
+- Added support for overloaded conversions. This allows the `from` method to
+  be implemented with several overloads. ([#3227](https://github.com/enso-org/enso/pull/3227))
+
 ## Enso 0.2.31 (2021-10-01)
 
 ## Interpreter/Runtime
