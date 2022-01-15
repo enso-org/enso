@@ -3,6 +3,7 @@ import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex as Regex_Module
 
 from Standard.Table.Data.Column as Column_Module import Column
+from Standard.Table.Data.Problem_Behavior as Problem_Behavior_Module import all
 
 ## Strategy for matching column names.
 type Matching_Strategy
@@ -17,23 +18,6 @@ type Matching_Strategy
 
       A column is matched if its name matches the provided regular expression.
    type Regex case_sensitivity=Sensitive
-
-## Specifies how missing columns should be handled.
-
-   TODO: make this type more general
-type Missing_Behavior
-    ## UNSTABLE
-       Missing columns are ignored.
-    type Ignore
-
-    ## UNSTABLE
-       A warning is reported when a column is missing but the computation
-       proceeds without it.
-    type Warn
-
-    ## UNSTABLE
-       Missing columns raise errors.
-    type Error
 
 ## Specifies whether an operation should be case-sensitive or not.
 type Case_Sensitivity
@@ -59,13 +43,43 @@ Column_Missing.to_display_text =
 
 
 ## UNSTABLE
-   TODO
+   Selects names from an input list which match any of the provided criteria.
 
-   TODO
-match_criteria : Vector Text -> Vector Text -> Boolean -> Matching_Strategy -> Missing_Behavior -> (Text -> Nothing) -> Vector Text ! Column_Missing
-match_criteria column_names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Warn warning_callback=here.report_warning = Panic.recover <|
-    # match_matrix . at i . at j specifies whether column_names.at i matches criteria.at j
-    match_matrix = column_names.map column_name->
+   Arguments:
+   - names: A list of names to be matched.
+   - criteria: A list of texts representing the matching criteria. Their meaning
+     depends on the matching strategy.
+   - reorder: Specifies whether the matched names should be reordered according
+     to the order of the matching criteria which matched them.
+     If it is set to False, the matched names are returned in the same order as
+     in the input.
+     If it is set to True, the matched names are returned in the order of the
+     criteria which matched them. If a single name has been matched by multiple
+     criteria, it is placed in the group belonging to the first criterion on the
+     list which matched it. If the group of names matched by a single criterion
+     has more than one element, their relative order is the same as in the
+     input.
+   - matching_strategy: A Matching_Strategy instance specifying how the
+     criterion should be interpreted.
+   - on_missing: Specifies the behavior when a criterion did not match any
+     names. By default, a warning is issued, but the operation proceeds.
+     If it is set to `Report_Error`, the operation fails with a dataflow error.
+     If it is set to `Ignore`, the operation proceeds without errors or
+     warnings.
+   - warning_callback: A callback specifying the function to call when issuing a
+     warning. This is a temporary workaround to allow for testing the warning
+     mechanism. Once the proper warning system is implemented, this argument
+     will become obsolete and will be removed. No user code should use this
+     argument, as it will be removed in the future.
+
+   > Example
+     Selects names matching one of the provided patterns, preserving the input order.
+
+         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] (Regex case_sensitivity=Sensitive) == ["foo", "foobar", "baz"]
+match_criteria : Vector Text -> Vector Text -> Boolean -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Text ! Column_Missing
+match_criteria names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Report_Warning warning_callback=here.report_warning = Panic.recover <|
+    # match_matrix . at i . at j specifies whether names.at i matches criteria.at j
+    match_matrix = names.map column_name->
         criteria.map criterion->
             here.match_single_criterion column_name criterion matching_strategy
 
@@ -82,17 +96,17 @@ match_criteria column_names criteria reorder=False matching_strategy=(Exact case
     # Selects column indices which satisfy the provided predicate.
     select_matching_indices : (Integer -> Boolean) -> Vector Text
     select_matching_indices matcher =
-        0.up_to column_names.length . to_vector . filter matcher
+        0.up_to names.length . to_vector . filter matcher
 
     # Check consistency
     case on_missing of
         Ignore -> Nothing
-        Warn ->
+        Report_Warning ->
             criteria.map_with_index j-> criterion->
                 if does_criterion_match_anything j then Nothing else
                     error = Column_Missing criterion
                     warning_callback error.to_display_text
-        Error ->
+        Report_Error ->
             criteria.map_with_index j-> criterion->
                 if does_criterion_match_anything j then Nothing else
                     error = Column_Missing criterion
@@ -104,28 +118,39 @@ match_criteria column_names criteria reorder=False matching_strategy=(Exact case
                 is_column_matched_by_this_criterion i =
                     match_matrix.at i . at j
                 select_matching_indices is_column_matched_by_this_criterion
-            nested_indices.flat_map x->x # TODO . distinct
+            nested_indices.flat_map x->x . distinct
         False ->
             select_matching_indices is_column_matched_by_anything
-    selected_indices.map column_names.at
+    selected_indices.map names.at
 
 ## UNSTABLE
-   TODO
+   Checks if a name matches the provided criterion according to the specified
+   matching strategy.
 
-   TODO
+   Arguments:
+   - name: A Text representing the name being matched.
+   - criterion: A Text representing the matching criterion. It can be a simple
+     name or a regular expression, its meaning depends on the matching strategy.
+   - matching_strategy: A Matching_Strategy instance specifying how the
+     criterion should be interpreted.
+
+   > Example
+     Check if the provided name matches a regular expression.
+
+         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Insensitive) == True
 match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
-match_single_criterion column_name criterion matching_strategy = case matching_strategy of
+match_single_criterion name criterion matching_strategy = case matching_strategy of
     Exact case_sensitivity -> case case_sensitivity of
         Sensitive ->
-            column_name == criterion
+            name == criterion
         Insensitive ->
-            column_name.equals_ignore_case criterion
+            name.equals_ignore_case criterion
     Regex case_sensitivity ->
         insensitive = case case_sensitivity of
             Sensitive -> False
             Insensitive -> True
         re = Regex_Module.compile criterion case_insensitive=insensitive
-        re.matches column_name
+        re.matches name
 
 ## PRIVATE
    A placeholder for reporting warnings. It should be replaced once the warning
