@@ -77,7 +77,7 @@ Column_Missing.to_display_text =
 
          Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] (Regex case_sensitivity=Sensitive) == ["foo", "foobar", "baz"]
 match_criteria : Vector Text -> Vector Text -> Boolean -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Text ! Column_Missing
-match_criteria names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Report_Warning warning_callback=here.report_warning = Panic.recover <|
+match_criteria names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
     # match_matrix . at i . at j specifies whether names.at i matches criteria.at j
     match_matrix = names.map column_name->
         criteria.map criterion->
@@ -156,6 +156,6 @@ match_single_criterion name criterion matching_strategy = case matching_strategy
    A placeholder for reporting warnings. It should be replaced once the warning
    mechanism is designed and implemented. The argument type will likely change
    too.
-report_warning : Text -> Nothing
-report_warning message =
+report_warning_placeholder : Text -> Nothing
+report_warning_placeholder message =
     IO.println "[WARNING] "+message
