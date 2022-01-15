@@ -11,30 +11,24 @@ type Matching_Strategy
       Exact column matching.
 
       A column is matched if its exact name is provided.
-   type Exact case_sensitivity=Sensitive
+   type Exact (case_sensitivity : (True | Insensitive) = True)
 
    ## UNSTABLE
       Regex-based column matching.
 
       A column is matched if its name matches the provided regular expression.
-   type Regex case_sensitivity=Sensitive
+   type Regex (case_sensitivity : (True | Insensitive) = True)
 
-## Specifies whether an operation should be case-sensitive or not.
-type Case_Sensitivity
+## UNSTABLE
+   Specifies that the operation should ignore case.
 
-   ## Specifies that the operation should be case-sensitive.
-   type Sensitive
-
-   ## UNSTABLE
-      Specifies that the operation should ignore case.
-
-      TODO: Since case-sensitive can be locale dependent, in the future this may
-            be extended with a `locale` setting.
-   type Insensitive
+   TODO: Since case-sensitive can be locale dependent, in the future this may
+         be extended with a `locale` setting.
+type Insensitive
 
 ## An error indicating that no column matching the provided criterion has
    been found in the input.
-type Column_Missing criterion
+type Column_Missing (criterion : Text)
 
 
 Column_Missing.to_display_text : Text
@@ -75,9 +69,9 @@ Column_Missing.to_display_text =
    > Example
      Selects names matching one of the provided patterns, preserving the input order.
 
-         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] (Regex case_sensitivity=Sensitive) == ["foo", "foobar", "baz"]
+         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] (Regex case_sensitivity=True) == ["foo", "foobar", "baz"]
 match_criteria : Vector Text -> Vector Text -> Boolean -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Text ! Column_Missing
-match_criteria names criteria reorder=False matching_strategy=(Exact case_sensitivity=Sensitive) on_missing=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
+match_criteria names criteria reorder=False matching_strategy=(Exact case_sensitivity=True) on_missing=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
     # match_matrix . at i . at j specifies whether names.at i matches criteria.at j
     match_matrix = names.map column_name->
         criteria.map criterion->
@@ -141,13 +135,13 @@ match_criteria names criteria reorder=False matching_strategy=(Exact case_sensit
 match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
 match_single_criterion name criterion matching_strategy = case matching_strategy of
     Exact case_sensitivity -> case case_sensitivity of
-        Sensitive ->
+        True ->
             name == criterion
         Insensitive ->
             name.equals_ignore_case criterion
     Regex case_sensitivity ->
         insensitive = case case_sensitivity of
-            Sensitive -> False
+            True -> False
             Insensitive -> True
         re = Regex_Module.compile criterion case_insensitive=insensitive
         re.matches name
