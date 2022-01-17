@@ -49,13 +49,13 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_criteria ["foo", "bar", "baz", "quux"] ["b.*"] reorder=True matching_strategy=regex . should_equal ["bar", "baz"]
         Matching.match_criteria ["foo", "bar", "baz", "quux"] ["b.*", "foo"] reorder=False matching_strategy=regex . should_equal ["foo", "bar", "baz"]
 
-    Test.specify 'Should include the column only with the first criterion that matched it, avoiding duplication' <|
+    Test.specify 'Should include the object only with the first criterion that matched it, avoiding duplication' <|
         Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=True matching_strategy=regex . should_equal ["baz", "zap", "bar"]
         Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False matching_strategy=regex . should_equal ["bar", "baz", "zap"]
 
     Test.specify 'Should correctly handle criteria which did not match anything' <|
-        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_missing=Problem_Behavior.Report_Error . should_fail_with Column_Missing
-        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=False on_missing=Problem_Behavior.Report_Error . should_fail_with Column_Missing
+        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_missing=Problem_Behavior.Report_Error . should_fail_with No_Matches_Found
+        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=False on_missing=Problem_Behavior.Report_Error . should_fail_with No_Matches_Found
 
         warnings_builder = Vector.new_builder
         report_warning text =
@@ -63,7 +63,7 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_missing=Problem_Behavior.Report_Warning warning_callback=report_warning . should_equal ["baz"]
         warnings = warnings_builder.to_vector
         warnings.length . should_equal 1
-        warnings.first . should_equal (Column_Missing "unknown_column").to_display_text
+        warnings.first . should_equal (No_Matches_Found "unknown_column").to_display_text
 
     Test.specify 'Should correctly work with complex object using a function extracting their names' <|
         pairs = [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10]

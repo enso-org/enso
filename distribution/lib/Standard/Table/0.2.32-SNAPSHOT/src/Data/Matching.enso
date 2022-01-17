@@ -2,22 +2,20 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex as Regex_Module
 
-from Standard.Table.Error.Column_Missing as Column_Missing_Module import Column_Missing
-from Standard.Table.Data.Column as Column_Module import Column
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
 
-## Strategy for matching column objects.
+## Strategy for matching names.
 type Matching_Strategy
    ## UNSTABLE
-      Exact column matching.
+      Exact name matching.
 
-      A column is matched if its exact name is provided.
+      A name is matched if its exact name is provided.
    type Exact (case_sensitivity : (True | Case_Insensitive) = True)
 
    ## UNSTABLE
-      Regex-based column matching.
+      Regex-based name matching.
 
-      A column is matched if its name matches the provided regular expression.
+      A name is matched if its name matches the provided regular expression.
    type Regex (case_sensitivity : (True | Case_Insensitive) = True)
 
 ## UNSTABLE
@@ -26,6 +24,15 @@ type Matching_Strategy
    TODO: Since case-sensitive can be locale dependent, in the future this may
          be extended with a `locale` setting.
 type Case_Insensitive
+
+
+## UNSTABLE
+   An error indicating that a criterion did not match any names in the input.
+type No_Matches_Found (criterion : Text)
+
+No_Matches_Found.to_display_text : Text
+No_Matches_Found.to_display_text =
+    "The criterion ["+this.criterion+"] did not match any names in the input."
 
 
 ## UNSTABLE
@@ -72,7 +79,7 @@ type Case_Insensitive
      ordering the result according to the order of criteria that matched them.
 
          Matching.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
-match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Any ! Column_Missing
+match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Any ! No_Matches_Found
 match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_missing=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
     [objects, criteria, reorder, name_mapper, matching_strategy, on_missing, warning_callback] . each Panic.rethrow
 
@@ -103,12 +110,12 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
         Report_Warning ->
             criteria.map_with_index j-> criterion->
                 if does_criterion_match_anything j then Nothing else
-                    error = Column_Missing criterion
+                    error = No_Matches_Found criterion
                     warning_callback error.to_display_text
         Report_Error ->
             criteria.map_with_index j-> criterion->
                 if does_criterion_match_anything j then Nothing else
-                    error = Column_Missing criterion
+                    error = No_Matches_Found criterion
                     Panic.throw error
 
     selected_indices = case reorder of
