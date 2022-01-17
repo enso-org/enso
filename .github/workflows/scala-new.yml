@@ -26,9 +26,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          repository: enso-org/ci-build
-          ref: deployed
+          clean: false
           path: ci-build
+          ref: deployed
+          repository: enso-org/ci-build
       - uses: actions/checkout@v2
         with:
           path: enso
