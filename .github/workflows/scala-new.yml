@@ -1,3 +1,5 @@
+# This is the new, in progress, Build Workflow for the Enso Engine.
+
 name: Engine CI V2
 
 on:
@@ -23,6 +25,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: enso-org/ci-build
+          branch: deploy
           path: ci-build
       - uses: actions/checkout@v2
         with:
