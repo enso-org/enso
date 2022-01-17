@@ -253,3 +253,19 @@ spec = Test.group "Vectors" <|
     Test.specify "should append elements" <|
         [1, 2].append 3 . should_equal [1, 2, 3]
 
+    Test.specify "should return a vector containing only unique elements" <|
+        [1, 3, 1, 2, 2, 1].distinct . should_equal [1, 3, 2]
+        ["a", "a", "a"].distinct . should_equal ["a"]
+        [].distinct . should_equal []
+
+        ["a", 2].distinct . should_equal ["a", 2]
+        [2, "a", Integer, "a", 2].distinct . should_equal [2, "a", Integer]
+
+    structural_eq_reason="Disabled until structural equality of Atoms is properly exposed through Polyglot."
+    Test.specify "should correctly handle distinct with custom types like Atoms" pending=structural_eq_reason <|
+        [T 1 2, T 3 3, T 1 2].distinct . should_equal [T 1 2, T 3 3]
+
+    Test.specify "should return a vector containing only unique elements up to some criteria" <|
+        [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) . should_equal [Pair 1 "a", Pair 2 "b"]
+
+main = Test.Suite.run_main here.spec

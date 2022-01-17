@@ -341,7 +341,7 @@ type Panic
        program control flow.
 
        Panics "bubble up" through the program until they reach either an
-       invocation of Panic.catch or the program's main method. An unhandled
+       invocation of Panic.recover or the program's main method. An unhandled
        panic in main will terminate the program.
 
        ? Dataflow Errors or Panics
@@ -365,7 +365,7 @@ type Panic
     ## Executes the provided action and converts any panic thrown by it into
        an Error.
 
-       If action executes successfully, the result of Panic.catch is the
+       If action executes successfully, the result of Panic.recover is the
        result of that action. Otherwise, it is the panic that was thrown after
        conversion to a dataflow error.
 
@@ -377,7 +377,7 @@ type Panic
 
              Panic.recover (Panic.throw "Oh no!")
     recover : Any -> Any
-    recover ~action = @Builtin_Method "Panic.catch"
+    recover ~action = @Builtin_Method "Panic.recover"
 
 # Function types.
 type Function
