@@ -1,7 +1,8 @@
 from Standard.Base import all
 
 from Standard.Table.Data.Matching import all
-import Standard.Table.Data.Problem_Behavior
+from Standard.Table.Error import all
+import Standard.Base.Error.Problem_Behavior
 import Standard.Test
 
 spec = Test.group 'Matching Helper' <|

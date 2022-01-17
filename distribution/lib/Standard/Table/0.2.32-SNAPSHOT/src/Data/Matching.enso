@@ -2,8 +2,9 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex as Regex_Module
 
+from Standard.Table.Error.Column_Missing as Column_Missing_Module import Column_Missing
 from Standard.Table.Data.Column as Column_Module import Column
-from Standard.Table.Data.Problem_Behavior as Problem_Behavior_Module import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
 
 ## Strategy for matching column names.
 type Matching_Strategy
@@ -25,15 +26,6 @@ type Matching_Strategy
    TODO: Since case-sensitive can be locale dependent, in the future this may
          be extended with a `locale` setting.
 type Case_Insensitive
-
-## An error indicating that no column matching the provided criterion has
-   been found in the input.
-type Column_Missing (criterion : Text)
-
-
-Column_Missing.to_display_text : Text
-Column_Missing.to_display_text =
-    "The criterion ["+this.criterion+"] did not match any columns."
 
 
 ## UNSTABLE
