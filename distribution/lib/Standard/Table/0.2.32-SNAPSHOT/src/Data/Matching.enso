@@ -11,20 +11,20 @@ type Matching_Strategy
       Exact column matching.
 
       A column is matched if its exact name is provided.
-   type Exact (case_sensitivity : (True | Insensitive) = True)
+   type Exact (case_sensitivity : (True | Case_Insensitive) = True)
 
    ## UNSTABLE
       Regex-based column matching.
 
       A column is matched if its name matches the provided regular expression.
-   type Regex (case_sensitivity : (True | Insensitive) = True)
+   type Regex (case_sensitivity : (True | Case_Insensitive) = True)
 
 ## UNSTABLE
    Specifies that the operation should ignore case.
 
    TODO: Since case-sensitive can be locale dependent, in the future this may
          be extended with a `locale` setting.
-type Insensitive
+type Case_Insensitive
 
 ## An error indicating that no column matching the provided criterion has
    been found in the input.
@@ -131,18 +131,18 @@ match_criteria names criteria reorder=False matching_strategy=(Exact case_sensit
    > Example
      Check if the provided name matches a regular expression.
 
-         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Insensitive) == True
+         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive) == True
 match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
 match_single_criterion name criterion matching_strategy = case matching_strategy of
     Exact case_sensitivity -> case case_sensitivity of
         True ->
             name == criterion
-        Insensitive ->
+        Case_Insensitive ->
             name.equals_ignore_case criterion
     Regex case_sensitivity ->
         insensitive = case case_sensitivity of
             True -> False
-            Insensitive -> True
+            Case_Insensitive -> True
         re = Regex_Module.compile criterion case_insensitive=insensitive
         re.matches name
 
