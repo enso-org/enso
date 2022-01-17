@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+## PRIVATE
+   A helper function encapsulating shared code for `select_columns`
+   implementations of various Table variants. See the documentation for the
+   Table type for details.
+
+   It takes a list of columns and returns the selected columns. It is the
+   responsibility of each implementation to reconstruct a proper table from the
+   resulting list of columns.
+select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
+select_columns internal_columns selector reorder on_problem =
+    Error.throw "TODO"

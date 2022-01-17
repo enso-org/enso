@@ -77,6 +77,10 @@ type Table
         internal = candidates.find (p -> p.name == name)
         this.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
+    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
+    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
+        Error.throw "Not implemented"
+
     ## PRIVATE
 
        Resolves the column name to a column within this table.

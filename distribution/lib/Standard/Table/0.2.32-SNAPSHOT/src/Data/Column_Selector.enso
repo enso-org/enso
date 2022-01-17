@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Matching import all
+
+type Column_Selector
+    type By_Name (names : Vector Text) (matching_strategy : Matching_Strategy = Exact True)
+    type By_Index (indexes : Vector Number)
+    type By_Column (columns : Vector Column)

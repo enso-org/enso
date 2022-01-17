@@ -9,6 +9,8 @@ import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -231,6 +233,10 @@ type Table
     at name = case this.java_table.getColumnOrIndexByName name of
         Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
+
+    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
+    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
+        Error.throw "Not implemented"
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns
