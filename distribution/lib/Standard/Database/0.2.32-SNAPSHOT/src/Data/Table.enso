@@ -7,7 +7,7 @@ import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 
-import Standard.Data.Internal.Common_Helpers
+import Standard.Table.Data.Internal.Common_Helpers
 from Standard.Database.Data.Column as Column_Module import all
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
