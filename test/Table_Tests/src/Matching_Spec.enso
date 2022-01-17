@@ -1,9 +1,11 @@
 from Standard.Base import all
 
 from Standard.Table.Data.Matching import all
-from Standard.Table.Error import all
+from Standard.Table.Error as Error_Module import all
 import Standard.Base.Error.Problem_Behavior
 import Standard.Test
+
+type Foo_Error
 
 spec = Test.group 'Matching Helper' <|
     ## These are workarounds to #1600 - default arguments do not work properly
@@ -51,7 +53,7 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=True matching_strategy=regex . should_equal ["baz", "zap", "bar"]
         Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False matching_strategy=regex . should_equal ["bar", "baz", "zap"]
 
-    Test.specify 'Should correctly handle criteria which did not match anything'
+    Test.specify 'Should correctly handle criteria which did not match anything' <|
         Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_missing=Problem_Behavior.Report_Error . should_fail_with Column_Missing
         Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=False on_missing=Problem_Behavior.Report_Error . should_fail_with Column_Missing
 
@@ -62,5 +64,19 @@ spec = Test.group 'Matching Helper' <|
         warnings = warnings_builder.to_vector
         warnings.length . should_equal 1
         warnings.first . should_equal (Column_Missing "unknown_column").to_display_text
+
+    Test.specify 'Should correctly work with complex object using a function extracting their names' <|
+        pairs = [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10]
+        selected = [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+        Matching.match_criteria pairs ["bar", "foo"] reorder=True name_mapper=_.first . should_equal selected
+
+        Matching.match_criteria [1, 2, 3] ["2"] name_mapper=_.to_text . should_equal [2]
+
+    Test.specify 'Should correctly forward errors' <|
+        Matching.match_criteria (Error.throw Foo_Error) [] . should_fail_with Foo_Error
+        Matching.match_criteria [] (Error.throw Foo_Error) . should_fail_with Foo_Error
+        Matching.match_criteria [] [] (Error.throw Foo_Error) . should_fail_with Foo_Error
+        Matching.match_criteria ["a"] ["a"] name_mapper=(_-> Error.throw Foo_Error) . should_fail_with Foo_Error
+        Matching.match_criteria ["a"] ["a"] name_mapper=_.nonexistent_function . should_fail_with No_Such_Method_Error
 
 main = Test.Suite.run_main here.spec

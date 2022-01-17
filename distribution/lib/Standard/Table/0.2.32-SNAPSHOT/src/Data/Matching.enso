@@ -6,7 +6,7 @@ from Standard.Table.Error.Column_Missing as Column_Missing_Module import Column_
 from Standard.Table.Data.Column as Column_Module import Column
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
 
-## Strategy for matching column names.
+## Strategy for matching column objects.
 type Matching_Strategy
    ## UNSTABLE
       Exact column matching.
@@ -29,26 +29,30 @@ type Case_Insensitive
 
 
 ## UNSTABLE
-   Selects names from an input list which match any of the provided criteria.
+   Selects objects from an input list which match any of the provided criteria.
 
    Arguments:
-   - names: A list of names to be matched.
+   - objects: A list of objects to be matched.
    - criteria: A list of texts representing the matching criteria. Their meaning
      depends on the matching strategy.
-   - reorder: Specifies whether the matched names should be reordered according
+   - reorder: Specifies whether the matched objects should be reordered according
      to the order of the matching criteria which matched them.
-     If it is set to False, the matched names are returned in the same order as
+     If it is set to False, the matched objects are returned in the same order as
      in the input.
-     If it is set to True, the matched names are returned in the order of the
+     If it is set to True, the matched objects are returned in the order of the
      criteria which matched them. If a single name has been matched by multiple
      criteria, it is placed in the group belonging to the first criterion on the
-     list which matched it. If the group of names matched by a single criterion
+     list which matched it. If the group of objects matched by a single criterion
      has more than one element, their relative order is the same as in the
      input.
+   - name_mapper: A function mapping the provided object to its name which will
+     then be matched with the provided matching criteria. It is set to the
+     identity function by default, thus requiring the input to just be a list of
+     objects to match. But it can be overridden to match more complex objects.
    - matching_strategy: A Matching_Strategy instance specifying how the
      criterion should be interpreted.
    - on_missing: Specifies the behavior when a criterion did not match any
-     names. By default, a warning is issued, but the operation proceeds.
+     objects. By default, a warning is issued, but the operation proceeds.
      If it is set to `Report_Error`, the operation fails with a dataflow error.
      If it is set to `Ignore`, the operation proceeds without errors or
      warnings.
@@ -59,30 +63,39 @@ type Case_Insensitive
      argument, as it will be removed in the future.
 
    > Example
-     Selects names matching one of the provided patterns, preserving the input order.
+     Selects objects matching one of the provided patterns, preserving the input order.
 
-         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] (Regex case_sensitivity=True) == ["foo", "foobar", "baz"]
-match_criteria : Vector Text -> Vector Text -> Boolean -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Text ! Column_Missing
-match_criteria names criteria reorder=False matching_strategy=(Exact case_sensitivity=True) on_missing=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
-    # match_matrix . at i . at j specifies whether names.at i matches criteria.at j
-    match_matrix = names.map column_name->
+         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] matching_strategy=(Regex case_sensitivity=True) == ["foo", "foobar", "baz"]
+
+   > Example
+     Selects pairs matching their first element with the provided criteria and
+     ordering the result according to the order of criteria that matched them.
+
+         Matching.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Any ! Column_Missing
+match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_missing=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
+    [objects, criteria, reorder, name_mapper, matching_strategy, on_missing, warning_callback] . each Panic.rethrow
+
+    # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
+    match_matrix = objects.map obj->
         criteria.map criterion->
-            here.match_single_criterion column_name criterion matching_strategy
+            name = name_mapper obj
+            here.match_single_criterion name criterion matching_strategy
 
-    # Checks if the ith column is matched by any criterion.
-    is_column_matched_by_anything : Integer -> Boolean
-    is_column_matched_by_anything i =
+    # Checks if the ith object is matched by any criterion.
+    is_object_matched_by_anything : Integer -> Boolean
+    is_object_matched_by_anything i =
         match_matrix.at i . any x->x
 
-    # Checks if the jth criterion matches any columns.
+    # Checks if the jth criterion matches any objects.
     does_criterion_match_anything : Integer -> Boolean
     does_criterion_match_anything j =
         match_matrix.map (col -> col.at j) . any x->x
 
-    # Selects column indices which satisfy the provided predicate.
+    # Selects object indices which satisfy the provided predicate.
     select_matching_indices : (Integer -> Boolean) -> Vector Text
     select_matching_indices matcher =
-        0.up_to names.length . to_vector . filter matcher
+        0.up_to objects.length . to_vector . filter matcher
 
     # Check consistency
     case on_missing of
@@ -101,13 +114,13 @@ match_criteria names criteria reorder=False matching_strategy=(Exact case_sensit
     selected_indices = case reorder of
         True ->
             nested_indices = 0.up_to criteria.length . map j->
-                is_column_matched_by_this_criterion i =
+                is_object_matched_by_this_criterion i =
                     match_matrix.at i . at j
-                select_matching_indices is_column_matched_by_this_criterion
+                select_matching_indices is_object_matched_by_this_criterion
             nested_indices.flat_map x->x . distinct
         False ->
-            select_matching_indices is_column_matched_by_anything
-    selected_indices.map names.at
+            select_matching_indices is_object_matched_by_anything
+    selected_indices.map objects.at
 
 ## UNSTABLE
    Checks if a name matches the provided criterion according to the specified
