@@ -8,7 +8,7 @@ import Standard.Base.Data.Time.Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 
-import Standard.Base.Data.Shared.Internal
+import Standard.Table.Internal.Common_Helpers
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
@@ -358,7 +358,7 @@ type Table
                  Examples.inventory_table.select_columns ["item_name", "price"] reorder=True
     select_columns : Vector -> Boolean -> Table
     select_columns column_list reorder=False =
-        here.from_columns ((Internal.select_columns this.columns column_list reorder).map .java_column)
+        here.from_columns ((Common_Helpers.select_columns this.columns column_list reorder).map .java_column)
 
 
     ## ALIAS Join Table
