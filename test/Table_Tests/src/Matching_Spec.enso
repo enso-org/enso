@@ -16,6 +16,11 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_single_criterion "foo" "f.*" exact . should_equal False
         Matching.match_single_criterion "foo" "Foo" exact . should_equal False
 
+    Test.specify 'Should correctly handle Unicode folding with exact matching' <|
+        Matching.match_single_criterion '\u00E9' '\u0065\u{301}' exact . should_equal True
+        Matching.match_single_criterion 'é' '\u00E9' exact . should_equal True
+        Matching.match_single_criterion 'é' 'ę' exact . should_equal False
+
     Test.specify 'Should match a single name with a single regex criterion' <|
         Matching.match_single_criterion "foo" "foo" regex . should_equal True
         Matching.match_single_criterion "foo" "f.*" regex . should_equal True
