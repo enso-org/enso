@@ -18,8 +18,8 @@ import java.io.File
 val scalacVersion  = "2.13.7"
 val graalVersion   = "21.1.0"
 val javaVersion    = "11"
-val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
-val currentEdition = "2021.20-SNAPSHOT" // Note [Default Editions]
+val ensoVersion    = sys.env.getOrElse("ENSO_VERSION", "0.0.0-LOCAL")  // Note [Engine And Launcher Version]
+val currentEdition = sys.env.getOrElse("ENSO_EDITION", "2021.20-SNAPSHOT") // Note [Default Editions]
 val stdLibVersion  = ensoVersion
 
 /* Note [Engine And Launcher Version]
