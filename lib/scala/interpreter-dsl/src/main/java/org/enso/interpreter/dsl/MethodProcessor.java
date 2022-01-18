@@ -14,6 +14,7 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /** The processor used to generate code from the {@link BuiltinMethod} annotation. */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
@@ -82,7 +83,9 @@ public class MethodProcessor extends AbstractProcessor {
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
+          "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.error.PanicException",
+          "org.enso.interpreter.runtime.error.WithWarnings",
           "org.enso.interpreter.runtime.state.Stateful",
           "org.enso.interpreter.runtime.type.TypesGen");
 
@@ -111,8 +114,8 @@ public class MethodProcessor extends AbstractProcessor {
 
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
-          String condName = "arg" + arg.getPosition() + "ConditionProfile";
-          String branchName = "arg" + arg.getPosition() + "BranchProfile";
+          String condName = mkArgumentInternalVarName(arg) + "ConditionProfile";
+          String branchName = mkArgumentInternalVarName(arg) + "BranchProfile";
           out.println(
               "  private final ConditionProfile "
                   + condName
@@ -169,6 +172,8 @@ public class MethodProcessor extends AbstractProcessor {
       out.println(
           "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());");
       List<String> callArgNames = new ArrayList<>();
+      boolean warningsPossible =
+          generateWarningsCheck(out, methodDefinition.getArguments(), "arguments");
       for (MethodDefinition.ArgumentDefinition argumentDefinition :
           methodDefinition.getArguments()) {
         if (argumentDefinition.isState()) {
@@ -178,15 +183,36 @@ public class MethodProcessor extends AbstractProcessor {
         } else if (argumentDefinition.isCallerInfo()) {
           callArgNames.add("callerInfo");
         } else {
-          callArgNames.add("arg" + argumentDefinition.getPosition());
+          callArgNames.add(mkArgumentInternalVarName(argumentDefinition));
           generateArgumentRead(out, argumentDefinition, "arguments");
         }
       }
       String executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
-      if (methodDefinition.modifiesState()) {
-        out.println("    return " + executeCall + ";");
+      if (warningsPossible) {
+        out.println("    if (anyWarnings) {");
+        if (methodDefinition.modifiesState()) {
+          out.println("      Stateful result = " + executeCall + ";");
+          out.println(
+              "      Object newValue = WithWarnings.appendTo(result.getValue(), gatheredWarnings);");
+          out.println("      return new Stateful(result.getState(), newValue);");
+        } else {
+          out.println("      Object result = " + executeCall + ";");
+          out.println(
+              "      return new Stateful(state, WithWarnings.appendTo(result, gatheredWarnings));");
+        }
+        out.println("    } else {");
+        if (methodDefinition.modifiesState()) {
+          out.println("      return " + executeCall + ";");
+        } else {
+          out.println("      return new Stateful(state, " + executeCall + ");");
+        }
+        out.println("    }");
       } else {
-        out.println("    return new Stateful(state, " + executeCall + ");");
+        if (methodDefinition.modifiesState()) {
+          out.println("    return " + executeCall + ";");
+        } else {
+          out.println("    return new Stateful(state, " + executeCall + ");");
+        }
       }
       out.println("  }");
 
@@ -239,8 +265,8 @@ public class MethodProcessor extends AbstractProcessor {
 
     if (!arg.acceptsError()) {
 
-      String varName = "arg" + arg.getPosition();
-      String condProfile = "arg" + arg.getPosition() + "ConditionProfile";
+      String varName = mkArgumentInternalVarName(arg);
+      String condProfile = mkArgumentInternalVarName(arg) + "ConditionProfile";
       out.println(
           "    if ("
               + condProfile
@@ -252,7 +278,7 @@ public class MethodProcessor extends AbstractProcessor {
               + ");\n"
               + "    }");
       if (!(arg.getName().equals("this") && arg.getPosition() == 0)) {
-        String branchProfile = "arg" + arg.getPosition() + "BranchProfile";
+        String branchProfile = mkArgumentInternalVarName(arg) + "BranchProfile";
         out.println(
             "    else if (TypesGen.isPanicSentinel("
                 + varName
@@ -270,7 +296,7 @@ public class MethodProcessor extends AbstractProcessor {
 
   private void generateUncastedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String varName = "arg" + arg.getPosition();
+    String varName = mkArgumentInternalVarName(arg);
     out.println(
         "    "
             + arg.getTypeName()
@@ -286,7 +312,7 @@ public class MethodProcessor extends AbstractProcessor {
   private void generateUncheckedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
     String castName = "TypesGen.as" + capitalize(arg.getTypeName());
-    String varName = "arg" + arg.getPosition();
+    String varName = mkArgumentInternalVarName(arg);
     out.println(
         "    "
             + arg.getTypeName()
@@ -304,7 +330,7 @@ public class MethodProcessor extends AbstractProcessor {
   private void generateCheckedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
     String castName = "TypesGen.expect" + capitalize(arg.getTypeName());
-    String varName = "arg" + arg.getPosition();
+    String varName = mkArgumentInternalVarName(arg);
     out.println("    " + arg.getTypeName() + " " + varName + ";");
     out.println("    try {");
     out.println(
@@ -323,6 +349,51 @@ public class MethodProcessor extends AbstractProcessor {
             + "\");");
     out.println("      throw new PanicException(error,this);");
     out.println("    }");
+  }
+
+  private boolean generateWarningsCheck(
+      PrintWriter out, List<MethodDefinition.ArgumentDefinition> arguments, String argumentsArray) {
+    List<MethodDefinition.ArgumentDefinition> argsToCheck =
+        arguments.stream()
+            .filter(arg -> !arg.acceptsWarning() && !arg.isThis())
+            .collect(Collectors.toList());
+    if (argsToCheck.isEmpty()) {
+      return false;
+    } else {
+      out.println("    boolean anyWarnings = false;");
+      out.println("    ArrayRope<Object> gatheredWarnings = new ArrayRope<>();");
+      for (var arg : argsToCheck) {
+        out.println(
+            "    if ("
+                + arrayRead(argumentsArray, arg.getPosition())
+                + " instanceof WithWarnings) {");
+        out.println("      anyWarnings = true;");
+        out.println(
+            "      WithWarnings withWarnings = (WithWarnings) "
+                + arrayRead(argumentsArray, arg.getPosition())
+                + ";");
+        out.println(
+            "      "
+                + arrayRead(argumentsArray, arg.getPosition())
+                + " = withWarnings.getValue();");
+        out.println(
+            "      gatheredWarnings = gatheredWarnings.prepend(withWarnings.getWarnings());");
+        out.println("    }");
+      }
+      return true;
+    }
+  }
+
+  private String warningCheck(MethodDefinition.ArgumentDefinition arg) {
+    return "(" + mkArgumentInternalVarName(arg) + " instanceof WithWarnings)";
+  }
+
+  private String mkArgumentInternalVarName(MethodDefinition.ArgumentDefinition arg) {
+    return "arg" + arg.getPosition();
+  }
+
+  private String arrayRead(String array, int index) {
+    return array + "[" + index + "]";
   }
 
   private String capitalize(String name) {
