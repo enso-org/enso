@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -12,6 +13,8 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -25,6 +28,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -32,6 +36,8 @@ import org.enso.interpreter.runtime.state.Stateful;
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
+  private final BranchProfile polyglotArgumentErrorProfile = BranchProfile.create();
+  private @Child InvokeMethodNode childDispatch;
   private final int argumentCount;
 
   /**
@@ -62,6 +68,9 @@ public abstract class InvokeMethodNode extends BaseNode {
   public void setTailStatus(TailStatus tailStatus) {
     super.setTailStatus(tailStatus);
     this.invokeFunctionNode.setTailStatus(tailStatus);
+    if (childDispatch != null) {
+      childDispatch.setTailStatus(tailStatus);
+    }
   }
 
   public abstract Stateful execute(
@@ -74,14 +83,13 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object _this,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
     try {
       Function function = dispatch.getFunctionalDispatch(_this, symbol);
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }
   }
 
@@ -109,6 +117,45 @@ public abstract class InvokeMethodNode extends BaseNode {
       PanicSentinel _this,
       Object[] arguments) {
     throw _this;
+  }
+
+  @Specialization
+  Stateful doWarning(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      WithWarnings _this,
+      Object[] arguments) {
+    // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
+    if (childDispatch == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      Lock lock = getLock();
+      lock.lock();
+      try {
+        if (childDispatch == null) {
+          childDispatch =
+              insert(
+                  build(
+                      invokeFunctionNode.getSchema(),
+                      invokeFunctionNode.getDefaultsExecutionMode(),
+                      invokeFunctionNode.getArgumentsExecutionMode()));
+          childDispatch.setTailStatus(getTailStatus());
+          notifyInserted(childDispatch);
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
+
+    arguments[0] = _this.getValue();
+    Stateful result = childDispatch.execute(frame, state, symbol, _this.getValue(), arguments);
+    WithWarnings res;
+    if (result.getValue() instanceof WithWarnings) {
+      res = ((WithWarnings) result.getValue()).inherit(_this);
+    } else {
+      res = new WithWarnings(result.getValue()).inherit(_this);
+    }
+    return new Stateful(result.getState(), res);
   }
 
   @ExplodeLoop
@@ -160,8 +207,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       String str = interop.asString(_this);
       Text txt = Text.create(str);
@@ -172,7 +218,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }
   }
 

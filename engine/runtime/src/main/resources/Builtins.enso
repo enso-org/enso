@@ -243,6 +243,16 @@ type Error
     to_text : Text
     to_text = @Builtin_Method "Error.to_text"
 
+@Builtin_Type
+type Warning
+    type Warning
+
+    attach : Any -> Any -> Any
+    attach value warning = @Builtin_Method "Warning.attach"
+
+    get_all : Any -> Vector.Vector
+    get_all value = @Builtin_Method "Warning.get_all"
+
 ## The runtime representation of a syntax error.
 
    Arguments:
