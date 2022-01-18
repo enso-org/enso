@@ -36,33 +36,30 @@ No_Matches_Found.to_display_text =
 
 
 ## UNSTABLE
-   Selects objects from an input list which match any of the provided criteria.
+   Selects objects from an input list that match any of the provided criteria.
 
    Arguments:
    - objects: A list of objects to be matched.
    - criteria: A list of texts representing the matching criteria. Their meaning
      depends on the matching strategy.
-   - reorder: Specifies whether the matched objects should be reordered according
-     to the order of the matching criteria which matched them.
-     If it is set to False, the matched objects are returned in the same order as
-     in the input.
-     If it is set to True, the matched objects are returned in the order of the
-     criteria which matched them. If a single name has been matched by multiple
-     criteria, it is placed in the group belonging to the first criterion on the
-     list which matched it. If the group of objects matched by a single criterion
-     has more than one element, their relative order is the same as in the
-     input.
-   - name_mapper: A function mapping the provided object to its name which will
-     then be matched with the provided matching criteria. It is set to the
-     identity function by default, thus requiring the input to just be a list of
-     objects to match. But it can be overridden to match more complex objects.
-   - matching_strategy: A Matching_Strategy instance specifying how the
-     criterion should be interpreted.
-   - on_missing: Specifies the behavior when a criterion did not match any
-     objects. By default, a warning is issued, but the operation proceeds.
-     If it is set to `Report_Error`, the operation fails with a dataflow error.
-     If it is set to `Ignore`, the operation proceeds without errors or
-     warnings.
+   - reorder: Specifies whether to reorder the matched objects according to the
+     order of the matching criteria.
+     If `False`, the matched entries are returned in the same order as in the input.
+     If `True`, the matched entries are returned in the order of the criteria
+     matching them. If a single object has been matched by multiple criteria, it
+     is placed in the group belonging to the first matching criterion on the list.
+     If a single criterion's group has more than one element, their relative
+     order is the same as in the input.
+   - name_mapper: A function mapping a provided object to its name, which will
+     then be matched with the criteria. It is set to the identity function by
+     default, thus allowing the input to be a list of names to match. But it can be
+     overridden to enable matching more complex objects.
+   - matching_strategy: A `Matching_Strategy` instance specifying how to
+     interpret the criterion.
+   - on_problems: Specifies the behavior when a problem occurs during the function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
    - warning_callback: A callback specifying the function to call when issuing a
      warning. This is a temporary workaround to allow for testing the warning
      mechanism. Once the proper warning system is implemented, this argument
@@ -80,7 +77,7 @@ No_Matches_Found.to_display_text =
 
          Matching.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Any ! No_Matches_Found
-match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_missing=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
+match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_problems=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
     [objects, criteria, reorder, name_mapper, matching_strategy, on_missing, warning_callback] . each Panic.rethrow
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
@@ -94,10 +91,10 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
     is_object_matched_by_anything i =
         match_matrix.at i . any x->x
 
-    # Checks if the jth criterion matches any objects.
+    # Checks if the ith criterion matches any columns.
     does_criterion_match_anything : Integer -> Boolean
-    does_criterion_match_anything j =
-        match_matrix.map (col -> col.at j) . any x->x
+    does_criterion_match_anything i =
+        match_matrix.map (col -> col.at i) . any x->x
 
     # Selects object indices which satisfy the provided predicate.
     select_matching_indices : (Integer -> Boolean) -> Vector Text
@@ -105,7 +102,7 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
         0.up_to objects.length . to_vector . filter matcher
 
     # Check consistency
-    case on_missing of
+    case on_problems of
         Ignore -> Nothing
         Report_Warning ->
             criteria.map_with_index j-> criterion->
@@ -134,10 +131,11 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
    matching strategy.
 
    Arguments:
-   - name: A Text representing the name being matched.
-   - criterion: A Text representing the matching criterion. It can be a simple
-     name or a regular expression, its meaning depends on the matching strategy.
-   - matching_strategy: A Matching_Strategy instance specifying how the
+   - name: A `Text` representing the name being matched.
+   - criterion: A `Text` representing the matching criterion. It can be a simple
+     name or a regular expression; its meaning depends on the value of
+     `matching_strategy`.
+   - matching_strategy: A `Matching_Strategy` instance specifying how the
      criterion should be interpreted.
 
    > Example

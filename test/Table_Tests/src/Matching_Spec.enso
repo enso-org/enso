@@ -54,13 +54,13 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False matching_strategy=regex . should_equal ["bar", "baz", "zap"]
 
     Test.specify 'Should correctly handle criteria which did not match anything' <|
-        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_missing=Problem_Behavior.Report_Error . should_fail_with No_Matches_Found
-        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=False on_missing=Problem_Behavior.Report_Error . should_fail_with No_Matches_Found
+        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_problems=Problem_Behavior.Report_Error . should_fail_with No_Matches_Found
+        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=False on_problems=Problem_Behavior.Report_Error . should_fail_with No_Matches_Found
 
         warnings_builder = Vector.new_builder
         report_warning text =
             warnings_builder.append text
-        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_missing=Problem_Behavior.Report_Warning warning_callback=report_warning . should_equal ["baz"]
+        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_problems=Problem_Behavior.Report_Warning warning_callback=report_warning . should_equal ["baz"]
         warnings = warnings_builder.to_vector
         warnings.length . should_equal 1
         warnings.first . should_equal (No_Matches_Found "unknown_column").to_display_text
