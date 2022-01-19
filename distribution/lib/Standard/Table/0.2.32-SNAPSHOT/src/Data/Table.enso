@@ -7,6 +7,7 @@ import Standard.Visualization
 import Standard.Base.Data.Time.Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
+import Standard.Table.Internal.Table_Helpers
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all

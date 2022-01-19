@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+import Standard.Table.Data.Matching
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
+from Standard.Table.Error as Error_Module import all
+
 ## PRIVATE
    A helper function encapsulating shared code for `select_columns`
    implementations of various Table variants. See the documentation for the
@@ -8,6 +12,39 @@ from Standard.Base import all
    It takes a list of columns and returns the selected columns. It is the
    responsibility of each implementation to reconstruct a proper table from the
    resulting list of columns.
-select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
-select_columns internal_columns selector reorder on_problem =
-    Error.throw "TODO"
+
+   Arguments:
+   - internal_columns: A list of all columns in a table.
+   - selector: Column selection criteria.
+   - reorder: Specifies whether to reorder the matched columns according to the
+     order of the selection criteria.
+     If `False`, the matched entries are returned in the same order as in the
+     input.
+     If `True`, the matched entries are returned in the order of the criteria
+     matching them. If a single object has been matched by multiple criteria, it
+     is placed in the group belonging to the first matching criterion on the
+     list. If a single criterion's group has more than one element, their
+     relative order is the same as in the input.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - warning_callback: A callback specifying the function to call when issuing a
+     warning. This is a temporary workaround to allow for testing the warning
+     mechanism. Once the proper warning system is implemented, this argument
+     will become obsolete and will be removed. No user code should use this
+     argument, as it will be removed in the future.
+select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> (Any -> Nothing) -> Vector
+select_columns internal_columns selector reorder on_problems warning_callback =
+    result = case selector of
+        By_Name names matching_strategy ->
+            Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warning_callback=warning_callback
+        By_Index indices -> case reorder of
+                True ->
+                    Error.throw "TODO"
+                False ->
+                    Error.throw "TODO"
+        By_Column columns ->
+            names = columns.map .name
+            Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warning_callback=warning_callback
+    # TODO check if empty and possibly report warning/error
