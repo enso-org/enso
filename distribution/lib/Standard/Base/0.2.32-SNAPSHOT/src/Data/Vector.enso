@@ -747,7 +747,7 @@ type Vector
         builder = here.new_builder
         this.fold Map.empty state->
             item->
-                key = on item
+                key = Mixed_Types_Map_Key (on item)
                 if (state.get_or_else key False) then state else
                     builder.append item
                     state.insert key True
@@ -900,3 +900,21 @@ Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
 
+
+type Mixed_Types_Map_Key
+    type Mixed_Types_Map_Key value
+
+    == : Mixed_Types_Map_Key -> Boolean
+    == that = this.value == that.value
+
+    compare_to : Mixed_Types_Map_Key -> Ordering
+    compare_to that =
+        # Naive Compare
+        r = Panic.recover (this.value.compare_to that.value)
+        r.catch err->
+            bool_check = this.value.is_a Boolean && that.value.is_a Boolean
+            if bool_check then if this.value then Ordering.Greater else Ordering.Less) else
+                this_type = Meta.get_qualified_type_name this.value
+                that_type = Meta.get_qualified_type_name that.value
+                if this_type != that_type then (this_type.compare_to that_type) else
+                    Panic.throw err

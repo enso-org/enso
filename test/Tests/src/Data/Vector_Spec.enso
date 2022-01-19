@@ -259,7 +259,6 @@ spec = Test.group "Vectors" <|
         [].distinct . should_equal []
         [1, 1.0, 2, 2.0].distinct . should_equal [1, 2]
 
-    structural_eq_reason="Disabled until map can support mixed types."
     Test.specify "should return a vector containing only unique mixed type elements" <|
         ["a", 2].distinct . should_equal ["a", 2]
         [2, "a", Integer, "a", 2].distinct . should_equal [2, "a", Integer]
