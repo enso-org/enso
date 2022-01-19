@@ -3,6 +3,7 @@ import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex as Regex_Module
 
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
+from Standard.Base.Error.Warnings import all
 
 ## Strategy for matching names.
 type Matching_Strategy
@@ -27,12 +28,12 @@ type Case_Insensitive
 
 
 ## UNSTABLE
-   An error indicating that a criterion did not match any names in the input.
-type No_Matches_Found (criterion : Text)
+   An error indicating that some criteria did not match any names in the input.
+type No_Matches_Found (criteria : Vector Text)
 
 No_Matches_Found.to_display_text : Text
 No_Matches_Found.to_display_text =
-    "The criterion ["+this.criterion+"] did not match any names in the input."
+    "The criteria "+this.criteria.to_text+" did not match any names in the input."
 
 
 ## UNSTABLE
@@ -44,27 +45,30 @@ No_Matches_Found.to_display_text =
      depends on the matching strategy.
    - reorder: Specifies whether to reorder the matched objects according to the
      order of the matching criteria.
-     If `False`, the matched entries are returned in the same order as in the input.
+     If `False`, the matched entries are returned in the same order as in the
+     input.
      If `True`, the matched entries are returned in the order of the criteria
      matching them. If a single object has been matched by multiple criteria, it
-     is placed in the group belonging to the first matching criterion on the list.
+     is placed in the group belonging to the first matching criterion on the
+     list.
      If a single criterion's group has more than one element, their relative
      order is the same as in the input.
    - name_mapper: A function mapping a provided object to its name, which will
      then be matched with the criteria. It is set to the identity function by
-     default, thus allowing the input to be a list of names to match. But it can be
-     overridden to enable matching more complex objects.
+     default, thus allowing the input to be a list of names to match. But it can
+     be overridden to enable matching more complex objects.
    - matching_strategy: A `Matching_Strategy` instance specifying how to
      interpret the criterion.
-   - on_problems: Specifies the behavior when a problem occurs during the function.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
      By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warning_callback: A callback specifying the function to call when issuing a
-     warning. This is a temporary workaround to allow for testing the warning
-     mechanism. Once the proper warning system is implemented, this argument
-     will become obsolete and will be removed. No user code should use this
-     argument, as it will be removed in the future.
+   - warnings: A Warning_System instance specifying how to handle warnings. This
+     is a temporary workaround to allow for testing the warning mechanism. Once
+     the proper warning system is implemented, this argument will become
+     obsolete and will be removed. No user code should use this argument, as it
+     will be removed in the future.
 
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
@@ -76,9 +80,9 @@ No_Matches_Found.to_display_text =
      ordering the result according to the order of criteria that matched them.
 
          Matching.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
-match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Any ! No_Matches_Found
-match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_problems=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
-    [objects, criteria, reorder, name_mapper, matching_strategy, on_problems, warning_callback] . each Panic.rethrow
+match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> Warning_System -> Vector Any ! No_Matches_Found
+match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_problems=Report_Warning warnings=Warnings.default = Panic.recover <|
+    [objects, criteria, reorder, name_mapper, matching_strategy, on_problems, warnings] . each Panic.rethrow
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
     match_matrix = objects.map obj->
@@ -102,18 +106,10 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
         0.up_to objects.length . to_vector . filter matcher
 
     # Check consistency
-    case on_problems of
-        Ignore -> Nothing
-        Report_Warning ->
-            criteria.map_with_index j-> criterion->
-                if does_criterion_match_anything j then Nothing else
-                    error = No_Matches_Found criterion
-                    warning_callback error.to_display_text
-        Report_Error ->
-            criteria.map_with_index j-> criterion->
-                if does_criterion_match_anything j then Nothing else
-                    error = No_Matches_Found criterion
-                    Panic.throw error
+    checked_criteria = criteria.map_with_index j-> criterion->
+        has_matches = does_criterion_match_anything j
+        Pair has_matches criterion
+    unmatched_criteria = checked_criteria.filter (p -> p.first.not) . map .second
 
     selected_indices = case reorder of
         True ->
@@ -124,7 +120,11 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
             nested_indices.flat_map x->x . distinct
         False ->
             select_matching_indices is_object_matched_by_anything
-    selected_indices.map objects.at
+
+    result = selected_indices.map objects.at
+    issues = if unmatched_criteria.is_empty then [] else [No_Matches_Found unmatched_criteria]
+    Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings
+
 
 ## UNSTABLE
    Checks if a name matches the provided criterion according to the specified
@@ -155,11 +155,3 @@ match_single_criterion name criterion matching_strategy = case matching_strategy
             Case_Insensitive -> True
         re = Regex_Module.compile criterion case_insensitive=insensitive
         re.matches name
-
-## PRIVATE
-   A placeholder for reporting warnings. It should be replaced once the warning
-   mechanism is designed and implemented. The argument type will likely change
-   too.
-report_warning_placeholder : Text -> Nothing
-report_warning_placeholder message =
-    IO.println "[WARNING] "+message
