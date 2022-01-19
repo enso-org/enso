@@ -78,7 +78,7 @@ No_Matches_Found.to_display_text =
          Matching.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> (Text -> Nothing) -> Vector Any ! No_Matches_Found
 match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_problems=Report_Warning warning_callback=here.report_warning_placeholder = Panic.recover <|
-    [objects, criteria, reorder, name_mapper, matching_strategy, on_missing, warning_callback] . each Panic.rethrow
+    [objects, criteria, reorder, name_mapper, matching_strategy, on_problems, warning_callback] . each Panic.rethrow
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
     match_matrix = objects.map obj->
