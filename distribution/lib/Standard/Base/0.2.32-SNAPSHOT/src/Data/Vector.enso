@@ -913,7 +913,7 @@ type Mixed_Types_Map_Key
         r = Panic.recover (this.value.compare_to that.value)
         r.catch err->
             bool_check = this.value.is_a Boolean && that.value.is_a Boolean
-            if bool_check then if this.value then Ordering.Greater else Ordering.Less) else
+            if bool_check then if (this.value then Ordering.Greater else Ordering.Less) else
                 this_type = Meta.get_qualified_type_name this.value
                 that_type = Meta.get_qualified_type_name that.value
                 if this_type != that_type then (this_type.compare_to that_type) else
