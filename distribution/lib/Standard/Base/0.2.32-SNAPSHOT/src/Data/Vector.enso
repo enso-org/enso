@@ -1,8 +1,6 @@
 from Standard.Base import all
 from Standard.Builtins import Array
 
-polyglot java import java.util.HashSet
-
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
 
@@ -747,13 +745,12 @@ type Vector
     distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
         builder = here.new_builder
-        existing_elements = HashSet.new
-
-        this.each elem->
-            proj = on elem
-            if existing_elements.contains proj then Nothing else
-                existing_elements.add proj
-                builder.append elem
+        this.fold Map.empty state->
+            item->
+                key = on item
+                if (state.get_or_else key False) then state else
+                    builder.append item
+                    state.insert key True
 
         builder.to_vector
 
