@@ -263,8 +263,7 @@ spec = Test.group "Vectors" <|
         ["a", 2].distinct . should_equal ["a", 2]
         [2, "a", Integer, "a", 2].distinct . should_equal [2, "a", Integer]
 
-    structural_eq_reason="Disabled until structural equality of Atoms is properly exposed through Polyglot."
-    Test.specify "should correctly handle distinct with custom types like Atoms" pending=structural_eq_reason <|
+    Test.specify "should correctly handle distinct with custom types like Atoms" <|
         [T 1 2, T 3 3, T 1 2].distinct . should_equal [T 1 2, T 3 3]
 
     Test.specify "should return a vector containing only unique elements up to some criteria" <|
