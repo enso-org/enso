@@ -534,9 +534,9 @@ ensogl::define_endpoints! {
 
         // === Edge ===
 
-        create_node_by_edge_drop (EdgeId),
         on_edge_add                            (EdgeId),
         on_edge_drop                           (EdgeId),
+        on_edge_drop_without_target            (EdgeId),
         on_edge_source_set                     ((EdgeId,EdgeEndpoint)),
         on_edge_source_set_with_target_not_set ((EdgeId,EdgeEndpoint)),
         on_edge_target_set_with_source_not_set ((EdgeId,EdgeEndpoint)),
@@ -2706,7 +2706,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     drop_edges     <- any (drop_on_bg_up,click_to_drop_edge);
     edge_to_drop_without_targets <= drop_edges.map(f_!(model.take_edges_with_detached_targets()));
     edge_to_drop_without_sources <= drop_edges.map(f_!(model.take_edges_with_detached_sources()));
-    out.source.create_node_by_edge_drop <+ edge_to_drop_without_targets;
+    out.source.on_edge_drop_without_target <+ edge_to_drop_without_targets;
+
     edge_to_drop <- any(edge_to_drop_without_targets,edge_to_drop_without_sources);
     eval edge_to_drop ((id) model.remove_edge(id));
 

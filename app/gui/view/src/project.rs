@@ -221,26 +221,29 @@ impl Model {
         }
     }
 
-    fn add_node_and_edit(&self) -> NodeCreated {
+    /// Add a new node and start editing it. Place it below `node_above` if provided, otherwise place
+    /// under the cursor.
+    fn add_node_and_edit(&self, node_above: Option<NodeId>) -> NodeId {
         let graph_editor_inputs = &self.graph_editor.frp.input;
-        let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned()
-        {
-            self.graph_editor.add_node_below(selected)
+        let node_id = if let Some(node_above) = node_above {
+            self.graph_editor.add_node_below(node_above)
         } else {
             graph_editor_inputs.add_node_at_cursor.emit(());
             self.graph_editor.frp.output.node_added.value().id()
         };
         graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
+        node_id
+    }
+
+    fn add_node_by_opening_searcher(&self) -> NodeCreated {
+        let selected = self.graph_editor.model.nodes.selected.first_cloned();
+        let node_id = self.add_node_and_edit(selected);
         NodeCreated::Simple(node_id)
     }
 
-    fn add_node_by_dragged_edge_drop(&self, edge: EdgeId) -> NodeCreated {
-        let graph_editor_inputs = &self.graph_editor.frp.input;
-        graph_editor_inputs.add_node_at_cursor.emit(());
-        let node_id = self.graph_editor.frp.output.node_added.value().id();
-        graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
-        graph_editor_inputs.edit_node.emit(&node_id);
+    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> NodeCreated {
+        let node_id = self.add_node_and_edit(None);
         NodeCreated::EdgeDrop(node_id, edge)
     }
 
@@ -463,13 +466,17 @@ impl View {
 
             // === Adding Node ===
 
-            edge_dropped <- graph.output.create_node_by_edge_drop.constant(true);
-            open_searcher <- frp.open_searcher.constant(true);
-            frp.source.adding_new_node <+ any(edge_dropped, open_searcher);
+            let adding_by_dropping_edge = graph.output.on_edge_drop_without_target.clone_ref();
+            let adding_by_opening_searcher = frp.open_searcher.clone_ref();
+            adding_by_dropping_edge_bool <- adding_by_dropping_edge.constant(true);
+            adding_by_opening_searcher_bool <- adding_by_opening_searcher.constant(true);
+            frp.source.adding_new_node <+ any(adding_by_dropping_edge_bool, adding_by_opening_searcher_bool);
 
-            frp.source.searcher_opened <+ graph.output.node_being_edited.on_change().filter_map(|node| *node).map(|id| NodeCreated::Simple(*id));
-            frp.source.searcher_opened <+ graph.output.create_node_by_edge_drop.map(f!((edge) model.add_node_by_dragged_edge_drop(*edge)));
-            frp.source.searcher_opened <+ frp.open_searcher.map(f_!(model.add_node_and_edit()));
+            node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
+
+            frp.source.searcher_opened <+ node_being_edited.map(|id| NodeCreated::Simple(*id));
+            frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
+            frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
 
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
