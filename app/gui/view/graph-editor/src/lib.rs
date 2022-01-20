@@ -534,6 +534,7 @@ ensogl::define_endpoints! {
 
         // === Edge ===
 
+        create_node_by_edge_drop (EdgeId),
         on_edge_add                            (EdgeId),
         on_edge_drop                           (EdgeId),
         on_edge_source_set                     ((EdgeId,EdgeEndpoint)),
@@ -572,7 +573,7 @@ ensogl::define_endpoints! {
         // === Other ===
         // FIXME: To be refactored
 
-        node_added                (NodeId),
+        node_added                (NodeCreated),
         node_removed              (NodeId),
         nodes_collapsed           ((Vec<NodeId>,NodeId)),
         node_hovered              (Option<Switch<NodeId>>),
@@ -618,6 +619,27 @@ ensogl::define_endpoints! {
     }
 }
 
+
+#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
+pub enum NodeCreated {
+    Simple(NodeId),
+    EdgeDrop(NodeId, EdgeId),
+}
+
+impl NodeCreated {
+    pub fn id(&self) -> NodeId {
+        match self {
+            Self::Simple(id) => *id,
+            Self::EdgeDrop(id, _) => *id,
+        }
+    }
+}
+
+impl Default for NodeCreated {
+    fn default() -> Self {
+        Self::Simple(default())
+    }
+}
 
 impl application::command::FrpNetworkProvider for GraphEditor {
     fn network(&self) -> &frp::Network {
@@ -1203,7 +1225,7 @@ impl GraphEditorModelWithNetwork {
         Self { model, network }
     }
 
-    fn new_node(&self, ctx: &NodeCreationContext) -> NodeId {
+    fn new_node(&self, ctx: &NodeCreationContext) -> NodeCreated {
         let view = component::Node::new(&self.app, self.vis_registry.clone_ref());
         let node = Node::new(view);
         let node_id = node.id();
@@ -1344,7 +1366,7 @@ impl GraphEditorModelWithNetwork {
         metadata.emit(initial_metadata);
         init.emit(&());
         self.nodes.insert(node_id, node);
-        node_id
+        NodeCreated::Simple(node_id)
     }
 
     fn is_node_connected_at_input(&self, node_id: NodeId, crumbs: &span_tree::Crumbs) -> bool {
@@ -2132,7 +2154,10 @@ impl GraphEditor {
     /// Add a new node and returns its ID.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
-        self.frp.output.node_added.value()
+        match self.frp.output.node_added.value() {
+            NodeCreated::Simple(id) => id,
+            NodeCreated::EdgeDrop(id, _) => id,
+        }
     }
 
     /// Ads a new node below `above` and returns its ID. If there is not enough space right below
@@ -2426,14 +2451,46 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
+
+    // === Add Node ===
+    frp::extend! { network
+
+    node_pointer_style <- source::<cursor::Style>();
+    node_tooltip       <- source::<tooltip::Style>();
+
+    let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
+    let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
+    node_expression_set <- source();
+    out.source.node_expression_set <+ node_expression_set;
+
+    on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
+    on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
+    on_input_connect_drag_mode    <- node_input_touch.down.constant(true);
+    on_input_connect_follow_mode  <- node_input_touch.selected.constant(false);
+
+    on_connect_drag_mode   <- any(on_output_connect_drag_mode,on_input_connect_drag_mode);
+    on_connect_follow_mode <- any(on_output_connect_follow_mode,on_input_connect_follow_mode);
+    connect_drag_mode      <- any(on_connect_drag_mode,on_connect_follow_mode);
+
+    on_detached_edge    <- any(&inputs.on_some_edges_targets_unset,&inputs.on_some_edges_sources_unset);
+    has_detached_edge   <- bool(&out.on_all_edges_endpoints_set,&on_detached_edge);
+
+    eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
+    eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
+    }
+
     // === Node Editing ===
 
     frp::extend! { network
+        let click_on_background = touch.background.selected.clone_ref();
+        edge_being_dragged <- has_detached_edge.sample(&click_on_background);
+        click_to_drop_edge <- edge_being_dragged.on_true();
+        click_on_bg <- edge_being_dragged.on_false();
         node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
         edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         node_to_edit          <- touch.nodes.down.gate(&edit_mode);
         edit_node             <- any(&node_to_edit,&inputs.edit_node);
-        stop_edit_on_bg_click <- touch.background.selected.gate(&node_in_edit_mode);
+        stop_edit_on_bg_click  <- click_on_bg.gate(&node_in_edit_mode);
         stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
         edit_switch           <- edit_node.gate(&node_in_edit_mode);
         node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
@@ -2462,35 +2519,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         });
     }
 
-    // === Add Node ===
-    frp::extend! { network
-
-    node_pointer_style <- source::<cursor::Style>();
-    node_tooltip       <- source::<tooltip::Style>();
-
-    let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-    let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-    node_expression_set <- source();
-    out.source.node_expression_set <+ node_expression_set;
-
-    on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
-    on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
-    on_input_connect_drag_mode    <- node_input_touch.down.constant(true);
-    on_input_connect_follow_mode  <- node_input_touch.selected.constant(false);
-
-    on_connect_drag_mode   <- any(on_output_connect_drag_mode,on_input_connect_drag_mode);
-    on_connect_follow_mode <- any(on_output_connect_follow_mode,on_input_connect_follow_mode);
-    connect_drag_mode      <- any(on_connect_drag_mode,on_connect_follow_mode);
-
-    on_detached_edge    <- any(&inputs.on_some_edges_targets_unset,&inputs.on_some_edges_sources_unset);
-    has_detached_edge   <- bool(&out.on_all_edges_endpoints_set,&on_detached_edge);
-
-    eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
-    eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
-
-
     // === Edge interactions  ===
 
+    frp::extend! { network
     edge_mouse_down <- source::<EdgeId>();
     edge_over       <- source::<EdgeId>();
     edge_out        <- source::<EdgeId>();
@@ -2606,7 +2637,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }));
     out.source.node_added <+ new_node;
 
-    node_with_position <- add_node_at_cursor.map3(&new_node,&cursor_pos_in_scene,|_,id,pos| (*id,*pos));
+    node_with_position <- add_node_at_cursor.map3(&new_node,&cursor_pos_in_scene,|_,id,pos| (id.id(),*pos));
     out.source.node_position_set         <+ node_with_position;
     out.source.node_position_set_batched <+ node_with_position;
 
@@ -2672,9 +2703,10 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.source.on_edge_drop <+ overlapping_edges;
 
     drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
-    drop_edges     <- any (drop_on_bg_up,touch.background.down);
+    drop_edges     <- any (drop_on_bg_up,click_to_drop_edge);
     edge_to_drop_without_targets <= drop_edges.map(f_!(model.take_edges_with_detached_targets()));
     edge_to_drop_without_sources <= drop_edges.map(f_!(model.take_edges_with_detached_sources()));
+    out.source.create_node_by_edge_drop <+ edge_to_drop_without_targets;
     edge_to_drop <- any(edge_to_drop_without_targets,edge_to_drop_without_sources);
     eval edge_to_drop ((id) model.remove_edge(id));
 

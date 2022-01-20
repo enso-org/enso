@@ -7,7 +7,9 @@ use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
+use crate::graph_editor::NodeCreated;
 use crate::graph_editor::NodeId;
+use crate::graph_editor::EdgeId;
 use crate::open_dialog::OpenDialog;
 use crate::searcher;
 
@@ -55,9 +57,9 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (NodeId),
+        searcher_opened                     (NodeCreated),
         adding_new_node                     (bool),
-        searcher_input                      (Option<NodeId>),
+        searcher_input                      (Option<NodeCreated>),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
         editing_aborted                     (NodeId),
@@ -220,18 +222,27 @@ impl Model {
         }
     }
 
-    fn add_node_and_edit(&self) -> NodeId {
+    fn add_node_and_edit(&self) -> NodeCreated {
         let graph_editor_inputs = &self.graph_editor.frp.input;
         let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned()
         {
             self.graph_editor.add_node_below(selected)
         } else {
             graph_editor_inputs.add_node_at_cursor.emit(());
-            self.graph_editor.frp.output.node_added.value()
+            self.graph_editor.frp.output.node_added.value().id()
         };
         graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
-        node_id
+        NodeCreated::Simple(node_id)
+    }
+
+    fn add_node_by_dragged_edge_drop(&self, edge: EdgeId) -> NodeCreated {
+        let graph_editor_inputs = &self.graph_editor.frp.input;
+        graph_editor_inputs.add_node_at_cursor.emit(());
+        let node_id = self.graph_editor.frp.output.node_added.value().id();
+        graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
+        graph_editor_inputs.edit_node.emit(&node_id);
+        NodeCreated::EdgeDrop(node_id, edge)
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
@@ -450,14 +461,18 @@ impl View {
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
             editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
-            frp.source.searcher_input     <+ graph.output.node_being_edited;
+            frp.source.searcher_input     <+ graph.output.node_being_edited.map(|node| node.map(|id| NodeCreated::Simple(id)));
             frp.source.is_searcher_opened <+ frp.searcher_input.map(|n| n.is_some());
 
 
             // === Adding Node ===
 
-            frp.source.adding_new_node <+ frp.open_searcher.constant(true);
-            frp.source.searcher_opened <+ frp.open_searcher.map(f!((_) model.add_node_and_edit()));
+            edge_dropped <- graph.output.create_node_by_edge_drop.constant(true);
+            open_searcher <- frp.open_searcher.constant(true);
+            frp.source.adding_new_node <+ any(edge_dropped, open_searcher);
+
+            frp.source.searcher_opened <+ graph.output.create_node_by_edge_drop.map(f!((edge) model.add_node_by_dragged_edge_drop(*edge)));
+            frp.source.searcher_opened <+ frp.open_searcher.map(f_!(model.add_node_and_edit()));
 
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);

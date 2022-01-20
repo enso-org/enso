@@ -14,6 +14,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
+use view::graph_editor::NodeCreated;
 
 
 
@@ -63,6 +64,7 @@ impl Model {
     }
 
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
+        error!(self.logger, "Commiting editing {entry_id:?}");
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
             None => self.controller.commit_node().map(Some),
@@ -151,16 +153,23 @@ impl Searcher {
         graph_controller: controller::ExecutedGraph,
         graph_presenter: &presenter::Graph,
         view: view::project::View,
-        node_view: ViewNodeId,
+        node_created: NodeCreated,
     ) -> FallibleResult<Self> {
-        let ast_node = graph_presenter.ast_node_of_view(node_view);
+        let (id, edge) = match node_created {
+            NodeCreated::Simple(id) => (id, None),
+            NodeCreated::EdgeDrop(id, edge) => (id, Some(edge)),
+        };
+        let origin = edge.map(|edge| view.graph().model.edges.get_cloned_ref(&edge))
+            .flatten().map(|edge| edge.source().map(|endpoint| endpoint.node_id)).flatten();
+        let ast_node = graph_presenter.ast_node_of_view(id);
         let mode = match ast_node {
             Some(node_id) => controller::searcher::Mode::EditNode { node_id },
             None => {
-                let view_data = view.graph().model.nodes.get_cloned_ref(&node_view);
+                let view_data = view.graph().model.nodes.get_cloned_ref(&id);
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
-                controller::searcher::Mode::NewNode { position }
+                let origin = origin.map(|id| graph_presenter.ast_node_of_view(id)).flatten();
+                controller::searcher::Mode::NewNode { position, origin }
             }
         };
         let selected_views = view.graph().model.nodes.all_selected();
@@ -174,7 +183,7 @@ impl Searcher {
             mode,
             selected_nodes.collect(),
         )?;
-        Ok(Self::new(parent, searcher_controller, view, node_view))
+        Ok(Self::new(parent, searcher_controller, view, id))
     }
 
     /// Commit editing.

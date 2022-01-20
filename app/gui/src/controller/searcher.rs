@@ -365,7 +365,7 @@ impl ThisNode {
 #[allow(missing_docs)]
 pub enum Mode {
     /// Searcher should add a new node at given position.
-    NewNode { position: Option<Position> },
+    NewNode { position: Option<Position>, origin: Option<ast::Id> },
     /// Searcher should edit existing node's expression.
     EditNode { node_id: ast::Id },
 }
@@ -521,10 +521,17 @@ impl Searcher {
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
         let module_repr: enso_text::Text = module_ast.repr().into();
         let position = module_repr.location_of_byte_offset_snapped(def_span.end);
-        let this_arg = Rc::new(
-            matches!(mode, Mode::NewNode { .. })
-                .and_option_from(|| ThisNode::new(selected_nodes, &graph.graph())),
-        );
+        let this_arg = match mode {
+            Mode::NewNode { origin, .. } => {
+                let nodes = if let Some(origin) = origin {
+                    vec![origin]
+                } else {
+                    selected_nodes
+                };
+                Rc::new(ThisNode::new(nodes, &graph.graph()))
+            },
+            _ => Rc::new(None)
+        };
         let ret = Self {
             logger,
             graph,
@@ -657,7 +664,7 @@ impl Searcher {
                 self.commit_node().map(Some)
             }
             Action::Example(example) => match *self.mode {
-                Mode::NewNode { position } => self.add_example(&example, position).map(Some),
+                Mode::NewNode { position, .. } => self.add_example(&example, position).map(Some),
                 _ => Err(CannotExecuteWhenEditingNode.into()),
             },
             Action::ProjectManagement(action) => {
@@ -739,7 +746,7 @@ impl Searcher {
         // We add the required imports before we create the node/edit its content. This way, we
         // avoid an intermediate state where imports would already be in use but not yet available.
         match *self.mode {
-            Mode::NewNode { position } => {
+            Mode::NewNode { position, .. } => {
                 self.add_required_imports()?;
                 let (expression, intended_method) = expr_and_method();
                 let metadata = NodeMetadata { position, intended_method, ..default() };
@@ -1283,7 +1290,7 @@ pub mod test {
                 ide: Rc::new(ide),
                 data: default(),
                 notifier: default(),
-                mode: Immutable(Mode::NewNode { position: default() }),
+                mode: Immutable(Mode::NewNode { position: default(), origin: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
@@ -1854,7 +1861,7 @@ pub mod test {
             });
 
             // Add new node.
-            searcher.mode = Immutable(Mode::NewNode { position: None });
+            searcher.mode = Immutable(Mode::NewNode { position: None, origin: None });
             searcher.commit_node().unwrap();
 
             let module_info = module.info();
@@ -1892,7 +1899,7 @@ pub mod test {
 
         // Add new node.
         let position = Some(Position::new(4.0, 5.0));
-        searcher.mode = Immutable(Mode::NewNode { position });
+        searcher.mode = Immutable(Mode::NewNode { position, origin: None });
         searcher.commit_node().unwrap();
 
         let expected_code =
