@@ -15,9 +15,9 @@ import org.enso.librarymanager.{
   ResolvingLibraryProvider
 }
 import org.enso.logger.masking.MaskedPath
-import org.enso.pkg.{Package, PackageManager, QualifiedName}
-
+import org.enso.pkg.{ComponentGroup, Package, PackageManager, QualifiedName}
 import java.nio.file.Path
+
 import scala.util.Try
 
 /** Manages loaded packages and modules. */
@@ -160,6 +160,13 @@ object PackageRepository {
     val loadedModules: collection.concurrent.Map[String, Module] =
       collection.concurrent.TrieMap(Builtins.MODULE_NAME -> builtins.getModule)
 
+    /** The mapping containing loaded component groups. */
+    val loadedComponents
+      : collection.concurrent.Map[LibraryName, Vector[ComponentGroup]] = {
+      val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
+      collection.concurrent.TrieMap(builtinsName -> Vector())
+    }
+
     /** @inheritdoc */
     override def getModuleMap: ModuleMap = loadedModules
 
@@ -215,7 +222,7 @@ object PackageRepository {
       libraryName: LibraryName,
       libraryVersion: LibraryVersion,
       root: Path
-    ): Either[Error, Unit] = Try {
+    ): Either[Error, Package[TruffleFile]] = Try {
       logger.debug(
         s"Loading library $libraryName from " +
         s"[${MaskedPath(root).applyMasking()}]."
@@ -230,7 +237,54 @@ object PackageRepository {
         pkg            = pkg,
         isLibrary      = true
       )
+      pkg
     }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
+
+    private def resolveComponentGroups(
+      pkg: Package[TruffleFile]
+    ): Either[Error, Unit] = {
+      if (loadedComponents.contains(pkg.libraryName)) Right(())
+      else {
+        val componentGroups = pkg.config.componentGroups
+
+        componentGroups.`new`.foreach(
+          registerComponentGroup(pkg.libraryName, _)
+        )
+        componentGroups.`extends`.foldLeft[Either[Error, Unit]](Right(())) {
+          (result, componentGroup) =>
+            val getExtendedLibraryName: Either[Error, LibraryName] =
+              QualifiedName.fromString(componentGroup.module).path match {
+                case namespace :: name :: _ =>
+                  Right(LibraryName(namespace, name))
+                case _ =>
+                  val errorDescription =
+                    s"Failed to resolve extended component group " +
+                    s"[${componentGroup.module}] of package [${pkg.name}]."
+                  logger.error(errorDescription)
+                  Left(Error.PackageLoadingError(errorDescription))
+              }
+
+            for {
+              _                   <- result
+              extendedLibraryName <- getExtendedLibraryName
+              _                   <- ensurePackageIsLoaded(extendedLibraryName)
+              pkgOpt = loadedPackages(extendedLibraryName)
+              _ <- pkgOpt.fold[Either[Error, Unit]](Right(()))(
+                resolveComponentGroups
+              )
+            } yield ()
+        }
+      }
+    }
+
+    private def registerComponentGroup(
+      library: LibraryName,
+      group: ComponentGroup
+    ): Unit =
+      loadedComponents.updateWith(library) {
+        case Some(groups) => Some(groups :+ group)
+        case None         => Some(Vector(group))
+      }
 
     /** @inheritdoc */
     override def ensurePackageIsLoaded(
@@ -254,10 +308,13 @@ object PackageRepository {
           // We check again inside of the monitor, in case that some other
           // thread has just added this library.
           if (loadedPackages.contains(libraryName)) Right(())
-          else
+          else {
             resolvedLibrary
               .flatMap { library =>
                 loadPackage(library.name, library.version, library.location)
+              }
+              .flatMap { pkg =>
+                resolveComponentGroups(pkg)
               }
               .left
               .map {
@@ -271,6 +328,7 @@ object PackageRepository {
                     "libraries search paths."
                   )
               }
+          }
         }
       }
 
