@@ -748,9 +748,9 @@ type Vector
         this.fold Map.empty state->
             item->
                 key = Mixed_Types_Map_Key (on item)
-                if (state.get_or_else key False) then state else
+                if (state.get_or_else key False) then existing else
                     builder.append item
-                    state.insert key True
+                    existing.insert key True
 
         builder.to_vector
 
