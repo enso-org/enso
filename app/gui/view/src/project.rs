@@ -471,6 +471,7 @@ impl View {
             open_searcher <- frp.open_searcher.constant(true);
             frp.source.adding_new_node <+ any(edge_dropped, open_searcher);
 
+            frp.source.searcher_opened <+ graph.output.node_being_edited.on_change().filter_map(|node| *node).map(|id| NodeCreated::Simple(*id));
             frp.source.searcher_opened <+ graph.output.create_node_by_edge_drop.map(f!((edge) model.add_node_by_dragged_edge_drop(*edge)));
             frp.source.searcher_opened <+ frp.open_searcher.map(f_!(model.add_node_and_edit()));
 
