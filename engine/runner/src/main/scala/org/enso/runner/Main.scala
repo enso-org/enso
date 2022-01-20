@@ -509,16 +509,20 @@ object Main {
       enableAutoParallelism = enableAutoParallelism
     )
     if (projectMode) {
-      val pkg  = PackageManager.Default.fromDirectory(file)
-      val main = pkg.map(_.mainFile)
-      if (!main.exists(_.exists())) {
-        println("Main file does not exist.")
-        context.context.close()
-        exitFail()
+      PackageManager.Default.loadPackage(file) match {
+        case scala.util.Success(pkg) =>
+          val main = pkg.mainFile
+          if (!main.exists()) {
+            println("Main file does not exist.")
+            context.context.close()
+            exitFail()
+          }
+          val mainModuleName = pkg.moduleNameForFile(pkg.mainFile).toString
+          runPackage(context, mainModuleName, file)
+        case scala.util.Failure(ex) =>
+          Console.err.println(ex.getMessage)
+          exitFail()
       }
-      val mainFile       = main.get
-      val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
-      runPackage(context, mainModuleName, file)
     } else {
       runSingleFile(context, file)
     }

@@ -112,6 +112,7 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
+  componentGroups: ComponentGroups,
   originalJson: JsonObject = JsonObject()
 ) {
 
@@ -134,6 +135,7 @@ object Config {
     val maintainer: String   = "maintainers"
     val edition: String      = "edition"
     val preferLocalLibraries = "prefer-local-libraries"
+    val componentGroups      = "component-groups"
   }
 
   implicit val decoder: Decoder[Config] = { json =>
@@ -165,6 +167,9 @@ object Config {
         editionOrVersionBackwardsCompatibility(edition, ensoVersion).left.map {
           error => DecodingFailure(error, json.history)
         }
+      componentGroups <- json.getOrElse[ComponentGroups](
+        JsonFields.componentGroups
+      )(ComponentGroups.empty)
       originals <- json.as[JsonObject]
     } yield Config(
       name                 = name,
@@ -175,6 +180,7 @@ object Config {
       maintainers          = maintainer,
       edition              = finalEdition,
       preferLocalLibraries = preferLocal,
+      componentGroups      = componentGroups,
       originalJson         = originals
     )
   }
@@ -189,6 +195,12 @@ object Config {
       }
       .map(JsonFields.edition -> _)
 
+    val componentGroups = Option.unless(
+      config.componentGroups.`new`.isEmpty && config.componentGroups.`extends`.isEmpty
+    )(
+      JsonFields.componentGroups -> config.componentGroups.asJson
+    )
+
     val overrides = Seq(
       JsonFields.name       -> config.name.asJson,
       JsonFields.namespace  -> config.namespace.asJson,
@@ -196,7 +208,7 @@ object Config {
       JsonFields.license    -> config.license.asJson,
       JsonFields.author     -> config.authors.asJson,
       JsonFields.maintainer -> config.maintainers.asJson
-    ) ++ edition.toSeq
+    ) ++ edition.toSeq ++ componentGroups.toSeq
 
     val preferLocalOverride =
       if (config.preferLocalLibraries)
