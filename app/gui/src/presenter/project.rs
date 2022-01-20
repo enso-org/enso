@@ -9,7 +9,7 @@ use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
-use view::graph_editor::NodeCreated;
+use view::project::SearcherInput;
 
 
 // =============
@@ -65,8 +65,7 @@ impl Model {
         }
     }
 
-    fn setup_searcher_presenter(&self, node_created: NodeCreated) {
-        error!(self.logger, "Setting up searcher presenter for node {node_created:?}");
+    fn setup_searcher_presenter(&self, searcher_input: SearcherInput) {
         let new_presenter = presenter::Searcher::setup_controller(
             &self.logger,
             self.ide_controller.clone_ref(),
@@ -74,7 +73,7 @@ impl Model {
             self.graph_controller.clone_ref(),
             &self.graph,
             self.view.clone_ref(),
-            node_created,
+            searcher_input,
         );
         match new_presenter {
             Ok(searcher) => {

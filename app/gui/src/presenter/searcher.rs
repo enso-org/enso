@@ -14,7 +14,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
-use view::graph_editor::NodeCreated;
+use view::project::SearcherInput;
 
 
 
@@ -153,14 +153,9 @@ impl Searcher {
         graph_controller: controller::ExecutedGraph,
         graph_presenter: &presenter::Graph,
         view: view::project::View,
-        node_created: NodeCreated,
+        searcher_input: SearcherInput,
     ) -> FallibleResult<Self> {
-        let (id, edge) = match node_created {
-            NodeCreated::Simple(id) => (id, None),
-            NodeCreated::EdgeDrop(id, edge) => (id, Some(edge)),
-        };
-        let origin = edge.map(|edge| view.graph().model.edges.get_cloned_ref(&edge))
-            .flatten().map(|edge| edge.source().map(|endpoint| endpoint.node_id)).flatten();
+        let id = searcher_input.node();
         let ast_node = graph_presenter.ast_node_of_view(id);
         let mode = match ast_node {
             Some(node_id) => controller::searcher::Mode::EditNode { node_id },
@@ -168,20 +163,16 @@ impl Searcher {
                 let view_data = view.graph().model.nodes.get_cloned_ref(&id);
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
-                let origin = origin.map(|id| graph_presenter.ast_node_of_view(id)).flatten();
-                controller::searcher::Mode::NewNode { position, origin }
+                let source_node = Self::source_node(&view, &graph_presenter, &searcher_input);
+                controller::searcher::Mode::NewNode { position, source_node }
             }
         };
-        let selected_views = view.graph().model.nodes.all_selected();
-        let selected_nodes =
-            selected_views.iter().filter_map(|view| graph_presenter.ast_node_of_view(*view));
         let searcher_controller = controller::Searcher::new_from_graph_controller(
             &parent,
             ide_controller,
             &project_controller.model,
             graph_controller,
             mode,
-            selected_nodes.collect(),
         )?;
         Ok(Self::new(parent, searcher_controller, view, id))
     }
@@ -209,5 +200,21 @@ impl Searcher {
         let controller = &self.model.controller;
         let entry = controller.actions().list().and_then(|l| l.get_cloned(entry));
         entry.map_or(false, |e| matches!(e.action, Example(_)))
+    }
+
+    /// Select source node for node creation. It would be either:
+    /// 1. The source node of the dragged connection, dropping which lead to the node creation.
+    /// 2. The first of the selected nodes on the scene.
+    fn source_node(view: &view::project::View, graph_presenter: &presenter::Graph, searcher_input: &SearcherInput) -> Option<Uuid> {
+        if let Some(edge_id) = searcher_input.edge() {
+            let edge = view.graph().model.edges.get_cloned_ref(&edge_id);
+            let edge_source = edge.map(|edge| edge.source()).flatten();
+            let id = edge_source.map(|source| source.node_id);
+            id.map(|id| graph_presenter.ast_node_of_view(id)).flatten()
+        } else {
+            let selected_views = view.graph().model.nodes.all_selected();
+            selected_views.iter().filter_map(|view| graph_presenter.ast_node_of_view(*view)).next()
+        }
+
     }
 }

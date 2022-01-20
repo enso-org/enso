@@ -499,7 +499,7 @@ impl Graph {
 
             view.add_node <+ update_data.map(|update| update.count_nodes_to_add()).repeat();
             added_node_update <- view.node_added.filter_map(f!((view_id)
-                model.state.assign_node_view(view_id.id())
+                model.state.assign_node_view(*view_id)
             ));
             init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));
             view.set_node_expression <+ init_node_expression;

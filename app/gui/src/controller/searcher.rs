@@ -322,11 +322,7 @@ impl ThisNode {
     ///
     /// Returns `None` if the given node's information cannot be retrieved or if the node does not
     /// introduce a variable.
-    pub fn new(
-        nodes: Vec<double_representation::node::Id>,
-        graph: &controller::Graph,
-    ) -> Option<Self> {
-        let id = *nodes.first()?;
+    pub fn new(id: double_representation::node::Id, graph: &controller::Graph) -> Option<Self> {
         let node = graph.node(id).ok()?;
         let (var, needs_to_introduce_pattern) = if let Some(ast) = node.info.pattern() {
             // TODO [mwu]
@@ -364,8 +360,9 @@ impl ThisNode {
 #[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
 pub enum Mode {
-    /// Searcher should add a new node at given position.
-    NewNode { position: Option<Position>, origin: Option<ast::Id> },
+    /// Searcher should add a new node at given position. `source_node` is a selected node or a
+    /// node from which the connection was dragged out before being dropped at the scene.
+    NewNode { position: Option<Position>, source_node: Option<ast::Id> },
     /// Searcher should edit existing node's expression.
     EditNode { node_id: ast::Id },
 }
@@ -488,10 +485,9 @@ impl Searcher {
         project: &model::Project,
         method: language_server::MethodPointer,
         mode: Mode,
-        selected_nodes: Vec<double_representation::node::Id>,
     ) -> FallibleResult<Self> {
         let graph = controller::ExecutedGraph::new(&parent, project.clone_ref(), method).await?;
-        Self::new_from_graph_controller(parent, ide, project, graph, mode, selected_nodes)
+        Self::new_from_graph_controller(parent, ide, project, graph, mode)
     }
 
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
@@ -501,7 +497,6 @@ impl Searcher {
         project: &model::Project,
         graph: controller::ExecutedGraph,
         mode: Mode,
-        selected_nodes: Vec<double_representation::node::Id>,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
         let logger = Logger::new_sub(parent, "Searcher Controller");
@@ -521,17 +516,10 @@ impl Searcher {
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
         let module_repr: enso_text::Text = module_ast.repr().into();
         let position = module_repr.location_of_byte_offset_snapped(def_span.end);
-        let this_arg = match mode {
-            Mode::NewNode { origin, .. } => {
-                let nodes = if let Some(origin) = origin {
-                    vec![origin]
-                } else {
-                    selected_nodes
-                };
-                Rc::new(ThisNode::new(nodes, &graph.graph()))
-            },
-            _ => Rc::new(None)
-        };
+        let this_arg = Rc::new(match mode {
+            Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
+            _ => None,
+        });
         let ret = Self {
             logger,
             graph,

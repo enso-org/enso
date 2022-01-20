@@ -573,7 +573,7 @@ ensogl::define_endpoints! {
         // === Other ===
         // FIXME: To be refactored
 
-        node_added                (NodeCreated),
+        node_added                (NodeId),
         node_removed              (NodeId),
         nodes_collapsed           ((Vec<NodeId>,NodeId)),
         node_hovered              (Option<Switch<NodeId>>),
@@ -616,28 +616,6 @@ ensogl::define_endpoints! {
         default_x_gap_between_nodes (f32),
         default_y_gap_between_nodes (f32),
         min_x_spacing_for_new_nodes (f32),
-    }
-}
-
-
-#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
-pub enum NodeCreated {
-    Simple(NodeId),
-    EdgeDrop(NodeId, EdgeId),
-}
-
-impl NodeCreated {
-    pub fn id(&self) -> NodeId {
-        match self {
-            Self::Simple(id) => *id,
-            Self::EdgeDrop(id, _) => *id,
-        }
-    }
-}
-
-impl Default for NodeCreated {
-    fn default() -> Self {
-        Self::Simple(default())
     }
 }
 
@@ -1225,7 +1203,7 @@ impl GraphEditorModelWithNetwork {
         Self { model, network }
     }
 
-    fn new_node(&self, ctx: &NodeCreationContext) -> NodeCreated {
+    fn new_node(&self, ctx: &NodeCreationContext) -> NodeId {
         let view = component::Node::new(&self.app, self.vis_registry.clone_ref());
         let node = Node::new(view);
         let node_id = node.id();
@@ -1366,7 +1344,7 @@ impl GraphEditorModelWithNetwork {
         metadata.emit(initial_metadata);
         init.emit(&());
         self.nodes.insert(node_id, node);
-        NodeCreated::Simple(node_id)
+        node_id
     }
 
     fn is_node_connected_at_input(&self, node_id: NodeId, crumbs: &span_tree::Crumbs) -> bool {
@@ -2154,10 +2132,7 @@ impl GraphEditor {
     /// Add a new node and returns its ID.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
-        match self.frp.output.node_added.value() {
-            NodeCreated::Simple(id) => id,
-            NodeCreated::EdgeDrop(id, _) => id,
-        }
+        self.frp.output.node_added.value() 
     }
 
     /// Ads a new node below `above` and returns its ID. If there is not enough space right below
@@ -2637,7 +2612,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }));
     out.source.node_added <+ new_node;
 
-    node_with_position <- add_node_at_cursor.map3(&new_node,&cursor_pos_in_scene,|_,id,pos| (id.id(),*pos));
+    node_with_position <- add_node_at_cursor.map3(&new_node,&cursor_pos_in_scene,|_,id,pos| (*id,*pos));
     out.source.node_position_set         <+ node_with_position;
     out.source.node_position_set_batched <+ node_with_position;
 

@@ -7,7 +7,6 @@ use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
-use crate::graph_editor::NodeCreated;
 use crate::graph_editor::NodeId;
 use crate::graph_editor::EdgeId;
 use crate::open_dialog::OpenDialog;
@@ -25,6 +24,41 @@ use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
+
+
+
+// =====================
+// === SearcherInput ===
+// =====================
+
+/// The information needed to setup Searcher Controller.
+#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
+pub enum SearcherInput {
+    Node(NodeId),
+    NodeAndEdge(NodeId, EdgeId),
+}
+
+impl SearcherInput  {
+    pub fn node(&self) -> NodeId {
+        match self {
+            Self::Node(id) => *id,
+            Self::NodeAndEdge(id, _) => *id,
+        }
+    }
+
+    pub fn edge(&self) -> Option<EdgeId> {
+        match self {
+            Self::Node(_) => None,
+            Self::NodeAndEdge(_, id) => Some(*id),
+        }
+    }
+}
+
+impl Default for SearcherInput  {
+    fn default() -> Self {
+        Self::Node(default())
+    }
+}
 
 
 
@@ -57,7 +91,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (NodeCreated),
+        searcher_opened                     (SearcherInput),
         adding_new_node                     (bool),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
@@ -229,22 +263,22 @@ impl Model {
             self.graph_editor.add_node_below(node_above)
         } else {
             graph_editor_inputs.add_node_at_cursor.emit(());
-            self.graph_editor.frp.output.node_added.value().id()
+            self.graph_editor.frp.output.node_added.value()
         };
         graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
         node_id
     }
 
-    fn add_node_by_opening_searcher(&self) -> NodeCreated {
-        let selected = self.graph_editor.model.nodes.selected.first_cloned();
-        let node_id = self.add_node_and_edit(selected);
-        NodeCreated::Simple(node_id)
+    fn add_node_by_opening_searcher(&self) -> SearcherInput {
+        let node_above = self.graph_editor.model.nodes.selected.first_cloned();
+        let node_id = self.add_node_and_edit(node_above);
+        SearcherInput::Node(node_id)
     }
 
-    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> NodeCreated {
+    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> SearcherInput {
         let node_id = self.add_node_and_edit(None);
-        NodeCreated::EdgeDrop(node_id, edge)
+        SearcherInput::NodeAndEdge(node_id, edge)
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
@@ -474,7 +508,7 @@ impl View {
 
             node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
 
-            frp.source.searcher_opened <+ node_being_edited.map(|id| NodeCreated::Simple(*id));
+            frp.source.searcher_opened <+ node_being_edited.map(|id| SearcherInput::Node(*id));
             frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
             frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
 
