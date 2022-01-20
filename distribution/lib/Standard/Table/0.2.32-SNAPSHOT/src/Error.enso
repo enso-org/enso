@@ -4,11 +4,16 @@ type Missing_Input_Columns (criteria : [Text])
 
 Missing_Input_Columns.to_display_text : Text
 Missing_Input_Columns.to_display_text =
-    "The criteria "+this.criteria.to_display_text+" did not match any columns."
+    "The criteria "+this.criteria.to_text+" did not match any columns."
 
 ## One or more column indexes were invalid on the input table.
    Can occur when using By_Index.
 type Column_Indexes_Out_Of_Range (indexes : [Number])
+
+Column_Indexes_Out_Of_Range.to_display_text : Text
+Column_Indexes_Out_Of_Range.to_display_text = case this.indexes.length of
+    1 -> "The index " + (this.indexes.at 0).to_text + " is out of range."
+    _ -> "The indexes "+this.indexes.short_display_text+" are out of range."
 
 ## More names than the column count provided to the function.
    Can occur when using By_Position.
@@ -22,3 +27,7 @@ type Duplicate_Output_Column_Names (column_names : [Text])
 
 ## No columns in the output result.
 type No_Output_Columns
+
+No_Output_Columns.to_display_text : Text
+No_Output_Columns.to_display_text =
+    "The result contains no columns."

@@ -1,6 +1,8 @@
 from Standard.Base import all
 
+import Standard.Base.Error.Warnings
 import Standard.Table.Data.Matching
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
 from Standard.Table.Error as Error_Module import all
 
@@ -29,22 +31,30 @@ from Standard.Table.Error as Error_Module import all
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warning_callback: A callback specifying the function to call when issuing a
-     warning. This is a temporary workaround to allow for testing the warning
-     mechanism. Once the proper warning system is implemented, this argument
-     will become obsolete and will be removed. No user code should use this
-     argument, as it will be removed in the future.
-select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> (Any -> Nothing) -> Vector
-select_columns internal_columns selector reorder on_problems warning_callback =
+   - warnings: A Warning_System instance specifying how to handle warnings. This
+     is a temporary workaround to allow for testing the warning mechanism. Once
+     the proper warning system is implemented, this argument will become
+     obsolete and will be removed. No user code should use this argument, as it
+     will be removed in the future.
+select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Vector
+select_columns internal_columns selector reorder on_problems warnings =
+    promote_no_matches_to_missing_columns error = case error of
+        Matching.No_Matches_Found criteria -> Missing_Input_Columns criteria
+        _ -> error
+
     result = case selector of
         By_Name names matching_strategy ->
-            Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warning_callback=warning_callback
-        By_Index indices -> case reorder of
+            result = Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
+            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns result
+        By_Index _ -> case reorder of
                 True ->
                     Error.throw "TODO"
                 False ->
                     Error.throw "TODO"
         By_Column columns ->
             names = columns.map .name
-            Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warning_callback=warning_callback
-    # TODO check if empty and possibly report warning/error
+            result = Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warnings=warnings
+            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns result
+
+    issues = if result.is_empty then [] else [No_Output_Columns]
+    Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings

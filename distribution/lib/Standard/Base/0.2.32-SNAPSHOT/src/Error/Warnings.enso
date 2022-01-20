@@ -20,7 +20,27 @@ type Warning_System
                         this.warning_callback warning_payload
                         decorated_value
 
+## PRIVATE
+   The default implementation of a warning system mock.
 
+   To be removed once warnings are implemented.
 default : Warning_System
 default = Warning_System warning->
     IO.println "[WARNING] "+warning.to_display_text
+
+## UNSTABLE
+   Maps warnings attached to a value.
+
+   Currently it is not implemented as the warning system is missing. It just
+   returns the original value without changes.
+map_attached_warnings : (Any -> Any) -> Any -> Any
+map_attached_warnings mapper decorated_value =
+    _ = mapper
+    decorated_value
+
+## UNSTABLE
+   An utility function which applies the mapping function both to any attached
+   warnings and dataflow errors.
+map_warnings_and_errors : (Any -> Any) -> Any -> Any
+map_warnings_and_errors mapper decorated_value =
+    (here.map_attached_warnings mapper decorated_value) . map_error mapper
