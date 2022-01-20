@@ -186,7 +186,6 @@ impl Project {
         let graph_view = &model.view.graph().frp;
 
         frp::extend! { network
-            searcher_input <- view.searcher_input.filter_map(|view| *view);
             eval view.searcher_opened ((node_created) {
                 model.setup_searcher_presenter(*node_created)
             });

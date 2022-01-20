@@ -59,7 +59,6 @@ ensogl::define_endpoints! {
     Output {
         searcher_opened                     (NodeCreated),
         adding_new_node                     (bool),
-        searcher_input                      (Option<NodeCreated>),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
         editing_aborted                     (NodeId),
@@ -461,9 +460,6 @@ impl View {
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
             editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
-            frp.source.searcher_input     <+ graph.output.node_being_edited.map(|node| node.map(|id| NodeCreated::Simple(id)));
-            frp.source.is_searcher_opened <+ frp.searcher_input.map(|n| n.is_some());
-
 
             // === Adding Node ===
 
@@ -547,7 +543,7 @@ impl View {
             let prompt_size            = styles.get_number(prompt_size_path);
             prompt_size                <- all(&prompt_size,&init)._0();
 
-            disable_after_opening_searcher <- frp.is_searcher_opened.filter(|v| *v).constant(());
+            disable_after_opening_searcher <- searcher.is_visible.filter(|v| *v).constant(());
             disable                        <- any(frp.disable_prompt,disable_after_opening_searcher);
             disabled                       <- disable.constant(true);
             show_prompt                    <- frp.show_prompt.gate_not(&disabled);
