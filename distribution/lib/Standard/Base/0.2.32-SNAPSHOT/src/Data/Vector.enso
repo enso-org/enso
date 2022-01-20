@@ -726,6 +726,16 @@ type Vector
        Arguments:
        - on: A projection from the element type to the value of that element
              which determines the uniqueness criteria.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+       - warnings: A Warning_System instance specifying how to handle warnings.
+         This is a temporary workaround to allow for testing the warning
+         mechanism. Once the proper warning system is implemented, this
+         argument will become obsolete and will be removed. No user code should
+         use this argument, as it will be removed in the future.
 
        The returned unique elements are kept in the same order as they appeared
        in the input.
@@ -742,17 +752,31 @@ type Vector
          Keeping only pairs whose first elements are unique.
 
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
-    distinct : (Any -> Any) -> Vector Any
+    distinct : (Any -> Any) -> -> Vector Any
     distinct (on = x->x) =
-        builder = here.new_builder
-        this.fold Map.empty state->
-            item->
-                key = Mixed_Types_Map_Key (on item)
-                if (state.get_or_else key False) then existing else
-                    builder.append item
-                    existing.insert key True
+        recover = Panic.recover
+            builder = here.new_builder
+            this.fold Map.empty existing->
+                item->
+                    key = on item
+                    if (existing.get_or_else key False) then existing else
+                        builder.append item
+                        existing.insert key True
+            builder.to_vector
 
-        builder.to_vector
+        recover.catch error->
+            IO.println error
+            builder = here.new_builder
+            key_builder = here.new_builder
+            this.fold 0 count->
+                item->
+                    key = on item
+                    if (key_builder.exists k->(k == key)) then count else
+                        builder.append item
+                        key_builder.append key
+                        (count + 1)
+            builder.to_vector
+
 
 
     ## UNSTABLE
@@ -838,6 +862,19 @@ type Builder
             this.append item
             Nothing
 
+    ## Checks whether a predicate holds for at least one element of this builder.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         that says whether that value satisfies the conditions of the function.
+
+    exists : (Any -> Boolean) -> Boolean
+    exists predicate =
+        len = this.length
+        go idx found = if found || (idx >= len) then found else
+            @Tail_Call go idx+1 (predicate (this.to_array.at idx))
+        go 0 False
+
     ## Converts this builder to a vector containing all the appended elements.
 
        > Example
@@ -899,22 +936,3 @@ type Singleton_Error vec
 Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
-
-
-type Mixed_Types_Map_Key
-    type Mixed_Types_Map_Key value
-
-    == : Mixed_Types_Map_Key -> Boolean
-    == that = this.value == that.value
-
-    compare_to : Mixed_Types_Map_Key -> Ordering
-    compare_to that =
-        # Naive Compare
-        r = Panic.recover (this.value.compare_to that.value)
-        r.catch err->
-            bool_check = this.value.is_a Boolean && that.value.is_a Boolean
-            if bool_check then if (this.value then Ordering.Greater else Ordering.Less) else
-                this_type = Meta.get_qualified_type_name this.value
-                that_type = Meta.get_qualified_type_name that.value
-                if this_type != that_type then (this_type.compare_to that_type) else
-                    Panic.throw err
