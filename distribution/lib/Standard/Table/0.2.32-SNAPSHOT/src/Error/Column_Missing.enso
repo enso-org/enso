@@ -1,0 +1,10 @@
+from Standard.Base import all
+
+## An error indicating that no column matching the provided criterion has
+   been found in the input.
+type Column_Missing (criterion : Text)
+
+
+Column_Missing.to_display_text : Text
+Column_Missing.to_display_text =
+    "The criterion ["+this.criterion+"] did not match any columns."
