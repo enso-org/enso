@@ -6,9 +6,9 @@ use crate::code_editor;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
+use crate::graph_editor::EdgeId;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
-use crate::graph_editor::EdgeId;
 use crate::open_dialog::OpenDialog;
 use crate::searcher;
 
@@ -34,11 +34,14 @@ use ensogl_hardcoded_theme::Theme;
 /// The information needed to setup Searcher Controller.
 #[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
 pub enum SearcherInput {
+    /// New node was created by opening the searcher or the node is being edited.
     Node(NodeId),
+    /// New node was created by dropping dragged connection on the scene.
     NodeAndEdge(NodeId, EdgeId),
 }
 
-impl SearcherInput  {
+impl SearcherInput {
+    /// NodeId of the created/edited node.
     pub fn node(&self) -> NodeId {
         match self {
             Self::Node(id) => *id,
@@ -46,6 +49,7 @@ impl SearcherInput  {
         }
     }
 
+    /// EdgeId of the edge that was dropped to create a node.
     pub fn edge(&self) -> Option<EdgeId> {
         match self {
             Self::Node(_) => None,
@@ -54,7 +58,7 @@ impl SearcherInput  {
     }
 }
 
-impl Default for SearcherInput  {
+impl Default for SearcherInput {
     fn default() -> Self {
         Self::Node(default())
     }
@@ -255,8 +259,8 @@ impl Model {
         }
     }
 
-    /// Add a new node and start editing it. Place it below `node_above` if provided, otherwise place
-    /// under the cursor.
+    /// Add a new node and start editing it. Place it below `node_above` if provided, otherwise
+    /// place it under the cursor.
     fn add_node_and_edit(&self, node_above: Option<NodeId>) -> NodeId {
         let graph_editor_inputs = &self.graph_editor.frp.input;
         let node_id = if let Some(node_above) = node_above {

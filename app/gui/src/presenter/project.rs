@@ -185,8 +185,8 @@ impl Project {
         let graph_view = &model.view.graph().frp;
 
         frp::extend! { network
-            eval view.searcher_opened ((node_created) {
-                model.setup_searcher_presenter(*node_created)
+            eval view.searcher_opened ((searcher_input) {
+                model.setup_searcher_presenter(*searcher_input)
             });
 
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {

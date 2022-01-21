@@ -2132,7 +2132,7 @@ impl GraphEditor {
     /// Add a new node and returns its ID.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
-        self.frp.output.node_added.value() 
+        self.frp.output.node_added.value()
     }
 
     /// Ads a new node below `above` and returns its ID. If there is not enough space right below
@@ -2426,46 +2426,49 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
-
     // === Add Node ===
+
     frp::extend! { network
 
-    node_pointer_style <- source::<cursor::Style>();
-    node_tooltip       <- source::<tooltip::Style>();
+        node_pointer_style <- source::<cursor::Style>();
+        node_tooltip       <- source::<tooltip::Style>();
 
-    let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-    let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-    node_expression_set <- source();
-    out.source.node_expression_set <+ node_expression_set;
+        let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
+        let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
+        node_expression_set <- source();
+        out.source.node_expression_set <+ node_expression_set;
 
-    on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
-    on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
-    on_input_connect_drag_mode    <- node_input_touch.down.constant(true);
-    on_input_connect_follow_mode  <- node_input_touch.selected.constant(false);
+        on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
+        on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
+        on_input_connect_drag_mode    <- node_input_touch.down.constant(true);
+        on_input_connect_follow_mode  <- node_input_touch.selected.constant(false);
 
-    on_connect_drag_mode   <- any(on_output_connect_drag_mode,on_input_connect_drag_mode);
-    on_connect_follow_mode <- any(on_output_connect_follow_mode,on_input_connect_follow_mode);
-    connect_drag_mode      <- any(on_connect_drag_mode,on_connect_follow_mode);
+        on_connect_drag_mode   <- any(on_output_connect_drag_mode,on_input_connect_drag_mode);
+        on_connect_follow_mode <- any(on_output_connect_follow_mode,on_input_connect_follow_mode);
+        connect_drag_mode      <- any(on_connect_drag_mode,on_connect_follow_mode);
 
-    on_detached_edge    <- any(&inputs.on_some_edges_targets_unset,&inputs.on_some_edges_sources_unset);
-    has_detached_edge   <- bool(&out.on_all_edges_endpoints_set,&on_detached_edge);
+        on_detached_edge    <- any(&inputs.on_some_edges_targets_unset,&inputs.on_some_edges_sources_unset);
+        has_detached_edge   <- bool(&out.on_all_edges_endpoints_set,&on_detached_edge);
 
-    eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
-    eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
+        eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
+        eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
     }
+
 
     // === Node Editing ===
 
     frp::extend! { network
-        let click_on_background = touch.background.selected.clone_ref();
-        edge_being_dragged <- has_detached_edge.sample(&click_on_background);
-        click_to_drop_edge <- edge_being_dragged.on_true();
-        click_on_bg <- edge_being_dragged.on_false();
+        // Clicking on background either drops dragged edge or aborts node editing.
+        let background_selected = touch.background.selected.clone_ref();
+        edge_being_dragged  <- has_detached_edge.sample(&background_selected);
+        click_to_drop_edge  <- edge_being_dragged.on_true();
+        click_to_abort_edit <- edge_being_dragged.on_false();
+
         node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
         edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         node_to_edit          <- touch.nodes.down.gate(&edit_mode);
         edit_node             <- any(&node_to_edit,&inputs.edit_node);
-        stop_edit_on_bg_click  <- click_on_bg.gate(&node_in_edit_mode);
+        stop_edit_on_bg_click <- click_to_abort_edit.gate(&node_in_edit_mode);
         stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
         edit_switch           <- edit_node.gate(&node_in_edit_mode);
         node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
@@ -2493,6 +2496,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             }
         });
     }
+
 
     // === Edge interactions  ===
 

@@ -163,7 +163,7 @@ impl Searcher {
                 let view_data = view.graph().model.nodes.get_cloned_ref(&id);
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
-                let source_node = Self::source_node(&view, &graph_presenter, &searcher_input);
+                let source_node = Self::source_node(&view, graph_presenter, &searcher_input);
                 controller::searcher::Mode::NewNode { position, source_node }
             }
         };
@@ -203,9 +203,13 @@ impl Searcher {
     }
 
     /// Select source node for node creation. It would be either:
-    /// 1. The source node of the dragged connection, dropping which lead to the node creation.
+    /// 1. The source node of the dragged connection, dropping which leads to the node creation.
     /// 2. The first of the selected nodes on the scene.
-    fn source_node(view: &view::project::View, graph_presenter: &presenter::Graph, searcher_input: &SearcherInput) -> Option<Uuid> {
+    fn source_node(
+        view: &view::project::View,
+        graph_presenter: &presenter::Graph,
+        searcher_input: &SearcherInput,
+    ) -> Option<Uuid> {
         if let Some(edge_id) = searcher_input.edge() {
             let edge = view.graph().model.edges.get_cloned_ref(&edge_id);
             let edge_source = edge.map(|edge| edge.source()).flatten();
@@ -213,8 +217,7 @@ impl Searcher {
             id.map(|id| graph_presenter.ast_node_of_view(id)).flatten()
         } else {
             let selected_views = view.graph().model.nodes.all_selected();
-            selected_views.iter().filter_map(|view| graph_presenter.ast_node_of_view(*view)).next()
+            selected_views.iter().find_map(|view| graph_presenter.ast_node_of_view(*view))
         }
-
     }
 }

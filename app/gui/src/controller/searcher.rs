@@ -360,8 +360,8 @@ impl ThisNode {
 #[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
 pub enum Mode {
-    /// Searcher should add a new node at given position. `source_node` is a selected node or a
-    /// node from which the connection was dragged out before being dropped at the scene.
+    /// Searcher should add a new node at a given position. `source_node` is either a selected node
+    /// or a node from which the connection was dragged out before being dropped at the scene.
     NewNode { position: Option<Position>, source_node: Option<ast::Id> },
     /// Searcher should edit existing node's expression.
     EditNode { node_id: ast::Id },
@@ -1252,7 +1252,7 @@ pub mod test {
             let code_range = enso_text::Location::default()..=end_of_code;
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
-            let this = ThisNode::new(vec![node.info.id()], &graph.graph());
+            let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
             let database = Rc::new(SuggestionDatabase::new_empty(&logger));
@@ -1278,7 +1278,7 @@ pub mod test {
                 ide: Rc::new(ide),
                 data: default(),
                 notifier: default(),
-                mode: Immutable(Mode::NewNode { position: default(), origin: None }),
+                mode: Immutable(Mode::NewNode { position: default(), source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
@@ -1849,7 +1849,7 @@ pub mod test {
             });
 
             // Add new node.
-            searcher.mode = Immutable(Mode::NewNode { position: None, origin: None });
+            searcher.mode = Immutable(Mode::NewNode { position: None, source_node: None });
             searcher.commit_node().unwrap();
 
             let module_info = module.info();
@@ -1887,7 +1887,7 @@ pub mod test {
 
         // Add new node.
         let position = Some(Position::new(4.0, 5.0));
-        searcher.mode = Immutable(Mode::NewNode { position, origin: None });
+        searcher.mode = Immutable(Mode::NewNode { position, source_node: None });
         searcher.commit_node().unwrap();
 
         let expected_code =
