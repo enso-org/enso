@@ -26,7 +26,17 @@ spec = Test.group "Vectors" <|
         built . should_equal [1, 2, 3, 4, 5]
 
     Test.specify "should allow accessing elements" <|
+        [1,2,3].at 0 . should_equal 1
         [1,2,3].at 2 . should_equal 3
+
+    Test.specify "should allow accessing elements with negative indices" <|
+        [1,2,3].at -1 . should_equal 3
+        [1,2,3].at -2 . should_equal 2
+        [1,2,3].at -3 . should_equal 1
+
+    Test.specify "should return a dataflow error when accessing elements out of bounds" <|
+        [1,2,3].at -4 . should_fail_with Vector.Index_Out_Of_Bounds_Error
+        [1,2,3].at 3 . should_fail_with Vector.Index_Out_Of_Bounds_Error
 
     Test.specify "should have a well-defined length" <|
         [1,2,3].length . should_equal 3
@@ -105,6 +115,18 @@ spec = Test.group "Vectors" <|
         [].to_text.should_equal "[]"
         [1,2,3].to_text.should_equal "[1, 2, 3]"
         [Nothing].to_text.should_equal "[Nothing]"
+        ['a'].to_text . should_equal "['a']"
+
+    Test.specify "should allow to generate a short text representation for display" <|
+        [].short_display_text max_entries=3 . should_equal "[]"
+        [1].short_display_text max_entries=3 . should_equal "[1]"
+        [1, 2].short_display_text max_entries=3 . should_equal "[1, 2]"
+        [1, 2, 3].short_display_text max_entries=3 . should_equal "[1, 2, 3]"
+        [1, 2, 3, 4].short_display_text max_entries=3 . should_equal "[1, 2, 3 and 1 more element]"
+        [1, 2, 3, 4, 5, 6].short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
+        (0.up_to 100).to_vector.short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
+
+        [].short_display_text max_entries=0 . catch . should_equal "The `max_entries` parameter must be positive"
 
     Test.specify "should define equality" <|
         [1,2,3]==[1,2] . should_be_false

@@ -126,14 +126,35 @@ type Vector
     ## Gets an element from the vector at a specified index (0-based).
 
        Arguments:
-       - index: The location in the vector to get the element from.
+       - index: The location in the vector to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the vector, i.e. -1 will correspond to the last element.
 
        > Example
          Get the second element of a vector.
 
-             [1, 2, 3].at 1
-    at : Number -> Any
-    at index = this.to_array.at index
+             [1, 2, 3].at 1 == 2
+
+       > Example
+         Get the last element of a vector.
+
+             [1, 2, 3].at -1 == 3
+    at : Number -> Any ! Index_Out_Of_Bounds_Error
+    at index =
+        actual_index = if index < 0 then this.length + index else index
+        if actual_index>=0 && actual_index<this.length then this.to_array.at actual_index else
+            Error.throw (Index_Out_Of_Bounds_Error index this.length)
+
+    ## ADVANCED
+       UNSTABLE
+
+       An unsafe variant of the `at` operation. It only allows non-negative
+       indices and will panic with a raw Java exception on out-of-bounds access.
+       Thus it should only be used when the access is guaranteed to be within
+       bounds or with additional error handling.
+    unsafe_at : Number -> Any
+    unsafe_at index =
+        this.to_array.at index
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -206,7 +227,7 @@ type Vector
     exists predicate =
         len = this.length
         go idx found = if found || (idx >= len) then found else
-            @Tail_Call go idx+1 (predicate (this.at idx))
+            @Tail_Call go idx+1 (predicate (this.unsafe_at idx))
         go 0 False
 
     ## Returns the first element of the vector that satisfies the predicate or
@@ -226,8 +247,8 @@ type Vector
         len = this.length
         go idx =
             if (idx >= len) then Error.throw Nothing else
-                elem = this.at idx
-                if (predicate elem) then elem else
+                elem = this.unsafe_at idx
+                if predicate elem then elem else
                     @Tail_Call go idx+1
         go 0
 
@@ -302,8 +323,10 @@ type Vector
              [1, 2, 3, 4, 5].filter (> 3)
     filter : (Any -> Boolean) -> Vector Any
     filter predicate =
-        check acc ix = if predicate ix then acc + [ix] else acc
-        this.fold [] check
+        builder = here.new_builder
+        this.each elem->
+            if predicate elem then builder.append elem
+        builder.to_vector
 
     ## Applies a function to each element of the vector, returning the vector of
        results.
@@ -318,7 +341,7 @@ type Vector
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Vector Any
     map function =
-        here.new this.length i-> function (this.at i)
+        here.new this.length i-> function (this.unsafe_at i)
 
     ## Applies a function to each element of the vector, returning the vector
        that contains all results concatenated.
@@ -356,7 +379,7 @@ type Vector
 
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index function = here.new this.length i-> function i (this.at i)
+    map_with_index function = here.new this.length i-> function i (this.unsafe_at i)
 
     ## Applies a function to each element of the vector.
 
@@ -372,8 +395,8 @@ type Vector
              [1, 2, 3, 4, 5] . each IO.println
     each : (Any -> Any) -> Nothing
     each f =
-        this.map f
-        Nothing
+        0.up_to this.length . each ix->
+            f (this.unsafe_at ix)
 
     ## Reverses the vector, returning a vector with the same elements, but in
        the opposite order.
@@ -383,7 +406,7 @@ type Vector
 
              [1, 2].reverse
     reverse : Vector Any
-    reverse = here.new this.length (i -> this.at (this.length - (1 + i)))
+    reverse = here.new this.length (i -> this.unsafe_at (this.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
 
@@ -392,12 +415,44 @@ type Vector
 
              [1, 2, 3].to_text == "[1, 2, 3]"
     to_text : Text
-    to_text =
-        if this.length == 0 then "[]" else
-            if this.length == 1 then "[" + (this.at 0 . to_text) + "]" else
-                folder = str -> ix -> str + ", " + (this.at ix).to_text
-                tail_elems = 1.up_to this.length . fold "" folder
-                "[" + (this.at 0 . to_text) + tail_elems + "]"
+    to_text = this.generic_to_text "[" ", " "]"
+
+    ## PRIVATE
+       A generic utility which concatenates textual representations of the
+       vector elements, separated by the `separator` and appends the provided
+       `prefix` and `suffix`.
+    generic_to_text : Text -> Text -> Text -> Text
+    generic_to_text prefix separator suffix =
+        if this.length == 0 then prefix+suffix else
+            folder = str -> ix -> str + separator + (this.unsafe_at ix).to_text
+            tail_elems = 1.up_to this.length . fold "" folder
+            prefix + (this.unsafe_at 0 . to_text) + tail_elems + suffix
+
+    ## UNSTABLE
+       Generates a human-readable text representation of the vector, keeping its
+       length limited.
+
+       Arguments:
+       - max_entries: The maximum number of entries that are displayed. If the
+         vector contains more elements, the number of hidden elements is also
+         displayed.
+
+       TODO: a better name may be chosen
+
+       > Example
+         Convert a large vector of numbers to a short text.
+
+             (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
+    short_display_text : Integer -> Text
+    short_display_text max_entries=10 =
+        # TODO should this be some specific error type? We may want a generic Illegal_Argument_Error for such situations
+        if max_entries < 1 then Error.throw "The `max_entries` parameter must be positive" else
+            prefix = this.take_start max_entries
+            if prefix.length == this.length then this.to_text else
+                remaining_count = this.length - prefix.length
+                remaining_text = if remaining_count == 1 then "and 1 more element" else
+                    "and " + remaining_count.to_text + " more elements"
+                prefix.generic_to_text "[" ", " " "+remaining_text+"]"
 
     ## Checks whether this vector is equal to `that`.
 
@@ -413,7 +468,7 @@ type Vector
              [1, 2, 3] == [2, 3, 4]
     == : Vector -> Boolean
     == that =
-        eq_at i = this.at i == that.at i
+        eq_at i = this.unsafe_at i == that.unsafe_at i
         if this.length == that.length then 0.up_to this.length . all eq_at else False
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
@@ -431,9 +486,9 @@ type Vector
         this_len = this.length
         arr = Array.new (this_len + that.length)
         0.up_to this_len . each i->
-            arr.set_at i (this.at i)
+            arr.set_at i (this.unsafe_at i)
         this.length.up_to arr.length . each i->
-            arr.set_at i (that.at i-this_len)
+            arr.set_at i (that.unsafe_at i-this_len)
         Vector arr
 
     ## Add `element` to the beginning of `this` vector.
@@ -473,8 +528,8 @@ type Vector
     join : String -> Text
     join separator =
         if this.length == 0 then "" else
-            if this.length == 1 then this.at 0 else
-                this.at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.at i)
+            if this.length == 1 then this.unsafe_at 0 else
+                this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i)
 
     ## Creates a new vector with the first `count` elements in `this` removed.
 
@@ -487,7 +542,7 @@ type Vector
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector Any
     drop_start count = if count >= this.length then here.new 0 (x -> x) else
-        here.new (this.length - count) (i -> this.at i+count)
+        here.new (this.length - count) (i -> this.unsafe_at i+count)
 
     ## Creates a new vector with the last `count` elements in `this` removed.
 
@@ -554,7 +609,7 @@ type Vector
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip that function=[_,_] =
         len = Math.min this.length that.length
-        here.new len i-> function (this.at i) (that.at i)
+        here.new len i-> function (this.unsafe_at i) (that.unsafe_at i)
 
     ## Extend `this` vector to the length of `n` appending elements `elem` to
        the end.
@@ -597,7 +652,7 @@ type Vector
 
              [1, 2, 3, 4].head
     head : Any ! Empty_Error
-    head = if this.length >= 1 then this.at 0 else Error.throw Empty_Error
+    head = if this.length >= 1 then this.unsafe_at 0 else Error.throw Empty_Error
 
     ## Get all elements in the vector except the first.
 
@@ -626,7 +681,7 @@ type Vector
 
              [1, 2, 3, 4].last
     last : Vector ! Empty_Error
-    last = if this.length >= 1 then (this.take_end 1).at 0 else
+    last = if this.length >= 1 then this.unsafe_at (this.length-1) else
         Error.throw Empty_Error
 
     ## Get the first element from the vector, or an `Empty_Error` if the vector
@@ -649,7 +704,7 @@ type Vector
 
              [1, 2, 3, 4].second
     second : Vector ! Singleton_Error
-    second = if this.length >= 2 then this.at 1 else
+    second = if this.length >= 2 then this.unsafe_at 1 else
         Error.throw (Singleton_Error this)
 
     ## Get all elements in the vector except the first.
