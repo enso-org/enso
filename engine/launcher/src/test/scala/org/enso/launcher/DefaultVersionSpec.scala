@@ -28,7 +28,7 @@ class DefaultVersionSpec extends RuntimeVersionManagerTest {
       makeConfigurationManager().defaultVersion shouldEqual latestAvailable
     }
 
-    "fallback to latest installed version" in {
+    "fallback to latest installed version" ignore {
       val (componentsManager, configManager) =
         makeConfigAndComponentsManagers()
       componentsManager.findOrInstallEngine(SemVer(0, 0, 0))
