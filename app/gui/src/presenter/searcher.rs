@@ -64,7 +64,6 @@ impl Model {
     }
 
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
-        error!(self.logger, "Commiting editing {entry_id:?}");
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
             None => self.controller.commit_node().map(Some),
