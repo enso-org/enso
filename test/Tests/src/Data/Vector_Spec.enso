@@ -90,6 +90,7 @@ spec = Test.group "Vectors" <|
         vec.filter (ix -> ix > 3) . should_equal [4, 5]
         vec.filter (ix -> ix == 1) . should_equal [1]
         vec.filter (ix -> ix < 0) . should_equal []
+        vec.filter (ix -> if ix == 2 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should allow mapping an operation, returning a new vector" <|
         vec = [1, 2, 3, 4]
