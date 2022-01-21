@@ -28,15 +28,16 @@ between start_inclusive end_exclusive =
     Duration period duration
 
 
-## Time the evaluation of a function, return a Pair of Duration and Result
+## ADVANCED
+
+   Time the evaluation of a function, return a Pair of Duration and Result
 
    Arguments:
-   - input: Value to pass to callback.
-   - callback: Function to execute.
-time_execution : Any -> (Any -> Any) -> Pair Duration Any
-time_execution input callback =
+   - function: Function to execute.
+time_execution : Any -> Pair Duration Any
+time_execution ~function =
     start = Java_System.nanoTime
-    result = callback input
+    result = Runtime.no_inline function
     end = Java_System.nanoTime
     duration = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos (end - start))
     Pair duration result
