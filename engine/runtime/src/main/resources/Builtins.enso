@@ -334,6 +334,21 @@ type Invalid_Array_Index_Error array index
 @Builtin_Type
 type Not_Invokable_Error target
 
+## An error that occurs when arguments used in a function call are invalid
+   types for the function.
+
+   Arguments:
+     - arguments: The passed arguments.
+@Builtin_Type
+type Unsupported_Argument_Types arguments
+
+## An error that occurs when the specified module cannot be found.
+
+   Arguments:
+     - name: The module searched for.
+@Builtin_Type
+type Module_Does_Not_Exist name
+
 ## Panics.
 type Panic
 

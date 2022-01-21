@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Builtins import Array
+from Standard.Builtins import Unsupported_Argument_Types
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
@@ -752,7 +753,7 @@ type Vector
          Keeping only pairs whose first elements are unique.
 
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
-    distinct : (Any -> Any) -> -> Vector Any
+    distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
         recover = Panic.recover
             builder = here.new_builder
@@ -764,19 +765,11 @@ type Vector
                         existing.insert key True
             builder.to_vector
 
-        recover.catch error->
-            IO.println error
-            builder = here.new_builder
-            key_builder = here.new_builder
-            this.fold 0 count->
-                item->
-                    key = on item
-                    if (key_builder.exists k->(k == key)) then count else
-                        builder.append item
-                        key_builder.append key
-                        (count + 1)
-            builder.to_vector
-
+        recover.map_error e-> case e of
+            No_Such_Method_Error _ _ -> Incomparable_Values_Error
+            Unsupported_Argument_Types _ -> Incomparable_Values_Error
+            Type_Error _ _ -> Incomparable_Values_Error
+            _ -> Panic.throw e
 
 
     ## UNSTABLE
@@ -936,3 +929,10 @@ type Singleton_Error vec
 Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
+
+
+## UNSTABLE
+
+   An error when vector contains incomparable types
+
+type Incomparable_Values_Error
