@@ -8,7 +8,8 @@ polyglot java import org.enso.base.Time_Utils
 
 ## Bench Utilities ============================================================
 
-vector_size =
+vector_size = 1000000
+iter_size = 100
 num_iterations = 10
 
 make_random_vec : Integer -> Base.Vector.Vector
@@ -19,13 +20,11 @@ make_random_vec n =
 # The Benchmarks ==============================================================
 
 main =
-    random_vec_1 = here.make_random_vec 50000
+    random_vec = here.make_random_vec here.vector_size
 
-    Bench.measure (random_vec_1.filter (x -> x % 3 == 1)) "Filter" 20 here.num_iterations
-
-    random_vec_2 = here.make_random_vec 1000000
+    Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" here.iter_size here.num_iterations
 
     stateful_fun x =
        s = State.get Number
        State.put s+x
-    Bench.measure (State.run Number 0 <| random_vec_2.each stateful_fun) "Each" 100 here.num_iterations
+    Bench.measure (State.run Number 0 <| random_vec.each stateful_fun) "Each" here.iter_size here.num_iterations
