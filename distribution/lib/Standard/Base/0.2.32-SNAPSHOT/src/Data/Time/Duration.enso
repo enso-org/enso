@@ -4,7 +4,6 @@ import Standard.Base.Data.Time
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
-polyglot java import java.lang.System as Java_System
 
 ## Create an interval representing the duration between two points in time.
 
@@ -36,9 +35,9 @@ between start_inclusive end_exclusive =
    - function: Function to execute.
 time_execution : Any -> Pair Duration Any
 time_execution ~function =
-    start = Java_System.nanoTime
+    start = System.nano_time
     result = Runtime.no_inline function
-    end = Java_System.nanoTime
+    end = System.nano_time
     duration = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos (end - start))
     Pair duration result
 

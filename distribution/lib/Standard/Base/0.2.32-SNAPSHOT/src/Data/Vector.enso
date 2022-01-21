@@ -755,7 +755,7 @@ type Vector
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
     distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
-        recover = Panic.recover
+        recovered = Panic.recover
             builder = here.new_builder
             this.fold Map.empty existing->
                 item->
@@ -765,7 +765,7 @@ type Vector
                         existing.insert key True
             builder.to_vector
 
-        recover.map_error e-> case e of
+        recovered.map_error e-> case e of
             No_Such_Method_Error _ _ -> Incomparable_Values_Error
             Unsupported_Argument_Types _ -> Incomparable_Values_Error
             Type_Error _ _ -> Incomparable_Values_Error
@@ -933,6 +933,6 @@ Singleton_Error.to_display_text =
 
 ## UNSTABLE
 
-   An error when vector contains incomparable types
+   An error indicating that the vector contains incomparable types.
 
 type Incomparable_Values_Error
