@@ -46,11 +46,14 @@ select_columns internal_columns selector reorder on_problems warnings =
         By_Name names matching_strategy ->
             result = Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
             Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns result
-        By_Index _ -> case reorder of
+        By_Index indices ->
+            result = case reorder of
                 True ->
-                    Error.throw "TODO"
+                    here.select_indices_reordering internal_columns indices
                 False ->
-                    Error.throw "TODO"
+                    here.select_indices_preserving_order internal_columns indices
+            # TODO warn if there are any non-unique columns in result?
+            result.distinct on=_.name
         By_Column columns ->
             names = columns.map .name
             result = Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warnings=warnings
@@ -58,3 +61,12 @@ select_columns internal_columns selector reorder on_problems warnings =
 
     issues = if result.is_empty then [] else [No_Output_Columns]
     Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings
+
+## PRIVATE
+select_indices_reordering vector indices =
+    indices.map vector.at
+
+## PRIVATE
+select_indices_preserving_order vector indices =
+    indexed_indices = Map.from_vector (indices.map i-> [i, True])
+    vector.map_with_index

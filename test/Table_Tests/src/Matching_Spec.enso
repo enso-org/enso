@@ -79,7 +79,7 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_criteria (Error.throw Foo_Error) [] . should_fail_with Foo_Error
         Matching.match_criteria [] (Error.throw Foo_Error) . should_fail_with Foo_Error
         Matching.match_criteria [] [] (Error.throw Foo_Error) . should_fail_with Foo_Error
-        Matching.match_criteria ["a"] ["a"] name_mapper=(_-> Error.throw Foo_Error) . should_fail_with Foo_Error
+        Matching.match_criteria [1, 2, 3] ["2"] name_mapper=(x-> if x == 3 then Error.throw Foo_Error else x.to_text) . should_fail_with Foo_Error
         Matching.match_criteria ["a"] ["a"] name_mapper=_.nonexistent_function . should_fail_with No_Such_Method_Error
 
 main = Test.Suite.run_main here.spec
