@@ -304,9 +304,11 @@ impl Display for ParsedInput {
 
 /// Information about a node that is used as a `this` argument.
 ///
-/// When searcher is brought up with a node selected, the node will be used as "this". This affects
-/// suggestions for the first completion (to include methods of the node's returned value) and the
-/// code inserted when the input is committed.
+/// "This" node is either:
+/// 1. A node that was selected when the searcher was brought up.
+/// 2. A source node of the connection that was dropped on the scene to create a new node.
+/// This affects suggestions for the first completion (to include methods of the node's returned
+/// value) and the code inserted when the input is committed.
 #[derive(Clone, Debug)]
 pub struct ThisNode {
     /// Identifier of the node that will be connected if the initial suggestion is picked.
@@ -318,7 +320,7 @@ pub struct ThisNode {
 }
 
 impl ThisNode {
-    /// Retrieve information about the `self` node. The first selected node will be used for this.
+    /// Retrieve information about the `self` node.
     ///
     /// Returns `None` if the given node's information cannot be retrieved or if the node does not
     /// introduce a variable.
