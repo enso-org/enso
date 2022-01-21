@@ -8,7 +8,7 @@ polyglot java import org.enso.base.Time_Utils
 
 ## Bench Utilities ============================================================
 
-vector_size = 
+vector_size =
 num_iterations = 10
 
 make_random_vec : Integer -> Base.Vector.Vector
