@@ -1,0 +1,57 @@
+from Standard.Base import all
+
+import Standard.Base.Error.Warnings
+
+## Specifies how to handle problems.
+type Problem_Behavior
+    ## UNSTABLE
+       Ignore the problem and attempt to complete the operation
+    type Ignore
+
+    ## UNSTABLE
+       Report the problem as a warning and attempt to complete the operation
+    type Report_Warning
+
+    ## UNSTABLE
+       Report the problem as a dataflow error and abort the operation
+    type Report_Error
+
+## UNSTABLE
+   Attaches an error-value to the given value according to the expected problem
+   behavior.
+
+   If the problem behavior is set to Ignore, the value is returned as-is.
+   If it is set to Report_Warning, the value is returned with the error-value
+   attached as a warning.
+   If it is set to Report_Error, the error-value is returned in the form of a
+   dataflow error.
+
+   TODO: the Warning_System argument is temporary, as the warning system is
+   mocked until the real implementation is shipped. It will be removed soon.
+attach_as_needed : Any -> Problem_Behavior -> Vector -> Warning_System -> Any
+attach_as_needed decorated_value problem_behavior ~payload warnings=Warnings.default =
+    case problem_behavior of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            warnings.attach decorated_value payload
+        Report_Error ->
+            case decorated_value of
+                _ -> Error.throw payload
+
+## UNSTABLE
+   Attaches issues to the given value according to the expected problem
+   behavior.
+
+   If the problem behavior is set to Ignore, the value is returned as-is.
+   If it is set to Report_Warning, the value is returned with the issues
+   attached as warnings.
+   If it is set to Report_Error, the first issue is returned in the form of a
+   dataflow error.
+
+   TODO: the Warning_System argument is temporary, as the warning system is
+   mocked until the real implementation is shipped. It will be removed soon.
+attach_issues_as_needed : Any -> Problem_Behavior -> Vector -> Warning_System -> Any
+attach_issues_as_needed decorated_value problem_behavior issues warnings=Warnings.default =
+    issues.fold decorated_value value-> issue->
+        here.attach_as_needed value problem_behavior issue warnings=warnings

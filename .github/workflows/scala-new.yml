@@ -1,3 +1,5 @@
+# This is the new, in progress, Build Workflow for the Enso Engine.
+
 name: Engine CI V2
 
 on:
@@ -14,19 +16,25 @@ jobs:
       - ${{ matrix.os }}
       - self-hosted
       - engine
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       matrix:
+        # The macOS support is not yet done. For now, the GitHub-hosted runner
+        # in the old workflow should be relied upon.
         os: [Windows, Linux]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
-      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
-        working-directory: C:\ci
-        if: runner.os == 'Windows'
-      - run: cargo run --release --bin build-enso -- ${{ github.workspace }}
-        working-directory: /ci
-        if: runner.os != 'Windows'
+        with:
+          clean: false
+          path: ci-build
+          ref: deployed
+          repository: enso-org/ci-build
+      - uses: actions/checkout@v2
+        with:
+          path: enso
+      - run: cargo run --release --bin enso-build -- ${{ github.workspace }}/enso
+        working-directory: ${{ github.workspace }}/ci-build
 
       #####################
       # PUBLISH ARTIFACTS #

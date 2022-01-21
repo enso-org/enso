@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Test
 
+import project.Matching_Spec
 import project.Model_Spec
 import project.Column_Spec
 import project.Csv_Spec
@@ -15,4 +16,5 @@ main = Test.Suite.run_main <|
     Json_Spec.spec
     Spreadsheet_Spec.spec
     Table_Spec.spec
+    Matching_Spec.spec
     Model_Spec.spec
