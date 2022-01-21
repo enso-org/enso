@@ -9,7 +9,7 @@ use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
-use view::project::SearcherInput;
+use view::project::WayOfOpeningSearcher;
 
 
 // =============
@@ -65,7 +65,7 @@ impl Model {
         }
     }
 
-    fn setup_searcher_presenter(&self, searcher_input: SearcherInput) {
+    fn setup_searcher_presenter(&self, way_of_opening_searcher: WayOfOpeningSearcher) {
         let new_presenter = presenter::Searcher::setup_controller(
             &self.logger,
             self.ide_controller.clone_ref(),
@@ -73,7 +73,7 @@ impl Model {
             self.graph_controller.clone_ref(),
             &self.graph,
             self.view.clone_ref(),
-            searcher_input,
+            way_of_opening_searcher,
         );
         match new_presenter {
             Ok(searcher) => {
@@ -185,8 +185,8 @@ impl Project {
         let graph_view = &model.view.graph().frp;
 
         frp::extend! { network
-            eval view.searcher_opened ((searcher_input) {
-                model.setup_searcher_presenter(*searcher_input)
+            eval view.searcher_opened ((way_of_opening_searcher) {
+                model.setup_searcher_presenter(*way_of_opening_searcher)
             });
 
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {

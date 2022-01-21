@@ -27,40 +27,40 @@ use ensogl_hardcoded_theme::Theme;
 
 
 
-// =====================
-// === SearcherInput ===
-// =====================
+// ============================
+// === WayOfOpeningSearcher ===
+// ============================
 
-/// The information needed to setup Searcher Controller.
+/// An enum describing how the searcher was opened.
 #[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
-pub enum SearcherInput {
+pub enum WayOfOpeningSearcher {
     /// New node was created by opening the searcher or the node is being edited.
-    Node(NodeId),
-    /// New node was created by dropping dragged connection on the scene.
-    NodeAndEdge(NodeId, EdgeId),
+    NodeEdited(NodeId),
+    /// New node was created by dropping a dragged connection on the scene.
+    EdgeDropped(NodeId, EdgeId),
 }
 
-impl SearcherInput {
+impl WayOfOpeningSearcher {
     /// NodeId of the created/edited node.
     pub fn node(&self) -> NodeId {
         match self {
-            Self::Node(id) => *id,
-            Self::NodeAndEdge(id, _) => *id,
+            Self::NodeEdited(id) => *id,
+            Self::EdgeDropped(id, _) => *id,
         }
     }
 
     /// EdgeId of the edge that was dropped to create a node.
     pub fn edge(&self) -> Option<EdgeId> {
         match self {
-            Self::Node(_) => None,
-            Self::NodeAndEdge(_, id) => Some(*id),
+            Self::NodeEdited(_) => None,
+            Self::EdgeDropped(_, id) => Some(*id),
         }
     }
 }
 
-impl Default for SearcherInput {
+impl Default for WayOfOpeningSearcher {
     fn default() -> Self {
-        Self::Node(default())
+        Self::NodeEdited(default())
     }
 }
 
@@ -95,7 +95,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (SearcherInput),
+        searcher_opened                     (WayOfOpeningSearcher),
         adding_new_node                     (bool),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
@@ -274,15 +274,15 @@ impl Model {
         node_id
     }
 
-    fn add_node_by_opening_searcher(&self) -> SearcherInput {
+    fn add_node_by_opening_searcher(&self) -> WayOfOpeningSearcher {
         let node_above = self.graph_editor.model.nodes.selected.first_cloned();
         let node_id = self.add_node_and_edit(node_above);
-        SearcherInput::Node(node_id)
+        WayOfOpeningSearcher::NodeEdited(node_id)
     }
 
-    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> SearcherInput {
+    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> WayOfOpeningSearcher {
         let node_id = self.add_node_and_edit(None);
-        SearcherInput::NodeAndEdge(node_id, edge)
+        WayOfOpeningSearcher::EdgeDropped(node_id, edge)
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
@@ -512,7 +512,7 @@ impl View {
 
             node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
 
-            frp.source.searcher_opened <+ node_being_edited.map(|id| SearcherInput::Node(*id));
+            frp.source.searcher_opened <+ node_being_edited.map(|id| WayOfOpeningSearcher::NodeEdited(*id));
             frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
             frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
 

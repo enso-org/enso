@@ -14,7 +14,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
-use view::project::SearcherInput;
+use view::project::WayOfOpeningSearcher;
 
 
 
@@ -152,9 +152,9 @@ impl Searcher {
         graph_controller: controller::ExecutedGraph,
         graph_presenter: &presenter::Graph,
         view: view::project::View,
-        searcher_input: SearcherInput,
+        way_of_opening_searcher: WayOfOpeningSearcher,
     ) -> FallibleResult<Self> {
-        let id = searcher_input.node();
+        let id = way_of_opening_searcher.node();
         let ast_node = graph_presenter.ast_node_of_view(id);
         let mode = match ast_node {
             Some(node_id) => controller::searcher::Mode::EditNode { node_id },
@@ -162,7 +162,8 @@ impl Searcher {
                 let view_data = view.graph().model.nodes.get_cloned_ref(&id);
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
-                let source_node = Self::source_node(&view, graph_presenter, &searcher_input);
+                let source_node =
+                    Self::source_node(&view, graph_presenter, &way_of_opening_searcher);
                 controller::searcher::Mode::NewNode { position, source_node }
             }
         };
@@ -207,9 +208,9 @@ impl Searcher {
     fn source_node(
         view: &view::project::View,
         graph_presenter: &presenter::Graph,
-        searcher_input: &SearcherInput,
+        way_of_opening_searcher: &WayOfOpeningSearcher,
     ) -> Option<Uuid> {
-        if let Some(edge_id) = searcher_input.edge() {
+        if let Some(edge_id) = way_of_opening_searcher.edge() {
             let edge = view.graph().model.edges.get_cloned_ref(&edge_id);
             let edge_source = edge.map(|edge| edge.source()).flatten();
             let id = edge_source.map(|source| source.node_id);
