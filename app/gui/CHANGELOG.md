@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [New nodes can be created by dragging and dropping a connection on the scene.][3231]
 - [Added support of source maps for JS-based visualizations.][3208]
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
@@ -25,6 +26,7 @@
 [3193]: https://github.com/enso-org/enso/pull/3193
 [3208]: https://github.com/enso-org/enso/pull/3208
 [3224]: https://github.com/enso-org/enso/pull/3224
+[3231]: https://github.com/enso-org/enso/pull/3231
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
