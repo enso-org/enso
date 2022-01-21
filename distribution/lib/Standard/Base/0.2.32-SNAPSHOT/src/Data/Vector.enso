@@ -443,8 +443,6 @@ type Vector
          vector contains more elements, the number of hidden elements is also
          displayed.
 
-       TODO: a better name may be chosen
-
        > Example
          Convert a large vector of numbers to a short text.
 
