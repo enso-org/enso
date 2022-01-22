@@ -19,6 +19,10 @@
   Vector][3224]
 - [Implemented `Duration.time_execution` allowing timing of the execution of an
 - expression within the UI][3229]
+- [Improved performance of `Vector.filter` and `Vector.each`; implemented
+  `Vector.filter_with_index`. Made `Vector.at` accept negative indices and
+  ensured it fails with a dataflow error on out of bounds access instead of an
+  internal Java exception.][3232]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
@@ -28,6 +32,7 @@
 [3208]: https://github.com/enso-org/enso/pull/3208
 [3224]: https://github.com/enso-org/enso/pull/3224
 [3229]: https://github.com/enso-org/enso/pull/3229
+[3232]: https://github.com/enso-org/enso/pull/3232
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

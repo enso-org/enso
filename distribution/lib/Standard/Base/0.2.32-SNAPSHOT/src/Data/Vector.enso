@@ -333,6 +333,30 @@ type Vector
         case acc of
             _ -> builder.to_vector
 
+    ## Selects all elements of this vector which satisfy a predicate.
+
+       Arguments:
+       - predicate: A function that takes an index and a list element and
+         returns a boolean value that says whether that value should be included
+         in the result.
+
+       > Example
+         Selecting all elements which are equal to their position in the vector.
+
+             [0, 10, 2, 2].filter (==) == [0, 2]
+    filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
+    filter_with_index predicate =
+        builder = here.new_builder
+        acc = this.fold 0 ix-> elem->
+            ## The accumulator is threaded through to preserve dataflow
+               dependencies which are cut by using the stateful builder. This to
+               ensure correct dataflow error propagation.
+            acc = if predicate ix elem then builder.append elem
+            case acc of
+                _ -> ix+1
+        case acc of
+            _ -> builder.to_vector
+
     ## Applies a function to each element of the vector, returning the vector of
        results.
 

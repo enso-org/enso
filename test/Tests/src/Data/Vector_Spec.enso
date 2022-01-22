@@ -87,10 +87,15 @@ spec = Test.group "Vectors" <|
 
     Test.specify "should filter elements" <|
         vec = [1, 2, 3, 4, 5]
-        vec.filter (ix -> ix > 3) . should_equal [4, 5]
-        vec.filter (ix -> ix == 1) . should_equal [1]
-        vec.filter (ix -> ix < 0) . should_equal []
-        vec.filter (ix -> if ix == 2 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
+        vec.filter (x -> x > 3) . should_equal [4, 5]
+        vec.filter (x -> x == 1) . should_equal [1]
+        vec.filter (x -> x < 0) . should_equal []
+        vec.filter (x -> if x == 2 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
+
+    Test.specify "should filter elements with indices" <|
+        [0, 10, 2, 2].filter_with_index (==) . should_equal [0, 2]
+        ([1, 2, 3, 4].filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
+        ([1, 2, 3, 4].filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should allow mapping an operation, returning a new vector" <|
         vec = [1, 2, 3, 4]
