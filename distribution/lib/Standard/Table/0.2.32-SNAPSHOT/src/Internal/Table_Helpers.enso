@@ -63,10 +63,16 @@ select_columns internal_columns selector reorder on_problems warnings =
     Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings
 
 ## PRIVATE
+   Selects element from the vector based on the given indices.
+
+   The elements are returned in the same order as their provided indices.
 select_indices_reordering vector indices =
     indices.map vector.at
 
 ## PRIVATE
+   Selects element from the vector based on the given indices.
+
+   The elements are returned in the same order as they appeared in the original vector.
 select_indices_preserving_order vector indices =
-    indexed_indices = Map.from_vector (indices.map i-> [i, True])
+    indices_to_keep = Map.from_vector (indices.map i-> [i, True])
     vector.map_with_index
