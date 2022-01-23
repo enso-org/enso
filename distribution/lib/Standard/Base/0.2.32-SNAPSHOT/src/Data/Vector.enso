@@ -118,9 +118,9 @@ type Vector
 
     ## Returns the underlying store as an Array
     to_array : Array
-    to_array = case store of
-        Slice _ _ _ -> store.to_array
-        _ -> _
+    to_array = case this.store of
+        Slice _ _ _ -> this.store.to_array
+        _ -> this.store
 
     ## Returns the number of elements stored in this vector.
 
@@ -492,6 +492,7 @@ type Vector
     + that =
         this_len = this.length
         arr = Array.new (this_len + that.length)
+
         Array.copy this.to_array 0 arr 0 this_len
         Array.copy that.to_array 0 arr this_len that.length
         Vector arr
@@ -547,7 +548,7 @@ type Vector
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector Any
     drop_start count = if count >= this.length then here.new 0 (x -> x) else
-        Vector (Slice this.to_array count (this.length - count))
+        Vector (Slice this.store count (this.length - count))
 
     ## Creates a new vector with the last `count` elements in `this` removed.
 
@@ -560,7 +561,7 @@ type Vector
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector Any
     drop_end count = if count >= this.length then here.new 0 (x -> x) else
-        Vector (Slice this.to_array 0 (this.length - count))
+        Vector (Slice this.store 0 (this.length - count))
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `this`.
@@ -574,7 +575,7 @@ type Vector
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector Any
     take_start count = if count >= this.length then this else
-        Vector (Slice this.to_array 0 count)
+        Vector (Slice this.store 0 count)
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `this`.
@@ -767,7 +768,8 @@ type Vector
            not want to sort in place on the original vector, as `sort` is not
            intended to be mutable.
         new_vec_arr = Array.new this.length
-        Array.copy this.to_array 0 new_vec_arr 0 this.length
+        this_arr = this.to_array
+        Array.copy this_arr 0 new_vec_arr 0 this.length
 
         ## As we want to account for both custom projections and custom
            comparisons we need to construct a comparator for internal use that
@@ -963,12 +965,12 @@ type Slice
 
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
-        if (index < 0 || index > this.length) then Error.throw (Index_Out_Of_Bounds_Error index this.length) else
-            backing.at (index - this.offset)
+        if ((index < 0) || (index > this.length)) then Error.throw (Index_Out_Of_Bounds_Error index this.length) else
+            this.backing.at (index + this.offset)
 
     to_array : Array
     to_array :
-        arr = backing.to_array
+        arr = this.backing.to_array
         output = Array.new this.length
         Array.copy arr this.offset output 0 this.length
         output
