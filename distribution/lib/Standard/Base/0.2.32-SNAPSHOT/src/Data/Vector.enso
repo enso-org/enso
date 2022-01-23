@@ -100,7 +100,7 @@ type Vector
        The basic, immutable, vector type.
 
        Arguments:
-       - to_array: The underlying array.
+       - store: The underlying data store.
 
        A vector allows to store an arbitrary number of elements, in linear memory.
        It is the recommended data structure for most applications.
@@ -113,7 +113,14 @@ type Vector
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    type Vector to_array
+    type Vector store
+
+
+    ## Returns the underlying store as an Array
+    to_array : Array
+    to_array = case store of
+        Slice _ _ _ -> store.to_array
+        _ -> _
 
     ## Returns the number of elements stored in this vector.
 
@@ -122,7 +129,7 @@ type Vector
 
              [1, 2, 3, 4].length
     length : Number
-    length = Polyglot.get_array_size this.to_array
+    length = this.store.length
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -143,7 +150,7 @@ type Vector
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
         actual_index = if index < 0 then this.length + index else index
-        if actual_index>=0 && actual_index<this.length then this.to_array.at actual_index else
+        if actual_index>=0 && actual_index<this.length then this.store.at actual_index else
             Error.throw (Index_Out_Of_Bounds_Error index this.length)
 
     ## ADVANCED
@@ -155,7 +162,7 @@ type Vector
        bounds or with additional error handling.
     unsafe_at : Integer -> Any
     unsafe_at index =
-        this.to_array.at index
+        this.store.at index
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -175,8 +182,7 @@ type Vector
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold init function =
-        arr = this.to_array
-        f = acc -> ix -> function acc (arr.at ix)
+        f = acc -> ix -> function acc (this.unsafe_at ix)
         0.up_to this.length . fold init f
 
     ## Combines all the elements of a non-empty vector using a binary operation.
@@ -226,10 +232,7 @@ type Vector
              [1, 2, 3, 4, 5].exists (> 3)
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
-        len = this.length
-        go idx found = if found || (idx >= len) then found else
-            @Tail_Call go idx+1 (predicate (this.unsafe_at idx))
-        go 0 False
+        0.up_to this.length . exists (idx -> (predicate (this.unsafe_at idx)))
 
     ## Returns the first element of the vector that satisfies the predicate or
        if no elements of the vector satisfy the predicate, it throws nothing.
@@ -489,10 +492,8 @@ type Vector
     + that =
         this_len = this.length
         arr = Array.new (this_len + that.length)
-        0.up_to this_len . each i->
-            arr.set_at i (this.unsafe_at i)
-        this.length.up_to arr.length . each i->
-            arr.set_at i (that.unsafe_at i-this_len)
+        Array.copy this.to_array 0 arr 0 this_len
+        Array.copy that.to_array 0 arr this_len that.length
         Vector arr
 
     ## Add `element` to the beginning of `this` vector.
@@ -533,7 +534,7 @@ type Vector
     join separator =
         if this.length == 0 then "" else
             if this.length == 1 then this.unsafe_at 0 else
-                this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i)
+                (1.up_to this.length . fold (this.unsafe_at 0) acc-> i-> acc + separator + this.unsafe_at i)
 
     ## Creates a new vector with the first `count` elements in `this` removed.
 
@@ -546,7 +547,7 @@ type Vector
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector Any
     drop_start count = if count >= this.length then here.new 0 (x -> x) else
-        here.new (this.length - count) (i -> this.unsafe_at i+count)
+        Vector (Slice this.to_array count (this.length - count))
 
     ## Creates a new vector with the last `count` elements in `this` removed.
 
@@ -559,7 +560,7 @@ type Vector
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector Any
     drop_end count = if count >= this.length then here.new 0 (x -> x) else
-        this.take_start (this.length - count)
+        Vector (Slice this.to_array 0 (this.length - count))
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `this`.
@@ -573,7 +574,7 @@ type Vector
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector Any
     take_start count = if count >= this.length then this else
-        here.new count this.at
+        Vector (Slice this.to_array 0 count)
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `this`.
@@ -892,9 +893,7 @@ type Builder
         False ->
             old_array = this.to_array
             new_array = Array.new old_array.length*2
-            0.up_to this.length . each i->
-                new_array.set_at i (old_array.at i)
-                Nothing
+            Array.copy old_array 0 new_array 0 this.length
             Unsafe.set_atom_field this 0 new_array
             this.append item
             Nothing
@@ -914,9 +913,7 @@ type Builder
     to_vector =
         old_array = this.to_array
         new_array = Array.new this.length
-        0.up_to this.length . each i->
-            new_array.set_at i (old_array.at i)
-            Nothing
+        Array.copy old_array 0 new_array 0 this.length
         Vector new_array
 
 ## UNSTABLE
@@ -961,3 +958,17 @@ Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
 
+type Slice
+    type Slice backing offset length
+
+    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at index =
+        if (index < 0 || index > this.length) then Error.throw (Index_Out_Of_Bounds_Error index this.length) else
+            backing.at (index - this.offset)
+
+    to_array : Array
+    to_array :
+        arr = backing.to_array
+        output = Array.new this.length
+        Array.copy arr this.offset output 0 this.length
+        output
