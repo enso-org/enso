@@ -21,7 +21,12 @@ make_random_vec n =
 
 main =
     random_vec = here.make_random_vec here.vector_size
+    random_vec_2 = here.make_random_vec 100000
 
+    Bench.measure (random_vec + [1]) "Append Single" here.iter_size here.num_iterations
+    Bench.measure (random_vec + random_vec_2) "Append Large" here.iter_size here.num_iterations
+    Bench.measure ((random_vec.drop_start 20).sum) "Drop First 20" here.iter_size here.num_iterations
+    Bench.measure ((random_vec.drop_end 20).sum) "Drop Last 20" here.iter_size here.num_iterations
     Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" here.iter_size here.num_iterations
 
     stateful_fun x =
