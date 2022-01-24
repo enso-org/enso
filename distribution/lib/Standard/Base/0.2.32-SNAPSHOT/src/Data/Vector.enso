@@ -323,15 +323,9 @@ type Vector
              [1, 2, 3, 4, 5].filter (> 3)
     filter : (Any -> Boolean) -> Vector Any
     filter predicate =
-        builder = here.new_builder
-        acc = this.fold Nothing acc-> elem->
-            ## The accumulator is threaded through to preserve dataflow
-               dependencies which are cut by using the stateful builder. This to
-               ensure correct dataflow error propagation.
-            case acc of
-                _ -> if predicate elem then builder.append elem
-        case acc of
-            _ -> builder.to_vector
+        builder = this.fold here.new_builder builder-> elem->
+            if predicate elem then builder.append elem else builder
+        builder.to_vector
 
     ## Selects all elements of this vector which satisfy a predicate.
 
@@ -346,16 +340,13 @@ type Vector
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index predicate =
-        builder = here.new_builder
-        acc = this.fold 0 ix-> elem->
-            ## The accumulator is threaded through to preserve dataflow
-               dependencies which are cut by using the stateful builder. This to
-               ensure correct dataflow error propagation.
-            acc = if predicate ix elem then builder.append elem
-            case acc of
-                _ -> ix+1
-        case acc of
-            _ -> builder.to_vector
+        acc = this.fold (Pair here.new_builder 0) acc-> elem->
+            builder = acc.first
+            ix = acc.second
+            new_builder = if predicate ix elem then builder.append elem else builder
+            Pair new_builder ix+1
+        builder = acc.first
+        builder.to_vector
 
     ## Partitions the vector into vectors of elements which satisfy a given
        predicate and ones that do not.
@@ -377,16 +368,13 @@ type Vector
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Vector Any
     partition predicate =
-        true_builder = here.new_builder
-        false_builder = here.new_builder
-        acc = this.fold Nothing acc-> elem->
-            ## The accumulator is threaded through to preserve dataflow
-               dependencies which are cut by using the stateful builder. This to
-               ensure correct dataflow error propagation.
-            case acc of
-                _ -> if predicate elem then true_builder.append elem else false_builder.append elem
-        case acc of
-            _ -> Pair true_builder.to_vector false_builder.to_vector
+        acc = this.fold (Pair here.new_builder here.new_builder) acc-> elem->
+            case predicate elem of
+                True ->
+                    Pair (acc.first.append elem) acc.second
+                False ->
+                    Pair acc.first (acc.second.append elem)
+        acc.map .to_vector
 
     ## Applies a function to each element of the vector, returning the vector of
        results.
@@ -925,13 +913,12 @@ type Builder
              Construct a vector using a builder that contains the items 1 to 10.
 
                  example_new_builder =
-                      builder = Vector.new_builder
-                      do_build start stop =
-                          builder.append start
-                          if start >= stop then Nothing else
-                              @Tail_Call do_build start+1 stop
-                      do_build 1 10
-                      builder.to_vector
+                     do_build builder start stop =
+                         new_builder = builder.append start
+                         if start >= stop then new_builder else
+                             @Tail_Call do_build new_builder start+1 stop
+                     builder = do_build Vector.new_builder 1 10
+                     builder.to_vector
     type Builder to_array length
 
     ## Creates a new builder.
@@ -953,7 +940,33 @@ type Builder
     capacity : Integer
     capacity = this.to_array.length
 
-    ## Appends a new element into this builder.
+    ## Appends a new element into this builder and returns it, propagating any
+       errors that the provided element could have contained.
+
+       Arguments:
+       - item: The item to append to the vector builder.
+
+       > Example
+         Append two items.
+
+             builder = Vector.new_builder
+             builder . append 10 . append 20
+    append : Any ! Error -> Builder ! Error
+    append item = case item of
+        _ ->
+            this.unsafe_append item
+            this
+
+    ## PRIVATE
+       Appends a new element into this builder.
+
+       ? Propagating Dataflow Errors
+         Since this is an imperative operation which returns Nothing, if the
+         item to be appended contained a dataflow error, the operation will fail
+         and unless its result is inspected, the error can very easily be
+         ignored. To avoid this, prefer to use the `append` operation and
+         consume the returned builder which will contain any dataflow errors if
+         they need to be propagated.
 
        Arguments:
        - item: The item to append to the vector builder.
@@ -961,9 +974,9 @@ type Builder
        > Example
          Append an item to a vector builder.
 
-             Vector.new_builder.append 10
-    append : Any -> Nothing
-    append item = case this.capacity > this.length of
+             Vector.new_builder.unsafe_append 10
+    unsafe_append : Any -> Nothing
+    unsafe_append item = case this.capacity > this.length of
         True ->
             this.to_array.set_at this.length item
             Unsafe.set_atom_field this 1 (this.length + 1)
