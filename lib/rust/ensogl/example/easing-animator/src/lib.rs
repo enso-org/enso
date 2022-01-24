@@ -27,6 +27,8 @@ use ensogl_core::system::web::get_element_by_id;
 use ensogl_core::system::web::AttributeSetter;
 use ensogl_core::system::web::NodeInserter;
 use ensogl_core::system::web::StyleSetter;
+use ensogl_core::system::web::HtmlCanvasElement;
+use ensogl_core::system::web::HtmlElement;
 use js_sys::Math;
 use nalgebra::Vector2;
 use std::ops::Add;
@@ -35,8 +37,6 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
-use web_sys::HtmlCanvasElement;
-use web_sys::HtmlElement;
 
 
 

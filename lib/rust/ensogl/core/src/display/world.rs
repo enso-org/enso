@@ -71,7 +71,7 @@ pub struct World {
 impl World {
     /// Create and initialize new world instance.
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(dom: &web_sys::HtmlElement) -> World {
+    pub fn new(dom: &web::HtmlElement) -> World {
         let logger = Logger::new("world");
         let stats = default();
         let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());

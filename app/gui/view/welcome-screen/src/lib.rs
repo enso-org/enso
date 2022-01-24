@@ -21,11 +21,11 @@ use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
 use ensogl::system::web::StyleSetter;
+use ensogl::system::web::HtmlDivElement;
+use ensogl::system::web::Element;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
-use web_sys::Element;
-use web_sys::HtmlDivElement;
 use web_sys::MouseEvent;
 
 

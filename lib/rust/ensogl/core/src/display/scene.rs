@@ -43,7 +43,6 @@ use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
-use web_sys::HtmlElement;
 
 
 pub trait MouseTarget: Debug + 'static {
@@ -488,12 +487,12 @@ pub struct DomLayers {
     /// Front DOM scene layer.
     pub front:          DomScene,
     /// The WebGL scene layer.
-    pub canvas:         web_sys::HtmlCanvasElement,
+    pub canvas:         web::HtmlCanvasElement,
 }
 
 impl DomLayers {
     /// Constructor.
-    pub fn new(logger: &Logger, dom: &web_sys::HtmlDivElement) -> Self {
+    pub fn new(logger: &Logger, dom: &web::HtmlDivElement) -> Self {
         let welcome_screen = DomScene::new(logger);
         welcome_screen.dom.set_class_name("welcome_screen");
         welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
@@ -827,7 +826,7 @@ pub struct SceneData {
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        parent_dom: &HtmlElement,
+        parent_dom: &web::HtmlElement,
         logger: Logger,
         stats: &Stats,
         on_mut: OnMut,
@@ -1043,7 +1042,7 @@ pub struct Scene {
 
 impl Scene {
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        parent_dom: &HtmlElement,
+        parent_dom: &web::HtmlElement,
         logger: impl AnyLogger,
         stats: &Stats,
         on_mut: OnMut,

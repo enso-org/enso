@@ -9,9 +9,9 @@ use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
+use crate::system::web::HtmlDivElement;
 
 use wasm_bindgen::prelude::wasm_bindgen;
-use web_sys::HtmlDivElement;
 
 
 

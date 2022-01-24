@@ -31,20 +31,145 @@ pub use std::time::Duration;
 pub use std::time::Instant;
 pub use web_sys::CanvasRenderingContext2d;
 pub use web_sys::Document;
-pub use web_sys::Element;
 pub use web_sys::EventTarget;
-pub use web_sys::HtmlCanvasElement;
 pub use web_sys::HtmlCollection;
-pub use web_sys::HtmlDivElement;
-pub use web_sys::HtmlElement;
 pub use web_sys::MouseEvent;
-pub use web_sys::Node;
 pub use web_sys::Performance;
-pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::Window;
 
+#[cfg(not(target_arch = "wasm32"))]
+mod html_element {
+    use super::*;
+    #[derive(Copy, Clone, Debug)]
+    pub struct Element {
+        node: Node,
+    }
+    #[derive(Copy, Clone, Debug)]
+    pub struct HtmlElement {
+        element: Element,
+    }
+    impl Element {
+        pub fn new() -> Self {
+            Self { node: Node }
+        }
+    }
+    impl HtmlElement {
+        pub fn new() -> Self {
+            Self { element: Element::new() }
+        }
+    }
+    impl Deref for Element {
+        type Target = Node;
+        fn deref(&self) -> &Self::Target {
+            &self.node
+        }
+    }
+    #[derive(Copy, Clone, Debug)]
+    pub struct Node;
+
+    impl NodeInserter for Node {
+        fn append_or_panic(&self, node: &Node) {}
+
+        fn append_or_warn(&self, node: &Node, logger: &Logger) {}
+
+        fn prepend_or_panic(&self, node: &Node) {}
+
+        fn prepend_or_warn(&self, node: &Node, logger: &Logger) {}
+
+        fn insert_before_or_panic(&self, node: &Node, ref_node: &Node) {}
+
+        fn insert_before_or_warn(&self, node: &Node, ref_node: &Node, logger: &Logger) {}
+    }
+
+    impl NodeRemover for Node {
+        fn remove_from_parent_or_panic(&self) {}
+
+        fn remove_from_parent_or_warn(&self, logger: &Logger) {}
+
+        fn remove_child_or_panic(&self, node: &Node) {}
+
+        fn remove_child_or_warn(&self, node: &Node, logger: &Logger) {}
+    }
+    impl AttributeSetter for Element {
+        fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U) {}
+
+        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {}
+    }
 
 
+    impl Deref for HtmlElement {
+        type Target = Element;
+        fn deref(&self) -> &Self::Target {
+            &self.element
+        }
+    }
+    impl StyleSetter for HtmlElement {
+        fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &WarningLogger) {}
+
+        fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {}
+    }
+    #[derive(Copy, Clone, Debug)]
+    pub struct HtmlDivElement {
+        element: HtmlElement,
+    }
+
+    impl Deref for HtmlDivElement {
+        type Target = HtmlElement;
+        fn deref(&self) -> &Self::Target {
+            &self.element
+        }
+    }
+
+    impl HtmlDivElement {
+        pub fn new() -> Self { Self { element: HtmlElement::new() } }
+    }
+    #[derive(Copy, Clone, Debug)]
+    pub struct HtmlCanvasElement {
+        element: HtmlElement,
+    }
+
+    impl Deref for HtmlCanvasElement {
+        type Target = HtmlElement;
+        fn deref(&self) -> &Self::Target {
+            &self.element
+        }
+    }
+
+    impl HtmlCanvasElement {
+        pub fn new() -> Self { Self { element: HtmlElement::new() } }
+    }
+
+    #[derive(Copy, Clone, Debug)]
+    pub struct WebGl2RenderingContext {}
+    impl WebGl2RenderingContext {
+        pub fn new() -> Self {
+            Self {}
+        }
+    }
+}
+
+
+impl_clone_ref_as_clone_no_from!(Element);
+impl_clone_ref_as_clone_no_from!(HtmlDivElement);
+impl_clone_ref_as_clone_no_from!(HtmlCanvasElement);
+impl_clone_ref_as_clone_no_from!(HtmlElement);
+impl_clone_ref_as_clone_no_from!(WebGl2RenderingContext);
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use html_element::*;
+
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::Element;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::HtmlElement;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::Node;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::HtmlDivElement;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::HtmlCanvasElement;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::WebGl2RenderingContext;
 // =============
 // === Error ===
 // =============
@@ -229,9 +354,15 @@ pub fn document() -> Document {
 }
 
 /// Access the `window.document.body` object if exists.
+#[cfg(target_arch = "wasm332")]
 pub fn try_body() -> Result<HtmlElement> {
     try_document()
         .and_then(|d| d.body().ok_or_else(|| Error("Cannot access 'window.document.body'.")))
+}
+
+#[cfg(not(target_arch = "wasm332"))]
+pub fn try_body() -> Result<HtmlElement> {
+    Ok(HtmlElement::new())
 }
 
 /// Access the `window.document.body` object or panic if it does not exist.
@@ -255,10 +386,16 @@ pub fn performance() -> Performance {
 }
 
 /// Gets `Element` by ID.
+#[cfg(target_arch = "wasm32")]
 pub fn get_element_by_id(id: &str) -> Result<Element> {
     try_document()?
         .get_element_by_id(id)
         .ok_or_else(|| Error(format!("Element with id '{}' not found.", id)))
+}
+/// Gets `Element` by ID.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn get_element_by_id(id: &str) -> Result<Element> {
+    Ok(Element::new())
 }
 
 /// Tries to get `Element` by ID, and runs function on it.
@@ -272,50 +409,86 @@ where F: FnOnce(Element) {
 }
 
 /// Gets `Element`s by class name.
+#[cfg(target_arch = "wasm32")]
 pub fn get_elements_by_class_name(name: &str) -> Result<Vec<Element>> {
     let collection = try_document()?.get_elements_by_class_name(name);
     let indices = 0..collection.length();
     let elements = indices.flat_map(|index| collection.get_with_index(index)).collect();
     Ok(elements)
 }
+/// Gets `Element`s by class name.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn get_elements_by_class_name(name: &str) -> Result<Vec<Element>> {
+    Ok(Vec::new())
+}
 
+#[cfg(target_arch = "wasm32")]
 pub fn get_html_element_by_id(id: &str) -> Result<HtmlElement> {
     let elem = get_element_by_id(id)?;
     elem.dyn_into().map_err(|_| Error("Type cast error."))
 }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn get_html_element_by_id(id: &str) -> Result<HtmlElement> {
+    Ok(HtmlElement::new())
+}
 
+#[cfg(target_arch = "wasm32")]
 pub fn try_create_element(name: &str) -> Result<Element> {
     try_document()?
         .create_element(name)
         .map_err(|_| Error(format!("Cannot create element '{}'", name)))
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn try_create_element(name: &str) -> Result<Element> {
+    Ok(Element::new())
+}
+
 pub fn create_element(name: &str) -> Element {
     try_create_element(name).unwrap()
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn try_create_div() -> Result<HtmlDivElement> {
     try_create_element("div").map(|t| t.unchecked_into())
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn try_create_div() -> Result<HtmlDivElement> {
+    Ok(HtmlDivElement::new())
+}
+
+#[cfg(target_arch = "wasm32")]
 pub fn create_div() -> HtmlDivElement {
     create_element("div").unchecked_into()
 }
 
-pub fn try_create_canvas() -> Result<HtmlCanvasElement> {
-    try_create_element("canvas").map(|t| t.unchecked_into())
+#[cfg(not(target_arch = "wasm32"))]
+pub fn create_div() -> HtmlDivElement {
+    HtmlDivElement::new()
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn create_canvas() -> HtmlCanvasElement {
     create_element("canvas").unchecked_into()
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn create_canvas() -> HtmlCanvasElement {
+    HtmlCanvasElement::new()
+}
+
+#[cfg(target_arch = "wasm32")]
 pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> WebGl2RenderingContext {
     let options = js_sys::Object::new();
     js_sys::Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
     let context = canvas.get_context_with_context_options("webgl2", &options).unwrap().unwrap();
     let context: WebGl2RenderingContext = context.dyn_into().unwrap();
     context
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> WebGl2RenderingContext {
+    WebGl2RenderingContext::new()
 }
 
 pub fn try_request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> Result<i32> {
@@ -337,154 +510,158 @@ pub fn cancel_animation_frame(id: i32) {
 // =====================
 // === Other Helpers ===
 // =====================
+    /// Trait used to set HtmlElement attributes.
+    pub trait AttributeSetter {
+        fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U);
 
-/// Trait used to set HtmlElement attributes.
-pub trait AttributeSetter {
-    fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U);
-
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
-}
-
-impl AttributeSetter for web_sys::Element {
-    fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        self.set_attribute(name, value)
-            .unwrap_or_else(|_| panic!("Failed to set attribute {}", values));
+        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
+    }
+    /// Trait used to set css styles.
+    pub trait StyleSetter {
+        fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U);
+        fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
     }
 
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let warn_msg: &str = &format!("Failed to set attribute {}", values);
-        if self.set_attribute(name, value).is_err() {
-            warning!(logger, warn_msg)
+    /// Trait used to insert `Node`s.
+    pub trait NodeInserter {
+        fn append_or_panic(&self, node: &Node);
+
+        fn append_or_warn(&self, node: &Node, logger: &Logger);
+
+        fn prepend_or_panic(&self, node: &Node);
+
+        fn prepend_or_warn(&self, node: &Node, logger: &Logger);
+
+        fn insert_before_or_panic(&self, node: &Node, reference_node: &Node);
+
+        fn insert_before_or_warn(&self, node: &Node, reference_node: &Node, logger: &Logger);
+    }
+
+    /// Trait used to remove `Node`s.
+    pub trait NodeRemover {
+        fn remove_from_parent_or_panic(&self);
+
+        fn remove_from_parent_or_warn(&self, logger: &Logger);
+
+        fn remove_child_or_panic(&self, node: &Node);
+
+        fn remove_child_or_warn(&self, node: &Node, logger: &Logger);
+    }
+#[cfg(target_arch = "wasm32")]
+pub use helpers::*;
+#[cfg(target_arch = "wasm32")]
+mod helpers {
+    impl AttributeSetter for web_sys::Element {
+        fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
+            let name = name.as_ref();
+            let value = value.as_ref();
+            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+            self.set_attribute(name, value)
+                .unwrap_or_else(|_| panic!("Failed to set attribute {}", values));
         }
-    }
-}
 
-/// Trait used to set css styles.
-pub trait StyleSetter {
-    fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U);
-    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
-}
-
-impl StyleSetter for web_sys::HtmlElement {
-    fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let panic_msg = |_| panic!("Failed to set style {}", values);
-        self.style().set_property(name, value).unwrap_or_else(panic_msg);
-    }
-
-    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let warn_msg: &str = &format!("Failed to set style {}", values);
-        if self.style().set_property(name, value).is_err() {
-            warning!(logger, warn_msg);
-        }
-    }
-}
-
-/// Trait used to insert `Node`s.
-pub trait NodeInserter {
-    fn append_or_panic(&self, node: &Node);
-
-    fn append_or_warn(&self, node: &Node, logger: &Logger);
-
-    fn prepend_or_panic(&self, node: &Node);
-
-    fn prepend_or_warn(&self, node: &Node, logger: &Logger);
-
-    fn insert_before_or_panic(&self, node: &Node, reference_node: &Node);
-
-    fn insert_before_or_warn(&self, node: &Node, reference_node: &Node, logger: &Logger);
-}
-
-impl NodeInserter for Node {
-    fn append_or_panic(&self, node: &Node) {
-        let panic_msg = |_| panic!("Failed to append child {:?} to {:?}", node, self);
-        self.append_child(node).unwrap_or_else(panic_msg);
-    }
-
-    fn append_or_warn(&self, node: &Node, logger: &Logger) {
-        let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
-        if self.append_child(node).is_err() {
-            warning!(logger, warn_msg)
-        };
-    }
-
-    fn prepend_or_panic(&self, node: &Node) {
-        let panic_msg = |_| panic!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
-        let first_c = self.first_child();
-        self.insert_before(node, first_c.as_ref()).unwrap_or_else(panic_msg);
-    }
-
-    fn prepend_or_warn(&self, node: &Node, logger: &Logger) {
-        let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
-        let first_c = self.first_child();
-        if self.insert_before(node, first_c.as_ref()).is_err() {
-            warning!(logger, warn_msg)
-        }
-    }
-
-    fn insert_before_or_panic(&self, node: &Node, ref_node: &Node) {
-        let panic_msg =
-            |_| panic!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
-        self.insert_before(node, Some(ref_node)).unwrap_or_else(panic_msg);
-    }
-
-    fn insert_before_or_warn(&self, node: &Node, ref_node: &Node, logger: &Logger) {
-        let warn_msg: &str =
-            &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
-        if self.insert_before(node, Some(ref_node)).is_err() {
-            warning!(logger, warn_msg)
-        }
-    }
-}
-
-/// Trait used to remove `Node`s.
-pub trait NodeRemover {
-    fn remove_from_parent_or_panic(&self);
-
-    fn remove_from_parent_or_warn(&self, logger: &Logger);
-
-    fn remove_child_or_panic(&self, node: &Node);
-
-    fn remove_child_or_warn(&self, node: &Node, logger: &Logger);
-}
-
-impl NodeRemover for Node {
-    fn remove_from_parent_or_panic(&self) {
-        if let Some(parent) = self.parent_node() {
-            let panic_msg = |_| panic!("Failed to remove {:?} from parent", self);
-            parent.remove_child(self).unwrap_or_else(panic_msg);
-        }
-    }
-
-    fn remove_from_parent_or_warn(&self, logger: &Logger) {
-        if let Some(parent) = self.parent_node() {
-            let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
-            if parent.remove_child(self).is_err() {
+        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {
+            let name = name.as_ref();
+            let value = value.as_ref();
+            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+            let warn_msg: &str = &format!("Failed to set attribute {}", values);
+            if self.set_attribute(name, value).is_err() {
                 warning!(logger, warn_msg)
             }
         }
     }
 
-    fn remove_child_or_panic(&self, node: &Node) {
-        let panic_msg = |_| panic!("Failed to remove child {:?} from {:?}", node, self);
-        self.remove_child(node).unwrap_or_else(panic_msg);
+
+    impl StyleSetter for web_sys::HtmlElement {
+        fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
+            let name = name.as_ref();
+            let value = value.as_ref();
+            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+            let panic_msg = |_| panic!("Failed to set style {}", values);
+            self.style().set_property(name, value).unwrap_or_else(panic_msg);
+        }
+
+        fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {
+            let name = name.as_ref();
+            let value = value.as_ref();
+            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+            let warn_msg: &str = &format!("Failed to set style {}", values);
+            if self.style().set_property(name, value).is_err() {
+                warning!(logger, warn_msg);
+            }
+        }
     }
 
-    fn remove_child_or_warn(&self, node: &Node, logger: &Logger) {
-        let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
-        if self.remove_child(node).is_err() {
-            warning!(logger, warn_msg)
+    impl NodeInserter for web_sys::Node {
+        fn append_or_panic(&self, node: &Node) {
+            let panic_msg = |_| panic!("Failed to append child {:?} to {:?}", node, self);
+            self.append_child(node).unwrap_or_else(panic_msg);
+        }
+
+        fn append_or_warn(&self, node: &Node, logger: &Logger) {
+            let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
+            if self.append_child(node).is_err() {
+                warning!(logger, warn_msg)
+            };
+        }
+
+        fn prepend_or_panic(&self, node: &Node) {
+            let panic_msg = |_| panic!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
+            let first_c = self.first_child();
+            self.insert_before(node, first_c.as_ref()).unwrap_or_else(panic_msg);
+        }
+
+        fn prepend_or_warn(&self, node: &Node, logger: &Logger) {
+            let warn_msg: &str =
+                &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
+            let first_c = self.first_child();
+            if self.insert_before(node, first_c.as_ref()).is_err() {
+                warning!(logger, warn_msg)
+            }
+        }
+
+        fn insert_before_or_panic(&self, node: &Node, ref_node: &Node) {
+            let panic_msg =
+                |_| panic!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
+            self.insert_before(node, Some(ref_node)).unwrap_or_else(panic_msg);
+        }
+
+        fn insert_before_or_warn(&self, node: &Node, ref_node: &Node, logger: &Logger) {
+            let warn_msg: &str =
+                &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
+            if self.insert_before(node, Some(ref_node)).is_err() {
+                warning!(logger, warn_msg)
+            }
+        }
+    }
+
+    impl NodeRemover for web_sys::Node {
+        fn remove_from_parent_or_panic(&self) {
+            if let Some(parent) = self.parent_node() {
+                let panic_msg = |_| panic!("Failed to remove {:?} from parent", self);
+                parent.remove_child(self).unwrap_or_else(panic_msg);
+            }
+        }
+
+        fn remove_from_parent_or_warn(&self, logger: &Logger) {
+            if let Some(parent) = self.parent_node() {
+                let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
+                if parent.remove_child(self).is_err() {
+                    warning!(logger, warn_msg)
+                }
+            }
+        }
+
+        fn remove_child_or_panic(&self, node: &Node) {
+            let panic_msg = |_| panic!("Failed to remove child {:?} from {:?}", node, self);
+            self.remove_child(node).unwrap_or_else(panic_msg);
+        }
+
+        fn remove_child_or_warn(&self, node: &Node, logger: &Logger) {
+            let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
+            if self.remove_child(node).is_err() {
+                warning!(logger, warn_msg)
+            }
         }
     }
 }

@@ -11,9 +11,9 @@ use enso_frp as frp;
 use ensogl::system::web;
 use ensogl::system::web::AttributeSetter;
 use ensogl::system::web::NodeInserter;
+use ensogl::system::web::HtmlDivElement;
+use ensogl::system::web::Element;
 use wasm_bindgen::JsCast;
-use web_sys::Element;
-use web_sys::HtmlDivElement;
 
 
 

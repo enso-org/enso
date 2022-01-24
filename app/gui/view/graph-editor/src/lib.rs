@@ -3358,3 +3358,14 @@ impl display::Object for GraphEditor {
         self.model.display_object()
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_graph_editor() {
+        let html_element = web::HtmlElement;
+        let application = Application::new(&html_element);
+    }
+}

@@ -17,10 +17,10 @@ use ensogl::system::web;
 use ensogl::system::web::clipboard;
 use ensogl::system::web::AttributeSetter;
 use ensogl::system::web::StyleSetter;
+use ensogl::system::web::HtmlElement;
 use ensogl_component::shadow;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
-use web_sys::HtmlElement;
 use web_sys::MouseEvent;
 
 
