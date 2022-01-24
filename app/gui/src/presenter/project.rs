@@ -3,13 +3,13 @@
 
 use crate::prelude::*;
 
-use crate::presenter;
-
 use crate::executor::global::spawn_stream_handler;
+use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
+
 use enso_frp as frp;
 use ide_view as view;
-use view::project::WayOfOpeningSearcher;
+use ide_view::project::WayOfOpeningSearcher;
 
 
 // =============

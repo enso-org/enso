@@ -2460,9 +2460,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         // Clicking on background either drops dragged edge or aborts node editing.
         let background_selected = touch.background.selected.clone_ref();
-        edge_being_dragged  <- has_detached_edge.sample(&background_selected);
-        click_to_drop_edge  <- edge_being_dragged.on_true();
-        click_to_abort_edit <- edge_being_dragged.on_false();
+        was_edge_dragged_when_background_selected  <- has_detached_edge.sample(&background_selected);
+        click_to_drop_edge  <- was_edge_dragged_when_background_selected.on_true();
+        click_to_abort_edit <- was_edge_dragged_when_background_selected.on_false();
 
         node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
         edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
