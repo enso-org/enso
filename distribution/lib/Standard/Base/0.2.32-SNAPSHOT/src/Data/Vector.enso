@@ -142,11 +142,8 @@ type Vector
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
         actual_index = if index < 0 then this.length + index else index
-        case actual_index of
-            _ ->
-                Panic.recover (this.to_array.at actual_index) . catch err-> case err of
-                    Invalid_Array_Index_Error _ _ -> Error.throw (Index_Out_Of_Bounds_Error index this.length)
-                    _ -> Panic.throw err
+        if actual_index>=0 && actual_index<this.length then this.unsafe_at actual_index else
+            Error.throw (Index_Out_Of_Bounds_Error index this.length)
 
     ## ADVANCED
        UNSTABLE
