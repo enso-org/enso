@@ -25,4 +25,4 @@ spec = Test.group "Arrays" <|
         arr = [1, 2, 3] . to_array
         Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error
         Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error
-        Test.expect_panic_with (arr.at 3 100) Invalid_Array_Index_Error
+        Test.expect_panic_with (arr.set_at 3 100) Invalid_Array_Index_Error
