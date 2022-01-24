@@ -536,7 +536,7 @@ ensogl::define_endpoints! {
 
         on_edge_add                            (EdgeId),
         on_edge_drop                           (EdgeId),
-        on_edge_drop_without_target            (EdgeId),
+        on_edge_drop_to_create_node            (EdgeId),
         on_edge_source_set                     ((EdgeId,EdgeEndpoint)),
         on_edge_source_set_with_target_not_set ((EdgeId,EdgeEndpoint)),
         on_edge_target_set_with_source_not_set ((EdgeId,EdgeEndpoint)),
@@ -2683,12 +2683,15 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
     drop_edges     <- any (drop_on_bg_up,click_to_drop_edge);
-    edge_to_drop_without_targets <= drop_edges.map(f_!(model.take_edges_with_detached_targets()));
-    edge_to_drop_without_sources <= drop_edges.map(f_!(model.take_edges_with_detached_sources()));
-    out.source.on_edge_drop_without_target <+ edge_to_drop_without_targets;
 
-    edge_to_drop <- any(edge_to_drop_without_targets,edge_to_drop_without_sources);
-    eval edge_to_drop ((id) model.remove_edge(id));
+    edge_dropped_to_create_node <= drop_edges.map(f_!(model.edges_with_detached_targets()));
+    out.source.on_edge_drop_to_create_node <+ edge_dropped_to_create_node;
+
+    remove_all_detached_edges <- any (drop_edges, inputs.stop_editing);
+    edge_to_remove_without_targets <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_targets()));
+    edge_to_remove_without_sources <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_sources()));
+    edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
+    eval edge_to_remove ((id) model.remove_edge(id));
 
     }
 

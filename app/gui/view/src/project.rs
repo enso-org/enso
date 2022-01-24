@@ -506,7 +506,7 @@ impl View {
 
             // === Adding Node ===
 
-            let adding_by_dropping_edge = graph.output.on_edge_drop_without_target.clone_ref();
+            let adding_by_dropping_edge = graph.output.on_edge_drop_to_create_node.clone_ref();
             let adding_by_opening_searcher = frp.open_searcher.clone_ref();
             adding_by_dropping_edge_bool <- adding_by_dropping_edge.constant(true);
             adding_by_opening_searcher_bool <- adding_by_opening_searcher.constant(true);
