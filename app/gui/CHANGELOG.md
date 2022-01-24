@@ -4,6 +4,8 @@
 
 - [New nodes can be created by dragging and dropping a connection on the
   scene.][3231]
+- [Node connections can be dropped by pressing the Enter key while dragging
+  them.][3231]
 - [Added support of source maps for JS-based visualizations.][3208]
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
