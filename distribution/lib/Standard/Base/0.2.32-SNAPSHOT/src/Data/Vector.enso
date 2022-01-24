@@ -472,8 +472,7 @@ type Vector
              (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
     short_display_text : Integer -> Text
     short_display_text max_entries=10 =
-        # TODO should this be some specific error type? We may want a generic Illegal_Argument_Error for such situations
-        if max_entries < 1 then Error.throw "The `max_entries` parameter must be positive" else
+        if max_entries < 1 then Error.throw <| Illegal_Argument_Error "The `max_entries` parameter must be positive." else
             prefix = this.take_start max_entries
             if prefix.length == this.length then this.to_text else
                 remaining_count = this.length - prefix.length

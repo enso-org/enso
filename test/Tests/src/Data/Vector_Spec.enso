@@ -132,7 +132,7 @@ spec = Test.group "Vectors" <|
         [1, 2, 3, 4, 5, 6].short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
         (0.up_to 100).to_vector.short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
 
-        [].short_display_text max_entries=0 . catch . should_equal "The `max_entries` parameter must be positive"
+        [].short_display_text max_entries=0 . should_fail_with Illegal_Argument_Error
 
     Test.specify "should define equality" <|
         [1,2,3]==[1,2] . should_be_false
