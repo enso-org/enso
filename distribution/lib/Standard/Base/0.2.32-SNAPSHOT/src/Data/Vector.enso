@@ -142,8 +142,11 @@ type Vector
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
         actual_index = if index < 0 then this.length + index else index
-        if actual_index>=0 && actual_index<this.length then this.to_array.at actual_index else
-            Error.throw (Index_Out_Of_Bounds_Error index this.length)
+        case actual_index of
+            _ ->
+                Panic.recover (this.to_array.at actual_index) . catch err-> case err of
+                    Invalid_Array_Index_Error _ _ -> Error.throw (Index_Out_Of_Bounds_Error index this.length)
+                    _ -> Panic.throw err
 
     ## ADVANCED
        UNSTABLE
@@ -463,18 +466,7 @@ type Vector
 
              [1, 2, 3].to_text == "[1, 2, 3]"
     to_text : Text
-    to_text = this.generic_to_text "[" ", " "]"
-
-    ## PRIVATE
-       A generic utility which concatenates textual representations of the
-       vector elements, separated by the `separator` and appends the provided
-       `prefix` and `suffix`.
-    generic_to_text : Text -> Text -> Text -> Text
-    generic_to_text prefix separator suffix =
-        if this.length == 0 then prefix+suffix else
-            folder = str -> ix -> str + separator + (this.unsafe_at ix).to_text
-            tail_elems = 1.up_to this.length . fold "" folder
-            prefix + (this.unsafe_at 0 . to_text) + tail_elems + suffix
+    to_text = this.map .to_text . join ", " "[" "]"
 
     ## UNSTABLE
        Generates a human-readable text representation of the vector, keeping its
@@ -497,7 +489,7 @@ type Vector
                 remaining_count = this.length - prefix.length
                 remaining_text = if remaining_count == 1 then "and 1 more element" else
                     "and " + remaining_count.to_text + " more elements"
-                prefix.generic_to_text "[" ", " " "+remaining_text+"]"
+                prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
     ## Checks whether this vector is equal to `that`.
 
@@ -564,17 +556,19 @@ type Vector
        interspersing them with `separator`.
 
        Arguments:
-       - separator: The text to use to join the textual elements of the vector.
+       - separator (optional): The text to use to join the textual elements of the vector.
+       - prefix (optional): The prefix to add at the beginning.
+       - suffix (optional): The suffix to add at the end.
 
        > Example
          Join the elements of the vector together as a string.
 
              ["foo", "bar", "baz"].join ", "
     join : Text -> Text
-    join separator =
-        if this.length == 0 then "" else
-            if this.length == 1 then this.unsafe_at 0 else
-                this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i)
+    join separator="" prefix="" suffix="" =
+        if this.length == 0 then prefix+suffix else
+            if this.length == 1 then prefix + this.unsafe_at 0 + suffix else
+                prefix + this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i) + suffix
 
     ## Creates a new vector with the first `count` elements in `this` removed.
 
