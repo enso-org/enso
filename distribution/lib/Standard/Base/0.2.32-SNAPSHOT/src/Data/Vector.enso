@@ -379,6 +379,36 @@ type Vector
                     Pair acc.first (acc.second.append elem)
         acc.map .to_vector
 
+    ## Partitions the vector into vectors of elements which satisfy a given
+       predicate and ones that do not.
+
+       Returns a `Pair` whose `first` element is the vector of elements
+       satisfying the predicate and the `second` element is a vector of elements
+       which did not satisfy it.
+
+       The relative order of elements kept in each returned list is the same as
+       in the input vector.
+
+       Arguments:
+       - predicate: A function that takes an index and an element and returns a
+         boolean value.
+
+       > Example
+         Splitting a vector into elements at even and odd positions.
+
+             ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
+    partition_with_index : (Integer -> Any -> Boolean) -> Vector Any
+    partition_with_index predicate =
+        acc = this.fold (Partition_Accumulator here.new_builder here.new_builder 0) acc-> elem->
+            case predicate acc.ix elem of
+                True ->
+                    Partition_Accumulator (acc.true_builder.append elem) acc.false_builder acc.ix+1
+                False ->
+                    Partition_Accumulator acc.true_builder (acc.false_builder.append elem) acc.ix+1
+        case acc of
+            Partition_Accumulator true_builder false_builder _ ->
+                Pair true_builder.to_vector false_builder.to_vector
+
     ## Applies a function to each element of the vector, returning the vector of
        results.
 
@@ -1059,6 +1089,8 @@ Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
 
+## PRIVATE
+type Partition_Accumulator true_builder false_builder ix
 
 ## UNSTABLE
 
