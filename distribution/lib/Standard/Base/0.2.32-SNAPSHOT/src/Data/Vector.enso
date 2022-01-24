@@ -374,7 +374,7 @@ type Vector
        > Example
          Splitting a vector into even and odd elements.
 
-             [1, 2, 3, 4, 5].filter (_ % 2 == 0) == Pair [2, 4] [1, 3, 5]
+             [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Vector Any
     partition predicate =
         true_builder = here.new_builder
