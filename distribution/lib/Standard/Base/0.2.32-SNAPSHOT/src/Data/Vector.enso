@@ -537,6 +537,27 @@ type Vector
             if this.length == 1 then this.unsafe_at 0 else
                 (1.up_to this.length . fold (this.unsafe_at 0) acc-> i-> acc + separator + this.unsafe_at i)
 
+    ## Creates a new vector with the skipping elements until `start` and then
+       continuing for `length` elements.
+
+       Arguments:
+       - start: The number of elements to drop from the start of `this`.
+       - length: The number of elements for the sub-vector.
+
+       > Example
+         Remove the first 2 elements then take 5 from the vector.
+
+             [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5
+    slice : Integer -> Integer -> Vector Any
+    slice start length =
+        if start > this.length then Vector (Array.new 0) else
+            slice_length = Math.min (this.length - start) length
+            if slice_length == 0 then Vector (Array.new 0) else
+                case this.store of
+                    Slice b o _ -> Vector (Slice b (o + start) slice_length)
+                    _ -> Vector (Slice this.store start length)
+
+
     ## Creates a new vector with the first `count` elements in `this` removed.
 
        Arguments:
@@ -547,8 +568,7 @@ type Vector
 
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector Any
-    drop_start count = if count >= this.length then here.new 0 (x -> x) else
-        Vector (Slice this.store count (this.length - count))
+    drop_start count = this.slice count (this.length - count)
 
     ## Creates a new vector with the last `count` elements in `this` removed.
 
@@ -560,8 +580,7 @@ type Vector
 
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector Any
-    drop_end count = if count >= this.length then here.new 0 (x -> x) else
-        Vector (Slice this.store 0 (this.length - count))
+    drop_end count = this.slice 0 (this.length - count)
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `this`.
@@ -574,8 +593,7 @@ type Vector
 
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector Any
-    take_start count = if count >= this.length then this else
-        Vector (Slice this.store 0 count)
+    take_start count = this.slice 0 count
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `this`.
@@ -961,16 +979,54 @@ Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
 
 type Slice
-    type Slice backing offset length
+    ## PRIVATE
+
+       A slice type for Enso vectors.
+
+       Arguments:
+       - store: The backing array of the vector.
+       - offset: Starting index for the slice.
+       - length: The length of the slice.
+
+       A slice provides a window onto an underlying Array. It supports the
+       basic operations needed for it be used within a Vector.
+
+       > Example
+         In the following example we take a Array and get items 3 to 7.
+
+             example_slice =
+                 arr = Array.new 10
+                 0.up_to 10 . each (x->arr.set_at x x)
+                 Slice arr 3 5
+
+    type Slice store offset length
 
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
         if ((index < 0) || (index > this.length)) then Error.throw (Index_Out_Of_Bounds_Error index this.length) else
-            this.backing.at (index + this.offset)
+            this.store.at (index + this.offset)
 
     to_array : Array
     to_array :
-        arr = this.backing.to_array
         output = Array.new this.length
-        Array.copy arr this.offset output 0 this.length
+        Array.copy this.store this.offset output 0 this.length
         output
+
+
+    ## Slice to JSON conversion.
+
+       > Example
+         Convert a slice of numbers to JSON.
+
+             [1, 2, 3].to_json
+    to_json : Json.Array
+    to_json = Json.Array (0.up_to this.length this.at)
+
+
+    ## UNSTABLE
+
+       Transform the slice into text for displaying as part of its default
+       visualization.
+    to_default_visualization_data : Text
+    to_default_visualization_data =
+        (Json.Array (0.up_to (Math.Min 100 this.length) this.at)).to_text
