@@ -106,6 +106,7 @@ object NotificationHandler {
     private val logger = Logger[InteractiveMode]
 
     private def sendMessage(message: ApiResponse): Unit = {
+      logger.debug(s"!!! sendMessage $message")
       val response = Api.Response(None, message)
       endpoint.sendToClient(response)
     }

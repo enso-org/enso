@@ -113,12 +113,12 @@ public class Context {
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.flatMap(
             file -> {
-              var result = packageManager.fromDirectory(file);
-              if (result.isEmpty()) {
+              var result = packageManager.loadPackage(file);
+              if (result.isFailure()) {
                 var projectName = file.getName();
-                throw new ProjectLoadingFailure(projectName);
+                throw new ProjectLoadingFailure(projectName, result.failed().get().getCause());
               }
-              return ScalaConversions.asJava(result);
+              return ScalaConversions.asJava(result.toOption());
             });
 
     var languageHome =

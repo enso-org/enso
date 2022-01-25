@@ -143,7 +143,7 @@ object PackageRepository {
       * unsynchronized threads read this map, every element it contains is
       * already fully processed.
       */
-    val loadedPackages
+    private val loadedPackages
       : collection.concurrent.Map[LibraryName, Option[Package[TruffleFile]]] = {
       val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
       collection.concurrent.TrieMap(builtinsName -> None)
@@ -157,11 +157,11 @@ object PackageRepository {
       * Strings, and constantly converting them into [[QualifiedName]]s would
       * add more overhead than is probably necessary.
       */
-    val loadedModules: collection.concurrent.Map[String, Module] =
+    private val loadedModules: collection.concurrent.Map[String, Module] =
       collection.concurrent.TrieMap(Builtins.MODULE_NAME -> builtins.getModule)
 
     /** The mapping containing loaded component groups. */
-    val loadedComponents
+    private val loadedComponents
       : collection.concurrent.Map[LibraryName, Vector[ComponentGroup]] = {
       val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
       collection.concurrent.TrieMap(builtinsName -> Vector())
@@ -178,6 +178,7 @@ object PackageRepository {
       libraryName: LibraryName,
       pkg: Package[TruffleFile]
     ): Unit = {
+      logger.debug(s"!!! registerMainProjectPackage $libraryName")
       projectPackage = Some(pkg)
       registerPackageInternal(
         libraryName    = libraryName,
@@ -185,6 +186,7 @@ object PackageRepository {
         libraryVersion = LibraryVersion.Local,
         isLibrary      = false
       )
+      //resolveComponentGroups(pkg)
     }
 
     /** @inheritdoc */
@@ -246,6 +248,9 @@ object PackageRepository {
       if (loadedComponents.contains(pkg.libraryName)) Right(())
       else {
         val componentGroups = pkg.config.componentGroups
+        logger.debug(
+          s"Resolving component groups [$componentGroups] of package [${pkg.name}]."
+        )
 
         componentGroups.`new`.foreach(
           registerComponentGroup(pkg.libraryName, _)
