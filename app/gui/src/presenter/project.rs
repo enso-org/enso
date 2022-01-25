@@ -9,7 +9,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
-use ide_view::project::WayOfOpeningSearcher;
+use ide_view::project::ComponentBrowserOpenReason;
 
 
 // =============
@@ -65,7 +65,7 @@ impl Model {
         }
     }
 
-    fn setup_searcher_presenter(&self, way_of_opening_searcher: WayOfOpeningSearcher) {
+    fn setup_searcher_presenter(&self, way_of_opening_searcher: ComponentBrowserOpenReason) {
         let new_presenter = presenter::Searcher::setup_controller(
             &self.logger,
             self.ide_controller.clone_ref(),

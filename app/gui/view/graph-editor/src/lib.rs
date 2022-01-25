@@ -2465,16 +2465,16 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
         // Clicking on background either drops dragged edge or aborts node editing.
-        let background_selected = touch.background.selected.clone_ref();
-        was_edge_dragged_when_background_selected  <- has_detached_edge.sample(&background_selected);
-        click_to_drop_edge  <- was_edge_dragged_when_background_selected.on_true();
-        click_to_abort_edit <- was_edge_dragged_when_background_selected.on_false();
+        let background_selected = &touch.background.selected;
+        was_edge_detached_when_background_selected  <- has_detached_edge.sample(background_selected);
+        clicked_to_drop_edge  <- was_edge_detached_when_background_selected.on_true();
+        clicked_to_abort_edit <- was_edge_detached_when_background_selected.on_false();
 
         node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
         edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         node_to_edit          <- touch.nodes.down.gate(&edit_mode);
         edit_node             <- any(&node_to_edit,&inputs.edit_node);
-        stop_edit_on_bg_click <- click_to_abort_edit.gate(&node_in_edit_mode);
+        stop_edit_on_bg_click <- clicked_to_abort_edit.gate(&node_in_edit_mode);
         stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
         edit_switch           <- edit_node.gate(&node_in_edit_mode);
         node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
@@ -2688,7 +2688,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.source.on_edge_drop <+ overlapping_edges;
 
     drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
-    drop_edges     <- any (drop_on_bg_up,click_to_drop_edge);
+    drop_edges     <- any (drop_on_bg_up,clicked_to_drop_edge);
 
     edge_dropped_to_create_node <= drop_edges.map(f_!(model.edges_with_detached_targets()));
     out.source.on_edge_drop_to_create_node <+ edge_dropped_to_create_node;

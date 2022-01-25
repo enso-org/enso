@@ -27,40 +27,40 @@ use ensogl_hardcoded_theme::Theme;
 
 
 
-// ============================
-// === WayOfOpeningSearcher ===
-// ============================
+// ==================================
+// === ComponentBrowserOpenReason ===
+// ==================================
 
-/// An enum describing how the searcher was opened.
+/// An enum describing how the component browser was opened.
 #[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
-pub enum WayOfOpeningSearcher {
-    /// New node was created by opening the searcher or the node is being edited.
-    NodeEdited(NodeId),
+pub enum ComponentBrowserOpenReason {
+    /// New node was created by opening the component browser or the node is being edited.
+    NodeEditing(NodeId),
     /// New node was created by dropping a dragged connection on the scene.
     EdgeDropped(NodeId, EdgeId),
 }
 
-impl WayOfOpeningSearcher {
-    /// NodeId of the created/edited node.
+impl ComponentBrowserOpenReason {
+    /// [`NodeId`] of the created/edited node.
     pub fn node(&self) -> NodeId {
         match self {
-            Self::NodeEdited(id) => *id,
+            Self::NodeEditing(id) => *id,
             Self::EdgeDropped(id, _) => *id,
         }
     }
 
-    /// EdgeId of the edge that was dropped to create a node.
+    /// [`EdgeId`] of the edge that was dropped to create a node.
     pub fn edge(&self) -> Option<EdgeId> {
         match self {
-            Self::NodeEdited(_) => None,
+            Self::NodeEditing(_) => None,
             Self::EdgeDropped(_, id) => Some(*id),
         }
     }
 }
 
-impl Default for WayOfOpeningSearcher {
+impl Default for ComponentBrowserOpenReason {
     fn default() -> Self {
-        Self::NodeEdited(default())
+        Self::NodeEditing(default())
     }
 }
 
@@ -95,7 +95,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (WayOfOpeningSearcher),
+        searcher_opened                     (ComponentBrowserOpenReason),
         adding_new_node                     (bool),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
@@ -274,15 +274,15 @@ impl Model {
         node_id
     }
 
-    fn add_node_by_opening_searcher(&self) -> WayOfOpeningSearcher {
+    fn add_node_by_opening_searcher(&self) -> ComponentBrowserOpenReason {
         let node_above = self.graph_editor.model.nodes.selected.first_cloned();
         let node_id = self.add_node_and_edit(node_above);
-        WayOfOpeningSearcher::NodeEdited(node_id)
+        ComponentBrowserOpenReason::NodeEditing(node_id)
     }
 
-    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> WayOfOpeningSearcher {
+    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> ComponentBrowserOpenReason {
         let node_id = self.add_node_and_edit(None);
-        WayOfOpeningSearcher::EdgeDropped(node_id, edge)
+        ComponentBrowserOpenReason::EdgeDropped(node_id, edge)
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
@@ -514,7 +514,7 @@ impl View {
 
             node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
 
-            frp.source.searcher_opened <+ node_being_edited.map(|id| WayOfOpeningSearcher::NodeEdited(*id));
+            frp.source.searcher_opened <+ node_being_edited.map(|id| ComponentBrowserOpenReason::NodeEditing(*id));
             frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
             frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
 

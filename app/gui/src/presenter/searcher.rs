@@ -15,7 +15,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
-use ide_view::project::WayOfOpeningSearcher;
+use ide_view::project::ComponentBrowserOpenReason;
 
 
 
@@ -153,7 +153,7 @@ impl Searcher {
         graph_controller: controller::ExecutedGraph,
         graph_presenter: &presenter::Graph,
         view: view::project::View,
-        way_of_opening_searcher: WayOfOpeningSearcher,
+        way_of_opening_searcher: ComponentBrowserOpenReason,
     ) -> FallibleResult<Self> {
         let id = way_of_opening_searcher.node();
         let ast_node = graph_presenter.ast_node_of_view(id);
@@ -164,7 +164,7 @@ impl Searcher {
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
                 let source_node =
-                    Self::source_node(&view, graph_presenter, &way_of_opening_searcher);
+                    Self::source_node_ast_id(&view, graph_presenter, &way_of_opening_searcher);
                 controller::searcher::Mode::NewNode { position, source_node }
             }
         };
@@ -203,19 +203,19 @@ impl Searcher {
         entry.map_or(false, |e| matches!(e.action, Example(_)))
     }
 
-    /// Select source node for node creation. It would be either:
-    /// 1. The source node of the dragged connection, dropping which leads to the node creation.
+    /// Return the AST id of the source node. Source node is either:
+    /// 1. The source node of the connection that was dropped to create a node.
     /// 2. The first of the selected nodes on the scene.
-    fn source_node(
+    fn source_node_ast_id(
         view: &view::project::View,
         graph_presenter: &presenter::Graph,
-        way_of_opening_searcher: &WayOfOpeningSearcher,
+        way_of_opening_searcher: &ComponentBrowserOpenReason,
     ) -> Option<Uuid> {
         if let Some(edge_id) = way_of_opening_searcher.edge() {
             let edge = view.graph().model.edges.get_cloned_ref(&edge_id);
             let edge_source = edge.map(|edge| edge.source()).flatten();
-            let id = edge_source.map(|source| source.node_id);
-            id.map(|id| graph_presenter.ast_node_of_view(id)).flatten()
+            let source_node_id = edge_source.map(|source| source.node_id);
+            source_node_id.map(|id| graph_presenter.ast_node_of_view(id)).flatten()
         } else {
             let selected_views = view.graph().model.nodes.all_selected();
             selected_views.iter().find_map(|view| graph_presenter.ast_node_of_view(*view))
