@@ -99,6 +99,8 @@ object Contact {
   * @param preferLocalLibraries specifies if library resolution should prefer
   *                             local libraries over what is defined in the
   *                             edition
+  * @param componentGroups the description of component groups provided by this
+  *                        package
   * @param originalJson a Json object holding the original values that this
   *                     Config was created from, used to preserve configuration
   *                     keys that are not known

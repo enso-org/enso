@@ -113,7 +113,7 @@ object ComponentGroup {
 
 }
 
-/** The definition of a single component group.
+/** The definition of a component group that extends an existing one.
   *
   * @param module the reference to the extended component group
   * @param color the component group color
@@ -166,7 +166,7 @@ object ExtendedComponentGroup {
   }
 }
 
-/** A component of a component group.
+/** A single component of a component group.
   *
   * @param name the component name
   * @param shortcut the component shortcut
@@ -240,7 +240,7 @@ object ModuleReference {
 
   private def toModuleString(moduleReference: ModuleReference): String = {
     val libraryName =
-      s"${moduleReference.libraryName.prefix}$ModuleSeparator${moduleReference.libraryName.name}"
+      s"${moduleReference.libraryName.namespace}$ModuleSeparator${moduleReference.libraryName.name}"
     moduleReference.moduleName.fold(libraryName) { moduleName =>
       s"$libraryName$ModuleSeparator${moduleName.name}"
     }
@@ -255,10 +255,10 @@ object ModuleReference {
   implicit val decoder: Decoder[ModuleReference] = { json =>
     json.as[String].flatMap { moduleString =>
       moduleString.split(ModuleSeparator).toList match {
-        case prefix :: name :: module =>
+        case namespace :: name :: module =>
           Right(
             ModuleReference(
-              LibraryName(prefix, name),
+              LibraryName(namespace, name),
               ModuleName.fromComponents(module)
             )
           )
@@ -266,8 +266,8 @@ object ModuleReference {
           Left(
             DecodingFailure(
               s"Failed to decode '$moduleString' as module reference. " +
-              s"Module reference should consist of prefix (author), library name " +
-              s"and a module name (e.g. Standard.Base.Data).",
+              s"Module reference should consist of a namespace (author), " +
+              s"library name and a module name (e.g. Standard.Base.Data).",
               json.history
             )
           )
@@ -310,7 +310,7 @@ object ModuleName {
 
 /** The qualified library name.
   *
-  * @param prefix the library prefix
+  * @param namespace the library namespace
   * @param name the library name
   */
-case class LibraryName(prefix: String, name: String)
+case class LibraryName(namespace: String, name: String)
