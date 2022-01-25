@@ -755,6 +755,9 @@ type Vector
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
     distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
+        ## TODO [JD] This is based on the Map class until a HashMap is available.
+           Should be changed once https://www.pivotaltracker.com/story/show/181027272 is completed.
+
         recovered = Panic.recover
             builder = here.new_builder
             this.fold Map.empty existing->
