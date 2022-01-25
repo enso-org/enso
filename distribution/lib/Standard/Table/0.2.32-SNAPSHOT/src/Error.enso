@@ -8,7 +8,7 @@ Missing_Input_Columns.to_display_text =
 
 ## One or more column indexes were invalid on the input table.
    Can occur when using By_Index.
-type Column_Indexes_Out_Of_Range (indexes : [Number])
+type Column_Indexes_Out_Of_Range (indexes : [Integer])
 
 Column_Indexes_Out_Of_Range.to_display_text : Text
 Column_Indexes_Out_Of_Range.to_display_text = case this.indexes.length of
