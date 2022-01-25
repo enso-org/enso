@@ -14,13 +14,13 @@ import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
-
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
+
 import scala.Console.err
 import scala.jdk.CollectionConverters._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 /** The main CLI entry point class. */
@@ -510,7 +510,7 @@ object Main {
     )
     if (projectMode) {
       PackageManager.Default.loadPackage(file) match {
-        case scala.util.Success(pkg) =>
+        case Success(pkg) =>
           val main = pkg.mainFile
           if (!main.exists()) {
             println("Main file does not exist.")
@@ -519,7 +519,7 @@ object Main {
           }
           val mainModuleName = pkg.moduleNameForFile(pkg.mainFile).toString
           runPackage(context, mainModuleName, file)
-        case scala.util.Failure(ex) =>
+        case Failure(ex) =>
           println(ex.getMessage)
           exitFail()
       }

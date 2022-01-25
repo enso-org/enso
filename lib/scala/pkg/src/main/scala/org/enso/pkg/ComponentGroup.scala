@@ -150,7 +150,7 @@ object ExtendedComponentGroup {
       )
   }
 
-  /** [[Decoder]] instance for the [[ComponentGroup]]. */
+  /** [[Decoder]] instance for the [[ExtendedComponentGroup]]. */
   implicit val decoder: Decoder[ExtendedComponentGroup] = { json =>
     for {
       reference <- ConfigCodecs
@@ -225,6 +225,11 @@ object Shortcut {
   }
 }
 
+/** The reference to a module.
+  *
+  * @param libraryName the qualified name of a library where the module is defined
+  * @param moduleName the module name
+  */
 case class ModuleReference(
   libraryName: LibraryName,
   moduleName: Option[ModuleName]
