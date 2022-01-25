@@ -195,11 +195,13 @@ object Config {
       }
       .map(JsonFields.edition -> _)
 
-    val componentGroups = Option.unless(
-      config.componentGroups.`new`.isEmpty && config.componentGroups.`extends`.isEmpty
-    )(
-      JsonFields.componentGroups -> config.componentGroups.asJson
-    )
+    val componentGroups =
+      Option.unless(
+        config.componentGroups.newGroups.isEmpty &&
+        config.componentGroups.extendedGroups.isEmpty
+      )(
+        JsonFields.componentGroups -> config.componentGroups.asJson
+      )
 
     val overrides = Seq(
       JsonFields.name       -> config.name.asJson,

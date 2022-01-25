@@ -111,16 +111,16 @@ class ConfigSpec
           |        shortcut: f
           |      - bar
           |  extends:
-          |  - Base.Group 2:
+          |  - Standard.Base.Group 2:
           |    exports:
           |      - bax
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
       val expectedComponentGroups = ComponentGroups(
-        `new` = List(
+        newGroups = List(
           ComponentGroup(
-            module = "Group 1",
+            module = ModuleName("Group 1"),
             color  = Some("#C047AB"),
             icon   = Some("icon-name"),
             exports = List(
@@ -129,9 +129,12 @@ class ConfigSpec
             )
           )
         ),
-        `extends` = List(
-          ComponentGroup(
-            module  = "Base.Group 2",
+        extendedGroups = List(
+          ExtendedComponentGroup(
+            module = ModuleReference(
+              LibraryName("Standard", "Base"),
+              Some(ModuleName("Group 2"))
+            ),
             color   = None,
             icon    = None,
             exports = List(Component("bax", None))
@@ -151,7 +154,7 @@ class ConfigSpec
                                   |      shortcut: f
                                   |    - bar
                                   |  extends:
-                                  |  - module: Base.Group 2
+                                  |  - module: Standard.Base.Group 2
                                   |    exports:
                                   |    - bax""".stripMargin)
     }
@@ -186,6 +189,26 @@ class ConfigSpec
       }
     }
 
+    "fail to de-serialize invalid extended modules" in {
+      val config =
+        """name: FooBar
+          |component-groups:
+          |  extends:
+          |  - Group 1:
+          |    exports:
+          |    - bax
+          |""".stripMargin
+
+      Config.fromYaml(config) match {
+        case Failure(f: DecodingFailure) =>
+          Show[DecodingFailure].show(f) should include(
+            "Failed to decode 'Group 1' as module reference"
+          )
+        case unexpected =>
+          fail(s"Unexpected result: $unexpected")
+      }
+    }
+
     "correctly de-serialize shortcuts" in {
       val config =
         """name: FooBar
@@ -205,9 +228,9 @@ class ConfigSpec
       val parsed = Config.fromYaml(config).get
 
       parsed.componentGroups shouldEqual ComponentGroups(
-        `new` = List(
+        newGroups = List(
           ComponentGroup(
-            module = "Group 1",
+            module = ModuleName("Group 1"),
             color  = None,
             icon   = None,
             exports = List(
@@ -218,7 +241,7 @@ class ConfigSpec
             )
           )
         ),
-        `extends` = List()
+        extendedGroups = List()
       )
     }
 

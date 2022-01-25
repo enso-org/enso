@@ -5,12 +5,12 @@ import io.circe.syntax._
 
 /** The description of component groups provided by the package.
   *
-  * @param `new` the list of component groups provided by the package
-  * @param `extends` the list of component groups that this package extends
+  * @param newGroups the list of component groups provided by the package
+  * @param extendedGroups the list of component groups that this package extends
   */
 case class ComponentGroups(
-  `new`: List[ComponentGroup],
-  `extends`: List[ComponentGroup]
+  newGroups: List[ComponentGroup],
+  extendedGroups: List[ExtendedComponentGroup]
 )
 object ComponentGroups {
 
@@ -30,11 +30,11 @@ object ComponentGroups {
 
   /** [[Encoder]] instance for the [[ComponentGroups]]. */
   implicit val encoder: Encoder[ComponentGroups] = { componentGroups =>
-    val newGroups = Option.unless(componentGroups.`new`.isEmpty)(
-      Fields.New -> componentGroups.`new`.asJson
+    val newGroups = Option.unless(componentGroups.newGroups.isEmpty)(
+      Fields.New -> componentGroups.newGroups.asJson
     )
-    val extendsGroups = Option.unless(componentGroups.`extends`.isEmpty)(
-      Fields.Extends -> componentGroups.`extends`.asJson
+    val extendsGroups = Option.unless(componentGroups.extendedGroups.isEmpty)(
+      Fields.Extends -> componentGroups.extendedGroups.asJson
     )
     Json.obj(newGroups.toSeq ++ extendsGroups.toSeq: _*)
   }
@@ -43,9 +43,8 @@ object ComponentGroups {
   implicit val decoder: Decoder[ComponentGroups] = { json =>
     def decodeComponentGroups: Either[DecodingFailure, ComponentGroups] = for {
       newGroups <- json.getOrElse[List[ComponentGroup]](Fields.New)(List())
-      extendsGroups <- json.getOrElse[List[ComponentGroup]](Fields.Extends)(
-        List()
-      )
+      extendsGroups <-
+        json.getOrElse[List[ExtendedComponentGroup]](Fields.Extends)(List())
     } yield ComponentGroups(newGroups, extendsGroups)
 
     if (hasUnknownKeys(json)) {
@@ -69,7 +68,7 @@ object ComponentGroups {
   * @param exports the list of components provided by this component group
   */
 case class ComponentGroup(
-  module: String,
+  module: ModuleName,
   color: Option[String],
   icon: Option[String],
   exports: Seq[Component]
@@ -100,13 +99,71 @@ object ComponentGroup {
   /** [[Decoder]] instance for the [[ComponentGroup]]. */
   implicit val decoder: Decoder[ComponentGroup] = { json =>
     for {
-      name    <- ConfigCodecs.getName("component group")(json)
+      name <- ConfigCodecs
+        .getFromObject[ModuleName](
+          "component group name",
+          Fields.Module,
+          json
+        )
       color   <- json.get[Option[String]](Fields.Color)
       icon    <- json.get[Option[String]](Fields.Icon)
       exports <- json.getOrElse[List[Component]](Fields.Exports)(List())
     } yield ComponentGroup(name, color, icon, exports)
   }
 
+}
+
+/** The definition of a single component group.
+  *
+  * @param module the reference to the extended component group
+  * @param color the component group color
+  * @param icon the component group icon
+  * @param exports the list of components provided by this component group
+  */
+case class ExtendedComponentGroup(
+  module: ModuleReference,
+  color: Option[String],
+  icon: Option[String],
+  exports: Seq[Component]
+)
+object ExtendedComponentGroup {
+
+  /** Fields for use when serializing the [[ExtendedComponentGroup]]. */
+  private object Fields {
+    val Module  = "module"
+    val Color   = "color"
+    val Icon    = "icon"
+    val Exports = "exports"
+  }
+
+  /** [[Encoder]] instance for the [[ExtendedComponentGroup]]. */
+  implicit val encoder: Encoder[ExtendedComponentGroup] = {
+    extendedComponentGroup =>
+      val color = extendedComponentGroup.color.map(Fields.Color -> _.asJson)
+      val icon  = extendedComponentGroup.icon.map(Fields.Icon -> _.asJson)
+      val exports = Option.unless(extendedComponentGroup.exports.isEmpty)(
+        Fields.Exports -> extendedComponentGroup.exports.asJson
+      )
+      Json.obj(
+        (Fields.Module -> extendedComponentGroup.module.asJson) +:
+        (color.toSeq ++ icon.toSeq ++ exports.toSeq): _*
+      )
+  }
+
+  /** [[Decoder]] instance for the [[ComponentGroup]]. */
+  implicit val decoder: Decoder[ExtendedComponentGroup] = { json =>
+    for {
+      reference <- ConfigCodecs
+        .getFromObject[ModuleReference](
+          "extended component group reference",
+          Fields.Module,
+          json
+        )
+      color   <- json.get[Option[String]](Fields.Color)
+      icon    <- json.get[Option[String]](Fields.Icon)
+      exports <- json.getOrElse[List[Component]](Fields.Exports)(List())
+    } yield ExtendedComponentGroup(reference, color, icon, exports)
+  }
 }
 
 /** A component of a component group.
@@ -142,7 +199,8 @@ object Component {
         Right(Component(name, None))
       case Left(_) =>
         for {
-          name     <- ConfigCodecs.getName("component")(json)
+          name <- ConfigCodecs
+            .getFromObject[String]("component name", Fields.Name, json)
           shortcut <- json.getOrElse[Option[Shortcut]](Fields.Shortcut)(None)
         } yield Component(name, shortcut)
     }
@@ -163,6 +221,91 @@ object Shortcut {
 
   /** [[Decoder]] instance for the [[Shortcut]]. */
   implicit val decoder: Decoder[Shortcut] = { json =>
-    ConfigCodecs.getScalar("shortcut")(json).map(Shortcut(_))
+    ConfigCodecs.getScalar("shortcut", json).map(Shortcut(_))
   }
 }
+
+case class ModuleReference(
+  libraryName: LibraryName,
+  moduleName: Option[ModuleName]
+)
+object ModuleReference {
+
+  private val ModuleSeparator: Char = '.'
+
+  private def toModuleString(moduleReference: ModuleReference): String = {
+    val libraryName =
+      s"${moduleReference.libraryName.prefix}$ModuleSeparator${moduleReference.libraryName.name}"
+    moduleReference.moduleName.fold(libraryName) { moduleName =>
+      s"$libraryName$ModuleSeparator${moduleName.name}"
+    }
+  }
+
+  /** [[Encoder]] instance for the [[ModuleReference]]. */
+  implicit val encoder: Encoder[ModuleReference] = { moduleReference =>
+    toModuleString(moduleReference).asJson
+  }
+
+  /** [[Decoder]] instance for the [[ModuleReference]]. */
+  implicit val decoder: Decoder[ModuleReference] = { json =>
+    json.as[String].flatMap { moduleString =>
+      moduleString.split(ModuleSeparator).toList match {
+        case prefix :: name :: module =>
+          Right(
+            ModuleReference(
+              LibraryName(prefix, name),
+              ModuleName.fromComponents(module)
+            )
+          )
+        case _ =>
+          Left(
+            DecodingFailure(
+              s"Failed to decode '$moduleString' as module reference. " +
+              s"Module reference should consist of prefix (author), library name " +
+              s"and a module name (e.g. Standard.Base.Data).",
+              json.history
+            )
+          )
+      }
+    }
+  }
+
+}
+
+/** The module name.
+  *
+  * @param name the module name
+  */
+case class ModuleName(name: String)
+object ModuleName {
+
+  def fromComponents(items: List[String]): Option[ModuleName] =
+    Option.unless(items.isEmpty)(ModuleName(items.mkString(".")))
+
+  /** [[Encoder]] instance for the [[ModuleName]]. */
+  implicit val encoder: Encoder[ModuleName] = { moduleName =>
+    moduleName.name.asJson
+  }
+
+  /** [[Decoder]] instance for the [[ModuleName]]. */
+  implicit val decoder: Decoder[ModuleName] = { json =>
+    json.as[String] match {
+      case Left(_) =>
+        Left(
+          DecodingFailure(
+            "Failed to decode component group name.",
+            json.history
+          )
+        )
+      case Right(name) =>
+        Right(ModuleName(name))
+    }
+  }
+}
+
+/** The qualified library name.
+  *
+  * @param prefix the library prefix
+  * @param name the library name
+  */
+case class LibraryName(prefix: String, name: String)
