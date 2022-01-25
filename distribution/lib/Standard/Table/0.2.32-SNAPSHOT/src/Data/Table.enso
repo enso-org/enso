@@ -12,6 +12,7 @@ import Standard.Table.Internal.Table_Helpers
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
+import Standard.Base.Error.Warnings
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -235,9 +236,32 @@ type Table
         Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
 
-    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
-    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        Error.throw "Not implemented"
+    ## Returns a new table with a chosen subset of columns, as specified by the
+       `columns`, from the input table. Any unmatched input columns will be
+       dropped from the output.
+
+       Arguments:
+       - columns: Column selection criteria.
+       - reorder: By default, or if set to `False`, columns in the output will
+         be in the same order as in the input table. If `True`, the order in the
+         output table will match the order in the columns list.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If there are no columns in the output table, a `No_Output_Columns`.
+       - warnings: A `Warning_System` instance specifying how to handle
+         warnings. This is a temporary workaround to allow for testing the
+         warning mechanism. Once the proper warning system is implemented, this
+         argument will become obsolete and will be removed. No user code should
+         use this argument, as it will be removed in the future.
+    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Table
+    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) (warnings = Warnings.default) =
+        new_columns = Table_Helpers.select_columns internal_columns=this.columns selector=columns reorder=reorder on_problems=on_problems warnings=warnings
+        here.new new_columns
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns
