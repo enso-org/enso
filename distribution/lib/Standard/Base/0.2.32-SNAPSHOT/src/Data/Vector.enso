@@ -142,6 +142,12 @@ type Vector
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
         actual_index = if index < 0 then this.length + index else index
+        ## TODO [RW] Ideally we do not want an additional check here, but we
+           should catch a Invalid_Array_Index_Error panic. However, such a catch
+           should still properly forward any other panics or dataflow errors
+           which is not fully possible until the approach to handling Panics is
+           improved, as described in the following Pivotal ticket:
+           https://www.pivotaltracker.com/n/projects/2539304/stories/181029230
         if actual_index>=0 && actual_index<this.length then this.unsafe_at actual_index else
             Error.throw (Index_Out_Of_Bounds_Error index this.length)
 
