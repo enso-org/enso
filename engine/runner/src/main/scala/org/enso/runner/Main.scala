@@ -520,7 +520,7 @@ object Main {
           val mainModuleName = pkg.moduleNameForFile(pkg.mainFile).toString
           runPackage(context, mainModuleName, file)
         case scala.util.Failure(ex) =>
-          Console.err.println(ex.getMessage)
+          println(ex.getMessage)
           exitFail()
       }
     } else {
