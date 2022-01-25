@@ -756,7 +756,14 @@ type Vector
     distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
         ## TODO [JD] This is based on the Map class until a HashMap is available.
-           Should be changed once https://www.pivotaltracker.com/story/show/181027272 is completed.
+
+           Current implementation allows for a consistent distinct with the Enso `==` operator.
+           Using the Map, is less efficient than a HashMap based as requires searching the tree (O(Log N)).
+           A HashMap would allow for a O(1) operation to confirm if an item has been seen already.
+           There is no native HashMap within Enso at present, and the polyglot approach does not produce
+           consistent results with the `==` operator.
+
+           More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
         recovered = Panic.recover
             builder = here.new_builder
