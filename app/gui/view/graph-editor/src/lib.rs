@@ -528,12 +528,16 @@ ensogl::define_endpoints! {
         enable_quick_visualization_preview(),
         /// Show visualisation previews on nodes with delay.
         disable_quick_visualization_preview(),
+
+        /// Drop an edge that is being dragged.
+        drop_dragged_edge            (),
     }
 
     Output {
 
         // === Edge ===
 
+        has_detached_edge                      (bool),
         on_edge_add                            (EdgeId),
         on_edge_drop                           (EdgeId),
         on_edge_drop_to_create_node            (EdgeId),
@@ -2200,6 +2204,7 @@ impl application::View for GraphEditor {
             (Release, "", "left-mouse-button", "node_release"),
             (Press, "!node_editing", "backspace", "remove_selected_nodes"),
             (Press, "!node_editing", "delete", "remove_selected_nodes"),
+            (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
             (Press, "", "cmd g", "collapse_selected_nodes"), // === Visualization ===
             (Press, "!node_editing", "space", "press_visualization_visibility"),
             (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
@@ -2449,6 +2454,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         on_detached_edge    <- any(&inputs.on_some_edges_targets_unset,&inputs.on_some_edges_sources_unset);
         has_detached_edge   <- bool(&out.on_all_edges_endpoints_set,&on_detached_edge);
+        out.source.has_detached_edge <+ has_detached_edge;
 
         eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
         eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
@@ -2687,7 +2693,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     edge_dropped_to_create_node <= drop_edges.map(f_!(model.edges_with_detached_targets()));
     out.source.on_edge_drop_to_create_node <+ edge_dropped_to_create_node;
 
-    remove_all_detached_edges <- any (drop_edges, inputs.stop_editing);
+    remove_all_detached_edges <- any (drop_edges, inputs.drop_dragged_edge);
     edge_to_remove_without_targets <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_targets()));
     edge_to_remove_without_sources <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_sources()));
     edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
