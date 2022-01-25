@@ -1,7 +1,6 @@
 from Standard.Base import all
 from Standard.Builtins import Array
-
-polyglot java import java.util.HashSet
+from Standard.Builtins import Unsupported_Argument_Types
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
@@ -728,6 +727,16 @@ type Vector
        Arguments:
        - on: A projection from the element type to the value of that element
              which determines the uniqueness criteria.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+       - warnings: A Warning_System instance specifying how to handle warnings.
+         This is a temporary workaround to allow for testing the warning
+         mechanism. Once the proper warning system is implemented, this
+         argument will become obsolete and will be removed. No user code should
+         use this argument, as it will be removed in the future.
 
        The returned unique elements are kept in the same order as they appeared
        in the input.
@@ -746,16 +755,21 @@ type Vector
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
     distinct : (Any -> Any) -> Vector Any
     distinct (on = x->x) =
-        builder = here.new_builder
-        existing_elements = HashSet.new
+        recovered = Panic.recover
+            builder = here.new_builder
+            this.fold Map.empty existing->
+                item->
+                    key = on item
+                    if (existing.get_or_else key False) then existing else
+                        builder.append item
+                        existing.insert key True
+            builder.to_vector
 
-        this.each elem->
-            proj = on elem
-            if existing_elements.contains proj then Nothing else
-                existing_elements.add proj
-                builder.append elem
-
-        builder.to_vector
+        recovered.map_error e-> case e of
+            No_Such_Method_Error _ _ -> Incomparable_Values_Error
+            Unsupported_Argument_Types _ -> Incomparable_Values_Error
+            Type_Error _ _ -> Incomparable_Values_Error
+            _ -> Panic.throw e
 
 
     ## UNSTABLE
@@ -841,6 +855,19 @@ type Builder
             this.append item
             Nothing
 
+    ## Checks whether a predicate holds for at least one element of this builder.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         that says whether that value satisfies the conditions of the function.
+
+    exists : (Any -> Boolean) -> Boolean
+    exists predicate =
+        len = this.length
+        go idx found = if found || (idx >= len) then found else
+            @Tail_Call go idx+1 (predicate (this.to_array.at idx))
+        go 0 False
+
     ## Converts this builder to a vector containing all the appended elements.
 
        > Example
@@ -903,3 +930,9 @@ Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
     "The vector " + this.vec.to_text  + " has only one element."
 
+
+## UNSTABLE
+
+   An error indicating that the vector contains incomparable types.
+
+type Incomparable_Values_Error

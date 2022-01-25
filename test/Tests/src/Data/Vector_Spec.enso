@@ -256,13 +256,15 @@ spec = Test.group "Vectors" <|
     Test.specify "should return a vector containing only unique elements" <|
         [1, 3, 1, 2, 2, 1].distinct . should_equal [1, 3, 2]
         ["a", "a", "a"].distinct . should_equal ["a"]
+        [1, 1.0, 2, 2.0].distinct . should_equal [1, 2]
         [].distinct . should_equal []
 
-        ["a", 2].distinct . should_equal ["a", 2]
-        [2, "a", Integer, "a", 2].distinct . should_equal [2, "a", Integer]
+    Test.specify "should throw a clean error for incomparable types" <|
+        ["a", 2].distinct . should_fail_with Vector.Incomparable_Values_Error
+        [2, "a", Integer, "a", 2].distinct . should_fail_with Vector.Incomparable_Values_Error
+        [Pair 1 2, Pair 3 4].distinct . should_fail_with Vector.Incomparable_Values_Error
 
-    structural_eq_reason="Disabled until structural equality of Atoms is properly exposed through Polyglot."
-    Test.specify "should correctly handle distinct with custom types like Atoms" pending=structural_eq_reason <|
+    Test.specify "should correctly handle distinct with custom types like Atoms that implement compare_to" <|
         [T 1 2, T 3 3, T 1 2].distinct . should_equal [T 1 2, T 3 3]
 
     Test.specify "should return a vector containing only unique elements up to some criteria" <|

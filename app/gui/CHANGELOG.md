@@ -17,6 +17,8 @@
 
 - [Implemented `Vector.distinct` allowing to remove duplicate elements from a
   Vector][3224]
+- [Implemented `Duration.time_execution` allowing timing of the execution of an
+- expression within the UI][3229]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
@@ -25,6 +27,7 @@
 [3193]: https://github.com/enso-org/enso/pull/3193
 [3208]: https://github.com/enso-org/enso/pull/3208
 [3224]: https://github.com/enso-org/enso/pull/3224
+[3229]: https://github.com/enso-org/enso/pull/3229
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
