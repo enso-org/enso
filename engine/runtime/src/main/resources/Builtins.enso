@@ -889,6 +889,10 @@ type Array
        Arguments:
        - index: The index to get the element from.
 
+       ? Safety
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
+
        > Example
          Get the element at index 1.
 
@@ -907,8 +911,8 @@ type Array
        programming style in Enso.
 
        ? Safety
-         If index >= this.length, then this operation will result in an
-         Invalid_Array_Index_Error exception.
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
     set_at : Integer -> Any -> Array
     set_at index value = @Builtin_Method "Array.set_at"
 
