@@ -2,6 +2,7 @@ package org.enso.pkg
 
 import io.circe._
 import io.circe.syntax._
+import org.enso.editions.LibraryName
 
 /** The description of component groups provided by the package.
   *
@@ -14,7 +15,7 @@ case class ComponentGroups(
 )
 object ComponentGroups {
 
-  /** An empty component groups. */
+  /** Empty component groups. */
   val empty: ComponentGroups =
     ComponentGroups(List(), List())
 
@@ -236,13 +237,11 @@ case class ModuleReference(
 )
 object ModuleReference {
 
-  private val ModuleSeparator: Char = '.'
-
   private def toModuleString(moduleReference: ModuleReference): String = {
     val libraryName =
-      s"${moduleReference.libraryName.namespace}$ModuleSeparator${moduleReference.libraryName.name}"
+      s"${moduleReference.libraryName.namespace}${LibraryName.separator}${moduleReference.libraryName.name}"
     moduleReference.moduleName.fold(libraryName) { moduleName =>
-      s"$libraryName$ModuleSeparator${moduleName.name}"
+      s"$libraryName${LibraryName.separator}${moduleName.name}"
     }
   }
 
@@ -254,7 +253,7 @@ object ModuleReference {
   /** [[Decoder]] instance for the [[ModuleReference]]. */
   implicit val decoder: Decoder[ModuleReference] = { json =>
     json.as[String].flatMap { moduleString =>
-      moduleString.split(ModuleSeparator).toList match {
+      moduleString.split(LibraryName.separator).toList match {
         case namespace :: name :: module =>
           Right(
             ModuleReference(
@@ -307,10 +306,3 @@ object ModuleName {
     }
   }
 }
-
-/** The qualified library name.
-  *
-  * @param namespace the library namespace
-  * @param name the library name
-  */
-case class LibraryName(namespace: String, name: String)

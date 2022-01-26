@@ -3,6 +3,7 @@ package org.enso.pkg
 import cats.Show
 import io.circe.{DecodingFailure, Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
+import org.enso.editions.LibraryName
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
@@ -224,6 +225,7 @@ class ConfigSpec
           |      shortcut: 0
           |    - quux:
           |      shortcut:
+          |    - hmmm:
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
@@ -237,7 +239,8 @@ class ConfigSpec
               Component("foo", Some(Shortcut("f"))),
               Component("bar", Some(Shortcut("fgh"))),
               Component("baz", Some(Shortcut("0"))),
-              Component("quux", None)
+              Component("quux", None),
+              Component("hmmm", None)
             )
           )
         ),
@@ -245,7 +248,7 @@ class ConfigSpec
       )
     }
 
-    "fail ot de-serialize invalid shortcuts" in {
+    "fail to de-serialize invalid shortcuts" in {
       val config =
         """name: FooBar
           |component-groups:
