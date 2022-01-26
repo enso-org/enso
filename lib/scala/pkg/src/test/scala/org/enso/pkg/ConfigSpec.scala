@@ -143,19 +143,21 @@ class ConfigSpec
       parsed.componentGroups shouldEqual Right(expectedComponentGroups)
 
       val serialized = parsed.toYaml
-      serialized should include("""component-groups:
-                                  |  new:
-                                  |  - module: Group 1
-                                  |    color: '#C047AB'
-                                  |    icon: icon-name
-                                  |    exports:
-                                  |    - name: foo
-                                  |      shortcut: f
-                                  |    - bar
-                                  |  extends:
-                                  |  - module: Standard.Base.Group 2
-                                  |    exports:
-                                  |    - bax""".stripMargin)
+      serialized should include(
+        """component-groups:
+          |  new:
+          |  - module: Group 1
+          |    color: '#C047AB'
+          |    icon: icon-name
+          |    exports:
+          |    - name: foo
+          |      shortcut: f
+          |    - bar
+          |  extends:
+          |  - module: Standard.Base.Group 2
+          |    exports:
+          |    - bax""".stripMargin.linesIterator.mkString("\n")
+      )
     }
 
     "correctly de-serialize empty components" in {
