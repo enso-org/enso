@@ -1,0 +1,11 @@
+[package]
+name = "profiler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+profiler-macros = { path = "../profiler-macros" }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.8"

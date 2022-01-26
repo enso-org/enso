@@ -27,6 +27,7 @@ ensogl-text-msdf-sys = { path = "../../lib/rust/ensogl/component/text/msdf-sys" 
 ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }
 fuzzly = { path = "../../lib/rust/fuzzly" }
+profiler = { path = "../../lib/rust/profiler" }
 ast = { path = "language/ast/impl" }
 ide-view = { path = "view" }
 engine-protocol = { path = "controller/engine-protocol" }

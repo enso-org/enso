@@ -974,6 +974,7 @@ dependencies = [
  "mockall",
  "nalgebra 0.26.2",
  "parser",
+ "profiler",
  "regex",
  "semver 1.0.4",
  "serde",
@@ -3130,6 +3131,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid 0.2.2",
+]
+
+[[package]]
+name = "profiler"
+version = "0.1.0"
+dependencies = [
+ "profiler-macros",
+ "wasm-bindgen",
+ "wasm-bindgen-test 0.3.8",
+]
+
+[[package]]
+name = "profiler-macros"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "proc-macro2 1.0.32",
+ "quote 1.0.10",
+ "syn",
 ]
 
 [[package]]
