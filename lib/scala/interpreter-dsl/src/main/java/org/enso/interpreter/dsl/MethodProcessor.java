@@ -116,13 +116,16 @@ public class MethodProcessor extends AbstractProcessor {
         if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
           String condName = mkArgumentInternalVarName(arg) + "ConditionProfile";
           String branchName = mkArgumentInternalVarName(arg) + "BranchProfile";
+          String warningName = mkArgumentInternalVarName(arg) + "WarningProfile";
           out.println(
               "  private final ConditionProfile "
                   + condName
                   + " = ConditionProfile.createCountingProfile();");
           out.println("  private final BranchProfile " + branchName + " = BranchProfile.create();");
+          out.println("  private final BranchProfile " + warningName + " = BranchProfile.create();");
         }
       }
+      out.println("  private final BranchProfile anyWarningsProfile = BranchProfile.create();");
 
       out.println("  private " + methodDefinition.getClassName() + "(Language language) {");
       out.println("    super(language);");
@@ -190,6 +193,7 @@ public class MethodProcessor extends AbstractProcessor {
       String executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
       if (warningsPossible) {
         out.println("    if (anyWarnings) {");
+        out.println("        anyWarningsProfile.enter();");
         if (methodDefinition.modifiesState()) {
           out.println("      Stateful result = " + executeCall + ";");
           out.println(
@@ -367,6 +371,7 @@ public class MethodProcessor extends AbstractProcessor {
             "    if ("
                 + arrayRead(argumentsArray, arg.getPosition())
                 + " instanceof WithWarnings) {");
+        out.println("      " + mkArgumentInternalVarName(arg) + "WarningProfile.enter();");
         out.println("      anyWarnings = true;");
         out.println(
             "      WithWarnings withWarnings = (WithWarnings) "
