@@ -198,7 +198,10 @@ type Vector
     reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce function =
         case this.not_empty of
-            True -> this.tail.fold this.head function
+            True -> if this.length == 1 then this.unsafe_at 0 else
+                arr = this.to_array
+                f = acc -> ix -> function acc (arr.at ix)
+                1.up_to this.length . fold (this.unsafe_at 0) f
             False -> Error.throw Empty_Error
 
     ## Computes the sum of the values in the vector.
@@ -281,7 +284,7 @@ type Vector
 
              [-1, 1, 5, 8].all (< 0)
     all : (Any -> Boolean) -> Boolean
-    all predicate = this.fold True (l -> r -> l && predicate r)
+    all predicate = (this.exists (r -> (predicate r).not)).not
 
     ## Checks whether this vector contains a given value as an element.
 
@@ -615,6 +618,26 @@ type Vector
             if this.length == 1 then prefix + this.unsafe_at 0 + suffix else
                 prefix + this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i) + suffix
 
+    ## Creates a new vector with the skipping elements until `start` and then
+       continuing for `length` elements.
+
+       Arguments:
+       - start: The number of elements to drop from the start of `this`.
+       - length: The number of elements for the sub-vector.
+
+       > Example
+         Remove the first 2 elements then take 5 from the vector.
+
+             [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5
+    slice : Integer -> Integer -> Vector Any
+    slice start length =
+        if start > this.length then Vector (Array.new 0) else
+            slice_length = Math.min (this.length - start) length
+            if slice_length == 0 then Vector (Array.new 0) else
+                new_array = Array.new slice_length
+                Array.Copy this.to_array start new_array 0 slice_length
+                Vector new_array
+
     ## Creates a new vector with the first `count` elements in `this` removed.
 
        Arguments:
@@ -625,8 +648,7 @@ type Vector
 
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector Any
-    drop_start count = if count >= this.length then here.new 0 (x -> x) else
-        here.new (this.length - count) (i -> this.unsafe_at i+count)
+    drop_start count = this.slice count (this.length - count)
 
     ## Creates a new vector with the last `count` elements in `this` removed.
 
@@ -638,8 +660,7 @@ type Vector
 
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector Any
-    drop_end count = if count >= this.length then here.new 0 (x -> x) else
-        this.take_start (this.length - count)
+    drop_end count = this.slice 0 (this.length - count)
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `this`.
@@ -652,8 +673,7 @@ type Vector
 
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector Any
-    take_start count = if count >= this.length then this else
-        here.new count this.at
+    take_start count = this.slice 0 count
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `this`.
@@ -666,8 +686,7 @@ type Vector
 
              [1, 2, 3, 4, 5].take_end 3
     take_end : Integer -> Vector Any
-    take_end count = if count >= this.length then this else
-        this.drop_start (this.length - count)
+    take_end count = this.slice (this.length - count) count
 
     ## Performs a pair-wise operation passed in `function` on consecutive
        elements of `this` and `that`.
