@@ -184,6 +184,24 @@ type Vector
         f = acc -> ix -> function acc (arr.at ix)
         0.up_to this.length . fold init f
 
+    ## Combines all the elements of the vector, by iteratively applying the
+       passed function with next elements of the vector.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking the current value, an index and an item
+         and combining them.
+
+       > Example
+         Compute the sum of all of the elements and indexes in a vector.
+
+             [0, 1, 2] . fold 0 (s->i->e->s+i+e)
+    fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
+    fold_with_index init function =
+        arr = this.to_array
+        f = acc -> ix -> function acc ix (arr.at ix)
+        0.up_to this.length . fold init f
+
     ## Combines all the elements of a non-empty vector using a binary operation.
 
        Arguments:
@@ -346,12 +364,8 @@ type Vector
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index predicate =
-        acc = this.fold (Pair here.new_builder 0) acc-> elem->
-            builder = acc.first
-            ix = acc.second
-            new_builder = if predicate ix elem then builder.append elem else builder
-            Pair new_builder ix+1
-        builder = acc.first
+        builder = this.fold_with_index here.new_builder builder-> ix-> elem->
+            if predicate ix elem then builder.append elem else builder
         builder.to_vector
 
     ## Partitions the vector into vectors of elements which satisfy a given
@@ -372,15 +386,15 @@ type Vector
          Splitting a vector into even and odd elements.
 
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
-    partition : (Any -> Boolean) -> Vector Any
+    partition : (Any -> Boolean) -> Pair Vector Any Vector Any
     partition predicate =
-        acc = this.fold (Pair here.new_builder here.new_builder) acc-> elem->
+        pair = this.fold (Pair here.new_builder here.new_builder) acc-> elem->
             case predicate elem of
                 True ->
                     Pair (acc.first.append elem) acc.second
                 False ->
                     Pair acc.first (acc.second.append elem)
-        acc.map .to_vector
+        pair.map .to_vector
 
     ## Partitions the vector into vectors of elements which satisfy a given
        predicate and ones that do not.
@@ -400,17 +414,13 @@ type Vector
          Splitting a vector into elements at even and odd positions.
 
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
-    partition_with_index : (Integer -> Any -> Boolean) -> Vector Any
+    partition_with_index : (Integer -> Any -> Boolean) -> Pair Vector Any Vector Any
     partition_with_index predicate =
-        acc = this.fold (Partition_Accumulator here.new_builder here.new_builder 0) acc-> elem->
-            case predicate acc.ix elem of
-                True ->
-                    Partition_Accumulator (acc.true_builder.append elem) acc.false_builder acc.ix+1
-                False ->
-                    Partition_Accumulator acc.true_builder (acc.false_builder.append elem) acc.ix+1
-        case acc of
-            Partition_Accumulator true_builder false_builder _ ->
-                Pair true_builder.to_vector false_builder.to_vector
+        pair = this.fold_with_index (Pair here.new_builder here.new_builder) acc-> ix-> elem->
+            case predicate ix elem of
+                True -> Pair (acc.first.append elem) acc.second
+                False -> Pair acc.first (acc.second.append elem)
+        pair.map .to_vector
 
     ## Applies a function to each element of the vector, returning the vector of
        results.
@@ -498,6 +508,26 @@ type Vector
     each f =
         0.up_to this.length . each ix->
             f (this.unsafe_at ix)
+
+    ## Applies a function to each element of the vector.
+
+       Arguments:
+       - function: A function to apply that takes an index and an item.
+
+       The function is called with both the element index as well as the
+       element itself.
+
+       Unlike `map`, this method does not return the individual results,
+       therefore it is only useful for side-effecting computations.
+
+       > Example
+         Print each element in the vector to standard output.
+
+             [1, 2, 3, 4, 5] . each_with_index (ix->elem-> IO.println Pair ix elem)
+    each_with_index : (Integer -> Any -> Any) -> Nothing
+    each_with_index f =
+        0.up_to this.length . each ix->
+            f ix (this.unsafe_at ix)
 
     ## Reverses the vector, returning a vector with the same elements, but in
        the opposite order.
