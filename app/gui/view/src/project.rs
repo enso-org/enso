@@ -6,6 +6,7 @@ use crate::code_editor;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
+use crate::graph_editor::EdgeId;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::open_dialog::OpenDialog;
@@ -23,6 +24,45 @@ use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
+
+
+
+// ==================================
+// === ComponentBrowserOpenReason ===
+// ==================================
+
+/// An enum describing how the component browser was opened.
+#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
+pub enum ComponentBrowserOpenReason {
+    /// New node was created by opening the component browser or the node is being edited.
+    NodeEditing(NodeId),
+    /// New node was created by dropping a dragged connection on the scene.
+    EdgeDropped(NodeId, EdgeId),
+}
+
+impl ComponentBrowserOpenReason {
+    /// [`NodeId`] of the created/edited node.
+    pub fn node(&self) -> NodeId {
+        match self {
+            Self::NodeEditing(id) => *id,
+            Self::EdgeDropped(id, _) => *id,
+        }
+    }
+
+    /// [`EdgeId`] of the edge that was dropped to create a node.
+    pub fn edge(&self) -> Option<EdgeId> {
+        match self {
+            Self::NodeEditing(_) => None,
+            Self::EdgeDropped(_, id) => Some(*id),
+        }
+    }
+}
+
+impl Default for ComponentBrowserOpenReason {
+    fn default() -> Self {
+        Self::NodeEditing(default())
+    }
+}
 
 
 
@@ -55,9 +95,8 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (NodeId),
+        searcher_opened                     (ComponentBrowserOpenReason),
         adding_new_node                     (bool),
-        searcher_input                      (Option<NodeId>),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
         editing_aborted                     (NodeId),
@@ -220,11 +259,12 @@ impl Model {
         }
     }
 
-    fn add_node_and_edit(&self) -> NodeId {
+    /// Add a new node and start editing it. Place it below `node_above` if provided, otherwise
+    /// place it under the cursor.
+    fn add_node_and_edit(&self, node_above: Option<NodeId>) -> NodeId {
         let graph_editor_inputs = &self.graph_editor.frp.input;
-        let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned()
-        {
-            self.graph_editor.add_node_below(selected)
+        let node_id = if let Some(node_above) = node_above {
+            self.graph_editor.add_node_below(node_above)
         } else {
             graph_editor_inputs.add_node_at_cursor.emit(());
             self.graph_editor.frp.output.node_added.value()
@@ -232,6 +272,17 @@ impl Model {
         graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
         node_id
+    }
+
+    fn add_node_by_opening_searcher(&self) -> ComponentBrowserOpenReason {
+        let node_above = self.graph_editor.model.nodes.selected.first_cloned();
+        let node_id = self.add_node_and_edit(node_above);
+        ComponentBrowserOpenReason::NodeEditing(node_id)
+    }
+
+    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> ComponentBrowserOpenReason {
+        let node_id = self.add_node_and_edit(None);
+        ComponentBrowserOpenReason::EdgeDropped(node_id, edge)
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
@@ -450,14 +501,22 @@ impl View {
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
             editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
-            frp.source.searcher_input     <+ graph.output.node_being_edited;
-            frp.source.is_searcher_opened <+ frp.searcher_input.map(|n| n.is_some());
+            frp.source.is_searcher_opened <+ graph.output.node_being_edited.map(|n| n.is_some());
 
 
             // === Adding Node ===
 
-            frp.source.adding_new_node <+ frp.open_searcher.constant(true);
-            frp.source.searcher_opened <+ frp.open_searcher.map(f!((_) model.add_node_and_edit()));
+            let adding_by_dropping_edge = graph.output.on_edge_drop_to_create_node.clone_ref();
+            let adding_by_opening_searcher = frp.open_searcher.clone_ref();
+            adding_by_dropping_edge_bool <- adding_by_dropping_edge.constant(true);
+            adding_by_opening_searcher_bool <- adding_by_opening_searcher.constant(true);
+            frp.source.adding_new_node <+ any(adding_by_dropping_edge_bool, adding_by_opening_searcher_bool);
+
+            node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
+
+            frp.source.searcher_opened <+ node_being_edited.map(|id| ComponentBrowserOpenReason::NodeEditing(*id));
+            frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
+            frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
 
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
