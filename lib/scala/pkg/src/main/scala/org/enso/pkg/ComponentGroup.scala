@@ -25,10 +25,6 @@ object ComponentGroups {
     val Extends = "extends"
   }
 
-  /** Does the provided JSON object have unknown fields. */
-  private def hasUnknownKeys(cursor: HCursor): Boolean =
-    (ConfigCodecs.objectKeys(cursor) - Fields.New - Fields.Extends).nonEmpty
-
   /** [[Encoder]] instance for the [[ComponentGroups]]. */
   implicit val encoder: Encoder[ComponentGroups] = { componentGroups =>
     val newGroups = Option.unless(componentGroups.newGroups.isEmpty)(
@@ -42,22 +38,11 @@ object ComponentGroups {
 
   /** [[Decoder]] instance for the [[ComponentGroups]]. */
   implicit val decoder: Decoder[ComponentGroups] = { json =>
-    def decodeComponentGroups: Either[DecodingFailure, ComponentGroups] = for {
+    for {
       newGroups <- json.getOrElse[List[ComponentGroup]](Fields.New)(List())
       extendsGroups <-
         json.getOrElse[List[ExtendedComponentGroup]](Fields.Extends)(List())
     } yield ComponentGroups(newGroups, extendsGroups)
-
-    if (hasUnknownKeys(json)) {
-      Left(
-        DecodingFailure(
-          "Invalid component groups. Valid keys are 'new' or 'extends'.",
-          json.history
-        )
-      )
-    } else {
-      decodeComponentGroups
-    }
   }
 }
 

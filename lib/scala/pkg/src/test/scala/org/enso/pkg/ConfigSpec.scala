@@ -8,8 +8,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
 
-import scala.util.Failure
-
 class ConfigSpec
     extends AnyWordSpec
     with Matchers
@@ -48,7 +46,7 @@ class ConfigSpec
           Contact(None, Some("c@example.com"))
         ),
         preferLocalLibraries = true,
-        componentGroups      = ComponentGroups.empty
+        componentGroups      = Right(ComponentGroups.empty)
       )
       val deserialized = Config.fromYaml(config.toYaml).get
       val withoutJson  = deserialized.copy(originalJson = JsonObject())
@@ -142,7 +140,7 @@ class ConfigSpec
           )
         )
       )
-      parsed.componentGroups shouldEqual expectedComponentGroups
+      parsed.componentGroups shouldEqual Right(expectedComponentGroups)
 
       val serialized = parsed.toYaml
       serialized should include("""component-groups:
@@ -167,10 +165,10 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.componentGroups shouldEqual ComponentGroups.empty
+      parsed.componentGroups shouldEqual Right(ComponentGroups.empty)
     }
 
-    "fail to de-serialize unknown keys in component groups" in {
+    "allow unknown keys in component groups" in {
       val config =
         """name: FooBar
           |component-groups:
@@ -179,15 +177,9 @@ class ConfigSpec
           |    exports:
           |    - bax
           |""".stripMargin
+      val parsed = Config.fromYaml(config).get
 
-      Config.fromYaml(config) match {
-        case Failure(f: DecodingFailure) =>
-          Show[DecodingFailure].show(f) should include(
-            "Invalid component group"
-          )
-        case unexpected =>
-          fail(s"Unexpected result: $unexpected")
-      }
+      parsed.componentGroups shouldEqual Right(ComponentGroups.empty)
     }
 
     "fail to de-serialize invalid extended modules" in {
@@ -199,9 +191,10 @@ class ConfigSpec
           |    exports:
           |    - bax
           |""".stripMargin
+      val parsed = Config.fromYaml(config).get
 
-      Config.fromYaml(config) match {
-        case Failure(f: DecodingFailure) =>
+      parsed.componentGroups match {
+        case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode 'Group 1' as module reference"
           )
@@ -228,8 +221,7 @@ class ConfigSpec
           |    - hmmm:
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
-
-      parsed.componentGroups shouldEqual ComponentGroups(
+      val expectedComponentGroups = ComponentGroups(
         newGroups = List(
           ComponentGroup(
             module = ModuleName("Group 1"),
@@ -246,6 +238,8 @@ class ConfigSpec
         ),
         extendedGroups = List()
       )
+
+      parsed.componentGroups shouldEqual Right(expectedComponentGroups)
     }
 
     "fail to de-serialize invalid shortcuts" in {
@@ -258,8 +252,9 @@ class ConfigSpec
           |    - foo:
           |      shortcut: []
           |""".stripMargin
-      Config.fromYaml(config) match {
-        case Failure(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config).get
+      parsed.componentGroups match {
+        case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode shortcut"
           )
@@ -276,9 +271,9 @@ class ConfigSpec
           |  - exports:
           |    - name: foo
           |""".stripMargin
-
-      Config.fromYaml(config) match {
-        case Failure(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config).get
+      parsed.componentGroups match {
+        case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode component group name"
           )
@@ -296,9 +291,9 @@ class ConfigSpec
           |    exports:
           |    - one: two
           |""".stripMargin
-
-      Config.fromYaml(config) match {
-        case Failure(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config).get
+      parsed.componentGroups match {
+        case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode component name"
           )
