@@ -19,19 +19,31 @@ object ConfigCodecs {
 
   /** Try to decode the entity `A` from a JSON object.
     *
-    * @param entity the name of decoded entity
-    * @param nameKey the name key of the JSON object
+    * The entity can be encoded either in the first key of the JSON object with
+    * the Null value,
+    * {{{
+    *   { entity: null }
+    * }}}
+    *
+    * or as a value of the provided `keyName` argument
+    *
+    * {{{
+    *   { `keyName`: entity }
+    * }}}
+    *
+    * @param entity the name of decoded entity that is used in error reporting
+    * @param keyName the key of the JSON object that contains the entity
     * @param cursor the current focus in the JSON document
     */
   def getFromObject[A: Decoder](
     entity: String,
-    nameKey: String,
+    keyName: String,
     cursor: HCursor
   ): Decoder.Result[A] =
     cursor.keys match {
       case Some(keys) if keys.nonEmpty =>
         cursor
-          .get[A](nameKey)
+          .get[A](keyName)
           .orElse {
             cursor.get[Json](keys.head).flatMap { json =>
               if (json.isNull) {
@@ -59,11 +71,4 @@ object ConfigCodecs {
       jsonArray   = _ => Left(decodingFailure(entity, cursor.history)),
       jsonObject  = _ => Left(decodingFailure(entity, cursor.history))
     )
-
-  /** Get the set of JSON object keys.
-    *
-    * @param cursor the current focus in the JSON document
-    */
-  def objectKeys(cursor: HCursor): Set[String] =
-    cursor.keys.getOrElse(Seq()).toSet
 }
