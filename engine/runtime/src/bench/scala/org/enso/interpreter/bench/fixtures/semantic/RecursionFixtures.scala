@@ -52,14 +52,13 @@ class RecursionFixtures extends DefaultInterpreterRunner {
     """from Standard.Builtins import all
       |
       |stateSum = n ->
-      |    sumator n =
-      |        acc = State.get Number
-      |        State.put Number (acc + n)
-      |        if n == 0 then State.get Number else @Tail_Call sumator (n - 1)
+      |    acc = State.get Number
+      |    State.put Number (acc + n)
+      |    if n == 0 then State.get Number else @Tail_Call here.stateSum (n - 1)
       |
-      |    res = State.run Number 0 (sumator n)
-      |
-      |main = sumTo -> here.stateSum sumTo
+      |main = sumTo ->
+      |    res = State.run Number 0 (here.stateSum sumTo)
+      |    res
       |""".stripMargin
   val sumStateTCO = getMain(sumStateTCOCode)
 
