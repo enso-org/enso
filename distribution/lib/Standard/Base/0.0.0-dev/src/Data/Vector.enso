@@ -231,10 +231,7 @@ type Vector
              [1, 2, 3, 4, 5].exists (> 3)
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
-        len = this.length
-        go idx found = if found || (idx >= len) then found else
-            @Tail_Call go idx+1 (predicate (this.unsafe_at idx))
-        go 0 False
+        0.up_to this.length . exists (idx -> (predicate (this.unsafe_at idx)))
 
     ## Returns the first element of the vector that satisfies the predicate or
        if no elements of the vector satisfy the predicate, it throws nothing.
@@ -572,10 +569,8 @@ type Vector
     + that =
         this_len = this.length
         arr = Array.new (this_len + that.length)
-        0.up_to this_len . each i->
-            arr.set_at i (this.unsafe_at i)
-        this.length.up_to arr.length . each i->
-            arr.set_at i (that.unsafe_at i-this_len)
+        Array.copy this.to_array 0 arr 0 this_len
+        Array.copy that.to_array 0 arr this_len that.length
         Vector arr
 
     ## Add `element` to the beginning of `this` vector.
@@ -1027,9 +1022,7 @@ type Builder
         False ->
             old_array = this.to_array
             new_array = Array.new old_array.length*2
-            0.up_to this.length . each i->
-                new_array.set_at i (old_array.at i)
-                Nothing
+            Array.copy old_array 0 new_array 0 old_array.length
             Unsafe.set_atom_field this 0 new_array
             this.append item
             Nothing
@@ -1042,10 +1035,7 @@ type Builder
 
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
-        len = this.length
-        go idx found = if found || (idx >= len) then found else
-            @Tail_Call go idx+1 (predicate (this.to_array.at idx))
-        go 0 False
+        0.up_to this.length . exists (idx -> (predicate (this.to_array.at idx)))
 
     ## Converts this builder to a vector containing all the appended elements.
 
@@ -1062,9 +1052,7 @@ type Builder
     to_vector =
         old_array = this.to_array
         new_array = Array.new this.length
-        0.up_to this.length . each i->
-            new_array.set_at i (old_array.at i)
-            Nothing
+        Array.copy old_array 0 new_array 0 this.length
         Vector new_array
 
 ## UNSTABLE
