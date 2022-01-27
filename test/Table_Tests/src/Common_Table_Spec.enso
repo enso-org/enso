@@ -1,0 +1,61 @@
+from Standard.Base import all
+import Standard.Test
+
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
+
+## TODO
+
+   TODO [RW] the Any in return type of the builder should ideally be replaced with the Table interface, once that is supported.
+spec : Text -> (Vector -> Any) -> Nothing
+spec prefix table_builder =
+    Test.group prefix+" Select" <|
+        table =
+            col1 = ["foo", Integer, [1,2,3]]
+            col2 = ["bar", Integer, [4,5,6]]
+            col3 = ["Baz", Integer, [7,8,9]]
+            col4 = ["foo_1", Integer, [10,11,12]]
+            col5 = ["foo_2", Integer, [13,14,15]]
+            table_builder [col1, col2, col3, col4, col5]
+
+        expect_column_names names table =
+            table.columns . map .name . should_equal names
+
+        Test.specify "should work as shown in the doc examples" <|
+            ## TODO thinking if its enough if we just look at names or do we
+               want all these tests to also verify that contents got moved
+               correctly (so that not only names were swapped)? Or maybe it is
+               enough if just a few of these tests verify this additional check?
+            expect_column_names ["foo", "bar"] <| table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True))
+            expect_column_names ["bar", "Baz"] <| table.select_columns (By_Name ["b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+            expect_column_names ["foo_2", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
+
+            column1 = table.at "foo_1"
+            column2 = table.at "Baz"
+            expect_column_names ["Baz", "foo_1"] <| table.select_columns (By_Column [column1, column2])
+
+        Test.specify "should support by name selection" <|
+            Nothing
+
+        Test.specify "should support regex selection" <|
+            Nothing
+
+        Test.specify "should support by index selection" <|
+            Nothing
+
+        Test.specify "should support by column selection" <|
+            Nothing
+
+        Test.specify "should allow to reorder columns if asked to" <|
+            Nothing
+
+        Test.specify "should correctly handle problems: out of bounds indices" <|
+            Nothing
+
+        Test.specify "should correctly handle problems: unmatched names" <|
+            Nothing
+
+        Test.specify "should correctly handle problems: unmatched columns" <|
+            Nothing
+
+        Test.specify "should correctly handle problems: no columns in the output" <|
+            Nothing
