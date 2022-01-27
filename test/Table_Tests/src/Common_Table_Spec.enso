@@ -1,9 +1,24 @@
 from Standard.Base import all
 import Standard.Test
 
+import Standard.Base.Error.Problem_Behavior
+import Standard.Base.Error.Warnings
+import Standard.Table.Data.Matching
+from Standard.Table.Error as Table_Errors import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
 
-## TODO
+## A common test suite for shared operations on the Table API.
+
+   It is meant to be able to be re-used by tests for the in-memory and various
+   database backends.
+
+   Arguments:
+   - prefix: A prefix to attach to the names of test groups, for easier
+     identification.
+   - table_builder: A function which takes a list of column descriptions and
+     builds a Table using the backend that is meant to be tested. Each column
+     description is a triple of column name, column type and a vector containing
+     column elements.
 
    TODO [RW] the Any in return type of the builder should ideally be replaced with the Table interface, once that is supported.
 spec : Text -> (Vector -> Any) -> Nothing
@@ -12,7 +27,7 @@ spec prefix table_builder =
         table =
             col1 = ["foo", Integer, [1,2,3]]
             col2 = ["bar", Integer, [4,5,6]]
-            col3 = ["Baz", Integer, [7,8,9]]
+            col3 = ["Bar", Integer, [7,8,9]]
             col4 = ["foo_1", Integer, [10,11,12]]
             col5 = ["foo_2", Integer, [13,14,15]]
             table_builder [col1, col2, col3, col4, col5]
@@ -21,35 +36,39 @@ spec prefix table_builder =
             table.columns . map .name . should_equal names
 
         Test.specify "should work as shown in the doc examples" <|
-            ## TODO thinking if its enough if we just look at names or do we
-               want all these tests to also verify that contents got moved
-               correctly (so that not only names were swapped)? Or maybe it is
-               enough if just a few of these tests verify this additional check?
             expect_column_names ["foo", "bar"] <| table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True))
-            expect_column_names ["bar", "Baz"] <| table.select_columns (By_Name ["b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+            expect_column_names ["bar", "Bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Matching.Regex Matching.Case_Insensitive))
             expect_column_names ["foo_2", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
 
             column1 = table.at "foo_1"
-            column2 = table.at "Baz"
-            expect_column_names ["Baz", "foo_1"] <| table.select_columns (By_Column [column1, column2])
-
-        Test.specify "should support by name selection" <|
-            Nothing
-
-        Test.specify "should support regex selection" <|
-            Nothing
-
-        Test.specify "should support by index selection" <|
-            Nothing
-
-        Test.specify "should support by column selection" <|
-            Nothing
+            column2 = table.at "Bar"
+            expect_column_names ["Bar", "foo_1"] <| table.select_columns (By_Column [column1, column2])
 
         Test.specify "should allow to reorder columns if asked to" <|
-            Nothing
+            table_2 = table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True)) reorder=True
+            expect_column_names ["bar", "foo"] table_2
+            table_2 . at "bar" . to_vector . should_equal [4,5,6]
+            table_2 . at "foo" . to_vector . should_equal [1,2,3]
+
+        Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
+            expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Matching.Exact Matching.Case_Insensitive))
+
+        Test.specify "should correctly handle regexes matching multiple names" <|
+            expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] (Matching.Regex True))
+            expect_column_names ["bar", "foo", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] (Matching.Regex True)) reorder=True
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
-            Nothing
+            selector = By_Index [1, 0, 100, 200, 300]
+            expect_column_names ["foo", "bar"] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
+
+            err = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            err . should_fail_with Column_Indexes_Out_Of_Range
+            err.catch . should_equal <| Column_Indexes_Out_Of_Range [100, 200, 300]
+
+            case Warnings.test_warnings (table.select_columns selector warnings=_) of
+                Pair result warnings ->
+                    expect_column_names ["foo", "bar"] result
+                    warnings.should_equal [Column_Indexes_Out_Of_Range [100, 200, 300]]
 
         Test.specify "should correctly handle problems: unmatched names" <|
             Nothing

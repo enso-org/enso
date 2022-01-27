@@ -110,7 +110,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+             table.select_columns (By_Name ["foo.+", "b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.

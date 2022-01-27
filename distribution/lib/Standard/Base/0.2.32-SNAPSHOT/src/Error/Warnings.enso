@@ -44,3 +44,18 @@ map_attached_warnings mapper decorated_value =
 map_warnings_and_errors : (Any -> Any) -> Any -> Any
 map_warnings_and_errors mapper decorated_value =
     (here.map_attached_warnings mapper decorated_value) . map_error mapper
+
+## PRIVATE
+   A temporary helper for testing warnings.
+
+   Gets a closure which takes a `Warning_System` instance and runs some action.
+   It returns a `Pair` containing the result of the closure and a list of
+   warnings reported when running it.
+test_warnings : (Warning_System -> Any) -> Pair Any (Vector Any)
+test_warnings closure =
+    builder = Vector.new_builder
+    warning_system = Warning_System warning->
+        builder.append warning
+    result = closure warning_system
+    warnings = builder.to_vector
+    Pair result warnings

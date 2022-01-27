@@ -633,6 +633,8 @@ spec =
             t_3.default_visualization.should_equal Visualization.Id.table
 
     table_builder columns =
-        Table.new columns.map description-> [description.at 0, description.at 2]
+        Table.new <| columns.map description-> [description.at 0, description.at 2]
 
     Common_Table_Spec.spec "" table_builder
+
+main = Test.Suite.run_main here.spec
