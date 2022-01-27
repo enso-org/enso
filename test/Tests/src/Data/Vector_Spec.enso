@@ -185,6 +185,7 @@ spec = Test.group "Vectors" <|
         vec = [1, 2, 3, 4, 5, 6]
         first_four = [1, 2, 3, 4]
         last_four = [3, 4, 5, 6]
+        vec.take 2 4 . should_equal [3, 4]
         vec.drop_start 2 . should_equal last_four
         vec.drop_end 2 . should_equal first_four
         vec.take_start 4 . should_equal first_four
