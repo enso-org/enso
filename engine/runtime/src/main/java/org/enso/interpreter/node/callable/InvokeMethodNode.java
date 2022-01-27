@@ -149,13 +149,8 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     arguments[0] = _this.getValue();
     Stateful result = childDispatch.execute(frame, state, symbol, _this.getValue(), arguments);
-    WithWarnings res;
-    if (result.getValue() instanceof WithWarnings) {
-      res = ((WithWarnings) result.getValue()).inherit(_this);
-    } else {
-      res = new WithWarnings(result.getValue()).inherit(_this);
-    }
-    return new Stateful(result.getState(), res);
+    return new Stateful(
+        result.getState(), WithWarnings.prependTo(result.getValue(), _this.getWarnings()));
   }
 
   @ExplodeLoop

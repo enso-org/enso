@@ -1,0 +1,32 @@
+from Standard.Base import all
+
+import Standard.Test
+
+get_warnings val = Vector.Vector (Warning.get_all val)
+
+type My_Warning reason
+
+type My_Type a b c
+My_Type.my_method = this.a + this.b + this.c
+
+spec = Test.group "Dataflow Warnings" <|
+    Test.specify "should allow to attach multiple warnings and read them back" <|
+        x = 1233
+        y = Warning.attach x "don't do this"
+        z = Warning.attach y "I'm serious"
+        here.get_warnings z . should_equal ["I'm serious", "don't do this"]
+
+    Test.specify "should thread warnings through constructor calls" <|
+        x = Warning.attach 1 (My_Warning "warn!")
+        y = Warning.attach 2 (My_Warning "warn!!")
+        z = Warning.attach 3 (My_Warning "warn!!!")
+        mtp = My_Type x y z
+        mtp.should_equal (My_Type 1 2 3)
+        here.get_warnings mtp . should_equal [My_Warning "warn!", My_Warning "warn!!", My_Warning "warn!!!"]
+
+    Test.specify "should thread warnings through method calls"
+        mtp = My_Type 1 2 3
+        warned = Warning.attach mtp "omgggg"
+        r = warned.my_method
+        r.should_equal 6
+        here.get_warnings r . should_equal ["omgggg"]

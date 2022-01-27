@@ -55,6 +55,14 @@ public class WithWarnings implements TruffleObject {
     }
   }
 
+  public static WithWarnings prependTo(Object target, ArrayRope<Object> warnings) {
+    if (target instanceof WithWarnings) {
+      return new WithWarnings(((WithWarnings) target).warnings.prepend(warnings));
+    } else {
+      return new WithWarnings(target, warnings);
+    }
+  }
+
   @ExportMessage
   boolean hasSpecialDispatch() {
     return true;
