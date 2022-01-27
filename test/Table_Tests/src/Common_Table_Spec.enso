@@ -61,20 +61,77 @@ spec prefix table_builder =
             selector = By_Index [1, 0, 100, 200, 300]
             expect_column_names ["foo", "bar"] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
 
-            err = table.select_columns selector on_problems=Problem_Behavior.Report_Error
-            err . should_fail_with Column_Indexes_Out_Of_Range
-            err.catch . should_equal <| Column_Indexes_Out_Of_Range [100, 200, 300]
+            problem = Column_Indexes_Out_Of_Range [100, 200, 300]
+            res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            res . should_fail_with Missing_Input_Columns
+            res.catch . should_equal [problem]
 
             case Warnings.test_warnings (table.select_columns selector warnings=_) of
                 Pair result warnings ->
                     expect_column_names ["foo", "bar"] result
-                    warnings.should_equal [Column_Indexes_Out_Of_Range [100, 200, 300]]
+                    warnings.should_equal [problem]
 
         Test.specify "should correctly handle problems: unmatched names" <|
-            Nothing
+            weird_name = '.*?-!@#!"'
+            selector = By_Name ["foo", "hmm", weird_name]
+            expect_column_names ["foo"] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
+
+            problem = Missing_Input_Columns ["hmm", weird_name]
+            res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            res . should_fail_with Missing_Input_Columns
+            res.catch . should_equal [problem]
+
+            case Warnings.test_warnings (table.select_columns selector warnings=_) of
+                Pair result warnings ->
+                    expect_column_names ["foo"] result
+                    warnings.should_equal [problem]
 
         Test.specify "should correctly handle problems: unmatched columns" <|
-            Nothing
+            table_2 = table_builder [["foo", Integer, [0,0,0]], ["weird_column", Integer, [0,0,0]]]
+            foo = table_2.at "foo"
+            weird_column = table_2.at "weird_column"
+            bar = table.at "bar"
+
+            selector = By_Column [bar, weird_column, foo]
+            expect_column_names ["bar", "foo"] <| table.select_columns selector reorder=True on_problems=Problem_Behavior.Ignore
+
+            problem = Missing_Input_Columns ["weird_column"]
+            res = table.select_columns selector reorder=True on_problems=Problem_Behavior.Report_Error
+            res . should_fail_with Missing_Input_Columns
+            res.catch . should_equal [problem]
+
+            case Warnings.test_warnings (table.select_columns selector reorder=True warnings=_) of
+                Pair result warnings ->
+                    expect_column_names ["foo"] result
+                    warnings.should_equal [problem]
+                    # also make sure that by column selects the column from the original table, not the one from the input
+                    result.at "foo" . to_vector . should_equal [1,2,3]
 
         Test.specify "should correctly handle problems: no columns in the output" <|
-            Nothing
+            selector = By_Name []
+            expect_column_names [] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
+
+            problem = No_Output_Columns
+            res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            res . should_fail_with No_Output_Columns
+            res.catch . should_equal [problem]
+
+            case Warnings.test_warnings (table.select_columns selector warnings=_) of
+                Pair result warnings ->
+                    expect_column_names [] result
+                    warnings.should_equal [problem]
+
+        Test.specify "should correctly handle multiple problems" <|
+            selector = By_Name ["hmmm"]
+            expect_column_names [] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
+
+            problems = [Missing_Input_Columns ["hmmm"], No_Output_Columns]
+            res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            res . should_fail_with Missing_Input_Columns
+            # TODO not sure if this test should rely on the ordering of the warnings
+            res.catch . should_equal problems.first
+
+            case Warnings.test_warnings (table.select_columns selector warnings=_) of
+                Pair result warnings ->
+                    expect_column_names [] result
+                    warnings.should_equal problems
