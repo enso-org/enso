@@ -251,7 +251,12 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices would refer to the same column, a
+           `Input_Indices_Already_Matched`, indicating that the additional
+           indices will not introduce additional columns.
          - If there are no columns in the output table, a `No_Output_Columns`.
        - warnings: A `Warning_System` instance specifying how to handle
          warnings. This is a temporary workaround to allow for testing the
