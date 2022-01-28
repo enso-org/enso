@@ -22,13 +22,13 @@ from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
      column elements.
 
    TODO [RW] the Any in return type of the builder should ideally be replaced with the Table interface, once that is supported.
-spec : Text -> (Vector -> Any) -> Nothing
-spec prefix table_builder =
+spec : Text -> (Vector -> Any) -> Boolean -> Nothing
+spec prefix table_builder supports_case_sensitive_columns =
     Test.group prefix+"Select" <|
         table =
             col1 = ["foo", Integer, [1,2,3]]
             col2 = ["bar", Integer, [4,5,6]]
-            col3 = ["Bar", Integer, [7,8,9]]
+            col3 = ["Baz", Integer, [7,8,9]]
             col4 = ["foo_1", Integer, [10,11,12]]
             col5 = ["foo_2", Integer, [13,14,15]]
             table_builder [col1, col2, col3, col4, col5]
@@ -38,12 +38,12 @@ spec prefix table_builder =
 
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True))
-            expect_column_names ["bar", "Bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Matching.Regex Matching.Case_Insensitive))
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Matching.Regex Matching.Case_Insensitive))
             expect_column_names ["foo_2", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
 
             column1 = table.at "foo_1"
-            column2 = table.at "Bar"
-            expect_column_names ["Bar", "foo_1"] <| table.select_columns (By_Column [column1, column2])
+            column2 = table.at "Baz"
+            expect_column_names ["Baz", "foo_1"] <| table.select_columns (By_Column [column1, column2])
 
         Test.specify "should allow to reorder columns if asked to" <|
             table_2 = table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True)) reorder=True
@@ -54,8 +54,14 @@ spec prefix table_builder =
         Test.specify "should allow negative indices" <|
             expect_column_names ["foo", "bar", "foo_2"] <| table.select_columns (By_Index [-1, 0, 1])
 
-        Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
-            expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Matching.Exact Matching.Case_Insensitive))
+        if supports_case_sensitive_columns then
+            Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
+                table =
+                    col1 = ["foo", Integer, [1,2,3]]
+                    col2 = ["bar", Integer, [4,5,6]]
+                    col3 = ["Bar", Integer, [7,8,9]]
+                    table_builder [col1, col2, col3]
+                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Matching.Exact Matching.Case_Insensitive))
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] (Matching.Regex True))
