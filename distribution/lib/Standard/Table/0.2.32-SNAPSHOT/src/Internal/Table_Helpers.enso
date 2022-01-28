@@ -48,30 +48,42 @@ select_columns internal_columns selector reorder on_problems warnings =
         By_Name names matching_strategy ->
             ## TODO [RW] Once the proper Warning support is implemented, this passing through of a mock `Warning_System`
                instance will no longer be necessary.
-            closure = warnings->
+            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings warnings->
                 Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
-            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings closure
         By_Index indices ->
             partitioned_indices = indices.partition (here.is_index_valid internal_columns)
-            good_indices = partitioned_indices.first
-            bad_indices = partitioned_indices.second
-            issues = if bad_indices.is_empty then [] else
-                [Column_Indexes_Out_Of_Range bad_indices]
-            result = case reorder of
+            inbound_indices = partitioned_indices.first
+            oob_indices = partitioned_indices.second
+
+            split_result = here.split_to_distinct_and_duplicates inbound_indices
+            duplicate_indices = split_result.second
+            distinct_indices = split_result.first
+
+            resolved_indices = distinct_indices.map ix-> Pair ix (here.resolve_index internal_columns ix)
+            alias_split_result = here.split_to_distinct_and_duplicates resolved_indices .second
+            aliasing_indices = alias_split_result.second.map .first
+            good_indices = alias_split_result.first.map .second
+
+            oob_issues = if oob_indices.is_empty then [] else
+                [Column_Indexes_Out_Of_Range oob_indices]
+            duplicate_issues = if duplicate_indices.is_empty then [] else
+                [Duplicate_Column_Selectors duplicate_indices]
+            aliasing_issues = if aliasing_indices.is_empty then [] else
+                [Input_Indices_Already_Matched aliasing_indices]
+            issues = oob_issues + duplicate_issues + aliasing_issues
+
+            Problem_Behavior_Module.attach_issues_as_needed on_problems issues warnings <| case reorder of
                 True ->
                     here.select_indices_reordering internal_columns good_indices
                 False ->
                     here.select_indices_preserving_order internal_columns good_indices
-            # TODO warn if there are any non-unique columns in result? TODO test cases to illustrate
-            Problem_Behavior_Module.attach_issues_as_needed (result.distinct on=_.name) on_problems issues warnings=warnings
         By_Column columns ->
             names = columns.map .name
-            closure = warnings->
+            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings warnings->
                 Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warnings=warnings
-            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings closure
 
     issues = if result.is_empty then [No_Output_Columns] else []
-    Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings
+    Problem_Behavior_Module.attach_issues_as_needed on_problems issues warnings result
 
 ## PRIVATE
    Selects element from the vector based on the given indices.
@@ -83,14 +95,42 @@ select_indices_reordering vector indices =
 ## PRIVATE
    Selects element from the vector based on the given indices.
 
-   The elements are returned in the same order as they appeared in the original vector.
+   The elements are returned in the same order as they appeared in the original
+   vector.
 select_indices_preserving_order vector indices =
     indices_to_keep = Map.from_vector (indices.map i-> [i, True])
     vector.filter_with_index ix-> _->
         indices_to_keep.get_or_else ix False
 
 ## PRIVATE
+   Returns the actual position in the array that the index points to.
+
+   It resolves negative indices to regular indices.
+
+   If the negative index is sufficiently large, a negative result can still be
+   returned. This function does not ensure that the resulting indices are within
+   bounds.
+resolve_index vector ix =
+    if ix < 0 then vector.length+ix else ix
+
+## PRIVATE
    Checks if the given index is in the valid range for the provided vector.
 is_index_valid vector ix =
-    actual_ix = if ix < 0 then vector.length+ix else ix
+    actual_ix = here.resolve_index vector ix
     actual_ix>=0 && actual_ix<vector.length
+
+type Repeated_Acc distinct_builder duplicate_builder existing
+
+## PRIVATE
+   Splits a vector into elements which are distinct and the duplicates.
+split_to_distinct_and_duplicates : (Any -> Any) -> Vector -> Pair Vector Vector
+split_to_distinct_and_duplicates vector (on = x->x) =
+    acc = vector.fold (Repeated_Acc Vector.new_builder Vector.new_builder Map.empty) acc-> item->
+        key = on item
+        already_present = acc.existing.get_or_else key False
+        case already_present of
+            True ->
+                Repeated_Acc acc.distinct_builder (acc.duplicate_builder.append item) acc.existing
+            False ->
+                Repeated_Acc (acc.distinct_builder.append item) acc.duplicate_builder (acc.existing.insert key True)
+    Pair acc.distinct_builder.to_vector acc.duplicate_builder.to_vector

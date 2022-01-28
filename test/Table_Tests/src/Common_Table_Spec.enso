@@ -50,6 +50,9 @@ spec prefix table_builder =
             table_2 . at "bar" . to_vector . should_equal [4,5,6]
             table_2 . at "foo" . to_vector . should_equal [1,2,3]
 
+        Test.specify "should allow negative indices" <|
+            expect_column_names ["foo", "bar", "foo_2"] <| table.select_columns (By_Index [-1, 0, 1])
+
         Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
             expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Matching.Exact Matching.Case_Insensitive))
 
@@ -64,6 +67,34 @@ spec prefix table_builder =
             problem = Column_Indexes_Out_Of_Range [100, 200, 300]
             res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             res . should_fail_with Column_Indexes_Out_Of_Range
+            res.catch . should_equal problem
+
+            case Warnings.test_warnings (table.select_columns selector warnings=_) of
+                Pair result warnings ->
+                    expect_column_names ["foo", "bar"] result
+                    warnings.should_equal [problem]
+
+        Test.specify "should correctly handle problems: duplicate indices" <|
+            selector = By_Index [0, 0, 0]
+            expect_column_names ["foo"] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
+
+            problem = Duplicate_Column_Selectors [0, 0]
+            res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            res . should_fail_with Duplicate_Column_Selectors
+            res.catch . should_equal problem
+
+            case Warnings.test_warnings (table.select_columns selector warnings=_) of
+                Pair result warnings ->
+                    expect_column_names ["foo"] result
+                    warnings.should_equal [problem]
+
+        Test.specify "should correctly handle problems: aliased indices" <|
+            selector = By_Index [0, -5, -4, 1]
+            expect_column_names ["foo", "bar"] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
+
+            problem = Input_Indices_Already_Matched [-5, 1]
+            res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            res . should_fail_with Input_Indices_Already_Matched
             res.catch . should_equal problem
 
             case Warnings.test_warnings (table.select_columns selector warnings=_) of
@@ -134,4 +165,10 @@ spec prefix table_builder =
             case Warnings.test_warnings (table.select_columns selector warnings=_) of
                 Pair result warnings ->
                     expect_column_names [] result
+                    warnings.should_equal problems
+
+            case Warnings.test_warnings (table.select_columns (By_Index [0, -5, 0, 100]) warnings=_) of
+                Pair result warnings ->
+                    expect_column_names ["foo"] result
+                    problems = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-5]]
                     warnings.should_equal problems

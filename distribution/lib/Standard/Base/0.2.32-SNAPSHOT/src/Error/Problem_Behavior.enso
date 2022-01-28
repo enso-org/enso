@@ -51,7 +51,9 @@ attach_as_needed decorated_value problem_behavior ~payload warnings=Warnings.def
 
    TODO: the Warning_System argument is temporary, as the warning system is
    mocked until the real implementation is shipped. It will be removed soon.
-attach_issues_as_needed : Any -> Problem_Behavior -> Vector -> Warning_System -> Any
-attach_issues_as_needed decorated_value problem_behavior issues warnings=Warnings.default =
-    issues.fold decorated_value value-> issue->
+attach_issues_as_needed : Problem_Behavior -> Vector -> Warning_System -> Any -> Any
+attach_issues_as_needed problem_behavior issues warnings ~decorated_value =
+    aggregated = issues.fold Nothing value-> issue->
         here.attach_as_needed value problem_behavior issue warnings=warnings
+    case aggregated of
+        Nothing -> decorated_value
