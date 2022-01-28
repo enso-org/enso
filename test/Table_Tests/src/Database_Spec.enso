@@ -1,0 +1,14 @@
+from Standard.Base import all
+from Standard.Database import all
+
+import Standard.Test
+
+import project.Common_Table_Spec
+
+sqlite_spec =
+    table_builder columns =
+        Error.throw "TODO"
+
+    #Common_Table_Spec.spec "[SQLite] " table_builder
+
+main = Test.Suite.run_main here.sqlite_spec

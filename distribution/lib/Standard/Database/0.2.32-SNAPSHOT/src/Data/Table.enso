@@ -6,11 +6,16 @@ import Standard.Database.Data.Sql
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
+import Standard.Table.Internal.Table_Helpers
 
 from Standard.Database.Data.Column as Column_Module import all
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Table import No_Such_Column_Error
+from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
+import Standard.Base.Error.Warnings
 
 polyglot java import java.sql.JDBCType
 

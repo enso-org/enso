@@ -5,6 +5,7 @@ from Standard.Table.Error as Error_Module import all
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Error.Warnings
 import Standard.Test
+import Standard.Test.Problems
 
 type Foo_Error
 
@@ -55,18 +56,14 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False matching_strategy=regex . should_equal ["bar", "baz", "zap"]
 
     Test.specify 'Should correctly handle criteria which did not match anything' <|
-        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_problems=Problem_Behavior.Report_Error . should_fail_with No_Matches_Found
-        result = Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column_1", "unknown_column_2"] reorder=False on_problems=Problem_Behavior.Report_Error . catch
-        result . should_equal <| No_Matches_Found ["unknown_column_1", "unknown_column_2"]
+        action = Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True warnings=_ on_problems=_
+        tester = _.should_equal ["baz"]
+        problems = [No_Matches_Found ["unknown_column"]]
+        Problems.test_problem_handling action problems tester
 
-        warnings_builder = Vector.new_builder
-        report_warning warning =
-            warnings_builder.append warning
-        warning_system = Warnings.Warning_System report_warning
-        Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column_1", "unknown_column_2"] reorder=True on_problems=Problem_Behavior.Report_Warning warnings=warning_system . should_equal ["baz"]
-        reported = warnings_builder.to_vector
-        reported.length . should_equal 1
-        reported.first . should_equal <| No_Matches_Found ["unknown_column_1", "unknown_column_2"]
+        action_2 = Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column_1", "unknown_column_2"] reorder=False warnings=_ on_problems=_
+        problems_2 = [No_Matches_Found ["unknown_column_1", "unknown_column_2"]]
+        Problems.test_problem_handling action_2 problems_2 tester
 
     Test.specify 'Should correctly work with complex object using a function extracting their names' <|
         pairs = [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10]
