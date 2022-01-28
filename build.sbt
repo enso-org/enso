@@ -15,12 +15,19 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion  = "2.13.7"
-val graalVersion   = "21.1.0"
-val javaVersion    = "11"
-val ensoVersion    = sys.env.getOrElse("ENSO_VERSION", "0.0.0-LOCAL")  // Note [Engine And Launcher Version]
-val currentEdition = sys.env.getOrElse("ENSO_EDITION", "2021.20-SNAPSHOT") // Note [Default Editions]
-val stdLibVersion  = ensoVersion
+val scalacVersion         = "2.13.7"
+val graalVersion          = "21.1.0"
+val javaVersion           = "11"
+val defaultDevEnsoVersion = "0.0.0-LOCAL"
+val ensoVersion = sys.env.getOrElse(
+  "ENSO_VERSION",
+  defaultDevEnsoVersion
+) // Note [Engine And Launcher Version]
+val currentEdition = sys.env.getOrElse(
+  "ENSO_EDITION",
+  "2021.20-SNAPSHOT"
+) // Note [Default Editions]
+val stdLibVersion = ensoVersion
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -743,13 +750,14 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
         .writeBuildInfoFile(
-          file           = file,
-          log            = state.value.log,
-          ensoVersion    = ensoVersion,
-          scalacVersion  = scalacVersion,
-          graalVersion   = graalVersion,
-          currentEdition = currentEdition,
-          stdLibVersion  = stdLibVersion
+          file                  = file,
+          log                   = state.value.log,
+          ensoVersion           = ensoVersion,
+          defaultDevEnsoVersion = defaultDevEnsoVersion,
+          scalacVersion         = scalacVersion,
+          graalVersion          = graalVersion,
+          currentEdition        = currentEdition,
+          stdLibVersion         = stdLibVersion
         )
     }.taskValue
   )

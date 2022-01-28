@@ -395,11 +395,16 @@ class RuntimeVersionManager(
 
   /** Checks if the component version specified in the release's manifest is
     * compatible with the current installer version.
+    *
+    * Internal development builds skip the compatibility check to allow for
+    * easier testing.
     */
   private def isEngineVersionCompatibleWithThisInstaller(
     manifest: Manifest
   ): Boolean =
-    CurrentVersion.version >= manifest.minimumRequiredVersion
+    if (buildinfo.Info.isInternalDevelopmentBuild) true
+    else
+      CurrentVersion.version >= manifest.minimumRequiredVersion
 
   /** Installs the engine with the provided version.
     *

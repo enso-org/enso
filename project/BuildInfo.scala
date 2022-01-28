@@ -15,6 +15,7 @@ object BuildInfo {
     * @param file location where to write the Scala code
     * @param log a logger instance for diagnostics
     * @param ensoVersion Enso version
+    * @param defaultDevEnsoVersion the default Enso version used in internal development builds
     * @param scalacVersion Scala compiler version used in the project
     * @param graalVersion GraalVM version used in the project
     * @param currentEdition name of the edition associated with the Enso
@@ -26,6 +27,7 @@ object BuildInfo {
     file: File,
     log: ManagedLogger,
     ensoVersion: String,
+    defaultDevEnsoVersion: String,
     scalacVersion: String,
     graalVersion: String,
     currentEdition: String,
@@ -33,6 +35,8 @@ object BuildInfo {
   ): Seq[File] = {
     val gitInfo   = getGitInformation(log).getOrElse(fallbackGitInformation)
     val isRelease = isReleaseMode
+    val isInternalDevelopmentBuild: Boolean =
+      ensoVersion == defaultDevEnsoVersion
     val fileContents =
       s"""
          |package buildinfo
@@ -55,6 +59,7 @@ object BuildInfo {
          |  // Release mode, set to true if the environment variable
          |  // `ENSO_RELEASE_MODE` is set to `true` at build time.
          |  val isRelease = $isRelease
+         |  val isInternalDevelopmentBuild = $isInternalDevelopmentBuild
          |}
          |""".stripMargin
     IO.write(file, fileContents)
