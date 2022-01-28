@@ -82,12 +82,27 @@ spec prefix table_builder =
             problems = [Input_Indices_Already_Matched [-5, 1]]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should correctly handle problems: duplicate names" <|
+            selector = By_Name ["foo", "foo"] (Matching.Exact True)
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             selector = By_Name ["foo", "hmm", weird_name] (Matching.Exact True)
             action = table.select_columns selector warnings=_ on_problems=_
             tester = expect_column_names ["foo"]
             problems = [Missing_Input_Columns ["hmm", weird_name]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate columns" <|
+            foo = table.at "foo"
+            selector = By_Column [foo, foo]
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
