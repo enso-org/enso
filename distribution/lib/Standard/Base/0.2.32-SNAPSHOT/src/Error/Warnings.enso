@@ -4,7 +4,7 @@ from Standard.Base import all
    A placeholder for reporting warnings. It should be replaced once the warning
    mechanism is designed and implemented.
 type Warning_System
-    type Warning_System (warning_callback : Any -> Nothing)
+    type Warning_System (warning_callback : Any -> Nothing) (mapping : Any -> Any)
 
     ## UNSTABLE
        Attaches a warning to a value.
@@ -17,33 +17,48 @@ type Warning_System
             _ ->
                 case warning_payload of
                     _ ->
-                        this.warning_callback warning_payload
+                        this.warning_callback <| this.mapping warning_payload
                         decorated_value
+
+    ## PRIVATE
+    with_mapping : (Any -> Any) -> Warning_System
+    with_mapping new_mapping =
+        Warning_System this.warning_callback (new_mapping << this.mapping)
 
 ## PRIVATE
    The default implementation of a warning system mock.
 
    To be removed once warnings are implemented.
 default : Warning_System
-default = Warning_System warning->
-    IO.println "[WARNING] "+warning.to_display_text
+default =
+    callback = warning->
+        IO.println "[WARNING] "+warning.to_display_text
+    Warning_System callback (x->x)
 
 ## UNSTABLE
    Maps warnings attached to a value.
 
    Currently it is not implemented as the warning system is missing. It just
    returns the original value without changes.
-map_attached_warnings : (Any -> Any) -> Any -> Any
-map_attached_warnings mapper decorated_value =
-    _ = mapper
-    decorated_value
+map_attached_warnings : (Any -> Any) -> Warning_System -> (Warning_System -> Any) -> Any
+map_attached_warnings mapper warnings callback =
+    new_warnings = warnings.with_mapping mapper
+    result = callback new_warnings
+    result
 
 ## UNSTABLE
    An utility function which applies the mapping function both to any attached
    warnings and dataflow errors.
-map_warnings_and_errors : (Any -> Any) -> Any -> Any
-map_warnings_and_errors mapper decorated_value =
-    (here.map_attached_warnings mapper decorated_value) . map_error mapper
+
+   The Warning_System has to be passed through to be able to correctly map the
+   warnings.
+
+   Once the proper Warning system is implemented, the new signature will be:
+       (Any -> Any) -> Any -> Any
+
+map_warnings_and_errors : (Any -> Any) -> Warning_System -> (Warning_System -> Any) -> Any
+map_warnings_and_errors mapper warnings callback =
+    (here.map_attached_warnings mapper warnings callback) . map_error mapper
 
 ## PRIVATE
    A temporary helper for testing warnings.
@@ -54,8 +69,7 @@ map_warnings_and_errors mapper decorated_value =
 test_warnings : (Warning_System -> Any) -> Pair Any (Vector Any)
 test_warnings closure =
     builder = Vector.new_builder
-    warning_system = Warning_System warning->
-        builder.append warning
+    warning_system = Warning_System builder.append (x->x)
     result = closure warning_system
     warnings = builder.to_vector
     Pair result warnings

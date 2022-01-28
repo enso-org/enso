@@ -40,12 +40,17 @@ select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> War
 select_columns internal_columns selector reorder on_problems warnings =
     promote_no_matches_to_missing_columns error = case error of
         Matching.No_Matches_Found criteria -> Missing_Input_Columns criteria
-        _ -> error
+        _ ->
+            IO.println error
+            error
 
     result = case selector of
         By_Name names matching_strategy ->
-            result = Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
-            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns result
+            ## TODO [RW] Once the proper Warning support is implemented, this passing through of a mock `Warning_System`
+               instance will no longer be necessary.
+            closure = warnings->
+                Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
+            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings closure
         By_Index indices ->
             partitioned_indices = indices.partition (here.is_index_valid internal_columns)
             good_indices = partitioned_indices.first
@@ -61,8 +66,9 @@ select_columns internal_columns selector reorder on_problems warnings =
             Problem_Behavior_Module.attach_issues_as_needed (result.distinct on=_.name) on_problems issues warnings=warnings
         By_Column columns ->
             names = columns.map .name
-            result = Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warnings=warnings
-            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns result
+            closure = warnings->
+                Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warnings=warnings
+            Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings closure
 
     issues = if result.is_empty then [No_Output_Columns] else []
     Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings

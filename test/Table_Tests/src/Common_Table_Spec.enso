@@ -23,7 +23,7 @@ from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
    TODO [RW] the Any in return type of the builder should ideally be replaced with the Table interface, once that is supported.
 spec : Text -> (Vector -> Any) -> Nothing
 spec prefix table_builder =
-    Test.group prefix+" Select" <|
+    Test.group prefix+"Select" <|
         table =
             col1 = ["foo", Integer, [1,2,3]]
             col2 = ["bar", Integer, [4,5,6]]
@@ -63,8 +63,8 @@ spec prefix table_builder =
 
             problem = Column_Indexes_Out_Of_Range [100, 200, 300]
             res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
-            res . should_fail_with Missing_Input_Columns
-            res.catch . should_equal [problem]
+            res . should_fail_with Column_Indexes_Out_Of_Range
+            res.catch . should_equal problem
 
             case Warnings.test_warnings (table.select_columns selector warnings=_) of
                 Pair result warnings ->
@@ -73,13 +73,13 @@ spec prefix table_builder =
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
-            selector = By_Name ["foo", "hmm", weird_name]
+            selector = By_Name ["foo", "hmm", weird_name] (Matching.Exact True)
             expect_column_names ["foo"] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
 
             problem = Missing_Input_Columns ["hmm", weird_name]
             res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             res . should_fail_with Missing_Input_Columns
-            res.catch . should_equal [problem]
+            res.catch . should_equal problem
 
             case Warnings.test_warnings (table.select_columns selector warnings=_) of
                 Pair result warnings ->
@@ -98,23 +98,23 @@ spec prefix table_builder =
             problem = Missing_Input_Columns ["weird_column"]
             res = table.select_columns selector reorder=True on_problems=Problem_Behavior.Report_Error
             res . should_fail_with Missing_Input_Columns
-            res.catch . should_equal [problem]
+            res.catch . should_equal problem
 
             case Warnings.test_warnings (table.select_columns selector reorder=True warnings=_) of
                 Pair result warnings ->
-                    expect_column_names ["foo"] result
+                    expect_column_names ["bar", "foo"] result
                     warnings.should_equal [problem]
                     # also make sure that by column selects the column from the original table, not the one from the input
                     result.at "foo" . to_vector . should_equal [1,2,3]
 
         Test.specify "should correctly handle problems: no columns in the output" <|
-            selector = By_Name []
+            selector = By_Name [] (Matching.Exact True)
             expect_column_names [] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
 
             problem = No_Output_Columns
             res = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             res . should_fail_with No_Output_Columns
-            res.catch . should_equal [problem]
+            res.catch . should_equal problem
 
             case Warnings.test_warnings (table.select_columns selector warnings=_) of
                 Pair result warnings ->
@@ -122,7 +122,7 @@ spec prefix table_builder =
                     warnings.should_equal [problem]
 
         Test.specify "should correctly handle multiple problems" <|
-            selector = By_Name ["hmmm"]
+            selector = By_Name ["hmmm"] (Matching.Exact True)
             expect_column_names [] <| table.select_columns selector on_problems=Problem_Behavior.Ignore
 
             problems = [Missing_Input_Columns ["hmmm"], No_Output_Columns]
