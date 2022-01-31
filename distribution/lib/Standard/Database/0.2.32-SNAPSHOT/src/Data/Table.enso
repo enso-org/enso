@@ -138,6 +138,60 @@ type Table
         new_columns = Table_Helpers.select_columns internal_columns=this.internal_columns selector=columns reorder=reorder on_problems=on_problems warnings=warnings
         this.updated_columns new_columns
 
+    ## Returns a new table with the chosen set of columns, as specified by the
+       `columns`, removed from the input table. Any unmatched input columns will
+       be kept in the output. Columns are returned in the same order as in the
+       input.
+
+       Arguments:
+       - columns: Criteria specifying which columns should be removed.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices would refer to the same column, a
+           `Input_Indices_Already_Matched`, indicating that the additional
+           indices will not introduce additional columns.
+         - If there are no columns in the output table, a `No_Output_Columns`.
+       - warnings: A `Warning_System` instance specifying how to handle
+         warnings. This is a temporary workaround to allow for testing the
+         warning mechanism. Once the proper warning system is implemented, this
+         argument will become obsolete and will be removed. No user code should
+         use this argument, as it will be removed in the future.
+
+       > Example
+         Remove columns with given names.
+
+             table.remove_columns (By_Name ["bar", "foo"] (Matching.Exact True))
+
+       ## TODO [RW] default arguments do not work on atoms, once this is fixed,
+          the above should be replaced with just `Matching.Exact`.
+          See: https://github.com/enso-org/enso/issues/1600
+
+       > Example
+         Remove columns matching a regular expression.
+
+             table.remove_columns (By_Name ["foo.+", "b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+
+       > Example
+         Remove the first two columns and the last column.
+
+             table.remove_columns (By_Index [-1, 0, 1])
+
+       > Example
+         Remove columns with the same names as the ones provided.
+
+             table.remove_columns (By_Column [column1, column2])
+    remove_columns : Column_Selector -> Problem_Behavior -> Warnings.Warning_System -> Table
+    remove_columns (columns = By_Index [0]) (on_problems = Report_Warning) (warnings = Warnings.default) =
+        new_columns = Table_Helpers.remove_columns internal_columns=this.internal_columns selector=columns on_problems=on_problems warnings=warnings
+        this.updated_columns new_columns
+
     ## PRIVATE
 
        Resolves the column name to a column within this table.

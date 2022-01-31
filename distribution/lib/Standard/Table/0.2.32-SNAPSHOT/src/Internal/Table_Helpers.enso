@@ -71,7 +71,7 @@ remove_columns internal_columns selector on_problems warnings =
         should_be_removed = selected_names.get_or_else column.name False
         should_be_removed.not
     issues = if result.is_empty then [No_Output_Columns] else []
-    Problem_Behavior_Module.attach_issues_as_needed on_problems issues warnings result
+    on_problems.attach_problems_after result issues warnings
 
 ## PRIVATE
    A helper function which selects columns from the table based on the provided
