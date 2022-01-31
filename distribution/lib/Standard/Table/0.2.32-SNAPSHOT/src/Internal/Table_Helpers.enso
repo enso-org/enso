@@ -51,9 +51,9 @@ select_columns internal_columns selector reorder on_problems warnings =
             split_result = here.split_to_distinct_and_duplicates names
             distinct_names = split_result.first
             duplicate_names = split_result.second
-            issues = if duplicate_names.is_empty then [] else
+            problems = if duplicate_names.is_empty then [] else
                 [Duplicate_Column_Selectors duplicate_names]
-            Problem_Behavior_Module.attach_issues_as_needed on_problems issues warnings <|
+            on_problems.attach_problems_before problems warnings <|
                 Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings warnings->
                     Matching.match_criteria internal_columns distinct_names reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
         By_Index indices ->
@@ -70,32 +70,26 @@ select_columns internal_columns selector reorder on_problems warnings =
             aliasing_indices = alias_split_result.second.map .first
             good_indices = alias_split_result.first.map .second
 
-            oob_issues = if oob_indices.is_empty then [] else
+            oob_problems = if oob_indices.is_empty then [] else
                 [Column_Indexes_Out_Of_Range oob_indices]
-            duplicate_issues = if duplicate_indices.is_empty then [] else
+            duplicate_problems = if duplicate_indices.is_empty then [] else
                 [Duplicate_Column_Selectors duplicate_indices]
-            aliasing_issues = if aliasing_indices.is_empty then [] else
+            aliasing_problems = if aliasing_indices.is_empty then [] else
                 [Input_Indices_Already_Matched aliasing_indices]
-            issues = oob_issues + duplicate_issues + aliasing_issues
+            problems = oob_problems + duplicate_problems + aliasing_problems
 
-            Problem_Behavior_Module.attach_issues_as_needed on_problems issues warnings <| case reorder of
+            on_problems.attach_problems_before problems warnings <| case reorder of
                 True ->
                     here.select_indices_reordering internal_columns good_indices
                 False ->
                     here.select_indices_preserving_order internal_columns good_indices
         By_Column columns ->
-            split_result = here.split_to_distinct_and_duplicates columns .name
-            distinct_columns = split_result.first
-            duplicate_column_names = split_result.second . map .name
-            issues = if duplicate_column_names.is_empty then [] else
-                [Duplicate_Column_Selectors duplicate_column_names]
-            Problem_Behavior_Module.attach_issues_as_needed on_problems issues warnings <|
-                names = distinct_columns.map .name
-                Warnings.map_warnings_and_errors promote_no_matches_to_missing_columns warnings warnings->
-                    Matching.match_criteria internal_columns names reorder=reorder name_mapper=(_.name) matching_strategy=(Matching.Exact case_sensitivity=True) on_problems=on_problems warnings=warnings
+            column_names = columns.map .name
+            new_selector = By_Name column_names (Matching.Exact case_sensitivity=True)
+            here.select_columns internal_columns new_selector reorder=reorder on_problems=on_problems warnings=warnings
 
-    issues = if result.is_empty then [No_Output_Columns] else []
-    Problem_Behavior_Module.attach_issues_as_needed on_problems issues warnings result
+    problems = if result.is_empty then [No_Output_Columns] else []
+    on_problems.attach_problems_after result problems warnings
 
 ## PRIVATE
    Selects element from the vector based on the given indices.

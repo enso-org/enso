@@ -20,6 +20,16 @@ type Warning_System
                         this.warning_callback <| this.mapping warning_payload
                         decorated_value
 
+    ## UNSTABLE
+       Attaches multiple warnings to a value.
+
+       If the warning argument holds a dataflow error, the error is also
+       inherited by the decorated value.
+    attach_many : Any -> Vector -> Any
+    attach_many decorated_value warnings =
+        warnings.fold decorated_value acc-> warning->
+            this.attach acc warning
+
     ## PRIVATE
     with_mapping : (Any -> Any) -> Warning_System
     with_mapping new_mapping =
