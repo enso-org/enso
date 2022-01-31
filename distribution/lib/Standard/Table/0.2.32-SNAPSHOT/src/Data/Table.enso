@@ -269,7 +269,9 @@ type Table
 
              table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True))
 
-       # TODO [RW] default arguments do not work on atoms, once this is fixed, the above `Matching.Exact` can be removed as it is defaulted
+       ## TODO [RW] default arguments do not work on atoms, once this is fixed,
+          the above should be replaced with just `Matching.Exact`.
+          See: https://github.com/enso-org/enso/issues/1600
 
        > Example
          Select columns matching a regular expression.

@@ -12,7 +12,6 @@ from Standard.Database.Data.Column as Column_Module import all
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Table import No_Such_Column_Error
-from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
 import Standard.Base.Error.Warnings
@@ -115,7 +114,10 @@ type Table
 
              table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True))
 
-       # TODO [RW] default arguments do not work on atoms, once this is fixed, the above should be replaced with just `Matching.Exact`
+       ## TODO [RW] default arguments do not work on atoms, once this is fixed,
+          the above should be replaced with just `Matching.Exact`.
+          See: https://github.com/enso-org/enso/issues/1600
+
 
        > Example
          Select columns matching a regular expression.

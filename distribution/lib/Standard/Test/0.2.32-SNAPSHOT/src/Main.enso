@@ -163,6 +163,8 @@ Any.should_fail_with matcher frames_to_skip=0 =
 
    Arguments:
    - matcher: The expected type of dataflow error contained in `this`.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
 
    > Example
      Assert that a compuation should return an error of a given type.
@@ -244,6 +246,8 @@ Error.should_equal _ = Panic.throw (Matched_On_Error this)
    Arguments:
    - that: The value to compare `this` for equality with.
    - epsilon: The epislon for comparing two decimal numbers.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
 
    > Example
      Compare two decimal values.

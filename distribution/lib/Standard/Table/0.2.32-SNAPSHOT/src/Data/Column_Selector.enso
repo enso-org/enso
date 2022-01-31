@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Matching import all
+from Standard.Table.Data.Matching import Matching_Strategy, Exact
 
 ## Specifies a selection of columns from the table on which an operation is
    going to be performed.
