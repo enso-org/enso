@@ -70,8 +70,6 @@ select_columns internal_columns selector reorder on_problems warnings =
 select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Vector
 select_columns_helper internal_columns selector reorder on_problems warnings = case selector of
     By_Name names matching_strategy ->
-        ## TODO [RW] Once the proper Warning support is implemented, this passing through of a mock `Warning_System`
-           instance will no longer be necessary.
         split_result = here.split_to_distinct_and_duplicates names
         distinct_names = split_result.first
         duplicate_names = split_result.second
