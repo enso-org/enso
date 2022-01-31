@@ -27,6 +27,9 @@ foreign js generate_js_array = """
 
 spec = Test.group "Vectors" <|
 
+    Test.specify "text bytes" <|
+        "Lore".utf_8 . should_equal [76, 111, 114, 101]
+
     Test.specify "should allow vector creation with a programmatic constructor" <|
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
 
