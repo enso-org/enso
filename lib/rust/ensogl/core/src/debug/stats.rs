@@ -137,9 +137,11 @@ impl StatsData {
     fn end_frame(&mut self, time: f64) {
         self.frame_time = time - self.frame_begin_time;
 
-        let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
-        let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
-        self.wasm_memory_usage = buffer.byte_length();
+        if cfg!(target_arch = "wasm32") {
+            let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
+            let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
+            self.wasm_memory_usage = buffer.byte_length();
+        }
     }
 
     fn reset_per_frame_statistics(&mut self) {
