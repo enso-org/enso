@@ -6,8 +6,6 @@ use crate::debug::stats::Stats;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 
-use js_sys::ArrayBuffer;
-use js_sys::WebAssembly::Memory;
 use std::collections::VecDeque;
 use std::f64;
 use wasm_bindgen;
@@ -402,11 +400,6 @@ impl Panel {
         self.rc.borrow_mut().draw(dom)
     }
 
-    /// Start measuring the data.
-    pub fn begin(&self) {
-        self.rc.borrow_mut().begin()
-    }
-
     /// Stop measuring the data.
     pub fn end(&self) {
         self.rc.borrow_mut().end()
@@ -476,12 +469,6 @@ pub trait Sampler: Debug {
     /// Label of the sampler in the monitor window.
     fn label(&self) -> &str;
 
-    /// Function which should be run on the beginning of the code we want to measure.
-    fn begin(&mut self, _time: f64) {}
-
-    /// Function which should be run on the end of the code we want to measure.
-    fn end(&mut self, _time: f64) {}
-
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
     fn value(&self) -> f64;
 
@@ -538,7 +525,6 @@ pub trait Sampler: Debug {
 #[derive(Debug)]
 pub struct PanelData {
     label:       String,
-    performance: web::Performance,
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
@@ -559,7 +545,6 @@ impl PanelData {
     /// Constructor.
     pub fn new<S: Sampler + 'static>(config: SamplerConfig, sampler: S) -> Self {
         let label = sampler.label().into();
-        let performance = web::performance();
         let min_value = f64::INFINITY;
         let max_value = f64::NEG_INFINITY;
         let begin_value = default();
@@ -572,7 +557,6 @@ impl PanelData {
         let precision = sampler.precision();
         Self {
             label,
-            performance,
             config,
             min_value,
             max_value,
@@ -592,16 +576,8 @@ impl PanelData {
 // === Begin / End ===
 
 impl PanelData {
-    /// Start measuring the data.
-    pub fn begin(&mut self) {
-        let time = self.performance.now();
-        self.sampler.begin(time);
-    }
-
     /// Stop measuring the data.
     pub fn end(&mut self) {
-        let time = self.performance.now();
-        self.sampler.end(time);
         self.value_check = self.sampler.check();
         self.value = self.sampler.value();
         self.clamp_value();
@@ -732,67 +708,20 @@ impl PanelData {
 // === Samplers ====================================================================================
 // =================================================================================================
 
-// =================
-// === FrameTime ===
-// =================
-
-/// Sampler measuring the time for a given operation.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct FrameTime {
-    begin_time:  f64,
-    value:       f64,
-    value_check: ValueCheck,
-}
-
-impl FrameTime {
-    /// Constructor
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-const FRAME_TIME_WARNING_THRESHOLD: f64 = 1000.0 / 55.0;
-const FRAME_TIME_ERROR_THRESHOLD: f64 = 1000.0 / 25.0;
-
-impl Sampler for FrameTime {
-    fn label(&self) -> &str {
-        "Frame time (ms)"
-    }
-    fn value(&self) -> f64 {
-        self.value
-    }
-    fn check(&self) -> ValueCheck {
-        self.value_check
-    }
-    fn begin(&mut self, time: f64) {
-        self.begin_time = time;
-    }
-    fn end(&mut self, time: f64) {
-        let end_time = time;
-        self.value = end_time - self.begin_time;
-        self.value_check =
-            self.check_by_threshold(FRAME_TIME_WARNING_THRESHOLD, FRAME_TIME_ERROR_THRESHOLD);
-    }
-}
-
-
-
 // ===========
 // === Fps ===
 // ===========
 
 /// Sampler measuring the frames per second count for a given operation.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Fps {
-    begin_time:  f64,
-    value:       f64,
-    value_check: ValueCheck,
+    stats: Stats,
 }
 
 impl Fps {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new(stats: &Stats) -> Self {
+        Self { stats: stats.clone() }
     }
 }
 
@@ -804,66 +733,18 @@ impl Sampler for Fps {
         "Frames per second"
     }
     fn value(&self) -> f64 {
-        self.value
+        self.stats.fps()
     }
     fn check(&self) -> ValueCheck {
-        self.value_check
+        if self.stats.frame_counter() > 1 {
+            self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD)
+        } else {
+            // On the first frame, the FPS will be 0, which in (only) this case is a correct value.
+            ValueCheck::Correct
+        }
     }
     fn max_value(&self) -> Option<f64> {
         Some(60.0)
-    }
-    fn begin(&mut self, time: f64) {
-        if self.begin_time > 0.0 {
-            let end_time = time;
-            self.value = 1000.0 / (end_time - self.begin_time);
-            self.value_check = self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD);
-        }
-        self.begin_time = time;
-    }
-}
-
-
-
-// ==================
-// === WasmMemory ===
-// ==================
-
-/// Sampler measuring the memory usage of the WebAssembly part of the program.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct WasmMemory {
-    value:       f64,
-    value_check: ValueCheck,
-}
-
-impl WasmMemory {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-const WASM_MEM_WARNING_THRESHOLD: f64 = 50.0;
-const WASM_MEM_ERROR_THRESHOLD: f64 = 100.0;
-
-impl Sampler for WasmMemory {
-    fn label(&self) -> &str {
-        "WASM memory usage (Mb)"
-    }
-    fn value(&self) -> f64 {
-        self.value
-    }
-    fn check(&self) -> ValueCheck {
-        self.value_check
-    }
-    fn min_size(&self) -> Option<f64> {
-        Some(100.0)
-    }
-    fn end(&mut self, _time: f64) {
-        let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
-        let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
-        self.value = (buffer.byte_length() as f64) / (1024.0 * 1024.0);
-        self.value_check =
-            self.check_by_threshold(WASM_MEM_WARNING_THRESHOLD, WASM_MEM_ERROR_THRESHOLD);
     }
 }
 
@@ -896,6 +777,9 @@ macro_rules! stats_sampler {
                 $label
             }
             fn value(&self) -> f64 {
+                // Disable lint warning for cases when `$stats_method()` is f64, making
+                // `$stats_method() as f64` a trivial cast of a f64 value to f64.
+                #![allow(trivial_numeric_casts)]
                 self.stats.$stats_method() as f64 / $value_divisor
             }
             fn min_size(&self) -> Option<f64> {
@@ -913,6 +797,8 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
+stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
+stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
 stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
 stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0);
 stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0);

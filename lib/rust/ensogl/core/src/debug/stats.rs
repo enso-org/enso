@@ -2,7 +2,11 @@
 //! an amazing tool for debugging what is really happening under the hood and understanding the
 //! performance characteristics.
 
-use crate::prelude::*;
+use enso_prelude::*;
+
+use js_sys::ArrayBuffer;
+use js_sys::WebAssembly::Memory;
+use wasm_bindgen::JsCast;
 
 
 
@@ -24,10 +28,35 @@ impl Default for Stats {
 }
 
 impl Stats {
+    /// Starts tracking data for a new animation frame.
+    /// Also, calculates the `fps` stat and updates `frame_counter`.
+    pub fn begin_frame(&self, time: f64) {
+        self.rc.borrow_mut().begin_frame(time);
+    }
+
+    /// Ends tracking data for the current animation frame.
+    /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
+    pub fn end_frame(&self, time: f64) {
+        self.rc.borrow_mut().end_frame(time);
+    }
+
     /// Resets the per-frame statistics.
     pub fn reset_per_frame_statistics(&self) {
         self.rc.borrow_mut().reset_per_frame_statistics();
     }
+
+    /// Field getter. Returns the ordinal number of the current animation frame.
+    pub fn frame_counter(&self) -> u64 {
+        self.rc.borrow().frame_counter
+    }
+}
+
+/// Emits the 2nd argument only if the 1st argument is an integer type. A helper macro for
+/// gen_stats!, supports only the types currently used with gen_stats!.
+macro_rules! emit_if_integer {
+    (u32, $($block:tt)*) => ($($block)*);
+    (usize, $($block:tt)*) => ($($block)*);
+    (f64, $($block:tt)*) => ();
 }
 
 macro_rules! gen_stats {
@@ -35,6 +64,8 @@ macro_rules! gen_stats {
 
         #[derive(Debug,Default,Clone,Copy)]
         struct StatsData {
+            frame_begin_time: f64,
+            frame_counter:    u64,
             $($field : $field_type),*
         }
 
@@ -56,21 +87,26 @@ macro_rules! gen_stats {
                 self.[<set _ $field>](value);
             }
 
-            /// Increments field's value.
-            pub fn [<inc _ $field>](&self) {
-                self.[<mod _ $field>](|t| t+1);
-            }
+            emit_if_integer!($field_type,
+                /// Increments field's value.
+                pub fn [<inc _ $field>](&self) {
+                    self.[<mod _ $field>](|t| t + 1);
+                }
 
-            /// Decrements field's value.
-            pub fn [<dec _ $field>](&self) {
-                self.[<mod _ $field>](|t| t-1);
-            }
+                /// Decrements field's value.
+                pub fn [<dec _ $field>](&self) {
+                    self.[<mod _ $field>](|t| t - 1);
+                }
+            );
 
         )* }
     }};
 }
 
 gen_stats! {
+    frame_time           : f64,
+    fps                  : f64,
+    wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_call_count      : usize,
     buffer_count         : usize,
@@ -84,7 +120,28 @@ gen_stats! {
     shader_compile_count : usize,
 }
 
+
+// === StatsData methods ===
+
 impl StatsData {
+    fn begin_frame(&mut self, time: f64) {
+        self.frame_counter += 1;
+
+        if self.frame_begin_time > 0.0 {
+            let end_time = time;
+            self.fps = 1000.0 / (end_time - self.frame_begin_time);
+        }
+        self.frame_begin_time = time;
+    }
+
+    fn end_frame(&mut self, time: f64) {
+        self.frame_time = time - self.frame_begin_time;
+
+        let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
+        let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
+        self.wasm_memory_usage = buffer.byte_length();
+    }
+
     fn reset_per_frame_statistics(&mut self) {
         self.draw_call_count = 0;
         self.shader_compile_count = 0;
