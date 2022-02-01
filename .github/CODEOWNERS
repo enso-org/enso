@@ -13,7 +13,7 @@ Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
 # GUI
 /run @MichaelMauderer @wdanilo
 /build/ @MichaelMauderer @wdanilo
-/app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow
+/app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow @jdunkerley
 /app/gui/view/ @MichaelMauderer @wdanilo @farmaazon
 /app/ide-desktop/ @MichaelMauderer @wdanilo
 
