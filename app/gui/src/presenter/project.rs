@@ -9,7 +9,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
-use ide_view::project::ComponentBrowserOpenReason;
+use ide_view::graph_editor::NodeId;
 
 
 // =============
@@ -65,7 +65,7 @@ impl Model {
         }
     }
 
-    fn setup_searcher_presenter(&self, way_of_opening_searcher: ComponentBrowserOpenReason) {
+    fn setup_searcher_presenter(&self, node_id: NodeId, source_node: Option<NodeId>) {
         let new_presenter = presenter::Searcher::setup_controller(
             &self.logger,
             self.ide_controller.clone_ref(),
@@ -73,7 +73,8 @@ impl Model {
             self.graph_controller.clone_ref(),
             &self.graph,
             self.view.clone_ref(),
-            way_of_opening_searcher,
+            node_id,
+            source_node,
         );
         match new_presenter {
             Ok(searcher) => {
@@ -185,8 +186,8 @@ impl Project {
         let graph_view = &model.view.graph().frp;
 
         frp::extend! { network
-            eval view.searcher_opened ((way_of_opening_searcher) {
-                model.setup_searcher_presenter(*way_of_opening_searcher)
+            eval view.searcher_opened (((node, source_node)) {
+                model.setup_searcher_presenter(*node, *source_node)
             });
 
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {

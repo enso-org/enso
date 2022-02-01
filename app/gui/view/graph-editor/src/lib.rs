@@ -579,6 +579,7 @@ ensogl::define_endpoints! {
         // === Other ===
         // FIXME: To be refactored
 
+        on_node_added_with_known_source (NodeId, NodeId),
         node_added                (NodeId),
         node_removed              (NodeId),
         nodes_collapsed           ((Vec<NodeId>,NodeId)),
@@ -1743,6 +1744,12 @@ impl GraphEditorModel {
 // === Connect ===
 
 impl GraphEditorModel {
+    fn edge_source_node_id(&self, edge_id: EdgeId) -> Option<NodeId> {
+        let edge = self.edges.get_cloned_ref(&edge_id)?;
+        let endpoint = edge.source()?;
+        Some(endpoint.node_id)
+    }
+
     fn set_edge_source(&self, edge_id: EdgeId, target: impl Into<EdgeEndpoint>) {
         let target = target.into();
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
@@ -2692,14 +2699,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ======================
 
     frp::extend! { network
-    // add_node_and_edit -> (add_node_at_cursor OR add_node_below) -> open_searcher
-    // edge_drop -> add_node_at_cursor -> open_searcher
-    // add_node
     selected_node <- inputs.add_node_and_edit.map(f_!(model.nodes.selected.first_cloned()));
-    //is_node_selected <- selected_node.map((node) node.is_some());
     add_node_below <- selected_node.filter_map(|selected| *selected);
     add_node_and_edit_at_cursor <- selected_node.filter(|selected| selected.is_none()).constant(());
     eval add_node_below ((node) model.add_node_below_and_edit(*node));
+
+    source_node_of_dropped_edge <- edge_dropped_to_create_node.map(f!((edge_id) model.edge_source_node_id(*edge_id)));
+
+    source_node <- any(selected_node, source_node_of_dropped_edge);
 
     on_edge_drop_to_create_node <- edge_dropped_to_create_node.constant(());
     add_node_at_cursor <- any(on_edge_drop_to_create_node, inputs.add_node_at_cursor, add_node_and_edit_at_cursor);
@@ -2717,6 +2724,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         model.new_node(&ctx)
     }));
     out.source.node_added <+ new_node;
+
+    // TODO: trigger node_added_with_known_source iff both new_node and source_node fired
+    //out.source.on_node_added_with_known_source <+ node_with_source;
 
     // === Event Propagation ===
     // See the docs of `Node` to learn about how the graph - nodes event propagation works.
