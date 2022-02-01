@@ -18,14 +18,14 @@ import java.io.File
 val scalacVersion         = "2.13.7"
 val graalVersion          = "21.1.0"
 val javaVersion           = "11"
-val defaultDevEnsoVersion = "0.0.0-LOCAL"
+val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
   defaultDevEnsoVersion
 ) // Note [Engine And Launcher Version]
 val currentEdition = sys.env.getOrElse(
   "ENSO_EDITION",
-  "2021.20-SNAPSHOT"
+  defaultDevEnsoVersion
 ) // Note [Default Editions]
 val stdLibVersion = ensoVersion
 
