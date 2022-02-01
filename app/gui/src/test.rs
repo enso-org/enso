@@ -296,15 +296,14 @@ pub mod mock {
             );
             let executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
-            let selected_nodes = Vec::new();
-            let searcher_mode = controller::searcher::Mode::NewNode { position: None };
+            let searcher_mode =
+                controller::searcher::Mode::NewNode { position: None, source_node: None };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),
                 &project,
                 executed_graph.clone_ref(),
                 searcher_mode,
-                selected_nodes,
             )
             .unwrap();
             Fixture {

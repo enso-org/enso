@@ -304,9 +304,11 @@ impl Display for ParsedInput {
 
 /// Information about a node that is used as a `this` argument.
 ///
-/// When searcher is brought up with a node selected, the node will be used as "this". This affects
-/// suggestions for the first completion (to include methods of the node's returned value) and the
-/// code inserted when the input is committed.
+/// "This" node is either:
+/// 1. A node that was selected when the searcher was brought up.
+/// 2. A source node of the connection that was dropped on the scene to create a new node.
+/// This affects suggestions for the first completion (to include methods of the node's returned
+/// value) and the code inserted when the input is committed.
 #[derive(Clone, Debug)]
 pub struct ThisNode {
     /// Identifier of the node that will be connected if the initial suggestion is picked.
@@ -318,15 +320,11 @@ pub struct ThisNode {
 }
 
 impl ThisNode {
-    /// Retrieve information about the `self` node. The first selected node will be used for this.
+    /// Retrieve information about the `self` node.
     ///
     /// Returns `None` if the given node's information cannot be retrieved or if the node does not
     /// introduce a variable.
-    pub fn new(
-        nodes: Vec<double_representation::node::Id>,
-        graph: &controller::Graph,
-    ) -> Option<Self> {
-        let id = *nodes.first()?;
+    pub fn new(id: double_representation::node::Id, graph: &controller::Graph) -> Option<Self> {
         let node = graph.node(id).ok()?;
         let (var, needs_to_introduce_pattern) = if let Some(ast) = node.info.pattern() {
             // TODO [mwu]
@@ -364,8 +362,9 @@ impl ThisNode {
 #[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
 pub enum Mode {
-    /// Searcher should add a new node at given position.
-    NewNode { position: Option<Position> },
+    /// Searcher should add a new node at a given position. `source_node` is either a selected node
+    /// or a node from which the connection was dragged out before being dropped at the scene.
+    NewNode { position: Option<Position>, source_node: Option<ast::Id> },
     /// Searcher should edit existing node's expression.
     EditNode { node_id: ast::Id },
 }
@@ -488,10 +487,9 @@ impl Searcher {
         project: &model::Project,
         method: language_server::MethodPointer,
         mode: Mode,
-        selected_nodes: Vec<double_representation::node::Id>,
     ) -> FallibleResult<Self> {
         let graph = controller::ExecutedGraph::new(&parent, project.clone_ref(), method).await?;
-        Self::new_from_graph_controller(parent, ide, project, graph, mode, selected_nodes)
+        Self::new_from_graph_controller(parent, ide, project, graph, mode)
     }
 
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
@@ -501,7 +499,6 @@ impl Searcher {
         project: &model::Project,
         graph: controller::ExecutedGraph,
         mode: Mode,
-        selected_nodes: Vec<double_representation::node::Id>,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
         let logger = Logger::new_sub(parent, "Searcher Controller");
@@ -521,10 +518,10 @@ impl Searcher {
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
         let module_repr: enso_text::Text = module_ast.repr().into();
         let position = module_repr.location_of_byte_offset_snapped(def_span.end);
-        let this_arg = Rc::new(
-            matches!(mode, Mode::NewNode { .. })
-                .and_option_from(|| ThisNode::new(selected_nodes, &graph.graph())),
-        );
+        let this_arg = Rc::new(match mode {
+            Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
+            _ => None,
+        });
         let ret = Self {
             logger,
             graph,
@@ -657,7 +654,7 @@ impl Searcher {
                 self.commit_node().map(Some)
             }
             Action::Example(example) => match *self.mode {
-                Mode::NewNode { position } => self.add_example(&example, position).map(Some),
+                Mode::NewNode { position, .. } => self.add_example(&example, position).map(Some),
                 _ => Err(CannotExecuteWhenEditingNode.into()),
             },
             Action::ProjectManagement(action) => {
@@ -739,7 +736,7 @@ impl Searcher {
         // We add the required imports before we create the node/edit its content. This way, we
         // avoid an intermediate state where imports would already be in use but not yet available.
         match *self.mode {
-            Mode::NewNode { position } => {
+            Mode::NewNode { position, .. } => {
                 self.add_required_imports()?;
                 let (expression, intended_method) = expr_and_method();
                 let metadata = NodeMetadata { position, intended_method, ..default() };
@@ -1257,7 +1254,7 @@ pub mod test {
             let code_range = enso_text::Location::default()..=end_of_code;
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
-            let this = ThisNode::new(vec![node.info.id()], &graph.graph());
+            let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
             let database = Rc::new(SuggestionDatabase::new_empty(&logger));
@@ -1283,7 +1280,7 @@ pub mod test {
                 ide: Rc::new(ide),
                 data: default(),
                 notifier: default(),
-                mode: Immutable(Mode::NewNode { position: default() }),
+                mode: Immutable(Mode::NewNode { position: default(), source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
@@ -1854,7 +1851,7 @@ pub mod test {
             });
 
             // Add new node.
-            searcher.mode = Immutable(Mode::NewNode { position: None });
+            searcher.mode = Immutable(Mode::NewNode { position: None, source_node: None });
             searcher.commit_node().unwrap();
 
             let module_info = module.info();
@@ -1892,7 +1889,7 @@ pub mod test {
 
         // Add new node.
         let position = Some(Position::new(4.0, 5.0));
-        searcher.mode = Immutable(Mode::NewNode { position });
+        searcher.mode = Immutable(Mode::NewNode { position, source_node: None });
         searcher.commit_node().unwrap();
 
         let expected_code =

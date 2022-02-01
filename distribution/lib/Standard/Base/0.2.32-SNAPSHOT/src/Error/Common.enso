@@ -12,3 +12,15 @@ type Illegal_State_Error
          performed.
        - cause: (optional) another error that is the cause of this one.
     type Illegal_State_Error message cause=Nothing
+
+type Illegal_Argument_Error
+
+    ## UNSTABLE
+
+       A generic error that indicates that the provided argument is not valid
+       for the operation.
+
+       Arguments:
+       - message: the error message explaining why the argument is illegal.
+       - cause: (optional) another error that is the cause of this one.
+    type Illegal_Argument_Error message cause=Nothing
