@@ -8,6 +8,12 @@
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
 
+#### Enso Compiler
+
+- [Added overloaded `from` conversions.][3227]
+
+[3227]: https://github.com/enso-org/enso/pull/3227
+
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
