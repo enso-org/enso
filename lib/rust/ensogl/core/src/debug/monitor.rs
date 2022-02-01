@@ -953,6 +953,7 @@ mod tests {
         t += 10.0;
         sampler.end(t);
         assert_approx_eq!(sampler.value(), 10.0);
+        assert!(matches!(sampler.check(), ValueCheck::Correct));
         t += 6.0;
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
@@ -961,14 +962,23 @@ mod tests {
         t += 5.0;
         sampler.end(t);
         assert_approx_eq!(sampler.value(), 5.0);
+        assert!(matches!(sampler.check(), ValueCheck::Correct));
         t += 11.0;
 
-        // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
+        // Frame 3: simulate we went over the budget of 16.6(6) ms, at 30ms. No extra delay
         // afterwards before starting next frame.
         sampler.begin(t);
-        t += 20.0;
+        t += 30.0;
         sampler.end(t);
-        assert_approx_eq!(sampler.value(), 20.0);
+        assert_approx_eq!(sampler.value(), 30.0);
+        assert!(matches!(sampler.check(), ValueCheck::Warning));
+
+        // Frame 4: simulate a really slow frame (1000ms), crossing the configured error threshold.
+        sampler.begin(t);
+        t += 1000.0;
+        sampler.end(t);
+        assert_approx_eq!(sampler.value(), 1000.0);
+        assert!(matches!(sampler.check(), ValueCheck::Error));
     }
 
     #[test]
