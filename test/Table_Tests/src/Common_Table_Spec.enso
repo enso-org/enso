@@ -7,6 +7,7 @@ import Standard.Base.Error.Warnings
 import Standard.Table.Data.Matching
 from Standard.Table.Error as Table_Errors import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
+from Standard.Table.Data.Position as Position_Module import all
 
 ## A common test suite for shared operations on the Table API.
 
@@ -259,3 +260,100 @@ spec prefix table_builder supports_case_sensitive_columns =
             problems_2 = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
             tester_2 = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             Problems.test_problem_handling action_2 problems_2 tester_2
+
+    Test.group prefix+"Table.reorder_columns" <|
+        Test.specify "should work as shown in the doc examples" <|
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name ["foo"] (Matching.Exact True)) position=After_Other_Columns
+            expect_column_names ["foo_1", "foo_2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["foo.+", "b.*"] (Matching.Regex Matching.Case_Insensitive))
+            expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Index [1, 0]) position=Before_Other_Columns
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Index [0]) position=After_Other_Columns
+
+            column1 = table.at "foo_1"
+            column2 = table.at "Baz"
+            expect_column_names ["foo_1", "Baz", "foo", "bar", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Column [column1, column2])
+
+        Test.specify "should correctly handle regex matching" <|
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name ["foo"] (Matching.Regex True)) position=After_Other_Columns
+            rest = ["foo", "bar", "Baz", "foo_1", "foo_2"]
+            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns (By_Name ["a.*"] (Matching.Regex True))
+            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns (By_Name ["ab.+123"] (Matching.Regex True))
+            expect_column_names ["ab.+123"]+rest+["abcd123"] <| table.reorder_columns (By_Name ["ab.+123"] (Matching.Exact True))
+            expect_column_names ["abcd123"]+rest+["ab.+123"] <| table.reorder_columns (By_Name ["abcd123"] (Matching.Regex True))
+
+        Test.specify "should allow negative indices" <|
+            expect_column_names ["abcd123", "foo_2", "foo", "bar", "Baz", "foo_1", "ab.+123"] <| table.reorder_columns (By_Index [-1, -3, 0, 1])
+
+        if supports_case_sensitive_columns then
+            Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
+                table =
+                    col1 = ["foo", Integer, [1,2,3]]
+                    col2 = ["bar", Integer, [4,5,6]]
+                    col3 = ["Bar", Integer, [7,8,9]]
+                    table_builder [col1, col2, col3]
+                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] (Matching.Exact Matching.Case_Insensitive))
+
+        Test.specify "should correctly handle regexes matching multiple names" <|
+            expect_column_names ["bar", "foo", "foo_1", "foo_2", "Baz", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["b.*", "f.+"] (Matching.Regex True))
+
+        Test.specify "should correctly handle problems: out of bounds indices" <|
+            selector = By_Index [1, 0, 100, -200, 300]
+            action = table.reorder_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+            problems = [Column_Indexes_Out_Of_Range [100, -200, 300]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate indices" <|
+            selector = By_Index [0, 0, 0]
+            action = table.reorder_columns selector position=After_Other_Columns warnings=_ on_problems=_
+            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
+            problems = [Duplicate_Column_Selectors [0, 0]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: aliased indices" <|
+            selector = By_Index [0, -7, -6, 1]
+            action = table.reorder_columns selector position=After_Other_Columns warnings=_ on_problems=_
+            tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo", "bar"]
+            problems = [Input_Indices_Already_Matched [-7, 1]]
+            Problems.test_problem_handling action problems tester
+
+        # ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+        Test.specify "should correctly handle problems: duplicate names" <|
+            selector = By_Name ["foo", "foo"] (Matching.Exact True)
+            action = table.reorder_columns selector position=After_Other_Columns warnings=_ on_problems=_
+            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: unmatched names" <|
+            weird_name = '.*?-!@#!"'
+            selector = By_Name ["foo", "hmm", weird_name] (Matching.Exact True)
+            action = table.reorder_columns selector position=After_Other_Columns warnings=_ on_problems=_
+            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
+            problems = [Missing_Input_Columns ["hmm", weird_name]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate columns" <|
+            foo = table.at "foo"
+            selector = By_Column [foo, foo]
+            action = table.reorder_columns selector position=After_Other_Columns warnings=_ on_problems=_
+            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: unmatched columns" <|
+            table_2 = table_builder [["foo", Integer, [0,0,0]], ["weird_column", Integer, [0,0,0]]]
+            foo = table_2.at "foo"
+            weird_column = table_2.at "weird_column"
+            bar = table.at "bar"
+
+            selector = By_Column [bar, weird_column, foo]
+            action = table.reorder_columns selector position=After_Other_Columns warnings=_ on_problems=_
+            tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar", "foo"]
+            problems = [Missing_Input_Columns ["weird_column"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle multiple problems" <|
+            action = table.remove_columns (By_Index [0, -7, 0, 100]) position=After_Other_Columns warnings=_ on_problems=_
+            problems = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
+            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
+            Problems.test_problem_handling action problems tester
