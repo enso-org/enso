@@ -6,6 +6,7 @@ use crate::code_editor;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
+use crate::graph_editor::EdgeId;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::open_dialog::OpenDialog;
@@ -23,6 +24,45 @@ use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
+
+
+
+// ==================================
+// === ComponentBrowserOpenReason ===
+// ==================================
+
+/// An enum describing how the component browser was opened.
+#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
+pub enum ComponentBrowserOpenReason {
+    /// New node was created by opening the component browser or the node is being edited.
+    NodeEditing(NodeId),
+    /// New node was created by dropping a dragged connection on the scene.
+    EdgeDropped(NodeId, EdgeId),
+}
+
+impl ComponentBrowserOpenReason {
+    /// [`NodeId`] of the created/edited node.
+    pub fn node(&self) -> NodeId {
+        match self {
+            Self::NodeEditing(id) => *id,
+            Self::EdgeDropped(id, _) => *id,
+        }
+    }
+
+    /// [`EdgeId`] of the edge that was dropped to create a node.
+    pub fn edge(&self) -> Option<EdgeId> {
+        match self {
+            Self::NodeEditing(_) => None,
+            Self::EdgeDropped(_, id) => Some(*id),
+        }
+    }
+}
+
+impl Default for ComponentBrowserOpenReason {
+    fn default() -> Self {
+        Self::NodeEditing(default())
+    }
+}
 
 
 

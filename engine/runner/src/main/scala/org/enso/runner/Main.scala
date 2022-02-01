@@ -14,13 +14,13 @@ import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
-
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
+
 import scala.Console.err
 import scala.jdk.CollectionConverters._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 /** The main CLI entry point class. */
@@ -509,16 +509,20 @@ object Main {
       enableAutoParallelism = enableAutoParallelism
     )
     if (projectMode) {
-      val pkg  = PackageManager.Default.fromDirectory(file)
-      val main = pkg.map(_.mainFile)
-      if (!main.exists(_.exists())) {
-        println("Main file does not exist.")
-        context.context.close()
-        exitFail()
+      PackageManager.Default.loadPackage(file) match {
+        case Success(pkg) =>
+          val main = pkg.mainFile
+          if (!main.exists()) {
+            println("Main file does not exist.")
+            context.context.close()
+            exitFail()
+          }
+          val mainModuleName = pkg.moduleNameForFile(pkg.mainFile).toString
+          runPackage(context, mainModuleName, file)
+        case Failure(ex) =>
+          println(ex.getMessage)
+          exitFail()
       }
-      val mainFile       = main.get
-      val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
-      runPackage(context, mainModuleName, file)
     } else {
       runSingleFile(context, file)
     }

@@ -201,4 +201,23 @@ impl Searcher {
         let entry = controller.actions().list().and_then(|l| l.get_cloned(entry));
         entry.map_or(false, |e| matches!(e.action, Example(_)))
     }
+
+    /// Return the AST id of the source node. Source node is either:
+    /// 1. The source node of the connection that was dropped to create a node.
+    /// 2. The first of the selected nodes on the scene.
+    fn source_node_ast_id(
+        view: &view::project::View,
+        graph_presenter: &presenter::Graph,
+        way_of_opening_searcher: &ComponentBrowserOpenReason,
+    ) -> Option<Uuid> {
+        if let Some(edge_id) = way_of_opening_searcher.edge() {
+            let edge = view.graph().model.edges.get_cloned_ref(&edge_id);
+            let edge_source = edge.map(|edge| edge.source()).flatten();
+            let source_node_id = edge_source.map(|source| source.node_id);
+            source_node_id.map(|id| graph_presenter.ast_node_of_view(id)).flatten()
+        } else {
+            let selected_views = view.graph().model.nodes.all_selected();
+            selected_views.iter().find_map(|view| graph_presenter.ast_node_of_view(*view))
+        }
+    }
 }
