@@ -931,3 +931,43 @@ stats_sampler!(
     0,
     1.0
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use assert_approx_eq::assert_approx_eq;
+
+
+    #[test]
+    fn frame_time() {
+        // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
+        // assumption we're trying to be around this FPS.
+
+        let mut sampler: Box<dyn Sampler> = Box::new(FrameTime::new());
+        let mut t = 0.0f64;
+
+        // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
+        // starting next frame.
+        sampler.begin(t);
+        t += 10.0;
+        sampler.end(t);
+        t += 6.0;
+        assert_approx_eq!(sampler.value(), 10.0);
+
+        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
+        // starting next frame.
+        sampler.begin(t);
+        t += 5.0;
+        sampler.end(t);
+        t += 11.0;
+        assert_approx_eq!(sampler.value(), 5.0);
+
+        // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
+        // afterwards before starting next frame.
+        sampler.begin(t);
+        t += 20.0;
+        sampler.end(t);
+        assert_approx_eq!(sampler.value(), 20.0);
+    }
+}
