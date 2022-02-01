@@ -52,6 +52,9 @@ mod html_element {
         pub fn new() -> Self {
             Self { node: Node }
         }
+        pub fn set_class_name(&self, value: &str) {
+
+        }
     }
     impl HtmlElement {
         pub fn new() -> Self {

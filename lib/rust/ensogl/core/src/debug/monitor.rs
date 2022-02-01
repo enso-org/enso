@@ -5,6 +5,8 @@ use crate::prelude::*;
 use crate::debug::stats::Stats;
 use crate::system::web;
 use crate::system::web::StyleSetter;
+use crate::system::web::NodeInserter;
+use crate::system::web::NodeRemover;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
@@ -175,21 +177,21 @@ impl DomData {
         root.set_style_or_panic("overflow", "hidden");
         root.set_style_or_panic("border-radius", "6px");
         root.set_style_or_panic("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
-        web::body().prepend_with_node_1(&root).unwrap();
+        web::body().prepend_or_panic(&root);
 
         let canvas = web::create_canvas();
         canvas.set_style_or_panic("display", "block");
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
-        root.append_child(&canvas).unwrap();
+        root.append_or_panic(&canvas);
         Self { root, canvas, context }
     }
 }
 
 impl Drop for DomData {
     fn drop(&mut self) {
-        self.root.remove()
+        self.root.remove_from_parent_or_panic();
     }
 }
 
