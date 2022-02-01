@@ -1,0 +1,157 @@
+from Standard.Base import all
+import Standard.Base.Data.Locale
+import Standard.Base.Data.Text.Regex as Regex_Module
+
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
+from Standard.Base.Error.Warnings import all
+
+## Strategy for matching names.
+type Matching_Strategy
+   ## UNSTABLE
+      Exact name matching.
+
+      A name is matched if its exact name is provided.
+   type Exact (case_sensitivity : (True | Case_Insensitive) = True)
+
+   ## UNSTABLE
+      Regex-based name matching.
+
+      A name is matched if its name matches the provided regular expression.
+   type Regex (case_sensitivity : (True | Case_Insensitive) = True)
+
+## UNSTABLE
+   Specifies that the operation should ignore case.
+
+   TODO: Since case-sensitive can be locale dependent, in the future this may
+         be extended with a `locale` setting.
+type Case_Insensitive
+
+
+## UNSTABLE
+   An error indicating that some criteria did not match any names in the input.
+type No_Matches_Found (criteria : Vector Text)
+
+No_Matches_Found.to_display_text : Text
+No_Matches_Found.to_display_text =
+    "The criteria "+this.criteria.to_text+" did not match any names in the input."
+
+
+## UNSTABLE
+   Selects objects from an input list that match any of the provided criteria.
+
+   Arguments:
+   - objects: A list of objects to be matched.
+   - criteria: A list of texts representing the matching criteria. Their meaning
+     depends on the matching strategy.
+   - reorder: Specifies whether to reorder the matched objects according to the
+     order of the matching criteria.
+     If `False`, the matched entries are returned in the same order as in the
+     input.
+     If `True`, the matched entries are returned in the order of the criteria
+     matching them. If a single object has been matched by multiple criteria, it
+     is placed in the group belonging to the first matching criterion on the
+     list.
+     If a single criterion's group has more than one element, their relative
+     order is the same as in the input.
+   - name_mapper: A function mapping a provided object to its name, which will
+     then be matched with the criteria. It is set to the identity function by
+     default, thus allowing the input to be a list of names to match. But it can
+     be overridden to enable matching more complex objects.
+   - matching_strategy: A `Matching_Strategy` instance specifying how to
+     interpret the criterion.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - warnings: A Warning_System instance specifying how to handle warnings. This
+     is a temporary workaround to allow for testing the warning mechanism. Once
+     the proper warning system is implemented, this argument will become
+     obsolete and will be removed. No user code should use this argument, as it
+     will be removed in the future.
+
+   > Example
+     Selects objects matching one of the provided patterns, preserving the input order.
+
+         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] matching_strategy=(Regex case_sensitivity=True) == ["foo", "foobar", "baz"]
+
+   > Example
+     Selects pairs matching their first element with the provided criteria and
+     ordering the result according to the order of criteria that matched them.
+
+         Matching.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> Warning_System -> Vector Any ! No_Matches_Found
+match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_problems=Report_Warning warnings=Warnings.default = Panic.recover <|
+    [objects, criteria, reorder, name_mapper, matching_strategy, on_problems, warnings] . each Panic.rethrow
+
+    # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
+    match_matrix = objects.map obj->
+        criteria.map criterion->
+            name = name_mapper obj
+            here.match_single_criterion name criterion matching_strategy
+
+    # Checks if the ith object is matched by any criterion.
+    is_object_matched_by_anything : Integer -> Boolean
+    is_object_matched_by_anything i =
+        match_matrix.at i . any x->x
+
+    # Checks if the ith criterion matches any columns.
+    does_criterion_match_anything : Integer -> Boolean
+    does_criterion_match_anything i =
+        match_matrix.map (col -> col.at i) . any x->x
+
+    # Selects object indices which satisfy the provided predicate.
+    select_matching_indices : (Integer -> Boolean) -> Vector Text
+    select_matching_indices matcher =
+        0.up_to objects.length . to_vector . filter matcher
+
+    # Check consistency
+    checked_criteria = criteria.map_with_index j-> criterion->
+        has_matches = does_criterion_match_anything j
+        Pair has_matches criterion
+    unmatched_criteria = checked_criteria.filter (p -> p.first.not) . map .second
+
+    selected_indices = case reorder of
+        True ->
+            nested_indices = 0.up_to criteria.length . map j->
+                is_object_matched_by_this_criterion i =
+                    match_matrix.at i . at j
+                select_matching_indices is_object_matched_by_this_criterion
+            nested_indices.flat_map x->x . distinct
+        False ->
+            select_matching_indices is_object_matched_by_anything
+
+    result = selected_indices.map objects.at
+    issues = if unmatched_criteria.is_empty then [] else [No_Matches_Found unmatched_criteria]
+    Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings
+
+
+## UNSTABLE
+   Checks if a name matches the provided criterion according to the specified
+   matching strategy.
+
+   Arguments:
+   - name: A `Text` representing the name being matched.
+   - criterion: A `Text` representing the matching criterion. It can be a simple
+     name or a regular expression; its meaning depends on the value of
+     `matching_strategy`.
+   - matching_strategy: A `Matching_Strategy` instance specifying how the
+     criterion should be interpreted.
+
+   > Example
+     Check if the provided name matches a regular expression.
+
+         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive) == True
+match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
+match_single_criterion name criterion matching_strategy = case matching_strategy of
+    Exact case_sensitivity -> case case_sensitivity of
+        True ->
+            name == criterion
+        Case_Insensitive ->
+            name.equals_ignore_case criterion
+    Regex case_sensitivity ->
+        insensitive = case case_sensitivity of
+            True -> False
+            Case_Insensitive -> True
+        re = Regex_Module.compile criterion case_insensitive=insensitive
+        re.matches name

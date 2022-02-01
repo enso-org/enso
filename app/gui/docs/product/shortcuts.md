@@ -47,6 +47,7 @@ broken and require further investigation.
 | <kbd>alt</kbd>+<kbd>F4</kbd>                                | Close the application (MacOS, Windows, Linux)                                                                                                                                                                                                        |
 | <kbd>ctrl</kbd>+<kbd>w</kbd>                                | Close the application (Windows, Linux)                                                                                                                                                                                                               |
 | :warning: <kbd>ctrl</kbd>+<kbd>p</kbd>                      | Toggle profiling mode                                                                                                                                                                                                                                |
+| <kbd>escape</kbd>                                           | Cancel current action. For example, drop currently dragged connection.                                                                                                                                                                               |
 
 #### Navigation
 

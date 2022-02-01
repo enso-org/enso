@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+## PRIVATE
+   A placeholder for reporting warnings. It should be replaced once the warning
+   mechanism is designed and implemented.
+type Warning_System
+    type Warning_System (warning_callback : Any -> Nothing)
+
+    ## UNSTABLE
+       Attaches a warning to a value.
+
+       If the warning argument holds a dataflow error, the error is also
+       inherited by the decorated value.
+    attach : Any -> Any -> Any
+    attach decorated_value warning_payload =
+        case decorated_value of
+            _ ->
+                case warning_payload of
+                    _ ->
+                        this.warning_callback warning_payload
+                        decorated_value
+
+
+default : Warning_System
+default = Warning_System warning->
+    IO.println "[WARNING] "+warning.to_display_text

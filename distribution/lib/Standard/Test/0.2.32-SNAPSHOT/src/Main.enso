@@ -154,7 +154,8 @@ fail message = Panic.throw (Failure message)
             Examples.throw_error . should_fail_with Examples.My_Error
 Any.should_fail_with : Any -> Assertion
 Any.should_fail_with matcher =
-    here.fail ("Expected an error " + matcher.to_text + " but none occurred.")
+    loc = Meta.get_source_location 1
+    here.fail ("Expected an error " + matcher.to_text + " but none occurred (at " + loc + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 
