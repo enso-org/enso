@@ -168,6 +168,9 @@ impl Canvas2dExt for Canvas2d {
     fn new(element: HtmlCanvasElement) -> Self {
         Self { inner: element }
     }
+    fn inner(&self) -> &HtmlCanvasElement {
+        &self.inner
+    }
 }
 
 #[cfg(feature = "wasm32")]
@@ -179,6 +182,10 @@ impl HtmlCanvasExt for Canvas2d {
             inner: element,
             context,
         }
+    }
+    
+    fn inner(&self) -> &HtmlCanvasElement {
+        &self.inner
     }
     
     fn set_width(&self, value: u32) {
@@ -193,24 +200,46 @@ impl HtmlCanvasExt for Canvas2d {
         self.context.fill_rect(x, y, w, h);
     }
 
-    fn set_fill_style(&self, value: JsValue) {
+    fn set_fill_style(&self, value: &JsValue) {
         self.context.set_fill_style(value);
     }
 
-    fn translate(&self, x: f64, y: f64) {
-        let _ = self.context.translate(x, y);
+    fn translate(&self, x: f64, y: f64) -> Result<()> {
+        self.context.translate(x, y)?;
+        Ok(())
+    }
+
+    fn draw_image(&self, image: &HtmlCanvasElement, sx: f64, sy: f64, sw: f64, sh: f64, dx: f64, dy: f64, dw: f64, dh: f64) -> Result<()> {
+        self.context.draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(image, sx, sy, sw, sh, dx, dy, dw, dh)?;
+        Ok(())
+    }
+
+    fn set_font(&self, value: &str) {
+        self.context.set_font(value);
+    }
+
+    fn set_text_align(&self, value: &str) {
+        self.context.set_text_align(value);
+    }
+
+    fn fill_text(&self, text: &str, x: f64, y: f64) -> Result<()> { 
+        self.context.fill_text(text, x, y)?;
+        Ok(())
     }
 }
 
 pub trait Canvas2dExt {
     fn new(element: HtmlCanvasElement) -> Self;
-    fn set_width(&self, value: u32) {
-
-    }
+    fn set_width(&self, value: u32) { }
+    fn inner(&self) -> &HtmlCanvasElement;
     fn set_height(&self, value: u32) {}
     fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {}
-    fn set_fill_style(&self, value: JsValue) {}
-    fn translate(&self, x: f64, y: f64) {}
+    fn set_fill_style(&self, value: &JsValue) {}
+    fn draw_image(&self, image: &HtmlCanvasElement, sx: f64, sy: f64, sw: f64, sh: f64, dx: f64, dy: f64, dw: f64, dh: f64) -> Result<()> { Ok(()) }
+    fn translate(&self, x: f64, y: f64) -> Result<()> { Ok(()) }
+    fn set_font(&self, value: &str) {}
+    fn set_text_align(&self, value: &str) {}
+    fn fill_text(&self, text: &str, x: f64, y: f64) -> Result<()> { Ok(()) }
 }
 
 impl_clone_ref_as_clone_no_from!(Element);

@@ -329,8 +329,8 @@ impl Monitor {
         let height = self.height;
         let shift = -(self.config.plot_step_size);
         dom.canvas
-            .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                &dom.canvas,
+            .draw_image(
+                &dom.canvas.inner(),
                 0.0,
                 0.0,
                 width,
