@@ -30,7 +30,6 @@ pub use std::time::Duration;
 pub use std::time::Instant;
 pub use web_sys::Document;
 pub use web_sys::EventTarget;
-pub use web_sys::HtmlCollection;
 pub use web_sys::MouseEvent;
 pub use web_sys::Performance;
 pub use web_sys::Window;
@@ -38,20 +37,24 @@ pub use web_sys::Window;
 #[cfg(not(target_arch = "wasm32"))]
 mod html_element {
     use super::*;
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Clone, Debug)]
     pub struct Element {
         node: Node,
+        js_value: JsValue,
     }
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Clone, Debug)]
     pub struct HtmlElement {
         element: Element,
     }
     impl Element {
         pub fn new() -> Self {
-            Self { node: Node }
+            Self { node: Node , js_value: 0.into() }
         }
         pub fn set_class_name(&self, value: &str) {
 
+        }
+        pub fn children(&self) -> HtmlCollection {
+            HtmlCollection::new()
         }
     }
     impl HtmlElement {
@@ -59,13 +62,23 @@ mod html_element {
             Self { element: Element::new() }
         }
     }
+    impl AsRef<JsValue> for HtmlElement {
+        fn as_ref(&self) -> &JsValue {
+            self.element.as_ref()
+        } 
+    }
     impl Deref for Element {
         type Target = Node;
         fn deref(&self) -> &Self::Target {
             &self.node
         }
     }
-    #[derive(Copy, Clone, Debug)]
+    impl AsRef<JsValue> for Element {
+        fn as_ref(&self) -> &JsValue {
+            &self.js_value
+        } 
+    }
+    #[derive(Clone, Debug)]
     pub struct Node;
 
     impl NodeInserter for Node {
@@ -109,7 +122,7 @@ mod html_element {
 
         fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {}
     }
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Clone, Debug)]
     pub struct HtmlDivElement {
         element: HtmlElement,
     }
@@ -120,11 +133,16 @@ mod html_element {
             &self.element
         }
     }
+    impl AsRef<JsValue> for HtmlDivElement {
+        fn as_ref(&self) -> &JsValue {
+            self.element.as_ref()
+        } 
+    }
 
     impl HtmlDivElement {
         pub fn new() -> Self { Self { element: HtmlElement::new() } }
     }
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Clone, Debug)]
     pub struct HtmlCanvasElement {
         element: HtmlElement,
     }
@@ -140,16 +158,27 @@ mod html_element {
         pub fn new() -> Self { Self { element: HtmlElement::new() } }
     }
 
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Clone, Debug)]
     pub struct WebGl2RenderingContext {}
     impl WebGl2RenderingContext {
         pub fn new() -> Self {
             Self {}
         }
     }
+
+    #[derive(Clone, Debug)]
+    pub struct HtmlCollection {}
+    impl HtmlCollection {
+        pub fn new() -> Self {
+            Self {}
+        }
+        pub fn length(&self) -> u32 {
+            0
+        }
+    }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Canvas2d {
     inner: HtmlCanvasElement,
     #[cfg(target_arch = "wasm32")]
@@ -266,6 +295,8 @@ pub use web_sys::HtmlCanvasElement;
 pub use web_sys::WebGl2RenderingContext;
 #[cfg(target_arch = "wasm32")]
 pub use web_sys::CanvasRenderingContext2d;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::HtmlCollection;
 // =============
 // === Error ===
 // =============

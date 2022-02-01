@@ -11,6 +11,7 @@ use crate::display::symbol::DomSymbol;
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
 use crate::system::web::NodeInserter;
+use crate::system::web::NodeRemover;
 use crate::system::web::HtmlDivElement;
 use crate::system::web::StyleSetter;
 
@@ -22,6 +23,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 // === Js Bindings ===
 // ===================
 
+#[cfg(target_arch = "wasm32")]
 mod js {
     use super::*;
     #[wasm_bindgen(inline_js = "
@@ -65,6 +67,7 @@ mod js {
 }
 
 #[allow(unsafe_code)]
+#[cfg(target_arch = "wasm32")]
 fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
@@ -76,6 +79,7 @@ fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>
 }
 
 #[allow(unsafe_code)]
+#[cfg(target_arch = "wasm32")]
 fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
@@ -199,7 +203,7 @@ impl DomScene {
         if object.is_visible() {
             self.view_projection_dom.append_or_panic(dom);
         }
-        object.display_object().set_on_hide(f_!(dom.remove()));
+        object.display_object().set_on_hide(f_!(dom.remove_from_parent_or_panic()));
         object.display_object().set_on_show(f__!([data,dom] {
             data.view_projection_dom.append_or_panic(&dom)
         }));
@@ -222,10 +226,13 @@ impl DomScene {
 
         match camera.projection() {
             Projection::Perspective { .. } => {
+                #[cfg(target_arch = "wasm32")]
                 js::setup_perspective(&self.data.dom, &near.into());
+                #[cfg(target_arch = "wasm32")]
                 setup_camera_perspective(&self.data.view_projection_dom, near, &trans_cam);
             }
             Projection::Orthographic => {
+                #[cfg(target_arch = "wasm32")]
                 setup_camera_orthographic(&self.data.view_projection_dom, &trans_cam);
             }
         }
