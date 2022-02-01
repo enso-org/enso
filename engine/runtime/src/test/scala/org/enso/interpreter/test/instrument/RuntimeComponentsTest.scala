@@ -161,8 +161,7 @@ class RuntimeComponentsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  it should "import Base modules" in {
-    Thread.sleep(2000)
+  it should "load library extended by the component group" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -211,16 +210,6 @@ class RuntimeComponentsTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
-
-    // check that the suggestion notifications are received
-    val suggestions = responses.collect {
-      case Api.Response(
-            None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, _, xs)
-          ) =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
-    }
-    suggestions.isEmpty shouldBe false
 
     // check LibraryLoaded notifications
     val contentRootNotifications = responses.collect {

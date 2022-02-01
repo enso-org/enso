@@ -114,7 +114,7 @@ public class Context {
                     .loadPackage(file)
                     .fold(
                         err -> {
-                          throw new ProjectLoadingFailure(file.getName(), err.getCause());
+                          throw new ProjectLoadingFailure(file.getName(), err);
                         },
                         res -> res));
 
