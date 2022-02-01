@@ -952,16 +952,16 @@ mod tests {
         sampler.begin(t);
         t += 10.0;
         sampler.end(t);
-        t += 6.0;
         assert_approx_eq!(sampler.value(), 10.0);
+        t += 6.0;
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
         // starting next frame.
         sampler.begin(t);
         t += 5.0;
         sampler.end(t);
-        t += 11.0;
         assert_approx_eq!(sampler.value(), 5.0);
+        t += 11.0;
 
         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
         // afterwards before starting next frame.
@@ -969,5 +969,55 @@ mod tests {
         t += 20.0;
         sampler.end(t);
         assert_approx_eq!(sampler.value(), 20.0);
+    }
+
+    #[test]
+    fn fps() {
+        // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
+        // assumption we're trying to be around this FPS.
+
+        let mut sampler: Box<dyn Sampler> = Box::new(Fps::new());
+        // Note: we can't use t=0.0 here, as this would throw off inner logic of Fps.
+        let mut t = 123.0f64;
+
+        // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
+        // starting next frame.
+        sampler.begin(t);
+        t += 10.0;
+        sampler.end(t);
+        // FPS takes into account delays between frames, so it is only available for *previous*
+        // frame. As such, after 1st frame, there was no previous frame yet, so the calculated
+        // value is expected to default to 0 ("zero FPS" is a reasonable answer at this point).
+        assert_approx_eq!(sampler.value(), 0.0);
+        // Notably, in this case the 0 value is correct, but for later frames it would result in a
+        // threshold warning/error.
+        assert!(matches!(sampler.check(), ValueCheck::Correct));
+        t += 6.0;
+
+        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
+        // starting next frame.
+        sampler.begin(t);
+        t += 5.0;
+        sampler.end(t);
+        // Previous frame+delay was 16.0 ms; we'd fit 62.5 such frames in 1s.
+        assert_approx_eq!(sampler.value(), 62.5);
+        assert!(matches!(sampler.check(), ValueCheck::Correct));
+        t += 11.67;
+
+        // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
+        // afterwards before starting next frame.
+        sampler.begin(t);
+        t += 20.0;
+        sampler.end(t);
+        // Previous frame+delay was 16.67 ms.
+        assert_approx_eq!(sampler.value(), 59.988, 0.001);
+        assert!(matches!(sampler.check(), ValueCheck::Correct));
+
+        // For the final calculation, we don't need to simulate full frame to get the previous
+        // one's FPS.
+        sampler.begin(t);
+        // Previous frame+delay was 20.0 ms.
+        assert_approx_eq!(sampler.value(), 50.0);
+        assert!(matches!(sampler.check(), ValueCheck::Warning));
     }
 }
