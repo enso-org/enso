@@ -1013,11 +1013,19 @@ mod tests {
         assert_approx_eq!(sampler.value(), 59.988, 0.001);
         assert!(matches!(sampler.check(), ValueCheck::Correct));
 
+        // Frame 4: simulate a really slow frame (1000ms), crossing the FPS error threshold.
+        sampler.begin(t);
+        t += 1000.0;
+        sampler.end(t);
+        // Previous frame+delay was 20.0 ms.
+        assert_approx_eq!(sampler.value(), 50.0);
+        assert!(matches!(sampler.check(), ValueCheck::Warning));
+
         // For the final calculation, we don't need to simulate full frame to get the previous
         // one's FPS.
         sampler.begin(t);
         // Previous frame+delay was 20.0 ms.
-        assert_approx_eq!(sampler.value(), 50.0);
-        assert!(matches!(sampler.check(), ValueCheck::Warning));
+        assert_approx_eq!(sampler.value(), 1.0);
+        assert!(matches!(sampler.check(), ValueCheck::Error));
     }
 }
