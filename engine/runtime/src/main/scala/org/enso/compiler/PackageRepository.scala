@@ -268,9 +268,9 @@ object PackageRepository {
             .flatMap(loadedPackages(_))
         }
       unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
-        (result, pkg) =>
+        (accumulator, pkg) =>
           for {
-            _ <- result
+            _ <- accumulator
             _ <- resolveComponentGroups(pkg)
           } yield ()
       }
