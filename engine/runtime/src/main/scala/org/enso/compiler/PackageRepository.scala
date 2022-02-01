@@ -262,9 +262,11 @@ object PackageRepository {
     /** @inheritdoc */
     override def initialize(): Either[Error, Unit] = {
       val unprocessedPackages =
-        loadedPackages.keySet
-          .diff(loadedComponents.keySet)
-          .flatMap(loadedPackages(_))
+        this.synchronized {
+          loadedPackages.keySet
+            .diff(loadedComponents.keySet)
+            .flatMap(loadedPackages(_))
+        }
       unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
         (result, pkg) =>
           for {
@@ -292,9 +294,9 @@ object PackageRepository {
             )
             componentGroups.extendedGroups
               .foldLeft[Either[Error, Unit]](Right(())) {
-                (result, componentGroup) =>
+                (accumulator, componentGroup) =>
                   for {
-                    _ <- result
+                    _ <- accumulator
                     extendedLibraryName = componentGroup.module.libraryName
                     _ <- ensurePackageIsLoaded(extendedLibraryName)
                     pkgOpt = loadedPackages(extendedLibraryName)
