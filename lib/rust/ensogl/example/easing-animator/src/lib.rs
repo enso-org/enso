@@ -102,7 +102,7 @@ pub struct Canvas {
 impl Canvas {
     /// Constructor.
     pub fn new(container_id: &str) -> Self {
-        let canvas = web::create_canvas();
+        let canvas = web::create_canvas_2d();
         canvas.set_style_or_panic("border", "1px solid black");
         canvas.set_width(256);
         canvas.set_height(256);

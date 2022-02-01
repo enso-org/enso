@@ -23,13 +23,11 @@ use crate::prelude::*;
 use enso_logger::warning;
 use enso_logger::WarningLogger as Logger;
 use js_sys::Function;
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 pub use web_sys::console;
 
 pub use std::time::Duration;
 pub use std::time::Instant;
-pub use web_sys::CanvasRenderingContext2d;
 pub use web_sys::Document;
 pub use web_sys::EventTarget;
 pub use web_sys::HtmlCollection;
@@ -149,49 +147,78 @@ mod html_element {
             Self {}
         }
     }
-
-    #[derive(Copy, Clone, Debug)]
-    pub struct CanvasRenderingContext2d {}
-    impl CanvasRenderingContext2d {
-        pub fn new() -> Self {
-            Self {}
-        }
-    }
-    impl HtmlCanvas for HtmlCanvasElement {}
 }
 
-pub trait HtmlCanvas {
-    // TODO: return error?
-    fn context_2d(&self) -> Option<CanvasRenderingContext2d> {
-        None
+#[derive(Copy, Clone, Debug)]
+pub struct Canvas2d {
+    inner: HtmlCanvasElement,
+    #[cfg(target_arch = "wasm32")]
+    context: web_sys::CanvasRenderingContext2d,
+}
+
+impl Deref for Canvas2d {
+    type Target = HtmlCanvasElement;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Canvas2dExt for Canvas2d {
+    fn new(element: HtmlCanvasElement) -> Self {
+        Self { inner: element }
+    }
+}
+
+#[cfg(feature = "wasm32")]
+impl HtmlCanvasExt for Canvas2d {
+    fn new(element: HtmlCanvasElement) -> Self {
+        let context = element.get_context("2d").unwrap().unwrap();
+        let context: web_sys::CanvasRenderingContext2d = context.dyn_into().unwrap();
+        Self {
+            inner: element,
+            context,
+        }
+    }
+    
+    fn set_width(&self, value: u32) {
+        self.inner.set_width(value);
+    }
+
+    fn set_height(&self, value: u32) {
+        self.inner.set_height(value);
+    }
+
+    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {
+        self.context.fill_rect(x, y, w, h);
+    }
+
+    fn set_fill_style(&self, value: JsValue) {
+        self.context.set_fill_style(value);
+    }
+
+    fn translate(&self, x: f64, y: f64) {
+        let _ = self.context.translate(x, y);
+    }
+}
+
+pub trait Canvas2dExt {
+    fn new(element: HtmlCanvasElement) -> Self;
     fn set_width(&self, value: u32) {
 
     }
     fn set_height(&self, value: u32) {}
+    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {}
+    fn set_fill_style(&self, value: JsValue) {}
+    fn translate(&self, x: f64, y: f64) {}
 }
-
-impl HtmlCanvas for web_sys::HtmlCanvasElement {
-    fn context_2d(&self) -> Option<CanvasRenderingContext2d> {
-        let context = self.get_context("2d").ok().flatten();
-        context.map(|c| c.dyn_into::<web_sys::CanvasRenderingContext2d>().ok()).flatten()
-    }
-
-    fn set_height(&self, value: u32) {
-        self.set_height(value);
-    }
-
-    fn set_width(&self, value: u32) {
-        self.set_width(value);
-    }
-}
-
 
 impl_clone_ref_as_clone_no_from!(Element);
 impl_clone_ref_as_clone_no_from!(HtmlDivElement);
 impl_clone_ref_as_clone_no_from!(HtmlCanvasElement);
 impl_clone_ref_as_clone_no_from!(HtmlElement);
 impl_clone_ref_as_clone_no_from!(WebGl2RenderingContext);
+impl_clone_ref_as_clone_no_from!(Canvas2d);
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use html_element::*;
@@ -509,13 +536,14 @@ pub fn create_div() -> HtmlDivElement {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn create_canvas() -> HtmlCanvasElement {
-    create_element("canvas").unchecked_into()
+pub fn create_canvas_2d() -> Canvas2d {
+    let element = create_element("canvas").unchecked_into();
+    Canvas2d::new(element)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn create_canvas() -> HtmlCanvasElement {
-    HtmlCanvasElement::new()
+pub fn create_canvas_2d() -> Canvas2d {
+    Canvas2d::new(HtmlCanvasElement::new())
 }
 
 #[cfg(target_arch = "wasm32")]

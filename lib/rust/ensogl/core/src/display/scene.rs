@@ -508,7 +508,7 @@ impl DomLayers {
         fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
         dom.append_or_panic(&fullscreen_vis.dom);
 
-        let canvas = web::create_canvas();
+        let canvas = web::create_canvas_2d();
         canvas.set_style_or_warn("display", "block", logger);
         canvas.set_style_or_warn("z-index", "3", logger);
         // These properties are set by `DomScene::new` constuctor for other layers.

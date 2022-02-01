@@ -7,7 +7,7 @@ use crate::system::web;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeInserter;
 use crate::system::web::NodeRemover;
-use crate::system::web::HtmlCanvas;
+use crate::system::web::Canvas2dExt;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
@@ -150,8 +150,7 @@ pub struct Dom {
 #[derive(Debug)]
 pub struct DomData {
     root:    web::HtmlDivElement,
-    canvas:  web::HtmlCanvasElement,
-    context: web::CanvasRenderingContext2d,
+    canvas:  web::Canvas2d,
 }
 
 impl Dom {
@@ -180,12 +179,11 @@ impl DomData {
         root.set_style_or_panic("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
         web::body().prepend_or_panic(&root);
 
-        let canvas = web::create_canvas();
+        let canvas = web::create_canvas_2d();
         canvas.set_style_or_panic("display", "block");
 
-        let context = canvas.context_2d().unwrap();
         root.append_or_panic(&canvas);
-        Self { root, canvas, context }
+        Self { root, canvas }
     }
 }
 
@@ -330,7 +328,7 @@ impl Monitor {
         let width = self.width;
         let height = self.height;
         let shift = -(self.config.plot_step_size);
-        dom.context
+        dom.canvas
             .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                 &dom.canvas,
                 0.0,
@@ -348,9 +346,9 @@ impl Monitor {
     fn clear_labels_area(&mut self, dom: &Dom) {
         let step = self.config.plot_step_size;
         let width = self.config.labels_width + self.config.results_width + 3.0 * self.config.margin;
-        dom.context.set_fill_style(&self.config.background_color);
-        dom.context.fill_rect(0.0, 0.0, width, self.height);
-        dom.context.fill_rect(self.width - step, 0.0, step, self.height);
+        dom.canvas.set_fill_style(&self.config.background_color);
+        dom.canvas.fill_rect(0.0, 0.0, width, self.height);
+        dom.canvas.fill_rect(self.width - step, 0.0, step, self.height);
     }
 
     fn draw_plots(&mut self, dom: &Dom) {
@@ -358,24 +356,24 @@ impl Monitor {
     }
 
     fn first_draw(&self, dom: &Dom) {
-        dom.context.set_fill_style(&self.config.background_color);
-        dom.context.fill_rect(0.0, 0.0, self.width, self.height);
+        dom.canvas.set_fill_style(&self.config.background_color);
+        dom.canvas.fill_rect(0.0, 0.0, self.width, self.height);
         self.with_all_panels(dom, |panel| panel.first_draw(dom));
     }
 
     fn with_all_panels<F: Fn(&Panel)>(&self, dom: &Dom, f: F) {
         let mut total_off = self.config.outer_margin;
-        dom.context.translate(0.0, total_off).unwrap();
+        dom.canvas.translate(0.0, total_off).unwrap();
         for panel in &self.panels {
             let off = self.config.margin;
-            dom.context.translate(0.0, off).unwrap();
+            dom.canvas.translate(0.0, off).unwrap();
             total_off += off;
             f(panel);
             let off = self.config.panel_height;
-            dom.context.translate(0.0, off).unwrap();
+            dom.canvas.translate(0.0, off).unwrap();
             total_off += off;
         }
-        dom.context.translate(0.0, -total_off).unwrap();
+        dom.canvas.translate(0.0, -total_off).unwrap();
     }
 }
 
@@ -667,18 +665,18 @@ impl PanelData {
 
     fn first_draw(&mut self, dom: &Dom) {
         self.init_draw(dom);
-        dom.context.set_fill_style(&self.config.plot_background_color);
-        dom.context.fill_rect(0.0, 0.0, self.config.plots_width, self.config.panel_height);
+        dom.canvas.set_fill_style(&self.config.plot_background_color);
+        dom.canvas.fill_rect(0.0, 0.0, self.config.plots_width, self.config.panel_height);
         self.finish_draw(dom);
     }
 
     fn move_pen_to_next_element(&mut self, dom: &Dom, offset: f64) {
-        dom.context.translate(offset, 0.0).unwrap();
+        dom.canvas.translate(offset, 0.0).unwrap();
         self.draw_offset += offset;
     }
 
     fn finish_draw(&mut self, dom: &Dom) {
-        dom.context.translate(-self.draw_offset, 0.0).unwrap();
+        dom.canvas.translate(-self.draw_offset, 0.0).unwrap();
         self.draw_offset = 0.0;
     }
 
@@ -691,10 +689,10 @@ impl PanelData {
     fn draw_labels(&mut self, dom: &Dom) {
         let fonts = "Helvetica,Arial,sans-serif";
         let y_pos = self.config.panel_height - self.config.font_vertical_offset;
-        dom.context.set_font(&format!("bold {}px {}", self.config.font_size, fonts));
-        dom.context.set_text_align("right");
-        dom.context.set_fill_style(&self.config.label_color_ok);
-        dom.context.fill_text(&self.label, self.config.labels_width, y_pos).unwrap();
+        dom.canvas.set_font(&format!("bold {}px {}", self.config.font_size, fonts));
+        dom.canvas.set_text_align("right");
+        dom.canvas.set_fill_style(&self.config.label_color_ok);
+        dom.canvas.fill_text(&self.label, self.config.labels_width, y_pos).unwrap();
         self.move_pen_to_next_element(dom, self.config.labels_width + self.config.margin);
     }
 
@@ -706,15 +704,15 @@ impl PanelData {
             ValueCheck::Warning => &self.config.label_color_warn,
             ValueCheck::Error => &self.config.label_color_err,
         };
-        dom.context.set_fill_style(color);
-        dom.context.fill_text(&display_value, self.config.results_width, y_pos).unwrap();
+        dom.canvas.set_fill_style(color);
+        dom.canvas.fill_text(&display_value, self.config.results_width, y_pos).unwrap();
         self.move_pen_to_next_element(dom, self.config.results_width + self.config.margin);
     }
 
     fn draw_plots(&mut self, dom: &Dom) {
         self.move_pen_to_next_element(dom, self.config.plots_width - self.config.plot_step_size);
-        dom.context.set_fill_style(&self.config.plot_background_color);
-        dom.context.fill_rect(0.0, 0.0, self.config.plot_step_size, self.config.panel_height);
+        dom.canvas.set_fill_style(&self.config.plot_background_color);
+        dom.canvas.fill_rect(0.0, 0.0, self.config.plot_step_size, self.config.panel_height);
         let value_height = self.norm_value * self.config.panel_height;
         let y_pos = self.config.panel_height - value_height;
         let bar_height = self.config.plot_bar_size.unwrap_or(value_height);
@@ -723,8 +721,8 @@ impl PanelData {
             ValueCheck::Warning => &self.config.plot_color_warn,
             ValueCheck::Error => &self.config.plot_color_err,
         };
-        dom.context.set_fill_style(color);
-        dom.context.fill_rect(0.0, y_pos, self.config.plot_step_size, bar_height);
+        dom.canvas.set_fill_style(color);
+        dom.canvas.fill_rect(0.0, y_pos, self.config.plot_step_size, bar_height);
     }
 }
 
