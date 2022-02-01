@@ -326,7 +326,7 @@ object PackageRepository {
         val resolvedLibrary = libraryProvider.findLibrary(libraryName)
         resolvedLibrary match {
           case Left(error) =>
-            logger.error(s"Resolution failed with [$error].", error)
+            logger.warn(s"Resolution failed with [$error].", error)
           case Right(resolved) =>
             logger.info(
               s"Found library ${resolved.name} @ ${resolved.version} " +
