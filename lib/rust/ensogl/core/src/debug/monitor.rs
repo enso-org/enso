@@ -7,6 +7,7 @@ use crate::system::web;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeInserter;
 use crate::system::web::NodeRemover;
+use crate::system::web::HtmlCanvas;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
@@ -182,8 +183,7 @@ impl DomData {
         let canvas = web::create_canvas();
         canvas.set_style_or_panic("display", "block");
 
-        let context = canvas.get_context("2d").unwrap().unwrap();
-        let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
+        let context = canvas.context_2d().unwrap();
         root.append_or_panic(&canvas);
         Self { root, canvas, context }
     }

@@ -149,6 +149,41 @@ mod html_element {
             Self {}
         }
     }
+
+    #[derive(Copy, Clone, Debug)]
+    pub struct CanvasRenderingContext2d {}
+    impl CanvasRenderingContext2d {
+        pub fn new() -> Self {
+            Self {}
+        }
+    }
+    impl HtmlCanvas for HtmlCanvasElement {}
+}
+
+pub trait HtmlCanvas {
+    // TODO: return error?
+    fn context_2d(&self) -> Option<CanvasRenderingContext2d> {
+        None
+    }
+    fn set_width(&self, value: u32) {
+
+    }
+    fn set_height(&self, value: u32) {}
+}
+
+impl HtmlCanvas for web_sys::HtmlCanvasElement {
+    fn context_2d(&self) -> Option<CanvasRenderingContext2d> {
+        let context = self.get_context("2d").ok().flatten();
+        context.map(|c| c.dyn_into::<web_sys::CanvasRenderingContext2d>().ok()).flatten()
+    }
+
+    fn set_height(&self, value: u32) {
+        self.set_height(value);
+    }
+
+    fn set_width(&self, value: u32) {
+        self.set_width(value);
+    }
 }
 
 
@@ -173,6 +208,8 @@ pub use web_sys::HtmlDivElement;
 pub use web_sys::HtmlCanvasElement;
 #[cfg(target_arch = "wasm32")]
 pub use web_sys::WebGl2RenderingContext;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::CanvasRenderingContext2d;
 // =============
 // === Error ===
 // =============
