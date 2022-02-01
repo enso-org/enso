@@ -15,7 +15,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
-use ide_view::project::ComponentBrowserOpenReason;
+use ide_view::graph_editor::NodeId;
 
 
 
@@ -153,9 +153,9 @@ impl Searcher {
         graph_controller: controller::ExecutedGraph,
         graph_presenter: &presenter::Graph,
         view: view::project::View,
-        way_of_opening_searcher: ComponentBrowserOpenReason,
+        id: NodeId,
+        source_node: Option<NodeId>,
     ) -> FallibleResult<Self> {
-        let id = way_of_opening_searcher.node();
         let ast_node = graph_presenter.ast_node_of_view(id);
         let mode = match ast_node {
             Some(node_id) => controller::searcher::Mode::EditNode { node_id },
@@ -163,8 +163,7 @@ impl Searcher {
                 let view_data = view.graph().model.nodes.get_cloned_ref(&id);
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
-                let source_node =
-                    Self::source_node_ast_id(&view, graph_presenter, &way_of_opening_searcher);
+                let source_node = source_node.map(|id| graph_presenter.ast_node_of_view(id)).flatten();
                 controller::searcher::Mode::NewNode { position, source_node }
             }
         };
@@ -201,24 +200,5 @@ impl Searcher {
         let controller = &self.model.controller;
         let entry = controller.actions().list().and_then(|l| l.get_cloned(entry));
         entry.map_or(false, |e| matches!(e.action, Example(_)))
-    }
-
-    /// Return the AST id of the source node. Source node is either:
-    /// 1. The source node of the connection that was dropped to create a node.
-    /// 2. The first of the selected nodes on the scene.
-    fn source_node_ast_id(
-        view: &view::project::View,
-        graph_presenter: &presenter::Graph,
-        way_of_opening_searcher: &ComponentBrowserOpenReason,
-    ) -> Option<Uuid> {
-        if let Some(edge_id) = way_of_opening_searcher.edge() {
-            let edge = view.graph().model.edges.get_cloned_ref(&edge_id);
-            let edge_source = edge.map(|edge| edge.source()).flatten();
-            let source_node_id = edge_source.map(|source| source.node_id);
-            source_node_id.map(|id| graph_presenter.ast_node_of_view(id)).flatten()
-        } else {
-            let selected_views = view.graph().model.nodes.all_selected();
-            selected_views.iter().find_map(|view| graph_presenter.ast_node_of_view(*view))
-        }
     }
 }

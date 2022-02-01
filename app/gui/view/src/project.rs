@@ -6,7 +6,6 @@ use crate::code_editor;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
-use crate::graph_editor::EdgeId;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::open_dialog::OpenDialog;
@@ -24,45 +23,6 @@ use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
-
-
-
-// ==================================
-// === ComponentBrowserOpenReason ===
-// ==================================
-
-/// An enum describing how the component browser was opened.
-#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
-pub enum ComponentBrowserOpenReason {
-    /// New node was created by opening the component browser or the node is being edited.
-    NodeEditing(NodeId),
-    /// New node was created by dropping a dragged connection on the scene.
-    EdgeDropped(NodeId, EdgeId),
-}
-
-impl ComponentBrowserOpenReason {
-    /// [`NodeId`] of the created/edited node.
-    pub fn node(&self) -> NodeId {
-        match self {
-            Self::NodeEditing(id) => *id,
-            Self::EdgeDropped(id, _) => *id,
-        }
-    }
-
-    /// [`EdgeId`] of the edge that was dropped to create a node.
-    pub fn edge(&self) -> Option<EdgeId> {
-        match self {
-            Self::NodeEditing(_) => None,
-            Self::EdgeDropped(_, id) => Some(*id),
-        }
-    }
-}
-
-impl Default for ComponentBrowserOpenReason {
-    fn default() -> Self {
-        Self::NodeEditing(default())
-    }
-}
 
 
 
@@ -95,7 +55,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (ComponentBrowserOpenReason),
+        searcher_opened                     (NodeId, Option<NodeId>),
         adding_new_node                     (bool),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
@@ -484,7 +444,13 @@ impl View {
 
             node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
 
-            frp.source.searcher_opened <+ node_being_edited.map(|id| ComponentBrowserOpenReason::NodeEditing(*id));
+            trace graph.output.node_added;
+            trace graph.output.on_node_added_with_known_source;
+            let node_added_with_known_source = graph.output.on_node_added_with_known_source.clone_ref();
+
+            // TODO: do not trigger endpoint twice
+            frp.source.searcher_opened <+ node_being_edited.map(|id| (*id, None));
+            frp.source.searcher_opened <+ node_added_with_known_source.map(|(id, source)| (*id, Some(*source)));
 
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
@@ -654,7 +620,6 @@ impl application::View for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
-            //(Press, "!is_searcher_opened", "tab", "open_searcher"),
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
