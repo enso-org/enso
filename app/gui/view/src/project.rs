@@ -259,32 +259,6 @@ impl Model {
         }
     }
 
-    /// Add a new node and start editing it. Place it below `node_above` if provided, otherwise
-    /// place it under the cursor.
-    fn add_node_and_edit(&self, node_above: Option<NodeId>) -> NodeId {
-        let graph_editor_inputs = &self.graph_editor.frp.input;
-        let node_id = if let Some(node_above) = node_above {
-            self.graph_editor.add_node_below(node_above)
-        } else {
-            graph_editor_inputs.add_node_at_cursor.emit(());
-            self.graph_editor.frp.output.node_added.value()
-        };
-        graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
-        graph_editor_inputs.edit_node.emit(&node_id);
-        node_id
-    }
-
-    fn add_node_by_opening_searcher(&self) -> ComponentBrowserOpenReason {
-        let node_above = self.graph_editor.model.nodes.selected.first_cloned();
-        let node_id = self.add_node_and_edit(node_above);
-        ComponentBrowserOpenReason::NodeEditing(node_id)
-    }
-
-    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> ComponentBrowserOpenReason {
-        let node_id = self.add_node_and_edit(None);
-        ComponentBrowserOpenReason::EdgeDropped(node_id, edge)
-    }
-
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
         let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
         if let Some(node) = node {
@@ -506,17 +480,11 @@ impl View {
 
             // === Adding Node ===
 
-            let adding_by_dropping_edge = graph.output.on_edge_drop_to_create_node.clone_ref();
-            let adding_by_opening_searcher = frp.open_searcher.clone_ref();
-            adding_by_dropping_edge_bool <- adding_by_dropping_edge.constant(true);
-            adding_by_opening_searcher_bool <- adding_by_opening_searcher.constant(true);
-            frp.source.adding_new_node <+ any(adding_by_dropping_edge_bool, adding_by_opening_searcher_bool);
+            frp.source.adding_new_node <+ graph.output.node_added.to_true();
 
             node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
 
             frp.source.searcher_opened <+ node_being_edited.map(|id| ComponentBrowserOpenReason::NodeEditing(*id));
-            frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
-            frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
 
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
@@ -686,7 +654,7 @@ impl application::View for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
-            (Press, "!is_searcher_opened", "tab", "open_searcher"),
+            //(Press, "!is_searcher_opened", "tab", "open_searcher"),
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),

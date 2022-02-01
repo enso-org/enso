@@ -425,7 +425,9 @@ ensogl::define_endpoints! {
 
 
         // === Node Editing ===
-
+        
+        /// Add new node and start editing it.
+        add_node_and_edit(),
         /// Add a new node and place it in the origin of the workspace.
         add_node(),
         /// Add a new node and place it at the mouse cursor position.
@@ -1525,6 +1527,89 @@ impl GraphEditorModel {
 }
 
 
+// === Add node ===
+impl GraphEditorModel {
+    pub fn add_node(&self) -> NodeId {
+        self.frp.add_node.emit(());
+        let node_id = self.frp.node_added.value();
+        node_id
+    }
+    /// Add a new node and returns its ID.
+    pub fn add_node_and_edit(&self) -> NodeId {
+        let node_id = self.add_node();
+        self.start_editing_new_node(node_id);
+        node_id
+    }
+
+    pub fn find_new_node_position(&self, node_above: NodeId) -> Vector2 {
+        let above_pos = self.node_position(node_above);
+        let x_gap = self.frp.default_x_gap_between_nodes.value();
+        let y_gap = self.frp.default_y_gap_between_nodes.value();
+        let y_offset = y_gap + node::HEIGHT;
+        let mut x = above_pos.x;
+        let y = above_pos.y - y_offset;
+        // Push x to the right until we find a position where we have enough space for the new
+        // node, including a margin of size `x_gap`/`y_gap` on all sides.
+        {
+            let nodes = self.nodes.all.raw.borrow();
+            // `y_offset` is exactly the distance between `parent` and the new node. At this
+            // distance, `parent` should not count as overlapping with the new node. But we might
+            // get this wrong in the presence of rounding errors. To avoid this, we use
+            // `f32::EPSILON` as an error margin.
+            let maybe_overlapping = nodes
+                .values()
+                .filter(|node| (node.position().y - y).abs() < y_offset - f32::EPSILON);
+            let maybe_overlapping =
+                maybe_overlapping.sorted_by_key(|n| OrderedFloat(n.position().x));
+            // This is how much horizontal space we are looking for.
+            let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
+            for node in maybe_overlapping {
+                let node_left = node.position().x - x_gap;
+                let node_right = node.position().x + node.view.model.width() + x_gap;
+                if x + min_spacing > node_left {
+                    x = x.max(node_right);
+                } else {
+                    // Since `maybe_overlapping` is sorted, we know that the if-condition will
+                    // be false for all following `node`s as well. Therefore, we can skip the
+                    // remaining iterations.
+                    break;
+                }
+            }
+        }
+        Vector2(x, y)
+    }
+
+    pub fn add_node_below(&self, above: NodeId) -> NodeId {
+        let pos = self.find_new_node_position(above);
+        self.add_node_at(pos)
+    }
+
+    /// Ads a new node below `above` and returns its ID. If there is not enough space right below
+    /// `above` then the new node is moved to the right to first gap that is large enough.
+    pub fn add_node_below_and_edit(&self, above: NodeId) -> NodeId {
+        let pos = self.find_new_node_position(above);
+        self.add_node_at_and_edit(pos)
+    }
+
+    pub fn add_node_at(&self, pos: Vector2) -> NodeId {
+        let node_id = self.add_node();
+        self.frp.set_node_position((node_id, pos));
+        node_id
+    }
+
+    pub fn add_node_at_and_edit(&self, pos: Vector2) -> NodeId {
+        let node_id = self.add_node_and_edit();
+        self.frp.set_node_position((node_id, pos));
+        node_id
+    }
+
+    pub fn start_editing_new_node(&self, node_id: NodeId) {
+        self.frp.set_node_expression.emit(&(node_id, node::Expression::default()));
+        self.frp.edit_node.emit(&node_id);
+    }
+}
+
+
 // === Remove ===
 
 impl GraphEditorModel {
@@ -2133,54 +2218,6 @@ impl Deref for GraphEditor {
 }
 
 impl GraphEditor {
-    /// Add a new node and returns its ID.
-    pub fn add_node(&self) -> NodeId {
-        self.frp.add_node.emit(());
-        self.frp.output.node_added.value()
-    }
-
-    /// Ads a new node below `above` and returns its ID. If there is not enough space right below
-    /// `above` then the new node is moved to the right to first gap that is large enough.
-    pub fn add_node_below(&self, above: NodeId) -> NodeId {
-        let above_pos = self.model.get_node_position(above).unwrap_or_default();
-        let x_gap = self.default_x_gap_between_nodes.value();
-        let y_gap = self.default_y_gap_between_nodes.value();
-        let y_offset = y_gap + node::HEIGHT;
-        let mut x = above_pos.x;
-        let y = above_pos.y - y_offset;
-        // Push x to the right until we find a position where we have enough space for the new
-        // node, including a margin of size `x_gap`/`y_gap` on all sides.
-        {
-            let nodes = self.model.nodes.all.raw.borrow();
-            // `y_offset` is exactly the distance between `parent` and the new node. At this
-            // distance, `parent` should not count as overlapping with the new node. But we might
-            // get this wrong in the presence of rounding errors. To avoid this, we use
-            // `f32::EPSILON` as an error margin.
-            let maybe_overlapping = nodes
-                .values()
-                .filter(|node| (node.position().y - y).abs() < y_offset - f32::EPSILON);
-            let maybe_overlapping =
-                maybe_overlapping.sorted_by_key(|n| OrderedFloat(n.position().x));
-            // This is how much horizontal space we are looking for.
-            let min_spacing = self.min_x_spacing_for_new_nodes.value();
-            for node in maybe_overlapping {
-                let node_left = node.position().x - x_gap;
-                let node_right = node.position().x + node.view.model.width() + x_gap;
-                if x + min_spacing > node_left {
-                    x = x.max(node_right);
-                } else {
-                    // Since `maybe_overlapping` is sorted, we know that the if-condition will
-                    // be false for all following `node`s as well. Therefore, we can skip the
-                    // remaining iterations.
-                    break;
-                }
-            }
-        }
-        let pos = Vector2(x, y);
-        let node_id = self.add_node();
-        self.set_node_position((node_id, pos));
-        node_id
-    }
 }
 
 impl application::View for GraphEditor {
@@ -2199,6 +2236,7 @@ impl application::View for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
+            (Press, "!node_editing", "tab", "add_node_and_edit"),
             // === Drag ===
             (Press, "", "left-mouse-button", "node_press"),
             (Release, "", "left-mouse-button", "node_release"),
@@ -2601,60 +2639,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.source.on_edge_add <+ new_input_edge;
     new_edge_target <- new_input_edge.map2(&node_input_touch.down, move |id,target| (*id,target.clone()));
     out.source.on_edge_target_set <+ new_edge_target;
-
-
-
-    // ======================
-    // === Node Creation  ===
-    // ======================
-
-    let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
-    add_node <- any (inputs.add_node,add_node_at_cursor);
-    new_node <- add_node.map(f_!([model,node_pointer_style,node_tooltip,out] {
-        let ctx = NodeCreationContext {
-            pointer_style  : &node_pointer_style,
-            tooltip_update : &node_tooltip,
-            output_press   : &node_output_touch.down,
-            input_press    : &node_input_touch.down,
-            output         : &out,
-        };
-        model.new_node(&ctx)
-    }));
-    out.source.node_added <+ new_node;
-
-    node_with_position <- add_node_at_cursor.map3(&new_node,&cursor_pos_in_scene,|_,id,pos| (*id,*pos));
-    out.source.node_position_set         <+ node_with_position;
-    out.source.node_position_set_batched <+ node_with_position;
-
-    // === Event Propagation ===
-    // See the docs of `Node` to learn about how the graph - nodes event propagation works.
-
-    _eval <- all_with(&out.node_hovered,&edit_mode,f!([model](tgt,e)
-        if let Some(tgt) = tgt {
-            model.with_node(tgt.value,|t| t.model.input.set_edit_ready_mode(*e && tgt.is_on()));
-        }
-    ));
-    _eval <- all_with(&out.node_hovered,&out.some_edge_targets_unset,f!([model](tgt,ok)
-        if let Some(tgt) = tgt {
-            let node_id        = tgt.value;
-            let edge_tp        = model.first_detached_edge_source_type();
-            let is_edge_source = model.has_edges_with_detached_targets(node_id);
-            let is_active      = *ok && !is_edge_source && tgt.is_on();
-            model.with_node(node_id,|t| t.model.input.set_ports_active(is_active,edge_tp));
-        }
-    ));
-    }
-
-
-    // === Node Actions ===
-
-    frp::extend! { network
-        freeze_edges <= out.node_action_freeze.map (f!([model]((node_id,is_frozen)) {
-            let edges = model.node_in_edges(node_id);
-            edges.into_iter().map(|edge_id| (edge_id,*is_frozen)).collect_vec()
-        }));
-
-        eval freeze_edges (((edge_id,is_frozen)) model.set_edge_freeze(edge_id,*is_frozen) );
     }
 
 
@@ -2699,6 +2683,70 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
     eval edge_to_remove ((id) model.remove_edge(id));
 
+    }
+
+
+
+    // ======================
+    // === Node Creation  ===
+    // ======================
+
+    frp::extend! { network
+    // add_node_and_edit -> (add_node_at_cursor OR add_node_below) -> open_searcher
+    // edge_drop -> add_node_at_cursor -> open_searcher
+    // add_node
+    selected_node <- inputs.add_node_and_edit.map(f_!(model.nodes.selected.first_cloned()));
+    //is_node_selected <- selected_node.map((node) node.is_some());
+    add_node_below <- selected_node.filter_map(|selected| *selected);
+    add_node_and_edit_at_cursor <- selected_node.filter(|selected| selected.is_none()).constant(());
+    eval add_node_below ((node) model.add_node_below_and_edit(*node));
+
+    on_edge_drop_to_create_node <- edge_dropped_to_create_node.constant(());
+    add_node_at_cursor <- any(on_edge_drop_to_create_node, inputs.add_node_at_cursor, add_node_and_edit_at_cursor);
+    add_node_at_pos <- add_node_at_cursor.map2(&cursor_pos_in_scene, |_, pos| *pos);
+    eval add_node_at_pos ((pos) model.add_node_at_and_edit(*pos));
+
+    new_node <- inputs.add_node.map(f_!([model,node_pointer_style,node_tooltip,out] {
+        let ctx = NodeCreationContext {
+            pointer_style  : &node_pointer_style,
+            tooltip_update : &node_tooltip,
+            output_press   : &node_output_touch.down,
+            input_press    : &node_input_touch.down,
+            output         : &out,
+        };
+        model.new_node(&ctx)
+    }));
+    out.source.node_added <+ new_node;
+
+    // === Event Propagation ===
+    // See the docs of `Node` to learn about how the graph - nodes event propagation works.
+
+    _eval <- all_with(&out.node_hovered,&edit_mode,f!([model](tgt,e)
+        if let Some(tgt) = tgt {
+            model.with_node(tgt.value,|t| t.model.input.set_edit_ready_mode(*e && tgt.is_on()));
+        }
+    ));
+    _eval <- all_with(&out.node_hovered,&out.some_edge_targets_unset,f!([model](tgt,ok)
+        if let Some(tgt) = tgt {
+            let node_id        = tgt.value;
+            let edge_tp        = model.first_detached_edge_source_type();
+            let is_edge_source = model.has_edges_with_detached_targets(node_id);
+            let is_active      = *ok && !is_edge_source && tgt.is_on();
+            model.with_node(node_id,|t| t.model.input.set_ports_active(is_active,edge_tp));
+        }
+    ));
+    }
+
+
+    // === Node Actions ===
+
+    frp::extend! { network
+        freeze_edges <= out.node_action_freeze.map (f!([model]((node_id,is_frozen)) {
+            let edges = model.node_in_edges(node_id);
+            edges.into_iter().map(|edge_id| (edge_id,*is_frozen)).collect_vec()
+        }));
+
+        eval freeze_edges (((edge_id,is_frozen)) model.set_edge_freeze(edge_id,*is_frozen) );
     }
 
     //
