@@ -1,13 +1,14 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.compiler.pass.resolve.VectorLiterals
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{
   Component,
-  ComponentGroup,
   ComponentGroups,
+  ExtendedComponentGroup,
+  ModuleName,
+  ModuleReference,
   Package,
   PackageManager
 }
@@ -22,6 +23,8 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
+import org.enso.editions.LibraryName
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeComponentsTest
@@ -51,10 +54,13 @@ class RuntimeComponentsTest
     val pkg: Package[File] = {
       val componentGroups =
         ComponentGroups(
-          `new` = List(),
-          `extends` = List(
-            ComponentGroup(
-              module  = "Standard.Base.Group2",
+          newGroups = List(),
+          extendedGroups = List(
+            ExtendedComponentGroup(
+              module = ModuleReference(
+                LibraryName("Standard", "Base"),
+                Some(ModuleName("Group2"))
+              ),
               color   = None,
               icon    = None,
               exports = List(Component("foo", None))
@@ -80,7 +86,7 @@ class RuntimeComponentsTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           distributionHome.toString
         )
-        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
+        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
@@ -216,39 +222,6 @@ class RuntimeComponentsTest
     }
     suggestions.isEmpty shouldBe false
 
-    // check that the Standard.Base library is indexed
-    val stdlibSuggestions = responses.collect {
-      case Api.Response(
-            None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(
-              module,
-              _,
-              as,
-              _,
-              xs
-            )
-          ) if module.contains("Vector") =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
-        xs.toVector.head.suggestion.module shouldEqual VectorLiterals.vectorModuleName
-    }
-    stdlibSuggestions.nonEmpty shouldBe true
-
-    // check that builtins are indexed
-    val builtinsSuggestions = responses.collect {
-      case Api.Response(
-            None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(
-              module,
-              _,
-              as,
-              _,
-              xs
-            )
-          ) if module.contains("Builtins") =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
-    }
-    builtinsSuggestions.length shouldBe 1
-
     // check LibraryLoaded notifications
     val contentRootNotifications = responses.collect {
       case Api.Response(
@@ -263,7 +236,7 @@ class RuntimeComponentsTest
       ("Standard", "Base", libraryVersion)
     )
 
-    context.consumeOut shouldEqual List("Hello World!")
+    context.consumeOut shouldEqual List()
   }
 
 }

@@ -54,8 +54,15 @@ class Compiler(
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
 
-  /** Lazy-initializes the IR for the builtins module.
-    */
+  /** Run the initialization sequence. */
+  def initialize(): Unit = {
+    initializeBuiltinsIr()
+    packageRepository.initialize().left.foreach { err =>
+      throw new CompilerError(err.toString)
+    }
+  }
+
+  /** Lazy-initializes the IR for the builtins module. */
   def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
       logger.log(
@@ -97,7 +104,7 @@ class Compiler(
     * @return the list of modules imported by `module`
     */
   def runImportsResolution(module: Module): List[Module] = {
-    initializeBuiltinsIr()
+    initialize()
     importResolver.mapImports(module)
   }
 
@@ -169,7 +176,7 @@ class Compiler(
     * @param module the scope from which docs are generated
     */
   def generateDocs(module: Module): Module = {
-    initializeBuiltinsIr()
+    initialize()
     parseModule(module, isGenDocs = true)
     module
   }
@@ -179,7 +186,7 @@ class Compiler(
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
   ): Unit = {
-    initializeBuiltinsIr()
+    initialize()
     modules.foreach(m => parseModule(m))
 
     var requiredModules = modules.flatMap(runImportsAndExportsResolution)
