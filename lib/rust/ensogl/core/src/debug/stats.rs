@@ -62,12 +62,18 @@ macro_rules! emit_if_integer {
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
 
+
+        // === StatsData ===
+
         #[derive(Debug,Default,Clone,Copy)]
         struct StatsData {
             frame_begin_time: f64,
             frame_counter:    u64,
             $($field : $field_type),*
         }
+
+
+        // === Stats fields accessors ===
 
         impl Stats { $(
             /// Field getter.
