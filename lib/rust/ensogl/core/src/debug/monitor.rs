@@ -6,6 +6,7 @@ use crate::debug::stats::Stats;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 
+use num_traits::cast::AsPrimitive;
 use std::collections::VecDeque;
 use std::f64;
 use wasm_bindgen;
@@ -847,10 +848,8 @@ macro_rules! stats_sampler {
                 $label
             }
             fn value(&self) -> f64 {
-                // Disable lint warning for cases when `$stats_method()` is f64, making
-                // `$stats_method() as f64` a trivial cast of a f64 value to f64.
-                #![allow(trivial_numeric_casts)]
-                self.stats.$stats_method() as f64 / $value_divisor
+                let raw_value: f64 = self.stats.$stats_method().as_();
+                raw_value / $value_divisor
             }
             fn min_size(&self) -> Option<f64> {
                 Some($t1)
