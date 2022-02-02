@@ -143,6 +143,8 @@ fail message = Panic.throw (Failure message)
 
    Arguments:
    - matcher: The expected type of dataflow error contained in `this`.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
 
    > Example
      Assert that a compuation should return an error of a given type.
@@ -152,15 +154,17 @@ fail message = Panic.throw (Failure message)
 
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
-Any.should_fail_with : Any -> Assertion
-Any.should_fail_with matcher =
-    loc = Meta.get_source_location 1
+Any.should_fail_with : Any -> Integer -> Assertion
+Any.should_fail_with matcher frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
     here.fail ("Expected an error " + matcher.to_text + " but none occurred (at " + loc + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
    - matcher: The expected type of dataflow error contained in `this`.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
 
    > Example
      Assert that a compuation should return an error of a given type.
@@ -170,11 +174,12 @@ Any.should_fail_with matcher =
 
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
-Error.should_fail_with : Any -> Assertion
-Error.should_fail_with matcher =
+Error.should_fail_with : Any -> Integer -> Assertion
+Error.should_fail_with matcher frames_to_skip=0 =
     caught = this.catch x->x
     if caught.is_a matcher then Nothing else
-        here.fail ("Unexpected error " + caught.to_text + " returned.")
+        loc = Meta.get_source_location 2+frames_to_skip
+        here.fail ("Unexpected error " + caught.to_text + " returned (at " + loc + ".")
 
 ## Expect a function to fail with the provided panic.
 
@@ -203,6 +208,8 @@ expect_panic_with ~action matcher =
 
    Arguments:
    - that: The value to check `this` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
 
    > Example
      Assert that one value should equal another,
@@ -211,11 +218,11 @@ expect_panic_with ~action matcher =
          import Standard.Test
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
-Any.should_equal : Any -> Assertion
-Any.should_equal that = case this == that of
+Any.should_equal : Any -> Integer -> Assertion
+Any.should_equal that frames_to_skip=0 = case this == that of
     True -> Success
     False ->
-        loc = Meta.get_source_location 2
+        loc = Meta.get_source_location 2+frames_to_skip
         msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
         here.fail msg
 
@@ -239,6 +246,8 @@ Error.should_equal _ = Panic.throw (Matched_On_Error this)
    Arguments:
    - that: The value to compare `this` for equality with.
    - epsilon: The epislon for comparing two decimal numbers.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
 
    > Example
      Compare two decimal values.
@@ -254,11 +263,11 @@ Error.should_equal _ = Panic.throw (Matched_On_Error this)
 
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
-Decimal.should_equal : Decimal -> Decimal -> Assertion
-Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
+Decimal.should_equal : Decimal -> Decimal -> Integer -> Assertion
+Decimal.should_equal that (epsilon = 0) (frames_to_skip=0) = case this.equals that epsilon of
     True -> Success
     False ->
-        loc = Meta.get_source_location 2
+        loc = Meta.get_source_location 2+frames_to_skip
         msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
         Panic.throw (Failure msg)
 

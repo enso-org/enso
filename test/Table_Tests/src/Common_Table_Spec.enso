@@ -1,0 +1,152 @@
+from Standard.Base import all
+import Standard.Test
+import Standard.Test.Problems
+
+import Standard.Base.Error.Problem_Behavior
+import Standard.Base.Error.Warnings
+import Standard.Table.Data.Matching
+from Standard.Table.Error as Table_Errors import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
+
+## A common test suite for shared operations on the Table API.
+
+   It is meant to be able to be re-used by tests for the in-memory and various
+   database backends.
+
+   Arguments:
+   - prefix: A prefix to attach to the names of test groups, for easier
+     identification.
+   - table_builder: A function which takes a list of column descriptions and
+     builds a Table using the backend that is meant to be tested. Each column
+     description is a triple of column name, column type and a vector containing
+     column elements.
+
+   TODO [RW] the Any in return type of the builder should ideally be replaced with the Table interface, once that is supported.
+spec : Text -> (Vector -> Any) -> Boolean -> Nothing
+spec prefix table_builder supports_case_sensitive_columns =
+    Test.group prefix+"Select" <|
+        table =
+            col1 = ["foo", Integer, [1,2,3]]
+            col2 = ["bar", Integer, [4,5,6]]
+            col3 = ["Baz", Integer, [7,8,9]]
+            col4 = ["foo_1", Integer, [10,11,12]]
+            col5 = ["foo_2", Integer, [13,14,15]]
+            col6 = ["ab.+123", Integer, [16,17,18]]
+            col7 = ["abcd123", Integer, [19,20,21]]
+            table_builder [col1, col2, col3, col4, col5, col6, col7]
+
+        expect_column_names names table =
+            table.columns . map .name . should_equal names frames_to_skip=2
+
+        Test.specify "should work as shown in the doc examples" <|
+            expect_column_names ["foo", "bar"] <| table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True))
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Matching.Regex Matching.Case_Insensitive))
+            expect_column_names ["abcd123", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
+
+            column1 = table.at "foo_1"
+            column2 = table.at "Baz"
+            expect_column_names ["Baz", "foo_1"] <| table.select_columns (By_Column [column1, column2])
+
+        Test.specify "should allow to reorder columns if asked to" <|
+            table_2 = table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True)) reorder=True
+            expect_column_names ["bar", "foo"] table_2
+            table_2 . at "bar" . to_vector . should_equal [4,5,6]
+            table_2 . at "foo" . to_vector . should_equal [1,2,3]
+
+        Test.specify "should correctly handle regex matching" <|
+            expect_column_names ["foo"] <| table.select_columns (By_Name ["foo"] (Matching.Regex True))
+            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns (By_Name ["a.*"] (Matching.Regex True))
+            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns (By_Name ["ab.+123"] (Matching.Regex True))
+            expect_column_names ["ab.+123"] <| table.select_columns (By_Name ["ab.+123"] (Matching.Exact True))
+            expect_column_names ["abcd123"] <| table.select_columns (By_Name ["abcd123"] (Matching.Regex True))
+
+        Test.specify "should allow negative indices" <|
+            expect_column_names ["foo", "bar", "foo_2"] <| table.select_columns (By_Index [-3, 0, 1])
+
+        if supports_case_sensitive_columns then
+            Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
+                table =
+                    col1 = ["foo", Integer, [1,2,3]]
+                    col2 = ["bar", Integer, [4,5,6]]
+                    col3 = ["Bar", Integer, [7,8,9]]
+                    table_builder [col1, col2, col3]
+                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Matching.Exact Matching.Case_Insensitive))
+
+        Test.specify "should correctly handle regexes matching multiple names" <|
+            expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] (Matching.Regex True))
+            expect_column_names ["bar", "foo", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] (Matching.Regex True)) reorder=True
+
+        Test.specify "should correctly handle problems: out of bounds indices" <|
+            selector = By_Index [1, 0, 100, -200, 300]
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo", "bar"]
+            problems = [Column_Indexes_Out_Of_Range [100, -200, 300]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate indices" <|
+            selector = By_Index [0, 0, 0]
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Duplicate_Column_Selectors [0, 0]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: aliased indices" <|
+            selector = By_Index [0, -7, -6, 1]
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo", "bar"]
+            problems = [Input_Indices_Already_Matched [-7, 1]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate names" <|
+            selector = By_Name ["foo", "foo"] (Matching.Exact True)
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: unmatched names" <|
+            weird_name = '.*?-!@#!"'
+            selector = By_Name ["foo", "hmm", weird_name] (Matching.Exact True)
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Missing_Input_Columns ["hmm", weird_name]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate columns" <|
+            foo = table.at "foo"
+            selector = By_Column [foo, foo]
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: unmatched columns" <|
+            table_2 = table_builder [["foo", Integer, [0,0,0]], ["weird_column", Integer, [0,0,0]]]
+            foo = table_2.at "foo"
+            weird_column = table_2.at "weird_column"
+            bar = table.at "bar"
+
+            selector = By_Column [bar, weird_column, foo]
+            action = table.select_columns selector reorder=True warnings=_ on_problems=_
+            tester = expect_column_names ["bar", "foo"]
+            problems = [Missing_Input_Columns ["weird_column"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: no columns in the output" <|
+            selector = By_Name [] (Matching.Exact True)
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names []
+            problems = [No_Output_Columns]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle multiple problems" <|
+            selector = By_Name ["hmmm"] (Matching.Exact True)
+            action = table.select_columns selector warnings=_ on_problems=_
+            tester = expect_column_names []
+            problems = [Missing_Input_Columns ["hmmm"], No_Output_Columns]
+            Problems.test_problem_handling action problems tester
+
+            action_2 = table.select_columns (By_Index [0, -7, 0, 100]) warnings=_ on_problems=_
+            problems_2 = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
+            tester_2 = expect_column_names ["foo"]
+            Problems.test_problem_handling action_2 problems_2 tester_2
