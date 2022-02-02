@@ -16,42 +16,131 @@ type Problem_Behavior
        Report the problem as a dataflow error and abort the operation
     type Report_Error
 
-## UNSTABLE
-   Attaches an error-value to the given value according to the expected problem
-   behavior.
+    ## ADVANCED
+       UNSTABLE
+       Attaches a problem to the given value according to the expected problem
+       behavior.
 
-   If the problem behavior is set to Ignore, the value is returned as-is.
-   If it is set to Report_Warning, the value is returned with the error-value
-   attached as a warning.
-   If it is set to Report_Error, the error-value is returned in the form of a
-   dataflow error.
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problem
+       attached as a warning, after any warnings that were already attached to
+       this value.
+       If it is set to Report_Error, the problem is returned in the form of a
+       dataflow error. If the value already contained any dataflow error, that
+       error takes precedence.
 
-   TODO: the Warning_System argument is temporary, as the warning system is
-   mocked until the real implementation is shipped. It will be removed soon.
-attach_as_needed : Any -> Problem_Behavior -> Vector -> Warning_System -> Any
-attach_as_needed decorated_value problem_behavior ~payload warnings=Warnings.default =
-    case problem_behavior of
+       TODO [RW] the Warning_System argument is temporary, as the warning system
+       is mocked until the real implementation is shipped. It will be removed
+       soon. See: https://www.pivotaltracker.com/story/show/180901472
+    attach_problem_after : Any -> Any -> Warning_System -> Any
+    attach_problem_after decorated_value ~problem warnings = case this of
         Ignore ->
             decorated_value
         Report_Warning ->
-            warnings.attach decorated_value payload
+            warnings.attach decorated_value problem
         Report_Error ->
             case decorated_value of
-                _ -> Error.throw payload
+                _ -> Error.throw problem
 
-## UNSTABLE
-   Attaches issues to the given value according to the expected problem
-   behavior.
+    ## ADVANCED
+       UNSTABLE
+       Attaches a problem to the given value according to the expected problem
+       behavior.
 
-   If the problem behavior is set to Ignore, the value is returned as-is.
-   If it is set to Report_Warning, the value is returned with the issues
-   attached as warnings.
-   If it is set to Report_Error, the first issue is returned in the form of a
-   dataflow error.
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problem
+       attached as a warning, before any warnings that were already attached to
+       this value.
 
-   TODO: the Warning_System argument is temporary, as the warning system is
-   mocked until the real implementation is shipped. It will be removed soon.
-attach_issues_as_needed : Any -> Problem_Behavior -> Vector -> Warning_System -> Any
-attach_issues_as_needed decorated_value problem_behavior issues warnings=Warnings.default =
-    issues.fold decorated_value value-> issue->
-        here.attach_as_needed value problem_behavior issue warnings=warnings
+       TODO [RW] attaching before a warning is not supported in the mock warning
+       system, it can only be added once the full Warning system is implemented.
+       See: https://www.pivotaltracker.com/story/show/180901472
+
+       If it is set to Report_Error, the problem is returned in the form of
+       a dataflow error. The problem takes precedence over any errors that may
+       have been contained in the value - in this case the `decorated_value` is
+       not computed at all.
+
+       TODO [RW] the Warning_System argument is temporary, as the warning system
+       is mocked until the real implementation is shipped. It will be removed
+       soon. See: https://www.pivotaltracker.com/story/show/180901472
+    attach_problem_before : Any -> Any -> Warning_System -> Any
+    attach_problem_before problem warnings ~decorated_value = case this of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            # TODO [RW] attach before; see comment above.
+            warnings.attach decorated_value problem
+        Report_Error ->
+            Error.throw problem
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches problems to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problems
+       attached as warnings, before any warnings that were already attached to
+       this value.
+       If it is set to Report_Error, the first problem is returned in the form
+       of a dataflow error. The problem takes precedence over any errors that
+       may have been contained in the value - in this case the `decorated_value`
+       is not computed at all.
+
+       TODO [RW] the Warning_System argument is temporary, as the warning system
+       is mocked until the real implementation is shipped. It will be removed
+       soon. See: https://www.pivotaltracker.com/story/show/180901472
+
+       > Example
+         Perform pre-flight checks and then compute the actual result only if needed.
+
+             problems = preflight_checks
+             problem_behavior.attach_problems_before problems Warnings.default <|
+                 expensive_computation
+
+    attach_problems_before : Vector -> Warning_System -> Any -> Any
+    attach_problems_before problems warnings ~decorated_value = case this of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            # TODO [RW] attach before; see comment above.
+            warnings.attach_many decorated_value problems
+        Report_Error ->
+            if problems.is_empty then decorated_value else
+                Error.throw problems.first
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches problems to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problems
+       attached as warnings, after any warnings that were already attached to
+       this value.
+       If it is set to Report_Error, the first problem is returned in the form
+       of a dataflow error. If the value already contained any dataflow error,
+       that error takes precedence.
+
+       TODO [RW] the Warning_System argument is temporary, as the warning system
+       is mocked until the real implementation is shipped. It will be removed
+       soon. See: https://www.pivotaltracker.com/story/show/180901472
+
+       > Example
+         First compute a result and then, only if the computation has succeeded,
+         perform any postprocessing checks which may raise warnings/errors.
+
+             result = compute_result
+             # TODO [RW] the underscore will be able to be removed once the `warnings` argument is deprecated, see above.
+             problem_behavior.attach_problems_after result _ Warnings.default <|
+                 perform_post_process_checks_and_return_problems
+    attach_problems_after : Any -> Vector -> Warning_System -> Any
+    attach_problems_after decorated_value ~problems warnings = case this of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            warnings.attach_many decorated_value problems
+        Report_Error -> case decorated_value of
+            _ -> if problems.is_empty then decorated_value else
+                Error.throw problems.first

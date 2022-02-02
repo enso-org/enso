@@ -122,8 +122,9 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
             select_matching_indices is_object_matched_by_anything
 
     result = selected_indices.map objects.at
-    issues = if unmatched_criteria.is_empty then [] else [No_Matches_Found unmatched_criteria]
-    Problem_Behavior_Module.attach_issues_as_needed result on_problems issues warnings=warnings
+    problems = if unmatched_criteria.is_empty then [] else
+        [No_Matches_Found unmatched_criteria]
+    on_problems.attach_problems_after result problems warnings
 
 
 ## UNSTABLE
