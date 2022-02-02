@@ -11,6 +11,7 @@ use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 use crate::system::web::HtmlDivElement;
 
+use enso_web::NodeRemover;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -41,6 +42,8 @@ mod js {
 
 /// Sets the object transform as the CSS style property.
 #[allow(unsafe_code)]
+// TODO: RIIR?
+#[cfg(target_arch = "wasm32")]
 pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
@@ -50,6 +53,8 @@ pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {
         js::set_object_transform(dom, &matrix_array);
     }
 }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {}
 
 
 
@@ -75,7 +80,7 @@ impl Guard {
 
 impl Drop for Guard {
     fn drop(&mut self) {
-        self.dom.remove();
+        self.dom.remove_from_parent_or_panic();
         self.display_object.unset_parent();
     }
 }
@@ -98,7 +103,7 @@ pub struct DomSymbol {
 
 impl DomSymbol {
     /// Constructor.
-    pub fn new(content: &web_sys::Node) -> Self {
+    pub fn new(content: &web::Node) -> Self {
         let logger = Logger::new("DomSymbol");
         let size = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
         let dom = web::create_div();

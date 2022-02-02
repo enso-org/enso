@@ -28,14 +28,38 @@ pub use web_sys::console;
 
 pub use std::time::Duration;
 pub use std::time::Instant;
-pub use web_sys::Document;
 pub use web_sys::MouseEvent;
-pub use web_sys::Performance;
-pub use web_sys::Window;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod html_element {
     use super::*;
+
+    #[derive(Clone, Debug)]
+    pub struct Window {
+        event_target: EventTarget,
+    }
+    impl Window {
+        pub fn new() -> Self { Self { event_target: EventTarget::new() } }
+        pub fn open_with_url_and_target(&self, url: &str, target: &str) -> Result<()> { Ok(()) }
+    }
+    impl Deref for Window {
+        type Target = EventTarget;
+        fn deref(&self) -> &Self::Target {
+            &self.event_target
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct Document {}
+    impl Document {
+        pub fn new() -> Self { Self {} }
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct Performance {}
+    impl Performance {
+        pub fn new() -> Self { Self {} }
+    }
 
     #[derive(Clone, Debug)]
     pub struct EventTarget {}
@@ -45,8 +69,9 @@ mod html_element {
             Self {}
         }
 
-        pub fn add_event_listener_with_callback_and_bool<T>(&self, s: &str, _callback: T, b: bool) -> Result<()> { Ok(()) }
-        pub fn remove_event_listener_with_callback<T>(&self, s: &str, _callback: T) -> Result<()> { Ok(()) }
+        pub fn add_event_listener_with_callback_and_bool(&self, s: &str, _callback: &JsValue, b: bool) -> Result<()> { Ok(()) }
+        pub fn remove_event_listener_with_callback(&self, s: &str, _callback: &JsValue) -> Result<()> { Ok(()) }
+        pub fn add_event_listener_with_callback_and_add_event_listener_options<U>(&self, s: &str, _callback: &JsValue, options: U) -> Result<()> { Ok(()) }
     }
 
     impl From<HtmlElement> for EventTarget {
@@ -329,6 +354,12 @@ pub use web_sys::CanvasRenderingContext2d;
 pub use web_sys::HtmlCollection;
 #[cfg(target_arch = "wasm32")]
 pub use web_sys::EventTarget;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::Window;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::Document;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::Performance;
 // =============
 // === Error ===
 // =============
@@ -493,9 +524,12 @@ pub fn simulate_sleep(duration: f64) {
 }
 
 /// Access the `window` object if exists.
+#[cfg(target_arch = "wasm32")]
 pub fn try_window() -> Result<Window> {
     web_sys::window().ok_or_else(|| Error("Cannot access 'window'."))
 }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn try_window() -> Result<Window> { Ok(Window::new()) }
 
 /// Access the `window` object or panic if it does not exist.
 pub fn window() -> Window {
@@ -503,9 +537,13 @@ pub fn window() -> Window {
 }
 
 /// Access the `window.document` object if exists.
+#[cfg(target_arch = "wasm32")]
 pub fn try_document() -> Result<Document> {
     try_window().and_then(|w| w.document().ok_or_else(|| Error("Cannot access 'window.document'.")))
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn try_document() -> Result<Document> { Ok(Document::new()) }
 
 /// Access the `window.document` object or panic if it does not exist.
 pub fn document() -> Document {
@@ -530,19 +568,29 @@ pub fn body() -> HtmlElement {
 }
 
 /// Access the `window.devicePixelRatio` value if the window exists.
+#[cfg(target_arch = "wasm32")]
 pub fn try_device_pixel_ratio() -> Result<f64> {
     try_window().map(|window| window.device_pixel_ratio())
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn try_device_pixel_ratio() -> Result<f64> {Ok(1.0) }
+
 /// Access the `window.devicePixelRatio` or panic if the window does not exist.
+#[cfg(target_arch = "wasm32")]
 pub fn device_pixel_ratio() -> f64 {
     window().device_pixel_ratio()
 }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn device_pixel_ratio() -> f64 { 1.0 }
 
 /// Access the `window.performance` or panics if it does not exist.
+#[cfg(target_arch = "wasm32")]
 pub fn performance() -> Performance {
     window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
 }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn performance() -> Performance { Performance::new() } 
 
 /// Gets `Element` by ID.
 #[cfg(target_arch = "wasm32")]
@@ -651,21 +699,29 @@ pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> WebGl2RenderingContext 
     WebGl2RenderingContext::new()
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn try_request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> Result<i32> {
     try_window()?
         .request_animation_frame(f.as_ref().unchecked_ref())
         .map_err(|_| Error("Cannot access 'requestAnimationFrame'."))
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> i32 {
     window().request_animation_frame(f.as_ref().unchecked_ref()).unwrap()
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn cancel_animation_frame(id: i32) {
     window().cancel_animation_frame(id).unwrap();
 }
 
-
+#[cfg(not(target_arch = "wasm32"))]
+pub fn try_request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> Result<i32> { Ok(1) }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> i32 { 1 }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn cancel_animation_frame(id: i32) { }
 
 // =====================
 // === Other Helpers ===

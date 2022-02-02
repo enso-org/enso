@@ -117,6 +117,7 @@ pub fn current() -> Option<Platform> {
 
 /// Queries which platform we are on.
 #[allow(clippy::if_same_then_else)]
+#[cfg(target_arch = "wasm32")]
 pub fn current_wasm() -> Option<Platform> {
     use super::window;
     let window = window();
