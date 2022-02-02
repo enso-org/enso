@@ -2,10 +2,10 @@ from Standard.Base import all
 
 import Standard.Base.Error.Warnings
 import Standard.Table.Data.Matching
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
-from Standard.Table.Data.Position as Position_Module import all
-from Standard.Table.Error as Error_Module import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+import Standard.Table.Data.Position
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched
 
 ## PRIVATE
    A helper function encapsulating shared code for `select_columns`
@@ -98,7 +98,7 @@ remove_columns internal_columns selector on_problems warnings =
      the proper warning system is implemented, this argument will become
      obsolete and will be removed. No user code should use this argument, as it
      will be removed in the future.
-reorder_columns : Vector -> Column_Selector -> Position -> Problem_Behavior -> Warnings.Warning_System -> Vector
+reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Warnings.Warning_System -> Vector
 reorder_columns internal_columns selector position on_problems warnings =
     selection = here.select_columns_helper internal_columns selector reorder=True on_problems warnings
     selected_names = Map.from_vector (selection.map column-> [column.name, True])
@@ -106,8 +106,8 @@ reorder_columns internal_columns selector position on_problems warnings =
         is_selected = selected_names.get_or_else column.name False
         is_selected.not
     result = case position of
-        Before_Other_Columns -> selection + other_columns
-        After_Other_Columns -> other_columns + selection
+        Position.Before_Other_Columns -> selection + other_columns
+        Position.After_Other_Columns -> other_columns + selection
     result
 
 ## PRIVATE

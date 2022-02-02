@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex as Regex_Module
 
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
-from Standard.Base.Error.Warnings import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Warnings import Warning_System
 
 ## Strategy for matching names.
 type Matching_Strategy
