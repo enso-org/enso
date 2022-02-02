@@ -147,7 +147,7 @@ class FunctionBindingTest extends CompilerTest {
 
     "be turned into Method.Conversion IR entities" in {
       val ir =
-        s"""My_Type.$from (value : Other) ~config=Nothing = My_Type value.a
+        s"""My_Type.$from (that : Other) ~config=Nothing = My_Type value.a
            |""".stripMargin.preprocessModule.desugar
 
       ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Conversion]
@@ -156,7 +156,7 @@ class FunctionBindingTest extends CompilerTest {
       conversion.sourceTypeName.asInstanceOf[IR.Name].name shouldEqual "Other"
       val arguments = conversion.body.asInstanceOf[IR.Function.Lambda].arguments
       arguments.length shouldEqual 1
-      arguments.head.name.name shouldEqual "value"
+      arguments.head.name.name shouldEqual "that"
       arguments.head.ascribedType shouldBe defined
       arguments.head.defaultValue should not be defined
       arguments.head.suspended shouldBe false
@@ -210,7 +210,7 @@ class FunctionBindingTest extends CompilerTest {
 
     "return an error if the conversion does not have a source type" in {
       val ir =
-        s"""My_Type.$from value = value + value
+        s"""My_Type.$from that = that + that
            |""".stripMargin.preprocessModule.desugar
 
       ir.bindings.head shouldBe an[IR.Error.Conversion]
@@ -220,7 +220,7 @@ class FunctionBindingTest extends CompilerTest {
 
     "return an error if the additional arguments don't have defaults" in {
       val ir =
-        s"""My_Type.$from (value : Other) config = value + value
+        s"""My_Type.$from (that : Other) config = that + that
            |""".stripMargin.preprocessModule.desugar
 
       ir.bindings.head shouldBe an[IR.Error.Conversion]

@@ -96,7 +96,7 @@ class TailCallTest extends CompilerTest {
         |
         |type MyAtom a b c
         |
-        |Foo.from (value : Bar) = undefined
+        |Foo.from (that : Bar) = undefined
         |""".stripMargin.preprocessModule.analyse
 
     "mark methods as tail" in {
@@ -107,10 +107,9 @@ class TailCallTest extends CompilerTest {
       ir.bindings(1).getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
-    // TODO: resolving this is issue #181113110
-    // "mark conversions as tail" in {
-    //  ir.bindings(2).getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-    // }
+    "mark conversions as tail" in {
+      ir.bindings(2).getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+    }
   }
 
   "Tail call analysis on expressions" should {
