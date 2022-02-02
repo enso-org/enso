@@ -27,7 +27,8 @@ use ensogl_core::system::web::get_element_by_id;
 use ensogl_core::system::web::AttributeSetter;
 use ensogl_core::system::web::NodeInserter;
 use ensogl_core::system::web::StyleSetter;
-use ensogl_core::system::web::HtmlCanvasElement;
+use ensogl_core::system::web::Canvas2dExt;
+use ensogl_core::system::web::Canvas2d;
 use ensogl_core::system::web::HtmlElement;
 use js_sys::Math;
 use nalgebra::Vector2;
@@ -35,8 +36,6 @@ use std::ops::Add;
 use std::ops::Mul;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::CanvasRenderingContext2d;
 
 
 
@@ -95,8 +94,7 @@ impl Add<SpriteData> for SpriteData {
 /// A simplified Canvas object used in the EasingAnimator example.
 #[derive(Clone, Debug)]
 pub struct Canvas {
-    canvas:  HtmlCanvasElement,
-    context: CanvasRenderingContext2d,
+    canvas:  Canvas2d,
 }
 
 impl Canvas {
@@ -107,18 +105,15 @@ impl Canvas {
         canvas.set_width(256);
         canvas.set_height(256);
 
-        let context = canvas.get_context("2d").unwrap().unwrap();
-        let context: CanvasRenderingContext2d = context.dyn_into().unwrap();
-
-        let app: HtmlElement = get_element_by_id(container_id).unwrap().dyn_into().unwrap();
+        let app = get_element_by_id(container_id).unwrap();
         app.append_or_panic(&canvas);
 
-        Self { canvas, context }
+        Self { canvas }
     }
 
     /// Clears the canvas.
     pub fn clear(&self) {
-        self.context.clear_rect(0.0, 0.0, self.width(), self.height())
+        self.canvas.clear_rect(0.0, 0.0, self.width(), self.height())
     }
 
     /// Gets Canvas' width.
@@ -135,18 +130,18 @@ impl Canvas {
     pub fn draw_sprite(&self, data: SpriteData, color: &str) {
         let size = (20.0 + data.size) / self.height();
         let point = data.position;
-        self.context.save();
-        self.context.set_fill_style(&color.into());
-        self.context.scale(self.width() / 2.0, self.height() / 2.0).ok();
-        self.context.set_line_width(2.0 / self.height());
-        self.context.translate(1.0, 1.0).ok();
-        self.context.fill_rect(
+        self.canvas.save();
+        self.canvas.set_fill_style(&color.into());
+        self.canvas.scale(self.width() / 2.0, self.height() / 2.0).ok();
+        self.canvas.set_line_width(2.0 / self.height());
+        self.canvas.translate(1.0, 1.0).ok();
+        self.canvas.fill_rect(
             point.x as f64 - size / 2.0,
             point.y as f64 - size / 2.0,
             size,
             size,
         );
-        self.context.restore();
+        self.canvas.restore();
     }
 
     /// Draw a 2D graph of the provided easing function.
@@ -155,28 +150,28 @@ impl Canvas {
         let width = self.width() - 1.0;
         let height = self.height();
 
-        self.context.set_stroke_style(&color.into());
-        self.context.begin_path();
-        self.context.save();
-        self.context.scale(width, height / 2.0).ok();
-        self.context.translate(0.0, 0.5).ok();
-        self.context.set_line_width(1.0 / height);
-        self.context.move_to(0.0, f(0.0) as f64);
+        self.canvas.set_stroke_style(&color.into());
+        self.canvas.begin_path();
+        self.canvas.save();
+        self.canvas.scale(width, height / 2.0).ok();
+        self.canvas.translate(0.0, 0.5).ok();
+        self.canvas.set_line_width(1.0 / height);
+        self.canvas.move_to(0.0, f(0.0) as f64);
         for x in 1..self.canvas.width() {
             let x = x as f64 / width;
             let y = f(x as f32) as f64;
-            self.context.line_to(x, y);
+            self.canvas.line_to(x, y);
         }
-        self.context.stroke();
+        self.canvas.stroke();
 
-        self.context.set_fill_style(&color.into());
+        self.canvas.set_fill_style(&color.into());
         let width = 8.0 / width;
         let height = 16.0 / height;
         let time_s = time_ms / 1000.0;
         let x = time_s / 2.0;
         let y = f(x as f32) as f64;
-        self.context.fill_rect(x - width / 2.0, y - height / 2.0, width, height);
-        self.context.restore();
+        self.canvas.fill_rect(x - width / 2.0, y - height / 2.0, width, height);
+        self.canvas.restore();
     }
 }
 
@@ -253,7 +248,7 @@ impl Example {
         let example = web::create_div();
         example.set_attribute_or_panic("id", name);
         example.set_style_or_panic("margin", "10px");
-        let container: HtmlElement = get_element_by_id("examples").unwrap().dyn_into().unwrap();
+        let container = get_element_by_id("examples").unwrap();
         let header: HtmlElement = create_element("center").dyn_into().unwrap();
         header.set_style_or_panic("background-color", "black");
         header.set_style_or_panic("color", "white");

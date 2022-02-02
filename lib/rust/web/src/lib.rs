@@ -110,7 +110,18 @@ mod html_element {
         pub fn get_bounding_client_rect(&self) -> DomRect {
             DomRect::new()
         }
+        pub fn set_inner_html(&self, text: &str) {}
+        // TODO: better abstraction for JsCast?
+        pub fn dyn_into<T: From<Self>>(self) -> Result<T> {
+            Ok(T::from(self))
+        }
     }
+    impl From<Element> for HtmlElement {
+        fn from(element: Element) -> HtmlElement {
+            HtmlElement { element }
+        }
+    }
+
     impl HtmlElement {
         pub fn new() -> Self {
             Self { element: Element::new() }
@@ -336,6 +347,29 @@ impl HtmlCanvasExt for Canvas2d {
         self.context.fill_text(text, x, y)?;
         Ok(())
     }
+    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {
+        self.context.clear_rect(x, y, w, h);
+    }
+
+    fn scale(&self, x: f64, y: f64) -> Result<()> {
+        self.context.scale(x, y)
+    }
+
+    fn width(&self) -> u32 {
+        self.inner.width()
+    }
+
+    fn height(&self) -> u32 {
+        self.inner.height()
+    }
+    fn set_line_width(&self, value: f64) { self.context.set_line_width(value); }
+    fn move_to(&self, x: f64, y: f64) { self.context.move_to(x, y); }
+    fn line_to(&self, x: f64, y: f64) { self.context.line_to(x, y); }
+    fn stroke(&self) { self.context.stroke(); }
+    fn save(&self) { self.context.save(); }
+    fn restore(&self) { self.context.restore(); }
+    fn set_stroke_style(&self, value: &JsValue) { self.context.set_stroke_style(value); }
+    fn begin_path(&self) { self.context.begin_path(); }
 }
 
 pub trait Canvas2dExt {
@@ -350,6 +384,18 @@ pub trait Canvas2dExt {
     fn set_font(&self, value: &str) {}
     fn set_text_align(&self, value: &str) {}
     fn fill_text(&self, text: &str, x: f64, y: f64) -> Result<()> { Ok(()) }
+    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {}
+    fn scale(&self, x: f64, y: f64) -> Result<()> { Ok(()) }
+    fn width(&self) -> u32 { 0 }
+    fn height(&self) -> u32 { 0 }
+    fn set_line_width(&self, value: f64) {}
+    fn move_to(&self, x: f64, y: f64) {}
+    fn line_to(&self, x: f64, y: f64) { }
+    fn stroke(&self) {}
+    fn save(&self) {}
+    fn restore(&self) {}
+    fn set_stroke_style(&self, value: &JsValue) {}
+    fn begin_path(&self) {}
 }
 
 impl_clone_ref_as_clone_no_from!(Element);
