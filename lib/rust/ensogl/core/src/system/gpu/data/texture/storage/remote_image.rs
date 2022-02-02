@@ -116,6 +116,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
         });
         let js_callback = callback.as_ref().unchecked_ref();
         let image = image_ref.borrow();
+        #[cfg(target_arch = "wasm32")]
         request_cors_if_not_same_origin(&image, url);
         image.set_src(url);
         image.add_event_listener_with_callback_and_bool("load", js_callback, true).unwrap();
@@ -137,6 +138,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
 /// requests, so it's slower than not asking. If we know we're on the same domain or we know we
 /// won't use the image for anything except img tags and or canvas2d then we don't want to set
 /// crossDomain because it will make things slower.
+#[cfg(target_arch = "wasm32")]
 fn request_cors_if_not_same_origin(img: &HtmlImageElement, url_str: &str) {
     let url = web_sys::Url::new(url_str).unwrap();
     let origin = web::window().location().origin().unwrap();

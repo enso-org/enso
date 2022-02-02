@@ -5,6 +5,7 @@ pub mod dom;
 #[warn(missing_docs)]
 pub mod layer;
 
+use enso_web::AttributeSetter;
 pub use layer::Layer;
 
 pub use crate::system::web::dom::Shape;
@@ -806,6 +807,7 @@ impl Extensions {
 pub struct SceneData {
     pub display_object:   display::object::Instance,
     pub dom:              Dom,
+    #[cfg(target_arch = "wasm32")]
     pub context:          Context,
     pub symbols:          SymbolRegistry,
     pub variables:        UniformScope,
@@ -844,6 +846,7 @@ impl SceneData {
 
         let display_object = display::object::Instance::new(&logger);
         display_object.force_set_visibility(true);
+        #[cfg(target_arch = "wasm32")]
         let context = web::get_webgl2_context(&dom.layers.canvas);
         let sub_logger = Logger::new_sub(&logger, "shape_dirty");
         let shape_dirty = ShapeDirty::new(sub_logger, Box::new(on_mut.clone()));
@@ -892,6 +895,7 @@ impl SceneData {
         Self {
             display_object,
             dom,
+            #[cfg(target_arch = "wasm32")]
             context,
             symbols,
             variables,
@@ -998,8 +1002,9 @@ impl SceneData {
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
         debug!(self.logger, "Resized to {screen.width}px x {screen.height}px.", || {
-            self.dom.layers.canvas.set_attribute("width", &width.to_string()).unwrap();
-            self.dom.layers.canvas.set_attribute("height", &height.to_string()).unwrap();
+            self.dom.layers.canvas.set_attribute_or_panic("width", &width.to_string());
+            self.dom.layers.canvas.set_attribute_or_panic("height", &height.to_string());
+            #[cfg(target_arch = "wasm32")]
             self.context.viewport(0, 0, width, height);
         });
     }

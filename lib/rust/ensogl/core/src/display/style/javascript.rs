@@ -18,6 +18,7 @@ use wasm_bindgen::prelude::Closure;
 // === JavaScript Bindings ===
 // ===========================
 
+#[cfg(target_arch = "wasm32")]
 mod js {
     use super::*;
     #[wasm_bindgen(inline_js = "
@@ -127,6 +128,7 @@ mod js {
 //     management to JS GC. See https://github.com/enso-org/ide/issues/1028
 /// Expose the `window.theme` variable which can be used to inspect and change the theme directly
 /// from the JavaScript console.
+#[cfg(target_arch = "wasm32")]
 pub fn expose_to_window(manager: &Manager) {
     let window = web::window();
 

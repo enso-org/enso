@@ -91,6 +91,7 @@ impl World {
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
                 scene.update(t);
+                #[cfg(target_arch = "wasm32")]
                 scene.renderer.run();
 
                 on_after_frame.run_all(&t);
@@ -154,7 +155,10 @@ impl World {
         });
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
+        #[cfg(target_arch = "wasm32")]
         let logger = &self.scene.renderer.logger;
+        #[cfg(not(target_arch = "wasm32"))]
+        let logger = Logger::new("World");
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(
                 &logger,
@@ -164,6 +168,7 @@ impl World {
             ))
             .add(ScreenRenderPass::new(&self.scene))
             .add(pixel_read_pass);
+        #[cfg(target_arch = "wasm32")]
         self.scene.renderer.set_pipeline(pipeline);
     }
 

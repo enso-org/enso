@@ -53,9 +53,6 @@ pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {
         js::set_object_transform(dom, &matrix_array);
     }
 }
-#[cfg(not(target_arch = "wasm32"))]
-pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {}
-
 
 
 // =============
@@ -116,6 +113,7 @@ impl DomSymbol {
         display_object.set_on_updated(enclose!((dom) move |t| {
             let mut transform = inverse_y_translation(t.matrix());
             transform.iter_mut().for_each(|a| *a = eps(*a));
+            #[cfg(target_arch = "wasm32")]
             set_object_transform(&dom,&transform);
         }));
 

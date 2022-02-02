@@ -40,6 +40,7 @@ mod html_element {
     }
     impl Window {
         pub fn new() -> Self { Self { event_target: EventTarget::new() } }
+        pub fn device_pixel_ratio(&self) -> f64 { 1.0 }
         pub fn open_with_url_and_target(&self, url: &str, target: &str) -> Result<()> { Ok(()) }
     }
     impl Deref for Window {
@@ -59,6 +60,7 @@ mod html_element {
     pub struct Performance {}
     impl Performance {
         pub fn new() -> Self { Self {} }
+        pub fn now(&self) -> f64 { 0.0 }
     }
 
     #[derive(Clone, Debug)]
@@ -97,13 +99,16 @@ mod html_element {
     }
     impl Element {
         pub fn new() -> Self {
-            Self { node: Node , js_value: 0.into() }
+            Self { node: Node::new(), js_value: 0.into() }
         }
         pub fn set_class_name(&self, value: &str) {
 
         }
         pub fn children(&self) -> HtmlCollection {
             HtmlCollection::new()
+        }
+        pub fn get_bounding_client_rect(&self) -> DomRect {
+            DomRect::new()
         }
     }
     impl HtmlElement {
@@ -128,7 +133,19 @@ mod html_element {
         } 
     }
     #[derive(Clone, Debug)]
-    pub struct Node;
+    pub struct Node {
+        event_target: EventTarget,
+    }
+    impl Node {
+        pub fn new() -> Self { Self { event_target: EventTarget::new() } }
+    }
+    impl Deref for Node {
+        type Target = EventTarget;
+
+        fn deref(&self) -> &Self::Target {
+            &self.event_target
+        }
+    }
 
     impl NodeInserter for Node {
         fn append_or_panic(&self, node: &Node) {}
@@ -229,6 +246,16 @@ mod html_element {
         pub fn length(&self) -> u32 {
             0
         }
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct DomRect {}
+    impl DomRect {
+        pub fn new() -> Self { Self {} }
+        pub fn x(&self) -> f64 { 0.0 }
+        pub fn y(&self) -> f64 { 0.0 }
+        pub fn width(&self) -> f64 { 0.0 }
+        pub fn height(&self) -> f64 { 0.0 }
     }
 }
 
