@@ -7,8 +7,12 @@ import Standard.Visualization
 import Standard.Base.Data.Time.Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
+import Standard.Table.Internal.Table_Helpers
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
+import Standard.Base.Error.Warnings
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -231,6 +235,62 @@ type Table
     at name = case this.java_table.getColumnOrIndexByName name of
         Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
+
+    ## Returns a new table with a chosen subset of columns, as specified by the
+       `columns`, from the input table. Any unmatched input columns will be
+       dropped from the output.
+
+       Arguments:
+       - columns: Column selection criteria.
+       - reorder: By default, or if set to `False`, columns in the output will
+         be in the same order as in the input table. If `True`, the order in the
+         output table will match the order in the columns list.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices would refer to the same column, a
+           `Input_Indices_Already_Matched`, indicating that the additional
+           indices will not introduce additional columns.
+         - If there are no columns in the output table, a `No_Output_Columns`.
+       - warnings: A `Warning_System` instance specifying how to handle
+         warnings. This is a temporary workaround to allow for testing the
+         warning mechanism. Once the proper warning system is implemented, this
+         argument will become obsolete and will be removed. No user code should
+         use this argument, as it will be removed in the future.
+
+       > Example
+         Select columns by name.
+
+             table.select_columns (By_Name ["bar", "foo"] (Matching.Exact True))
+
+       ## TODO [RW] default arguments do not work on atoms, once this is fixed,
+          the above should be replaced with just `Matching.Exact`.
+          See: https://github.com/enso-org/enso/issues/1600
+
+       > Example
+         Select columns matching a regular expression.
+
+             table.select_columns (By_Name ["foo.+", "b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+
+       > Example
+         Select the first two columns and the last column, moving the last one to front.
+
+             table.select_columns (By_Index [-1, 0, 1]) reorder=True
+
+       > Example
+         Select columns with the same names as the ones provided.
+
+             table.select_columns (By_Column [column1, column2])
+    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Table
+    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) (warnings = Warnings.default) =
+        new_columns = Table_Helpers.select_columns internal_columns=this.columns selector=columns reorder=reorder on_problems=on_problems warnings=warnings
+        here.new new_columns
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns
