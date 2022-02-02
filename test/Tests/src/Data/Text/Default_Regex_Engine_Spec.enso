@@ -96,6 +96,11 @@ spec =
             input = "aa ab abc a bc bcd"
             pattern.matches input . should_be_false
 
+        Test.specify "should check for full matches" <|
+            pattern = engine.compile "f.o" []
+            pattern.matches "foo" . should_be_true
+            pattern.matches "foobar" . should_be_false
+
     Test.group "The default regex engine's Pattern.match" <|
         engine = Default_Engine.new
 
