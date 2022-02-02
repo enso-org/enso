@@ -38,6 +38,7 @@ use crate::system::web;
 use crate::system::web::IgnoreContextMenuHandle;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
+use crate::system::web::Canvas2dExt;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
@@ -508,7 +509,8 @@ impl DomLayers {
         fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
         dom.append_or_panic(&fullscreen_vis.dom);
 
-        let canvas = web::create_canvas_2d();
+        // TODO: store Canvas2d?
+        let canvas = web::create_canvas_2d().inner().clone_ref();
         canvas.set_style_or_warn("display", "block", logger);
         canvas.set_style_or_warn("z-index", "3", logger);
         // These properties are set by `DomScene::new` constuctor for other layers.
@@ -570,6 +572,7 @@ pub struct Dirty {
 // === Renderer ===
 // ================
 
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Renderer {
     pub logger: Logger,
@@ -581,6 +584,7 @@ pub struct Renderer {
     pub composer: Rc<RefCell<render::Composer>>,
 }
 
+#[cfg(target_arch = "wasm32")]
 impl Renderer {
     fn new(logger: impl AnyLogger, dom: &Dom, context: &Context, variables: &UniformScope) -> Self {
         let logger = Logger::new_sub(logger, "renderer");
@@ -813,6 +817,7 @@ pub struct SceneData {
     pub stats:            Stats,
     pub dirty:            Dirty,
     pub logger:           Logger,
+    #[cfg(target_arch = "wasm32")]
     pub renderer:         Renderer,
     pub layers:           HardcodedLayers,
     pub style_sheet:      style::Sheet,
@@ -834,7 +839,7 @@ impl SceneData {
         debug!(logger, "Initializing.");
 
         let dom = Dom::new(&logger);
-        parent_dom.append_child(&dom.root).unwrap();
+        parent_dom.append_or_panic(&dom.root);
         dom.recompute_shape_with_reflow();
 
         let display_object = display::object::Instance::new(&logger);
@@ -851,6 +856,7 @@ impl SceneData {
         // FIXME: This should be abstracted away and should also handle context loss when Symbol
         //        definition will be finally refactored in such way, that it would not require
         //        Scene instance to be created.
+        #[cfg(target_arch = "wasm32")]
         symbols.set_context(Some(&context));
         let symbols_dirty = dirty_flag;
         let layers = HardcodedLayers::new(&logger);
@@ -858,6 +864,7 @@ impl SceneData {
         let shapes = ShapeRegistry::default();
         let uniforms = Uniforms::new(&variables);
         let dirty = Dirty { symbols: symbols_dirty, shape: shape_dirty };
+        #[cfg(target_arch = "wasm32")]
         let renderer = Renderer::new(&logger, &dom, &context, &variables);
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
@@ -896,6 +903,7 @@ impl SceneData {
             stats,
             dirty,
             logger,
+            #[cfg(target_arch = "wasm32")]
             renderer,
             layers,
             style_sheet,
@@ -941,6 +949,7 @@ impl SceneData {
             self.layers.iter_sublayers_and_masks_nested(|layer| {
                 layer.camera().set_screen(screen.width, screen.height)
             });
+            #[cfg(target_arch = "wasm32")]
             self.renderer.resize_composer();
             self.dirty.shape.unset_all();
         }

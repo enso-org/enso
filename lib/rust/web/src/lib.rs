@@ -29,7 +29,6 @@ pub use web_sys::console;
 pub use std::time::Duration;
 pub use std::time::Instant;
 pub use web_sys::Document;
-pub use web_sys::EventTarget;
 pub use web_sys::MouseEvent;
 pub use web_sys::Performance;
 pub use web_sys::Window;
@@ -37,6 +36,31 @@ pub use web_sys::Window;
 #[cfg(not(target_arch = "wasm32"))]
 mod html_element {
     use super::*;
+
+    #[derive(Clone, Debug)]
+    pub struct EventTarget {}
+
+    impl EventTarget {
+        pub fn new() -> Self {
+            Self {}
+        }
+
+        pub fn add_event_listener_with_callback_and_bool<T>(&self, s: &str, _callback: T, b: bool) -> Result<()> { Ok(()) }
+        pub fn remove_event_listener_with_callback<T>(&self, s: &str, _callback: T) -> Result<()> { Ok(()) }
+    }
+
+    impl From<HtmlElement> for EventTarget {
+        fn from(_: HtmlElement) -> Self {
+            Self::new()
+        }
+    }
+
+    impl From<HtmlDivElement> for EventTarget {
+        fn from(_: HtmlDivElement) -> Self {
+            Self::new()
+        }
+    }
+
     #[derive(Clone, Debug)]
     pub struct Element {
         node: Node,
@@ -137,6 +161,11 @@ mod html_element {
         fn as_ref(&self) -> &JsValue {
             self.element.as_ref()
         } 
+    }
+    impl From<HtmlDivElement> for HtmlElement {
+        fn from(element: HtmlDivElement) -> Self {
+            Self::new()
+        }
     }
 
     impl HtmlDivElement {
@@ -277,6 +306,7 @@ impl_clone_ref_as_clone_no_from!(HtmlCanvasElement);
 impl_clone_ref_as_clone_no_from!(HtmlElement);
 impl_clone_ref_as_clone_no_from!(WebGl2RenderingContext);
 impl_clone_ref_as_clone_no_from!(Canvas2d);
+impl_clone_ref_as_clone_no_from!(EventTarget);
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use html_element::*;
@@ -297,6 +327,8 @@ pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::CanvasRenderingContext2d;
 #[cfg(target_arch = "wasm32")]
 pub use web_sys::HtmlCollection;
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::EventTarget;
 // =============
 // === Error ===
 // =============

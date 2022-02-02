@@ -84,6 +84,7 @@ impl SymbolRegistry {
     }
 
     /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    #[cfg(target_arch = "wasm32")]
     pub fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         for symbol in &*self.symbols.borrow() {

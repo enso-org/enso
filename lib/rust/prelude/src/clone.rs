@@ -89,7 +89,6 @@ impl_clone_ref_as_clone_no_from!([T:?Sized] Weak<T>);
 #[cfg(feature = "wasm-bindgen")]
 impl_clone_ref_as_clone_no_from!(wasm_bindgen::JsValue);
 impl_clone_ref_as_clone_no_from!(web_sys::Performance);
-impl_clone_ref_as_clone_no_from!(web_sys::EventTarget);
 
 
 // === Option ===
