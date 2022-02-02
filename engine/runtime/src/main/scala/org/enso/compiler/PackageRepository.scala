@@ -15,9 +15,16 @@ import org.enso.librarymanager.{
   ResolvingLibraryProvider
 }
 import org.enso.logger.masking.MaskedPath
-import org.enso.pkg.{ComponentGroup, Package, PackageManager, QualifiedName}
-
+import org.enso.pkg.{
+  ComponentGroup,
+  ComponentGroups,
+  ExtendedComponentGroup,
+  Package,
+  PackageManager,
+  QualifiedName
+}
 import java.nio.file.Path
+
 import scala.util.Try
 
 /** Manages loaded packages and modules. */
@@ -90,7 +97,7 @@ object PackageRepository {
 
   type ModuleMap       = collection.concurrent.Map[String, Module]
   type FrozenModuleMap = Map[String, Module]
-  type ComponentsMap   = Map[LibraryName, Vector[ComponentGroup]]
+  type ComponentsMap   = Map[LibraryName, ComponentGroups]
 
   /** A trait representing errors reported by this system */
   sealed trait Error
@@ -177,9 +184,9 @@ object PackageRepository {
       * corresponding library was loaded.
       */
     private val loadedComponents
-      : collection.concurrent.TrieMap[LibraryName, Vector[ComponentGroup]] = {
+      : collection.concurrent.TrieMap[LibraryName, ComponentGroups] = {
       val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
-      collection.concurrent.TrieMap(builtinsName -> Vector())
+      collection.concurrent.TrieMap(builtinsName -> ComponentGroups.empty)
     }
 
     /** @inheritdoc */
@@ -260,13 +267,11 @@ object PackageRepository {
     }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
 
     /** @inheritdoc */
-    override def initialize(): Either[Error, Unit] = {
+    override def initialize(): Either[Error, Unit] = this.synchronized {
       val unprocessedPackages =
-        this.synchronized {
-          loadedPackages.keySet
-            .diff(loadedComponents.keySet)
-            .flatMap(loadedPackages(_))
-        }
+        loadedPackages.keySet
+          .diff(loadedComponents.keySet)
+          .flatMap(loadedPackages(_))
       unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
         (accumulator, pkg) =>
           for {
@@ -289,9 +294,7 @@ object PackageRepository {
               s"Resolving component groups of package [${pkg.name}]."
             )
 
-            componentGroups.newGroups.foreach(
-              registerComponentGroup(pkg.libraryName, _)
-            )
+            registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
             componentGroups.extendedGroups
               .foldLeft[Either[Error, Unit]](Right(())) {
                 (accumulator, componentGroup) =>
@@ -303,19 +306,46 @@ object PackageRepository {
                     _ <- pkgOpt.fold[Either[Error, Unit]](Right(()))(
                       resolveComponentGroups
                     )
+                    _ = registerExtendedComponentGroup(
+                      extendedLibraryName,
+                      componentGroup
+                    )
                   } yield ()
               }
         }
       }
     }
 
-    private def registerComponentGroup(
+    /** Register the list of component groups defined by a library.
+      *
+      * @param library the library name
+      * @param newGroups the list of component groups that the library defines
+      */
+    private def registerComponentGroups(
       library: LibraryName,
-      group: ComponentGroup
+      newGroups: List[ComponentGroup]
     ): Unit =
       loadedComponents.updateWith(library) {
-        case Some(groups) => Some(groups :+ group)
-        case None         => Some(Vector(group))
+        case Some(groups) =>
+          Some(groups.copy(newGroups = groups.newGroups ::: newGroups))
+        case None =>
+          Some(ComponentGroups(newGroups, List()))
+      }
+
+    /** Register a component group extended by a library.
+      *
+      * @param library the library name
+      * @param group the extended component group
+      */
+    private def registerExtendedComponentGroup(
+      library: LibraryName,
+      group: ExtendedComponentGroup
+    ): Unit =
+      loadedComponents.updateWith(library) {
+        case Some(groups) =>
+          Some(groups.copy(extendedGroups = groups.extendedGroups :+ group))
+        case None =>
+          Some(ComponentGroups(List(), List(group)))
       }
 
     /** @inheritdoc */

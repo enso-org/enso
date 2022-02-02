@@ -59,7 +59,7 @@ class RuntimeComponentsTest
             ExtendedComponentGroup(
               module = ModuleReference(
                 LibraryName("Standard", "Base"),
-                Some(ModuleName("Group2"))
+                ModuleName("Group2")
               ),
               color   = None,
               icon    = None,
