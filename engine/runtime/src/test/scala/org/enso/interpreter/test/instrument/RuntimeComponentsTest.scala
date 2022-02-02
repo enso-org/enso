@@ -1,7 +1,14 @@
 package org.enso.interpreter.test.instrument
 
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
+import org.enso.editions.LibraryName
+import org.enso.interpreter.runtime
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{
   Component,
@@ -19,12 +26,6 @@ import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
-import org.enso.editions.LibraryName
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeComponentsTest
@@ -96,6 +97,11 @@ class RuntimeComponentsTest
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
+
+    val languageContext = executionContext.context
+      .getBindings(LanguageInfo.ID)
+      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+      .asHostObject[runtime.Context]
 
     def toPackagesPath(paths: String*): String =
       paths.mkString(File.pathSeparator)
@@ -224,6 +230,17 @@ class RuntimeComponentsTest
     contentRootNotifications should contain(
       ("Standard", "Base", libraryVersion)
     )
+
+    // check the registered component groups
+    val components = context.languageContext.getPackageRepository.getComponents
+    val expectedComponents = Map(
+      LibraryName("Enso_Test", "Test") ->
+      context.pkg.config.componentGroups
+        .getOrElse(fail("Unexpected config value.")),
+      LibraryName("Standard", "Base")     -> ComponentGroups.empty,
+      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
+    )
+    components should contain theSameElementsAs expectedComponents
 
     context.consumeOut shouldEqual List()
   }

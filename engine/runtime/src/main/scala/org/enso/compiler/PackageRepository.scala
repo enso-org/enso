@@ -307,7 +307,7 @@ object PackageRepository {
                       resolveComponentGroups
                     )
                     _ = registerExtendedComponentGroup(
-                      extendedLibraryName,
+                      pkg.libraryName,
                       componentGroup
                     )
                   } yield ()
