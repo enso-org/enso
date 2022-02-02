@@ -28,7 +28,8 @@
   ensured it fails with a dataflow error on out of bounds access instead of an
   internal Java exception.][3232]
 - [Implemented the `Table.select_columns` operation.][3230]
-- [Implemented the `Table.remove_columns` operation.][3240]
+- [Implemented the `Table.remove_columns` and `Table.reorder_columns`
+  operations.][3240]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
