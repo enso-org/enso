@@ -10,7 +10,6 @@ use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
 use enso_frp as frp;
-use ensogl::application::Application;
 use ensogl::system::web::sleep;
 use std::time::Duration;
 
@@ -38,24 +37,21 @@ const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 /// Controllers and Views, and an integration between them.
 #[derive(Debug)]
 pub struct Ide {
-    application: Application,
-    #[allow(dead_code)]
-    /// The presenter layer is never directly accessed, but needs to be kept alive to keep
-    /// performing its function.
-    presenter:   Presenter,
-    network:     frp::Network,
+    pub ensogl_app: ensogl::application::Application,
+    pub presenter:  Presenter,
+    network:        frp::Network,
 }
 
 impl Ide {
     /// Constructor.
-    pub async fn new(
-        application: Application,
+    pub fn new(
+        ensogl_app: ensogl::application::Application,
         view: ide_view::root::View,
         controller: controller::Ide,
     ) -> Self {
         let presenter = Presenter::new(controller, view);
         let network = frp::Network::new("Ide");
-        Ide { application, presenter, network }.init()
+        Ide { ensogl_app, presenter, network }.init()
     }
 
     fn init(self) -> Self {
@@ -65,7 +61,7 @@ impl Ide {
 
     fn alive_log_sending_loop(&self) -> impl Future<Output = ()> + 'static {
         let network = &self.network;
-        let scene = self.application.display.scene();
+        let scene = self.ensogl_app.display.scene();
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
 

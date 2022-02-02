@@ -77,13 +77,13 @@ async function build_project_manager() {
 function run_project_manager() {
     const bin_path = paths.get_project_manager_path(paths.dist.bin)
     console.log(`Starting the project manager from "${bin_path}".`)
-    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+    return child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+        console.log(`Project manager finished.`)
         console.error(stderr)
-        if (error) {
+        if (error && !error.killed) {
             throw error
         }
         console.log(stdout)
-        console.log(`Project manager running.`)
     })
 }
 
@@ -115,7 +115,7 @@ commands.clean.rust = async function () {
 
 commands.check = command(`Fast check if project builds (only Rust target)`)
 commands.check.rust = async function () {
-    await run_cargo('cargo', ['check'])
+    await run_cargo('cargo', ['check', '--workspace'])
 }
 
 // === Build ===
@@ -245,6 +245,28 @@ commands.test.rust = async function (argv) {
             '--chrome',
         ]
         await run_cargo('cargo', args)
+    }
+}
+
+// === Integration Test ===
+
+commands['integration-test'] = command('Run integration test suite')
+commands['integration-test'].rust = async function(argv) {
+    let process = null;
+    if (argv.backend !== 'false') {
+        process = await build_project_manager().then(run_project_manager)
+    }
+    console.log(`Running Rust WASM test suite.`)
+    let args = [
+        'test',
+        'integration-test',
+        '--headless',
+        '--chrome',
+    ]
+    await run_cargo('wasm-pack', args)
+    console.log(`Shutting down Project Manager`)
+    if (process !== null) {
+        process.kill()
     }
 }
 
