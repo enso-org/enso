@@ -353,7 +353,7 @@ spec prefix table_builder supports_case_sensitive_columns =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle multiple problems" <|
-            action = table.remove_columns (By_Index [0, -7, 0, 100]) position=After_Other_Columns warnings=_ on_problems=_
+            action = table.reorder_columns (By_Index [0, -7, 0, 100]) position=After_Other_Columns warnings=_ on_problems=_
             problems = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
             Problems.test_problem_handling action problems tester
