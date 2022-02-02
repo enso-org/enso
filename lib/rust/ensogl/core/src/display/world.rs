@@ -85,6 +85,8 @@ impl World {
         let main_loop_frame = main_loop.on_frame(
             f!([stats_monitor,on_before_frame,on_after_frame,uniforms,scene_dirty,scene]
             (t:animation::TimeInfo) {
+                // Note [Main Loop Performance]
+
                 stats_monitor.begin();
                 on_before_frame.run_all(&t);
 
@@ -112,6 +114,19 @@ impl World {
         }
         .init()
     }
+
+    // Note [Main Loop Performance]
+    // ============================
+    // Any code repeated on each iteration of the Main Loop (each "frame") must be written with
+    // high care for performance. Any changes that has a chance of negatively impacting the
+    // constant overhead of the main loop needs *explicit* explanation, review, and acceptance *at
+    // design stage* of the proposed new implementation, from performance perspective, with an
+    // explicit note of the fact of Main Loop impact.
+    //
+    // Rationale: the "Main Loop" contains the code comprising a GUI rendering "frame" (term
+    // originating from a "still frame" term in filmmaking). The speed at which the Main Loop
+    // executes directly translates to the perceived performance of the GUI, and the FPS (frames
+    // per second) metric, impacting Users' experience with the application.
 
     fn init(self) -> Self {
         self.init_composer();
