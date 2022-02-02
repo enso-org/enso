@@ -85,8 +85,8 @@ class OverloadsResolutionTest extends CompilerTest {
 
     "allow overloads on the source type" in {
       val ir =
-        """Unit.from (value : Integer) = undefined
-          |Unit.from (value : Boolean) = undefined
+        """Unit.from (that : Integer) = undefined
+          |Unit.from (that : Boolean) = undefined
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
@@ -96,9 +96,9 @@ class OverloadsResolutionTest extends CompilerTest {
 
     "raise an error if there are multiple definitions with the same source type" in {
       val ir =
-        """Unit.from (value : Integer) = undefined
-          |Unit.from (value : Boolean) = undefined
-          |Unit.from (value : Boolean) = undefined
+        """Unit.from (that : Integer) = undefined
+          |Unit.from (that : Boolean) = undefined
+          |Unit.from (that : Boolean) = undefined
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
