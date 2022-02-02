@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+new : Unique_Name_Strategy
+new = Unique_Name_Strategy.new
+
+type Unique_Name_Strategy
+    type Unique_Name_Strategy store
+
+    new : Unique_Name_Strategy
+    new = Unique_Name_Strategy Map.empty
+
+    make_unique : Text -> Text
+    make_unique name = this.internal_unique name 0
+
+    internal_unique : Text -> Integer -> Text
+    internal_unique name shift =
+        inner_name = if shift == 0 then name else (name + "_"+ shift.to_text)
+        case this.store.get_or_else inner_name False of
+            False ->
+                new_store = this.store.insert inner_name True
+                Unsafe.set_atom_field this 0 new_store
+                inner_name
+            True ->
+                @Tail_Call this.internal_unique name (shift+1)
