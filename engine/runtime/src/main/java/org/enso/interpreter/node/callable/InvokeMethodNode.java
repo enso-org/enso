@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -173,19 +174,33 @@ public abstract class InvokeMethodNode extends BaseNode {
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
+      @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
+      @Cached BranchProfile anyWarningsProfile,
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[argExecutors.length];
+    boolean anyWarnings = false;
+    ArrayRope<Object> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < argExecutors.length; i++) {
       Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+      state = r.getState();
+      args[i] = r.getValue();
       if (r.getValue() instanceof DataflowError) {
         profiles[i].enter();
         return r;
+      } else if (r.getValue() instanceof WithWarnings) {
+        warningProfiles[i].enter();
+        anyWarnings = true;
+        accumulatedWarnings =
+            accumulatedWarnings.append(((WithWarnings) r.getValue()).getWarnings());
+        args[i] = ((WithWarnings) r.getValue()).getValue();
       }
-      state = r.getState();
-      args[i] = r.getValue();
     }
-    return new Stateful(
-        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
+    Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args);
+    if (anyWarnings) {
+      anyWarningsProfile.enter();
+      res = WithWarnings.prependTo(res, accumulatedWarnings);
+    }
+    return new Stateful(state, res);
   }
 
   @Specialization(

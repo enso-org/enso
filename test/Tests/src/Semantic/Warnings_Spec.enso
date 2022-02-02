@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+polyglot java import java.lang.Long
+
 import Standard.Test
 
 get_warnings val = Vector.Vector (Warning.get_all val)
@@ -30,3 +32,23 @@ spec = Test.group "Dataflow Warnings" <|
         r = warned.my_method
         r.should_equal 6
         here.get_warnings r . should_equal ["omgggg"]
+
+    Test.specify "should thread warnings through polyglot calls" <|
+        x = Warning.attach 1 "warn!"
+        y = Warning.attach 2 "warn!!"
+        r = Long.sum x y
+        r.should_equal 3
+        here.get_warnings r . should_equal ['warn!', 'warn!!']
+
+    Test.specify "should thread warnings through case expressions" <|
+        x = Warning.attach 1 (My_Warning "warn!")
+        y = Warning.attach 2 (My_Warning "warn!!")
+        z = Warning.attach 3 (My_Warning "warn!!!")
+        mtp = My_Type x y z
+        r = case mtp of
+            My_Type a b c -> a + b + c
+        r.should_equal 6
+        here.get_warnings r . should_equal [My_Warning "warn!", My_Warning "warn!!", My_Warning "warn!!!"]
+
+
+
