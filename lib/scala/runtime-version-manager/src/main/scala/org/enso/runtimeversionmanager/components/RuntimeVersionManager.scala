@@ -402,9 +402,9 @@ class RuntimeVersionManager(
   private def isEngineVersionCompatibleWithThisInstaller(
     manifest: Manifest
   ): Boolean =
-    if (buildinfo.Info.isInternalDevelopmentBuild) true
-    else
-      CurrentVersion.version >= manifest.minimumRequiredVersion
+    /*if (buildinfo.Info.isInternalDevelopmentBuild) true
+    else*/
+    CurrentVersion.version >= manifest.minimumRequiredVersion
 
   /** Installs the engine with the provided version.
     *

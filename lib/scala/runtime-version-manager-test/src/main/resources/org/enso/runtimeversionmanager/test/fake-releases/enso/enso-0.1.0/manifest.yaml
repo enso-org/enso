@@ -1,4 +1,4 @@
-minimum-launcher-version: 0.0.1
+minimum-launcher-version: 0.0.0-dev
 minimum-project-manager-version: 999.0.0
 graal-vm-version: 2.0.0
 graal-java-version: 11

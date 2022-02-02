@@ -175,7 +175,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
           .findOrInstallEngine(engineWithDifferentVersionRequirements)
           .manifest
 
-      val usualVersion = SemVer(0, 0, 1)
+      val usualVersion = SemVer(0, 0, 0, Some("dev"))
       val bigVersion   = SemVer(999, 0, 0)
       manifest.requiredInstallerVersions.launcher shouldEqual usualVersion
       manifest.requiredInstallerVersions.projectManager shouldEqual bigVersion
@@ -299,8 +299,8 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
   }
 
   private def fakeInstallEngine(searchPath: Path, version: SemVer): Unit = {
-    val manifest = """minimum-launcher-version: 0.0.1
-                     |minimum-project-manager-version: 0.0.1
+    val manifest = """minimum-launcher-version: 0.0.0-dev
+                     |minimum-project-manager-version: 0.0.0-dev
                      |graal-vm-version: 1.foo
                      |graal-java-version: 11""".stripMargin
     val root     = searchPath / version.toString
