@@ -20,6 +20,16 @@ type Matching_Strategy
    type Regex (case_sensitivity : (True | Case_Insensitive) = True)
 
 ## UNSTABLE
+   A temporary workaround to allow the Exact constructor to work with default arguments.
+Exact.new : (True | Case_Insensitive) -> Exact
+Exact.new (case_sensitivity = True) = Exact case_sensitivity
+
+## UNSTABLE
+   A temporary workaround to allow the Regex constructor to work with default arguments.
+Regex.new : (True | Case_Insensitive) -> Regex
+Regex.new (case_sensitivity = True) = Regex case_sensitivity
+
+## UNSTABLE
    Specifies that the operation should ignore case.
 
    TODO: Since case-sensitive can be locale dependent, in the future this may
