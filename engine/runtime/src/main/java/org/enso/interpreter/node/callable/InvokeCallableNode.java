@@ -288,6 +288,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     super.setTailStatus(isTail);
     invokeFunctionNode.setTailStatus(isTail);
     invokeMethodNode.setTailStatus(isTail);
+    invokeConversionNode.setTailStatus(isTail);
   }
 
   /** @return the source section for this node. */
@@ -305,5 +306,6 @@ public abstract class InvokeCallableNode extends BaseNode {
   public void setId(UUID id) {
     invokeFunctionNode.setId(id);
     invokeMethodNode.setId(id);
+    invokeConversionNode.setId(id);
   }
 }
