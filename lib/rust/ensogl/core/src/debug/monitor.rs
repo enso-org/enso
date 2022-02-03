@@ -711,40 +711,6 @@ impl PanelData {
 // === Samplers ====================================================================================
 // =================================================================================================
 
-// =================
-// === FrameTime ===
-// =================
-
-/// Sampler measuring the time for a given operation.
-#[derive(Debug, Default)]
-pub struct FrameTime {
-    stats: Stats,
-}
-
-impl FrameTime {
-    /// Constructor
-    pub fn new(stats: &Stats) -> Self {
-        Self { stats: stats.clone() }
-    }
-}
-
-const FRAME_TIME_WARNING_THRESHOLD: f64 = 1000.0 / 55.0;
-const FRAME_TIME_ERROR_THRESHOLD: f64 = 1000.0 / 25.0;
-
-impl Sampler for FrameTime {
-    fn label(&self) -> &str {
-        "Frame time (ms)"
-    }
-    fn value(&self) -> f64 {
-        self.stats.frame_time()
-    }
-    fn check(&self) -> ValueCheck {
-        self.check_by_threshold(FRAME_TIME_WARNING_THRESHOLD, FRAME_TIME_ERROR_THRESHOLD)
-    }
-}
-
-
-
 // ===========
 // === Fps ===
 // ===========
@@ -785,42 +751,6 @@ impl Sampler for Fps {
     }
 }
 
-
-
-// ==================
-// === WasmMemory ===
-// ==================
-
-/// Sampler measuring the memory usage of the WebAssembly part of the program.
-#[derive(Debug, Default)]
-pub struct WasmMemory {
-    stats: Stats,
-}
-
-impl WasmMemory {
-    /// Constructor.
-    pub fn new(stats: &Stats) -> Self {
-        Self { stats: stats.clone() }
-    }
-}
-
-const WASM_MEM_WARNING_THRESHOLD: f64 = 50.0;
-const WASM_MEM_ERROR_THRESHOLD: f64 = 100.0;
-
-impl Sampler for WasmMemory {
-    fn label(&self) -> &str {
-        "WASM memory usage (Mb)"
-    }
-    fn value(&self) -> f64 {
-        (self.stats.wasm_memory_usage() as f64) / (1024.0 * 1024.0)
-    }
-    fn check(&self) -> ValueCheck {
-        self.check_by_threshold(WASM_MEM_WARNING_THRESHOLD, WASM_MEM_ERROR_THRESHOLD)
-    }
-    fn min_size(&self) -> Option<f64> {
-        Some(100.0)
-    }
-}
 
 
 // ======================
@@ -868,6 +798,8 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
+stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
+stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
 stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
 stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0);
 stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0);
