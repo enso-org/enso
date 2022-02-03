@@ -66,22 +66,39 @@ impl Timestamp {
 // === FFI ===
 
 #[cfg(target_arch = "wasm32")]
+/// Web APIs.
 pub mod js {
+    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
     pub mod performance {
         use wasm_bindgen::prelude::*;
 
         #[wasm_bindgen]
         extern "C" {
+            /// The
+            /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
+            /// method returns a double-precision float, measured in milliseconds.
+            ///
+            /// The returned value represents the time elapsed since the time origin, which is when
+            /// the page began to load.
             #[wasm_bindgen(js_namespace = performance)]
             pub fn now() -> f64;
         }
     }
 }
 
-// Mock implementation for testing.
 #[cfg(not(target_arch = "wasm32"))]
+/// Mock implementation of Web APIs, for testing.
 pub mod js {
+    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
     pub mod performance {
+        /// The
+        /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
+        /// method returns a double-precision float, measured in milliseconds.
+        ///
+        /// The returned value represents the time elapsed since the time origin, which is when
+        /// the page began to load.
+        ///
+        /// This mock implementation returns a dummy value.
         pub fn now() -> f64 {
             0.0
         }
@@ -122,6 +139,7 @@ pub const APP_LIFETIME: Objective = Objective(ProfilerId(0));
 
 /// The interface supported by profiler-data objects.
 pub trait StartedProfiler {
+    /// Log a measurement, identified by `profiler`, with end-time set to now.
     fn finish(&self, profiler: ProfilerId);
 }
 
@@ -140,8 +158,11 @@ impl StartedProfiler for () {
 /// Data used by a started Measurement for an enabled profile level.
 #[derive(Debug, Copy, Clone)]
 pub struct ProfilerData {
+    /// Identifier of the parent [`Measurement`].
     pub parent: ProfilerId,
+    /// Start time for this [`Measurement`], or None to indicate it is the same as `parent`.
     pub start:  Option<Timestamp>,
+    /// Identifies where in the code this [`Measurement`] originates.
     pub label:  Label,
 }
 
@@ -167,13 +188,19 @@ impl StartedProfiler for ProfilerData {
 /// Identifies a profiled section, the parent it was reached by, and its entry and exit times.
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
-    pub parent:   ProfilerId,
+    /// A unique identifier.
     pub profiler: ProfilerId,
+    /// Identifies parent [`Measurement`] by its `profiler` field.
+    pub parent:   ProfilerId,
+    /// Start time, or None to indicate it is the same as `parent`.
     pub start:    Option<Timestamp>,
+    /// The end time.
     pub end:      Timestamp,
+    /// Identifies where in the code this [`Measurement`] originates.
     pub label:    Label,
 }
 
+/// Internal
 pub mod internal {
     use crate::*;
 
@@ -224,11 +251,12 @@ pub mod internal {
     // ====================
 
     thread_local! {
+        /// Global log of [`Measurement`]s.
         pub static MEASUREMENTS: LocalVecBuilder<Measurement> = LocalVecBuilder::new();
     }
 }
 
-/// Global log of [`Measurement`]s.
+#[doc(inline)]
 pub use internal::MEASUREMENTS;
 
 /// Gather all measurements taken since the last time take_log() was called.
@@ -243,7 +271,10 @@ pub fn take_log() -> Vec<Measurement> {
 
 /// The interface supported by profilers of all profiling levels.
 pub trait Profiler: Copy {
+    /// Metadata this profiler stores from when it is started until it is finished.
     type Started: StartedProfiler;
+    /// Log a measurement, using `self` as identifier, the present time as end time, and metadata as
+    /// provided in `data`.
     fn finish(self, data: &Self::Started);
 }
 
@@ -255,7 +286,9 @@ pub trait Profiler: Copy {
 
 /// Any object representing a profiler that is a valid parent for a profiler of type T.
 pub trait Parent<T: Profiler> {
+    /// Start a new profiler, with `self` as its parent.
     fn new_child(&self, label: Label) -> Started<T>;
+    /// Create a new profiler, with `self` as its parent, and the same start time as `self`.
     fn new_child_same_start(&self, label: Label) -> Started<T>;
 }
 
