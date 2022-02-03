@@ -1,4 +1,12 @@
 #![feature(test)]
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
 
 extern crate test;
 
@@ -41,6 +49,7 @@ impl Timestamp {
     }
 
     /// Return the timestamp corresponding to an offset from the time origin, in ms.
+    #[allow(unsafe_code)]
     pub fn from_ms(ms: f64) -> Self {
         let ticks = (ms * 10.0).round() as u64;
         // Safety: ticks + 1 will not be 0 unless a Timestamp wraps.
@@ -129,6 +138,7 @@ impl StartedProfiler for () {
 // ====================
 
 /// Data used by a started Measurement for an enabled profile level.
+#[derive(Debug, Copy, Clone)]
 pub struct ProfilerData {
     pub parent: ProfilerId,
     pub start:  Option<Timestamp>,
@@ -155,6 +165,7 @@ impl StartedProfiler for ProfilerData {
 // ===================
 
 /// Identifies a profiled section, the parent it was reached by, and its entry and exit times.
+#[derive(Debug, Copy, Clone)]
 pub struct Measurement {
     pub parent:   ProfilerId,
     pub profiler: ProfilerId,
@@ -174,7 +185,9 @@ pub mod internal {
     // =======================
 
     /// Data structure supporting limited interior mutability, to build up a collection.
+    #[derive(Debug)]
     pub struct LocalVecBuilder<T>(cell::UnsafeCell<Vec<T>>);
+    #[allow(unsafe_code)]
     impl<T> LocalVecBuilder<T> {
         #[allow(clippy::new_without_default)]
         /// Create a new, empty vec builder.
@@ -253,6 +266,7 @@ pub trait Parent<T: Profiler> {
 // ===============
 
 /// A profiler that has a start time set, and will complete its measurement when dropped.
+#[derive(Debug)]
 pub struct Started<T: Profiler> {
     profiler: T,
     data:     T::Started,
