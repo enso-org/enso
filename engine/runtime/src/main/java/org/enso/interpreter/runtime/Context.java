@@ -5,13 +5,6 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.Optional;
-import java.util.UUID;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -33,6 +26,10 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import scala.jdk.javaapi.OptionConverters;
+
+import java.io.*;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -111,17 +108,17 @@ public class Context {
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
     Optional<Package<TruffleFile>> projectPackage =
-        projectRoot.flatMap(
-            file -> {
-              var result = packageManager.fromDirectory(file);
-              if (result.isEmpty()) {
-                var projectName = file.getName();
-                throw new ProjectLoadingFailure(projectName);
-              }
-              return ScalaConversions.asJava(result);
-            });
+        projectRoot.map(
+            file ->
+                packageManager
+                    .loadPackage(file)
+                    .fold(
+                        err -> {
+                          throw new ProjectLoadingFailure(file.getName(), err);
+                        },
+                        res -> res));
 
-    var languageHome =
+    Optional<String> languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
