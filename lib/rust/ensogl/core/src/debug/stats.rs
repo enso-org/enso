@@ -1,11 +1,26 @@
-//! This module defines a structure gathering statistics of the running engine. The statistics are
-//! an amazing tool for debugging what is really happening under the hood and understanding the
-//! performance characteristics.
+//! This module provides utilities for gathering runtime performance statistics of the GUI.
+//!
+//! The module provides a structure which defines the statistics we are interested in ([`Stats`]),
+//! and contains methods for modifying as well as retrieving the current values of the statistics
+//! (often also referred to with the shortcut term "stats"). It also provides methods that need
+//! to be called to ensure that some of the statistics are properly calculated per each frame, and
+//! helper utility types for accumulating and summarizing stats over multiple frames. The intention
+//! behind this module is to aid in detecting and debugging possible performance issues in the GUI.
+//!
+//! Note: some statistics will not be collected (the fields will be present but always zero) when
+//! this crate is compiled without the `statistics` feature flag. This is mediated by the
+//! [`if_compiled_with_stats!`] macro. At the time of writing this doc, the affected stats are:
+//!  - `gpu_memory_usage`
+//!  - `data_upload_size`
 
 use enso_prelude::*;
+use enso_types::*;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
+use num_traits::cast;
+use serde::Deserialize;
+use serde::Serialize;
 use wasm_bindgen::JsCast;
 
 
@@ -44,11 +59,6 @@ impl Stats {
     pub fn reset_per_frame_statistics(&self) {
         self.rc.borrow_mut().reset_per_frame_statistics();
     }
-
-    /// Field getter. Returns the ordinal number of the current animation frame.
-    pub fn frame_counter(&self) -> u64 {
-        self.rc.borrow().frame_counter
-    }
 }
 
 /// Emits the 2nd argument only if the 1st argument is an integer type. A helper macro for
@@ -65,8 +75,10 @@ macro_rules! gen_stats {
 
         // === StatsData ===
 
+        /// Raw data of all the gathered stats.
         #[derive(Debug,Default,Clone,Copy)]
-        struct StatsData {
+        #[allow(missing_docs)]
+        pub struct StatsData {
             frame_begin_time: f64,
             frame_counter:    u64,
             $($field : $field_type),*
@@ -106,6 +118,65 @@ macro_rules! gen_stats {
             );
 
         )* }
+
+
+        // === Accumulator ===
+
+        /// Accumulated data of all the gathered stats, collected over many GUI rendering frames.
+        // Note [Stats Accumulator]
+        #[derive(Debug, Default)]
+        #[allow(missing_docs)]
+        pub struct Accumulator {
+            /// How many samples were accumulated.
+            samples_count: u32,
+            $($field : ValueAccumulator<$field_type>),*
+        }
+
+        // Note [Stats Accumulator]
+        // ========================
+        //
+        // See: Note [Frame Stats Active Intervals] in `lib/rust/profiling/src/frame_stats.rs`
+
+        impl Accumulator {
+            /// Includes the data of the sample into the Accumulator.
+            pub fn push(&mut self, sample: &StatsData) {
+                self.samples_count += 1;
+                if self.samples_count == 1 {
+                    $( self.$field = ValueAccumulator::new(sample.$field); )*
+                } else {
+                    $( self.$field.push(sample.$field); )*
+                }
+            }
+
+            /// Calculates a summary of data pushed into the Accumulator till now. Returns a
+            /// meaningful result only if [`push`] was called at least once.
+            pub fn summarize(&self) -> Option<Summary> {
+                if self.samples_count == 0 {
+                    None
+                } else {
+                    let n = self.samples_count as f64;
+                    let summary = Summary {
+                        $($field : ValueSummary{
+                            min: self.$field.min,
+                            max: self.$field.max,
+                            avg: self.$field.sum / n,
+                        }),*
+                    };
+                    Some(summary)
+                }
+            }
+        }
+
+
+        // === Summary ===
+
+        /// Summary of all the gathered stats, calculated over a number of GUI rendering frames.
+        #[derive(Clone, Debug, Serialize, Deserialize)]
+        #[allow(missing_docs)]
+        #[serde(rename_all = "camelCase")]
+        pub struct Summary {
+            $(pub $field : ValueSummary<$field_type>),*
+        }
     }};
 }
 
@@ -176,4 +247,44 @@ macro_rules! if_compiled_with_stats {
         #[cfg(not(feature = "statistics"))]
         {}
     };
+}
+
+
+
+// ========================
+// === ValueAccumulator ===
+// ========================
+
+#[derive(Debug, Default)]
+struct ValueAccumulator<T> {
+    pub min: T,
+    pub max: T,
+    pub sum: f64,
+}
+
+impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator<T> {
+    fn new(v: T) -> Self {
+        Self { min: v, max: v, sum: v.as_() }
+    }
+
+    fn push(&mut self, v: T) {
+        self.min = min(self.min, v);
+        self.max = max(self.max, v);
+        self.sum += v.as_();
+    }
+}
+
+
+
+// ====================
+// === ValueSummary ===
+// ====================
+
+/// Summarized data observed for a single stat over a number of GUI rendering frames.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct ValueSummary<T> {
+    pub min: T,
+    pub max: T,
+    pub avg: f64,
 }
