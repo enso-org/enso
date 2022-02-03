@@ -880,17 +880,23 @@ mod tests {
         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
         // assumption we're trying to be around this FPS.
 
-        // BUG: we can't currently use t0=0.0 here due to a bug in how `Fps` Sampler handles
-        // t=0.0; this is planned to be fixed soon in a separate PR.
+        // BUG: we can't currently use t0=0.0 here due to a bug in how `Fps` Sampler handles t=0.0;
+        // this is planned to be fixed soon in a separate PR.
         let mut test = TestSamplerByFrame::new(123.0, |stats| Fps::new(&stats));
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
-        // Note: FPS takes into account delays between frames, so it is only available for
+        // Note: FPS takes into account delays between frames - for example, if a frame took only
+        // 1ms, but the next frame will not be started immediately (will be started only e.g. 15ms
+        // later), we cannot show FPS only based the 1ms duration of the frame - it would not be
+        // true, as the subsequent delay means less frames per second will be rendered in reality.
+        //
+        // Due to the above need to include delays between frames, FPS value is only available for
         // *previous* frame. As such, after 1st frame, there was no previous frame yet, so the
         // calculated value is expected to default to 0 ("zero FPS" is a reasonable answer at this
         // point).
+        //
         // Note 2: in this case, value 0.0 shall check as Correct, but for later frames it would
         // result in a threshold warning/error.
         test_next_frame!(test, 10.0, 6.0, ValueCheck::Correct, 0.0);
