@@ -61,7 +61,7 @@ impl {
             let time = self.performance.now();
             self.stats.end_frame(time);
             for panel in &self.panels {
-                panel.end();
+                panel.sample_and_postprocess();
             }
             self.monitor.draw();
         }

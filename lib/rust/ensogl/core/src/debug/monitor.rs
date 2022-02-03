@@ -401,9 +401,10 @@ impl Panel {
         self.rc.borrow_mut().draw(dom)
     }
 
-    /// Stop measuring the data.
-    pub fn end(&self) {
-        self.rc.borrow_mut().end()
+    /// Fetch the measured value from the associated sampler, then post-process it to make it
+    /// useful for displaying on a human-readable graph.
+    pub fn sample_and_postprocess(&self) {
+        self.rc.borrow_mut().sample_and_postprocess()
     }
 
     fn first_draw(&self, dom: &Dom) {
@@ -577,8 +578,9 @@ impl PanelData {
 // === Begin / End ===
 
 impl PanelData {
-    /// Stop measuring the data.
-    pub fn end(&mut self) {
+    /// Fetch the measured value from the associated sampler, then post-process it to make it
+    /// useful for displaying on a human-readable graph.
+    pub fn sample_and_postprocess(&mut self) {
         self.value_check = self.sampler.check();
         self.value = self.sampler.value();
         self.clamp_value();
