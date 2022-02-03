@@ -511,6 +511,7 @@ pub trait Sampler: Debug {
 
     // === Utils ===
 
+    // FIXME: merge into the stats_sampler macro, probably
     /// Wrapper for `ValueCheck::from_threshold`.
     fn check_by_threshold(&self, warn_threshold: f64, err_threshold: f64, value: f64) -> ValueCheck {
         ValueCheck::from_threshold(warn_threshold, err_threshold, value)
@@ -726,6 +727,7 @@ macro_rules! stats_sampler {
         }
 
         impl $name {
+            // FIXME: just impl Default
             /// Constructor.
             pub fn new() -> Self {
                 Self {}
@@ -737,6 +739,7 @@ macro_rules! stats_sampler {
                 $label
             }
             fn value(&self, stats: &StatsData) -> f64 {
+                // FIXME: rename $stats_method to $stats_field
                 let raw_value: f64 = stats.$stats_method.as_();
                 raw_value / $value_divisor
             }
@@ -755,6 +758,7 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
+// FIXME: max_value=Some(60.0)
 stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0);
 stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
 stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
