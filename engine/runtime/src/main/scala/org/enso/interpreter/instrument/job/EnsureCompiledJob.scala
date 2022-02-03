@@ -23,7 +23,6 @@ import org.enso.interpreter.instrument.execution.{
   RuntimeContext
 }
 import org.enso.interpreter.runtime.Module
-import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{ModuleExports, Suggestion}
@@ -250,31 +249,27 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def runCompilationDiagnostics(module: Module)(implicit
     ctx: RuntimeContext
   ): CompilationStatus = {
-    if (module.getName.toString == Builtins.MODULE_NAME) {
-      CompilationStatus.Success
-    } else {
-      val pass = GatherDiagnostics
-        .runModule(
-          module.getIr,
-          ModuleContext(
-            module,
-            compilerConfig = ctx.executionService.getContext.getCompilerConfig
-          )
+    val pass = GatherDiagnostics
+      .runModule(
+        module.getIr,
+        ModuleContext(
+          module,
+          compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
-        .unsafeGetMetadata(
-          GatherDiagnostics,
-          "No diagnostics metadata right after the gathering pass."
-        )
-        .diagnostics
-      val diagnostics = pass.collect {
-        case warn: IR.Warning =>
-          createDiagnostic(Api.DiagnosticType.Warning(), module, warn)
-        case error: IR.Error =>
-          createDiagnostic(Api.DiagnosticType.Error(), module, error)
-      }
-      sendDiagnosticUpdates(diagnostics)
-      getCompilationStatus(diagnostics)
+      )
+      .unsafeGetMetadata(
+        GatherDiagnostics,
+        "No diagnostics metadata right after the gathering pass."
+      )
+      .diagnostics
+    val diagnostics = pass.collect {
+      case warn: IR.Warning =>
+        createDiagnostic(Api.DiagnosticType.Warning(), module, warn)
+      case error: IR.Error =>
+        createDiagnostic(Api.DiagnosticType.Error(), module, error)
     }
+    sendDiagnosticUpdates(diagnostics)
+    getCompilationStatus(diagnostics)
   }
 
   /** Create Api diagnostic message from the `IR` node.
