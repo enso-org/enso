@@ -2,11 +2,7 @@ package org.enso.interpreter;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.enso.polyglot.RuntimeOptions;
 
 public class OptionsHelper {
