@@ -22,6 +22,7 @@ use enso_prelude::*;
 
 use ensogl_core::display::world::World;
 use ensogl_core::frp::web;
+use ensogl_core::frp::web::NodeRemover;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -65,7 +66,7 @@ pub fn entry_point_drop_manager() {
         .on_frame(move |_| {
             if !loader_hidden {
                 web::get_element_by_id("loader")
-                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
+                    .map(|t| t.remove_from_parent_or_panic())
                     .ok();
                 loader_hidden = true;
             }

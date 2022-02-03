@@ -15,6 +15,7 @@ use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::display::world::*;
 use ensogl_core::system::gpu;
+use ensogl_core::system::web;
 use ensogl_core::system::gpu::texture;
 
 
@@ -88,6 +89,7 @@ impl display::Object for Glyph {
 #[allow(missing_docs)]
 pub struct System {
     logger:        Logger,
+    #[cfg(target_arch = "wasm32")]
     context:       Context,
     sprite_system: SpriteSystem,
     pub font:      Font,
@@ -102,6 +104,7 @@ impl System {
         let logger = Logger::new("glyph_system");
         let size = font::msdf::Texture::size();
         let scene = scene.as_ref();
+        #[cfg(target_arch = "wasm32")]
         let context = scene.context.clone_ref();
         let sprite_system = SpriteSystem::new(scene);
         let symbol = sprite_system.symbol();
@@ -114,6 +117,7 @@ impl System {
         scene.variables.add("msdf_size", size);
         Self {
             logger,
+            #[cfg(target_arch = "wasm32")]
             context,
             sprite_system,
             font,
@@ -126,7 +130,10 @@ impl System {
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
     /// may be set.
     pub fn new_glyph(&self) -> Glyph {
+        #[cfg(target_arch = "wasm32")]
         let context = self.context.clone();
+        #[cfg(not(target_arch = "wasm32"))]
+        let context = web::WebGl2RenderingContext::new();
         let sprite = self.sprite_system.new_instance();
         let instance_id = sprite.instance_id;
         let color = self.color.at(instance_id);

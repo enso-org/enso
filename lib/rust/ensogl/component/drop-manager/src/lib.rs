@@ -24,6 +24,7 @@ use enso_frp as frp;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
 use enso_web::Error;
+use enso_web as web;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -115,7 +116,7 @@ pub struct Manager {
 
 impl Manager {
     /// Constructor, adding listener to the given target.
-    pub fn new(target: &web_sys::EventTarget) -> Self {
+    pub fn new(target: &web::EventTarget) -> Self {
         let logger = Logger::new("DropFileManager");
         debug!(logger, "Creating DropFileManager");
         let network = frp::Network::new("DropFileManager");

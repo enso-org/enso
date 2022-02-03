@@ -71,6 +71,7 @@ mod html_element {
             Self {}
         }
 
+        pub fn add_event_listener_with_callback(&self, s: &str, _callback: &JsValue) -> Result<()> { Ok(()) }
         pub fn add_event_listener_with_callback_and_bool(&self, s: &str, _callback: &JsValue, b: bool) -> Result<()> { Ok(()) }
         pub fn remove_event_listener_with_callback(&self, s: &str, _callback: &JsValue) -> Result<()> { Ok(()) }
         pub fn add_event_listener_with_callback_and_add_event_listener_options<U>(&self, s: &str, _callback: &JsValue, options: U) -> Result<()> { Ok(()) }
