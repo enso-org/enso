@@ -308,7 +308,7 @@ type Pattern
                     Panic.throw Invalid_Bounds_Error
             _ -> do_match_mode mode 0 input.length
 
-    ## ADVANDED
+    ## ADVANCED
 
        Returns `True` if the input matches against the pattern described by
        `this`, otherwise `False`.
@@ -327,7 +327,7 @@ type Pattern
                  input = "aa"
                  pattern.matches input
     matches : Text -> Boolean
-    matches input = case this.match input mode=Mode.First of
+    matches input = case this.match input mode=Mode.Full of
         Match _ _ _ -> True
         Vector.Vector _ -> True
         _ -> False

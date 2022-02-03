@@ -1,3 +1,56 @@
-import Standard.Table.Error.Column_Missing
+from Standard.Base import all
 
-from Standard.Table.Error.Column_Missing export all
+## One or more columns not found in the input table.
+   Can occur when using By_Name or By_Column.
+type Missing_Input_Columns (criteria : [Text])
+
+Missing_Input_Columns.to_display_text : Text
+Missing_Input_Columns.to_display_text =
+    "The criteria "+this.criteria.to_text+" did not match any columns."
+
+## One or more column indexes were invalid on the input table.
+   Can occur when using By_Index.
+type Column_Indexes_Out_Of_Range (indexes : [Integer])
+
+Column_Indexes_Out_Of_Range.to_display_text : Text
+Column_Indexes_Out_Of_Range.to_display_text = case this.indexes.length == 1 of
+    True -> "The index " + (this.indexes.at 0).to_text + " is out of range."
+    False -> "The indexes "+this.indexes.short_display_text+" are out of range."
+
+## More names than the column count provided to the function.
+   Can occur when using By_Position.
+type Too_Many_Column_Names_Provided (column_names : [Text])
+
+## One or more column names were invalid during a rename operation.
+type Invalid_Output_Column_Names (column_names : [Text])
+
+## One or more column names clashed during a rename operation.
+type Duplicate_Output_Column_Names (column_names : [Text])
+
+## No columns in the output result.
+type No_Output_Columns
+
+No_Output_Columns.to_display_text : Text
+No_Output_Columns.to_display_text =
+    "The result contains no columns."
+
+
+## Indicates that the provided Column_Selector has duplicate entries.
+type Duplicate_Column_Selectors (duplicate_selectors : [(Text | Integer)])
+
+Duplicate_Column_Selectors.to_display_text : Text
+Duplicate_Column_Selectors.to_display_text =
+    "The provided Column_Selector has duplicate entries: "+this.duplicate_selectors.short_display_text+"."
+
+## Indicates that the provided indices matched columns which were already
+   matched by other indices, so they do not introduce any new columns to the
+   input.
+
+   For example, if the table has only one column, then selecting
+   `By_Index [0, -1]` will only yield this single column and
+   `Input_Indices_Already_Matched [-1]` will be raised.
+type Input_Indices_Already_Matched (indices : [Integer])
+
+Input_Indices_Already_Matched.to_display_text : Text
+Input_Indices_Already_Matched.to_display_text =
+    "The indices "+this.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."

@@ -155,14 +155,19 @@ spec =
         Test.specify "should be possible in dot_matches_newline mode" <|
             'Foo\n'.matches "(....)" dot_matches_newline=True . should_be_true
 
-        Test.specify "should be possible in multiline mode" <|
+        multiline_matches_message = """
+            This test does not make sense once we require matches to match the
+            whole string. The `multiline` parameter may not make sense for the
+            `matches` function. This should be revisited when Text library is
+            being redesigned.
+        Test.specify "should be possible in multiline mode" pending=multiline_matches_message <|
             text = """
                 Foo
                 bar
             text.matches "^(...)$" multiline=True . should_be_true
 
         Test.specify "should be possible in comments mode" <|
-            "abcde".matches "(..) # Match two of any character" comments=True . should_be_true
+            "abcde".matches "(.....) # Match any five characters" comments=True . should_be_true
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|
