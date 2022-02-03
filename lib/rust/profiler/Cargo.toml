@@ -7,6 +7,3 @@ authors = ["Enso Team <contact@enso.org>"]
 [dependencies]
 wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
 enso-profiler-macros = { path = "macros" }
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.8"

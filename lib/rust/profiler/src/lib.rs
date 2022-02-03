@@ -52,6 +52,7 @@ impl Timestamp {
 
 // === FFI ===
 
+#[cfg(target_arch = "wasm32")]
 pub mod js {
     pub mod performance {
         use wasm_bindgen::prelude::*;
@@ -61,6 +62,14 @@ pub mod js {
             #[wasm_bindgen(js_namespace = performance)]
             pub fn now() -> f64;
         }
+    }
+}
+
+// Mock implementation for testing.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod js {
+    pub mod performance {
+        pub fn now() -> f64 { 0.0 }
     }
 }
 
@@ -289,9 +298,7 @@ mod test {
     use crate as profiler;
     use profiler::profile;
 
-    use wasm_bindgen_test::wasm_bindgen_test;
-
-    #[wasm_bindgen_test]
+    #[test]
     fn root() {
         {
             // In any other crate we would refer to the macro as `profiler::start_objective!`, but
@@ -306,7 +313,7 @@ mod test {
         assert!(measurements[0].end >= measurements[0].start.unwrap());
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn with_same_start() {
         {
             let _profiler0 = start_objective!(profiler::APP_LIFETIME, "test0");
@@ -322,7 +329,7 @@ mod test {
         assert!(measurements[1].start.is_some());
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn profile() {
         #[profile]
         fn profilee(_profiler: profiler::Objective) {}
@@ -331,7 +338,7 @@ mod test {
         assert_eq!(measurements.len(), 1);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn profile_async() {
         #[profile]
         async fn profilee(_profiler: profiler::Objective) {}
