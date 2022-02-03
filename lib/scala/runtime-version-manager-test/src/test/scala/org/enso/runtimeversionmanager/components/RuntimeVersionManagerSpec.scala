@@ -74,7 +74,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
       val componentsManager = makeManagers(userInterface =
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       )._2
-      val brokenVersion = SemVer(0, 999, 0, Some("broken"))
+      val brokenVersion = SemVer(0, 9999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(brokenVersion)
 
       assert(
@@ -96,7 +96,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         )
 
       val validVersion          = SemVer(0, 0, 1)
-      val newerButBrokenVersion = SemVer(0, 999, 0, Some("broken"))
+      val newerButBrokenVersion = SemVer(0, 9999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(validVersion)
       componentsManager.findOrInstallEngine(newerButBrokenVersion)
 
@@ -108,7 +108,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       val componentsManager = makeManagers(userInterface = userInterface)._2
 
-      val brokenVersion = SemVer(0, 999, 0, Some("broken"))
+      val brokenVersion = SemVer(0, 9999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(brokenVersion)
       assert(
         userInterface.wasAskedToInstallBroken,
@@ -176,7 +176,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
           .manifest
 
       val usualVersion = SemVer(0, 0, 0, Some("dev"))
-      val bigVersion   = SemVer(999, 0, 0)
+      val bigVersion   = SemVer(9999, 0, 0)
       manifest.requiredInstallerVersions.launcher shouldEqual usualVersion
       manifest.requiredInstallerVersions.projectManager shouldEqual bigVersion
 
