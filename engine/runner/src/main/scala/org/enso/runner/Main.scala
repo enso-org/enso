@@ -841,7 +841,7 @@ object Main {
 
   /** Default log level to use if the LOG_LEVEL option is not provided.
     */
-  val defaultLogLevel: LogLevel = LogLevel.Warning
+  val defaultLogLevel: LogLevel = LogLevel.Error
 
   /** Main entry point for the CLI program.
     *

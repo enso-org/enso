@@ -1,5 +1,8 @@
 package org.enso.compiler
 
+import java.io.StringReader
+import java.util.logging.Level
+
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
@@ -24,8 +27,6 @@ import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
-import java.io.StringReader
-import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -54,8 +55,13 @@ class Compiler(
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
 
-  /** Lazy-initializes the IR for the builtins module.
-    */
+  /** Run the initialization sequence. */
+  def initialize(): Unit = {
+    initializeBuiltinsIr()
+    packageRepository.initialize().left.foreach(reportPackageError)
+  }
+
+  /** Lazy-initializes the IR for the builtins module. */
   def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
       logger.log(
@@ -97,7 +103,7 @@ class Compiler(
     * @return the list of modules imported by `module`
     */
   def runImportsResolution(module: Module): List[Module] = {
-    initializeBuiltinsIr()
+    initialize()
     importResolver.mapImports(module)
   }
 
@@ -169,7 +175,7 @@ class Compiler(
     * @param module the scope from which docs are generated
     */
   def generateDocs(module: Module): Module = {
-    initializeBuiltinsIr()
+    initialize()
     parseModule(module, isGenDocs = true)
     module
   }
@@ -179,7 +185,7 @@ class Compiler(
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
   ): Unit = {
-    initializeBuiltinsIr()
+    initialize()
     modules.foreach(m => parseModule(m))
 
     var requiredModules = modules.flatMap(runImportsAndExportsResolution)
@@ -667,12 +673,24 @@ class Compiler(
     }
   }
 
+  /** Report the errors encountered when initializing the package repository.
+    *
+    * @param err the package repository error
+    */
+  private def reportPackageError(err: PackageRepository.Error): Unit = {
+    context.getOut.println(
+      s"In package description ${org.enso.pkg.Package.configFileName}:"
+    )
+    context.getOut.println("Compiler encountered warnings:")
+    context.getOut.println(err.toString)
+  }
+
   /** Reports diagnostics from multiple modules.
     *
     * @param diagnostics the mapping between modules and existing diagnostics.
     * @return whether any errors were encountered.
     */
-  def reportDiagnostics(
+  private def reportDiagnostics(
     diagnostics: List[(Module, List[IR.Diagnostic])]
   ): Boolean = {
     val results = diagnostics.map { case (mod, diags) =>
@@ -693,7 +711,7 @@ class Compiler(
     * @param source the original source code.
     * @return whether any errors were encountered.
     */
-  def reportDiagnostics(
+  private def reportDiagnostics(
     diagnostics: List[IR.Diagnostic],
     source: Source
   ): Boolean = {
