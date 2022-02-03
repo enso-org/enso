@@ -826,13 +826,13 @@ mod tests {
     use assert_approx_eq::assert_approx_eq;
 
 
-    struct TestSamplerByFrame<S: Sampler> {
+    struct TestSampler<S: Sampler> {
         stats:   Stats,
         sampler: S,
         t:       f64,
     }
 
-    impl<S: Sampler> TestSamplerByFrame<S> {
+    impl<S: Sampler> TestSampler<S> {
         fn new<F>(t0: f64, new_sampler: F) -> Self
         where F: FnOnce(&Stats) -> S {
             let stats = default();
@@ -857,7 +857,7 @@ mod tests {
         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
         // assumption we're trying to be around this FPS.
 
-        let mut test = TestSamplerByFrame::new(0.0, |stats| FrameTime::new(&stats));
+        let mut test = TestSampler::new(0.0, |stats| FrameTime::new(&stats));
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
@@ -883,7 +883,7 @@ mod tests {
         // BUG: we can't currently use t0=0.0 here due to a bug in how `Fps` Sampler handles t=0.0;
         // this is planned to be fixed soon in a separate PR, as part of:
         // https://www.pivotaltracker.com/story/show/181140499
-        let mut test = TestSamplerByFrame::new(123.0, |stats| Fps::new(&stats));
+        let mut test = TestSampler::new(123.0, |stats| Fps::new(&stats));
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
