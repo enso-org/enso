@@ -1,3 +1,12 @@
+//! Proc macros supporting the implementation of the `enso_profiler` library.
+//!
+//! The profiler API uses procedural macros for two reasons:
+//! - To define the hierarchy of profiler types ([`define_hierarchy`]). Each profiler type (e.g.
+//!   [`enso_profiler::Objective`]) needs an implementation of [`enso_profiler::Parent`] for each
+//!   lower-level profiler type (e.g. [`enso_profiler::Task`]); implementing this without proc
+//!   macros would be complex and repetitious.
+//! - To implement the `#[profile]` attribute macro ([`profile`]).
+
 #![feature(proc_macro_span)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -21,14 +30,15 @@ use syn::punctuated;
 
 #[allow(non_snake_case)]
 /// Define a profiler type for an enabled profiling level.
-fn enabled_profiler(snake_ident: &syn::Ident, ObjIdent: &syn::Ident) -> proc_macro::TokenStream {
-    let start = quote::format_ident!("start_{}", snake_ident);
-    let with_same_start = quote::format_ident!("{}_with_same_start", snake_ident);
+fn enabled_profiler(level: &syn::Ident, ObjIdent: &syn::Ident) -> proc_macro::TokenStream {
+    let start = quote::format_ident!("start_{}", level);
+    let with_same_start = quote::format_ident!("{}_with_same_start", level);
     let ts = quote::quote! {
         // =================================
         // === Profiler (e.g. Objective) ===
         // =================================
 
+        /// A lightweight object identifying a #snoke_ident-level profiler.
         #[derive(Copy, Clone, Debug)]
         pub struct #ObjIdent(ProfilerId);
 
@@ -45,6 +55,7 @@ fn enabled_profiler(snake_ident: &syn::Ident, ObjIdent: &syn::Ident) -> proc_mac
 
         // === Constructor macros ===
 
+        /// Create a new #level-level profiler.
         #[macro_export]
         macro_rules! #start {
             ($parent: expr, $label: expr) => {{
@@ -55,6 +66,7 @@ fn enabled_profiler(snake_ident: &syn::Ident, ObjIdent: &syn::Ident) -> proc_mac
             }}
         }
 
+        /// Create a #level-level profiler, with the same start as an existing profiler.
         #[macro_export]
         macro_rules! #with_same_start {
             ($parent: expr, $label: expr) => {{
@@ -79,6 +91,7 @@ fn disabled_profiler(snake_ident: &syn::Ident, ObjIdent: &syn::Ident) -> proc_ma
         // === Profiler (e.g. Objective) ===
         // =================================
 
+        /// A lightweight object identifying a #snoke_ident-level profiler.
         #[derive(Copy, Clone, Debug)]
         pub struct #ObjIdent(());
 
@@ -93,12 +106,14 @@ fn disabled_profiler(snake_ident: &syn::Ident, ObjIdent: &syn::Ident) -> proc_ma
 
         // === Constructor macros ===
 
+        /// Create a new #level-level profiler.
         #[macro_export]
         macro_rules! #start {
             ($parent: expr, $label: expr) => {
                 profiler::Started { profiler: profiler::#ObjIdent(()), data: () }
             }
         }
+        /// Create a #level-level profiler, with the same start as an existing profiler.
         #[macro_export]
         macro_rules! #with_same_start {
             ($parent: expr, $label: expr) => {
