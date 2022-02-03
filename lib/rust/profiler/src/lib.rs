@@ -1,3 +1,138 @@
+//! Instrumentation for timing execution of code.
+//!
+//! Supports the
+//! [Profiling](https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md)
+//! design.
+//!
+//! # Profiler hierarchy
+//!
+//! Every profiler has a parent, except the special profiler value [`APP_LIFETIME`]. Each of its
+//! children is considered a *root profiler*.
+//!
+//! ## Parents of async tasks
+//!
+//! `async` tasks do not have an inherent parent-child relationship. To fit them into a hierarchical
+//! data model, we must rely on convention: when a profiler is created, **its parent must be
+//! chosen** such that the lifetime of the child is entirely bounded within the lifetime of the
+//! parent. The appropriate parent for a profiler will not necessarily be its direct ancestor in
+//! scope, nor necessarily the most recent profiler that has been started and not yet finished--
+//! typically, it will be both of those things, but users must be aware of exceptional cases.
+//! Exceptions will usually occur when a task is *spawned*, e.g. with `executor::global::spawn`.
+//!
+//! # Profiling levels
+//!
+//! Profiling has performance overhead; to support fine-grained measurement when it is needed, but
+//! avoid its costs when it is not, measurements are classified into *profiling levels*.
+//!
+//! This API only allows creating a profiler of the same or finer-grained level than its parent.
+//!
+//! #### Objective
+//! Measurements that correspond directly to aspects of the user experience. An *objective* can
+//! contain other *objective*s, e.g. *GUI initialization* (which might be defined as: time from
+//! opening the app until the app is ready to receive user input) contains *time until the loading
+//! spinner finishes*.
+//! #### Task
+//! Coarse-grained tasks, such as app window initialization, GUI downloading, or WASM compilation. A
+//! *task* can contain other *task*s e.g. GUI initialization contains GUI downloading.
+//! #### Detail
+//! All processes which can be removed in compile-time for the official stable release for users. We
+//! might provide some users with special releases with enabled *detailed* profiling, however, it
+//! should be possible to debug and understand most of user-provided logs with disabled *details*
+//! view.
+//! #### Debug
+//! All processes which should be removed in compile-time by default even during app development. It
+//! applies to every heavy-usage of the profiling framework, such as per-frame rendering profiling.
+//!
+//! ## Conditional compilation
+//!
+//! The level of profiling detail is set at compile time with an environment variable, e.g.
+//! `ENSO_MAX_PROFILING_LEVEL=task`. When using the `run` script, this can be accomplished by
+//! passing the argument `--profiling-level=task`.
+//!
+//! If the environment variable is not set, the level will default to the minimum supported,
+//! *objective*.
+//!
+//! # Structured measurement
+//!
+//! This API can be used to make arbitrary measurements; in order to ensure measurements are easy to
+//! interpret, the intervals selected for measurement should correspond as much as possible to the
+//! units of organization of the code.
+//!
+//! To support such structured measurement, the **primary interface is a
+//! [`#[profile]`](macro@profile)  attribute macro**, which instruments a whole function.
+//!
+//! # Low-level: RAII interface
+//!
+//! When it is not feasible to measure at the function level (for example if moving the section of
+//! interest into its own function would divide the code into unreasonably small functions), or a
+//! measurement needs to be made with special properties (e.g. with its start time inherited from
+//! its parent), a *RAII interface* supports **instrumenting a block of code**.
+//!
+//! The core of the interface is a set of [macros](index.html#macros) that create a new profiler,
+//! and return a *RAII guard* object of a type like [`Started<Task>`]. The guard object will
+//! automatically log the end of a measurement when it is dropped.
+//!
+//! In rare cases, it will be necessary to measure an interval that doesn't correspond to a block at
+//! any level of the code. This can be achieved using the RAII interface by allowing the guard
+//! object to escape the scope in which it is created to control its `drop()` time.
+//!
+//! ## Basic usage
+//!
+//! ```
+//! # use enso_profiler as profiler;
+//! fn using_low_level_api(input: u32, profiler: impl profiler::Parent<profiler::Task>) {
+//!     if input == 4 {
+//!         let _profiler = profiler::start_task!(profiler, "subtask_4");
+//!         // ...
+//!     } else {
+//!         let _profiler = profiler::start_task!(profiler, "subtask_other");
+//!         // ...
+//!     }
+//! }
+//! ```
+//!
+//! ## Measuring a block
+//!
+//! When a measurement is ended by implicitly dropping its profiler at the end of a block, the
+//! profiler should be created as **the first line of the block**; it measures one full block, and
+//! the line containing [`start_task!`] (or the like) acts as a title for the block.
+//!
+//! In this case, the binding used to control the scope of the measurement should have a **name
+//! beginning with an underscore**, even if it is referenced (e.g. to create a child profiler). This
+//! indicates that the binding is used to identify a scope, even if it is *also* used for its a
+//! value.
+//!
+//! ## Accepting a parent argument
+//!
+//! A function using the low-level API may need to accept a profiler argument to use as the parent
+//! for a new profiler. The function should be able to accept any type of profiler that is of a
+//! suitable level to be a parent of the profiler it is creating. This is supported by accepting an
+//! **argument that is generic over the [`Parent`] trait**.
+//!
+//! ## Advanced Example: creating a root profiler
+//!
+//! ```
+//! # use enso_profiler as profiler;
+//! fn root_objective_that_starts_at_time_origin() {
+//!     let _profiler = profiler::objective_with_same_start!(
+//!         profiler::APP_LIFETIME,
+//!         "root_objective_that_starts_at_time_origin"
+//!     );
+//!     // ...
+//! }
+//! ```
+//!
+//! ### Root profilers
+//!
+//! The profiler constructor macros require a parent. To create a *root profiler*, specify the
+//! special value [`APP_LIFETIME`] as the parent.
+//!
+//! ### Inheriting a start time
+//!
+//! Sometimes, multiple measurements need to start at the same time. To support this, an alternate
+//! set of constructors create profilers that inherit their start time from the specified parent,
+//! e.g. [`objective_with_same_start!`] in the example above.
+
 #![feature(test)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -30,10 +165,10 @@ pub type Label = &'static str;
 // === Timestamp ===
 // =================
 
-/// Time elapsed since the time origin (https://www.w3.org/TR/hr-time-2/#sec-time-origin).
+/// Time elapsed since the [time origin](https://www.w3.org/TR/hr-time-2/#sec-time-origin).
 ///
 /// Stored in units of 100us, because that is maximum resolution of performance.now():
-/// - in specification, 100us is the limit: https://www.w3.org/TR/hr-time-3
+/// - [in the specification](https://www.w3.org/TR/hr-time-3), 100us is the limit
 /// - in practice, as observed in debug consoles: Chromium 97 (100us) and Firefox 95 (1ms)
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Timestamp(num::NonZeroU64);
@@ -87,7 +222,7 @@ pub mod js {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-/// Mock implementation of Web APIs, for testing.
+/// Web APIs.
 pub mod js {
     /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
     pub mod performance {
@@ -97,8 +232,7 @@ pub mod js {
         ///
         /// The returned value represents the time elapsed since the time origin, which is when
         /// the page began to load.
-        ///
-        /// This mock implementation returns a dummy value.
+        // This mock implementation returns a dummy value.
         pub fn now() -> f64 {
             0.0
         }
@@ -155,7 +289,7 @@ impl StartedProfiler for () {
 // === ProfilerData ===
 // ====================
 
-/// Data used by a started Measurement for an enabled profile level.
+/// Data used by a started [`Measurement`] for an enabled profile level.
 #[derive(Debug, Copy, Clone)]
 pub struct ProfilerData {
     /// Identifier of the parent [`Measurement`].
@@ -185,7 +319,7 @@ impl StartedProfiler for ProfilerData {
 // === Measurement ===
 // ===================
 
-/// Identifies a profiled section, the parent it was reached by, and its entry and exit times.
+/// Record of a profiled section, the parent it was reached by, and its entry and exit times.
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
     /// A unique identifier.
@@ -301,8 +435,10 @@ pub trait Parent<T: Profiler> {
 /// A profiler that has a start time set, and will complete its measurement when dropped.
 #[derive(Debug)]
 pub struct Started<T: Profiler> {
-    profiler: T,
-    data:     T::Started,
+    /// The ID to log this measurement as.
+    pub profiler: T,
+    /// Metadata to associate with this measurement when it is logged.
+    pub data:     T::Started,
 }
 
 
@@ -335,6 +471,32 @@ where
 // === profiler_macros Invocations ===
 // ===================================
 
+/// Instruments a function.
+///
+/// For each call to the function, a measurement of the time interval corresponding to the function's
+/// body is logged under the name of the function, with file:line information attached.
+///
+/// # Usage
+///
+/// The last argument must be an instance of a profiler type. The type given determines the
+/// profiling level at which measurement is enabled; the macro will modify the function's
+/// signature so that it can be called with any profiler that could be a *parent* of the profiler.
+///
+/// ```
+/// # use enso_profiler as profiler;
+/// # use enso_profiler::profile;
+/// #[profile]
+/// fn small_computation(input: i16, profiler: profiler::Detail) -> u32 {
+///     todo!()
+/// }
+///
+/// #[profile]
+/// fn bigger_computation(profiler: profiler::Task) -> u32 {
+///     // Our task-level profiler is not the same type as the detail-level profiler available
+///     // inside `small_computation`; it will be converted implicitly.
+///     small_computation(7, profiler)
+/// }
+/// ```
 #[doc(inline)]
 pub use enso_profiler_macros::profile;
 
@@ -356,7 +518,7 @@ mod tests {
         {
             // In any other crate we would refer to the macro as `profiler::start_objective!`, but
             // "macro-expanded `macro_export` macros from the current crate cannot be referred to
-            // by absolute paths" (https://github.com/rust-lang/rust/issues/52234).
+            // by absolute paths" (<https://github.com/rust-lang/rust/issues/52234>).
             let _profiler = start_objective!(profiler::APP_LIFETIME, "test");
         }
         let measurements = profiler::take_log();
@@ -385,17 +547,28 @@ mod tests {
     #[test]
     fn profile() {
         #[profile]
-        fn profilee(_profiler: profiler::Objective) {}
-        profilee(profiler::APP_LIFETIME);
+        fn profiled(_profiler: profiler::Objective) {}
+        profiled(profiler::APP_LIFETIME);
         let measurements = profiler::take_log();
         assert_eq!(measurements.len(), 1);
+
+        // Make sure different syntaxes compile
+        #[profile]
+        pub fn profiled_pub(_profiler: profiler::Objective) {}
+        #[profile]
+        async fn profiled_async(_profiler: profiler::Objective) {}
+        #[profile]
+        #[allow(unsafe_code)]
+        unsafe fn profiled_unsafe(_profiler: profiler::Objective) {}
+        #[profile]
+        fn profiled_destructuring((_x, _y): (u32, u32), _profiler: profiler::Objective) {}
     }
 
     #[test]
     fn profile_async() {
         #[profile]
-        async fn profilee(_profiler: profiler::Objective) {}
-        let _future = profilee(profiler::APP_LIFETIME);
+        async fn profiled(_profiler: profiler::Objective) {}
+        let _future = profiled(profiler::APP_LIFETIME);
     }
 
     /// Perform a specified number of measurements, for benchmarking.

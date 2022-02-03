@@ -1,11 +1,11 @@
 //! Proc macros supporting the implementation of the `enso_profiler` library.
 //!
 //! The profiler API uses procedural macros for two reasons:
-//! - To define the hierarchy of profiler types ([`define_hierarchy`]). Each profiler type (e.g.
-//!   [`enso_profiler::Objective`]) needs an implementation of [`enso_profiler::Parent`] for each
-//!   lower-level profiler type (e.g. [`enso_profiler::Task`]); implementing this without proc
-//!   macros would be complex and repetitious.
-//! - To implement the `#[profile]` attribute macro ([`profile`]).
+//! - To define the hierarchy of profiler types ([`define_hierarchy!`]). Each profiler type (e.g.
+//!   [`Objective`](../enso_profiler/struct.Objective.html)) needs an implementation of
+//!   [`Parent`](../enso_profiler/trait.Parent.html) for each finer-grained profiler type;
+//!   implementing this without proc macros would be complex and repetitious.
+//! - To implement the [`#[profile]`](macro@profile) attribute macro.
 
 #![feature(proc_macro_span)]
 #![deny(unconditional_recursion)]
@@ -24,100 +24,107 @@ use syn::parse::Parser;
 use syn::punctuated;
 
 
+
 // =========================
 // === define_hierarchy! ===
 // =========================
 
 #[allow(non_snake_case)]
-/// Define a profiler type for an enabled profiling level.
-fn enabled_profiler(level: &syn::Ident, ObjIdent: &syn::Ident) -> proc_macro::TokenStream {
+/// Define a profiler type.
+fn define_profiler(
+    level: &syn::Ident,
+    ObjIdent: &syn::Ident,
+    enabled: bool,
+) -> proc_macro::TokenStream {
     let start = quote::format_ident!("start_{}", level);
     let with_same_start = quote::format_ident!("{}_with_same_start", level);
-    let ts = quote::quote! {
-        // =================================
-        // === Profiler (e.g. Objective) ===
-        // =================================
+    let level_link = format!("[{}-level](index.html#{})", level, level);
+    let doc_obj = format!("Identifies a {} profiler.", level_link);
+    let doc_start = format!("Start a new {} profiler.", level_link);
+    let doc_with_same_start = format!(
+        "Create a new {} profiler, with the same start as an existing profiler.",
+        level_link,
+    );
+    let ts = if enabled {
+        quote::quote! {
+            // =================================
+            // === Profiler (e.g. Objective) ===
+            // =================================
 
-        /// A lightweight object identifying a #snoke_ident-level profiler.
-        #[derive(Copy, Clone, Debug)]
-        pub struct #ObjIdent(ProfilerId);
+            #[doc = #doc_obj]
+            #[derive(Copy, Clone, Debug)]
+            pub struct #ObjIdent(pub ProfilerId);
 
 
-        // === Trait Implementations ===
+            // === Trait Implementations ===
 
-        impl Profiler for #ObjIdent {
-            type Started = ProfilerData;
-            fn finish(self, data: &Self::Started) {
-                data.finish(self.0);
+            impl Profiler for #ObjIdent {
+                type Started = ProfilerData;
+                fn finish(self, data: &Self::Started) {
+                    data.finish(self.0);
+                }
+            }
+
+
+            // === Constructor macros ===
+
+            #[doc = #doc_start]
+            #[macro_export]
+            macro_rules! #start {
+                ($parent: expr, $label: expr) => {{
+                    use profiler::Parent;
+                    let label = concat!($label, " (", file!(), ":", line!(), ")");
+                    let profiler: profiler::Started<profiler::#ObjIdent> = $parent.new_child(label);
+                    profiler
+                }}
+            }
+
+            #[doc = #doc_with_same_start]
+            #[macro_export]
+            macro_rules! #with_same_start {
+                ($parent: expr, $label: expr) => {{
+                    use profiler::Parent;
+                    let label = concat!($label, " (", file!(), ":", line!(), ")");
+                    let profiler: profiler::Started<profiler::#ObjIdent> =
+                        $parent.new_child_same_start(label);
+                    profiler
+                }}
             }
         }
+    } else {
+        quote::quote! {
+            // =================================
+            // === Profiler (e.g. Objective) ===
+            // =================================
+
+            #[doc = #doc_obj]
+            #[derive(Copy, Clone, Debug)]
+            pub struct #ObjIdent(pub ());
 
 
-        // === Constructor macros ===
+            // === Trait Implementations ===
 
-        /// Create a new #level-level profiler.
-        #[macro_export]
-        macro_rules! #start {
-            ($parent: expr, $label: expr) => {{
-                use profiler::Parent;
-                let label = concat!($label, " (", file!(), ":", line!(), ")");
-                let profiler: profiler::Started<profiler::#ObjIdent> = $parent.new_child(label);
-                profiler
-            }}
-        }
-
-        /// Create a #level-level profiler, with the same start as an existing profiler.
-        #[macro_export]
-        macro_rules! #with_same_start {
-            ($parent: expr, $label: expr) => {{
-                use profiler::Parent;
-                let label = concat!($label, " (", file!(), ":", line!(), ")");
-                let profiler: profiler::Started<profiler::#ObjIdent> =
-                    $parent.new_child_same_start(label);
-                profiler
-            }}
-        }
-    };
-    ts.into()
-}
-
-/// Define a profiler type for a disabled profiling level.
-#[allow(non_snake_case)]
-fn disabled_profiler(snake_ident: &syn::Ident, ObjIdent: &syn::Ident) -> proc_macro::TokenStream {
-    let start = quote::format_ident!("start_{}", snake_ident);
-    let with_same_start = quote::format_ident!("{}_with_same_start", snake_ident);
-    let ts = quote::quote! {
-        // =================================
-        // === Profiler (e.g. Objective) ===
-        // =================================
-
-        /// A lightweight object identifying a #snoke_ident-level profiler.
-        #[derive(Copy, Clone, Debug)]
-        pub struct #ObjIdent(());
-
-
-        // === Trait Implementations ===
-
-        impl Profiler for #ObjIdent {
-            type Started = ();
-            fn finish(self, _: &Self::Started) {}
-        }
-
-
-        // === Constructor macros ===
-
-        /// Create a new #level-level profiler.
-        #[macro_export]
-        macro_rules! #start {
-            ($parent: expr, $label: expr) => {
-                profiler::Started { profiler: profiler::#ObjIdent(()), data: () }
+            impl Profiler for #ObjIdent {
+                type Started = ();
+                fn finish(self, _: &Self::Started) {}
             }
-        }
-        /// Create a #level-level profiler, with the same start as an existing profiler.
-        #[macro_export]
-        macro_rules! #with_same_start {
-            ($parent: expr, $label: expr) => {
-                profiler::Started { profiler: profiler::#ObjIdent(()), data: () }
+
+
+            // === Constructor macros ===
+
+            #[doc = #doc_start]
+            #[macro_export]
+            macro_rules! #start {
+                ($parent: expr, $label: expr) => {
+                    profiler::Started { profiler: profiler::#ObjIdent(()), data: () }
+                }
+            }
+            #[macro_export]
+            #[doc = #doc_with_same_start]
+            macro_rules! #with_same_start {
+                ($parent: expr, $label: expr) => {
+                    profiler::Started { profiler: profiler::#ObjIdent(()), data: () }
+                }
             }
         }
     };
@@ -191,6 +198,16 @@ fn get_enabled_level(levels: &[impl AsRef<str>]) -> usize {
 }
 
 /// Defines a hierarchy of profiler levels.
+///
+/// # Usage
+///
+/// ```ignore
+/// enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
+/// ```
+///
+/// Profiler-levels must be specified from coarsest to finest.
+///
+/// Profiler-level names should be given in CamelCase.
 #[proc_macro]
 #[allow(non_snake_case)]
 pub fn define_hierarchy(ts: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -201,11 +218,7 @@ pub fn define_hierarchy(ts: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let mut out = proc_macro::TokenStream::new();
     for ((i, ObjIdent), level_name) in idents.iter().enumerate().zip(level_names.iter()) {
         let snake_ident = syn::Ident::new(level_name, proc_macro2::Span::call_site());
-        let profiler_def = match enabled_level >= i {
-            true => enabled_profiler(&snake_ident, ObjIdent),
-            false => disabled_profiler(&snake_ident, ObjIdent),
-        };
-        out.extend(profiler_def);
+        out.extend(define_profiler(&snake_ident, ObjIdent, enabled_level >= i));
         for (j, ChildIdent) in idents[i..].iter().enumerate() {
             let parent_impl = match enabled_level >= i + j {
                 true => enabled_impl_parent(ObjIdent, ChildIdent),
@@ -223,7 +236,8 @@ pub fn define_hierarchy(ts: proc_macro::TokenStream) -> proc_macro::TokenStream 
 // === profile! ===
 // ================
 
-/// Instruments a function.
+// [Documented in `profiler`](../enso_profiler/attr.profile.html).
+#[allow(missing_docs)]
 #[proc_macro_attribute]
 pub fn profile(
     args: proc_macro::TokenStream,
