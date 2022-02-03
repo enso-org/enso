@@ -73,7 +73,9 @@ pub mod js {
 #[cfg(not(target_arch = "wasm32"))]
 pub mod js {
     pub mod performance {
-        pub fn now() -> f64 { 0.0 }
+        pub fn now() -> f64 {
+            0.0
+        }
     }
 }
 
@@ -372,11 +374,11 @@ mod tests {
         let some_timestamp = profiler::Timestamp(std::num::NonZeroU64::new(1).unwrap());
         for _ in 0..count {
             measurements.push(profiler::Measurement {
-                parent: profiler::ProfilerId(0),
+                parent:   profiler::ProfilerId(0),
                 profiler: profiler::ProfilerId(0),
-                start: None,
-                end: some_timestamp,
-                label: ""
+                start:    None,
+                end:      some_timestamp,
+                label:    "",
             });
         }
         test::black_box(&measurements);
@@ -394,4 +396,4 @@ mod tests {
         let mut measurements = vec![];
         b.iter(|| push_vec(10_000, &mut measurements));
     }
-}:
+}
