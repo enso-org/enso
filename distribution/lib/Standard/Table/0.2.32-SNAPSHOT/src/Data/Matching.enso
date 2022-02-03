@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex as Regex_Module
 
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
-from Standard.Base.Error.Warnings import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Warnings import Warning_System
 
 ## Strategy for matching names.
 type Matching_Strategy
@@ -18,6 +18,16 @@ type Matching_Strategy
 
       A name is matched if its name matches the provided regular expression.
    type Regex (case_sensitivity : (True | Case_Insensitive) = True)
+
+## UNSTABLE
+   A temporary workaround to allow the Exact constructor to work with default arguments.
+Exact.new : (True | Case_Insensitive) -> Exact
+Exact.new (case_sensitivity = True) = Exact case_sensitivity
+
+## UNSTABLE
+   A temporary workaround to allow the Regex constructor to work with default arguments.
+Regex.new : (True | Case_Insensitive) -> Regex
+Regex.new (case_sensitivity = True) = Regex case_sensitivity
 
 ## UNSTABLE
    Specifies that the operation should ignore case.
