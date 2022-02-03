@@ -497,6 +497,38 @@ where
 ///     small_computation(7, profiler)
 /// }
 /// ```
+///
+/// This will expand to the equivalent of:
+///
+/// ```
+/// # use enso_profiler as profiler;
+/// # use enso_profiler::profile;
+/// fn __profiler_wrapped__small_computation(input: i16, profiler: profiler::Detail) -> u32 {
+///     todo!()
+/// }
+///
+/// fn small_computation(input: i16, profiler: impl profiler::Parent<profiler::Detail>) -> u32 {
+///     // Start a child profiler of the profiler argument:
+///     let _profiler: profiler::Started<profiler::Detail> =
+///         profiler.new_child("small_computation (lib/rust/profiler/src/lib.rs:509)");
+///     let profiler: profiler::Detail = _profiler.profiler;
+///     // Call the wrapped function, forwarding arguments
+///     __profiler_wrapped__small_computation(input, profiler)
+///     // `_profiler` will be dropped at end of scope, ending the measurement and writing it to the
+///     // log.
+/// }
+///
+/// fn __profiler_wrapped__bigger_computation(profiler: profiler::Task) -> u32 {
+///     small_computation(7, profiler)
+/// }
+///
+/// fn bigger_computation(profiler: impl profiler::Parent<profiler::Task>) -> u32 {
+///     let _profiler: profiler::Started<profiler::Task> =
+///         profiler.new_child("bigger_computation (lib/rust/profiler/src/lib.rs:515)");
+///     let profiler: profiler::Task = _profiler.profiler;
+///     __profiler_wrapped__bigger_computation(profiler)
+/// }
+/// ```
 #[doc(inline)]
 pub use enso_profiler_macros::profile;
 
