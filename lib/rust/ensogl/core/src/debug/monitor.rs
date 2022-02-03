@@ -839,23 +839,17 @@ mod tests {
             let sampler = new_sampler(&stats);
             Self { stats, sampler, t: t0 }
         }
+    }
 
-        fn advance_frame<F>(
-            &mut self,
-            frame_time_ms: f64,
-            post_frame_delay_ms: f64,
-            expected_check: F,
-            expected_value: f64,
-        ) where
-            F: FnOnce(ValueCheck) -> bool,
-        {
-            self.stats.begin_frame(self.t);
-            self.t += frame_time_ms;
-            self.stats.end_frame(self.t);
-            assert_approx_eq!(self.sampler.value(), expected_value, 0.001);
-            assert!(expected_check(self.sampler.check()));
-            self.t += post_frame_delay_ms;
-        }
+    macro_rules! test_next_frame {
+        ($test:expr, $frame_time:expr, $post_frame_delay:expr, $expected_check:path, $expected_value:literal) => {
+            $test.stats.begin_frame($test.t);
+            $test.t += $frame_time;
+            $test.stats.end_frame($test.t);
+            assert_approx_eq!($test.sampler.value(), $expected_value, 0.001);
+            assert!(matches!($test.sampler.check(), $expected_check));
+            $test.t += $post_frame_delay;
+        };
     }
 
     #[test]
@@ -867,18 +861,18 @@ mod tests {
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
-        test.advance_frame(10.0, 6.0, |check| matches!(check, ValueCheck::Correct), 10.0);
+        test_next_frame!(test, 10.0, 6.0, ValueCheck::Correct, 10.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
         // starting next frame.
-        test.advance_frame(5.0, 11.0, |check| matches!(check, ValueCheck::Correct), 5.0);
+        test_next_frame!(test, 5.0, 11.0, ValueCheck::Correct, 5.0);
 
         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 30ms. No extra delay
         // afterwards before starting next frame.
-        test.advance_frame(30.0, 0.0, |check| matches!(check, ValueCheck::Warning), 30.0);
+        test_next_frame!(test, 30.0, 0.0, ValueCheck::Warning, 30.0);
 
         // Frame 4: simulate a really slow frame (1000ms), crossing the configured error threshold.
-        test.advance_frame(1000.0, 0.0, |check| matches!(check, ValueCheck::Error), 1000.0);
+        test_next_frame!(test, 1000.0, 0.0, ValueCheck::Error, 1000.0);
     }
 
     #[test]
@@ -899,26 +893,26 @@ mod tests {
         // point).
         // Note 2: in this case, value 0.0 shall check as Correct, but for later frames it would
         // result in a threshold warning/error.
-        test.advance_frame(10.0, 6.0, |check| matches!(check, ValueCheck::Correct), 0.0);
+        test_next_frame!(test, 10.0, 6.0, ValueCheck::Correct, 0.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
         // starting next frame.
         // Previous frame+delay was 16.0 ms; we'd fit 62.5 such frames in 1s.
-        test.advance_frame(5.0, 11.67, |check| matches!(check, ValueCheck::Correct), 62.5);
+        test_next_frame!(test, 5.0, 11.67, ValueCheck::Correct, 62.5);
 
         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
         // afterwards before starting next frame.
         // Previous frame+delay was 16.67 ms; we'd fit ~59.988 such frames in 1s.
-        test.advance_frame(20.0, 0.0, |check| matches!(check, ValueCheck::Correct), 59.988);
+        test_next_frame!(test, 20.0, 0.0, ValueCheck::Correct, 59.988);
 
         // Frame 4: simulate a really slow frame (1000ms), crossing the FPS error threshold.
         // Previous frame+delay was 20.0 ms; we'd fit 50.0 such frames in 1s.
-        test.advance_frame(1000.0, 0.0, |check| matches!(check, ValueCheck::Warning), 50.0);
+        test_next_frame!(test, 1000.0, 0.0, ValueCheck::Warning, 50.0);
 
         // For the final calculation, we don't need to simulate full frame to get the previous
         // one's FPS, so we're using some dummy values.
         // Previous frame+delay was 1000.0 ms; we'd fit 1 such frame in 1s.
         let dummy = 0.0;
-        test.advance_frame(dummy, dummy, |check| matches!(check, ValueCheck::Error), 1.0);
+        test_next_frame!(test, dummy, dummy, ValueCheck::Error, 1.0);
     }
 }
