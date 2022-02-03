@@ -100,7 +100,8 @@ fn disabled_profiler(snake_ident: &syn::Ident, ObjIdent: &syn::Ident) -> proc_ma
     ts.into()
 }
 
-/// impl Parent<T> for U, when U is a profiler of an enabled level.
+/// Generates an implementation of the [`Parent`] trait relating the given parent and child, when
+/// both are enabled.
 #[allow(non_snake_case)]
 fn enabled_impl_parent(
     ParentIdent: &syn::Ident,
@@ -127,7 +128,8 @@ fn enabled_impl_parent(
     ts.into()
 }
 
-/// impl Parent<T> for U, when U is an profiler of a disabled level.
+/// Generates an implementation of the [`Parent`] trait relating the given parent and child, when
+/// the child is disabled.
 #[allow(non_snake_case)]
 fn disabled_impl_parent(
     ParentIdent: &syn::Ident,
@@ -255,7 +257,8 @@ fn make_wrapper(wrapper_ident: syn::Ident, func: &syn::ItemFn) -> proc_macro2::T
     }
 }
 
-/// Create a Measurement label, with its file:line info determined by the proc_macro's call site.
+/// Create a [`Measurement`] label, with its file:line info determined by the proc_macro's call
+/// site.
 fn make_label(ident: &syn::Ident) -> String {
     let span = proc_macro::Span::call_site();
     let file = span.source_file().path();

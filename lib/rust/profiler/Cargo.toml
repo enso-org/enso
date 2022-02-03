@@ -1,11 +1,12 @@
 [package]
-name = "profiler"
+name = "enso-profiler"
 version = "0.1.0"
 edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
 wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
-profiler-macros = { path = "../profiler-macros" }
+enso-profiler-macros = { path = "macros" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.8"

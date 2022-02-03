@@ -72,7 +72,7 @@ members = [
     "lib/rust/parser/flexer",
     "lib/rust/prelude",
     "lib/rust/profiler",
-    "lib/rust/profiler-macros",
+    "lib/rust/profiler/macros",
     "lib/rust/parser/flexer-testing/definition",
     "lib/rust/parser/flexer-testing/generation",
     "lib/rust/parser/lexer/definition",

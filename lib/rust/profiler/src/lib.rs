@@ -26,6 +26,10 @@ pub type Label = &'static str;
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Timestamp(num::NonZeroU64);
 
+/// Offset used to encode a timestamp, which may be 0, in a [`NonZeroU64`].
+/// To maximize the supported range, this is the smallest positive integer.
+const TS_OFFSET: u64 = 1;
+
 impl Timestamp {
     /// Return the current time, relative to the time origin.
     pub fn now() -> Self {
@@ -37,12 +41,12 @@ impl Timestamp {
         let ticks = (ms * 10.0).round() as u64;
         // Safety: ticks + 1 will not be 0 unless a Timestamp wraps.
         // It takes (2 ** 64) * 100us = 58_455_453 years for a Timestamp to wrap.
-        unsafe { Self(num::NonZeroU64::new_unchecked(ticks + 1)) }
+        unsafe { Self(num::NonZeroU64::new_unchecked(ticks + TS_OFFSET)) }
     }
 
     /// Convert to an offset from the time origin, in ms.
     pub fn into_ms(self) -> f64 {
-        (self.0.get() - 1) as f64 / 10.0
+        (self.0.get() - TS_OFFSET) as f64 / 10.0
     }
 }
 
@@ -102,6 +106,8 @@ pub trait StartedProfiler {
 impl StartedProfiler for () {
     fn finish(&self, _: ProfilerId) {}
 }
+
+
 
 // ====================
 // === ProfilerData ===
@@ -169,20 +175,21 @@ pub mod internal {
             }
         }
 
-        // Note [LocalVecBuilder Safety]
-        // =============================
-        // When obtaining a reference from the UnsafeCell, all accessors follow these rules:
-        // - There must be a scope that the reference doesn't escape.
-        // - There must be no other references obtained in the same scope.
-        // Consistently following these rules ensures the no-alias rule of mutable references is
-        // satisfied.
-
         /// Return (and consume) all elements pushed so far.
         pub fn build(&self) -> Vec<T> {
             // Note [LocalVecBuilder Safety]
             unsafe { mem::take(&mut *self.0.get()) }
         }
     }
+    // Note [LocalVecBuilder Safety]
+    // =============================
+    // When obtaining a reference from the UnsafeCell, all accessors follow these rules:
+    // - There must be a scope that the reference doesn't escape.
+    // - There must be no other references obtained in the same scope.
+    // Consistently following these rules ensures the no-alias rule of mutable references is
+    // satisfied.
+
+
 
     // ====================
     // === MEASUREMENTS ===
@@ -193,7 +200,7 @@ pub mod internal {
     }
 }
 
-/// Global log of Measurements.
+/// Global log of [`Measurement`]s.
 pub use internal::MEASUREMENTS;
 
 /// Gather all measurements taken since the last time take_log() was called.
@@ -267,9 +274,9 @@ where
 // ===================================
 
 #[doc(inline)]
-pub use profiler_macros::profile;
+pub use enso_profiler_macros::profile;
 
-profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
+enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
 
 
 

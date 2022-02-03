@@ -1,7 +1,8 @@
 [package]
-name = "profiler-macros"
+name = "enso-profiler-macros"
 version = "0.1.0"
 edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
 
 [lib]
 proc-macro = true
