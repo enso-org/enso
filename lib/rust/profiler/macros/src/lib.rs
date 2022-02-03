@@ -280,9 +280,21 @@ fn make_wrapper(wrapper_ident: syn::Ident, func: &syn::ItemFn) -> proc_macro2::T
     let profiler_generic_parent = quote::quote! { impl profiler::Parent<#profiler_type_in> };
     last_arg.ty = Box::new(syn::Type::Verbatim(profiler_generic_parent));
 
+    let is_method = match func.sig.inputs.first().unwrap() {
+        syn::FnArg::Receiver(_) => true,
+        syn::FnArg::Typed(_) => false,
+    };
+    let mut segments = punctuated::Punctuated::<syn::PathSegment, syn::Token![::]>::new();
+    if is_method {
+        let ident = syn::Ident::new("Self", proc_macro2::Span::call_site());
+        segments.push(ident.into());
+    };
+    segments.push(impl_ident.clone().into());
+    let impl_path = syn::Path { leading_colon: None, segments };
+
     let call = match func.sig.asyncness {
-        None => quote::quote! { #impl_ident(#args) },
-        Some(_) => quote::quote! { #impl_ident(#args).await },
+        None => quote::quote! { #impl_path(#args) },
+        Some(_) => quote::quote! { #impl_path(#args).await },
     };
     quote::quote! {
         #vis #wrapper_sig {

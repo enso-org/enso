@@ -594,6 +594,12 @@ mod tests {
         unsafe fn profiled_unsafe(_profiler: profiler::Objective) {}
         #[profile]
         fn profiled_destructuring((_x, _y): (u32, u32), _profiler: profiler::Objective) {}
+        #[allow(dead_code)]
+        struct Foo;
+        impl Foo {
+            #[profile]
+            fn profiled_method(&mut self, _arg: u32, _profiler: profiler::Objective) {}
+        }
     }
 
     #[test]
