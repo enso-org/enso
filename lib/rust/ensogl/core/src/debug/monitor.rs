@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::debug::stats::Stats;
+use crate::debug::stats::StatsData;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 
@@ -403,8 +403,8 @@ impl Panel {
 
     /// Fetch the measured value from the associated sampler, then post-process it to make it
     /// useful for displaying on a human-readable graph.
-    pub fn sample_and_postprocess(&self) {
-        self.rc.borrow_mut().sample_and_postprocess()
+    pub fn sample_and_postprocess(&self, stats: &StatsData) {
+        self.rc.borrow_mut().sample_and_postprocess(&stats)
     }
 
     fn first_draw(&self, dom: &Dom) {
@@ -472,10 +472,10 @@ pub trait Sampler: Debug {
     fn label(&self) -> &str;
 
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
-    fn value(&self) -> f64;
+    fn value(&self, stats: &StatsData) -> f64;
 
     /// Check whether the newest value is correct, or should be displayed as warning or error.
-    fn check(&self) -> ValueCheck {
+    fn check(&self, _value: f64) -> ValueCheck {
         ValueCheck::Correct
     }
 
@@ -512,8 +512,8 @@ pub trait Sampler: Debug {
     // === Utils ===
 
     /// Wrapper for `ValueCheck::from_threshold`.
-    fn check_by_threshold(&self, warn_threshold: f64, err_threshold: f64) -> ValueCheck {
-        ValueCheck::from_threshold(warn_threshold, err_threshold, self.value())
+    fn check_by_threshold(&self, warn_threshold: f64, err_threshold: f64, value: f64) -> ValueCheck {
+        ValueCheck::from_threshold(warn_threshold, err_threshold, value)
     }
 }
 
@@ -580,9 +580,9 @@ impl PanelData {
 impl PanelData {
     /// Fetch the measured value from the associated sampler, then post-process it to make it
     /// useful for displaying on a human-readable graph.
-    pub fn sample_and_postprocess(&mut self) {
-        self.value_check = self.sampler.check();
-        self.value = self.sampler.value();
+    pub fn sample_and_postprocess(&mut self, stats: &StatsData) {
+        self.value = self.sampler.value(&stats);
+        self.value_check = self.sampler.check(self.value);
         self.clamp_value();
         self.smooth_value();
         self.normalize_value();
@@ -711,48 +711,6 @@ impl PanelData {
 // === Samplers ====================================================================================
 // =================================================================================================
 
-// ===========
-// === Fps ===
-// ===========
-
-/// Sampler measuring the frames per second count for a given operation.
-#[derive(Debug, Default)]
-pub struct Fps {
-    stats: Stats,
-}
-
-impl Fps {
-    /// Constructor.
-    pub fn new(stats: &Stats) -> Self {
-        Self { stats: stats.clone() }
-    }
-}
-
-const FPS_WARNING_THRESHOLD: f64 = 55.0;
-const FPS_ERROR_THRESHOLD: f64 = 25.0;
-
-impl Sampler for Fps {
-    fn label(&self) -> &str {
-        "Frames per second"
-    }
-    fn value(&self) -> f64 {
-        self.stats.fps()
-    }
-    fn check(&self) -> ValueCheck {
-        if self.stats.frame_counter() > 1 {
-            self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD)
-        } else {
-            // On the first frame, the FPS will be 0, which in (only) this case is a correct value.
-            ValueCheck::Correct
-        }
-    }
-    fn max_value(&self) -> Option<f64> {
-        Some(60.0)
-    }
-}
-
-
-
 // ======================
 // === Stats Samplers ===
 // ======================
@@ -763,15 +721,14 @@ macro_rules! stats_sampler {
     ( $label:tt, $name:ident, $stats_method:ident, $t1:expr, $t2:expr, $precision:expr
     , $value_divisor:expr) => {
         /// Sampler implementation.
-        #[derive(Debug, Default)]
+        #[derive(Copy, Clone, Debug, Default)]
         pub struct $name {
-            stats: Stats,
         }
 
         impl $name {
             /// Constructor.
-            pub fn new(stats: &Stats) -> Self {
-                Self { stats: stats.clone() }
+            pub fn new() -> Self {
+                Self {}
             }
         }
 
@@ -779,8 +736,8 @@ macro_rules! stats_sampler {
             fn label(&self) -> &str {
                 $label
             }
-            fn value(&self) -> f64 {
-                let raw_value: f64 = self.stats.$stats_method().as_();
+            fn value(&self, stats: &StatsData) -> f64 {
+                let raw_value: f64 = stats.$stats_method.as_();
                 raw_value / $value_divisor
             }
             fn min_size(&self) -> Option<f64> {
@@ -789,8 +746,8 @@ macro_rules! stats_sampler {
             fn precision(&self) -> usize {
                 $precision
             }
-            fn check(&self) -> ValueCheck {
-                self.check_by_threshold($t1, $t2)
+            fn check(&self, value: f64) -> ValueCheck {
+                self.check_by_threshold($t1, $t2, value)
             }
         }
     };
@@ -798,6 +755,7 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
+stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0);
 stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
 stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
 stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);

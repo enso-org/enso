@@ -70,7 +70,7 @@ macro_rules! gen_stats {
         pub struct StatsData {
             frame_begin_time: f64,
             frame_counter:    u64,
-            $($field : $field_type),*
+            $(pub $field : $field_type),*
         }
 
 
