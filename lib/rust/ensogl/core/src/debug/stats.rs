@@ -133,6 +133,13 @@ impl StatsData {
     fn begin_frame(&mut self, time: f64) {
         self.frame_counter += 1;
 
+        // The check below ensures that on 1st ever frame, we don't try to calculate FPS of the
+        // previous frame (which did not exist).
+        //
+        // BUG: this code carries over a known bug from earlier version of the code, making it not
+        // calculate FPS correctly for any frame when the `time` parameter happens to be `0.0` (or
+        // negative). This bug is planned to be fixed in a later PR as part of:
+        // https://www.pivotaltracker.com/story/show/181140499
         if self.frame_begin_time > 0.0 {
             let end_time = time;
             self.fps = 1000.0 / (end_time - self.frame_begin_time);

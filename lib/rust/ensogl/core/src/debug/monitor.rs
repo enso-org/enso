@@ -881,7 +881,8 @@ mod tests {
         // assumption we're trying to be around this FPS.
 
         // BUG: we can't currently use t0=0.0 here due to a bug in how `Fps` Sampler handles t=0.0;
-        // this is planned to be fixed soon in a separate PR.
+        // this is planned to be fixed soon in a separate PR, as part of:
+        // https://www.pivotaltracker.com/story/show/181140499
         let mut test = TestSamplerByFrame::new(123.0, |stats| Fps::new(&stats));
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
