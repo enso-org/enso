@@ -1,3 +1,7 @@
+#![feature(test)]
+
+extern crate test;
+
 use std::cell;
 use std::num;
 use std::str;
@@ -294,7 +298,7 @@ enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
 // =============
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate as profiler;
     use profiler::profile;
 
@@ -344,4 +348,50 @@ mod test {
         async fn profilee(_profiler: profiler::Objective) {}
         let _future = profilee(profiler::APP_LIFETIME);
     }
-}
+
+    /// Perform a specified number of measurements, for benchmarking.
+    fn log_measurements(count: usize) {
+        for _ in 0..count {
+            let _profiler = start_objective!(profiler::APP_LIFETIME, "");
+        }
+        test::black_box(profiler::take_log());
+    }
+
+    #[bench]
+    fn log_measurements_1000(b: &mut test::Bencher) {
+        b.iter(|| log_measurements(1000));
+    }
+
+    #[bench]
+    fn log_measurements_10_000(b: &mut test::Bencher) {
+        b.iter(|| log_measurements(10_000));
+    }
+
+    /// For comparison with time taken by [`log_measurements`].
+    fn push_vec(count: usize, measurements: &mut Vec<profiler::Measurement>) {
+        let some_timestamp = profiler::Timestamp(std::num::NonZeroU64::new(1).unwrap());
+        for _ in 0..count {
+            measurements.push(profiler::Measurement {
+                parent: profiler::ProfilerId(0),
+                profiler: profiler::ProfilerId(0),
+                start: None,
+                end: some_timestamp,
+                label: ""
+            });
+        }
+        test::black_box(&measurements);
+        measurements.clear();
+    }
+
+    #[bench]
+    fn push_vec_1000(b: &mut test::Bencher) {
+        let mut measurements = vec![];
+        b.iter(|| push_vec(1000, &mut measurements));
+    }
+
+    #[bench]
+    fn push_vec_10_000(b: &mut test::Bencher) {
+        let mut measurements = vec![];
+        b.iter(|| push_vec(10_000, &mut measurements));
+    }
+}:
