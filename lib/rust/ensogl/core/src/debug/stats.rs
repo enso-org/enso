@@ -172,7 +172,7 @@ macro_rules! gen_stats {
         // === Summary ===
 
         /// Contains summarized values of stats fields from multiple [`StatsData`] objects.
-        #[derive(Clone, Debug, Serialize, Deserialize)]
+        #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
         #[serde(rename_all = "camelCase")]
         pub struct Summary {
             $(
@@ -285,7 +285,7 @@ impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator
 
 /// Summary for multiple values of type T. Intended to be used for storing a summary of multiple
 /// samples of some runtime stat.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub struct ValueSummary<T> {
     pub min: T,
