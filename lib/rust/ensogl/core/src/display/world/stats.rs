@@ -30,19 +30,19 @@ impl {
         let performance      = web::performance();
         let mut monitor      = debug::Monitor::new();
         let panels = vec![
-            monitor.add( debug::monitor::FrameTime          :: new() ),
-            monitor.add( debug::monitor::Fps                :: new() ),
-            monitor.add( debug::monitor::WasmMemory         :: new() ),
-            monitor.add( debug::monitor::GpuMemoryUsage     :: new() ),
-            monitor.add( debug::monitor::DrawCallCount      :: new() ),
-            monitor.add( debug::monitor::DataUploadCount    :: new() ),
-            monitor.add( debug::monitor::DataUploadSize     :: new() ),
-            monitor.add( debug::monitor::BufferCount        :: new() ),
-            monitor.add( debug::monitor::SymbolCount        :: new() ),
-            monitor.add( debug::monitor::ShaderCount        :: new() ),
-            monitor.add( debug::monitor::ShaderCompileCount :: new() ),
-            monitor.add( debug::monitor::SpriteSystemCount  :: new() ),
-            monitor.add( debug::monitor::SpriteCount        :: new() ),
+            monitor.add( debug::monitor::FrameTime          :: default() ),
+            monitor.add( debug::monitor::Fps                :: default() ),
+            monitor.add( debug::monitor::WasmMemory         :: default() ),
+            monitor.add( debug::monitor::GpuMemoryUsage     :: default() ),
+            monitor.add( debug::monitor::DrawCallCount      :: default() ),
+            monitor.add( debug::monitor::DataUploadCount    :: default() ),
+            monitor.add( debug::monitor::DataUploadSize     :: default() ),
+            monitor.add( debug::monitor::BufferCount        :: default() ),
+            monitor.add( debug::monitor::SymbolCount        :: default() ),
+            monitor.add( debug::monitor::ShaderCount        :: default() ),
+            monitor.add( debug::monitor::ShaderCompileCount :: default() ),
+            monitor.add( debug::monitor::SpriteSystemCount  :: default() ),
+            monitor.add( debug::monitor::SpriteCount        :: default() ),
         ];
         Self {stats,performance,monitor,panels}
     }

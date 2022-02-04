@@ -726,14 +726,6 @@ macro_rules! stats_sampler {
         pub struct $name {
         }
 
-        impl $name {
-            // FIXME: just impl Default
-            /// Constructor.
-            pub fn new() -> Self {
-                Self {}
-            }
-        }
-
         impl Sampler for $name {
             fn label(&self) -> &str {
                 $label
