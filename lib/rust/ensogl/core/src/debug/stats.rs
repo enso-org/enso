@@ -68,11 +68,13 @@ macro_rules! gen_stats {
 
         /// Raw data of all the gathered stats.
         #[derive(Debug,Default,Clone,Copy)]
-        #[allow(missing_docs)]
         pub struct StatsData {
             frame_begin_time: f64,
             frame_counter:    u64,
-            $(pub $field : $field_type),*
+            $(
+                #[allow(missing_docs)]
+                pub $field : $field_type
+            ),*
         }
 
 
