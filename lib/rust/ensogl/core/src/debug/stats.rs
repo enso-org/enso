@@ -260,9 +260,9 @@ macro_rules! if_compiled_with_stats {
 
 #[derive(Debug, Default)]
 struct ValueAccumulator<T> {
-    pub min: T,
-    pub max: T,
-    pub sum: f64,
+    min: T,
+    max: T,
+    sum: f64,
 }
 
 impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator<T> {
