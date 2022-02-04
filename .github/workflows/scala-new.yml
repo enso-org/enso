@@ -43,7 +43,8 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ENGINE_DIST_NAME }}
-          path: ${{ env.ENGINE_DIST_ROOT }}/${{ env.ENGINE_DIST_NAME }}.zip
+          # Irregular, engine is pre-zipped to avoid long paths issues of nodejs.
+          path: ${{ env.ENGINE_DIST_ARCHIVE }}
       - name: Publish the Launcher
         uses: actions/upload-artifact@v2
         with:
