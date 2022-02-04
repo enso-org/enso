@@ -266,7 +266,9 @@ fn make_wrapper(wrapper_ident: syn::Ident, func: &syn::ItemFn) -> proc_macro2::T
     let mut wrapper_sig = func.sig.clone();
     wrapper_sig.ident = wrapper_ident;
     let impl_ident = &func.sig.ident;
-    let args = forward_args(&mut wrapper_sig.inputs);
+
+    // Gather argument idents for call in wrapper
+    let args = forward_args(&wrapper_sig.inputs);
 
     // Parse profiler argument in signature.
     let last_arg = match wrapper_sig.inputs.last_mut().unwrap() {
@@ -315,29 +317,35 @@ fn make_label(ident: &syn::Ident) -> String {
     format!("{} ({}:{})", ident, path, line)
 }
 
-// === Argument forwarding ===
-
 type SigInputs = punctuated::Punctuated<syn::FnArg, syn::Token![,]>;
 type CallArgs = punctuated::Punctuated<syn::Expr, syn::Token![,]>;
 
-/// Given a function's inputs, produce a list of exprs the function can use to forward its arguments
-/// to another function with the same signature.
-///
-/// May modify input bindings to simplify forwarding.
-fn forward_args(inputs: &mut SigInputs) -> CallArgs {
+// Given a function's inputs, produce the argument list the function would use to recurse with all
+// its original arguments--or call another function with the same signature.
+fn forward_args(inputs: &SigInputs) -> CallArgs {
     let mut args = CallArgs::new();
-    for (i, input) in inputs.iter_mut().enumerate() {
-        let ident = match input {
-            syn::FnArg::Receiver(r) => r.self_token.into(),
-            syn::FnArg::Typed(pat_type) => {
-                let arg = syn::Ident::new(&format!("arg{}", i), proc_macro2::Span::call_site());
-                pat_type.pat = Box::new(ident_to_pat(arg.clone()));
-                arg
-            },
-        };
-        args.push(ident_to_expr(ident));
+    for input in inputs {
+        args.push(match input {
+            syn::FnArg::Receiver(r) => ident_to_expr(r.self_token.into()),
+            syn::FnArg::Typed(pat_type) => pat_to_expr(&pat_type.pat),
+        });
     }
     args
+}
+
+fn pat_to_expr(pat: &syn::Pat) -> syn::Expr {
+    match pat {
+        syn::Pat::Ident(syn::PatIdent { ident, .. }) => ident_to_expr(ident.to_owned()),
+        syn::Pat::Reference(syn::PatReference { pat, mutability, .. }) => {
+            let expr = Box::new(pat_to_expr(pat));
+            let mutability = mutability.to_owned();
+            let attrs = Default::default();
+            let and_token = Default::default();
+            let raw = Default::default();
+            syn::ExprReference { expr, mutability, attrs, and_token, raw }.into()
+        }
+        _ => unimplemented!("destructuring-bind in signature of fn wrapped by #[profile]"),
+    }
 }
 
 fn ident_to_expr(ident: syn::Ident) -> syn::Expr {
@@ -345,12 +353,4 @@ fn ident_to_expr(ident: syn::Ident) -> syn::Expr {
     let attrs = Default::default();
     let qself = Default::default();
     syn::ExprPath { path, qself, attrs }.into()
-}
-
-fn ident_to_pat(ident: syn::Ident) -> syn::Pat {
-    let attrs = Default::default();
-    let by_ref = Default::default();
-    let mutability = Default::default();
-    let subpat = Default::default();
-    syn::PatIdent { attrs, by_ref, mutability, ident, subpat }.into()
 }
