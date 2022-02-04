@@ -1,19 +1,18 @@
 //! This module contains the IDE object implementation.
 pub mod initializer;
-pub mod integration;
+
+pub use initializer::Initializer;
 
 use crate::prelude::*;
 
 use crate::controller::project::INITIAL_MODULE_NAME;
-use crate::ide::integration::Integration;
+use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::system::web::sleep;
 use std::time::Duration;
-
-pub use initializer::Initializer;
 
 
 
@@ -41,9 +40,9 @@ const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 pub struct Ide {
     application: Application,
     #[allow(dead_code)]
-    /// The integration layer is never directly accessed, but needs to be kept alive to keep
+    /// The presenter layer is never directly accessed, but needs to be kept alive to keep
     /// performing its function.
-    integration: Integration,
+    presenter:   Presenter,
     network:     frp::Network,
 }
 
@@ -54,9 +53,9 @@ impl Ide {
         view: ide_view::root::View,
         controller: controller::Ide,
     ) -> Self {
-        let integration = integration::Integration::new(controller, view);
+        let presenter = Presenter::new(controller, view);
         let network = frp::Network::new("Ide");
-        Ide { application, integration, network }.init()
+        Ide { application, presenter, network }.init()
     }
 
     fn init(self) -> Self {

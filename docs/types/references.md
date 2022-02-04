@@ -14,7 +14,6 @@ theory.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Dependent Types](#dependent-types)
 - [Gradual Typing](#gradual-typing)
 - [Maximum Inference Power](#maximum-inference-power)
 - [Monadic Contexts](#monadic-contexts)
@@ -24,24 +23,6 @@ theory.
 - [Usability](#usability)
 
 <!-- /MarkdownTOC -->
-
-## Dependent Types
-
-- [A Classical Sequent Calculus for Dependent Types](https://hal.inria.fr/hal-01519929/document)
-- [Dependent Information Flow Types](http://ctp.di.fct.unl.pt/~luisal/resources/popl15-paper187.pdf)
-- [Dependent Intersection: A New Way of Defining Records in Type Theory](https://ieeexplore.ieee.org/document/1210048)
-- [Dependent Types and Monadic Effects in F\*](https://www.fstar-lang.org/papers/mumon/)
-- [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
-- [Dynamic Typing with Dependent Types](https://link.springer.com/chapter/10.1007/1-4020-8141-3_34)
-- [Handling Delimited Continuations with Dependent Types](https://dl.acm.org/doi/10.1145/3236764)
-- [Integrating Linear and Dependent Types](https://www.cl.cam.ac.uk/~nk480/dlnl-paper.pdf)
-- [Irrelevance, Heterogeneous Equality, and Call-by-Value Dependent Type Systems](https://www.cis.upenn.edu/~sweirich/papers/msfp12prog.pdf)
-- [Lightweight Invariants with Full Dependent Types](https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.150.5717)
-- [Normnalisation through Evaluation for Sized Dependent Types](https://core.ac.uk/display/94336601)
-- [Practical Erasure in Dependently-Typed Languages](https://eb.host.cs.st-andrews.ac.uk/drafts/dtp-erasure-draft.pdf)
-- [Resourceful Dependent Types](http://www.cse.chalmers.se/~abela/types18.pdf)
-- [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
-- [Verifying Higher-Order Programs with the Dijkstra Monad](https://www.microsoft.com/en-us/research/publication/verifying-higher-order-programs-with-the-dijkstra-monad/)
 
 ## Gradual Typing
 

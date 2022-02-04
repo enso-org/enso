@@ -11,7 +11,7 @@ exports.default = async function notarizing(context) {
     // We need to manually re-sign our build artifacts before notarisation.
     // See the script for more information.
     console.log('  • Performing additional signing of dependencies.')
-    await require('./signArchives').default()
+    await require('./signArchivesMacOs').default()
 
     // Notarize the application.
     const appName = context.packager.appInfo.productFilename

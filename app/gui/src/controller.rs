@@ -1,6 +1,5 @@
-//! This module contains all the controllers. They cover everything that is
-//! between clients of remote services (like language server and file manager)
-//! and views.
+//! This module contains all the controllers. They cover everything that is between clients of
+//! remote services (like language server and file manager) and views.
 //!
 //! The API of each controller is "view-facing", in contrast to the models in [`crate::model`] which
 //! are focusing on reflecting the Engine entities (thus can be called "Engine-facing").

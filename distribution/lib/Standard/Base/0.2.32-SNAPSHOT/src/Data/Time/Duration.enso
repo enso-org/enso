@@ -9,7 +9,7 @@ polyglot java import java.time.Period as Java_Period
 
    Arguments:
    - start_inclusive: The start time of the duration.
-   - end_inclusife: The end time of the duration.
+   - end_inclusive: The end time of the duration.
 
    > Example
      An hour interval between two points in time.
@@ -25,6 +25,22 @@ between start_inclusive end_exclusive =
     end = end_exclusive.internal_zoned_date_time
     duration = Java_Duration.between start end
     Duration period duration
+
+
+## ADVANCED
+
+   Time the evaluation of a function, return a Pair of Duration and Result
+
+   Arguments:
+   - function: Function to execute.
+time_execution : Any -> Pair Duration Any
+time_execution ~function =
+    start = System.nano_time
+    result = Runtime.no_inline function
+    end = System.nano_time
+    duration = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos (end - start))
+    Pair duration result
+
 
 type Duration
 

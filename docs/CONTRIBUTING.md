@@ -131,12 +131,14 @@ The following operating systems are supported for developing Enso:
 - macOS 10.14 and above
 - Linux 4.4 and above
 
-Currently only the x86_64 (amd64) architecture is supported. You may be able to
-develop Enso on other systems, but issues arising from unsupported
-configurations will not be fixed by the core team.
+Currently we support `x86_64` (all mentioned OS) and `arm64` (Mac only)
+architectures. You may be able to develop Enso on other systems, but issues
+arising from unsupported configurations will not be fixed by the core team.
 
 In order to build and run Enso you will need the following tools:
 
+- [NodeJS](https://nodejs.org/) with the latest LTS version. We recommend using
+  [`nvm`](https://github.com/nvm-sh/nvm) for managing NodeJS installation.
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
   [`project/build.properties`](../project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.
@@ -146,8 +148,6 @@ In order to build and run Enso you will need the following tools:
   for the same Java version as specified in [`build.sbt`](../build.sbt).
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
-- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
-  the rust build tool.
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
 - On MacOS and Linux, the `tar` command is required for running some tests. It
   should be installed by default on most distributions.
@@ -158,8 +158,14 @@ In order to build and run Enso you will need the following tools:
   need to configure the Developer Command Prompt for Microsoft Visual C++ for
   the x64 architecture.
 
-Managing multiple JVM installations can be a pain, so some of the team use
-[Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
+Managing multiple JVM installations can be a pain, so you can consider using
+helper tools for that. We recommend:
+
+- [Jenv](http://www.jenv.be/)
+- or [sdkman](https://sdkman.io/)
+
+**For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
+please refer to a [dedicated documentation](./graalvm-m1-mac.md).
 
 The flatbuffers `flatc` compiler can be installed from the following locations:
 
@@ -192,20 +198,10 @@ git clone git@github.com:enso-org/enso.git
 
 ### Getting Set Up (Rust)
 
-The SBT project requires a specific nightly rust toolchain. To get it set up,
-you will need to install [rustup](https://rustup.rs/) and then run the following
-commands:
-
-```bash
-rustup toolchain install nightly-2021-05-12
-rustup override set nightly-2021-05-12
-rustup component add clippy
-```
-
-You will also need `node` in order to run the `wasm` tests. We only support the
-latest LTS version of [NodeJS](https://nodejs.org/en/download) and NPM. We
-recommend using [`nvm`](https://github.com/nvm-sh/nvm) to manage node versions.
-The current LTS is `v14.16.1.
+The Rust code in this repository requires a specific nightly rust toolchain, as
+defined by [rust-toolchain](../rust-toolchain.toml) override file. The `rustup`
+will automatically download the appropriate compiler version along with the
+necessary components.
 
 ### Getting Set Up (JVM)
 
@@ -483,8 +479,8 @@ in our issue tracker and we will get back to you as soon as possible.
 ### Testing Enso
 
 Running the tests for the JVM enso components is as simple as running
-`sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
-can run the WASM tests for the rust components by using `./run --test-wasm`.
+`sbt / test`. To test the Rust components you can run `./run test`. Finally, you
+can run the WASM tests for the rust components by using `./run test --wasm`.
 
 #### Testing Enso Libraries
 
@@ -626,8 +622,9 @@ have appeared in the `built-distribution` directory.
 
 The IDE will connect to the running project manager to look up the project and
 start the language server. The required version of the language server is
-specified in the `enso-version` field of the `project.yaml` project description
-(Enso projects are located in the `~/enso` directory).
+specified in the `edition` field of the `package.yaml` project description. Enso
+projects are located in the `~/enso` directory on Unix and `%userprofile%\enso`
+on Windows systems by default.
 
 ```bash
 cat ~/enso/projects/Unnamed/package.yaml
@@ -635,22 +632,24 @@ cat ~/enso/projects/Unnamed/package.yaml
 
 ```yaml
 name: Unnamed
+namespace: local
 version: 0.0.1
-enso-version: 0.0.0-SNAPSHOT
 license: ""
 authors: []
 maintainers: []
+edition: "2021.20-SNAPSHOT"
+prefer-local-libraries: true
 ```
 
-We need to set `enso-version` to a value that will represent the development
-version. It should be different from any Enso versions that have already been
-released. In this case, we chose the `0.0.0-SNAPSHOT`. The project manager will
-look for the appropriate subdirectory in the _engines_ directory of the
-distribution folder. Distribution paths are printed when you run project manager
-with `-v` verbose logging.
+We need to set `edition` to a value that will represent the development version.
+It should be different from any Enso versions that have already been released.
+In this case, we chose the `2021.20-SNAPSHOT` (the current development edition).
+The project manager will look for the appropriate subdirectory in the _engines_
+directory of the distribution folder. Distribution paths are printed when you
+run project manager with `-v` verbose logging.
 
 ```bash
-$ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
+$ ./built-distribution/enso-project-manager-0.2.32-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
 [info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
 [debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
   dataRoot = /home/dbv/.local/share/enso,
@@ -663,7 +662,7 @@ $ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin
 )
 ```
 
-On Linux it looks for the `~/.local/share/enso/dist/0.0.0-SNAPSHOT/` directory.
+On Linux it looks for the `~/.local/share/enso/dist/0.2.32-SNAPSHOT/` directory.
 
 We can build an engine distribution using the `buildEngineDistribution` command
 in SBT.
@@ -680,19 +679,19 @@ sbt buildEngineDistribution
 sbt.bat buildEngineDistribution
 ```
 
-And copy the result to the `0.0.0-SNAPSHOT` engines directory of the
+And copy the result to the `0.2.32-SNAPSHOT` engines directory of the
 distribution folder.
 
 ##### Bash
 
 ```bash
-cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNAPSHOT ~/.local/share/enso/dist/0.0.0-SNAPSHOT
+cp -r built-distribution/enso-engine-0.2.32-SNAPSHOT-linux-amd64/enso-0.2.32-SNAPSHOT ~/.local/share/enso/dist/0.2.32-SNAPSHOT
 ```
 
 ##### PowerShell
 
 ```powershell
-cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNAPSHOT ~/.local/share/enso/dist/0.0.0-SNAPSHOT
+cp -r built-distribution/enso-engine-0.2.32-SNAPSHOT-linux-amd64/enso-0.2.32-SNAPSHOT ~/.local/share/enso/dist/0.2.32-SNAPSHOT
 ```
 
 Now, when the project manager is running and the engines directory contains the
@@ -706,7 +705,7 @@ version of the language server.
 2. Copy or symlink the development version of the engine created with SBT's
    `buildEnginedistribution` command to the engines directory of the Enso
    distribution folder.
-3. Set the `enso-version` field of the `project.yaml` project definition to the
+3. Set the `edition` field of the `package.yaml` project definition to the
    version that you created in the previous step.
 4. Run the IDE with `--no-backend` flag.
 
@@ -754,7 +753,7 @@ development. It is as described
 and involves people pushing changes to their own fork and creating pull requests
 to bring those changes into the main Enso repository.
 
-Please make all pull requests against the `main` branch.
+Please make all pull requests against the `develop` branch.
 
 - We run CI on all contributions to Enso, but it's still useful for you to run
   the tests yourself locally first! This can be done by running `test` in the

@@ -429,7 +429,7 @@ class IrToTruffle(
       "No binding analysis at the point of codegen."
     )
     bindingsMap.exportedSymbols.foreach {
-      case (name, List(resolution)) =>
+      case (name, resolution :: _) =>
         if (resolution.module.unsafeAsModule() != moduleScope.getModule) {
           resolution match {
             case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
@@ -1065,6 +1065,11 @@ class IrToTruffle(
             .compileError()
             .newInstance(Text.create(err.message))
         case err: Error.Redefined.Method =>
+          context.getBuiltins
+            .error()
+            .compileError()
+            .newInstance(Text.create(err.message))
+        case err: Error.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
             .compileError()

@@ -65,11 +65,14 @@ impl Initializer {
             info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
             let application = Application::new(&web::get_html_element_by_id("root").unwrap());
+            Initializer::register_views(&application);
             let view = application.new_view::<ide_view::root::View>();
 
-            // If `rust_welcome_screen` feature-flag is not used, switch to project view
-            // immediately.
-            if !enso_config::ARGS.rust_welcome_screen.unwrap_or(false) {
+            // IDE was opened with `project` argument, we should skip the Welcome Screen.
+            // We are doing it early, because Controllers initialization
+            // takes some time and Welcome Screen might be visible for a brief moment while
+            // controllers are not ready.
+            if self.config.project_name.is_some() {
                 view.switch_view_to_project();
             }
 
@@ -102,6 +105,29 @@ impl Initializer {
                 .ok();
         });
         std::mem::forget(executor);
+    }
+
+    fn register_views(app: &Application) {
+        app.views.register::<ide_view::root::View>();
+        app.views.register::<ide_view::graph_editor::GraphEditor>();
+        app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
+        app.views.register::<ide_view::code_editor::View>();
+        app.views.register::<ide_view::project::View>();
+        app.views.register::<ide_view::searcher::View>();
+        app.views.register::<ide_view::welcome_screen::View>();
+        app.views.register::<ensogl_component::text::Area>();
+        app.views.register::<ensogl_component::selector::NumberPicker>();
+        app.views.register::<ensogl_component::selector::NumberRangePicker>();
+
+        // As long as .label() of a View is the same, shortcuts and commands are currently also
+        // expected to be the same, so it should not be important which concrete type parameter of
+        // ListView we use below.
+        type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
+        app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
+
+        if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
+            app.views.register::<ide_view::window_control_buttons::View>();
+        }
     }
 
     /// Initialize and return a new Ide Controller.
@@ -195,8 +221,8 @@ impl WithProjectManager {
         use project_manager::MissingComponentAction::Install;
         info!(self.logger, "Creating a new project named '{self.project_name}'.");
         let version = Some(enso_config::engine_version_supported.to_owned());
-        let ProjectName(name) = &self.project_name;
-        let response = self.project_manager.create_project(name, &version, &Install);
+        let name = &self.project_name;
+        let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
     }
 
@@ -254,7 +280,7 @@ mod test {
     async fn get_project_or_create_new() {
         let logger = Logger::new("test");
         let mock_client = project_manager::MockClient::default();
-        let project_name = ProjectName::new("TestProject");
+        let project_name = ProjectName::new_unchecked("TestProject");
         let project = project_manager::ProjectMetadata {
             name:           project_name.clone(),
             id:             uuid::Uuid::new_v4(),

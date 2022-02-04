@@ -22,6 +22,7 @@ use engine_protocol::language_server::ExpressionUpdates;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
+use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -264,7 +265,7 @@ impl Project {
         let module_registry = default();
         let execution_contexts = default();
         let visualization =
-            controller::Visualization::new(language_server, embedded_visualizations);
+            controller::Visualization::new(language_server, embedded_visualizations, &logger);
         let parser = Parser::new_or_panic();
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
@@ -488,6 +489,14 @@ impl Project {
                         content_roots.remove(id);
                     }
                 }
+                Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
+                    error!(
+                        logger,
+                        "Visualisation evaluation failed in context {update.context_id} \
+                        for visualisation {update.visualisation_id} of expression \
+                        {update.expression_id}. Error: {update.message}"
+                    );
+                }
                 Event::Closed => {
                     error!(logger, "Lost JSON-RPC connection with the Language Server!");
                     let which = model::project::BackendConnection::LanguageServerJson;
@@ -602,7 +611,8 @@ impl model::project::API for Project {
             let referent_name = name.as_str().try_into()?;
             let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
             let project_id = self.properties.borrow().id;
-            project_manager.rename_project(&project_id, &name).await?;
+            let project_name = ProjectName::new_unchecked(name);
+            project_manager.rename_project(&project_id, &project_name).await?;
             self.properties.borrow_mut().name.project = referent_name;
             Ok(())
         }

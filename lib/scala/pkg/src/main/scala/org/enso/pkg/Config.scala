@@ -99,6 +99,8 @@ object Contact {
   * @param preferLocalLibraries specifies if library resolution should prefer
   *                             local libraries over what is defined in the
   *                             edition
+  * @param componentGroups the description of component groups provided by this
+  *                        package
   * @param originalJson a Json object holding the original values that this
   *                     Config was created from, used to preserve configuration
   *                     keys that are not known
@@ -112,6 +114,7 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
+  componentGroups: Either[DecodingFailure, ComponentGroups],
   originalJson: JsonObject = JsonObject()
 ) {
 
@@ -134,6 +137,7 @@ object Config {
     val maintainer: String   = "maintainers"
     val edition: String      = "edition"
     val preferLocalLibraries = "prefer-local-libraries"
+    val componentGroups      = "component-groups"
   }
 
   implicit val decoder: Decoder[Config] = { json =>
@@ -166,17 +170,25 @@ object Config {
           error => DecodingFailure(error, json.history)
         }
       originals <- json.as[JsonObject]
-    } yield Config(
-      name                 = name,
-      namespace            = namespace,
-      version              = version,
-      license              = license,
-      authors              = author,
-      maintainers          = maintainer,
-      edition              = finalEdition,
-      preferLocalLibraries = preferLocal,
-      originalJson         = originals
-    )
+    } yield {
+      val componentGroups =
+        json.getOrElse[ComponentGroups](JsonFields.componentGroups)(
+          ComponentGroups.empty
+        )
+
+      Config(
+        name                 = name,
+        namespace            = namespace,
+        version              = version,
+        license              = license,
+        authors              = author,
+        maintainers          = maintainer,
+        edition              = finalEdition,
+        preferLocalLibraries = preferLocal,
+        componentGroups      = componentGroups,
+        originalJson         = originals
+      )
+    }
   }
 
   implicit val encoder: Encoder[Config] = { config =>
@@ -189,6 +201,12 @@ object Config {
       }
       .map(JsonFields.edition -> _)
 
+    val componentGroups = config.componentGroups.toOption.flatMap { value =>
+      Option.unless(value.newGroups.isEmpty && value.extendedGroups.isEmpty)(
+        JsonFields.componentGroups -> value.asJson
+      )
+    }
+
     val overrides = Seq(
       JsonFields.name       -> config.name.asJson,
       JsonFields.namespace  -> config.namespace.asJson,
@@ -196,7 +214,7 @@ object Config {
       JsonFields.license    -> config.license.asJson,
       JsonFields.author     -> config.authors.asJson,
       JsonFields.maintainer -> config.maintainers.asJson
-    ) ++ edition.toSeq
+    ) ++ edition.toSeq ++ componentGroups.toSeq
 
     val preferLocalOverride =
       if (config.preferLocalLibraries)

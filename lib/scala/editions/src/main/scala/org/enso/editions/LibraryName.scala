@@ -14,7 +14,7 @@ case class LibraryName(namespace: String, name: String) {
   /** The qualified name of the library consists of its prefix and name
     * separated with a dot.
     */
-  def qualifiedName: String = s"$namespace.$name"
+  def qualifiedName: String = s"$namespace${LibraryName.separator}$name"
 
   /** @inheritdoc */
   override def toString: String = qualifiedName
@@ -36,7 +36,7 @@ object LibraryName {
     libraryName.toString.asJson
   }
 
-  private val separator = '.'
+  val separator = '.'
 
   /** Creates a [[LibraryName]] from its string representation.
     *

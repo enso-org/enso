@@ -2,11 +2,47 @@
 
 #### Visual Environment
 
+- [New nodes can be created by dragging and dropping a connection on the
+  scene.][3231]
+- [Node connections can be dropped by pressing the Esc key while dragging
+  them.][3231]
+- [Added support of source maps for JS-based visualizations.][3208]
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
+- [Fixed developer console warnings about views being created but not
+  registered.][3181]
+- [Fixed developer console errors related to Language Server (mentioning code
+  3003 and "Invalid version"), occurring during project opening and after new
+  node cration.][3186]
+- [Fixed developer console error about failing to decode a notification
+  "executionContext/visualisationEvaluationFailed"][3193]
+
+#### Enso Standard Library
+
+- [Implemented `Vector.distinct` allowing to remove duplicate elements from a
+  Vector][3224]
+- [Implemented `Duration.time_execution` allowing timing of the execution of an
+- expression within the UI][3229]
+- [Improved performance of `Vector.filter` and `Vector.each`; implemented
+  `Vector.filter_with_index`. Made `Vector.at` accept negative indices and
+  ensured it fails with a dataflow error on out of bounds access instead of an
+  internal Java exception.][3232]
+- [Implemented the `Table.select_columns` operation.][3230]
+- [Implemented the `Table.remove_columns` and `Table.reorder_columns`
+  operations.][3240]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
+[3181]: https://github.com/enso-org/enso/pull/3181
+[3186]: https://github.com/enso-org/enso/pull/3186
+[3193]: https://github.com/enso-org/enso/pull/3193
+[3208]: https://github.com/enso-org/enso/pull/3208
+[3224]: https://github.com/enso-org/enso/pull/3224
+[3229]: https://github.com/enso-org/enso/pull/3229
+[3231]: https://github.com/enso-org/enso/pull/3231
+[3232]: https://github.com/enso-org/enso/pull/3232
+[3230]: https://github.com/enso-org/enso/pull/3230
+[3240]: https://github.com/enso-org/enso/pull/3240
 
 #### Enso Compiler
 

@@ -4,8 +4,9 @@
 
 use ensogl::prelude::*;
 
-use crate::ClickClosure;
+use crate::ClickableElement;
 
+use enso_frp as frp;
 use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
 use web_sys::Element;
@@ -13,32 +14,64 @@ use web_sys::Element;
 
 
 // ================
-// === SideMenu ===
+// === Model ===
 // ================
 
-/// Side menu for Welcome Screen. Contains a list of available projects and a "new project" button.
 #[derive(Clone, CloneRef, Debug)]
-pub struct SideMenu {
+pub struct Model {
     logger:             Logger,
     pub root_dom:       Element,
-    new_project_button: Element,
-    projects_list:      Element,
-    closures:           Rc<RefCell<Vec<ClickClosure>>>,
+    new_project_button: ClickableElement,
+    projects_list_dom:  Element,
+    projects:           Rc<RefCell<Vec<ClickableElement>>>,
 }
 
-impl SideMenu {
+impl Model {
     /// Constructor.
-    pub fn new(logger: &Logger) -> Self {
-        let logger = Logger::new_sub(logger, "SideMenu");
+    pub fn new(logger: Logger) -> Self {
         let root_dom = web::create_element("aside");
         root_dom.set_class_name(crate::css_class::SIDE_MENU);
         let header = Self::create_header("Your projects");
         root_dom.append_or_warn(&header, &logger);
-        let projects_list = Self::create_projects_list();
-        root_dom.append_or_warn(&projects_list, &logger);
-        let new_project_button = Self::create_new_project_button(&logger, &projects_list);
+        let projects_list_dom = Self::create_projects_list();
+        root_dom.append_or_warn(&projects_list_dom, &logger);
+        let new_project_button = Self::create_new_project_button(&logger, &projects_list_dom);
+        let projects = default();
 
-        Self { logger, root_dom, projects_list, new_project_button, closures: default() }
+        Self { logger, root_dom, projects_list_dom, projects, new_project_button }
+    }
+
+    pub fn set_projects_list(&self, projects: &[String], open_project: &frp::Any<String>) {
+        self.clear_projects_list();
+        for name in projects {
+            self.add_projects_list_entry(name, open_project);
+        }
+    }
+
+    fn clear_projects_list(&self) {
+        for entry in self.projects.borrow_mut().iter() {
+            entry.element.remove();
+        }
+        self.projects.borrow_mut().clear();
+    }
+
+    fn add_projects_list_entry(&self, name: &str, open_project: &frp::Any<String>) {
+        let entry = Self::create_project_list_entry(name, &self.logger);
+        let network = &entry.network;
+        frp::extend! { network
+            open_project <+ entry.click.constant(name.to_owned());
+        }
+        let new_project_button = &self.new_project_button;
+        self.projects_list_dom.insert_before_or_warn(&entry, new_project_button, &self.logger);
+        self.projects.borrow_mut().push(entry);
+    }
+
+    fn create_new_project_button(logger: &Logger, projects_list: &Element) -> ClickableElement {
+        let element = web::create_element("li");
+        element.set_id(crate::css_id::NEW_PROJECT);
+        element.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
+        projects_list.append_or_warn(&element, logger);
+        ClickableElement::new(element, logger)
     }
 
     fn create_header(text: &str) -> Element {
@@ -51,11 +84,66 @@ impl SideMenu {
         web::create_element("ul")
     }
 
-    fn create_new_project_button(logger: &Logger, projects_list: &Element) -> Element {
-        let button = web::create_element("li");
-        button.set_id(crate::css_id::NEW_PROJECT);
-        button.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
-        projects_list.append_or_warn(&button, logger);
-        button
+    fn create_project_list_entry(project_name: &str, logger: &Logger) -> ClickableElement {
+        let element = web::create_element("li");
+        element.set_inner_html(&format!(r#"<img src="assets/project.svg"/> {}"#, project_name));
+        ClickableElement::new(element, logger)
+    }
+}
+
+
+
+// ===========
+// === FRP ===
+// ===========
+
+ensogl::define_endpoints! {
+    Input {
+        // Set displayed list of projects.
+        set_projects_list(Vec<String>),
+    }
+    Output {
+        // New project button was clicked.
+        new_project(),
+        // Project with `name` was selected from the projects list.
+        open_project(String),
+    }
+}
+
+
+
+// ================
+// === SideMenu ===
+// ================
+
+/// Side menu for Welcome Screen. Contains a list of available projects and a "new project" button.
+#[derive(Debug, Clone, CloneRef)]
+pub struct SideMenu {
+    pub model: Model,
+    pub frp:   Frp,
+}
+
+impl Deref for SideMenu {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl SideMenu {
+    pub fn new(logger: &Logger) -> Self {
+        let logger = Logger::new_sub(logger, "SideMenu");
+        let frp = Frp::new();
+        let model = Model::new(logger);
+
+        let network = &frp.network;
+        frp::extend! { network
+            let open_project = &frp.output.source.open_project;
+            eval frp.set_projects_list([model, open_project] (list) model.set_projects_list(list, &open_project));
+
+            frp.output.source.new_project <+ model.new_project_button.click;
+        }
+
+        Self { frp, model }
     }
 }

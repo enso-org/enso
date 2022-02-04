@@ -52,18 +52,19 @@ application icon if built on Linux or Windows due to non-trivial icon generation
 on these platforms. To develop the source code you will need the following
 setup:
 
-- **The Rust Toolchain (nightly-2021-05-12)**
+- **The Rust Toolchain (nightly-2021-11-29)**
 
   This project uses several features available only in the nightly Rust
   toolchain. Please use the [the Rust toolchain installer](https://rustup.rs) to
-  install it:
+  manage Rust toolchains. It will automatically download the toolchain needed to
+  build the project.
+
+  In addition, some custom CLI programs need to be installed manually:
 
   ```bash
-  rustup toolchain install nightly-2021-05-12     # Install the nightly channel.
-  rustup component add clippy                     # Install the linter.
-  rustup toolchain install stable                 # Stable toolchain required for the following tools.
-  cargo +stable install wasm-pack --version 0.9.1 # Install the wasm-pack toolkit.
-  cargo +stable install cargo-watch               # To enable ./run watch utility
+  rustup toolchain install stable                  # Stable toolchain required for the following tools.
+  cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
+  cargo +stable install cargo-watch                # To enable ./run watch utility
   ```
 
   Make sure that your `PATH` environment variable is set up correctly, so that
@@ -116,6 +117,45 @@ so via `npm install prettier`. To use it manually via command line run
 `prettier --write` to all JavaScript files in the project. Alternatively, there
 are plugins for many IDEs available to do this for you.
 
+### Repository Structure Overview
+
+**Note**: Currently, the Enso repository is going through a process of
+refactoring, and it is not finished yet: the Engine files are still not in the
+`app/engine` where they ought to be, but in the root directory instead.
+
+The root directory contains `Cargo.toml` and `build.sbt` files, allowing to open
+all rust or scala code as a single project in your favorite IDE. There is also a
+`run` script used for building and running the Enso IDE (see next section for
+details).
+
+The subdirectories of interests are:
+
+- `app`: The actual products delivered in this repository:
+  - `gui`: A rust crate compiled to a WASM library with all the logic of the GUI
+    layer. The library is used by both the desktop application and the cloud
+    environment. For further documentation see the documentation of the crate
+    (at the top of the `src/lib.rs` file).
+  - `ide-desktop`: The desktop version of the Enso IDE. Implemented as an
+    electron application which spawns backend services, loads the WASM gui
+    library and runs the main entry point.
+  - `engine`: (In the future: see the note at the section beginning). The
+    implementation of the language itself: CLI tools like compiler or
+    interpreter, as well as the services used as a backend for the Enso IDE
+    (Language Server and Project Manager).
+- `lib`: All libraries not being the main components of our application. They
+  are grouped by language. The most prominent are:
+  - `rust/prelude`: A library containing the most popular utilities and imports.
+    Should be imported in each rust module - see Contributing guidelines.
+  - `rust/ensogl`: EnsoGL Framework for creating efficient GUI applications in
+    WASM.
+  - `rust/frp`: The library allows following the Functional Reactive Programming
+    paradigm in rust.
+- `build`: All building scripts and utilities, mostly the logic of the `./run`
+  script.
+
+Other directories are auto-generated `dist` and `target`, or (currently) are the
+Engine files, which will be moved to `app/engine` soon.
+
 ### Development
 
 As this is a multi-part project with many complex dependencies, it is equipped
@@ -157,6 +197,15 @@ build tool). The most common options are presented below:
   the `entry_point_ide` function, so you have to compile it to test your code in
   the Enso IDE.
 
+### Updating JS dependencies
+
+JS parts of the project are using [`lerna`](https://lerna.js.org/) to manage JS
+dependencies. When you add a new JS dependency or update an old one to the new
+version, `lerna` must be re-run to trigger `npm install` for all projects. The
+easiest way to do so is to run `./run clean --no-rust` command. You can also
+manually call `npm run install` in `app/ide-desktop/` directory with a similar
+result. Our CI does that for every build at the moment.
+
 ### Testing IDE with a specific version of a backend
 
 Sometimes changes to the IDE must be tested against the unreleased Enso Engine
@@ -197,11 +246,11 @@ following options:
 After changing the code it's always a good idea to lint and test the code. We
 have prepared several scripts which maximally automate the process:
 
-- **Size Validation** Use `node ./run check-size` to check if the size of the
-  final binary did not grew too much in comparison to the previous release.
-  Watching the resulting binary size is one of the most important responsibility
-  of each contributor in order to keep the project small and suitable for
-  web-based usage. In case the size will exceed the limits:
+- **Size Validation** Use `node ./run build` to check if the size of the final
+  binary did not grew too much in comparison to the previous release. Watching
+  the resulting binary size is one of the most important responsibility of each
+  contributor in order to keep the project small and suitable for web-based
+  usage. In case the size will exceed the limits:
 
   - If the PR does not include any new libraries, you are allowed to increase
     the limit by 10KB. In case the limit will be exceeded by more than 10KB,

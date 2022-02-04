@@ -18,10 +18,13 @@ import Standard.Test
 polyglot java import java.lang.System
 
 spec =
-    is_ci = System.getenv "CI" == "true"
-    pending = if is_ci then Nothing else """
-        The HTTP tests only run when the `CI` environment variable is set to true
+    base_url = System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
+    pending = if base_url != Nothing then Nothing else """
+        The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server
+
     Test.group "Http" pending=pending <|
+        url_get = base_url + "/get"
+        url_post = base_url + "/post"
         Test.specify "should create HTTP client with timeout setting" <|
             http = Http.new (timeout = 30.seconds)
             http.timeout.should_equal 30.seconds
@@ -50,7 +53,7 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = Http.new.get "http://localhost:8080/get"
+            res = Http.new.get url_get
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should send Get request using module method" <|
@@ -64,7 +67,7 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = Http.get "http://localhost:8080/get"
+            res = Http.get url_get
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
 
@@ -79,13 +82,13 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = Http.fetch "http://localhost:8080/get"
+            res = Http.fetch url_get
             res.to_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
             Http.fetch "http://undefined_host" . should_fail_with Http.Request_Error
 
         Test.specify "should send Head request" <|
-            res = Http.new.head "http://localhost:8080/get"
+            res = Http.new.head url_get
             res.code.should_equal Status_Code.ok
             res.body.to_text.should_equal ''
 
@@ -105,7 +108,7 @@ spec =
                   "json": null
                 }
             body_empty = Request_Body.Empty
-            res = Http.new.post "http://localhost:8080/post" body_empty
+            res = Http.new.post url_post body_empty
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post empty body using module method" <|
@@ -124,7 +127,7 @@ spec =
                   "json": null
                 }
             body_empty = Request_Body.Empty
-            res = Http.post "http://localhost:8080/post" body_empty
+            res = Http.post url_post body_empty
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post text body" <|
@@ -144,7 +147,7 @@ spec =
                   "json": null
                 }
             body_text = Request_Body.Text "Hello World!"
-            res = Http.new.post "http://localhost:8080/post" body_text
+            res = Http.new.post url_post body_text
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form text" <|
@@ -164,7 +167,7 @@ spec =
                   "json": null
                 }
             form_parts = [Form.text_field "key" "val"]
-            res = Http.new.post_form "http://localhost:8080/post" form_parts
+            res = Http.new.post_form url_post form_parts
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form text using module method" <|
@@ -184,18 +187,18 @@ spec =
                   "json": null
                 }
             form_parts = [Form.text_field "key" "val"]
-            res = Http.post_form "http://localhost:8080/post" form_parts
+            res = Http.post_form url_post form_parts
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form file" <|
             test_file = Enso_Project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
-            res = Http.new.post_form "http://localhost:8080/post" form_parts
+            res = Http.new.post_form url_post form_parts
             res.code.should_equal Status_Code.ok
         Test.specify "should Post form multipart" <|
             test_file = Enso_Project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
-            res = Http.new.post_form "http://localhost:8080/post" form_parts [Header.multipart_form_data]
+            res = Http.new.post_form url_post form_parts [Header.multipart_form_data]
             res.code.should_equal Status_Code.ok
         Test.specify "should Post Json" <|
             expected_response = Json.parse <| '''
@@ -217,7 +220,7 @@ spec =
                 }
             json = Json.parse <| '''
                 {"key":"val"}
-            res = Http.new.post_json "http://localhost:8080/post" json
+            res = Http.new.post_json url_post json
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post Json using module method" <|
@@ -240,7 +243,7 @@ spec =
                 }
             json = Json.parse <| '''
                 {"key":"val"}
-            res = Http.post_json "http://localhost:8080/post" json
+            res = Http.post_json url_post json
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post binary" <|
@@ -260,7 +263,7 @@ spec =
                   "json": null
                 }
             body_bytes = Request_Body.Bytes "Hello World!".utf_8
-            res = Http.new.post "http://localhost:8080/post" body_bytes
+            res = Http.new.post url_post body_bytes
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
 
@@ -275,7 +278,7 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            req = Request.new Method.Get "http://localhost:8080/get"
+            req = Request.new Method.Get url_get
             res = Http.new.request req
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
@@ -299,7 +302,7 @@ spec =
                 }
             json_body = Json.parse <| '''
                 { "key": "val" }
-            req = Request.new Method.Post "http://localhost:8080/post"
+            req = Request.new Method.Post url_post
             req_with_body = req.with_json json_body
             res = Http.new.request req_with_body
             res.code.should_equal Status_Code.ok
@@ -324,7 +327,7 @@ spec =
                 }
             json_text = '''
                 { "key": "val" }
-            req = Request.new Method.Post "http://localhost:8080/post"
+            req = Request.new Method.Post url_post
             req_with_body = req.with_json json_text
             res = Http.new.request req_with_body
             res.code.should_equal Status_Code.ok
