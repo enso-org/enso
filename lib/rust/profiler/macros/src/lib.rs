@@ -20,8 +20,11 @@
 use inflector::Inflector;
 use quote::ToTokens;
 use std::env;
+use std::mem;
 use syn::parse::Parser;
 use syn::punctuated;
+use syn::visit_mut;
+use syn::visit_mut::VisitMut;
 
 
 
@@ -245,70 +248,49 @@ pub fn profile(
 ) -> proc_macro::TokenStream {
     assert!(args.is_empty(), "#[profile] does not expect any arguments");
     let mut func = syn::parse_macro_input!(ts as syn::ItemFn);
-    let impl_name = &format!("__profiler_wrapped__{}", func.sig.ident);
-    let impl_ident = syn::Ident::new(impl_name, proc_macro2::Span::call_site());
-    let wrapper_ident = std::mem::replace(&mut func.sig.ident, impl_ident);
-    let wrapper = make_wrapper(wrapper_ident, &func);
-    func.vis = syn::Visibility::Inherited;
+    let body_default = Box::new(syn::Block { brace_token: Default::default(), stmts: vec![] });
+    let mut new_body = body_default.clone();
+    let orig_body = mem::replace(&mut func.block, body_default);
+    let orig_sig = func.sig.clone();
 
-    // Emit wrapped function and wrapper..
-    let mut out = proc_macro2::TokenStream::new();
-    wrapper.to_tokens(&mut out);
-    func.to_tokens(&mut out);
-    out.into()
+    // Emit instrumentation at the beginning of the new body; genericize the wrapper's signature.
+    instrument(&mut func.sig, &mut new_body);
+    // Instead of inserting the original body directly, wrap it in a closure that is not generic
+    // over `impl Parent`; this avoids the code-size cost of monomorphizing it.
+    wrap_body(&orig_sig, orig_body, &mut new_body);
+
+    func.block = new_body;
+    func.into_token_stream().into()
 }
 
-fn make_wrapper(wrapper_ident: syn::Ident, func: &syn::ItemFn) -> proc_macro2::TokenStream {
-    let profiler_label = make_label(&wrapper_ident);
+// === instrument ===
 
-    // Create the wrapper signature, based on the impl signature.
-    let vis = func.vis.clone();
-    let mut wrapper_sig = func.sig.clone();
-    wrapper_sig.ident = wrapper_ident;
-    let impl_ident = &func.sig.ident;
-
-    // Gather argument idents for call in wrapper
-    let args = forward_args(&wrapper_sig.inputs);
+/// Insert instrumentation into the body, and genericize the profiler input to `impl Parent`.
+fn instrument(sig: &mut syn::Signature, body: &mut syn::Block) {
+    let profiler_label = make_label(&sig.ident);
 
     // Parse profiler argument in signature.
-    let last_arg = match wrapper_sig.inputs.last_mut().unwrap() {
-        syn::FnArg::Typed(pat_type) => pat_type,
-        _ => panic!("Last argument to function annotated with #[profile] must be a profiler type"),
+    let last_arg = match sig.inputs.last_mut() {
+        Some(syn::FnArg::Typed(pat_type)) => pat_type,
+        _ => panic!("Function annotated with #[profile] must have a profiler argument."),
     };
-    let profiler_ident = last_arg.pat.clone();
+    let profiler = last_arg.pat.clone();
 
     // Replace profiler type `T `in sig with `impl Parent<T>`.
     let profiler_type_in = last_arg.ty.clone();
     let profiler_generic_parent = quote::quote! { impl profiler::Parent<#profiler_type_in> };
     last_arg.ty = Box::new(syn::Type::Verbatim(profiler_generic_parent));
 
-    let is_method = match func.sig.inputs.first().unwrap() {
-        syn::FnArg::Receiver(_) => true,
-        syn::FnArg::Typed(_) => false,
-    };
-    let mut segments = punctuated::Punctuated::<syn::PathSegment, syn::Token![::]>::new();
-    if is_method {
-        let ident = syn::Ident::new("Self", proc_macro2::Span::call_site());
-        segments.push(ident.into());
-    };
-    segments.push(impl_ident.clone().into());
-    let impl_path = syn::Path { leading_colon: None, segments };
-
-    let call = match func.sig.asyncness {
-        None => quote::quote! { #impl_path(#args) },
-        Some(_) => quote::quote! { #impl_path(#args).await },
-    };
-    quote::quote! {
-        #vis #wrapper_sig {
-            let _profiler = #profiler_ident.new_child(#profiler_label);
-            let #profiler_ident = _profiler.profiler;
-            #call
-        }
-    }
+    // Emit instrumentation statements.
+    body.stmts.push(syn::parse(quote::quote! {
+        let _profiler = #profiler.new_child(#profiler_label);
+    }.into()).unwrap());
+    body.stmts.push(syn::parse(quote::quote! {
+        let #profiler = _profiler.profiler;
+    }.into()).unwrap());
 }
 
-/// Create a [`Measurement`] label, with its file:line info determined by the proc_macro's call
-/// site.
+/// Decorate the input with file:line info determined by the proc_macro's call site.
 fn make_label(ident: &syn::Ident) -> String {
     let span = proc_macro::Span::call_site();
     let file = span.source_file().path();
@@ -317,20 +299,62 @@ fn make_label(ident: &syn::Ident) -> String {
     format!("{} ({}:{})", ident, path, line)
 }
 
-type SigInputs = punctuated::Punctuated<syn::FnArg, syn::Token![,]>;
+// === wrap_body ===
+
+type ClosureInputs = punctuated::Punctuated<syn::Pat, syn::Token![,]>;
 type CallArgs = punctuated::Punctuated<syn::Expr, syn::Token![,]>;
 
-// Given a function's inputs, produce the argument list the function would use to recurse with all
-// its original arguments--or call another function with the same signature.
-fn forward_args(inputs: &SigInputs) -> CallArgs {
-    let mut args = CallArgs::new();
-    for input in inputs {
-        args.push(match input {
+/// Transforms a function's body into a new body that:
+/// - Defines a nested function whose body is the original body.
+/// - Calls the inner function, forwarding all arguments, returning its result.
+///
+/// The output of this transformation is operationally equivalent to the input; it is only useful in
+/// conjunction with additional transformations. In particular, if after further transformation the
+/// outer function is more generic than the inner function for some parameters, this pattern avoids
+/// the code-size cost of monomorphization for those parameters.
+///
+/// # Implementation
+///
+/// For the nested function, we generate a closure rather than the more common `fn` seen with this
+/// pattern because we need to be able to forward a `self` argument, but have no way to determine
+/// the type of `Self`, so we can't write a function signature. In a closure definition, we can
+/// simply leave the type of that argument implicit.
+fn wrap_body(sig: &syn::Signature, mut body: Box<syn::Block>, body_out: &mut syn::Block) {
+    // If there's a `self` parameter, we need to replace it with an ordinary binding in the wrapped
+    // block (here) and signature (below, building `closure_inputs`).
+    let placeholder_self = syn::Ident::new("__wrap_body__self", proc_macro2::Span::call_site());
+    let find = syn::Ident::new("self", proc_macro2::Span::call_site());
+    let replace = placeholder_self.clone();
+    ReplaceAll { find, replace }.visit_block_mut(&mut body);
+
+    let mut call_args = CallArgs::new();
+    let mut closure_inputs = ClosureInputs::new();
+    for input in &sig.inputs {
+        call_args.push(match input {
             syn::FnArg::Receiver(r) => ident_to_expr(r.self_token.into()),
             syn::FnArg::Typed(pat_type) => pat_to_expr(&pat_type.pat),
         });
+        closure_inputs.push(match input {
+            syn::FnArg::Receiver(_) => ident_to_pat(placeholder_self.clone()),
+            syn::FnArg::Typed(pat_ty) => pat_ty.clone().into(),
+        });
     }
-    args
+
+    body_out.stmts.push(syn::parse(quote::quote! {
+        return (|#closure_inputs| #body)(#call_args);
+    }.into()).unwrap());
+}
+
+struct ReplaceAll {
+    find: proc_macro2::Ident,
+    replace: proc_macro2::Ident,
+}
+impl visit_mut::VisitMut for ReplaceAll {
+    fn visit_ident_mut(&mut self, i: &mut syn::Ident) {
+        if i == &self.find {
+            *i = self.replace.clone();
+        }
+    }
 }
 
 fn pat_to_expr(pat: &syn::Pat) -> syn::Expr {
@@ -353,4 +377,12 @@ fn ident_to_expr(ident: syn::Ident) -> syn::Expr {
     let attrs = Default::default();
     let qself = Default::default();
     syn::ExprPath { path, qself, attrs }.into()
+}
+
+fn ident_to_pat(ident: syn::Ident) -> syn::Pat {
+    let attrs = Default::default();
+    let by_ref = None;
+    let mutability = None;
+    let subpat = None;
+    syn::PatIdent { attrs, by_ref, mutability, ident, subpat }.into()
 }

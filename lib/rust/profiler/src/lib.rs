@@ -498,7 +498,7 @@ where
 /// }
 /// ```
 ///
-/// This will expand to the equivalent of:
+/// This will expand to the equivalent of (TODO: update for implementation changes):
 ///
 /// ```
 /// # use enso_profiler as profiler;
@@ -529,7 +529,77 @@ where
 ///     __profiler_wrapped__bigger_computation(profiler)
 /// }
 /// ```
-#[doc(inline)]
+///
+/// # Limitations
+///
+/// Some uncommon syntactic constructs are not (currently) supported.
+///
+/// ## Destructuring binding in function signatures
+///
+/// This won't compile:
+///
+/// ```compile_fail
+/// # use enso_profiler as profiler;
+/// # use profiler::profile;
+/// #[profile]
+/// fn unsupported_binding((x, y): (u32, u32), profiler: profiler::Task) -> u32 {
+///     x + y
+/// }
+/// ```
+///
+/// Instead, rewrite the function to take the destructuring out of the signature:
+///
+/// ```
+/// # use enso_profiler as profiler;
+/// # use profiler::profile;
+/// #[profile]
+/// fn supported_binding(xy: (u32, u32), profiler: profiler::Task) -> u32 {
+///     let (x, y) = xy;
+///     x + y
+/// }
+/// ```
+///
+/// ## Method definitions in nested items
+///
+/// Use of the `self` keyword to refer to anything except the receiver of the wrapped item is not
+/// supported; this means you can't define methods *inside* a wrapped function, like this:
+///
+/// ```compile_fail
+/// # use enso_profiler as profiler;
+/// # use profiler::profile;
+/// #[profile]
+/// fn bad_nested_method_def(profiler: profiler::Task) {
+///     // This is technically legal syntax, but #[profile] doesn't support it.
+///     struct Foo;
+///     impl Foo {
+///         fn consume(self) {}
+///         fn call_consume(self) {
+///             self.consume()
+///         }
+///     }
+///     // ...
+/// }
+/// ```
+///
+/// Instead, define the items outside the lexical scope of the profiled function:
+///
+/// ```
+/// # use enso_profiler as profiler;
+/// # use profiler::profile;
+/// struct Foo;
+/// impl Foo {
+///     fn consume(self) {}
+///     fn call_consume(self) {
+///         self.consume()
+///     }
+/// }
+///
+/// #[profile]
+/// fn no_nested_method_def(profiler: profiler::Task) {
+///     // ...
+/// }
+/// ```
+#[doc(no_inline)]
 pub use enso_profiler_macros::profile;
 
 enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
@@ -583,23 +653,6 @@ mod tests {
         profiled(profiler::APP_LIFETIME);
         let measurements = profiler::take_log();
         assert_eq!(measurements.len(), 1);
-
-        // Make sure different syntaxes compile
-        #[profile]
-        pub fn profiled_pub(_profiler: profiler::Objective) {}
-        #[profile]
-        async fn profiled_async(_profiler: profiler::Objective) {}
-        #[profile]
-        #[allow(unsafe_code)]
-        unsafe fn profiled_unsafe(_profiler: profiler::Objective) {}
-        #[profile]
-        fn profiled_destructuring((_x, _y): (u32, u32), _profiler: profiler::Objective) {}
-        #[allow(dead_code)]
-        struct Foo;
-        impl Foo {
-            #[profile]
-            fn profiled_method(&mut self, _arg: u32, _profiler: profiler::Objective) {}
-        }
     }
 
     #[test]
@@ -653,5 +706,34 @@ mod tests {
     fn push_vec_10_000(b: &mut test::Bencher) {
         let mut measurements = vec![];
         b.iter(|| push_vec(10_000, &mut measurements));
+    }
+
+    mod compile_tests {
+        use super::*;
+
+        /// Decorating a pub fn.
+        #[profile]
+        pub fn profiled_pub(_profiler: profiler::Objective) {}
+
+        #[profile]
+        async fn profiled_async(_profiler: profiler::Objective) {}
+
+        #[profile]
+        #[allow(unsafe_code)]
+        unsafe fn profiled_unsafe(_profiler: profiler::Objective) {}
+
+        // Unsupported:
+        // #[profile]
+        // fn profiled_destructuring((_x, _y): (u32, u32), _profiler: profiler::Objective) {}
+
+        #[allow(dead_code)]
+        struct Foo;
+
+        impl Foo {
+            #[profile]
+            fn profiled_method(&mut self, _arg: u32, _profiler: profiler::Objective) {
+                profiled_pub(_profiler)
+            }
+        }
     }
 }
