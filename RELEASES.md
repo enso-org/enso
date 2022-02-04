@@ -12,8 +12,9 @@
 
 ## Interpreter/Runtime
 
-- Added support for overloaded conversions. This allows the `from` method to
-  be implemented with several overloads. ([#3227](https://github.com/enso-org/enso/pull/3227))
+- Added support for overloaded conversions. This allows the `from` method to be
+  implemented with several overloads.
+  ([#3227](https://github.com/enso-org/enso/pull/3227))
 
 ## Enso 0.2.31 (2021-10-01)
 
