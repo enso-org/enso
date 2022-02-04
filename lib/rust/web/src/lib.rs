@@ -3,9 +3,12 @@
 #![warn(missing_debug_implementations)]
 #![feature(trait_alias)]
 
+pub mod canvas2d;
 pub mod clipboard;
 pub mod closure;
 pub mod event;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mocks;
 pub mod platform;
 pub mod resize_observer;
 pub mod stream;
@@ -29,375 +32,36 @@ pub use web_sys::console;
 pub use std::time::Duration;
 pub use std::time::Instant;
 pub use web_sys::MouseEvent;
+pub use crate::canvas2d::Canvas2d;
+pub use crate::canvas2d::Canvas2dExt;
+
+
+
+// =========================
+// === Web-sys reexports ===
+// =========================
 
 #[cfg(not(target_arch = "wasm32"))]
-mod html_element {
-    use super::*;
+pub use self::mocks::*;
 
-    #[derive(Clone, Debug)]
-    pub struct Window {
-        event_target: EventTarget,
-    }
-    impl Window {
-        pub fn new() -> Self { Self { event_target: EventTarget::new() } }
-        pub fn device_pixel_ratio(&self) -> f64 { 1.0 }
-        pub fn open_with_url_and_target(&self, url: &str, target: &str) -> Result<()> { Ok(()) }
-    }
-    impl Deref for Window {
-        type Target = EventTarget;
-        fn deref(&self) -> &Self::Target {
-            &self.event_target
-        }
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct Document {}
-    impl Document {
-        pub fn new() -> Self { Self {} }
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct Performance {}
-    impl Performance {
-        pub fn new() -> Self { Self {} }
-        pub fn now(&self) -> f64 { 0.0 }
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct EventTarget {}
-
-    impl EventTarget {
-        pub fn new() -> Self {
-            Self {}
-        }
-
-        pub fn add_event_listener_with_callback(&self, s: &str, _callback: &JsValue) -> Result<()> { Ok(()) }
-        pub fn add_event_listener_with_callback_and_bool(&self, s: &str, _callback: &JsValue, b: bool) -> Result<()> { Ok(()) }
-        pub fn remove_event_listener_with_callback(&self, s: &str, _callback: &JsValue) -> Result<()> { Ok(()) }
-        pub fn add_event_listener_with_callback_and_add_event_listener_options<U>(&self, s: &str, _callback: &JsValue, options: U) -> Result<()> { Ok(()) }
-    }
-
-    impl From<HtmlElement> for EventTarget {
-        fn from(_: HtmlElement) -> Self {
-            Self::new()
-        }
-    }
-
-    impl From<HtmlDivElement> for EventTarget {
-        fn from(_: HtmlDivElement) -> Self {
-            Self::new()
-        }
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct Element {
-        node: Node,
-        js_value: JsValue,
-    }
-    #[derive(Clone, Debug)]
-    pub struct HtmlElement {
-        element: Element,
-    }
-    impl Element {
-        pub fn new() -> Self {
-            Self { node: Node::new(), js_value: 0.into() }
-        }
-        pub fn set_class_name(&self, value: &str) {
-
-        }
-        pub fn children(&self) -> HtmlCollection {
-            HtmlCollection::new()
-        }
-        pub fn get_bounding_client_rect(&self) -> DomRect {
-            DomRect::new()
-        }
-        pub fn set_inner_html(&self, text: &str) {}
-        // TODO: better abstraction for JsCast?
-        pub fn dyn_into<T: From<Self>>(self) -> Result<T> {
-            Ok(T::from(self))
-        }
-    }
-    impl From<Element> for HtmlElement {
-        fn from(element: Element) -> HtmlElement {
-            HtmlElement { element }
-        }
-    }
-
-    impl HtmlElement {
-        pub fn new() -> Self {
-            Self { element: Element::new() }
-        }
-    }
-    impl AsRef<JsValue> for HtmlElement {
-        fn as_ref(&self) -> &JsValue {
-            self.element.as_ref()
-        } 
-    }
-    impl Deref for Element {
-        type Target = Node;
-        fn deref(&self) -> &Self::Target {
-            &self.node
-        }
-    }
-    impl AsRef<JsValue> for Element {
-        fn as_ref(&self) -> &JsValue {
-            &self.js_value
-        } 
-    }
-    #[derive(Clone, Debug)]
-    pub struct Node {
-        event_target: EventTarget,
-    }
-    impl Node {
-        pub fn new() -> Self { Self { event_target: EventTarget::new() } }
-    }
-    impl Deref for Node {
-        type Target = EventTarget;
-
-        fn deref(&self) -> &Self::Target {
-            &self.event_target
-        }
-    }
-
-    impl NodeInserter for Node {
-        fn append_or_panic(&self, node: &Node) {}
-
-        fn append_or_warn(&self, node: &Node, logger: &Logger) {}
-
-        fn prepend_or_panic(&self, node: &Node) {}
-
-        fn prepend_or_warn(&self, node: &Node, logger: &Logger) {}
-
-        fn insert_before_or_panic(&self, node: &Node, ref_node: &Node) {}
-
-        fn insert_before_or_warn(&self, node: &Node, ref_node: &Node, logger: &Logger) {}
-    }
-
-    impl NodeRemover for Node {
-        fn remove_from_parent_or_panic(&self) {}
-
-        fn remove_from_parent_or_warn(&self, logger: &Logger) {}
-
-        fn remove_child_or_panic(&self, node: &Node) {}
-
-        fn remove_child_or_warn(&self, node: &Node, logger: &Logger) {}
-    }
-    impl AttributeSetter for Element {
-        fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U) {}
-
-        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {}
-    }
-
-
-    impl Deref for HtmlElement {
-        type Target = Element;
-        fn deref(&self) -> &Self::Target {
-            &self.element
-        }
-    }
-    impl StyleSetter for HtmlElement {
-        fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &WarningLogger) {}
-
-        fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {}
-    }
-    #[derive(Clone, Debug)]
-    pub struct HtmlDivElement {
-        element: HtmlElement,
-    }
-
-    impl Deref for HtmlDivElement {
-        type Target = HtmlElement;
-        fn deref(&self) -> &Self::Target {
-            &self.element
-        }
-    }
-    impl AsRef<JsValue> for HtmlDivElement {
-        fn as_ref(&self) -> &JsValue {
-            self.element.as_ref()
-        } 
-    }
-    impl From<HtmlDivElement> for HtmlElement {
-        fn from(element: HtmlDivElement) -> Self {
-            Self::new()
-        }
-    }
-
-    impl HtmlDivElement {
-        pub fn new() -> Self { Self { element: HtmlElement::new() } }
-    }
-    #[derive(Clone, Debug)]
-    pub struct HtmlCanvasElement {
-        element: HtmlElement,
-    }
-
-    impl Deref for HtmlCanvasElement {
-        type Target = HtmlElement;
-        fn deref(&self) -> &Self::Target {
-            &self.element
-        }
-    }
-
-    impl HtmlCanvasElement {
-        pub fn new() -> Self { Self { element: HtmlElement::new() } }
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct WebGl2RenderingContext {}
-    impl WebGl2RenderingContext {
-        pub fn new() -> Self {
-            Self {}
-        }
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct HtmlCollection {}
-    impl HtmlCollection {
-        pub fn new() -> Self {
-            Self {}
-        }
-        pub fn length(&self) -> u32 {
-            0
-        }
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct DomRect {}
-    impl DomRect {
-        pub fn new() -> Self { Self {} }
-        pub fn x(&self) -> f64 { 0.0 }
-        pub fn y(&self) -> f64 { 0.0 }
-        pub fn width(&self) -> f64 { 0.0 }
-        pub fn height(&self) -> f64 { 0.0 }
-    }
+#[cfg(target_arch = "wasm32")]
+mod web_sys_reexports {
+    pub use web_sys::CanvasRenderingContext2d;
+    pub use web_sys::Document;
+    pub use web_sys::Element;
+    pub use web_sys::EventTarget;
+    pub use web_sys::HtmlCanvasElement;
+    pub use web_sys::HtmlCollection;
+    pub use web_sys::HtmlDivElement;
+    pub use web_sys::HtmlElement;
+    pub use web_sys::Node;
+    pub use web_sys::Performance;
+    pub use web_sys::WebGl2RenderingContext;
+    pub use web_sys::Window;
 }
 
-#[derive(Clone, Debug)]
-pub struct Canvas2d {
-    inner: HtmlCanvasElement,
-    #[cfg(target_arch = "wasm32")]
-    context: web_sys::CanvasRenderingContext2d,
-}
-
-impl Deref for Canvas2d {
-    type Target = HtmlCanvasElement;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Canvas2dExt for Canvas2d {
-    fn new(element: HtmlCanvasElement) -> Self {
-        Self { inner: element }
-    }
-    fn inner(&self) -> &HtmlCanvasElement {
-        &self.inner
-    }
-}
-
-#[cfg(feature = "wasm32")]
-impl HtmlCanvasExt for Canvas2d {
-    fn new(element: HtmlCanvasElement) -> Self {
-        let context = element.get_context("2d").unwrap().unwrap();
-        let context: web_sys::CanvasRenderingContext2d = context.dyn_into().unwrap();
-        Self {
-            inner: element,
-            context,
-        }
-    }
-    
-    fn inner(&self) -> &HtmlCanvasElement {
-        &self.inner
-    }
-    
-    fn set_width(&self, value: u32) {
-        self.inner.set_width(value);
-    }
-
-    fn set_height(&self, value: u32) {
-        self.inner.set_height(value);
-    }
-
-    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {
-        self.context.fill_rect(x, y, w, h);
-    }
-
-    fn set_fill_style(&self, value: &JsValue) {
-        self.context.set_fill_style(value);
-    }
-
-    fn translate(&self, x: f64, y: f64) -> Result<()> {
-        self.context.translate(x, y)?;
-        Ok(())
-    }
-
-    fn draw_image(&self, image: &HtmlCanvasElement, sx: f64, sy: f64, sw: f64, sh: f64, dx: f64, dy: f64, dw: f64, dh: f64) -> Result<()> {
-        self.context.draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(image, sx, sy, sw, sh, dx, dy, dw, dh)?;
-        Ok(())
-    }
-
-    fn set_font(&self, value: &str) {
-        self.context.set_font(value);
-    }
-
-    fn set_text_align(&self, value: &str) {
-        self.context.set_text_align(value);
-    }
-
-    fn fill_text(&self, text: &str, x: f64, y: f64) -> Result<()> { 
-        self.context.fill_text(text, x, y)?;
-        Ok(())
-    }
-    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {
-        self.context.clear_rect(x, y, w, h);
-    }
-
-    fn scale(&self, x: f64, y: f64) -> Result<()> {
-        self.context.scale(x, y)
-    }
-
-    fn width(&self) -> u32 {
-        self.inner.width()
-    }
-
-    fn height(&self) -> u32 {
-        self.inner.height()
-    }
-    fn set_line_width(&self, value: f64) { self.context.set_line_width(value); }
-    fn move_to(&self, x: f64, y: f64) { self.context.move_to(x, y); }
-    fn line_to(&self, x: f64, y: f64) { self.context.line_to(x, y); }
-    fn stroke(&self) { self.context.stroke(); }
-    fn save(&self) { self.context.save(); }
-    fn restore(&self) { self.context.restore(); }
-    fn set_stroke_style(&self, value: &JsValue) { self.context.set_stroke_style(value); }
-    fn begin_path(&self) { self.context.begin_path(); }
-}
-
-pub trait Canvas2dExt {
-    fn new(element: HtmlCanvasElement) -> Self;
-    fn set_width(&self, value: u32) { }
-    fn inner(&self) -> &HtmlCanvasElement;
-    fn set_height(&self, value: u32) {}
-    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {}
-    fn set_fill_style(&self, value: &JsValue) {}
-    fn draw_image(&self, image: &HtmlCanvasElement, sx: f64, sy: f64, sw: f64, sh: f64, dx: f64, dy: f64, dw: f64, dh: f64) -> Result<()> { Ok(()) }
-    fn translate(&self, x: f64, y: f64) -> Result<()> { Ok(()) }
-    fn set_font(&self, value: &str) {}
-    fn set_text_align(&self, value: &str) {}
-    fn fill_text(&self, text: &str, x: f64, y: f64) -> Result<()> { Ok(()) }
-    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {}
-    fn scale(&self, x: f64, y: f64) -> Result<()> { Ok(()) }
-    fn width(&self) -> u32 { 0 }
-    fn height(&self) -> u32 { 0 }
-    fn set_line_width(&self, value: f64) {}
-    fn move_to(&self, x: f64, y: f64) {}
-    fn line_to(&self, x: f64, y: f64) { }
-    fn stroke(&self) {}
-    fn save(&self) {}
-    fn restore(&self) {}
-    fn set_stroke_style(&self, value: &JsValue) {}
-    fn begin_path(&self) {}
-}
+#[cfg(target_arch = "wasm32")]
+pub use web_sys_reexports;
 
 impl_clone_ref_as_clone_no_from!(Element);
 impl_clone_ref_as_clone_no_from!(HtmlDivElement);
@@ -407,33 +71,8 @@ impl_clone_ref_as_clone_no_from!(WebGl2RenderingContext);
 impl_clone_ref_as_clone_no_from!(Canvas2d);
 impl_clone_ref_as_clone_no_from!(EventTarget);
 
-#[cfg(not(target_arch = "wasm32"))]
-pub use html_element::*;
 
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::Element;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::HtmlElement;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::Node;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::HtmlDivElement;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::HtmlCanvasElement;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::WebGl2RenderingContext;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::CanvasRenderingContext2d;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::HtmlCollection;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::EventTarget;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::Window;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::Document;
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::Performance;
+
 // =============
 // === Error ===
 // =============
@@ -526,8 +165,6 @@ pub fn ignore_context_menu(target: &EventTarget) -> Option<IgnoreContextMenuHand
 // === DOM Helpers ===
 // ===================
 
-//#[cfg(target_arch = "wasm32")]
-
 static mut START_TIME: Option<std::time::Instant> = None;
 static mut TIME_OFFSET: f64 = 0.0;
 
@@ -603,7 +240,9 @@ pub fn try_window() -> Result<Window> {
     web_sys::window().ok_or_else(|| Error("Cannot access 'window'."))
 }
 #[cfg(not(target_arch = "wasm32"))]
-pub fn try_window() -> Result<Window> { Ok(Window::new()) }
+pub fn try_window() -> Result<Window> {
+    Ok(Window::new())
+}
 
 /// Access the `window` object or panic if it does not exist.
 pub fn window() -> Window {
@@ -617,7 +256,9 @@ pub fn try_document() -> Result<Document> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn try_document() -> Result<Document> { Ok(Document::new()) }
+pub fn try_document() -> Result<Document> {
+    Ok(Document::new())
+}
 
 /// Access the `window.document` object or panic if it does not exist.
 pub fn document() -> Document {
@@ -648,7 +289,9 @@ pub fn try_device_pixel_ratio() -> Result<f64> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn try_device_pixel_ratio() -> Result<f64> {Ok(1.0) }
+pub fn try_device_pixel_ratio() -> Result<f64> {
+    Ok(1.0)
+}
 
 /// Access the `window.devicePixelRatio` or panic if the window does not exist.
 #[cfg(target_arch = "wasm32")]
@@ -656,15 +299,20 @@ pub fn device_pixel_ratio() -> f64 {
     window().device_pixel_ratio()
 }
 #[cfg(not(target_arch = "wasm32"))]
-pub fn device_pixel_ratio() -> f64 { 1.0 }
+pub fn device_pixel_ratio() -> f64 {
+    1.0
+}
 
 /// Access the `window.performance` or panics if it does not exist.
 #[cfg(target_arch = "wasm32")]
 pub fn performance() -> Performance {
     window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
 }
+
 #[cfg(not(target_arch = "wasm32"))]
-pub fn performance() -> Performance { Performance::new() } 
+pub fn performance() -> Performance {
+    Performance::new()
+}
 
 /// Gets `Element` by ID.
 #[cfg(target_arch = "wasm32")]
@@ -673,6 +321,7 @@ pub fn get_element_by_id(id: &str) -> Result<Element> {
         .get_element_by_id(id)
         .ok_or_else(|| Error(format!("Element with id '{}' not found.", id)))
 }
+
 /// Gets `Element` by ID.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn get_element_by_id(id: &str) -> Result<Element> {
@@ -697,6 +346,7 @@ pub fn get_elements_by_class_name(name: &str) -> Result<Vec<Element>> {
     let elements = indices.flat_map(|index| collection.get_with_index(index)).collect();
     Ok(elements)
 }
+
 /// Gets `Element`s by class name.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn get_elements_by_class_name(name: &str) -> Result<Vec<Element>> {
@@ -708,6 +358,7 @@ pub fn get_html_element_by_id(id: &str) -> Result<HtmlElement> {
     let elem = get_element_by_id(id)?;
     elem.dyn_into().map_err(|_| Error("Type cast error."))
 }
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn get_html_element_by_id(id: &str) -> Result<HtmlElement> {
     Ok(HtmlElement::new())
@@ -791,56 +442,62 @@ pub fn cancel_animation_frame(id: i32) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn try_request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> Result<i32> { Ok(1) }
+pub fn try_request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> Result<i32> {
+    Ok(1)
+}
 #[cfg(not(target_arch = "wasm32"))]
-pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> i32 { 1 }
+pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> i32 {
+    1
+}
 #[cfg(not(target_arch = "wasm32"))]
-pub fn cancel_animation_frame(id: i32) { }
+pub fn cancel_animation_frame(id: i32) {}
+
+
 
 // =====================
 // === Other Helpers ===
 // =====================
-    /// Trait used to set HtmlElement attributes.
-    pub trait AttributeSetter {
-        fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U);
 
-        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
-    }
-    /// Trait used to set css styles.
-    pub trait StyleSetter {
-        fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U);
-        fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
-    }
+/// Trait used to set HtmlElement attributes.
+pub trait AttributeSetter {
+    fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U);
 
-    /// Trait used to insert `Node`s.
-    pub trait NodeInserter {
-        fn append_or_panic(&self, node: &Node);
+    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
+}
+/// Trait used to set css styles.
+pub trait StyleSetter {
+    fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U);
+    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
+}
 
-        fn append_or_warn(&self, node: &Node, logger: &Logger);
+/// Trait used to insert `Node`s.
+pub trait NodeInserter {
+    fn append_or_panic(&self, node: &Node);
 
-        fn prepend_or_panic(&self, node: &Node);
+    fn append_or_warn(&self, node: &Node, logger: &Logger);
 
-        fn prepend_or_warn(&self, node: &Node, logger: &Logger);
+    fn prepend_or_panic(&self, node: &Node);
 
-        fn insert_before_or_panic(&self, node: &Node, reference_node: &Node);
+    fn prepend_or_warn(&self, node: &Node, logger: &Logger);
 
-        fn insert_before_or_warn(&self, node: &Node, reference_node: &Node, logger: &Logger);
-    }
+    fn insert_before_or_panic(&self, node: &Node, reference_node: &Node);
 
-    /// Trait used to remove `Node`s.
-    pub trait NodeRemover {
-        fn remove_from_parent_or_panic(&self);
+    fn insert_before_or_warn(&self, node: &Node, reference_node: &Node, logger: &Logger);
+}
 
-        fn remove_from_parent_or_warn(&self, logger: &Logger);
+/// Trait used to remove `Node`s.
+pub trait NodeRemover {
+    fn remove_from_parent_or_panic(&self);
 
-        fn remove_child_or_panic(&self, node: &Node);
+    fn remove_from_parent_or_warn(&self, logger: &Logger);
 
-        fn remove_child_or_warn(&self, node: &Node, logger: &Logger);
-    }
+    fn remove_child_or_panic(&self, node: &Node);
+
+    fn remove_child_or_warn(&self, node: &Node, logger: &Logger);
+}
+
 #[cfg(target_arch = "wasm32")]
-pub use helpers::*;
-#[cfg(target_arch = "wasm32")]
-mod helpers {
+mod helpers_for_web_sys_types {
     impl AttributeSetter for web_sys::Element {
         fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
             let name = name.as_ref();
