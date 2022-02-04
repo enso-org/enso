@@ -715,7 +715,7 @@ macro_rules! stats_sampler {
     , $precision:expr, $value_divisor:expr, $max_value:expr) => {
         /// Sampler implementation.
         #[derive(Copy, Clone, Debug, Default)]
-        pub struct $name { }
+        pub struct $name {}
 
         impl Sampler for $name {
             fn label(&self) -> &str {
@@ -751,14 +751,41 @@ macro_rules! stats_sampler {
 const MB: f64 = (1024 * 1024) as f64;
 
 stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0, Some(60.0));
-stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0, None);
+stats_sampler!(
+    "Frame time (ms)",
+    FrameTime,
+    frame_time,
+    1000.0 / 55.0,
+    1000.0 / 25.0,
+    2,
+    1.0,
+    None
+);
 stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB, None);
-stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB, None);
+stats_sampler!(
+    "GPU memory usage (Mb)",
+    GpuMemoryUsage,
+    gpu_memory_usage,
+    100.0,
+    500.0,
+    2,
+    MB,
+    None
+);
 stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0, None);
 stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0, None);
 stats_sampler!("Data upload count", DataUploadCount, data_upload_count, 100.0, 500.0, 0, 1.0, None);
 stats_sampler!("Data upload size (Mb)", DataUploadSize, data_upload_size, 1.0, 10.0, 2, MB, None);
-stats_sampler!("Sprite system count", SpriteSystemCount, sprite_system_count, 100.0, 500.0, 0, 1.0, None);
+stats_sampler!(
+    "Sprite system count",
+    SpriteSystemCount,
+    sprite_system_count,
+    100.0,
+    500.0,
+    0,
+    1.0,
+    None
+);
 stats_sampler!("Symbol count", SymbolCount, symbol_count, 100.0, 500.0, 0, 1.0, None);
 stats_sampler!("Sprite count", SpriteCount, sprite_count, 100_000.0, 500_000.0, 0, 1.0, None);
 stats_sampler!("Shader count", ShaderCount, shader_count, 100.0, 500.0, 0, 1.0, None);
@@ -792,7 +819,6 @@ mod tests {
     macro_rules! test_and_advance_frame {
         ($test:expr, $expected_value:expr, $expected_check:path
         ; next: $frame_time:expr, $post_frame_delay:expr) => {
-        // ($test:expr, $frame_time:expr, $post_frame_delay:expr, $expected_check:path, $expected_value:literal) => {
             // start new frame
             let prev_frame = $test.stats.begin_frame($test.t);
 
