@@ -844,6 +844,11 @@ mod tests {
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
+        //
+        // Note: there is no earlier frame before "Frame 1", so the tested value for the previous
+        // frame will always be 0.0 and "Correct" at this point (which is a special case -
+        // depending on tested stat, for later frames 0.0 could result in a threshold
+        // warning/error).
         test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
@@ -857,6 +862,8 @@ mod tests {
         // Frame 4: simulate a really slow frame (1000ms), crossing the configured error threshold.
         test_and_advance_frame!(test, 30.0, ValueCheck::Warning; next: 1000.0, 0.0);
 
+        // For the final test, we're not interested in the next frame, so we're using some dummy
+        // values for it.
         let dummy = 0.0;
         test_and_advance_frame!(test, 1000.0, ValueCheck::Error; next: dummy, dummy);
     }
@@ -871,22 +878,20 @@ mod tests {
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
+        // Note: there is no earlier frame before "Frame 1", so the tested value for the previous
+        // frame will always be 0.0 and "Correct" at this point (which is a special case -
+        // depending on tested stat, for later frames 0.0 could result in a threshold
+        // warning/error).
+        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
+
+        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
+        // starting next frame.
+        //
         // Note: FPS takes into account delays between frames - for example, if a frame took only
         // 1ms, but the next frame will not be started immediately (will be started only e.g. 15ms
         // later), we cannot show FPS only based the 1ms duration of the frame - it would not be
         // true, as the subsequent delay means less frames per second will be rendered in reality.
         //
-        // Due to the above need to include delays between frames, FPS value is only available for
-        // *previous* frame. As such, after 1st frame, there was no previous frame yet, so the
-        // calculated value is expected to default to 0 ("zero FPS" is a reasonable answer at this
-        // point).
-        //
-        // Note 2: in this case, value 0.0 shall check as Correct, but for later frames it would
-        // result in a threshold warning/error.
-        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
-
-        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
-        // starting next frame.
         // Previous frame+delay was 16.0 ms; we'd fit 62.5 such frames in 1s.
         test_and_advance_frame!(test, 62.5, ValueCheck::Correct; next: 5.0, 11.67);
 
@@ -899,8 +904,8 @@ mod tests {
         // Previous frame+delay was 20.0 ms; we'd fit 50.0 such frames in 1s.
         test_and_advance_frame!(test, 50.0, ValueCheck::Warning; next: 1000.0, 0.0);
 
-        // For the final calculation, we don't need to simulate full frame to get the previous
-        // one's FPS, so we're using some dummy values.
+        // For the final test, we're not interested in the next frame, so we're using some dummy
+        // values for it.
         // Previous frame+delay was 1000.0 ms; we'd fit 1 such frame in 1s.
         let dummy = 0.0;
         test_and_advance_frame!(test, 1.0, ValueCheck::Error; next: dummy, dummy);
