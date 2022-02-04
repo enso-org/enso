@@ -86,7 +86,7 @@ macro_rules! gen_stats {
         pub struct StatsData {
             frame_begin_time: f64,
             frame_counter:    u64,
-            $($field : $field_type),*
+            $(pub $field : $field_type),*
         }
 
 
@@ -291,4 +291,48 @@ pub struct ValueSummary<T> {
     pub min: T,
     pub max: T,
     pub avg: f64,
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use assert_approx_eq::assert_approx_eq;
+    use num_traits::cast::AsPrimitive;
+
+    fn check_min_avg_max<T: AsPrimitive<f64>>(
+        summary: ValueSummary<T>,
+        min: f64,
+        avg: f64,
+        max: f64,
+    ) {
+        assert_approx_eq!(AsPrimitive::<f64>::as_(summary.min), min);
+        assert_approx_eq!(AsPrimitive::<f64>::as_(summary.avg), avg);
+        assert_approx_eq!(AsPrimitive::<f64>::as_(summary.max), max);
+    }
+
+    #[test]
+    fn stats_summaries() {
+        // This tests attempts to verify calculation of proper summaries for stats of each
+        // primitive type supported by `gen_stats!`.
+
+        let mut accumulator: Accumulator = default();
+        assert!(matches!(accumulator.summarize(), None));
+
+        let mut stats: StatsData = default();
+        stats.fps = 55.0;
+        stats.wasm_memory_usage = 1;
+        stats.buffer_count = 1;
+        accumulator.add_sample(&stats);
+        let summary = accumulator.summarize().unwrap();
+        check_min_avg_max(summary.fps, 55.0, 55.0, 55.0);
+        check_min_avg_max(summary.wasm_memory_usage, 1.0, 1.0, 1.0);
+        check_min_avg_max(summary.buffer_count, 1.0, 1.0, 1.0);
+    }
 }
