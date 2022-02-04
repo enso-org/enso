@@ -150,6 +150,8 @@ impl StatsData {
     fn end_frame(&mut self, time: f64) {
         self.frame_time = time - self.frame_begin_time;
 
+        // TODO[MC,IB]: drop the `cfg!` (outlier in our codebase) once wasm_bindgen::memory()
+        // doesn't panic in non-WASM builds (https://www.pivotaltracker.com/story/show/180978631)
         if cfg!(target_arch = "wasm32") {
             let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
             let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
