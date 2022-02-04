@@ -127,34 +127,31 @@ macro_rules! gen_stats {
 
         // === Accumulator ===
 
-        /// Accumulated data of all the gathered stats, collected over many GUI rendering frames.
-        // Note [Stats Accumulator]
+        /// Contains aggregated data from multiple [`StatsData`] objects. This is intended to be
+        /// used as a mutable data structure, which can have new data continuously added. To
+        /// calculate a summary of the data based on the aggregated samples, its [`summarize()`]
+        /// method should be called.
         #[derive(Debug, Default)]
         #[allow(missing_docs)]
         pub struct Accumulator {
-            /// How many samples were accumulated.
+            /// How many samples of [`StatsData`] were accumulated.
             samples_count: u32,
             $($field : ValueAccumulator<$field_type>),*
         }
 
-        // Note [Stats Accumulator]
-        // ========================
-        //
-        // See: Note [Frame Stats Active Intervals] in `lib/rust/profiling/src/frame_stats.rs`
-
         impl Accumulator {
             /// Includes the data of the sample into the Accumulator.
-            pub fn push(&mut self, sample: &StatsData) {
+            pub fn add_sample(&mut self, sample: &StatsData) {
                 self.samples_count += 1;
                 if self.samples_count == 1 {
                     $( self.$field = ValueAccumulator::new(sample.$field); )*
                 } else {
-                    $( self.$field.push(sample.$field); )*
+                    $( self.$field.add_sample(sample.$field); )*
                 }
             }
 
-            /// Calculates a summary of data pushed into the Accumulator till now. Returns a
-            /// meaningful result only if [`push`] was called at least once.
+            /// Calculates a summary of data added into the Accumulator till now. Returns a
+            /// meaningful result only if [`add_sample`] was called at least once.
             pub fn summarize(&self) -> Option<Summary> {
                 if self.samples_count == 0 {
                     None
@@ -175,7 +172,7 @@ macro_rules! gen_stats {
 
         // === Summary ===
 
-        /// Summary of all the gathered stats, calculated over a number of GUI rendering frames.
+        /// Contains summarized values of stats fields from multiple [`StatsData`] objects.
         #[derive(Clone, Debug, Serialize, Deserialize)]
         #[allow(missing_docs)]
         #[serde(rename_all = "camelCase")]
@@ -272,7 +269,7 @@ impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator
         Self { min: v, max: v, sum: v.as_() }
     }
 
-    fn push(&mut self, v: T) {
+    fn add_sample(&mut self, v: T) {
         self.min = min(self.min, v);
         self.max = max(self.max, v);
         self.sum += v.as_();
@@ -285,7 +282,8 @@ impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator
 // === ValueSummary ===
 // ====================
 
-/// Summarized data observed for a single stat over a number of GUI rendering frames.
+/// Summary for multiple values of type T. Intended to be used for storing a summary of multiple
+/// samples of some runtime stat.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub struct ValueSummary<T> {
