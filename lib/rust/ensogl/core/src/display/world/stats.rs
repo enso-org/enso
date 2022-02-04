@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::debug;
 use crate::debug::stats::Stats;
+use crate::system::web;
 
 
 
@@ -16,20 +17,22 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats   : Stats,
-    monitor : debug::Monitor,
-    panels  : Vec<debug::monitor::Panel>
+    stats            : Stats,
+    performance      : web::Performance,
+    monitor          : debug::Monitor,
+    panels           : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
-        let stats       = stats.clone_ref();
-        let mut monitor = debug::Monitor::new();
+        let stats            = stats.clone_ref();
+        let performance      = web::performance();
+        let mut monitor      = debug::Monitor::new();
         let panels = vec![
-            monitor.add( debug::monitor::FrameTime          :: new()       ),
-            monitor.add( debug::monitor::Fps                :: new()       ),
-            monitor.add( debug::monitor::WasmMemory         :: new()       ),
+            monitor.add( debug::monitor::FrameTime          :: new(&stats) ),
+            monitor.add( debug::monitor::Fps                :: new(&stats) ),
+            monitor.add( debug::monitor::WasmMemory         :: new(&stats) ),
             monitor.add( debug::monitor::GpuMemoryUsage     :: new(&stats) ),
             monitor.add( debug::monitor::DrawCallCount      :: new(&stats) ),
             monitor.add( debug::monitor::DataUploadCount    :: new(&stats) ),
@@ -41,23 +44,24 @@ impl {
             monitor.add( debug::monitor::SpriteSystemCount  :: new(&stats) ),
             monitor.add( debug::monitor::SpriteCount        :: new(&stats) ),
         ];
-        Self {stats,monitor,panels}
+        Self {stats,performance,monitor,panels}
     }
 
     /// Start measuring data.
     pub fn begin(&mut self) {
         if self.visible() {
-            for panel in &self.panels {
-                panel.begin();
-            }
+            let time = self.performance.now();
+            self.stats.begin_frame(time);
         }
     }
 
     /// Finish measuring data.
     pub fn end(&mut self) {
         if self.visible() {
+            let time = self.performance.now();
+            self.stats.end_frame(time);
             for panel in &self.panels {
-                panel.end();
+                panel.sample_and_postprocess();
             }
             self.monitor.draw();
         }
