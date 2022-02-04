@@ -401,8 +401,8 @@ impl Panel {
         self.rc.borrow_mut().draw(dom)
     }
 
-    /// Fetch the measured value from the associated sampler, then post-process it to make it
-    /// useful for displaying on a human-readable graph.
+    /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
+    /// to make it useful for displaying on a human-readable graph.
     pub fn sample_and_postprocess(&self, stats: &StatsData) {
         self.rc.borrow_mut().sample_and_postprocess(&stats)
     }
@@ -571,8 +571,8 @@ impl PanelData {
 // === Begin / End ===
 
 impl PanelData {
-    /// Fetch the measured value from the associated sampler, then post-process it to make it
-    /// useful for displaying on a human-readable graph.
+    /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
+    /// to make it useful for displaying on a human-readable graph.
     pub fn sample_and_postprocess(&mut self, stats: &StatsData) {
         self.value = self.sampler.value(&stats);
         self.value_check = self.sampler.check(&stats);

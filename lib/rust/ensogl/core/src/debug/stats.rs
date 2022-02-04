@@ -131,6 +131,7 @@ gen_stats! {
 
 impl StatsData {
     fn begin_frame(&mut self, time: f64) -> StatsData {
+        // See [Stats::begin_frame()] docs for explanation of this check.
         let previous_frame_snapshot = if self.frame_counter == 0 {
             default()
         } else {
