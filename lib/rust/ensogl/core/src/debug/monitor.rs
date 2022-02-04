@@ -770,31 +770,34 @@ stats_sampler!(
 mod tests {
     use super::*;
 
+    use crate::debug::stats::Stats;
+
     use assert_approx_eq::assert_approx_eq;
 
 
+    #[derive(Default)]
     struct TestSampler<S: Sampler> {
         stats:   Stats,
         sampler: S,
         t:       f64,
     }
 
-    impl<S: Sampler> TestSampler<S> {
-        fn new<F>(t0: f64, new_sampler: F) -> Self
-        where F: FnOnce(&Stats) -> S {
-            let stats = default();
-            let sampler = new_sampler(&stats);
-            Self { stats, sampler, t: t0 }
-        }
-    }
+    macro_rules! test_and_advance_frame {
+        ($test:expr, $expected_value:expr, $expected_check:path
+        ; next: $frame_time:expr, $post_frame_delay:expr) => {
+        // ($test:expr, $frame_time:expr, $post_frame_delay:expr, $expected_check:path, $expected_value:literal) => {
+            // start new frame
+            let prev_frame = $test.stats.begin_frame($test.t);
 
-    macro_rules! test_next_frame {
-        ($test:expr, $frame_time:expr, $post_frame_delay:expr, $expected_check:path, $expected_value:literal) => {
-            $test.stats.begin_frame($test.t);
+            // check previous frame's values
+            let value = $test.sampler.value(&prev_frame);
+            assert_approx_eq!(value, $expected_value, 0.001);
+            let check = $test.sampler.check(value);
+            assert!(matches!(check, $expected_check));
+
+            // advance till just before next frame
             $test.t += $frame_time;
             $test.stats.end_frame($test.t);
-            assert_approx_eq!($test.sampler.value(), $expected_value, 0.001);
-            assert!(matches!($test.sampler.check(), $expected_check));
             $test.t += $post_frame_delay;
         };
     }
@@ -804,22 +807,25 @@ mod tests {
         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
         // assumption we're trying to be around this FPS.
 
-        let mut test = TestSampler::new(0.0, |stats| FrameTime::new(&stats));
+        let mut test: TestSampler<FrameTime> = default();
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
-        test_next_frame!(test, 10.0, 6.0, ValueCheck::Correct, 10.0);
+        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
         // starting next frame.
-        test_next_frame!(test, 5.0, 11.0, ValueCheck::Correct, 5.0);
+        test_and_advance_frame!(test, 10.0, ValueCheck::Correct; next: 5.0, 11.0);
 
         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 30ms. No extra delay
         // afterwards before starting next frame.
-        test_next_frame!(test, 30.0, 0.0, ValueCheck::Warning, 30.0);
+        test_and_advance_frame!(test, 5.0, ValueCheck::Correct; next: 30.0, 0.0);
 
         // Frame 4: simulate a really slow frame (1000ms), crossing the configured error threshold.
-        test_next_frame!(test, 1000.0, 0.0, ValueCheck::Error, 1000.0);
+        test_and_advance_frame!(test, 30.0, ValueCheck::Warning; next: 1000.0, 0.0);
+
+        let dummy = 0.0;
+        test_and_advance_frame!(test, 1000.0, ValueCheck::Error; next: dummy, dummy);
     }
 
     #[test]
@@ -827,10 +833,7 @@ mod tests {
         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
         // assumption we're trying to be around this FPS.
 
-        // BUG: we can't currently use t0=0.0 here due to a bug in how `Fps` Sampler handles t=0.0;
-        // this is planned to be fixed soon in a separate PR, as part of:
-        // https://www.pivotaltracker.com/story/show/181140499
-        let mut test = TestSampler::new(123.0, |stats| Fps::new(&stats));
+        let mut test: TestSampler<Fps> = default();
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
@@ -847,26 +850,26 @@ mod tests {
         //
         // Note 2: in this case, value 0.0 shall check as Correct, but for later frames it would
         // result in a threshold warning/error.
-        test_next_frame!(test, 10.0, 6.0, ValueCheck::Correct, 0.0);
+        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
         // starting next frame.
         // Previous frame+delay was 16.0 ms; we'd fit 62.5 such frames in 1s.
-        test_next_frame!(test, 5.0, 11.67, ValueCheck::Correct, 62.5);
+        test_and_advance_frame!(test, 62.5, ValueCheck::Correct; next: 5.0, 11.67);
 
         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
         // afterwards before starting next frame.
         // Previous frame+delay was 16.67 ms; we'd fit ~59.988 such frames in 1s.
-        test_next_frame!(test, 20.0, 0.0, ValueCheck::Correct, 59.988);
+        test_and_advance_frame!(test, 59.988, ValueCheck::Correct; next: 20.0, 0.0);
 
         // Frame 4: simulate a really slow frame (1000ms), crossing the FPS error threshold.
         // Previous frame+delay was 20.0 ms; we'd fit 50.0 such frames in 1s.
-        test_next_frame!(test, 1000.0, 0.0, ValueCheck::Warning, 50.0);
+        test_and_advance_frame!(test, 50.0, ValueCheck::Warning; next: 1000.0, 0.0);
 
         // For the final calculation, we don't need to simulate full frame to get the previous
         // one's FPS, so we're using some dummy values.
         // Previous frame+delay was 1000.0 ms; we'd fit 1 such frame in 1s.
         let dummy = 0.0;
-        test_next_frame!(test, dummy, dummy, ValueCheck::Error, 1.0);
+        test_and_advance_frame!(test, 1.0, ValueCheck::Error; next: dummy, dummy);
     }
 }
