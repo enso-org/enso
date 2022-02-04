@@ -66,7 +66,9 @@ macro_rules! gen_stats {
 
         // === StatsData ===
 
+        /// Raw data of all the gathered stats.
         #[derive(Debug,Default,Clone,Copy)]
+        #[allow(missing_docs)]
         pub struct StatsData {
             frame_begin_time: f64,
             frame_counter:    u64,
