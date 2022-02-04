@@ -327,12 +327,32 @@ mod tests {
 
         let mut stats: StatsData = default();
         stats.fps = 55.0;
-        stats.wasm_memory_usage = 1;
-        stats.buffer_count = 1;
+        stats.wasm_memory_usage = 1000;
+        stats.buffer_count = 3;
         accumulator.add_sample(&stats);
         let summary = accumulator.summarize().unwrap();
         check_min_avg_max(summary.fps, 55.0, 55.0, 55.0);
-        check_min_avg_max(summary.wasm_memory_usage, 1.0, 1.0, 1.0);
-        check_min_avg_max(summary.buffer_count, 1.0, 1.0, 1.0);
+        check_min_avg_max(summary.wasm_memory_usage, 1000.0, 1000.0, 1000.0);
+        check_min_avg_max(summary.buffer_count, 3.0, 3.0, 3.0);
+
+        let mut stats: StatsData = default();
+        stats.fps = 57.0;
+        stats.wasm_memory_usage = 2000;
+        stats.buffer_count = 2;
+        accumulator.add_sample(&stats);
+        let summary = accumulator.summarize().unwrap();
+        check_min_avg_max(summary.fps, 55.0, 56.0, 57.0);
+        check_min_avg_max(summary.wasm_memory_usage, 1000.0, 1500.0, 2000.0);
+        check_min_avg_max(summary.buffer_count, 2.0, 2.5, 3.0);
+
+        let mut stats: StatsData = default();
+        stats.fps = 56.0;
+        stats.wasm_memory_usage = 3000;
+        stats.buffer_count = 1;
+        accumulator.add_sample(&stats);
+        let summary = accumulator.summarize().unwrap();
+        check_min_avg_max(summary.fps, 55.0, 56.0, 57.0);
+        check_min_avg_max(summary.wasm_memory_usage, 1000.0, 2000.0, 3000.0);
+        check_min_avg_max(summary.buffer_count, 1.0, 2.0, 3.0);
     }
 }
