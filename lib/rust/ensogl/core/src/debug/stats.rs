@@ -45,11 +45,6 @@ impl Stats {
     pub fn reset_per_frame_statistics(&self) {
         self.rc.borrow_mut().reset_per_frame_statistics();
     }
-
-    /// Field getter. Returns the ordinal number of the current animation frame.
-    pub fn frame_counter(&self) -> u64 {
-        self.rc.borrow().frame_counter
-    }
 }
 
 /// Emits the 2nd argument only if the 1st argument is an integer type. A helper macro for
