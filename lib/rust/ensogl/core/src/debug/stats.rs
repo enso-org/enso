@@ -317,6 +317,25 @@ mod tests {
         assert_approx_eq!(AsPrimitive::<f64>::as_(summary.max), max);
     }
 
+    macro_rules! test_stats {
+        ($accumulator:expr; $($field:ident : $type:tt = $sample:literal
+        => min: $min:literal avg: $avg:literal max: $max:literal)*) => {
+            $(let $field: $type = $sample;)*
+            let stats = StatsData { $($field,)* ..default() };
+            $accumulator.add_sample(&stats);
+            let summary = $accumulator.summarize().unwrap();
+            $(
+                test_stats!($type, summary.$field.min, $min);
+                test_stats!(f64, summary.$field.avg, $avg);
+                test_stats!($type, summary.$field.max, $max);
+            )*
+        };
+
+        (u32, $val1:expr, $val2:expr) => { assert_eq!($val1, $val2); };
+        (usize, $val1:expr, $val2:expr) => { assert_eq!($val1, $val2); };
+        (f64, $val1:expr, $val2:expr) => { assert_approx_eq!($val1, $val2); };
+    }
+
     #[test]
     fn stats_summaries() {
         // This tests attempts to verify calculation of proper summaries for stats of each
@@ -325,15 +344,11 @@ mod tests {
         let mut accumulator: Accumulator = default();
         assert!(matches!(accumulator.summarize(), None));
 
-        let mut stats: StatsData = default();
-        stats.fps = 55.0;
-        stats.wasm_memory_usage = 1000;
-        stats.buffer_count = 3;
-        accumulator.add_sample(&stats);
-        let summary = accumulator.summarize().unwrap();
-        check_min_avg_max(summary.fps, 55.0, 55.0, 55.0);
-        check_min_avg_max(summary.wasm_memory_usage, 1000.0, 1000.0, 1000.0);
-        check_min_avg_max(summary.buffer_count, 3.0, 3.0, 3.0);
+        test_stats!(accumulator;
+            fps:               f64   = 55.0 => min: 55.0 avg: 55.0   max: 55.0
+            wasm_memory_usage: u32   = 1000 => min: 1000 avg: 1000.0 max: 1000
+            buffer_count:      usize = 3    => min: 3    avg: 3.0    max: 3
+        );
 
         let mut stats: StatsData = default();
         stats.fps = 57.0;
