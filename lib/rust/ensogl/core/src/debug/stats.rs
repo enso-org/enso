@@ -31,6 +31,8 @@ impl Stats {
     /// Starts tracking data for a new animation frame.
     /// Also, calculates the `fps` stat and updates `frame_counter`.
     /// Returns a snapshot of statistics data for the previous frame.
+    /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
+    /// (this special case can be recognized by checking `frame_counter == 0`).
     pub fn begin_frame(&self, time: f64) -> StatsData {
         self.rc.borrow_mut().begin_frame(time)
     }
@@ -63,13 +65,11 @@ macro_rules! gen_stats {
 
         /// Raw data of all the gathered stats.
         #[derive(Debug,Default,Clone,Copy)]
+        #[allow(missing_docs)]
         pub struct StatsData {
-            frame_begin_time: f64,
-            frame_counter:    u64,
-            $(
-                #[allow(missing_docs)]
-                pub $field : $field_type
-            ),*
+            frame_begin_time:  f64,
+            pub frame_counter: u64,
+            $(pub $field : $field_type),*
         }
 
 

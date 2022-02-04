@@ -475,7 +475,7 @@ pub trait Sampler: Debug {
     fn value(&self, stats: &StatsData) -> f64;
 
     /// Check whether the newest value is correct, or should be displayed as warning or error.
-    fn check(&self, _value: f64) -> ValueCheck {
+    fn check(&self, _stats: &StatsData) -> ValueCheck {
         ValueCheck::Correct
     }
 
@@ -575,7 +575,7 @@ impl PanelData {
     /// useful for displaying on a human-readable graph.
     pub fn sample_and_postprocess(&mut self, stats: &StatsData) {
         self.value = self.sampler.value(&stats);
-        self.value_check = self.sampler.check(self.value);
+        self.value_check = self.sampler.check(&stats);
         self.clamp_value();
         self.smooth_value();
         self.normalize_value();
@@ -731,8 +731,15 @@ macro_rules! stats_sampler {
             fn precision(&self) -> usize {
                 $precision
             }
-            fn check(&self, value: f64) -> ValueCheck {
-                ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
+            fn check(&self, stats: &StatsData) -> ValueCheck {
+                // Before the first frame, all stat values will be 0, which in (only) this case is
+                // correct.
+                if stats.frame_counter == 0 {
+                    ValueCheck::Correct
+                } else {
+                    let value = self.value(&stats);
+                    ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
+                }
             }
             fn max_value(&self) -> Option<f64> {
                 $max_value
@@ -792,7 +799,7 @@ mod tests {
             // check previous frame's values
             let value = $test.sampler.value(&prev_frame);
             assert_approx_eq!(value, $expected_value, 0.001);
-            let check = $test.sampler.check(value);
+            let check = $test.sampler.check(&prev_frame);
             assert!(matches!(check, $expected_check));
 
             // advance till just before next frame
