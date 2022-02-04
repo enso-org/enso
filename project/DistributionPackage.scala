@@ -44,9 +44,12 @@ object DistributionPackage {
     val allFiles = source.allPaths.get().toSet
     Tracked.diffInputs(cache, FileInfo.lastModified)(allFiles) { diff =>
       val missing = diff.unmodified.exists { f =>
-        val destinationFile = destination / f.getName
+        val relativePath = f.relativeTo(source).get
+        val destinationFile =
+          destination.toPath.resolve(relativePath.toPath).toFile
         !destinationFile.exists()
       }
+
       if (diff.modified.nonEmpty || diff.removed.nonEmpty || missing) {
         IO.delete(destination)
         IO.copyDirectory(source, destination)
