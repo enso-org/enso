@@ -259,9 +259,9 @@ commands['integration-test'].rust = async function(argv) {
     console.log(`Running Rust WASM test suite.`)
     let args = [
         'test',
-        'integration-test',
         '--headless',
         '--chrome',
+        'integration-test',
     ]
     await run_cargo('wasm-pack', args)
     console.log(`Shutting down Project Manager`)

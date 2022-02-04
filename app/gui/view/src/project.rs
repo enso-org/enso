@@ -656,6 +656,10 @@ impl View {
     pub fn open_dialog(&self) -> &OpenDialog {
         &self.model.open_dialog
     }
+
+    pub fn prompt(&self) -> &impl display::Object {
+        &self.model.prompt_background
+    }
 }
 
 impl display::Object for View {

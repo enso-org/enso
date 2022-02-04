@@ -943,9 +943,11 @@ dependencies = [
 name = "enso-integration-test"
 version = "0.1.0"
 dependencies = [
+ "enso-frp",
  "enso-gui",
  "enso-prelude",
  "enso-web",
+ "ensogl",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]

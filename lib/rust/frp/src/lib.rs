@@ -160,6 +160,7 @@
 
 pub mod data;
 pub mod debug;
+pub mod future;
 pub mod io;
 pub mod macros;
 pub mod network;
