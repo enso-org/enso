@@ -317,7 +317,7 @@ mod tests {
         assert_approx_eq!(AsPrimitive::<f64>::as_(summary.max), max);
     }
 
-    macro_rules! test_stats {
+    macro_rules! test_extra_sample {
         ($accumulator:expr; $($field:ident : $type:tt = $sample:literal
         => min: $min:literal avg: $avg:literal max: $max:literal)*) => {
             $(let $field: $type = $sample;)*
@@ -325,15 +325,16 @@ mod tests {
             $accumulator.add_sample(&stats);
             let summary = $accumulator.summarize().unwrap();
             $(
-                test_stats!($type, summary.$field.min, $min);
-                test_stats!(f64, summary.$field.avg, $avg);
-                test_stats!($type, summary.$field.max, $max);
+                test_extra_sample!($type, summary.$field.min, $min);
+                test_extra_sample!(f64, summary.$field.avg, $avg);
+                test_extra_sample!($type, summary.$field.max, $max);
             )*
         };
 
+        // Helper rules for asserting equality on various types
+        (f64, $val1:expr, $val2:expr) => { assert_approx_eq!($val1, $val2); };
         (u32, $val1:expr, $val2:expr) => { assert_eq!($val1, $val2); };
         (usize, $val1:expr, $val2:expr) => { assert_eq!($val1, $val2); };
-        (f64, $val1:expr, $val2:expr) => { assert_approx_eq!($val1, $val2); };
     }
 
     #[test]
@@ -344,30 +345,20 @@ mod tests {
         let mut accumulator: Accumulator = default();
         assert!(matches!(accumulator.summarize(), None));
 
-        test_stats!(accumulator;
+        test_extra_sample!(accumulator;
             fps:               f64   = 55.0 => min: 55.0 avg: 55.0   max: 55.0
             wasm_memory_usage: u32   = 1000 => min: 1000 avg: 1000.0 max: 1000
             buffer_count:      usize = 3    => min: 3    avg: 3.0    max: 3
         );
-
-        let mut stats: StatsData = default();
-        stats.fps = 57.0;
-        stats.wasm_memory_usage = 2000;
-        stats.buffer_count = 2;
-        accumulator.add_sample(&stats);
-        let summary = accumulator.summarize().unwrap();
-        check_min_avg_max(summary.fps, 55.0, 56.0, 57.0);
-        check_min_avg_max(summary.wasm_memory_usage, 1000.0, 1500.0, 2000.0);
-        check_min_avg_max(summary.buffer_count, 2.0, 2.5, 3.0);
-
-        let mut stats: StatsData = default();
-        stats.fps = 56.0;
-        stats.wasm_memory_usage = 3000;
-        stats.buffer_count = 1;
-        accumulator.add_sample(&stats);
-        let summary = accumulator.summarize().unwrap();
-        check_min_avg_max(summary.fps, 55.0, 56.0, 57.0);
-        check_min_avg_max(summary.wasm_memory_usage, 1000.0, 2000.0, 3000.0);
-        check_min_avg_max(summary.buffer_count, 1.0, 2.0, 3.0);
+        test_extra_sample!(accumulator;
+            fps:               f64   = 57.0 => min: 55.0 avg: 56.0   max: 57.0
+            wasm_memory_usage: u32   = 2000 => min: 1000 avg: 1500.0 max: 2000
+            buffer_count:      usize = 2    => min: 2    avg: 2.5    max: 3
+        );
+        test_extra_sample!(accumulator;
+            fps:               f64   = 56.0 => min: 55.0 avg: 56.0   max: 57.0
+            wasm_memory_usage: u32   = 3000 => min: 1000 avg: 2000.0 max: 3000
+            buffer_count:      usize = 1    => min: 1    avg: 2.0    max: 3
+        );
     }
 }
