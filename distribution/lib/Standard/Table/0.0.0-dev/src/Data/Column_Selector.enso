@@ -11,14 +11,14 @@ type Column_Selector
        The `matching_strategy` can be used to specify if the names should be
        matched exactly or should be treated as regular expressions. It also
        allows to specify if the matching should be case-sensitive.
-    type By_Name (names : Vector Text) (matching_strategy : Matching_Strategy = Exact True)
+    type By_Name (names : Vector Text) (matching_strategy : Matching_Strategy = Exact.new)
 
     ## Selects columns by their index.
 
        The index of the first column in the table is 0. If the provided index is
        negative, it counts from the end of the table (e.g. -1 refers to the last
        column in the table).
-    type By_Index (indexes : Vector Number)
+    type By_Index (indexes : Vector Integer)
 
     ## Selects columns having exactly the same names as the columns provided in
        the input.
@@ -27,3 +27,8 @@ type Column_Selector
        this approach can be used to match columns with the same names as a set
        of columns of some other table, for example, when preparing for a join.
     type By_Column (columns : Vector Column)
+
+## UNSTABLE
+   A temporary workaround to allow the By_Name constructor to work with default arguments.
+By_Name.new : Vector Text -> Matching_Strategy  -> By_Name
+By_Name.new names (matching_strategy = Exact.new) = By_Name names matching_strategy

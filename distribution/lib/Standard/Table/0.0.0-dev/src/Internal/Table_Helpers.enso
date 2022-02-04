@@ -2,9 +2,10 @@ from Standard.Base import all
 
 import Standard.Base.Error.Warnings
 import Standard.Table.Data.Matching
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import all
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
-from Standard.Table.Error as Error_Module import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+import Standard.Table.Data.Position
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched
 
 ## PRIVATE
    A helper function encapsulating shared code for `select_columns`
@@ -41,6 +42,73 @@ select_columns internal_columns selector reorder on_problems warnings =
     result = here.select_columns_helper internal_columns selector reorder on_problems warnings
     problems = if result.is_empty then [No_Output_Columns] else []
     on_problems.attach_problems_after result problems warnings
+
+## PRIVATE
+   A helper function encapsulating shared code for `remove_columns`
+   implementations of various Table variants. See the documentation for the
+   Table type for details.
+
+   It takes a list of columns and returns the columns which should be kept. It
+   is the responsibility of each implementation to reconstruct a proper table
+   from the resulting list of columns.
+
+   Arguments:
+   - internal_columns: A list of all columns in a table.
+   - selector: Column selection criteria.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - warnings: A Warning_System instance specifying how to handle warnings. This
+     is a temporary workaround to allow for testing the warning mechanism. Once
+     the proper warning system is implemented, this argument will become
+     obsolete and will be removed. No user code should use this argument, as it
+     will be removed in the future.
+remove_columns : Vector -> Column_Selector -> Problem_Behavior -> Warnings.Warning_System -> Vector
+remove_columns internal_columns selector on_problems warnings =
+    selection = here.select_columns_helper internal_columns selector reorder=False on_problems warnings
+    selected_names = Map.from_vector (selection.map column-> [column.name, True])
+    result = internal_columns.filter column->
+        should_be_removed = selected_names.get_or_else column.name False
+        should_be_removed.not
+    issues = if result.is_empty then [No_Output_Columns] else []
+    on_problems.attach_problems_after result issues warnings
+
+## PRIVATE
+   A helper function encapsulating shared code for `reorder_columns`
+   implementations of various Table variants. See the documentation for the
+   Table type for details.
+
+   It takes a list of columns and returns the columns which should be kept. It
+   is the responsibility of each implementation to reconstruct a proper table
+   from the resulting list of columns.
+
+   Arguments:
+   - internal_columns: A list of all columns in a table.
+   - selector: A selector specifying which columns should be moved and the order
+     in which they should appear in the result.
+   - position: Specifies how to place the selected columns in relation to the
+     columns which were not matched by the `selector` (if any).
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - warnings: A Warning_System instance specifying how to handle warnings. This
+     is a temporary workaround to allow for testing the warning mechanism. Once
+     the proper warning system is implemented, this argument will become
+     obsolete and will be removed. No user code should use this argument, as it
+     will be removed in the future.
+reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Warnings.Warning_System -> Vector
+reorder_columns internal_columns selector position on_problems warnings =
+    selection = here.select_columns_helper internal_columns selector reorder=True on_problems warnings
+    selected_names = Map.from_vector (selection.map column-> [column.name, True])
+    other_columns = internal_columns.filter column->
+        is_selected = selected_names.get_or_else column.name False
+        is_selected.not
+    result = case position of
+        Position.Before_Other_Columns -> selection + other_columns
+        Position.After_Other_Columns -> other_columns + selection
+    result
 
 ## PRIVATE
    A helper function which selects columns from the table based on the provided
