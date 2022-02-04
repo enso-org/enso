@@ -508,14 +508,6 @@ pub trait Sampler: Debug {
     fn precision(&self) -> usize {
         2
     }
-
-    // === Utils ===
-
-    // FIXME: merge into the stats_sampler macro, probably
-    /// Wrapper for `ValueCheck::from_threshold`.
-    fn check_by_threshold(&self, warn_threshold: f64, err_threshold: f64, value: f64) -> ValueCheck {
-        ValueCheck::from_threshold(warn_threshold, err_threshold, value)
-    }
 }
 
 
@@ -742,7 +734,7 @@ macro_rules! stats_sampler {
                 $precision
             }
             fn check(&self, value: f64) -> ValueCheck {
-                self.check_by_threshold($t1, $t2, value)
+                ValueCheck::from_threshold($t1, $t2, value)
             }
             fn max_value(&self) -> Option<f64> {
                 $max_value
