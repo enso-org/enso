@@ -132,7 +132,6 @@ macro_rules! gen_stats {
         /// calculate a summary of the data based on the aggregated samples, its [`summarize()`]
         /// method should be called.
         #[derive(Debug, Default)]
-        #[allow(missing_docs)]
         pub struct Accumulator {
             /// How many samples of [`StatsData`] were accumulated.
             samples_count: u32,
@@ -174,10 +173,12 @@ macro_rules! gen_stats {
 
         /// Contains summarized values of stats fields from multiple [`StatsData`] objects.
         #[derive(Clone, Debug, Serialize, Deserialize)]
-        #[allow(missing_docs)]
         #[serde(rename_all = "camelCase")]
         pub struct Summary {
-            $(pub $field : ValueSummary<$field_type>),*
+            $(
+                #[allow(missing_docs)]
+                pub $field : ValueSummary<$field_type>
+            ),*
         }
     }};
 }
