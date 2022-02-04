@@ -711,30 +711,28 @@ impl PanelData {
 /// Utility to generate Samplers for stats parameters. See the usages below this declaration to
 /// discover more.
 macro_rules! stats_sampler {
-    ( $label:tt, $name:ident, $stats_method:ident, $t1:expr, $t2:expr, $precision:expr
-    , $value_divisor:expr, $max_value:expr) => {
+    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    , $precision:expr, $value_divisor:expr, $max_value:expr) => {
         /// Sampler implementation.
         #[derive(Copy, Clone, Debug, Default)]
-        pub struct $name {
-        }
+        pub struct $name { }
 
         impl Sampler for $name {
             fn label(&self) -> &str {
                 $label
             }
             fn value(&self, stats: &StatsData) -> f64 {
-                // FIXME: rename $stats_method to $stats_field
-                let raw_value: f64 = stats.$stats_method.as_();
+                let raw_value: f64 = stats.$stats_field.as_();
                 raw_value / $value_divisor
             }
             fn min_size(&self) -> Option<f64> {
-                Some($t1)
+                Some($warn_threshold)
             }
             fn precision(&self) -> usize {
                 $precision
             }
             fn check(&self, value: f64) -> ValueCheck {
-                ValueCheck::from_threshold($t1, $t2, value)
+                ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
             }
             fn max_value(&self) -> Option<f64> {
                 $max_value
