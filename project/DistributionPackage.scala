@@ -116,7 +116,8 @@ object DistributionPackage {
     cacheFactory: CacheStoreFactory,
     graalVersion: String,
     javaVersion: String,
-    stdlibVersion: String
+    sourceStdlibVersion: String,
+    targetStdlibVersion: String
   ): Unit = {
 
     copyDirectoryIncremental(
@@ -142,7 +143,7 @@ object DistributionPackage {
       distributionRoot / "lib",
       cacheFactory.make("engine-lib")
     )
-    getStdlibDataFiles(distributionRoot, stdlibVersion)
+    getStdlibDataFiles(distributionRoot, sourceStdlibVersion)
 
     copyDirectoryIncremental(
       file("distribution/bin"),

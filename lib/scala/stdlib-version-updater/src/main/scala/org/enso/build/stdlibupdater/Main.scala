@@ -42,8 +42,9 @@ object Main {
   )
 
   def run(visitor: StdlibVisitor): Unit = {
-    val bundledLibRoot        = Path.of("distribution/lib")
-    val targetVersion: String = buildinfo.Info.stdLibVersion
+    val bundledLibRoot = Path.of("distribution/lib")
+    val targetVersion: String =
+      "foobar" // TODO FIXME buildinfo.Info.stdLibVersion
 
     val walker = new StdlibWalker(bundledLibRoot, targetVersion, visitor)
     walker.walk()
