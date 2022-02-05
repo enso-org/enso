@@ -151,7 +151,7 @@ object DistributionPackage {
       destinationRoot = distributionRoot / "lib",
       sourceVersion   = sourceStdlibVersion,
       targetVersion   = targetStdlibVersion,
-      cacheFactory    = cacheFactory.sub("engine-lib"),
+      cacheFactory    = cacheFactory.sub("engine-libraries"),
       log             = log
     )
     getStdlibDataFiles(distributionRoot, targetStdlibVersion)
