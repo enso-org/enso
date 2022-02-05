@@ -78,7 +78,8 @@ object Editions {
       editionConfig
     }
 
-    if (IO.read(edition) == editionConfigContent) {
+    val currentContent = if (edition.exists()) Some(IO.read(edition)) else None
+    if (currentContent.contains(editionConfigContent)) {
       log.debug(s"Edition config [$edition] is already up-to-date.")
     } else {
       IO.write(edition, editionConfigContent)
