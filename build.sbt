@@ -1397,6 +1397,7 @@ lazy val editions = project
       .dependsOn(
         Def.task {
           Editions.writeEditionConfig(
+            editionsRoot   = file("distribution") / "editions",
             ensoVersion    = ensoVersion,
             editionName    = currentEdition,
             libraryVersion = stdLibVersion,
@@ -1731,8 +1732,11 @@ buildEngineDistribution := {
   DistributionPackage.createEnginePackage(
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
+    log                 = log,
     graalVersion        = graalVersion,
     javaVersion         = javaVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
     targetStdlibVersion = targetStdlibVersion
   )
