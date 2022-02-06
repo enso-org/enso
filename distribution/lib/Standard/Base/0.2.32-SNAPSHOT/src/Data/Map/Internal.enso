@@ -148,7 +148,7 @@ delta = 3
 
    Arguments:
    - m: The map to get the size of.
-size: Map -> Integer
+size : Map -> Integer
 size m = case m of
     Bin s _ _ _ _ -> s
     _ -> 0

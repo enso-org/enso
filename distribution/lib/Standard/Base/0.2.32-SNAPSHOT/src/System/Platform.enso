@@ -31,7 +31,7 @@ os = here.from_text System.os
 ## PRIVATE
 
    Create an Os object from text.
-from_text: Text -> Os
+from_text : Text -> Os
 from_text os =
     if os == "linux" then Linux else
         if os == "macos" then MacOS else

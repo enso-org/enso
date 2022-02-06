@@ -398,7 +398,8 @@ spec =
 
         Test.specify "should return Nothing if the group did not match" <|
             match.group 3 . should_equal Nothing
-Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
+
+        Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
             match.group "fail" . should_fail_with Regex.No_Such_Group_Error
             match.group 5 . should_fail_with Regex.No_Such_Group_Error
 
