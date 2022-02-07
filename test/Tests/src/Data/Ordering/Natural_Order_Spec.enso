@@ -18,6 +18,9 @@ spec = Test.group "Natural Order" <|
         Natural_Order.compare "b2" "a1" . should_equal Ordering.Greater
         Natural_Order.compare "" "1" . should_equal Ordering.Less
         Natural_Order.compare "" "a" . should_equal Ordering.Less
+        Natural_Order.compare "0" "a" . should_equal Ordering.Less
+        Natural_Order.compare "0a" "a1" . should_equal Ordering.Less
+        Natural_Order.compare "c" "9900" . should_equal Ordering.Greater
 
         Natural_Order.compare "2 ft 17 in" "2 ft 3 in" . should_equal Ordering.Greater
 
