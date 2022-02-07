@@ -16,7 +16,7 @@ jobs:
       - ${{ matrix.os }}
       - self-hosted
       - engine
-    timeout-minutes: 180
+    timeout-minutes: 90
     strategy:
       matrix:
         # The macOS support is not yet done. For now, the GitHub-hosted runner
