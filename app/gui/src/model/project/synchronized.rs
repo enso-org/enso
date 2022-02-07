@@ -754,9 +754,9 @@ mod test {
             assert_eq!(another_path, *another_module.path());
             // We have to downcast module, otherwise we would compare vtable pointers. See
             // https://rust-lang.github.io/rust-clippy/master/index.html#vtable_address_comparisons
-            let module = module.as_any().downcast_ref::<module::Synchronized>();
-            let same_module = same_module.as_any().downcast_ref::<module::Synchronized>();
-            assert!(std::ptr::eq(&module, &same_module));
+            let module = module.as_any().downcast_ref::<module::Synchronized>().unwrap();
+            let same_module = same_module.as_any().downcast_ref::<module::Synchronized>().unwrap();
+            assert!(std::ptr::eq(module, same_module));
         });
     }
 

@@ -171,7 +171,6 @@ pub mod stream;
 pub use network::*;
 pub use node::*;
 pub use nodes::*;
-pub use traits::*;
 
 pub use enso_web as web;
 pub use stream::Stream;
@@ -182,11 +181,6 @@ pub mod prelude {
     pub use enso_logger::*;
     pub use enso_prelude::*;
 }
-
-mod traits {
-    pub use crate::future::EventOutputExt as TRAIT_FutureEventOutputExt;
-}
-
 
 #[cfg(test)]
 mod network_mode_tests {

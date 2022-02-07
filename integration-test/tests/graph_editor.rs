@@ -1,4 +1,4 @@
-use enso_frp::*;
+use enso_frp::future::EventOutputExt;
 use enso_integration_test::IntegrationTest;
 use wasm_bindgen_test::wasm_bindgen_test;
 
