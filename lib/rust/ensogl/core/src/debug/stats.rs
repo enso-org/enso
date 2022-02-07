@@ -305,8 +305,13 @@ mod tests {
 
 
     macro_rules! test_with_new_sample {
-        ($accumulator:expr; $($field:ident : $type:tt = $sample:literal
-        => min: $min:literal avg: $avg:literal max: $max:literal)*) => {
+        (
+            $accumulator:expr;
+            $(
+                $field:ident : $type:tt = $sample:literal
+                    => min: $min:literal avg: $avg:literal max: $max:literal
+            )*
+        ) => {
             // Verify that all checked fields have expected type.
             $(let $field: $type = $sample;)*
 
