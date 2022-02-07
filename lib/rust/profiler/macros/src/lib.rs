@@ -7,7 +7,7 @@
 //!   implementing this without proc macros would be complex and repetitious.
 //! - To implement the [`#[profile]`](macro@profile) attribute macro.
 
-#![feature(proc_macro_span)]
+#![cfg_attr(feature = "lineno", feature(proc_macro_span))]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -286,10 +286,17 @@ fn instrument(sig: &mut syn::Signature, body: &mut syn::Block) {
         let _profiler = #profiler.new_child(#profiler_label);
     }.into()).unwrap());
     body.stmts.push(syn::parse(quote::quote! {
-        let #profiler = _profiler.profiler;
+       let #profiler = _profiler.profiler;
     }.into()).unwrap());
 }
 
+#[cfg(not(feature = "lineno"))]
+/// Decorate the input with file:line info determined by the proc_macro's call site.
+fn make_label(ident: &syn::Ident) -> String {
+    format!("{}", ident)
+}
+
+#[cfg(feature = "lineno")]
 /// Decorate the input with file:line info determined by the proc_macro's call site.
 fn make_label(ident: &syn::Ident) -> String {
     let span = proc_macro::Span::call_site();
