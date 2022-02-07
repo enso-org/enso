@@ -242,8 +242,7 @@ impl Monitor {
 
     /// Add new display element.
     pub fn add<S: Sampler + Default + 'static>(&mut self) -> Panel {
-        let sampler: S = default();
-        let panel = Panel::new(self.config.clone(), sampler);
+        let panel = Panel::new(self.config.clone(), S::default());
         self.panels.push(panel.clone());
         self.resize();
         panel
