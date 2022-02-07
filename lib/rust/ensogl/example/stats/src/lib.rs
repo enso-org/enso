@@ -59,7 +59,11 @@ fn init(app: &Application) {
 
     let label = label::Label::new(app);
     app.display.add_child(&label);
-    let label = Leak::new(label);
-    label.inner().frp.set_content("Hello stats");
+
+    app.display
+        .on_frame(move |_| {
+            label.frp.set_content("Hello in loop");
+        })
+        .forget();
 }
 
