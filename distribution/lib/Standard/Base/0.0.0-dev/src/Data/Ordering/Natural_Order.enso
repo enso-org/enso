@@ -17,6 +17,9 @@ import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
          ["a2", "a1", "a100", "a001", "a0001"].sort by=Natural_Order.compare . should_equal ["a0001", "a001", "a1", "a2", "a100"]
 compare : Text -> Text -> Ordering
 compare text1 text2 =
+    ## TODO [RW] A more efficient algorithm which works better for longer texts
+       should be implemented, as described in
+       https://www.pivotaltracker.com/story/show/181176589
     nat1 = here.to_natural_key text1
     nat2 = here.to_natural_key text2
     ## TODO [RW] The additional assignment to a temporary variable is a
@@ -31,9 +34,16 @@ to_natural_key text = if text.is_empty then [] else
     splitter_regex = Regex.compile "([^0-9]+|[0-9]+)"
     parts = splitter_regex.find text mode=Mode.All
 
+    ## TODO [RW] Currently there is no `is_digit` method. Once
+       https://www.pivotaltracker.com/story/show/181176532 is implemented, this
+       regex can be replaced with a simpler and faster `is_digit` check.
     is_integer_regex = Regex.compile "[0-9]+"
     parts.map part-> case is_integer_regex.matches part of
         True ->
+            ## TODO [RW] Currently there is no `Integer.parse` method, so we
+               parse a decimal and convert it to an integer. Once
+               https://www.pivotaltracker.com/story/show/181176522 is
+               implemented, this should be changed to use `Integer.parse`.
             value = Decimal.parse part . floor
             Natural_Ordering_Numeric_Part value part
         False ->
