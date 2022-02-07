@@ -48,6 +48,8 @@ Any.== that = if Meta.is_same_object this that then True else
         Cons (Meta.Polyglot o_1) (Meta.Polyglot o_2) ->
             langs_match = (this_meta.get_language == Meta.Java) && (that_meta.get_language == Meta.Java)
             if langs_match.not then False else o_1.equals o_2
+        Cons (Meta.Unresolved_Symbol _) (Meta.Unresolved_Symbol _) ->
+            (this_meta.name == that_meta.name) && (this_meta.scope == that_meta.scope)
         ## Constructor comparison is covered by the identity equality.
            Primitive objects should define their own equality.
            Therefore, there are no more cases to handle in this method.

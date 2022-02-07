@@ -214,7 +214,7 @@ simple_table_json =
 
 ## The headers for the columns in the JSON table `here.simple_table_json`.
 simple_table_json_headers : Vector Text
-simple_Table_json_headers = ["foo", "bar", "baz"]
+simple_table_json_headers = ["foo", "bar", "baz"]
 
 ## Some simple GeoJSON.
 geo_json : Enso_Json.Json

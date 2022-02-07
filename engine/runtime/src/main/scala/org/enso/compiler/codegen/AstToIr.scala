@@ -39,13 +39,12 @@ object AstToIr {
     * @param inputAST the [[AST]] representing the program to translate
     * @return the [[IR]] representation of `inputAST`
     */
-  def translate(inputAST: AST): Module = {
+  def translate(inputAST: AST): Module =
     inputAST match {
       case AST.Module.any(inputAST) => translateModule(inputAST)
       case _ =>
         throw new UnhandledEntity(inputAST, "translate")
     }
-  }
 
   /** Translates an inline program expression represented in the parser [[AST]]
     * into the compiler's [[IR]] representation.
@@ -255,21 +254,24 @@ object AstToIr {
         )
       case AST.Comment.any(comment) => translateComment(comment)
       case AstView.TypeAscription(typed, sig) =>
-        typed match {
-          case AST.Ident.any(ident) =>
-            val typeName   = Name.Here(None)
-            val methodName = buildName(ident)
-            val methodReference = Name.MethodReference(
-              typeName,
-              methodName,
-              methodName.location
-            )
+        def buildAscription(ident: AST.Ident): IR.Type.Ascription = {
+          val typeName   = Name.Here(None)
+          val methodName = buildName(ident)
+          val methodReference = Name.MethodReference(
+            typeName,
+            methodName,
+            methodName.location
+          )
 
-            IR.Type.Ascription(
-              methodReference,
-              translateExpression(sig, insideTypeSignature = true),
-              getIdentifiedLocation(inputAst)
-            )
+          IR.Type.Ascription(
+            methodReference,
+            translateExpression(sig, insideTypeSignature = true),
+            getIdentifiedLocation(inputAst)
+          )
+        }
+        typed match {
+          case AST.Ident.any(ident)       => buildAscription(ident)
+          case AST.App.Section.Sides(opr) => buildAscription(opr)
           case AstView.MethodReference(_, _) =>
             IR.Type.Ascription(
               translateMethodReference(typed),
@@ -347,8 +349,13 @@ object AstToIr {
           getIdentifiedLocation(inputAst)
         )
       case AstView.TypeAscription(typed, sig) =>
+        val typedIdent = typed match {
+          case AST.App.Section.Sides(opr) => buildName(opr)
+          case AST.Ident.any(ident)       => buildName(ident)
+          case other                      => translateExpression(other)
+        }
         IR.Type.Ascription(
-          translateExpression(typed),
+          typedIdent,
           translateExpression(sig, insideTypeSignature = true),
           getIdentifiedLocation(inputAst)
         )
@@ -721,6 +728,20 @@ object AstToIr {
     )
   }
 
+  /** Translates an arbitrary expression, making sure to properly recognize
+    * qualified names. Qualified names should, probably, at some point be
+    * handled deeper in the compiler pipeline.
+    */
+  private def translateQualifiedNameOrExpression(arg: AST): IR.Expression =
+    arg match {
+      case AstView.QualifiedName(segments) =>
+        IR.Name.Qualified(
+          segments.map(buildName(_)),
+          getIdentifiedLocation(arg)
+        )
+      case _ => translateExpression(arg)
+    }
+
   /** Translates an argument definition from [[AST]] into [[IR]].
     *
     * @param arg the argument to translate
@@ -738,7 +759,7 @@ object AstToIr {
           case name: IR.Name =>
             DefinitionArgument.Specified(
               name,
-              Some(translateExpression(ascType)),
+              Some(translateQualifiedNameOrExpression(ascType)),
               mValue.map(translateExpression(_)),
               isSuspended,
               getIdentifiedLocation(arg)

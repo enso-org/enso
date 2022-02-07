@@ -20,6 +20,7 @@ import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.node.expression.builtin.InstantiateAtomNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -231,8 +232,7 @@ public final class AtomConstructor implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
+    static Function doResolve(Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
       return symbol.resolveFor(cons, context.getBuiltins().any());
     }
 
@@ -250,8 +250,7 @@ public final class AtomConstructor implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("_this") AtomConstructor cachedConstructor,
-        @Cached("doResolve(context, cachedConstructor, cachedSymbol)")
-            Function function) {
+        @Cached("doResolve(context, cachedConstructor, cachedSymbol)") Function function) {
       return function;
     }
 
@@ -264,6 +263,60 @@ public final class AtomConstructor implements TruffleObject {
       Function function = doResolve(context, _this, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
+      }
+      return function;
+    }
+  }
+
+  @ExportMessage
+  boolean canConvertFrom() {
+    return true;
+  }
+
+  @ExportMessage
+  static class GetConversionFunction {
+    static final int CACHE_SIZE = 10;
+
+    @CompilerDirectives.TruffleBoundary
+    static Function doResolve(
+        Context context,
+        AtomConstructor cons,
+        AtomConstructor target,
+        UnresolvedConversion conversion) {
+      return conversion.resolveFor(target, cons, context.getBuiltins().any());
+    }
+
+    @Specialization(
+        guards = {
+          "!context.isInlineCachingDisabled()",
+          "cachedConversion == conversion",
+          "cachedTarget == target",
+          "_this == cachedConstructor",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
+    static Function resolveCached(
+        AtomConstructor _this,
+        AtomConstructor target,
+        UnresolvedConversion conversion,
+        @CachedContext(Language.class) Context context,
+        @Cached("conversion") UnresolvedConversion cachedConversion,
+        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("_this") AtomConstructor cachedConstructor,
+        @Cached("doResolve(context, cachedConstructor, cachedTarget, cachedConversion)") Function function) {
+      return function;
+    }
+
+    @Specialization(replaces = "resolveCached")
+    static Function resolve(
+        AtomConstructor _this,
+        AtomConstructor target,
+        UnresolvedConversion conversion,
+        @CachedContext(Language.class) Context context)
+        throws MethodDispatchLibrary.NoSuchConversionException {
+      Function function = doResolve(context, _this, target, conversion);
+      if (function == null) {
+        throw new MethodDispatchLibrary.NoSuchConversionException();
       }
       return function;
     }

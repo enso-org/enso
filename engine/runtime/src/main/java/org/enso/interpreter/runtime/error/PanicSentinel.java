@@ -49,4 +49,9 @@ public class PanicSentinel extends AbstractTruffleException {
   boolean hasSpecialDispatch() {
     return true;
   }
+
+  @ExportMessage
+  boolean hasSpecialConversion() {
+    return true;
+  }
 }

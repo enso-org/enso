@@ -1283,8 +1283,9 @@ pad txt len =
    Adds ANSI bold escape sequences to text if the feature is enabled.
 
    Arguments:
+   - enabled: will insert ANSI sequences only if this flag is true and we are not on Windows.
    - txt: The text to possibly bold.
-ansi_bold_enabled : Text -> Text
+ansi_bold : Boolean -> Text -> Text
 ansi_bold enabled txt =
     case Platform.os of
         ## Output formatting for Windows is not currently supported.

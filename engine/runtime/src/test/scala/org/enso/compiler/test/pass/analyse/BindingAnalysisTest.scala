@@ -60,7 +60,7 @@ class BindingAnalysisTest extends CompilerTest {
           |Bar.baz = Baz 1 2 . foo
           |
           |from (_ : Bar) = Foo 0 0 0
-          |from (value : Baz) = Foo value.x value.x value.y
+          |from (that : Baz) = Foo that.x that.x that.y
           |
           |Foo.from (_ : Bar) = undefined
           |
