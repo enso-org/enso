@@ -70,7 +70,11 @@ fn init(app: &Application) {
         .on_frame(move |_| {
             counter += 1;
             if counter % 60 == 0 {
+                // TODO [MC]: retrieve stats via on_stats_available hook once below task is done:
+                // https://www.pivotaltracker.com/story/show/181093832
                 let fps = stats.fps();
+                // TODO [MC]: disable below check once the following task is done:
+                // https://www.pivotaltracker.com/story/show/181093601
                 if fps != old_fps {
                     let mut sample: stats::StatsData = default();
                     sample.fps = fps;
@@ -86,7 +90,6 @@ fn init(app: &Application) {
                     "\n - avg = " summary_fps.map_or(0.0, |s| s.avg)
                     "\n - max = " summary_fps.map_or(0.0, |s| s.max)
                 );
-                // TODO: this makes the scene super slow; can we speed it up?
                 label.frp.set_content(text);
             }
         })
