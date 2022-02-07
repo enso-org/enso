@@ -1,6 +1,6 @@
 # This is the new, in progress, Build Workflow for the Enso Engine.
 
-name: Engine CI V2
+name: Engine CI (new)
 
 on:
   push:
