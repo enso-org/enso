@@ -30,8 +30,11 @@ impl Default for Stats {
 impl Stats {
     /// Starts tracking data for a new animation frame.
     /// Also, calculates the `fps` stat and updates `frame_counter`.
-    pub fn begin_frame(&self, time: f64) {
-        self.rc.borrow_mut().begin_frame(time);
+    /// Returns a snapshot of statistics data for the previous frame.
+    /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
+    /// (this special case can be recognized by checking `frame_counter == 0`).
+    pub fn begin_frame(&self, time: f64) -> StatsData {
+        self.rc.borrow_mut().begin_frame(time)
     }
 
     /// Ends tracking data for the current animation frame.
@@ -43,11 +46,6 @@ impl Stats {
     /// Resets the per-frame statistics.
     pub fn reset_per_frame_statistics(&self) {
         self.rc.borrow_mut().reset_per_frame_statistics();
-    }
-
-    /// Field getter. Returns the ordinal number of the current animation frame.
-    pub fn frame_counter(&self) -> u64 {
-        self.rc.borrow().frame_counter
     }
 }
 
@@ -65,11 +63,13 @@ macro_rules! gen_stats {
 
         // === StatsData ===
 
+        /// Raw data of all the gathered stats.
         #[derive(Debug,Default,Clone,Copy)]
-        struct StatsData {
-            frame_begin_time: f64,
-            frame_counter:    u64,
-            $($field : $field_type),*
+        #[allow(missing_docs)]
+        pub struct StatsData {
+            frame_begin_time:  f64,
+            pub frame_counter: u64,
+            $(pub $field : $field_type),*
         }
 
 
@@ -130,21 +130,18 @@ gen_stats! {
 // === StatsData methods ===
 
 impl StatsData {
-    fn begin_frame(&mut self, time: f64) {
-        self.frame_counter += 1;
-
-        // The check below ensures that on 1st ever frame, we don't try to calculate FPS of the
-        // previous frame (which did not exist).
-        //
-        // BUG: this code carries over a known bug from earlier version of the code, making it not
-        // calculate FPS correctly for any frame when the `time` parameter happens to be `0.0` (or
-        // negative). This bug is planned to be fixed in a later PR as part of:
-        // https://www.pivotaltracker.com/story/show/181140499
-        if self.frame_begin_time > 0.0 {
+    fn begin_frame(&mut self, time: f64) -> StatsData {
+        // See [Stats::begin_frame()] docs for explanation of this check.
+        let previous_frame_snapshot = if self.frame_counter == 0 {
+            default()
+        } else {
             let end_time = time;
             self.fps = 1000.0 / (end_time - self.frame_begin_time);
-        }
+            *self
+        };
+        self.frame_counter += 1;
         self.frame_begin_time = time;
+        previous_frame_snapshot
     }
 
     fn end_frame(&mut self, time: f64) {
