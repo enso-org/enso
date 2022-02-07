@@ -68,21 +68,20 @@ fn init(app: &Application) {
 
     app.display
         .on_frame(move |_| {
-            frame_counter += 1;
+            // TODO [MC]: retrieve stats via on_stats_available hook once the linked task is done:
+            // https://www.pivotaltracker.com/story/show/181093832
+            let fps = stats.fps();
+            // TODO [MC]: remove the `old_fps` check once the linked task is done:
+            // https://www.pivotaltracker.com/story/show/181093601
+            if fps != old_fps {
+                let mut stats_sample: stats::StatsData = default();
+                stats_sample.fps = fps;
+                stats_accumulator.add_sample(&stats_sample);
+                old_fps = fps;
+            }
+            let stats_summary = stats_accumulator.summarize();
+            let fps_summary = stats_summary.map(|s| s.fps);
             if frame_counter % 60 == 0 {
-                // TODO [MC]: retrieve stats via on_stats_available hook once the linked task is done:
-                // https://www.pivotaltracker.com/story/show/181093832
-                let fps = stats.fps();
-                // TODO [MC]: remove the `old_fps` check once the linked task is done:
-                // https://www.pivotaltracker.com/story/show/181093601
-                if fps != old_fps {
-                    let mut stats_sample: stats::StatsData = default();
-                    stats_sample.fps = fps;
-                    stats_accumulator.add_sample(&stats_sample);
-                    old_fps = fps;
-                }
-                let stats_summary = stats_accumulator.summarize();
-                let fps_summary = stats_summary.map(|s| s.fps);
                 let text = iformat!(
                     "Press CTRL-OPTION-TILDE (TILDE is key below ESC) to show Monitor panel"
                     "\n fps = " fps
@@ -92,6 +91,7 @@ fn init(app: &Application) {
                 );
                 label.frp.set_content(text);
             }
+            frame_counter += 1;
         })
         .forget();
 }
