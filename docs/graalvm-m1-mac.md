@@ -32,8 +32,8 @@ version and Java version. Currently, it would be version `21.1.0` with Java 11.
 
 #### Install GraalVM
 
-Go to [GraalVM CE releases](https://github.com/graalvm/graalvm-ce-builds) and download the release
-tarball. Unpack it and install into the system directory:
+Go to [GraalVM CE releases](https://github.com/graalvm/graalvm-ce-builds) and
+download the release tarball. Unpack it and install into the system directory:
 
 ```
 $ tar xzf graalvm-ce-java11-darwin-amd64-21.1.0.tar.gz
