@@ -148,7 +148,7 @@ macro_rules! gen_stats {
             }
 
             /// Calculates a summary of data added into the Accumulator till now. Returns a
-            /// meaningful result only if [`add_sample`] was called at least once.
+            /// non-empty result only if [`add_sample`] was called at least once.
             pub fn summarize(&self) -> Option<Summary> {
                 if self.samples_count == 0 {
                     None
