@@ -226,6 +226,7 @@ impl World {
     ) -> callback::Handle {
         self.on_stats_available.add(move |stats: &StatsData| callback(*stats))
     }
+
     /// Keeps the world alive even when all references are dropped. Use only if you want to keep one
     /// instance of the world forever.
     pub fn keep_alive_forever(&self) {
