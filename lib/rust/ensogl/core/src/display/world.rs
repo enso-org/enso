@@ -218,6 +218,14 @@ impl World {
         self.on_after_frame.add(move |time: &animation::TimeInfo| callback(*time))
     }
 
+    /// Register a callback which should be run when runtime stats of the previous animation frame
+    /// are available.
+    pub fn on_stats_available<F: FnMut(StatsData) + 'static>(
+        &self,
+        mut callback: F,
+    ) -> callback::Handle {
+        self.on_stats_available.add(move |stats: &StatsData| callback(*stats))
+    }
     /// Keeps the world alive even when all references are dropped. Use only if you want to keep one
     /// instance of the world forever.
     pub fn keep_alive_forever(&self) {
