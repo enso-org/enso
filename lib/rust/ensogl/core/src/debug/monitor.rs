@@ -806,16 +806,11 @@ mod tests {
     macro_rules! test_and_advance_frame {
         ($test:expr, $expected_value:expr, $expected_check:path
         ; next: $frame_time:expr, $post_frame_delay:expr) => {
-            // start new frame
-            let prev_frame = $test.stats.begin_frame($test.t);
-
-            // check previous frame's values
-            let value = $test.sampler.value(&prev_frame);
-            assert_approx_eq!(value, $expected_value, 0.001);
-            let check = $test.sampler.check(&prev_frame);
-            assert!(matches!(check, $expected_check));
-
-            // advance till just before next frame
+            let prev_frame_stats = $test.stats.begin_frame($test.t);
+            let tested_value = $test.sampler.value(&prev_frame_stats);
+            let tested_check = $test.sampler.check(&prev_frame_stats);
+            assert_approx_eq!(tested_value, $expected_value, 0.001);
+            assert!(matches!(tested_check, $expected_check));
             $test.t += $frame_time;
             $test.stats.end_frame($test.t);
             $test.t += $post_frame_delay;
