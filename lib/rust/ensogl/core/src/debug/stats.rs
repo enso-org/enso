@@ -312,19 +312,14 @@ mod tests {
                     => min: $min:literal avg: $avg:literal max: $max:literal
             )*
         ) => {
-            // Verify that all checked fields have expected type.
             $(let $field: $type = $sample;)*
-
-            // Add the sample to the accumulator.
-            let stats = StatsData { $($field,)* ..default() };
-            $accumulator.add_sample(&stats);
-
-            // Calculate and check the summary of the data in the accumulator.
-            let summary = $accumulator.summarize().unwrap();
+            let sample_stats = StatsData { $($field,)* ..default() };
+            $accumulator.add_sample(&sample_stats);
+            let tested_summary = $accumulator.summarize().unwrap();
             $(
-                test_with_new_sample!($type, summary.$field.min, $min);
-                test_with_new_sample!(f64, summary.$field.avg, $avg);
-                test_with_new_sample!($type, summary.$field.max, $max);
+                test_with_new_sample!($type, tested_summary.$field.min, $min);
+                test_with_new_sample!(f64, tested_summary.$field.avg, $avg);
+                test_with_new_sample!($type, tested_summary.$field.max, $max);
             )*
         };
 
