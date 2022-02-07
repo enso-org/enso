@@ -50,9 +50,6 @@ object CommandFactory {
       case payload: Api.VerifyModulesIndexRequest =>
         new VerifyModulesIndexCmd(request.requestId, payload)
 
-      case payload: Api.ImportSuggestionRequest =>
-        new ImportSuggestionCmd(request.requestId, payload)
-
       case _: Api.GetTypeGraphRequest =>
         new GetTypeGraphCommand(request.requestId)
 

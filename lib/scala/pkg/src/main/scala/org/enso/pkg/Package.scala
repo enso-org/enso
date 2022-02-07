@@ -224,7 +224,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     edition: Option[Editions.RawEdition] = None,
     authors: List[Contact]               = List(),
     maintainers: List[Contact]           = List(),
-    license: String                      = ""
+    license: String                      = "",
+    componentGroups: ComponentGroups     = ComponentGroups.empty
   ): Package[F] = {
     val config = Config(
       name                 = NameValidation.normalizeName(name),
@@ -234,7 +235,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       authors              = authors,
       edition              = edition,
       preferLocalLibraries = true,
-      maintainers          = maintainers
+      maintainers          = maintainers,
+      componentGroups      = Right(componentGroups)
     )
     create(root, config, template)
   }

@@ -43,7 +43,7 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
             "id":0,
             "result" : {
               "versions" : [
-                {"version": "0.999.0-broken", "markedAsBroken": true},
+                {"version": "0.9999.0-broken", "markedAsBroken": true},
                 {"version": "0.1.0", "markedAsBroken": false},
                 {"version": "0.0.1", "markedAsBroken": false},
                 {"version": "0.0.1-pre", "markedAsBroken": false},
@@ -163,7 +163,7 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
               "method": "engine/install",
               "id": 0,
               "params": {
-                "version": "0.999.0-broken"
+                "version": "0.9999.0-broken"
               }
             }
           """)
@@ -184,7 +184,7 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
               "method": "engine/install",
               "id": 1,
               "params": {
-                "version": "0.999.0-broken",
+                "version": "0.9999.0-broken",
                 "forceInstallBroken": true
               }
             }

@@ -69,13 +69,13 @@ class ModuleThisToHereTest extends CompilerTest {
         |        A -> this * here
         |    z = y -> this + y
         |
-        |from (other : Foo) =
+        |from (that : Foo) =
         |    x = this * this + this
         |    y = case this of
         |        A -> this * here
         |    z = y -> this + y
         |
-        |Foo.from (other : Foo) =
+        |Foo.from (that : Foo) =
         |    x = this * this + this
         |    y = case this of
         |        A -> this * here

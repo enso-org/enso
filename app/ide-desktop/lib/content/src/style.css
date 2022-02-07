@@ -1,0 +1,224 @@
+/* Fonts */
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenThin/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenThin/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 100;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenExtraLight/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenExtraLight/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 200;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenLight/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenLight/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 300;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenRegular/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenRegular/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenMedium/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenMedium/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenSemiBold/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenSemiBold/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenBold/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenBold/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenExtraBold/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenExtraBold/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Causten";
+  src: url("/assets/fonts/CaustenBlack/font.woff2") format("woff2"),
+    url("/assets/fonts/CaustenBlack/font.woff") format("woff");
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+}
+
+/* End of fonts */
+
+html,
+body {
+  height: 100vh;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  position: absolute;
+  overflow: hidden;
+}
+
+.titlebar {
+  width: 100vw;
+  height: 36px;
+  margin: 0;
+  position: absolute;
+  z-index: 10;
+  cursor: none;
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+}
+
+.visualization {
+  z-index: 2;
+  border-radius: 14px;
+  /* visualizations may be put into the fullscreen-vis layer which has pointer-events set to none, so we need to
+       override it */
+  pointer-events: auto;
+}
+
+.auth-header {
+  font-family: sans-serif;
+  text-align: center;
+  margin: 24px auto;
+}
+
+.auth-text {
+  text-align: justify;
+  font-family: sans-serif;
+  color: #454545;
+  width: 50%;
+  margin: 12px auto;
+}
+
+.auth-info {
+  text-align: center;
+  font-family: sans-serif;
+  color: #454545;
+  margin: 24px auto;
+  display: none;
+}
+
+#crash-banner {
+  background: DarkSalmon;
+  color: #2c1007;
+
+  font-family: sans-serif;
+  line-height: 1.5;
+
+  position: absolute;
+
+  /* Put the banner in front of the "root" node which has index 1 */
+  z-index: 2;
+
+  /* Center the banner horizontally */
+  left: 0;
+  right: 0;
+  margin: auto;
+
+  width: fit-content;
+  padding: 1em;
+
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+#crash-banner button {
+  border-radius: 4px;
+  border: none;
+  font: inherit;
+
+  /* Balance padding with negative margin to make the label fit with other text */
+  padding: 2px;
+  margin: -2px;
+
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}
+#crash-banner button:focus {
+  /* Show a 2px outline, following the button's shape, instead of the standard
+    rectangular outline */
+  outline: none;
+  box-shadow: 0 0 0 2px #fbeee9;
+}
+
+#crash-banner #crash-banner-close-button {
+  float: right;
+  margin-left: 0.75em;
+
+  color: #2c1007;
+  background: none;
+}
+#crash-banner #crash-banner-close-button:hover {
+  color: #58210e;
+}
+#crash-banner #crash-banner-close-button:active {
+  color: #843115;
+}
+
+#crash-banner #crash-report-button {
+  float: right;
+  margin-left: 1em;
+
+  color: DarkSalmon;
+  background: #2c1007;
+}
+#crash-banner #crash-report-button:hover {
+  background-color: #58210e;
+}
+#crash-banner #crash-report-button:active {
+  background-color: #843115;
+}
+
+#crash-banner-content {
+  display: inline;
+}
+
+#crash-banner hr {
+  height: 1px;
+  border: none;
+  background: #b96a50;
+  margin: 0.8em -1em;
+}

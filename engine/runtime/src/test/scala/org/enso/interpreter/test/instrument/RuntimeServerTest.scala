@@ -2512,6 +2512,66 @@ class RuntimeServerTest
     )
   }
 
+  it should "return error when method name clashes with atom" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """type Foo
+        |foo = 0
+        |main = 0
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Method definitions with the same name as atoms are not supported. Method foo clashes with the atom Foo in this module.",
+              Some(mainFile),
+              Some(model.Range(model.Position(1, 0), model.Position(1, 7))),
+              None,
+              Vector()
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "return error with a stack trace" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

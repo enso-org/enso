@@ -7,7 +7,7 @@
 // ==============
 
 /// The Enso parser itself.
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Parser;
 
 impl Parser {

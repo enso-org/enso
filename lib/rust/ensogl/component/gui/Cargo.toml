@@ -1,0 +1,17 @@
+[package]
+name = "ensogl-gui-component"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+enso-logger = { path = "../../../logger" }
+ensogl-core = { path = "../../core" }
+
+[dev-dependencies]
+wasm-bindgen-test = { version = "0.3.8" }
+float_eq          = "0.5"

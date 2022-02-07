@@ -1,0 +1,9 @@
+[package]
+name = "analytics"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+js-sys = { version = "0.3.28" }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly", "serde-serialize"] }

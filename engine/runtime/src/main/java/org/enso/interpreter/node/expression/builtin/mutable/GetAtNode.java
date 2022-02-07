@@ -1,8 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Array",
@@ -11,6 +14,11 @@ import org.enso.interpreter.runtime.data.Array;
 public class GetAtNode extends Node {
 
   Object execute(Array _this, long index) {
-    return _this.getItems()[(int) index];
+    try {
+      return _this.getItems()[(int) index];
+    } catch (IndexOutOfBoundsException exception) {
+      Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+      throw new PanicException(builtins.error().makeInvalidArrayIndexError(_this, index), this);
+    }
   }
 }

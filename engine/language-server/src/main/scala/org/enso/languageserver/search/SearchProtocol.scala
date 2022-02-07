@@ -60,6 +60,14 @@ object SearchProtocol {
           )
           .dropNullValues
 
+      case conversion: Suggestion.Conversion =>
+        Encoder[Suggestion.Method]
+          .apply(conversionToMethod(conversion))
+          .deepMerge(
+            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+          )
+          .dropNullValues
+
       case function: Suggestion.Function =>
         Encoder[Suggestion.Function]
           .apply(function)
@@ -74,6 +82,29 @@ object SearchProtocol {
           .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Local.asJson))
           .dropNullValues
     }
+
+  private def conversionToMethod(
+    conversion: Suggestion.Conversion
+  ): Suggestion.Method = {
+    val arg = Suggestion.Argument(
+      Suggestion.Kind.Conversion.From,
+      conversion.sourceType,
+      false,
+      false,
+      None
+    )
+    Suggestion.Method(
+      conversion.externalId,
+      conversion.module,
+      Suggestion.Kind.Conversion.From,
+      arg +: conversion.arguments,
+      conversion.returnType,
+      conversion.returnType,
+      conversion.documentation,
+      conversion.documentationHtml,
+      conversion.reexport
+    )
+  }
 
   implicit val suggestionDecoder: Decoder[Suggestion] =
     Decoder.instance { cursor =>
@@ -280,6 +311,9 @@ object SearchProtocol {
     /** A method suggestion. */
     case object Method extends SuggestionKind
 
+    /** A conversion suggestion. */
+    case object Conversion extends SuggestionKind
+
     /** A function suggestion. */
     case object Function extends SuggestionKind
 
@@ -295,11 +329,12 @@ object SearchProtocol {
       */
     def apply(kind: Suggestion.Kind): SuggestionKind =
       kind match {
-        case Suggestion.Kind.Module   => Module
-        case Suggestion.Kind.Atom     => Atom
-        case Suggestion.Kind.Method   => Method
-        case Suggestion.Kind.Function => Function
-        case Suggestion.Kind.Local    => Local
+        case Suggestion.Kind.Module     => Module
+        case Suggestion.Kind.Atom       => Atom
+        case Suggestion.Kind.Method     => Method
+        case Suggestion.Kind.Conversion => Conversion
+        case Suggestion.Kind.Function   => Function
+        case Suggestion.Kind.Local      => Local
       }
 
     /** Convert from API kind to [[Suggestion.Kind]]
@@ -309,11 +344,12 @@ object SearchProtocol {
       */
     def toSuggestion(kind: SuggestionKind): Suggestion.Kind =
       kind match {
-        case Module   => Suggestion.Kind.Module
-        case Atom     => Suggestion.Kind.Atom
-        case Method   => Suggestion.Kind.Method
-        case Function => Suggestion.Kind.Function
-        case Local    => Suggestion.Kind.Local
+        case Module     => Suggestion.Kind.Module
+        case Atom       => Suggestion.Kind.Atom
+        case Method     => Suggestion.Kind.Method
+        case Conversion => Suggestion.Kind.Conversion
+        case Function   => Suggestion.Kind.Function
+        case Local      => Suggestion.Kind.Local
       }
   }
 
@@ -412,18 +448,6 @@ object SearchProtocol {
     * @param results the list of suggestion ids matched the search query
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
-
-  /** The request returning the info about the suggestion import.
-    *
-    * @param id the requested suggestion id
-    */
-  case class Import(id: SuggestionId)
-
-  /** The request returning the info about the suggestion import.
-    *
-    * @param suggestion the requested suggestion
-    */
-  case class ImportSuggestion(suggestion: Suggestion)
 
   /** Base trait for export statements. */
   sealed trait Export {

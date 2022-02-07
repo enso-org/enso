@@ -85,8 +85,8 @@ class OverloadsResolutionTest extends CompilerTest {
 
     "allow overloads on the source type" in {
       val ir =
-        """Unit.from (value : Integer) = undefined
-          |Unit.from (value : Boolean) = undefined
+        """Unit.from (that : Integer) = undefined
+          |Unit.from (that : Boolean) = undefined
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
@@ -96,9 +96,9 @@ class OverloadsResolutionTest extends CompilerTest {
 
     "raise an error if there are multiple definitions with the same source type" in {
       val ir =
-        """Unit.from (value : Integer) = undefined
-          |Unit.from (value : Boolean) = undefined
-          |Unit.from (value : Boolean) = undefined
+        """Unit.from (that : Integer) = undefined
+          |Unit.from (that : Boolean) = undefined
+          |Unit.from (that : Boolean) = undefined
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
@@ -135,6 +135,35 @@ class OverloadsResolutionTest extends CompilerTest {
         .asInstanceOf[IR.Error.Redefined.Atom]
         .atomName
         .name shouldEqual atomName
+    }
+  }
+
+  "Atom overloads method resolution" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val atomName   = "Foo"
+    val methodName = atomName.toLowerCase
+
+    val ir =
+      s"""|
+          |type $atomName
+          |$methodName = 0
+          |Unit.$methodName = 1
+          |""".stripMargin.preprocessModule.resolve
+
+    "detect overloads within a given module" in {
+      exactly(1, ir.bindings) shouldBe an[
+        IR.Error.Redefined.MethodClashWithAtom
+      ]
+    }
+
+    "replace all overloads by an error node" in {
+      ir.bindings(1) shouldBe an[IR.Error.Redefined.MethodClashWithAtom]
+      ir.bindings(1)
+        .asInstanceOf[IR.Error.Redefined.MethodClashWithAtom]
+        .methodName
+        .name shouldEqual methodName
+      ir.bindings(2) shouldBe an[IR.Module.Scope.Definition.Method.Explicit]
     }
   }
 

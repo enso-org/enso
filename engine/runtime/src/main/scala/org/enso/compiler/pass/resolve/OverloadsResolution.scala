@@ -74,11 +74,21 @@ case object OverloadsResolution extends IRPass {
         IR.Error.Redefined
           .Method(method.typeName, method.methodName, method.location)
       } else {
-        val currentMethods = seenMethods(method.typeName.name)
-        seenMethods = seenMethods + (method.typeName.name ->
-        (currentMethods + method.methodName.name))
+        atoms.find(_.name.name.equalsIgnoreCase(method.methodName.name)) match {
+          case Some(clashedAtom)
+              if method.typeName.isInstanceOf[IR.Name.Here] =>
+            IR.Error.Redefined.MethodClashWithAtom(
+              clashedAtom.name,
+              method.methodName,
+              method.location
+            )
+          case _ =>
+            val currentMethods = seenMethods(method.typeName.name)
+            seenMethods = seenMethods + (method.typeName.name ->
+            (currentMethods + method.methodName.name))
 
-        method
+            method
+        }
       }
     })
 
@@ -104,8 +114,12 @@ case object OverloadsResolution extends IRPass {
         }
     }
 
+    val diagnostics = ir.bindings.collect {
+      case diag: IR.Diagnostic => diag
+    }
+
     ir.copy(
-      bindings = newAtoms ::: newMethods ::: conversions
+      bindings = newAtoms ::: newMethods ::: conversions ::: diagnostics
     )
   }
 

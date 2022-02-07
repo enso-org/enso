@@ -56,7 +56,7 @@ class ProgrammableWebSocketServer(interface: String, port: Int)(implicit
   def start(): Unit = {
     val binding =
       Await.result(
-        Http().bindAndHandle(websocketRoute, interface, port),
+        Http().newServerAt(interface, port).bind(websocketRoute),
         3.seconds.dilated
       )
     maybeBinding = Some(binding)

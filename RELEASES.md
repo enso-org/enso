@@ -1,5 +1,21 @@
 # Enso Next
 
+## Tooling
+
+- Added the `enso install dependencies` command to the launcher which installs
+  any project dependencies, ensuring that `enso run` will not need to download
+  any libraries ([#1981](https://github.com/enso-org/enso/pull/1981)).
+  Additionally, made the `library/preinstall` endpoint able to install any
+  transitive dependencies of the library.
+- Updated the Scala compiler and dependencies
+  ([#3214](https://github.com/enso-org/enso/pull/3214)).
+
+## Interpreter/Runtime
+
+- Added support for overloaded conversions. This allows the `from` method to be
+  implemented with several overloads.
+  ([#3227](https://github.com/enso-org/enso/pull/3227))
+
 ## Enso 0.2.31 (2021-10-01)
 
 ## Interpreter/Runtime

@@ -442,11 +442,12 @@ class EnsureCompiledJob(protected val files: Iterable[File])
 
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
     suggestion match {
-      case _: Suggestion.Module   => true
-      case _: Suggestion.Atom     => true
-      case _: Suggestion.Method   => true
-      case _: Suggestion.Function => false
-      case _: Suggestion.Local    => false
+      case _: Suggestion.Module     => true
+      case _: Suggestion.Atom       => true
+      case _: Suggestion.Method     => true
+      case _: Suggestion.Conversion => true
+      case _: Suggestion.Function   => false
+      case _: Suggestion.Local      => false
     }
 
   private def getCompilationStatus(
