@@ -712,6 +712,20 @@ impl PanelData {
 /// discover more.
 macro_rules! stats_sampler {
     ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    , $precision:expr, $value_divisor:expr) => {
+        stats_sampler!(
+            $label,
+            $name,
+            $stats_field,
+            $warn_threshold,
+            $err_threshold,
+            $precision,
+            $value_divisor,
+            None
+        );
+    };
+
+    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
     , $precision:expr, $value_divisor:expr, $max_value:expr) => {
         /// Sampler implementation.
         #[derive(Copy, Clone, Debug, Default)]
@@ -751,44 +765,17 @@ macro_rules! stats_sampler {
 const MB: f64 = (1024 * 1024) as f64;
 
 stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0, Some(60.0));
-stats_sampler!(
-    "Frame time (ms)",
-    FrameTime,
-    frame_time,
-    1000.0 / 55.0,
-    1000.0 / 25.0,
-    2,
-    1.0,
-    None
-);
-stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB, None);
-stats_sampler!(
-    "GPU memory usage (Mb)",
-    GpuMemoryUsage,
-    gpu_memory_usage,
-    100.0,
-    500.0,
-    2,
-    MB,
-    None
-);
-stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Data upload count", DataUploadCount, data_upload_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Data upload size (Mb)", DataUploadSize, data_upload_size, 1.0, 10.0, 2, MB, None);
-stats_sampler!(
-    "Sprite system count",
-    SpriteSystemCount,
-    sprite_system_count,
-    100.0,
-    500.0,
-    0,
-    1.0,
-    None
-);
-stats_sampler!("Symbol count", SymbolCount, symbol_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Sprite count", SpriteCount, sprite_count, 100_000.0, 500_000.0, 0, 1.0, None);
-stats_sampler!("Shader count", ShaderCount, shader_count, 100.0, 500.0, 0, 1.0, None);
+stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
+stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
+stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
+stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Data upload count", DataUploadCount, data_upload_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Data upload size (Mb)", DataUploadSize, data_upload_size, 1.0, 10.0, 2, MB);
+stats_sampler!("Sprite system count", SpriteSystemCount, sprite_system_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Symbol count", SymbolCount, symbol_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Sprite count", SpriteCount, sprite_count, 100_000.0, 500_000.0, 0, 1.0);
+stats_sampler!("Shader count", ShaderCount, shader_count, 100.0, 500.0, 0, 1.0);
 stats_sampler!(
     "Shader compile count",
     ShaderCompileCount,
@@ -796,8 +783,7 @@ stats_sampler!(
     10.0,
     100.0,
     0,
-    1.0,
-    None
+    1.0
 );
 
 #[cfg(test)]
