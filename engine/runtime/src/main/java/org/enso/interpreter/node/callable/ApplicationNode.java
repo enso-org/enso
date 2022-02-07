@@ -20,7 +20,6 @@ import org.enso.interpreter.runtime.state.Stateful;
  */
 @NodeInfo(shortName = "App", description = "Executes function")
 public class ApplicationNode extends ExpressionNode {
-
   private @Children ExpressionNode[] argExpressions;
 
   @Child private InvokeCallableNode invokeCallableNode;

@@ -1,18 +1,16 @@
 package org.enso.interpreter.runtime.scope;
 
+import com.google.common.base.Joiner;
 import com.oracle.truffle.api.CompilerDirectives;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
+import org.enso.interpreter.runtime.error.RedefinedConversionException;
 
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope implements TruffleObject {
@@ -21,6 +19,7 @@ public class ModuleScope implements TruffleObject {
   private Map<String, Object> polyglotSymbols = new HashMap<>();
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
+  private Map<AtomConstructor, Map<AtomConstructor, Function>> conversions = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
   private Set<ModuleScope> exports = new HashSet<>();
 
@@ -124,6 +123,43 @@ public class ModuleScope implements TruffleObject {
   }
 
   /**
+   * Returns a list of the conversion methods defined in this module for a given constructor.
+   *
+   * @param cons the constructor for which method map is requested
+   * @return a list containing all the defined conversions in definition order
+   */
+  private Map<AtomConstructor,Function> ensureConversionsFor(AtomConstructor cons) {
+    //var methods = ensureMethodMapFor(cons);
+    //methods.
+    return conversions.computeIfAbsent(cons, k -> new HashMap<>());
+  }
+
+  private Map<AtomConstructor, Function> getConversionsFor(AtomConstructor cons) {
+    Map<AtomConstructor, Function> result = conversions.get(cons);
+    if (result == null) {
+      return new HashMap<>();
+    }
+    return result;
+  }
+
+
+  /**
+   * Registers a conversion method for a given type
+   *
+   * @param toType type the conversion was defined to
+   * @param fromType type the conversion was defined from
+   * @param function the {@link Function} associated with this definition
+   */
+  public void registerConversionMethod(AtomConstructor toType, AtomConstructor fromType, Function function) {
+    Map<AtomConstructor, Function> sourceMap = ensureConversionsFor(toType);
+    if (sourceMap.containsKey(fromType)) {
+      throw new RedefinedConversionException(toType.getName(), fromType.getName());
+    } else {
+      sourceMap.put(fromType, function);
+    }
+  }
+
+  /**
    * Registers a new symbol in the polyglot namespace.
    *
    * @param name the name of the symbol
@@ -172,6 +208,24 @@ public class ModuleScope implements TruffleObject {
         .orElse(null);
   }
 
+  @CompilerDirectives.TruffleBoundary
+  public Function lookupConversionDefinition(AtomConstructor atom, AtomConstructor target) {
+    Function definedWithAtom = atom.getDefinitionScope().getConversionsFor(target).get(atom);
+    if (definedWithAtom != null) {
+      return definedWithAtom;
+    }
+    Function definedHere = getConversionsFor(target).get(atom);
+    if (definedHere != null) {
+      return definedHere;
+    }
+    return imports.stream()
+            .map(scope -> scope.getExportedConversion(atom, target))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+
+  }
+
   private Function getExportedMethod(AtomConstructor atom, String name) {
     Function here = getMethodMapFor(atom).get(name);
     if (here != null) {
@@ -182,6 +236,18 @@ public class ModuleScope implements TruffleObject {
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
+  }
+
+  private Function getExportedConversion(AtomConstructor atom, AtomConstructor target) {
+    Function here = getConversionsFor(target).get(atom);
+    if (here != null) {
+      return here;
+    }
+    return exports.stream()
+            .map(scope -> scope.getConversionsFor(target).get(atom))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
   }
 
   /**
@@ -211,6 +277,11 @@ public class ModuleScope implements TruffleObject {
     return methods;
   }
 
+  /** @return the raw conversions map held by this module */
+  public Map<AtomConstructor, Map<AtomConstructor, Function>> getConversions() {
+    return conversions;
+  }
+
   /** @return the polyglot symbols imported into this scope. */
   public Map<String, Object> getPolyglotSymbols() {
     return polyglotSymbols;
@@ -221,6 +292,7 @@ public class ModuleScope implements TruffleObject {
     exports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
+    conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
   }
 }
