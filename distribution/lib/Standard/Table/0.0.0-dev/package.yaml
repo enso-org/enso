@@ -1,6 +1,6 @@
-name: Geo
+name: Table
 namespace: Standard
-version: 0.2.32-SNAPSHOT
+version: 0.0.0-dev
 license: APLv2
 authors:
   - name: Enso Team

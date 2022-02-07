@@ -15,12 +15,22 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion  = "2.13.7"
-val graalVersion   = "21.1.0"
-val javaVersion    = "11"
-val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
-val currentEdition = "2021.20-SNAPSHOT" // Note [Default Editions]
-val stdLibVersion  = ensoVersion
+val scalacVersion         = "2.13.7"
+val graalVersion          = "21.1.0"
+val javaVersion           = "11"
+val defaultDevEnsoVersion = "0.0.0-dev"
+val ensoVersion = sys.env.getOrElse(
+  "ENSO_VERSION",
+  defaultDevEnsoVersion
+) // Note [Engine And Launcher Version]
+val currentEdition = sys.env.getOrElse(
+  "ENSO_EDITION",
+  defaultDevEnsoVersion
+) // Note [Default Editions]
+
+// Note [Stdlib Version]
+val stdLibVersion       = defaultDevEnsoVersion
+val targetStdlibVersion = ensoVersion
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,6 +52,16 @@ val stdLibVersion  = ensoVersion
  *
  * In the future we may automate generating this edition number when cutting a
  * release.
+ */
+
+/* Note [Stdlib Version]
+ * ~~~~~~~~~~~~~~~~~~~~~
+ * The `stdlibVersion` variable stores the version at which standard library is
+ * stored within the source tree, which is currently set to a constant of
+ * `0.0.0-dev`.
+ *
+ * When distributions are built, the library versions are updated to match the
+ * current Enso version.
  */
 
 ThisBuild / organization := "org.enso"
@@ -247,7 +267,6 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
-    `stdlib-version-updater`,
     syntax.jvm,
     testkit
   )
@@ -748,8 +767,7 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           ensoVersion    = ensoVersion,
           scalacVersion  = scalacVersion,
           graalVersion   = graalVersion,
-          currentEdition = currentEdition,
-          stdLibVersion  = stdLibVersion
+          currentEdition = currentEdition
         )
     }.taskValue
   )
@@ -1378,6 +1396,7 @@ lazy val editions = project
       .dependsOn(
         Def.task {
           Editions.writeEditionConfig(
+            editionsRoot   = file("distribution") / "editions",
             ensoVersion    = ensoVersion,
             editionName    = currentEdition,
             libraryVersion = stdLibVersion,
@@ -1469,13 +1488,6 @@ lazy val `connected-lock-manager` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(`polyglot-api`)
   .dependsOn(testkit % Test)
-
-lazy val `stdlib-version-updater` = project
-  .in(file("lib/scala/stdlib-version-updater"))
-  .configs(Test)
-  .dependsOn(`version-output`)
-  .dependsOn(pkg)
-  .dependsOn(cli)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
@@ -1710,11 +1722,15 @@ buildEngineDistribution := {
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
   DistributionPackage.createEnginePackage(
-    distributionRoot = root,
-    cacheFactory     = cacheFactory,
-    graalVersion     = graalVersion,
-    javaVersion      = javaVersion,
-    stdlibVersion    = stdLibVersion
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    graalVersion        = graalVersion,
+    javaVersion         = javaVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion
   )
   log.info(s"Engine package created at $root")
 }
