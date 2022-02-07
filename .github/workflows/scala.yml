@@ -123,11 +123,6 @@ jobs:
           sleep 1
           sbt --no-colors bootstrap
 
-      - name: Verify the Stdlib Version
-        run: |
-          sleep 1
-          sbt --no-colors "stdlib-version-updater/run check"
-
       # Compile
       - name: Build Enso
         run: |

@@ -267,7 +267,6 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
-    `stdlib-version-updater`,
     syntax.jvm,
     testkit
   )
@@ -1489,13 +1488,6 @@ lazy val `connected-lock-manager` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(`polyglot-api`)
   .dependsOn(testkit % Test)
-
-lazy val `stdlib-version-updater` = project
-  .in(file("lib/scala/stdlib-version-updater"))
-  .configs(Test)
-  .dependsOn(`version-output`)
-  .dependsOn(pkg)
-  .dependsOn(cli)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
