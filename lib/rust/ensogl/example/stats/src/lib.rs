@@ -64,26 +64,31 @@ fn init(app: &Application) {
     let stats = app.display.scene().stats.clone();
     let mut stats_accumulator: stats::Accumulator = default();
     let mut old_fps = stats.fps();
+    let mut counter: usize = 0;
 
     app.display
         .on_frame(move |_| {
-            let fps = stats.fps();
-            if fps != old_fps {
-                let mut sample: stats::StatsData = default();
-                sample.fps = fps;
-                stats_accumulator.add_sample(&sample);
-                old_fps = fps;
+            counter += 1;
+            if counter % 60 == 0 {
+                let fps = stats.fps();
+                if fps != old_fps {
+                    let mut sample: stats::StatsData = default();
+                    sample.fps = fps;
+                    stats_accumulator.add_sample(&sample);
+                    old_fps = fps;
+                }
+                let summary = stats_accumulator.summarize();
+                let summary_fps = summary.map(|s| s.fps);
+                let text = iformat!(
+                    "Press CTRL-OPTION-TILDE (TILDE is key below ESC) to show Monitor panel"
+                    "\n fps = " fps
+                    "\n - min = " summary_fps.map_or(0.0, |s| s.min)
+                    "\n - avg = " summary_fps.map_or(0.0, |s| s.avg)
+                    "\n - max = " summary_fps.map_or(0.0, |s| s.max)
+                );
+                // TODO: this makes the scene super slow; can we speed it up?
+                label.frp.set_content(text);
             }
-            let summary = stats_accumulator.summarize();
-            let summary_fps = summary.map(|s| s.fps);
-            let text = iformat!(
-                "Press CTRL-OPTION-TILDE (TILDE is key below ESC) to show Monitor panel"
-                "\n fps = " fps
-                "\n - min = " summary_fps.map_or(0.0, |s| s.min)
-                "\n - avg = " summary_fps.map_or(0.0, |s| s.avg)
-                "\n - max = " summary_fps.map_or(0.0, |s| s.max)
-            );
-            label.frp.set_content(text);
         })
         .forget();
 }
