@@ -36,7 +36,7 @@ ensogl-example-text-area = { path = "text-area" }
 #ensogl-text-msdf-sys = { path = "../component/text/msdf-sys" }
 #ensogl-hardcoded-theme = { path = "../app/theme/hardcoded" }
 #ensogl-drop-manager = { path = "../component/drop-manager" }
-#wasm-bindgen = { version = "=0.2.58", features = [
+#wasm-bindgen = { version = "0.2.58", features = [
 #  "nightly",
 #  "serde-serialize"
 #] }
