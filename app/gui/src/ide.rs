@@ -35,6 +35,7 @@ const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 ///
 /// This structure is a root of all objects in our application. It includes both layers:
 /// Controllers and Views, and an integration between them.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Ide {
     pub ensogl_app: ensogl::application::Application,
@@ -85,6 +86,16 @@ impl Ide {
         }
     }
 }
+
+/// A reduced version of [`Ide`] structure, representing an application which failed to initialize.
+///
+/// It contains only the view displaying the error. No connection to the backend is maintained.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct FailedIde {
+    pub view: ide_view::root::View,
+}
+
 
 /// The Path of the module initially opened after opening project in IDE.
 pub fn initial_module_path(project: &model::Project) -> FallibleResult<model::module::Path> {

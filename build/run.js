@@ -256,17 +256,21 @@ commands['integration-test'].rust = async function(argv) {
     if (argv.backend !== 'false') {
         process = await build_project_manager().then(run_project_manager)
     }
-    console.log(`Running Rust WASM test suite.`)
-    let args = [
-        'test',
-        '--headless',
-        '--chrome',
-        'integration-test',
-    ]
-    await run_cargo('wasm-pack', args)
-    console.log(`Shutting down Project Manager`)
-    if (process !== null) {
-        process.kill()
+    try {
+        console.log(`Running Rust WASM test suite.`)
+        let args = [
+            'test',
+//            '--headless',
+            '--chrome',
+            'integration-test',
+            '--profile=integration-test'
+        ]
+        await run_cargo('wasm-pack', args)
+    } finally {
+        console.log(`Shutting down Project Manager`)
+        if (process !== null) {
+            process.kill()
+        }
     }
 }
 

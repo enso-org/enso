@@ -228,7 +228,13 @@ impl Presenter {
             }
         });
     }
+}
 
+
+// === Getters ===
+
+#[allow(missing_docs)]
+impl Presenter {
     pub fn view(&self) -> &view::root::View {
         &self.model.view
     }

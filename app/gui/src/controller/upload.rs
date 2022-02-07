@@ -706,8 +706,8 @@ mod test {
     fn data_dir_attributes() -> FileAttributes {
         let dummy_time = UTCDateTime::parse_from_rfc3339("1996-12-19T16:39:57-08:00").unwrap();
         FileAttributes {
-            creation_time:      dummy_time.clone(),
-            last_access_time:   dummy_time.clone(),
+            creation_time:      dummy_time,
+            last_access_time:   dummy_time,
             last_modified_time: dummy_time,
             kind:               FileSystemObject::Directory {
                 name: DATA_DIR_NAME.to_owned(),

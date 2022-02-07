@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::config;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
+use crate::FailedIde;
 
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
@@ -49,12 +50,6 @@ pub struct Initializer {
     logger: Logger,
 }
 
-#[derive(Debug)]
-pub struct FailedIde {
-    view: ide_view::root::View,
-}
-
-
 impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config: config::Startup) -> Self {
@@ -76,6 +71,7 @@ impl Initializer {
         std::mem::forget(executor);
     }
 
+    /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
     pub async fn start(self) -> Result<Ide, FailedIde> {
         info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 

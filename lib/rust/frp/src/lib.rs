@@ -171,6 +171,7 @@ pub mod stream;
 pub use network::*;
 pub use node::*;
 pub use nodes::*;
+pub use traits::*;
 
 pub use enso_web as web;
 pub use stream::Stream;
@@ -180,6 +181,10 @@ pub mod prelude {
     pub use enso_logger::WarningLogger as Logger;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+}
+
+mod traits {
+    pub use crate::future::EventOutputExt as TRAIT_FutureEventOutputExt;
 }
 
 
@@ -268,7 +273,7 @@ mod dynamic_mode_tests {
             def toggle_src = source::<()>();
             def map_src    = source::<()>();
             def toggle     = toggle_src.toggle_true();
-            def _map       = map_src.map2(&toggle,|_,value| assert_eq!(*value,true));
+            def _map       = map_src.map2(&toggle,|_,value| assert!(*value));
         }
         map_src.emit(());
     }
@@ -279,7 +284,7 @@ mod dynamic_mode_tests {
             def toggle_src = source::<()>();
             def map_src    = source::<()>();
             def toggle     = toggle_src.toggle();
-            def _map       = map_src.map2(&toggle,|_,value| assert_eq!(*value,true));
+            def _map       = map_src.map2(&toggle,|_,value| assert!(*value));
         }
         toggle_src.emit(());
         map_src.emit(());
@@ -302,7 +307,7 @@ mod dynamic_mode_tests {
             behavior.emit(val);
             some_event.emit(());
         }
-        let true_count = input.iter().filter(|&&val| val == true).count();
+        let true_count = input.iter().filter(|&&val| val).count();
         assert_eq!(passed_events.get(), true_count);
     }
 
@@ -311,9 +316,9 @@ mod dynamic_mode_tests {
         let passed_events = Rc::new(Cell::new(0));
         frp::new_network! { network
             source   <- source::<bool>();
-            filtered <- source.filter(|&value| value == true);
+            filtered <- source.filter(|&value| value);
             eval filtered ([passed_events](&value) {
-                assert_eq!(value,true);
+                assert!(value);
                 passed_events.set(passed_events.get() + 1);
             });
         };
@@ -322,7 +327,7 @@ mod dynamic_mode_tests {
         for val in input {
             source.emit(*val);
         }
-        let true_count = input.iter().filter(|&&val| val == true).count();
+        let true_count = input.iter().filter(|&&val| val).count();
         assert_eq!(passed_events.get(), true_count);
     }
 
@@ -339,7 +344,7 @@ mod dynamic_mode_tests {
         for val in input {
             source.emit(*val);
         }
-        let true_count = input.iter().filter(|&&val| val == true).count();
+        let true_count = input.iter().filter(|&&val| val).count();
         assert_eq!(passed_events.get(), true_count);
     }
 }

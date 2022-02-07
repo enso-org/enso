@@ -10,7 +10,6 @@
 use crate::prelude::*;
 
 use crate::data::watch;
-use crate::future::FutureEvent;
 use crate::network::*;
 use crate::node::*;
 use crate::stream;
@@ -46,13 +45,6 @@ impl Network {
         T: EventOutput<Output = Out>,
         Out: Data, {
         self.register_raw(OwnedSampler::new(label, src))
-    }
-
-    pub fn future<T, Out>(&self, label: Label, src: &T) -> Future<Out>
-    where
-        T: EventOutput<Output = Out>,
-        Out: Data, {
-        self.register_raw(OwnedFuture::new(label, src))
     }
 
     /// Print the incoming events to console and pass them to output.
@@ -1548,57 +1540,6 @@ impl<Out: Data> Sampler<Out> {
 impl<Out: Data> stream::EventConsumer<Out> for OwnedSampler<Out> {
     fn on_event(&self, stack: CallStack, event: &Out) {
         *self.value.borrow_mut() = event.clone();
-        self.emit_event(stack, event);
-    }
-}
-
-
-
-// ===============
-// === Sampler ===
-// ===============
-
-#[derive(Debug)]
-pub struct FutureData<Out = ()> {
-    #[allow(dead_code)]
-    /// This is not accessed in this implementation but it needs to be kept so the source struct
-    /// stays alive at least as long as this struct.
-    src:               Box<dyn std::any::Any>,
-    pub(crate) value:  Rc<RefCell<Option<Out>>>,
-    pub(crate) wakers: RefCell<SmallVec<[std::task::Waker; 1]>>,
-}
-pub type OwnedFuture<Out = ()> = stream::Node<FutureData<Out>>;
-pub type Future<Out = ()> = stream::WeakNode<FutureData<Out>>;
-
-impl<Out: Data> HasOutput for FutureData<Out> {
-    type Output = Out;
-}
-
-impl<Out: Data> OwnedFuture<Out> {
-    /// Constructor.
-    pub fn new<T1>(label: Label, src1: &T1) -> Self
-    where T1: EventOutput<Output = Out> {
-        let src = Box::new(src1.clone_ref());
-        let value = default();
-        let wakers = default();
-        let definition = FutureData { src, value, wakers };
-        Self::construct_and_connect(label, src1, definition)
-    }
-}
-
-impl<Out: Data> Future<Out> {
-    /// Sample the value.
-    pub fn next_value(&self) -> FutureEvent<Out> {
-        FutureEvent::new(self.clone_ref())
-    }
-}
-
-impl<Out: Data> stream::EventConsumer<Out> for OwnedFuture<Out> {
-    fn on_event(&self, stack: CallStack, event: &Out) {
-        *self.value.borrow_mut() = Some(event.clone());
-        for waker in self.wakers.take() {
-            waker.wake()
-        }
         self.emit_event(stack, event);
     }
 }

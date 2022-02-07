@@ -35,3 +35,7 @@ opt-level = 0
 lto = false
 debug = true
 debug-assertions = true
+
+[profile.integration-test]
+inherits = "test"
+opt-level = 2
