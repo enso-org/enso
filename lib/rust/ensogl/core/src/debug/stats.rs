@@ -301,30 +301,25 @@ mod tests {
     use super::*;
 
     use assert_approx_eq::assert_approx_eq;
-    use num_traits::cast::AsPrimitive;
 
-    fn check_min_avg_max<T: AsPrimitive<f64>>(
-        summary: ValueSummary<T>,
-        min: f64,
-        avg: f64,
-        max: f64,
-    ) {
-        assert_approx_eq!(AsPrimitive::<f64>::as_(summary.min), min);
-        assert_approx_eq!(AsPrimitive::<f64>::as_(summary.avg), avg);
-        assert_approx_eq!(AsPrimitive::<f64>::as_(summary.max), max);
-    }
 
-    macro_rules! test_extra_sample {
+
+    macro_rules! test_with_new_sample {
         ($accumulator:expr; $($field:ident : $type:tt = $sample:literal
         => min: $min:literal avg: $avg:literal max: $max:literal)*) => {
+            // Verify that all checked fields have expected type.
             $(let $field: $type = $sample;)*
+
+            // Add the sample to the accumulator.
             let stats = StatsData { $($field,)* ..default() };
             $accumulator.add_sample(&stats);
+
+            // Calculate and check the summary of the data in the accumulator.
             let summary = $accumulator.summarize().unwrap();
             $(
-                test_extra_sample!($type, summary.$field.min, $min);
-                test_extra_sample!(f64, summary.$field.avg, $avg);
-                test_extra_sample!($type, summary.$field.max, $max);
+                test_with_new_sample!($type, summary.$field.min, $min);
+                test_with_new_sample!(f64, summary.$field.avg, $avg);
+                test_with_new_sample!($type, summary.$field.max, $max);
             )*
         };
 
@@ -342,17 +337,17 @@ mod tests {
         let mut accumulator: Accumulator = default();
         assert!(matches!(accumulator.summarize(), None));
 
-        test_extra_sample!(accumulator;
+        test_with_new_sample!(accumulator;
             fps:               f64   = 55.0 => min: 55.0 avg: 55.0   max: 55.0
             wasm_memory_usage: u32   = 1000 => min: 1000 avg: 1000.0 max: 1000
             buffer_count:      usize = 3    => min: 3    avg: 3.0    max: 3
         );
-        test_extra_sample!(accumulator;
+        test_with_new_sample!(accumulator;
             fps:               f64   = 57.0 => min: 55.0 avg: 56.0   max: 57.0
             wasm_memory_usage: u32   = 2000 => min: 1000 avg: 1500.0 max: 2000
             buffer_count:      usize = 2    => min: 2    avg: 2.5    max: 3
         );
-        test_extra_sample!(accumulator;
+        test_with_new_sample!(accumulator;
             fps:               f64   = 56.0 => min: 55.0 avg: 56.0   max: 57.0
             wasm_memory_usage: u32   = 3000 => min: 1000 avg: 2000.0 max: 3000
             buffer_count:      usize = 1    => min: 1    avg: 2.0    max: 3
