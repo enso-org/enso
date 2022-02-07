@@ -83,7 +83,7 @@ fn init(app: &Application) {
             let fps_summary = stats_summary.map(|s| s.fps);
             if frame_counter % 60 == 0 {
                 let text = iformat!(
-                    "Press CTRL-OPTION-TILDE (TILDE is key below ESC) to show Monitor panel"
+                    "Press CTRL-OPTION-TILDE (TILDE is the key below ESC) to show Monitor panel"
                     "\n fps = " fps
                     "\n - min = " fps_summary.map_or(0.0, |s| s.min)
                     "\n - avg = " fps_summary.map_or(0.0, |s| s.avg)
