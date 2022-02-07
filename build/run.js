@@ -115,7 +115,7 @@ commands.clean.rust = async function () {
 
 commands.check = command(`Fast check if project builds (only Rust target)`)
 commands.check.rust = async function () {
-    await run_cargo('cargo', ['check', '--workspace'])
+    await run_cargo('cargo', ['check', '--workspace', ' -p', 'enso-integration-test', '--all-targets'])
 }
 
 // === Build ===
@@ -278,7 +278,7 @@ commands['integration-test'].rust = async function(argv) {
 
 commands.lint = command(`Lint the codebase`)
 commands.lint.rust = async function () {
-    await run_cargo('cargo', ['clippy', '--', '-D', 'warnings'])
+    await run_cargo('cargo', ['clippy', '--workspace', '-p', 'enso-integration-test', '--all-targets', '--', '-D', 'warnings'])
     await run_cargo('cargo', ['fmt', '--', '--check'])
 }
 
