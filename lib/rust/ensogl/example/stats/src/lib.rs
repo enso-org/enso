@@ -21,12 +21,10 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
-use ensogl_selector as selector;
-use ensogl_selector::Bounds;
+use ensogl_label as label;
 use ensogl_text_msdf_sys::run_once_initialized;
 
 
@@ -44,22 +42,8 @@ pub fn entry_point_stats() {
     run_once_initialized(|| {
         let app = Application::new(&web::get_html_element_by_id("root").unwrap());
         init(&app);
-        mem::forget(app);
+        Leak::new(app);
     });
-}
-
-fn make_number_picker(app: &Application) -> Leak<selector::NumberPicker> {
-    let slider = app.new_view::<selector::NumberPicker>();
-    slider.frp.resize(Vector2(200.0, 50.0));
-    app.display.add_child(&slider);
-    Leak::new(slider)
-}
-
-fn make_range_picker(app: &Application) -> Leak<selector::NumberRangePicker> {
-    let slider = app.new_view::<selector::NumberRangePicker>();
-    slider.frp.resize(Vector2(400.0, 50.0));
-    app.display.add_child(&slider);
-    Leak::new(slider)
 }
 
 
@@ -73,24 +57,9 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let slider1 = make_number_picker(app);
-    slider1.inner().frp.allow_click_selection(true);
-
-    let slider2 = make_number_picker(app);
-    slider2.inner().frp.resize(Vector2(400.0, 50.0));
-    slider2.inner().frp.set_bounds.emit(Bounds::new(-100.0, 100.0));
-    slider2.inner().set_position_y(50.0);
-    slider2.inner().frp.use_overflow_bounds(Bounds::new(-150.0, 200.0));
-    slider2.inner().frp.set_caption(Some("Value:".to_string()));
-
-    let slider3 = make_range_picker(app);
-    slider3.inner().set_position_y(-100.0);
-    slider3.inner().set_track_color(color::Rgba::new(0.0, 0.80, 0.80, 1.0));
-
-    let slider4 = make_range_picker(app);
-    slider4.inner().set_position_y(-200.0);
-    slider4.inner().frp.use_overflow_bounds(Bounds::new(-2.0, 3.0));
-    slider4.inner().frp.set_caption(Some("Caption".to_string()));
-    slider4.inner().set_track_color(color::Rgba::new(0.5, 0.70, 0.70, 1.0));
+    let label = label::Label::new(app);
+    app.display.add_child(&label);
+    let label = Leak::new(label);
+    label.inner().frp.set_content("Hello stats");
 }
 

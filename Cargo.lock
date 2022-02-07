@@ -1396,7 +1396,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
- "ensogl-selector",
+ "ensogl-label",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
