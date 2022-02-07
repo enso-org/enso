@@ -22,9 +22,10 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::debug::stats;
 use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
-use ensogl_label as label;
+use ensogl_label::Label;
 use ensogl_text_msdf_sys::run_once_initialized;
 
 
@@ -57,12 +58,19 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let label = label::Label::new(app);
+    let label = Label::new(app);
     app.display.add_child(&label);
+
+    let stats = app.display.scene().stats.clone();
+    let mut stats_accumulator: stats::Accumulator = default();
 
     app.display
         .on_frame(move |_| {
-            label.frp.set_content("Hello in loop");
+            let text = iformat!(
+                "Press CTRL-OPTION-TILDE (TILDE is key below ESC) to show Monitor panel"
+                "\n fps = " stats.fps()
+            );
+            label.frp.set_content(text);
         })
         .forget();
 }
