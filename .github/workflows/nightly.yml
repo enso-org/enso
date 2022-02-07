@@ -169,13 +169,6 @@ jobs:
           sleep 1
           sbt --no-colors bootstrap
 
-      - name: Update the Stdlib Version
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors "stdlib-version-updater/run update --no-format"
-
       # Verify Legal Review
       - name: Verify Packages
         if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task

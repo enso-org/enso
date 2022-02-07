@@ -44,7 +44,12 @@ class RuntimeStdlibTest
       new RuntimeServerEmulator(messageQueue, lockManager)
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
+      PackageManager.Default.create(
+        tmpDir.toFile,
+        packageName,
+        "Enso_Test",
+        edition = Some(TestEdition.edition)
+      )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -235,9 +240,8 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    val libraryVersion = buildinfo.Info.stdLibVersion
     contentRootNotifications should contain(
-      ("Standard", "Base", libraryVersion)
+      ("Standard", "Base", TestEdition.testLibraryVersion.toString)
     )
 
     context.consumeOut shouldEqual List("Hello World!")

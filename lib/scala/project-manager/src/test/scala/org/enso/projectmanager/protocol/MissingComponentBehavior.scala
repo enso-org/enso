@@ -18,7 +18,7 @@ trait MissingComponentBehavior {
   def isSuccess(json: Json): Boolean
 
   val defaultVersion = SemVer(0, 0, 1)
-  val brokenVersion  = SemVer(0, 999, 0, Some("broken"))
+  val brokenVersion  = SemVer(0, 9999, 0, Some("broken"))
 
   def correctlyHandleMissingComponents(): Unit = {
     "fail if a missing version is requested with Fail" in {

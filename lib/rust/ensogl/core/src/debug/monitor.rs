@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::debug::stats::Stats;
+use crate::debug::stats::StatsData;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 
@@ -241,8 +241,8 @@ impl Monitor {
     }
 
     /// Add new display element.
-    pub fn add<M: Sampler + 'static>(&mut self, monitor: M) -> Panel {
-        let panel = Panel::new(self.config.clone(), monitor);
+    pub fn add<S: Sampler + Default + 'static>(&mut self) -> Panel {
+        let panel = Panel::new(self.config.clone(), S::default());
         self.panels.push(panel.clone());
         self.resize();
         panel
@@ -401,10 +401,10 @@ impl Panel {
         self.rc.borrow_mut().draw(dom)
     }
 
-    /// Fetch the measured value from the associated sampler, then post-process it to make it
-    /// useful for displaying on a human-readable graph.
-    pub fn sample_and_postprocess(&self) {
-        self.rc.borrow_mut().sample_and_postprocess()
+    /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
+    /// to make it useful for displaying on a human-readable graph.
+    pub fn sample_and_postprocess(&self, stats: &StatsData) {
+        self.rc.borrow_mut().sample_and_postprocess(stats)
     }
 
     fn first_draw(&self, dom: &Dom) {
@@ -472,10 +472,10 @@ pub trait Sampler: Debug {
     fn label(&self) -> &str;
 
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
-    fn value(&self) -> f64;
+    fn value(&self, stats: &StatsData) -> f64;
 
     /// Check whether the newest value is correct, or should be displayed as warning or error.
-    fn check(&self) -> ValueCheck {
+    fn check(&self, _stats: &StatsData) -> ValueCheck {
         ValueCheck::Correct
     }
 
@@ -507,13 +507,6 @@ pub trait Sampler: Debug {
     /// The number of digits after the dot which should be displayed in the monitor panel.
     fn precision(&self) -> usize {
         2
-    }
-
-    // === Utils ===
-
-    /// Wrapper for `ValueCheck::from_threshold`.
-    fn check_by_threshold(&self, warn_threshold: f64, err_threshold: f64) -> ValueCheck {
-        ValueCheck::from_threshold(warn_threshold, err_threshold, self.value())
     }
 }
 
@@ -578,11 +571,11 @@ impl PanelData {
 // === Begin / End ===
 
 impl PanelData {
-    /// Fetch the measured value from the associated sampler, then post-process it to make it
-    /// useful for displaying on a human-readable graph.
-    pub fn sample_and_postprocess(&mut self) {
-        self.value_check = self.sampler.check();
-        self.value = self.sampler.value();
+    /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
+    /// to make it useful for displaying on a human-readable graph.
+    pub fn sample_and_postprocess(&mut self, stats: &StatsData) {
+        self.value = self.sampler.value(stats);
+        self.value_check = self.sampler.check(stats);
         self.clamp_value();
         self.smooth_value();
         self.normalize_value();
@@ -711,48 +704,6 @@ impl PanelData {
 // === Samplers ====================================================================================
 // =================================================================================================
 
-// ===========
-// === Fps ===
-// ===========
-
-/// Sampler measuring the frames per second count for a given operation.
-#[derive(Debug, Default)]
-pub struct Fps {
-    stats: Stats,
-}
-
-impl Fps {
-    /// Constructor.
-    pub fn new(stats: &Stats) -> Self {
-        Self { stats: stats.clone() }
-    }
-}
-
-const FPS_WARNING_THRESHOLD: f64 = 55.0;
-const FPS_ERROR_THRESHOLD: f64 = 25.0;
-
-impl Sampler for Fps {
-    fn label(&self) -> &str {
-        "Frames per second"
-    }
-    fn value(&self) -> f64 {
-        self.stats.fps()
-    }
-    fn check(&self) -> ValueCheck {
-        if self.stats.frame_counter() > 1 {
-            self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD)
-        } else {
-            // On the first frame, the FPS will be 0, which in (only) this case is a correct value.
-            ValueCheck::Correct
-        }
-    }
-    fn max_value(&self) -> Option<f64> {
-        Some(60.0)
-    }
-}
-
-
-
 // ======================
 // === Stats Samplers ===
 // ======================
@@ -760,37 +711,52 @@ impl Sampler for Fps {
 /// Utility to generate Samplers for stats parameters. See the usages below this declaration to
 /// discover more.
 macro_rules! stats_sampler {
-    ( $label:tt, $name:ident, $stats_method:ident, $t1:expr, $t2:expr, $precision:expr
-    , $value_divisor:expr) => {
-        /// Sampler implementation.
-        #[derive(Debug, Default)]
-        pub struct $name {
-            stats: Stats,
-        }
+    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    , $precision:expr, $value_divisor:expr) => {
+        stats_sampler!(
+            $label,
+            $name,
+            $stats_field,
+            $warn_threshold,
+            $err_threshold,
+            $precision,
+            $value_divisor,
+            None
+        );
+    };
 
-        impl $name {
-            /// Constructor.
-            pub fn new(stats: &Stats) -> Self {
-                Self { stats: stats.clone() }
-            }
-        }
+    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    , $precision:expr, $value_divisor:expr, $max_value:expr) => {
+        /// Sampler implementation.
+        #[derive(Copy, Clone, Debug, Default)]
+        pub struct $name {}
 
         impl Sampler for $name {
             fn label(&self) -> &str {
                 $label
             }
-            fn value(&self) -> f64 {
-                let raw_value: f64 = self.stats.$stats_method().as_();
+            fn value(&self, stats: &StatsData) -> f64 {
+                let raw_value: f64 = stats.$stats_field.as_();
                 raw_value / $value_divisor
             }
             fn min_size(&self) -> Option<f64> {
-                Some($t1)
+                Some($warn_threshold)
             }
             fn precision(&self) -> usize {
                 $precision
             }
-            fn check(&self) -> ValueCheck {
-                self.check_by_threshold($t1, $t2)
+            fn check(&self, stats: &StatsData) -> ValueCheck {
+                // Before the first frame, all stat values will be 0, which in (only) this case is
+                // correct.
+                if stats.frame_counter == 0 {
+                    ValueCheck::Correct
+                } else {
+                    let value = self.value(&stats);
+                    ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
+                }
+            }
+            fn max_value(&self) -> Option<f64> {
+                $max_value
             }
         }
     };
@@ -798,6 +764,7 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
+stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0, Some(60.0));
 stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
 stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
 stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
@@ -823,31 +790,28 @@ stats_sampler!(
 mod tests {
     use super::*;
 
+    use crate::debug::stats::Stats;
+
     use assert_approx_eq::assert_approx_eq;
 
 
+    #[derive(Default)]
     struct TestSampler<S: Sampler> {
         stats:   Stats,
         sampler: S,
         t:       f64,
     }
 
-    impl<S: Sampler> TestSampler<S> {
-        fn new<F>(t0: f64, new_sampler: F) -> Self
-        where F: FnOnce(&Stats) -> S {
-            let stats = default();
-            let sampler = new_sampler(&stats);
-            Self { stats, sampler, t: t0 }
-        }
-    }
-
-    macro_rules! test_next_frame {
-        ($test:expr, $frame_time:expr, $post_frame_delay:expr, $expected_check:path, $expected_value:literal) => {
-            $test.stats.begin_frame($test.t);
+    macro_rules! test_and_advance_frame {
+        ($test:expr, $expected_value:expr, $expected_check:path
+        ; next: $frame_time:expr, $post_frame_delay:expr) => {
+            let prev_frame_stats = $test.stats.begin_frame($test.t);
+            let tested_value = $test.sampler.value(&prev_frame_stats);
+            let tested_check = $test.sampler.check(&prev_frame_stats);
+            assert_approx_eq!(tested_value, $expected_value, 0.001);
+            assert!(matches!(tested_check, $expected_check));
             $test.t += $frame_time;
             $test.stats.end_frame($test.t);
-            assert_approx_eq!($test.sampler.value(), $expected_value, 0.001);
-            assert!(matches!($test.sampler.check(), $expected_check));
             $test.t += $post_frame_delay;
         };
     }
@@ -857,22 +821,31 @@ mod tests {
         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
         // assumption we're trying to be around this FPS.
 
-        let mut test = TestSampler::new(0.0, |stats| FrameTime::new(&stats));
+        let mut test: TestSampler<FrameTime> = default();
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
-        test_next_frame!(test, 10.0, 6.0, ValueCheck::Correct, 10.0);
+        //
+        // Note: there is no frame before "Frame 1", so the tested value for the previous frame
+        // will always be 0.0 and "Correct" at this point (which is a special case - depending on
+        // tested stat, for later frames 0.0 could result in a threshold warning/error).
+        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
         // starting next frame.
-        test_next_frame!(test, 5.0, 11.0, ValueCheck::Correct, 5.0);
+        test_and_advance_frame!(test, 10.0, ValueCheck::Correct; next: 5.0, 11.0);
 
         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 30ms. No extra delay
         // afterwards before starting next frame.
-        test_next_frame!(test, 30.0, 0.0, ValueCheck::Warning, 30.0);
+        test_and_advance_frame!(test, 5.0, ValueCheck::Correct; next: 30.0, 0.0);
 
         // Frame 4: simulate a really slow frame (1000ms), crossing the configured error threshold.
-        test_next_frame!(test, 1000.0, 0.0, ValueCheck::Error, 1000.0);
+        test_and_advance_frame!(test, 30.0, ValueCheck::Warning; next: 1000.0, 0.0);
+
+        // For the final test, we're not interested in the next frame, so we're using some dummy
+        // values for it.
+        let dummy = 0.0;
+        test_and_advance_frame!(test, 1000.0, ValueCheck::Error; next: dummy, dummy);
     }
 
     #[test]
@@ -880,12 +853,18 @@ mod tests {
         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
         // assumption we're trying to be around this FPS.
 
-        // BUG: we can't currently use t0=0.0 here due to a bug in how `Fps` Sampler handles t=0.0;
-        // this is planned to be fixed soon in a separate PR, as part of:
-        // https://www.pivotaltracker.com/story/show/181140499
-        let mut test = TestSampler::new(123.0, |stats| Fps::new(&stats));
+        let mut test: TestSampler<Fps> = default();
 
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
+        // starting next frame.
+        //
+        // Note: there is no earlier frame before "Frame 1", so the tested value for the previous
+        // frame will always be 0.0 and [`Correct`] at this point (which is a special case -
+        // depending on tested stat, for later frames 0.0 could result in a threshold
+        // warning/error).
+        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
+
+        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
         // starting next frame.
         //
         // Note: FPS takes into account delays between frames - for example, if a frame took only
@@ -893,33 +872,22 @@ mod tests {
         // later), we cannot show FPS only based the 1ms duration of the frame - it would not be
         // true, as the subsequent delay means less frames per second will be rendered in reality.
         //
-        // Due to the above need to include delays between frames, FPS value is only available for
-        // *previous* frame. As such, after 1st frame, there was no previous frame yet, so the
-        // calculated value is expected to default to 0 ("zero FPS" is a reasonable answer at this
-        // point).
-        //
-        // Note 2: in this case, value 0.0 shall check as Correct, but for later frames it would
-        // result in a threshold warning/error.
-        test_next_frame!(test, 10.0, 6.0, ValueCheck::Correct, 0.0);
-
-        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
-        // starting next frame.
         // Previous frame+delay was 16.0 ms; we'd fit 62.5 such frames in 1s.
-        test_next_frame!(test, 5.0, 11.67, ValueCheck::Correct, 62.5);
+        test_and_advance_frame!(test, 62.5, ValueCheck::Correct; next: 5.0, 11.67);
 
         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
         // afterwards before starting next frame.
         // Previous frame+delay was 16.67 ms; we'd fit ~59.988 such frames in 1s.
-        test_next_frame!(test, 20.0, 0.0, ValueCheck::Correct, 59.988);
+        test_and_advance_frame!(test, 59.988, ValueCheck::Correct; next: 20.0, 0.0);
 
         // Frame 4: simulate a really slow frame (1000ms), crossing the FPS error threshold.
         // Previous frame+delay was 20.0 ms; we'd fit 50.0 such frames in 1s.
-        test_next_frame!(test, 1000.0, 0.0, ValueCheck::Warning, 50.0);
+        test_and_advance_frame!(test, 50.0, ValueCheck::Warning; next: 1000.0, 0.0);
 
-        // For the final calculation, we don't need to simulate full frame to get the previous
-        // one's FPS, so we're using some dummy values.
+        // For the final test, we're not interested in the next frame, so we're using some dummy
+        // values for it.
         // Previous frame+delay was 1000.0 ms; we'd fit 1 such frame in 1s.
         let dummy = 0.0;
-        test_next_frame!(test, dummy, dummy, ValueCheck::Error, 1.0);
+        test_and_advance_frame!(test, 1.0, ValueCheck::Error; next: dummy, dummy);
     }
 }
