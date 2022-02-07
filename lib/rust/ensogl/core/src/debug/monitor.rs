@@ -866,7 +866,7 @@ mod tests {
         // starting next frame.
         //
         // Note: there is no earlier frame before "Frame 1", so the tested value for the previous
-        // frame will always be 0.0 and "Correct" at this point (which is a special case -
+        // frame will always be 0.0 and [`Correct`] at this point (which is a special case -
         // depending on tested stat, for later frames 0.0 could result in a threshold
         // warning/error).
         test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
