@@ -72,6 +72,7 @@ class RuntimeComponentsTest
         root            = tmpDir.toFile,
         name            = packageName,
         namespace       = "Enso_Test",
+        edition         = Some(TestEdition.edition),
         componentGroups = componentGroups
       )
     }
@@ -226,9 +227,8 @@ class RuntimeComponentsTest
         (namespace, name, version)
     }
 
-    val libraryVersion = buildinfo.Info.stdLibVersion
     contentRootNotifications should contain(
-      ("Standard", "Base", libraryVersion)
+      ("Standard", "Base", TestEdition.testLibraryVersion.toString)
     )
 
     // check the registered component groups

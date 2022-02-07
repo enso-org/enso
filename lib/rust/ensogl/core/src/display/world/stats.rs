@@ -30,19 +30,19 @@ impl {
         let performance      = web::performance();
         let mut monitor      = debug::Monitor::new();
         let panels = vec![
-            monitor.add( debug::monitor::FrameTime          :: new(&stats) ),
-            monitor.add( debug::monitor::Fps                :: new(&stats) ),
-            monitor.add( debug::monitor::WasmMemory         :: new(&stats) ),
-            monitor.add( debug::monitor::GpuMemoryUsage     :: new(&stats) ),
-            monitor.add( debug::monitor::DrawCallCount      :: new(&stats) ),
-            monitor.add( debug::monitor::DataUploadCount    :: new(&stats) ),
-            monitor.add( debug::monitor::DataUploadSize     :: new(&stats) ),
-            monitor.add( debug::monitor::BufferCount        :: new(&stats) ),
-            monitor.add( debug::monitor::SymbolCount        :: new(&stats) ),
-            monitor.add( debug::monitor::ShaderCount        :: new(&stats) ),
-            monitor.add( debug::monitor::ShaderCompileCount :: new(&stats) ),
-            monitor.add( debug::monitor::SpriteSystemCount  :: new(&stats) ),
-            monitor.add( debug::monitor::SpriteCount        :: new(&stats) ),
+            monitor.add::<debug::monitor::FrameTime>(),
+            monitor.add::<debug::monitor::Fps>(),
+            monitor.add::<debug::monitor::WasmMemory>(),
+            monitor.add::<debug::monitor::GpuMemoryUsage>(),
+            monitor.add::<debug::monitor::DrawCallCount>(),
+            monitor.add::<debug::monitor::DataUploadCount>(),
+            monitor.add::<debug::monitor::DataUploadSize>(),
+            monitor.add::<debug::monitor::BufferCount>(),
+            monitor.add::<debug::monitor::SymbolCount>(),
+            monitor.add::<debug::monitor::ShaderCount>(),
+            monitor.add::<debug::monitor::ShaderCompileCount>(),
+            monitor.add::<debug::monitor::SpriteSystemCount>(),
+            monitor.add::<debug::monitor::SpriteCount>(),
         ];
         Self {stats,performance,monitor,panels}
     }
@@ -51,8 +51,14 @@ impl {
     pub fn begin(&mut self) {
         if self.visible() {
             let time = self.performance.now();
-            self.stats.begin_frame(time);
+            let previous_frame_stats = self.stats.begin_frame(time);
+            for panel in &self.panels {
+                panel.sample_and_postprocess(&previous_frame_stats);
+            }
+            self.monitor.draw();
         }
+        // This should be done even when hidden in order for the stats not to overflow limits.
+        self.stats.reset_per_frame_statistics();
     }
 
     /// Finish measuring data.
@@ -60,13 +66,7 @@ impl {
         if self.visible() {
             let time = self.performance.now();
             self.stats.end_frame(time);
-            for panel in &self.panels {
-                panel.sample_and_postprocess();
-            }
-            self.monitor.draw();
         }
-        // This should be done even when hidden in order for the stats not to overflow limits.
-        self.stats.reset_per_frame_statistics();
     }
 
     /// Checks if the monitor is visible.
