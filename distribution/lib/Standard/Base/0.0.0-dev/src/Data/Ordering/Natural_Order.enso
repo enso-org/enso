@@ -3,7 +3,6 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
-polyglot java import org.enso.base.Regex_Utils
 
 ## Compares two text values according to the natural dictionary ordering.
 
@@ -29,10 +28,8 @@ compare text1 text2 =
 ## PRIVATE
 to_natural_key : Text -> Vector
 to_natural_key text = if text.is_empty then [] else
-    splitter_regex = "([^0-9]+|[0-9]+)"
-    # TODO [RW] should change to the other implementation once Regex is fixed
-    # parts = splitter_regex.find text mode=Mode.All
-    parts = Vector.from_array <| Regex_Utils.find_all_matches splitter_regex text
+    splitter_regex = Regex.compile "([^0-9]+|[0-9]+)"
+    parts = splitter_regex.find text mode=Mode.All
 
     is_integer_regex = Regex.compile "[0-9]+"
     parts.map part-> case is_integer_regex.matches part of
