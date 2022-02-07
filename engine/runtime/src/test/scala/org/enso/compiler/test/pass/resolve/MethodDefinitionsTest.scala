@@ -62,11 +62,11 @@ class MethodDefinitionsTest extends CompilerTest {
         |
         |Does_Not_Exist.method = 32
         |
-        |Foo.from (value : Bar) = undefined
+        |Foo.from (that : Bar) = undefined
         |
-        |Bar.from (value : Does_Not_Exist) = undefined
+        |Bar.from (that : Does_Not_Exist) = undefined
         |
-        |Does_Not_Exist.from (value : Foo) = undefined
+        |Does_Not_Exist.from (that : Foo) = undefined
         |""".stripMargin.preprocessModule.analyse
 
     "attach resolved atoms to the method definitions" in {

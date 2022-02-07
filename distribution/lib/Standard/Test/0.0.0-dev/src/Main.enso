@@ -122,7 +122,7 @@ specify label ~behavior pending=Nothing =
    Arguments:
    - verb: The property (see `Verbs`) being asserted
    - argument: The argument to the verb.
-Anu.should : (Verbs -> Any -> Any) -> Any -> Assertion
+Any.should : (Verbs -> Any -> Any) -> Any -> Assertion
 Any.should verb argument = verb Verbs this argument
 
 ## Fail a test with the given message.

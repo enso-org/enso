@@ -618,7 +618,7 @@ type Meta
        Arguments:
        - name: The name of the unresolved symbol.
        - scope: The scope in which the symbol name is unresolved.
-    create_unresolved_symbol : Text -> Module_Sope -> Unresolved_Symbol
+    create_unresolved_symbol : Text -> Module_Scope -> Unresolved_Symbol
     create_unresolved_symbol name scope =
         @Builtin_Method "Meta.create_unresolved_symbol"
 
@@ -781,8 +781,8 @@ type Meta
 
        Arguments:
        - value: the value to get the type of.
-   get_qualified_type_name : Any -> Text
-   get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
+    get_qualified_type_name : Any -> Text
+    get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
 
 ## Utilities for working with primitive arrays.
 type Array

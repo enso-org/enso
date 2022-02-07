@@ -611,12 +611,8 @@ class Compiler(
   ): Unit = {
     if (context.isStrictErrors) {
       val diagnostics = modules.flatMap { module =>
-        if (module == builtins.getModule) {
-          List()
-        } else {
-          val errors = gatherDiagnostics(module)
-          List((module, errors))
-        }
+        val errors = gatherDiagnostics(module)
+        List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {
         throw new CompilationAbortedException

@@ -1,0 +1,207 @@
+package org.enso.interpreter.node.callable;
+
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
+import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.resolver.AnyResolverNode;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.state.Stateful;
+
+import java.util.UUID;
+
+public abstract class InvokeConversionNode extends BaseNode {
+  private @Child InvokeFunctionNode invokeFunctionNode;
+  private final ConditionProfile atomProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile atomConstructorProfile = ConditionProfile.createCountingProfile();
+
+  /**
+   * Creates a new node for method invocation.
+   *
+   * @param schema a description of the arguments being applied to the callable
+   * @param defaultsExecutionMode the defaulted arguments handling mode for this call
+   * @param argumentsExecutionMode the arguments execution mode for this call
+   * @return a new invoke method node
+   */
+  public static InvokeConversionNode build(
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+    return InvokeConversionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+  }
+
+  InvokeConversionNode(
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+    this.invokeFunctionNode =
+        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+  }
+
+  @Override
+  public void setTailStatus(TailStatus tailStatus) {
+    super.setTailStatus(tailStatus);
+    this.invokeFunctionNode.setTailStatus(tailStatus);
+  }
+
+  public abstract Stateful execute(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      Object that,
+      Object[] arguments);
+
+  static AtomConstructor extractConstructor(
+      Node thisNode,
+      Object _this,
+      TruffleLanguage.ContextReference<Context> ctx,
+      ConditionProfile atomConstructorProfile,
+      ConditionProfile atomProfile) {
+    if (atomConstructorProfile.profile(_this instanceof AtomConstructor)) {
+      return (AtomConstructor) _this;
+    } else if (atomProfile.profile(_this instanceof Atom)) {
+      return ((Atom) _this).getConstructor();
+    } else {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeInvalidConversionTargetError(_this), thisNode);
+    }
+  }
+
+  AtomConstructor extractConstructor(Object _this, TruffleLanguage.ContextReference<Context> ctx) {
+    return extractConstructor(this, _this, ctx, atomConstructorProfile, atomProfile);
+  }
+
+  @Specialization(guards = "dispatch.canConvertFrom(that)")
+  Stateful doConvertFrom(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    try {
+      Function function =
+          dispatch.getConversionFunction(that, extractConstructor(_this, ctx), conversion);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchConversionException e) {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeNoSuchConversionError(_this, that, conversion), this);
+    }
+  }
+
+  @Specialization
+  Stateful doDataflowError(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      DataflowError that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
+      @Cached BranchProfile profile,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    try {
+      Function function =
+          dispatch.getConversionFunction(that, extractConstructor(_this, ctx), conversion);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchConversionException e) {
+      profile.enter();
+      return new Stateful(state, that);
+    }
+  }
+
+  @Specialization
+  Stateful doPanicSentinel(
+          VirtualFrame frame,
+          Object state,
+          UnresolvedConversion conversion,
+          Object _this,
+          PanicSentinel that,
+          Object[] arguments) {
+    throw that;
+  }
+
+  @Specialization(guards = "interop.isString(that)")
+  Stateful doConvertText(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    try {
+      String str = interop.asString(that);
+      Text txt = Text.create(str);
+      Function function =
+          textDispatch.getConversionFunction(txt, extractConstructor(_this, ctx), conversion);
+      arguments[0] = txt;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
+    } catch (MethodDispatchLibrary.NoSuchConversionException e) {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeNoSuchConversionError(_this, that, conversion), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.canConvertFrom(that)",
+        "!interop.isString(that)",
+        "!methods.hasSpecialConversion(that)"
+      })
+  Stateful doFallback(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedContext(Language.class) Context ctx) {
+    throw new PanicException(
+        ctx.getBuiltins().error().makeNoSuchConversionError(_this, that, conversion), this);
+  }
+
+  @Override
+  public SourceSection getSourceSection() {
+    Node parent = getParent();
+    return parent == null ? null : parent.getSourceSection();
+  }
+
+  /**
+   * Sets the expression ID of this node.
+   *
+   * @param id the expression ID to assign this node.
+   */
+  public void setId(UUID id) {
+    invokeFunctionNode.setId(id);
+  }
+}
