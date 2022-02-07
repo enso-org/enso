@@ -19,8 +19,6 @@ use enso_types::*;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use num_traits::cast;
-use serde::Deserialize;
-use serde::Serialize;
 use wasm_bindgen::JsCast;
 
 
@@ -172,8 +170,7 @@ macro_rules! gen_stats {
         // === Summary ===
 
         /// Contains summarized values of stats fields from multiple [`StatsData`] objects.
-        #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-        #[serde(rename_all = "camelCase")]
+        #[derive(Copy, Clone, Debug)]
         pub struct Summary {
             $(
                 #[allow(missing_docs)]
@@ -285,7 +282,7 @@ impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator
 
 /// Summary for multiple values of type T. Intended to be used for storing a summary of multiple
 /// samples of some runtime stat.
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
 pub struct ValueSummary<T> {
     pub min: T,

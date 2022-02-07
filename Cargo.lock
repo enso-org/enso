@@ -1226,7 +1226,6 @@ dependencies = [
  "num_enum",
  "paste 1.0.6",
  "rustc-hash",
- "serde",
  "shrinkwraprs 0.3.0",
  "smallvec 1.7.0",
  "typenum",
