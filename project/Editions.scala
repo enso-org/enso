@@ -29,13 +29,13 @@ object Editions {
   /** The URL to the main library repository. */
   val mainLibraryRepositoryUrl = "https://libraries.release.enso.org/libraries"
 
-  private val editionsRoot = file("distribution") / "editions"
-  private val extension    = ".yaml"
+  private val extension = ".yaml"
 
   /** Generates a base edition file for the engine release that contains the
     * Standard library and is associated with the current Enso version.
     */
   def writeEditionConfig(
+    editionsRoot: File,
     ensoVersion: String,
     editionName: String,
     libraryVersion: String,
@@ -51,7 +51,7 @@ object Editions {
       }
     }
 
-    if (!edition.exists()) {
+    val editionConfigContent = {
       val standardLibrariesConfigs = standardLibraries.map { libName =>
         s"""  - name: $libName
            |    repository: main
@@ -75,13 +75,15 @@ object Editions {
            |libraries:
            |${librariesConfigs.mkString("\n")}
            |""".stripMargin
-      IO.write(edition, editionConfig)
-      log.info(s"Written edition config to $edition")
+      editionConfig
+    }
+
+    val currentContent = if (edition.exists()) Some(IO.read(edition)) else None
+    if (currentContent.contains(editionConfigContent)) {
+      log.debug(s"Edition config [$edition] is already up-to-date.")
     } else {
-      log.debug(
-        "The edition file did already exist, not regenerating. " +
-        "Clean to force a rebuild."
-      )
+      IO.write(edition, editionConfigContent)
+      log.info(s"Written edition config to [$edition].")
     }
   }
 }

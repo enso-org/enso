@@ -23,7 +23,7 @@ class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
         * version, not installing.
         */
       val message =
-        "Project manager 999.0.0 is required to install the requested " +
+        "Project manager 9999.0.0 is required to install the requested " +
         "engine. Please upgrade."
       client.expectJson(json"""
           {
@@ -33,7 +33,7 @@ class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
               "code": 4022, 
               "message": $message,
               "data" : {
-                "minimumRequiredVersion" : "999.0.0"
+                "minimumRequiredVersion" : "9999.0.0"
               }
             }
           }
