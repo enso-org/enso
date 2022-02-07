@@ -21,8 +21,8 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::display::object::ObjectOps;
 use ensogl_core::debug::stats;
+use ensogl_core::display::object::ObjectOps;
 use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_label::Label;
@@ -63,15 +63,27 @@ fn init(app: &Application) {
 
     let stats = app.display.scene().stats.clone();
     let mut stats_accumulator: stats::Accumulator = default();
+    let mut old_fps = stats.fps();
 
     app.display
         .on_frame(move |_| {
+            let fps = stats.fps();
+            if fps != old_fps {
+                let mut sample: stats::StatsData = default();
+                sample.fps = fps;
+                stats_accumulator.add_sample(&sample);
+                old_fps = fps;
+            }
+            let summary = stats_accumulator.summarize();
+            let summary_fps = summary.map(|s| s.fps);
             let text = iformat!(
                 "Press CTRL-OPTION-TILDE (TILDE is key below ESC) to show Monitor panel"
-                "\n fps = " stats.fps()
+                "\n fps = " fps
+                "\n - min = " summary_fps.map_or(0.0, |s| s.min)
+                "\n - avg = " summary_fps.map_or(0.0, |s| s.avg)
+                "\n - max = " summary_fps.map_or(0.0, |s| s.max)
             );
             label.frp.set_content(text);
         })
         .forget();
 }
-
