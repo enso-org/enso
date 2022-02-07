@@ -1,4 +1,4 @@
-name: Engine CI (Legacy)
+name: Engine CI (legacy)
 
 on:
   push:
