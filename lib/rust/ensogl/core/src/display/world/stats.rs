@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::debug;
 use crate::debug::stats::Stats;
+use crate::debug::stats::StatsData;
 use crate::system::web;
 
 
@@ -48,17 +49,21 @@ impl {
     }
 
     /// Start measuring data.
-    pub fn begin(&mut self) {
-        if self.visible() {
+    pub fn begin(&mut self) -> Option<StatsData> {
+        let stats_snapshot = if self.visible() {
             let time = self.performance.now();
             let previous_frame_stats = self.stats.begin_frame(time);
             for panel in &self.panels {
                 panel.sample_and_postprocess(&previous_frame_stats);
             }
             self.monitor.draw();
-        }
+            Some(previous_frame_stats)
+        } else {
+            None
+        };
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
+        stats_snapshot
     }
 
     /// Finish measuring data.
