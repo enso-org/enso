@@ -57,15 +57,15 @@ impl {
         let stats_snapshot = if self.visible() {
             let time = self.performance.now();
             let previous_frame_stats = self.stats.begin_frame(time);
-            if self.frame_stats_valid {
+            if !self.frame_stats_valid {
+                self.frame_stats_valid = true;
+                None
+            } else {
                 for panel in &self.panels {
                     panel.sample_and_postprocess(&previous_frame_stats);
                 }
                 self.monitor.draw();
                 Some(previous_frame_stats)
-            } else {
-                self.frame_stats_valid = true;
-                None
             }
         } else {
             self.frame_stats_valid = false;
