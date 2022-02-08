@@ -49,6 +49,8 @@ impl {
     }
 
     /// Start measuring data.
+    /// Returns a snapshot of statistics data for the previous rendering frame if the monitor is
+    /// [`visible()`].
     pub fn begin(&mut self) -> Option<StatsData> {
         let stats_snapshot = if self.visible() {
             let time = self.performance.now();
