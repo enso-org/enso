@@ -45,15 +45,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ansi_term"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d52a9bb7ec0cf484c551830a7ce27bd20d67eac647e1befb56b0be4ee39a55d2"
-dependencies = [
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "anyhow"
 version = "1.0.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -109,22 +100,9 @@ dependencies = [
  "Inflector",
  "enso-macro-utils",
  "enso-prelude",
- "proc-macro2 1.0.36",
- "quote 1.0.15",
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "ast-new"
-version = "0.1.0"
-dependencies = [
- "clap",
- "itertools 0.10.3",
- "proc-macro2 1.0.36",
- "syn",
- "uuid",
 ]
 
 [[package]]
@@ -229,7 +207,7 @@ dependencies = [
  "pin-project-lite 0.2.8",
  "pin-utils",
  "slab",
- "wasm-bindgen-futures 0.4.28",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -551,16 +529,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "combine"
-version = "4.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50b727aacc797f9fc28e355d21f34709ac4fc9adecfe470ad07b8f4464f53062"
-dependencies = [
- "bytes 1.1.0",
- "memchr",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -738,7 +706,6 @@ version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccc0a48a9b826acdf4028595adc9db92caea352f7af011a3034acd172a52a0aa"
 dependencies = [
- "quote 1.0.15",
  "quote",
  "syn",
 ]
@@ -780,8 +747,6 @@ version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
 dependencies = [
- "proc-macro2 1.0.36",
- "quote 1.0.15",
  "proc-macro2",
  "quote",
  "syn",
@@ -796,9 +761,6 @@ dependencies = [
  "convert_case",
  "proc-macro2",
  "quote",
- "rustc_version 0.3.3",
- "proc-macro2 1.0.36",
- "quote 1.0.15",
  "rustc_version 0.4.0",
  "syn",
 ]
@@ -834,7 +796,6 @@ dependencies = [
  "regex",
  "serde",
  "uuid",
- "wasm-bindgen-test 0.3.28",
  "wasm-bindgen-test",
 ]
 
@@ -1089,8 +1050,6 @@ version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "proc-macro2 1.0.36",
- "quote 1.0.15",
  "syn",
  "wasm-bindgen-test",
 ]
@@ -1140,7 +1099,7 @@ name = "enso-profiler"
 version = "0.1.0"
 dependencies = [
  "enso-profiler-macros",
- "futures 0.3.17",
+ "futures 0.3.21",
  "wasm-bindgen",
 ]
 
@@ -1625,21 +1584,14 @@ dependencies = [
 
 [[package]]
 name = "enum_dispatch"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd53b3fde38a39a06b2e66dc282f3e86191e53bd04cc499929c15742beae3df8"
+checksum = "0eb359f1476bf611266ac1f5355bc14aeca37b299d0ebccc038ee7058891c9cb"
 dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "eval-tt"
-version = "0.1.0"
-dependencies = [
- "paste 1.0.6",
 ]
 
 [[package]]
@@ -1868,8 +1820,6 @@ version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33c1e13800337f4d4d7a316bf45a567dbcb6ffe087f16424852d97e97a91f512"
 dependencies = [
- "autocfg 1.0.1",
- "proc-macro-hack",
  "proc-macro2",
  "quote",
  "syn",
@@ -2048,9 +1998,9 @@ dependencies = [
 
 [[package]]
 name = "httparse"
-version = "1.5.1"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acd94fdbe1d4ff688b67b04eee2e17bd50995534a61539e45adfefb45e5e5503"
+checksum = "9100414882e15fb7feccb4897e5f0ff0ff1ca7d1a86a23208ada4d7a18e6c6c4"
 
 [[package]]
 name = "httpdate"
@@ -2302,26 +2252,6 @@ name = "itoa"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aab8fc367588b89dcee83ab0fd66b72b50b72fa1904d7095045ace2b0c81c35"
-
-[[package]]
-name = "jni"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6df18c2e3db7e453d3c6ac5b3e9d5182664d28788126d39b91f2d1e22b017ec"
-dependencies = [
- "cesu8",
- "combine",
- "jni-sys",
- "log 0.4.14",
- "thiserror",
- "walkdir",
-]
-
-[[package]]
-name = "jni-sys"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "js-sys"
@@ -3172,21 +3102,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
-name = "proc-macro-nested"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
-
-[[package]]
-name = "proc-macro2"
-version = "0.4.30"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf3d2011ab5c909338f7887f4fc896d35932e29146c12c8d01da6b22a80ba759"
-dependencies = [
- "unicode-xid 0.1.0",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3640,9 +3555,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.78"
+version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d23c1ba4cf0efd44be32017709280b32d1cea5c3f1275c3b6d9e8bc54f758085"
+checksum = "8e8d9fa5c3b304765ce1fd9c4c8a3de2c8db365a5b91be52f186efc675681d95"
 dependencies = [
  "itoa 1.0.1",
  "ryu",
@@ -4384,22 +4299,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasm-bindgen-webidl"
-version = "0.2.58"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef012a0d93fc0432df126a8eaf547b2dce25a8ce9212e1d3cbeef5c11157975d"
-dependencies = [
- "anyhow",
- "heck",
- "log 0.4.14",
- "proc-macro2",
- "quote",
- "syn",
- "wasm-bindgen-backend",
- "weedle",
-]
-
-[[package]]
 name = "weak-table"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4413,31 +4312,6 @@ checksum = "38eb105f1c59d9eaa6b5cdc92b859d85b926e82cb2e0945cd0c9259faa6fe9fb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "web-test"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "enso-web",
- "ensogl",
- "js-sys",
- "shrinkwraprs 0.3.0",
- "wasm-bindgen",
- "wasm-bindgen-test 0.3.28",
- "web-sys",
- "web-test-proc-macro",
-]
-
-[[package]]
-name = "web-test-proc-macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2 1.0.36",
- "quote 1.0.15",
- "syn",
- "wasm-bindgen-test 0.3.28",
 ]
 
 [[package]]
