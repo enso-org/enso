@@ -18,20 +18,23 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats             : Stats,
-    frame_stats_valid : bool,
-    performance       : web::Performance,
-    monitor           : debug::Monitor,
-    panels            : Vec<debug::monitor::Panel>
+    stats           : Stats,
+    /// Tracks whether [`stats`] collection was properly started and stopped during the most
+    /// recently displayed rendering frame. Set to `false` if the panel was not [`visible()`]
+    /// during last frame's [`begin()`] or [`end()`].
+    are_stats_valid : bool,
+    performance     : web::Performance,
+    monitor         : debug::Monitor,
+    panels          : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
-        let stats             = stats.clone_ref();
-        let performance       = web::performance();
-        let mut monitor       = debug::Monitor::new();
-        let frame_stats_valid = false;
+        let stats           = stats.clone_ref();
+        let performance     = web::performance();
+        let mut monitor     = debug::Monitor::new();
+        let are_stats_valid = false;
         let panels = vec![
             monitor.add::<debug::monitor::FrameTime>(),
             monitor.add::<debug::monitor::Fps>(),
@@ -47,7 +50,7 @@ impl {
             monitor.add::<debug::monitor::SpriteSystemCount>(),
             monitor.add::<debug::monitor::SpriteCount>(),
         ];
-        Self {stats,frame_stats_valid,performance,monitor,panels}
+        Self {stats,are_stats_valid,performance,monitor,panels}
     }
 
     /// Start measuring data.
@@ -55,13 +58,13 @@ impl {
     /// [`visible()`] (and if it was visible during the previous frame as well).
     pub fn begin(&mut self) -> Option<StatsData> {
         let stats_snapshot = if !self.visible() {
-            self.frame_stats_valid = false;
+            self.are_stats_valid = false;
             None
         } else {
             let time = self.performance.now();
             let previous_frame_stats = self.stats.begin_frame(time);
-            if !self.frame_stats_valid {
-                self.frame_stats_valid = true;
+            if !self.are_stats_valid {
+                self.are_stats_valid = true;
                 None
             } else {
                 for panel in &self.panels {
@@ -82,7 +85,7 @@ impl {
             let time = self.performance.now();
             self.stats.end_frame(time);
         } else {
-            self.frame_stats_valid = false;
+            self.are_stats_valid = false;
         }
     }
 
