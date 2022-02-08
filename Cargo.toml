@@ -1,5 +1,8 @@
 [workspace]
 
+# Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
+# If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/example`), just add it as a path dependency
+# where plausible.
 members = [
     "app/gui",
     "build/rust-scripts",
@@ -8,8 +11,10 @@ members = [
     "integration-test"
 ]
 
+# This directory is not a crate
 exclude = ["lib/rust/not-used"]
 
+# The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
 
 [profile.dev]
