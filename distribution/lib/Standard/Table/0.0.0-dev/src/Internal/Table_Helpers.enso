@@ -114,9 +114,31 @@ reorder_columns internal_columns selector position on_problems warnings =
         Position.After_Other_Columns -> other_columns + selection
     result
 
+## PRIVATE
+   A helper function encapsulating shared code for `rename_columns`
+   implementations of various Table variants. See the documentation for the
+   Table type for details.
+
+   It takes a list of columns and a mapping, and returns the complete new set
+   of column names which should be applied to the table. It is the
+   responsibility of each implementation to reconstruct a proper table from the
+   resulting list of names.
+
+   Arguments:
+   - internal_columns: A list of all columns in a table.
+   - mapping: A selector specifying which columns should be moved and the order
+     in which they should appear in the result.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - warnings: A Warning_System instance specifying how to handle warnings. This
+     is a temporary workaround to allow for testing the warning mechanism. Once
+     the proper warning system is implemented, this argument will become
+     obsolete and will be removed. No user code should use this argument, as it
+     will be removed in the future.
 rename_columns : Vector -> Column_Mapping -> Problem_Behavior -> Warnings.Warning_System -> Map
 rename_columns internal_columns mapping on_problems warnings =
-    # ToDo: Use .name on internal_columns
     # ToDo: RegEx Baby
     # ToDo: Invalid Name Errors ==> Column
 
@@ -131,18 +153,19 @@ rename_columns internal_columns mapping on_problems warnings =
     col_count = internal_columns.length
 
     mapped = case mapping of
-        Column_Mapping.By_Column map ->
-            output = here.rename_columns internal_columns (Column_Mapping.By_Name (map.transform k->v->[k.Name, v]) (Matching.Exact case_sensitivity=True)) on_problems warnings
+        Column_Mapping.By_Column vec ->
+            map = Map.from_vector (vec.map r-> [r.at 0 . name, r.at 1])
+            output = here.rename_columns internal_columns (Column_Mapping.By_Name map (Matching.Exact case_sensitivity=True)) on_problems warnings
             Validation_Result output []
         Column_Mapping.By_Name map ms ->
             keys = map.keys
             mapper = name->
-                index = keys.find k->(Matching.match_single_criterion name k ms)
+                index = 0.up_to col_count . find k->(Matching.match_single_criterion name k ms)
                 case index of
                     Nothing -> Nothing
                     _ -> make_unique (map.get (keys.at index))
 
-            new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i))
+            new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
             Validation_Result new_names []
         Column_Mapping.By_Index map ->
             validation = here.validate_indices col_count map.keys
@@ -161,11 +184,11 @@ rename_columns internal_columns mapping on_problems warnings =
                 False -> Validation_Result vec []
             good_names = validation.valid
 
-            new_names = 0.up_to col_count . map i->if i < good_names.length then good_names.at i else make_unique (internal_columns.at i)
+            new_names = 0.up_to col_count . map i->if i < good_names.length then good_names.at i else Nothing
             Validation_Result new_names validation.problems
 
     processed = mapped.valid.map_with_index i->n->
-        if n.is_nothing then (make_unique (internal_columns.at i)) else n
+        if n.is_nothing then (make_unique (internal_columns.at i).name) else n
 
     problems = mapped.problems + (if renames.length == 0 then [] else [Duplicate_Output_Column_Names renames.to_vector])
     on_problems.attach_problems_before problems warnings processed
@@ -273,13 +296,13 @@ select_indices_preserving_order vector indices =
    If the negative index is sufficiently large, a negative result can still be
    returned. This function does not ensure that the resulting indices are within
    bounds.
-resolve_index Integer->Integer->Integer
+resolve_index : Integer->Integer->Integer
 resolve_index length ix =
     if ix < 0 then length+ix else ix
 
 ## PRIVATE
    Checks if the given index is in the valid range for the provided vector.
-is_index_valid Integer->Integer->Boolean
+is_index_valid : Integer->Integer->Boolean
 is_index_valid length ix =
     actual_ix = here.resolve_index length ix
     actual_ix>=0 && actual_ix<length

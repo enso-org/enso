@@ -26,7 +26,9 @@ type Column_Mapping
        The input columns do not necessarily have to come from the same table, so
        this approach can be used to match columns with the same names as a set
        of columns of some other table, for example, when preparing for a join.
-    type By_Column (columns : Map Column Text)
+
+       The Vector should be of the form [[Column, Name], [Column1, Name1], ...]
+    type By_Column (columns : Vector)
 
     ## Selects columns by position starting at the first column until the
        new_names is exhausted.
