@@ -523,7 +523,6 @@ pub struct PanelData {
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
-    begin_value: f64,
     value:       f64,
     last_values: VecDeque<f64>,
     norm_value:  f64,
@@ -542,7 +541,6 @@ impl PanelData {
         let label = sampler.label().into();
         let min_value = f64::INFINITY;
         let max_value = f64::NEG_INFINITY;
-        let begin_value = default();
         let value = default();
         let last_values = default();
         let norm_value = default();
@@ -555,7 +553,6 @@ impl PanelData {
             config,
             min_value,
             max_value,
-            begin_value,
             value,
             last_values,
             norm_value,
