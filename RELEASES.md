@@ -9,6 +9,8 @@
   transitive dependencies of the library.
 - Updated the Scala compiler and dependencies
   ([#3214](https://github.com/enso-org/enso/pull/3214)).
+- Updated to GraalVM 21.3.0
+  ([#3258](https://github.com/enso-org/enso/pull/3258)).
 
 ## Interpreter/Runtime
 

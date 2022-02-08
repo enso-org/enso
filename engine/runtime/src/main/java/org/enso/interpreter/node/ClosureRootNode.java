@@ -65,7 +65,7 @@ public class ClosureRootNode extends EnsoRootNode {
   @Override
   public Object execute(VirtualFrame frame) {
     if (CompilerDirectives.inCompilationRoot() || CompilerDirectives.inInterpreter()) {
-      lookupContextReference(Language.class).get().getThreadManager().poll();
+      com.oracle.truffle.api.TruffleSafepoint.poll(this);
     }
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     frame.setObject(this.getStateFrameSlot(), state);
