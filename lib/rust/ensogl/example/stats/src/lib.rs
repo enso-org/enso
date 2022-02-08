@@ -61,30 +61,25 @@ fn init(app: &Application) {
     let label = Label::new(app);
     app.display.add_child(&label);
 
-    let stats = app.display.scene().stats.clone();
-    let mut stats_accumulator: stats::Accumulator = default();
-    let mut old_fps = stats.fps();
+    let stats_accumulator_data: stats::Accumulator = default();
+    let stats_accumulator = Rc::new(RefCell::new(stats_accumulator_data));
     let mut frame_counter: usize = 0;
 
     app.display
-        .on_frame(move |_| {
-            // TODO [MC]: retrieve stats via on_stats_available hook once the linked task is done:
-            // https://www.pivotaltracker.com/story/show/181093832
-            let fps = stats.fps();
-            // TODO [MC]: remove the `old_fps` check once the linked task is done:
-            // https://www.pivotaltracker.com/story/show/181093601
-            if fps != old_fps {
-                let mut stats_sample: stats::StatsData = default();
-                stats_sample.fps = fps;
-                stats_accumulator.add_sample(&stats_sample);
-                old_fps = fps;
-            }
-            let stats_summary = stats_accumulator.summarize();
+        .on_stats_available(f!([stats_accumulator] (stats) {
+            stats_accumulator
+                .borrow_mut()
+                .add_sample(&stats);
+        }))
+        .forget();
+    app.display
+        .on_frame(f_!([stats_accumulator] {
+            let stats_summary = stats_accumulator.borrow().summarize();
             let fps_summary = stats_summary.map(|s| s.fps);
             if frame_counter % 60 == 0 {
                 let text = iformat!(
                     "Press CTRL-OPTION-TILDE (TILDE is the key below ESC) to show Monitor panel"
-                    "\n fps = " fps
+                    // "\n fps = " fps
                     "\n - min = " fps_summary.map_or(0.0, |s| s.min)
                     "\n - avg = " fps_summary.map_or(0.0, |s| s.avg)
                     "\n - max = " fps_summary.map_or(0.0, |s| s.max)
@@ -92,6 +87,6 @@ fn init(app: &Application) {
                 label.frp.set_content(text);
             }
             frame_counter += 1;
-        })
+        }))
         .forget();
 }
