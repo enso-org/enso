@@ -1,6 +1,9 @@
 # Catch All
 * @4e6 @MichaelMauderer @PabloBuchu @jdunkerley
 
+# Change log
+CHANGELOG.md
+
 # Rust Libraries
 Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon
 Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
@@ -23,7 +26,7 @@ Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
 /distribution/ @4e6
 /engine/ @4e6
 /project/ @4e6
-/test/ @4e6
+/test/ @4e6 @jdunkerley @radeusgd
 /tools/ @4e6
 
 # Enso Libraries
