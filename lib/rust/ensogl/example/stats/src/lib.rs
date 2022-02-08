@@ -67,9 +67,11 @@ fn init(app: &Application) {
 
     app.display
         .on_stats_available(f!([stats_accumulator] (stats) {
-            stats_accumulator
-                .borrow_mut()
-                .add_sample(&stats);
+            if stats.frame_counter != 0 {
+                stats_accumulator
+                    .borrow_mut()
+                    .add_sample(&stats);
+            }
         }))
         .forget();
     app.display
