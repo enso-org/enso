@@ -152,6 +152,8 @@ The subdirectories of interests are:
     paradigm in rust.
 - `build`: All building scripts and utilities, mostly the logic of the `./run`
   script.
+- `integration-test`: A single crate with all integration tests of our
+  applications.
 
 Other directories are auto-generated `dist` and `target`, or (currently) are the
 Engine files, which will be moved to `app/engine` soon.
@@ -277,6 +279,12 @@ have prepared several scripts which maximally automate the process:
     described in the issue: download compatible ChromeDriver from the
     [official source](https://chromedriver.chromium.org/downloads) and ensure it
     is in your `PATH`.
+
+- **Integration Tests** The integration tests are gathered in `integration-test`
+  crate. These tests require a current version of Chrome installed, and the
+  running Engine backend. They may have side effects (e.g. new Enso projects in
+  your workspace). They require. The `node ./run integration-test` command will
+  spawn required Engine process and then run all integration tests.
 
 - **Linting** Please be sure to fix all errors reported by `node ./run lint`
   before creating a pull request to this repository.
