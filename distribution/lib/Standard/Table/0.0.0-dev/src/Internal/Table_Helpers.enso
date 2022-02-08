@@ -3,9 +3,11 @@ from Standard.Base import all
 import Standard.Base.Error.Warnings
 import Standard.Table.Data.Matching
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
+from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Table.Data.Position
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched
+import Standard.Base.Data.Ordering.Natural_Order
 
 ## PRIVATE
    A helper function encapsulating shared code for `select_columns`
@@ -109,6 +111,29 @@ reorder_columns internal_columns selector position on_problems warnings =
         Position.Before_Other_Columns -> selection + other_columns
         Position.After_Other_Columns -> other_columns + selection
     result
+
+## PRIVATE
+   A helper function encapsulating shared code for `sort_columns`
+   implementations of various Table variants. See the documentation for the
+   Table type for details.
+
+   It takes a list of columns and returns the columns in the new order. It is
+   the responsibility of each implementation to reconstruct a proper table from
+   the resulting list of columns.
+
+   Arguments:
+   - internal_columns: A list of all columns in a table.
+   - sort_method: The sort methodology to use.
+sort_columns : Vector -> Sort_Method -> Vector
+sort_columns internal_columns sort_method =
+    mapper = case sort_method.case_sensitive of
+        True -> _.name
+        Matching.Case_Insensitive ->
+            col -> col.name.to_lower_case
+    comparator = case sort_method.natural_order of
+        True -> Natural_Order.compare
+        False -> _.compare_to _
+    internal_columns.sort on=mapper by=comparator order=sort_method.order
 
 ## PRIVATE
    A helper function which selects columns from the table based on the provided
