@@ -21,6 +21,7 @@ pub struct MonitorData {
     stats                     : Stats,
     previous_frame_stats      : Option<StatsData>,
     current_frame_measurement : FrameMeasurementState,
+    always_collect_stats      : bool,
     performance               : web::Performance,
     monitor                   : debug::Monitor,
     panels                    : Vec<debug::monitor::Panel>
@@ -32,6 +33,7 @@ impl {
         let stats                     = stats.clone_ref();
         let previous_frame_stats      = None;
         let current_frame_measurement = FrameMeasurementState::Skipped;
+        let always_collect_stats      = false;
         let performance               = web::performance();
         let mut monitor               = debug::Monitor::new();
         let panels = vec![
@@ -53,10 +55,19 @@ impl {
             stats,
             previous_frame_stats,
             current_frame_measurement,
+            always_collect_stats,
             performance,
             monitor,
             panels,
         }
+    }
+
+    pub fn always_collect_stats(&mut self) {
+        self.always_collect_stats = true;
+    }
+
+    fn stats_enabled(&self) -> bool {
+        self.always_collect_stats || self.visible()
     }
 
     /// Start measuring data.

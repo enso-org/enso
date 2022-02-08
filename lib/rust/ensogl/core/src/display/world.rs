@@ -194,6 +194,11 @@ impl World {
         &self.scene
     }
 
+    /// Stats monitor accessor.
+    pub fn stats_monitor(&self) -> &stats::Monitor {
+        &self.stats_monitor
+    }
+
     /// Register a callback which should be run before each animation frame.
     pub fn on_before_frame<F: FnMut(animation::TimeInfo) + 'static>(
         &self,

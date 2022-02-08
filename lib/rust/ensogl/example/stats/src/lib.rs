@@ -61,6 +61,7 @@ fn init(app: &Application) {
     let label = Label::new(app);
     app.display.add_child(&label);
 
+    app.display.stats_monitor().always_collect_stats();
     let stats_accumulator_data: stats::Accumulator = default();
     let stats_accumulator = Rc::new(RefCell::new(stats_accumulator_data));
     app.display
