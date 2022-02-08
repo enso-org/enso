@@ -1,0 +1,59 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Ordering.Natural_Order
+
+import Standard.Test
+
+spec = Test.group "Natural Order" <|
+    Test.specify "should behave as shown in examples" <|
+        Natural_Order.compare "a2" "a100" . should_equal Ordering.Less
+        ["a2", "a1", "a100", "a001", "a0001"].sort by=Natural_Order.compare . should_equal ["a0001", "a001", "a1", "a2", "a100"]
+
+    Test.specify "should correctly compare values" <|
+        Natural_Order.compare "a1" "a2" . should_equal Ordering.Less
+        Natural_Order.compare "a0001" "a01" . should_equal Ordering.Less
+        Natural_Order.compare "a0001" "a1" . should_equal Ordering.Less
+        Natural_Order.compare "a0001" "a100" . should_equal Ordering.Less
+        Natural_Order.compare "a100" "a2" . should_equal Ordering.Greater
+        Natural_Order.compare "b2" "a1" . should_equal Ordering.Greater
+        Natural_Order.compare "" "1" . should_equal Ordering.Less
+        Natural_Order.compare "" "a" . should_equal Ordering.Less
+        Natural_Order.compare "0" "a" . should_equal Ordering.Less
+        Natural_Order.compare "0a" "a1" . should_equal Ordering.Less
+        Natural_Order.compare "c" "9900" . should_equal Ordering.Greater
+
+        Natural_Order.compare "2 ft 17 in" "2 ft 3 in" . should_equal Ordering.Greater
+
+    Test.specify "should correctly work with groups of numbers and delimiters" <|
+        Natural_Order.compare "127.0.0.1" "200" . should_equal Ordering.Less
+        Natural_Order.compare "200" "127.0.0.1" . should_equal Ordering.Greater
+        Natural_Order.compare "127.0.0.1" "255.255.255.0" . should_equal Ordering.Less
+        Natural_Order.compare "255.255.0.0" "255.255.255.0" . should_equal Ordering.Less
+        Natural_Order.compare "255.255.0.0" "200" . should_equal Ordering.Greater
+
+        Natural_Order.compare "100-200.300" "1.2.3" . should_equal Ordering.Greater
+        Natural_Order.compare "1.2.3" "4.5.6" . should_equal Ordering.Less
+
+        ".".compare_to "-" . should_equal Ordering.Greater
+        Natural_Order.compare "4-5-6" "4.5.6" . should_equal Ordering.Less
+        Natural_Order.compare "4-5-6" "100-200.300" . should_equal Ordering.Less
+
+        ["255.255.0.0", "127.0.0.1", "255.255.255.0", "200"].sort by=Natural_Order.compare . should_equal ["127.0.0.1", "200", "255.255.0.0", "255.255.255.0"]
+        ["100-200.300", "1.2.3", "4.5.6", "4-5-6"].sort by=Natural_Order.compare . should_equal ["1.2.3", "4-5-6", "4.5.6", "100-200.300"]
+
+    Test.specify "does not treat a floating point in a special way"
+        Natural_Order.compare "0" "0.0" . should_equal Ordering.Less
+        Natural_Order.compare "0" "1.0001" . should_equal Ordering.Less
+        Natural_Order.compare "1.0001" "1.01" . should_equal Ordering.Less
+        Natural_Order.compare "1.01" "1.1" . should_equal Ordering.Less
+        Natural_Order.compare "1.1" "1.0002" . should_equal Ordering.Less
+        Natural_Order.compare "1.1" "1.10" . should_equal Ordering.Less
+        Natural_Order.compare "1.2" "1.10" . should_equal Ordering.Less
+        Natural_Order.compare "1.2" "1.20" . should_equal Ordering.Less
+        Natural_Order.compare "1.20" "2.0" . should_equal Ordering.Less
+        Natural_Order.compare "1.20" "2" . should_equal Ordering.Less
+        Natural_Order.compare "2" "2.0" . should_equal Ordering.Less
+
+        ["1.0002", "1.0001", "1.01", "1.1", "1.10", "1.2", "2", "0", "1.20"].sort by=Natural_Order.compare . should_equal ["0", "1.0001", "1.01", "1.1", "1.0002", "1.2", "1.10", "1.20", "2"]
+
+main = Test.Suite.run_main here.spec
