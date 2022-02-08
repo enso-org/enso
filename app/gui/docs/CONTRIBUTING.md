@@ -283,8 +283,8 @@ have prepared several scripts which maximally automate the process:
 - **Integration Tests** The integration tests are gathered in `integration-test`
   crate. These tests require a current version of Chrome installed, and the
   running Engine backend. They may have side effects (e.g. new Enso projects in
-  your workspace). They require. The `node ./run integration-test` command will
-  spawn required Engine process and then run all integration tests.
+  your workspace). The `node ./run integration-test` command will spawn required
+  Engine process and then run all integration tests.
 
 - **Linting** Please be sure to fix all errors reported by `node ./run lint`
   before creating a pull request to this repository.
