@@ -58,6 +58,7 @@ members = [
     "lib/rust/ensogl/example/slider",
     "lib/rust/ensogl/example/sprite-system",
     "lib/rust/ensogl/example/sprite-system-benchmark",
+    "lib/rust/ensogl/example/stats",
     "lib/rust/ensogl/example/text-area",
     "lib/rust/frp",
     "lib/rust/fuzzly",
