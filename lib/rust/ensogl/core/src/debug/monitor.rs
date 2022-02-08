@@ -780,8 +780,7 @@ stats_sampler!(
     10.0,
     100.0,
     0,
-    1.0,
-    None
+    1.0
 );
 
 #[cfg(test)]
