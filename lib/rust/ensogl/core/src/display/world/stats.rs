@@ -54,7 +54,10 @@ impl {
     /// Returns a snapshot of statistics data for the previous rendering frame if the monitor is
     /// [`visible()`] (and if it was visible during the previous frame as well).
     pub fn begin(&mut self) -> Option<StatsData> {
-        let stats_snapshot = if self.visible() {
+        let stats_snapshot = if !self.visible() {
+            self.frame_stats_valid = false;
+            None
+        } else {
             let time = self.performance.now();
             let previous_frame_stats = self.stats.begin_frame(time);
             if !self.frame_stats_valid {
@@ -67,9 +70,6 @@ impl {
                 self.monitor.draw();
                 Some(previous_frame_stats)
             }
-        } else {
-            self.frame_stats_valid = false;
-            None
         };
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
