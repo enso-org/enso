@@ -260,7 +260,7 @@ commands['integration-test'].rust = async function(argv) {
         console.log(`Running Rust WASM test suite.`)
         let args = [
             'test',
-//            '--headless',
+            '--headless',
             '--chrome',
             'integration-test',
             '--profile=integration-test'
