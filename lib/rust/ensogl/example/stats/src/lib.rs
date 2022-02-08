@@ -63,8 +63,6 @@ fn init(app: &Application) {
 
     let stats_accumulator_data: stats::Accumulator = default();
     let stats_accumulator = Rc::new(RefCell::new(stats_accumulator_data));
-    let mut frame_counter: usize = 0;
-
     app.display
         .on_stats_available(f!([stats_accumulator] (stats) {
             if stats.frame_counter != 0 {
@@ -76,11 +74,12 @@ fn init(app: &Application) {
         .forget();
 
     let stats = app.display.scene().stats.clone();
+    let mut frame_counter: usize = 0;
     app.display
         .on_frame(f_!([stats_accumulator] {
-            let stats_summary = stats_accumulator.borrow().summarize();
-            let fps_summary = stats_summary.map(|s| s.fps);
             if frame_counter % 60 == 0 {
+                let stats_summary = stats_accumulator.borrow().summarize();
+                let fps_summary = stats_summary.map(|s| s.fps);
                 let text = iformat!(
                     "Press CTRL-OPTION-TILDE (TILDE is the key below ESC) to show Monitor panel"
                     "\n fps = " stats.fps()
