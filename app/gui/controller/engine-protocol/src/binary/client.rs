@@ -384,7 +384,7 @@ mod tests {
         };
         let data = Vec::from("Hello".as_bytes());
         let message = MessageFromServer::new(FromServerPayloadOwned::VisualizationUpdate {
-            data:    data.clone(),
+            data: data.clone(),
             context,
         });
 
