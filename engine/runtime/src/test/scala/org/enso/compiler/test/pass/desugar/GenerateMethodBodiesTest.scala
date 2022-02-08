@@ -128,7 +128,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "have the `this` argument added" in {
       val ir =
-        s"""My_Type.$from (value : Other) = value.a
+        s"""My_Type.$from (that : Other) = that.a
            |""".stripMargin.preprocessModule.desugar
 
       val conversion =
@@ -141,7 +141,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "have their bodies replaced by an error if they redefine `this`" in {
       val ir =
-        s"""My_Type.$from (value : Other) this=1 = value.a
+        s"""My_Type.$from (that : Other) this=1 = that.a
            |""".stripMargin.preprocessModule.desugar
 
       val conversion =

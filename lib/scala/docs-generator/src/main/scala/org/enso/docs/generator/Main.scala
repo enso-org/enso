@@ -121,6 +121,8 @@ object Main {
     )
   }
 
+  private val sourceStdlibVersion = "0.0.0-dev"
+
   /** Traverses through directory generating docs from every .enso file found.
     */
   def generateAllDocs(
@@ -132,13 +134,12 @@ object Main {
   ): Unit = {
     val allFiles = traverse(new File(path))
       .filter(f => f.isFile && f.getName.endsWith(".enso"))
-    val libraryVersion = buildinfo.Info.stdLibVersion
     val allFileNames = allFiles.map(
       _.getPath
         .replace(path + "/", "")
         .replace(".enso", "")
         .replace("src/", "")
-        .replace(s"/$libraryVersion/", "/")
+        .replace(s"/$sourceStdlibVersion/", "/")
     )
     val allPrograms = allFiles
       .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
@@ -157,12 +158,11 @@ object Main {
     val styleCode = Using(Source.fromFile(styleFile, "UTF-8")) { _.mkString }
     val treeStyle = "<style jsx>{`" + styleCode.getOrElse("") + "`}</style>"
     val allDocJSFiles = allFiles.map { x =>
-      val libraryVersion = buildinfo.Info.stdLibVersion
       val name = x.getPath
         .replace(".enso", ".js")
         .replace("lib/Standard/", outDir + "/")
         .replace("Main.js", "index.js")
-        .replace(s"/$libraryVersion/", "/")
+        .replace(s"/$sourceStdlibVersion/", "/")
         .replace("src/", "")
       val ending = name.split(outDir + "/").tail.head
       name.replace(ending, ending.replace('/', '-'))

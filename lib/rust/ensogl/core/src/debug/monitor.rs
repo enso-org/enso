@@ -241,8 +241,8 @@ impl Monitor {
     }
 
     /// Add new display element.
-    pub fn add<M: Sampler + 'static>(&mut self, monitor: M) -> Panel {
-        let panel = Panel::new(self.config.clone(), monitor);
+    pub fn add<S: Sampler + Default + 'static>(&mut self) -> Panel {
+        let panel = Panel::new(self.config.clone(), S::default());
         self.panels.push(panel.clone());
         self.resize();
         panel
@@ -712,6 +712,20 @@ impl PanelData {
 /// discover more.
 macro_rules! stats_sampler {
     ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    , $precision:expr, $value_divisor:expr) => {
+        stats_sampler!(
+            $label,
+            $name,
+            $stats_field,
+            $warn_threshold,
+            $err_threshold,
+            $precision,
+            $value_divisor,
+            None
+        );
+    };
+
+    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
     , $precision:expr, $value_divisor:expr, $max_value:expr) => {
         /// Sampler implementation.
         #[derive(Copy, Clone, Debug, Default)]
@@ -751,44 +765,17 @@ macro_rules! stats_sampler {
 const MB: f64 = (1024 * 1024) as f64;
 
 stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0, Some(60.0));
-stats_sampler!(
-    "Frame time (ms)",
-    FrameTime,
-    frame_time,
-    1000.0 / 55.0,
-    1000.0 / 25.0,
-    2,
-    1.0,
-    None
-);
-stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB, None);
-stats_sampler!(
-    "GPU memory usage (Mb)",
-    GpuMemoryUsage,
-    gpu_memory_usage,
-    100.0,
-    500.0,
-    2,
-    MB,
-    None
-);
-stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Data upload count", DataUploadCount, data_upload_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Data upload size (Mb)", DataUploadSize, data_upload_size, 1.0, 10.0, 2, MB, None);
-stats_sampler!(
-    "Sprite system count",
-    SpriteSystemCount,
-    sprite_system_count,
-    100.0,
-    500.0,
-    0,
-    1.0,
-    None
-);
-stats_sampler!("Symbol count", SymbolCount, symbol_count, 100.0, 500.0, 0, 1.0, None);
-stats_sampler!("Sprite count", SpriteCount, sprite_count, 100_000.0, 500_000.0, 0, 1.0, None);
-stats_sampler!("Shader count", ShaderCount, shader_count, 100.0, 500.0, 0, 1.0, None);
+stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
+stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
+stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
+stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Data upload count", DataUploadCount, data_upload_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Data upload size (Mb)", DataUploadSize, data_upload_size, 1.0, 10.0, 2, MB);
+stats_sampler!("Sprite system count", SpriteSystemCount, sprite_system_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Symbol count", SymbolCount, symbol_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Sprite count", SpriteCount, sprite_count, 100_000.0, 500_000.0, 0, 1.0);
+stats_sampler!("Shader count", ShaderCount, shader_count, 100.0, 500.0, 0, 1.0);
 stats_sampler!(
     "Shader compile count",
     ShaderCompileCount,
@@ -819,16 +806,11 @@ mod tests {
     macro_rules! test_and_advance_frame {
         ($test:expr, $expected_value:expr, $expected_check:path
         ; next: $frame_time:expr, $post_frame_delay:expr) => {
-            // start new frame
-            let prev_frame = $test.stats.begin_frame($test.t);
-
-            // check previous frame's values
-            let value = $test.sampler.value(&prev_frame);
-            assert_approx_eq!(value, $expected_value, 0.001);
-            let check = $test.sampler.check(&prev_frame);
-            assert!(matches!(check, $expected_check));
-
-            // advance till just before next frame
+            let prev_frame_stats = $test.stats.begin_frame($test.t);
+            let tested_value = $test.sampler.value(&prev_frame_stats);
+            let tested_check = $test.sampler.check(&prev_frame_stats);
+            assert_approx_eq!(tested_value, $expected_value, 0.001);
+            assert!(matches!(tested_check, $expected_check));
             $test.t += $frame_time;
             $test.stats.end_frame($test.t);
             $test.t += $post_frame_delay;
@@ -845,10 +827,9 @@ mod tests {
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
-        // Note: there is no earlier frame before "Frame 1", so the tested value for the previous
-        // frame will always be 0.0 and "Correct" at this point (which is a special case -
-        // depending on tested stat, for later frames 0.0 could result in a threshold
-        // warning/error).
+        // Note: there is no frame before "Frame 1", so the tested value for the previous frame
+        // will always be 0.0 and "Correct" at this point (which is a special case - depending on
+        // tested stat, for later frames 0.0 could result in a threshold warning/error).
         test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
@@ -879,7 +860,7 @@ mod tests {
         // starting next frame.
         //
         // Note: there is no earlier frame before "Frame 1", so the tested value for the previous
-        // frame will always be 0.0 and "Correct" at this point (which is a special case -
+        // frame will always be 0.0 and [`Correct`] at this point (which is a special case -
         // depending on tested stat, for later frames 0.0 could result in a threshold
         // warning/error).
         test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);

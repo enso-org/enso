@@ -11,6 +11,6 @@ import org.enso.interpreter.runtime.type.TypesGen;
     description = "Checks if the argument is an unresolved symbol.")
 public class IsUnresolvedSymbolNode extends Node {
   boolean execute(Object _this, @AcceptsError Object value) {
-    return TypesGen.isUnresolvedSymbol(value);
+    return TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value);
   }
 }

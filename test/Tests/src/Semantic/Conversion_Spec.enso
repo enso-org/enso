@@ -1,0 +1,100 @@
+from Standard.Base import all
+import project.Semantic.Conversion.Methods
+
+import Standard.Test
+
+type Foo foo
+type Bar bar
+type Baz baz
+type Quux quux
+type Quaffle
+type MyError err
+
+type NotFoo notfoo
+
+Foo.from (that:Bar) = Foo that.bar
+Foo.from (that:Baz) = Foo that.baz
+Foo.from (that:Text) = Foo that.length
+Foo.from (that:Number) first_param=0 second_param=0 third_param=0 = Foo [that, first_param, second_param, third_param]
+Foo.from (that:Function) = Foo (that 5)
+Foo.from (that:Boolean) = Foo that
+Foo.from (that:Array) = Foo that.length
+
+NotFoo.from (that:True) = NotFoo that
+NotFoo.from (_:False) = NotFoo True
+NotFoo.from (_:Any) = NotFoo "ANY!!!"
+
+Foo.from (_:Quaffle) = Foo "quaffle"
+Foo.from (_:Error) = Foo "oops"
+
+foreign js make_str x = """
+   return "js string"
+
+foreign js call_function fn arg_1 = """
+    return fn(arg_1, "a string");
+
+Number.foo = "foo called"
+
+spec =
+    Test.group "Conversion" <|
+        Test.specify "should be able to convert atoms" <|
+            ((Foo.from (Baz 10)).foo + (Foo.from (Bar 20)).foo) . should_equal 30
+            Foo.from Quaffle . foo . should_equal "quaffle"
+        Test.specify "should be able to convert text" <|
+            Foo.from "123" . foo . should_equal 3
+        Test.specify "should be able to convert foreign text" <|
+            Foo.from (here.make_str 4) . foo . should_equal 9
+        Test.specify "should be able to convert numbers" <|
+            Foo.from 4 . should_equal (Foo [4, 0, 0, 0])
+            Foo.from (10^100) . should_equal (Foo [10^100, 0, 0, 0])
+            Foo.from 4.5 . should_equal (Foo [4.5, 0, 0, 0])
+        Test.specify "should be able to convert dataflow errors" <|
+            Foo.from (Error.throw <| MyError "i was bad") . should_equal (Foo "oops")
+        Test.specify "should be able to convert functions" <|
+            Foo.from (e -> e) . foo . should_equal 5
+        Test.specify "should be able to convert booleans" <|
+            Foo.from True . foo . should_be_true
+            Foo.from False . foo . should_be_false
+            NotFoo.from True . notfoo . should_be_true
+            NotFoo.from False . notfoo . should_be_true
+        Test.specify "should be able to convert arrays" <|
+            Foo.from [1,2,3].to_array . foo . should_equal 3
+        Test.specify "should be able to convert Any" <|
+            NotFoo.from that=Quaffle . notfoo . should_equal "ANY!!!"
+            NotFoo.from 4 . notfoo . should_equal "ANY!!!"
+            NotFoo.from (e -> e) . notfoo . should_equal "ANY!!!"
+            NotFoo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
+        Test.specify "should call intrinsic object conversions for unimported constructors" <|
+            Vector.from Methods.get_foo . should_equal ["foo"]
+        Test.specify "should call extension conversions" <|
+            Text.from Methods.get_bar . should_equal "'bar'"
+
+        Test.specify "should fail graciously when there is no conversion" <|
+            Panic.recover (Foo.from (Quux 10)) . catch .to_display_text . should_equal "Could not find a conversion from `Quux` to `Foo`"
+        Test.specify "should fail graciously when the conversion target is invalid" <|
+            Panic.recover (123.from (Quux 10)) . catch .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
+
+        Test.specify "should be callable with by-name arguments" <|
+            .from that=4 this=Foo . should_equal (Foo [4, 0, 0, 0])
+        Test.specify "should support the use of multiple arguments" <|
+            Foo.from that=4 second_param=1 2 . should_equal (Foo [4, 2, 1, 0])
+
+        Test.specify "should play nicely with polyglot" <|
+            here.call_function .from Foo . should_equal (Foo 8)
+
+        Test.specify "should support the meta functions" <|
+            meta_from = Meta.meta .from
+            is_symbol = case meta_from of
+                Meta.Unresolved_Symbol _ -> True
+                _ -> False
+            is_symbol.should_be_true
+
+            .from . is_a Meta.Unresolved_Symbol . should_be_true
+
+            meta_from.name.should_equal "from"
+
+            Meta.meta .foo . rename "from" . should_equal .from
+            Meta.meta .foo . rename "from" Foo "hello" . should_equal (Foo 5)
+
+            meta_from.rename "foo" 123 . should_equal "foo called"
+            meta_from.rename "foo" . should_equal .foo

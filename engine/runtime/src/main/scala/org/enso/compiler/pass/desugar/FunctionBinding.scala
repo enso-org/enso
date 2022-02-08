@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -14,6 +15,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.interpreter.Constants
 
 import scala.annotation.unused
 
@@ -172,10 +174,35 @@ case object FunctionBinding extends IRPass {
             )
           } else {
             val firstArgumentType = args.head.ascribedType.get
-            val nonDefaultedArg   = args.drop(1).find(_.defaultValue.isEmpty)
+            val firstArgumentName = args.head.name
+            val newFirstArgument =
+              if (firstArgumentName.isInstanceOf[IR.Name.Blank]) {
+                val newName = IR.Name
+                  .Literal(
+                    Constants.Names.THAT_ARGUMENT,
+                    firstArgumentName.isReferent,
+                    firstArgumentName.isMethod,
+                    firstArgumentName.location
+                  )
 
-            if (nonDefaultedArg.isEmpty) {
-              val newBody = args
+                args.head
+                  .withName(newName)
+                  .updateMetadata(
+                    IgnoredBindings -->> IgnoredBindings.State.Ignored
+                  )
+              } else {
+                args.head
+              }
+            val nonDefaultedArg = args.drop(1).find(_.defaultValue.isEmpty)
+            if (newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT) {
+              IR.Error.Conversion(
+                newFirstArgument,
+                IR.Error.Conversion.InvalidSourceArgumentName(
+                  newFirstArgument.name.name
+                )
+              )
+            } else if (nonDefaultedArg.isEmpty) {
+              val newBody = (newFirstArgument :: args.tail)
                 .map(_.mapExpressions(desugarExpression))
                 .foldRight(desugarExpression(body))((arg, body) =>
                   IR.Function.Lambda(List(arg), body, None)

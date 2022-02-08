@@ -32,7 +32,6 @@ import org.enso.interpreter.runtime.state.Stateful;
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
-  private final BranchProfile polyglotArgumentErrorProfile = BranchProfile.create();
   private final int argumentCount;
 
   /**

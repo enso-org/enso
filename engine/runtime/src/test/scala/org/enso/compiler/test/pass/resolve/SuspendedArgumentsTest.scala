@@ -156,7 +156,7 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       val ir =
         """File.from : Text -> Suspended -> Any
-          |File.from (value : Text) config=Nothing = undefined
+          |File.from (that : Text) config=Nothing = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
           .asInstanceOf[Method.Conversion]
 
@@ -172,7 +172,7 @@ class SuspendedArgumentsTest extends CompilerTest {
       implicit val ctx: ModuleContext = mkModuleContext
 
       val ir =
-        """File.from (~value : Text) = undefined
+        """File.from (~that : Text) = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
 
       ir shouldBe an[IR.Error.Conversion]

@@ -74,7 +74,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
       val componentsManager = makeManagers(userInterface =
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       )._2
-      val brokenVersion = SemVer(0, 999, 0, Some("broken"))
+      val brokenVersion = SemVer(0, 9999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(brokenVersion)
 
       assert(
@@ -96,7 +96,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         )
 
       val validVersion          = SemVer(0, 0, 1)
-      val newerButBrokenVersion = SemVer(0, 999, 0, Some("broken"))
+      val newerButBrokenVersion = SemVer(0, 9999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(validVersion)
       componentsManager.findOrInstallEngine(newerButBrokenVersion)
 
@@ -108,7 +108,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       val componentsManager = makeManagers(userInterface = userInterface)._2
 
-      val brokenVersion = SemVer(0, 999, 0, Some("broken"))
+      val brokenVersion = SemVer(0, 9999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(brokenVersion)
       assert(
         userInterface.wasAskedToInstallBroken,
@@ -175,8 +175,8 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
           .findOrInstallEngine(engineWithDifferentVersionRequirements)
           .manifest
 
-      val usualVersion = SemVer(0, 0, 1)
-      val bigVersion   = SemVer(999, 0, 0)
+      val usualVersion = SemVer(0, 0, 0, Some("dev"))
+      val bigVersion   = SemVer(9999, 0, 0)
       manifest.requiredInstallerVersions.launcher shouldEqual usualVersion
       manifest.requiredInstallerVersions.projectManager shouldEqual bigVersion
 
@@ -299,8 +299,8 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
   }
 
   private def fakeInstallEngine(searchPath: Path, version: SemVer): Unit = {
-    val manifest = """minimum-launcher-version: 0.0.1
-                     |minimum-project-manager-version: 0.0.1
+    val manifest = """minimum-launcher-version: 0.0.0-dev
+                     |minimum-project-manager-version: 0.0.0-dev
                      |graal-vm-version: 1.foo
                      |graal-java-version: 11""".stripMargin
     val root     = searchPath / version.toString
