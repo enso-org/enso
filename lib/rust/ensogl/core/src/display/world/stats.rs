@@ -19,7 +19,7 @@ shared! { Monitor
 #[derive(Debug)]
 pub struct MonitorData {
     stats           : Stats,
-    /// Tracks whether [`stats`] collection was properly started and stopped during the most
+    /// Tracks whether [`stats`] calculations were properly started and stopped during the most
     /// recently displayed rendering frame. Set to `false` if the panel was not [`visible()`]
     /// during last frame's [`begin()`] or [`end()`].
     are_stats_valid : bool,
