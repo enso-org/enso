@@ -115,7 +115,13 @@ commands.clean.rust = async function () {
 
 commands.check = command(`Fast check if project builds (only Rust target)`)
 commands.check.rust = async function () {
-    await run_cargo('cargo', ['check', '--workspace', ' -p', 'enso-integration-test', '--all-targets'])
+    await run_cargo('cargo', [
+        'check',
+        '--workspace',
+        ' -p',
+        'enso-integration-test',
+        '--all-targets',
+    ])
 }
 
 // === Build ===
@@ -251,8 +257,8 @@ commands.test.rust = async function (argv) {
 // === Integration Test ===
 
 commands['integration-test'] = command('Run integration test suite')
-commands['integration-test'].rust = async function(argv) {
-    let process = null;
+commands['integration-test'].rust = async function (argv) {
+    let process = null
     if (argv.backend !== 'false') {
         process = await build_project_manager().then(run_project_manager)
     }
@@ -263,7 +269,7 @@ commands['integration-test'].rust = async function(argv) {
             '--headless',
             '--chrome',
             'integration-test',
-            '--profile=integration-test'
+            '--profile=integration-test',
         ]
         await run_cargo('wasm-pack', args)
     } finally {
@@ -278,7 +284,16 @@ commands['integration-test'].rust = async function(argv) {
 
 commands.lint = command(`Lint the codebase`)
 commands.lint.rust = async function () {
-    await run_cargo('cargo', ['clippy', '--workspace', '-p', 'enso-integration-test', '--all-targets', '--', '-D', 'warnings'])
+    await run_cargo('cargo', [
+        'clippy',
+        '--workspace',
+        '-p',
+        'enso-integration-test',
+        '--all-targets',
+        '--',
+        '-D',
+        'warnings',
+    ])
     await run_cargo('cargo', ['fmt', '--', '--check'])
 }
 
