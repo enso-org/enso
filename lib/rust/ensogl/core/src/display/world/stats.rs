@@ -18,18 +18,20 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats            : Stats,
-    performance      : web::Performance,
-    monitor          : debug::Monitor,
-    panels           : Vec<debug::monitor::Panel>
+    stats             : Stats,
+    frame_stats_valid : bool,
+    performance       : web::Performance,
+    monitor           : debug::Monitor,
+    panels            : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
-        let stats            = stats.clone_ref();
-        let performance      = web::performance();
-        let mut monitor      = debug::Monitor::new();
+        let stats             = stats.clone_ref();
+        let performance       = web::performance();
+        let mut monitor       = debug::Monitor::new();
+        let frame_stats_valid = false;
         let panels = vec![
             monitor.add::<debug::monitor::FrameTime>(),
             monitor.add::<debug::monitor::Fps>(),
@@ -45,22 +47,28 @@ impl {
             monitor.add::<debug::monitor::SpriteSystemCount>(),
             monitor.add::<debug::monitor::SpriteCount>(),
         ];
-        Self {stats,performance,monitor,panels}
+        Self {stats,frame_stats_valid,performance,monitor,panels}
     }
 
     /// Start measuring data.
     /// Returns a snapshot of statistics data for the previous rendering frame if the monitor is
-    /// [`visible()`].
+    /// [`visible()`] (and if it was visible during the previous frame as well).
     pub fn begin(&mut self) -> Option<StatsData> {
         let stats_snapshot = if self.visible() {
             let time = self.performance.now();
             let previous_frame_stats = self.stats.begin_frame(time);
-            for panel in &self.panels {
-                panel.sample_and_postprocess(&previous_frame_stats);
+            if self.frame_stats_valid {
+                for panel in &self.panels {
+                    panel.sample_and_postprocess(&previous_frame_stats);
+                }
+                self.monitor.draw();
+                Some(previous_frame_stats)
+            } else {
+                self.frame_stats_valid = true;
+                None
             }
-            self.monitor.draw();
-            Some(previous_frame_stats)
         } else {
+            self.frame_stats_valid = false;
             None
         };
         // This should be done even when hidden in order for the stats not to overflow limits.
@@ -73,6 +81,8 @@ impl {
         if self.visible() {
             let time = self.performance.now();
             self.stats.end_frame(time);
+        } else {
+            self.frame_stats_valid = false;
         }
     }
 
