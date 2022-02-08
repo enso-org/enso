@@ -532,7 +532,11 @@ where
 ///
 /// # Limitations
 ///
-/// Some uncommon syntactic constructs are not (currently) supported.
+/// Some syntactic constructs are not (currently) supported.
+///
+/// ## Unsafe functions
+///
+/// Unsafe functions cannot be wrapped (yet). Use the low-level API.
 ///
 /// ## Destructuring binding in function signatures
 ///
@@ -599,7 +603,7 @@ where
 ///     // ...
 /// }
 /// ```
-#[doc(no_inline)]
+#[doc(inline)]
 pub use enso_profiler_macros::profile;
 
 enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
@@ -658,9 +662,34 @@ mod tests {
     #[test]
     fn profile_async() {
         #[profile]
-        async fn profiled(_profiler: profiler::Objective) {}
-        let _future = profiled(profiler::APP_LIFETIME);
+        async fn profiled(_profiler: profiler::Objective) -> u32 {
+            let block = async { 4 };
+            block.await
+        }
+        let future = profiled(profiler::APP_LIFETIME);
+        futures::executor::block_on(future);
+        let measurements = profiler::take_log();
+        assert_eq!(measurements.len(), 1);
     }
+}
+
+// Performance analysis [KW]
+//
+// Performance impact: Except at low numbers of measurements, run time is dominated by growing the
+// vector. I'm measuring about 1.6ns per logged measurement [Ryzen 5950X], when accumulating 10k
+// measurements.
+// I think the cost of the unavoidable performance.now() will be on the order of 1μs, in which case
+// the overhead of #[profile] is within 0.1 % of an optimal implementation.
+//
+// Performance variability impact: There's no easy way to measure this, so I'm speaking
+// theoretically here. The only operation expected to have a significantly variable cost is the
+// Vec::push to grow the MEASUREMENTS log; it sometimes needs to reallocate. However even at its
+// most expensive, it should be on the order of a 1μs (for reasonable numbers of measurements); so
+// the variance introduced by this framework shouldn't disturb even very small measurements (I
+// expect <1% added variability for a 1ms measurement).
+#[cfg(test)]
+mod bench {
+    use crate as profiler;
 
     /// Perform a specified number of measurements, for benchmarking.
     fn log_measurements(count: usize) {
@@ -707,33 +736,46 @@ mod tests {
         let mut measurements = vec![];
         b.iter(|| push_vec(10_000, &mut measurements));
     }
+}
 
-    mod compile_tests {
-        use super::*;
+#[cfg(test)]
+mod compile_tests {
+    use crate as profiler;
+    use profiler::profile;
 
-        /// Decorating a pub fn.
+    /// Decorating a pub fn.
+    #[profile]
+    pub fn profiled_pub(_profiler: profiler::Objective) {}
+
+    #[profile]
+    async fn profiled_async(_profiler: profiler::Objective) {}
+
+    #[profile]
+    #[allow(unsafe_code)]
+    unsafe fn profiled_unsafe(_profiler: profiler::Objective) {}
+
+    #[test]
+    fn mut_binding() {
         #[profile]
-        pub fn profiled_pub(_profiler: profiler::Objective) {}
+        fn profiled(mut _x: u32, _profiler: profiler::Objective) {
+            _x = 4;
+        }
+        profiled(0, profiler::APP_LIFETIME);
+        let measurements = profiler::take_log();
+        assert_eq!(measurements.len(), 1);
+    }
 
+    // Unsupported:
+    // #[profile]
+    // fn profiled_destructuring((_x, _y): (u32, u32), _profiler: profiler::Objective) {}
+
+    #[allow(dead_code)]
+    struct Foo;
+
+    impl Foo {
         #[profile]
-        async fn profiled_async(_profiler: profiler::Objective) {}
-
-        #[profile]
-        #[allow(unsafe_code)]
-        unsafe fn profiled_unsafe(_profiler: profiler::Objective) {}
-
-        // Unsupported:
-        // #[profile]
-        // fn profiled_destructuring((_x, _y): (u32, u32), _profiler: profiler::Objective) {}
-
-        #[allow(dead_code)]
-        struct Foo;
-
-        impl Foo {
-            #[profile]
-            fn profiled_method(&mut self, _arg: u32, _profiler: profiler::Objective) {
-                profiled_pub(_profiler)
-            }
+        fn profiled_method(&mut self, _arg: u32, _profiler: profiler::Objective) {
+            profiled_pub(_profiler)
         }
     }
 }

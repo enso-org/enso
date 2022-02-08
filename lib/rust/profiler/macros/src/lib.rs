@@ -257,7 +257,7 @@ pub fn profile(
     instrument(&mut func.sig, &mut new_body);
     // Instead of inserting the original body directly, wrap it in a closure that is not generic
     // over `impl Parent`; this avoids the code-size cost of monomorphizing it.
-    wrap_body(&orig_sig, orig_body, &mut new_body);
+    wrap_body(&orig_sig, *orig_body, &mut new_body);
 
     func.block = new_body;
     func.into_token_stream().into()
@@ -293,7 +293,7 @@ fn instrument(sig: &mut syn::Signature, body: &mut syn::Block) {
 #[cfg(not(feature = "lineno"))]
 /// Decorate the input with file:line info determined by the proc_macro's call site.
 fn make_label(ident: &syn::Ident) -> String {
-    format!("{}", ident)
+    format!("{} (?:?)", ident)
 }
 
 #[cfg(feature = "lineno")]
@@ -326,7 +326,14 @@ type CallArgs = punctuated::Punctuated<syn::Expr, syn::Token![,]>;
 /// pattern because we need to be able to forward a `self` argument, but have no way to determine
 /// the type of `Self`, so we can't write a function signature. In a closure definition, we can
 /// simply leave the type of that argument implicit.
-fn wrap_body(sig: &syn::Signature, mut body: Box<syn::Block>, body_out: &mut syn::Block) {
+///
+/// # Limitations
+///
+/// Not currently supported:
+/// - `unsafe` functions
+/// - functions with destructuring bindings
+/// - functions containing an `impl` for a `struct` or `trait`
+fn wrap_body(sig: &syn::Signature, mut body: syn::Block, body_out: &mut syn::Block) {
     // If there's a `self` parameter, we need to replace it with an ordinary binding in the wrapped
     // block (here) and signature (below, building `closure_inputs`).
     let placeholder_self = syn::Ident::new("__wrap_body__self", proc_macro2::Span::call_site());
@@ -347,9 +354,14 @@ fn wrap_body(sig: &syn::Signature, mut body: Box<syn::Block>, body_out: &mut syn
         });
     }
 
-    body_out.stmts.push(syn::parse(quote::quote! {
-        return (|#closure_inputs| #body)(#call_args);
-    }.into()).unwrap());
+    body_out.stmts.push(syn::parse((match &sig.asyncness {
+        None => quote::quote! {
+            return (|#closure_inputs| #body)(#call_args);
+        },
+        Some(_) => quote::quote! {
+            return (|#closure_inputs| async { #body })(#call_args).await;
+        },
+    }).into()).unwrap());
 }
 
 struct ReplaceAll {
