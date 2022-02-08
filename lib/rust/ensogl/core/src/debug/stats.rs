@@ -1,11 +1,24 @@
-//! This module defines a structure gathering statistics of the running engine. The statistics are
-//! an amazing tool for debugging what is really happening under the hood and understanding the
-//! performance characteristics.
+//! This module provides utilities for gathering runtime performance statistics of the GUI.
+//!
+//! The module provides a structure which defines the statistics we are interested in ([`Stats`]),
+//! and contains methods for modifying as well as retrieving the current values of the statistics
+//! (often also referred to with the shortcut term "stats"). It also provides methods that need
+//! to be called to ensure that some of the statistics are properly calculated per each frame, and
+//! helper utility types for accumulating and summarizing stats over multiple frames. The intention
+//! behind this module is to aid in detecting and debugging possible performance issues in the GUI.
+//!
+//! Note: some statistics will not be collected (the fields will be present but always zero) when
+//! this crate is compiled without the `statistics` feature flag. This is mediated by the
+//! [`if_compiled_with_stats!`] macro. At the time of writing this doc, the affected stats are:
+//!  - `gpu_memory_usage`
+//!  - `data_upload_size`
 
 use enso_prelude::*;
+use enso_types::*;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
+use num_traits::cast;
 use wasm_bindgen::JsCast;
 
 
@@ -106,6 +119,62 @@ macro_rules! gen_stats {
             );
 
         )* }
+
+
+        // === Accumulator ===
+
+        /// Contains aggregated data from multiple [`StatsData`] objects. This is intended to be
+        /// used as a mutable data structure, which can have new data continuously added. To
+        /// calculate a summary of the data based on the aggregated samples, its [`summarize()`]
+        /// method should be called.
+        #[derive(Debug, Default)]
+        pub struct Accumulator {
+            /// How many samples of [`StatsData`] were accumulated.
+            samples_count: u32,
+            $($field : ValueAccumulator<$field_type>),*
+        }
+
+        impl Accumulator {
+            /// Includes the data of the sample into the Accumulator.
+            pub fn add_sample(&mut self, sample: &StatsData) {
+                self.samples_count += 1;
+                if self.samples_count == 1 {
+                    $( self.$field = ValueAccumulator::new(sample.$field); )*
+                } else {
+                    $( self.$field.add_sample(sample.$field); )*
+                }
+            }
+
+            /// Calculates a summary of data added into the Accumulator till now. Returns a
+            /// non-empty result only if [`add_sample`] was called at least once.
+            pub fn summarize(&self) -> Option<Summary> {
+                if self.samples_count == 0 {
+                    None
+                } else {
+                    let n = self.samples_count as f64;
+                    let summary = Summary {
+                        $($field : ValueSummary{
+                            min: self.$field.min,
+                            max: self.$field.max,
+                            avg: self.$field.sum / n,
+                        }),*
+                    };
+                    Some(summary)
+                }
+            }
+        }
+
+
+        // === Summary ===
+
+        /// Contains summarized values of stats fields from multiple [`StatsData`] objects.
+        #[derive(Copy, Clone, Debug)]
+        pub struct Summary {
+            $(
+                #[allow(missing_docs)]
+                pub $field : ValueSummary<$field_type>
+            ),*
+        }
     }};
 }
 
@@ -173,4 +242,110 @@ macro_rules! if_compiled_with_stats {
         #[cfg(not(feature = "statistics"))]
         {}
     };
+}
+
+
+
+// ========================
+// === ValueAccumulator ===
+// ========================
+
+#[derive(Debug, Default)]
+struct ValueAccumulator<T> {
+    min: T,
+    max: T,
+    sum: f64,
+}
+
+impl<T: Min + Max + PartialOrd + cast::AsPrimitive<f64> + Copy> ValueAccumulator<T> {
+    fn new(v: T) -> Self {
+        Self { min: v, max: v, sum: v.as_() }
+    }
+
+    fn add_sample(&mut self, v: T) {
+        self.min = min(self.min, v);
+        self.max = max(self.max, v);
+        self.sum += v.as_();
+    }
+}
+
+
+
+// ====================
+// === ValueSummary ===
+// ====================
+
+/// Summary for multiple values of type T. Intended to be used for storing a summary of multiple
+/// samples of some runtime stat.
+#[derive(Copy, Clone, Debug)]
+#[allow(missing_docs)]
+pub struct ValueSummary<T> {
+    pub min: T,
+    pub max: T,
+    pub avg: f64,
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use assert_approx_eq::assert_approx_eq;
+
+
+
+    macro_rules! test_with_new_sample {
+        (
+            $accumulator:expr;
+            $(
+                $field:ident : $type:tt = $sample:literal
+                    => min: $min:literal avg: $avg:literal max: $max:literal
+            )*
+        ) => {
+            $(let $field: $type = $sample;)*
+            let sample_stats = StatsData { $($field,)* ..default() };
+            $accumulator.add_sample(&sample_stats);
+            let tested_summary = $accumulator.summarize().unwrap();
+            $(
+                test_with_new_sample!($type, tested_summary.$field.min, $min);
+                test_with_new_sample!(f64, tested_summary.$field.avg, $avg);
+                test_with_new_sample!($type, tested_summary.$field.max, $max);
+            )*
+        };
+
+        // Helper rules for asserting equality on various types
+        (f64, $val1:expr, $val2:expr) => { assert_approx_eq!($val1, $val2); };
+        (u32, $val1:expr, $val2:expr) => { assert_eq!($val1, $val2); };
+        (usize, $val1:expr, $val2:expr) => { assert_eq!($val1, $val2); };
+    }
+
+    #[test]
+    fn stats_summaries() {
+        // This tests attempts to verify calculation of proper summaries for stats of each
+        // primitive type supported by `gen_stats!`.
+
+        let mut accumulator: Accumulator = default();
+        assert!(matches!(accumulator.summarize(), None));
+
+        test_with_new_sample!(accumulator;
+            fps:               f64   = 55.0 => min: 55.0 avg: 55.0   max: 55.0
+            wasm_memory_usage: u32   = 1000 => min: 1000 avg: 1000.0 max: 1000
+            buffer_count:      usize = 3    => min: 3    avg: 3.0    max: 3
+        );
+        test_with_new_sample!(accumulator;
+            fps:               f64   = 57.0 => min: 55.0 avg: 56.0   max: 57.0
+            wasm_memory_usage: u32   = 2000 => min: 1000 avg: 1500.0 max: 2000
+            buffer_count:      usize = 2    => min: 2    avg: 2.5    max: 3
+        );
+        test_with_new_sample!(accumulator;
+            fps:               f64   = 56.0 => min: 55.0 avg: 56.0   max: 57.0
+            wasm_memory_usage: u32   = 3000 => min: 1000 avg: 2000.0 max: 3000
+            buffer_count:      usize = 1    => min: 1    avg: 2.0    max: 3
+        );
+    }
 }
