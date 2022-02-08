@@ -55,9 +55,9 @@ impl {
     /// [`visible()`] (and if it was visible during the previous frame as well).
     pub fn begin(&mut self) -> Option<StatsData> {
         let stats_snapshot = if self.visible() {
-            let time = self.performance.now();
-            let previous_frame_stats = self.stats.begin_frame(time);
             if self.frame_stats_valid {
+                let time = self.performance.now();
+                let previous_frame_stats = self.stats.begin_frame(time);
                 for panel in &self.panels {
                     panel.sample_and_postprocess(&previous_frame_stats);
                 }
