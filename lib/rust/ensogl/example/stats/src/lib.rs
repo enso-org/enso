@@ -74,6 +74,8 @@ fn init(app: &Application) {
             }
         }))
         .forget();
+
+    let stats = app.display.scene().stats.clone();
     app.display
         .on_frame(f_!([stats_accumulator] {
             let stats_summary = stats_accumulator.borrow().summarize();
@@ -81,7 +83,7 @@ fn init(app: &Application) {
             if frame_counter % 60 == 0 {
                 let text = iformat!(
                     "Press CTRL-OPTION-TILDE (TILDE is the key below ESC) to show Monitor panel"
-                    // "\n fps = " fps
+                    "\n fps = " stats.fps()
                     "\n - min = " fps_summary.map_or(0.0, |s| s.min)
                     "\n - avg = " fps_summary.map_or(0.0, |s| s.avg)
                     "\n - max = " fps_summary.map_or(0.0, |s| s.max)
