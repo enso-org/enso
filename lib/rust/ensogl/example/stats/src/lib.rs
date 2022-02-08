@@ -1,4 +1,4 @@
-//! A debug scene which shows the number and range selector.
+//! A debug scene which shows how to access and summarize runtime stats.
 
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
