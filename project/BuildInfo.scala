@@ -28,8 +28,7 @@ object BuildInfo {
     ensoVersion: String,
     scalacVersion: String,
     graalVersion: String,
-    currentEdition: String,
-    stdLibVersion: String
+    currentEdition: String
   ): Seq[File] = {
     val gitInfo   = getGitInformation(log).getOrElse(fallbackGitInformation)
     val isRelease = isReleaseMode
@@ -44,7 +43,6 @@ object BuildInfo {
          |  val scalacVersion = "$scalacVersion"
          |  val graalVersion  = "$graalVersion"
          |  val currentEdition = "$currentEdition"
-         |  val stdLibVersion = "$stdLibVersion"
          |
          |  // Git Info
          |  val commit            = "${gitInfo.commitHash}"

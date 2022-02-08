@@ -3,7 +3,9 @@ package org.enso.interpreter.runtime.library.dispatch;
 import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;
 import com.oracle.truffle.api.library.LibraryFactory;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -74,5 +76,26 @@ public abstract class MethodDispatchLibrary extends Library {
   public Function getFunctionalDispatch(Object receiver, UnresolvedSymbol symbol)
       throws NoSuchMethodException {
     throw new NoSuchMethodException();
+  }
+
+  /* * Conversions */
+
+  /** An exception thrown when the library cannot lookup the conversion definition. */
+  public static class NoSuchConversionException extends Exception {}
+
+  //@GenerateLibrary.Abstract(ifExported = {"getConversionFunction"})
+  public boolean canConvertFrom(Object receiver) {
+    return false;
+  }
+
+  public boolean hasSpecialConversion(Object receiver) {
+    return false;
+  }
+
+  @GenerateLibrary.Abstract(ifExported = {"canConvertFrom"})
+  public Function getConversionFunction(
+      Object receiver, AtomConstructor target, UnresolvedConversion symbol)
+      throws MethodDispatchLibrary.NoSuchConversionException {
+    throw new MethodDispatchLibrary.NoSuchConversionException();
   }
 }
