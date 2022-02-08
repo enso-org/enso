@@ -473,14 +473,16 @@ where
 
 /// Instruments a function.
 ///
-/// For each call to the function, a measurement of the time interval corresponding to the function's
-/// body is logged under the name of the function, with file:line information attached.
+/// For each call to the function, a measurement of the time interval corresponding to the
+/// function's body is logged under the name of the function, with file:line information
+/// attached.
 ///
 /// # Usage
 ///
 /// The last argument must be an instance of a profiler type. The type given determines the
 /// profiling level at which measurement is enabled; the macro will modify the function's
-/// signature so that it can be called with any profiler that could be a *parent* of the profiler.
+/// signature so that it can be called with any profiler that could be a *parent* of the
+/// profiler.
 ///
 /// ```
 /// # use enso_profiler as profiler;
@@ -490,7 +492,7 @@ where
 ///     todo!()
 /// }
 ///
-/// #[profile]
+/// #[enso_profiler_macros::profile]
 /// fn bigger_computation(profiler: profiler::Task) -> u32 {
 ///     // Our task-level profiler is not the same type as the detail-level profiler available
 ///     // inside `small_computation`; it will be converted implicitly.
@@ -498,35 +500,25 @@ where
 /// }
 /// ```
 ///
-/// This will expand to the equivalent of (TODO: update for implementation changes):
+/// This will expand to the equivalent of:
 ///
 /// ```
 /// # use enso_profiler as profiler;
 /// # use enso_profiler::profile;
-/// fn __profiler_wrapped__small_computation(input: i16, profiler: profiler::Detail) -> u32 {
-///     todo!()
-/// }
-///
 /// fn small_computation(input: i16, profiler: impl profiler::Parent<profiler::Detail>) -> u32 {
-///     // Start a child profiler of the profiler argument:
-///     let _profiler: profiler::Started<profiler::Detail> =
-///         profiler.new_child("small_computation (lib/rust/profiler/src/lib.rs:509)");
-///     let profiler: profiler::Detail = _profiler.profiler;
-///     // Call the wrapped function, forwarding arguments
-///     __profiler_wrapped__small_computation(input, profiler)
-///     // `_profiler` will be dropped at end of scope, ending the measurement and writing it to the
-///     // log.
-/// }
-///
-/// fn __profiler_wrapped__bigger_computation(profiler: profiler::Task) -> u32 {
-///     small_computation(7, profiler)
+///     let _profiler = profiler.new_child("small_computation (file.rs:43)");
+///     let profiler = _profiler.profiler;
+///     return (|input: i16, profiler: profiler::Detail| todo!())(input, profiler);
 /// }
 ///
 /// fn bigger_computation(profiler: impl profiler::Parent<profiler::Task>) -> u32 {
-///     let _profiler: profiler::Started<profiler::Task> =
-///         profiler.new_child("bigger_computation (lib/rust/profiler/src/lib.rs:515)");
-///     let profiler: profiler::Task = _profiler.profiler;
-///     __profiler_wrapped__bigger_computation(profiler)
+///     let _profiler = profiler.new_child("bigger_computation (file.rs:48)");
+///     let profiler = _profiler.profiler;
+///     return (|profiler: profiler::Task| {
+///         // Our task-level profiler is not the same type as the detail-level profiler available
+///         // inside `small_computation`; it will be converted implicitly.
+///         small_computation(7, profiler)
+///     })(profiler);
 /// }
 /// ```
 ///
@@ -565,8 +557,8 @@ where
 ///
 /// ## Method definitions in nested items
 ///
-/// Use of the `self` keyword to refer to anything except the receiver of the wrapped item is not
-/// supported; this means you can't define methods *inside* a wrapped function, like this:
+/// Use of the `self` keyword to refer to anything except the receiver of the wrapped item is
+/// not supported; this means you can't define methods *inside* a wrapped function, like this:
 ///
 /// ```compile_fail
 /// # use enso_profiler as profiler;

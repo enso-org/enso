@@ -248,7 +248,8 @@ pub fn profile(
 ) -> proc_macro::TokenStream {
     assert!(args.is_empty(), "#[profile] does not expect any arguments");
     let mut func = syn::parse_macro_input!(ts as syn::ItemFn);
-    let body_default = Box::new(syn::Block { brace_token: Default::default(), stmts: vec![] });
+    let body_default =
+        Box::new(syn::Block { brace_token: Default::default(), stmts: vec![] });
     let mut new_body = body_default.clone();
     let orig_body = mem::replace(&mut func.block, body_default);
     let orig_sig = func.sig.clone();
@@ -282,12 +283,14 @@ fn instrument(sig: &mut syn::Signature, body: &mut syn::Block) {
     last_arg.ty = Box::new(syn::Type::Verbatim(profiler_generic_parent));
 
     // Emit instrumentation statements.
-    body.stmts.push(syn::parse(quote::quote! {
+    let start_profiler = quote::quote! {
         let _profiler = #profiler.new_child(#profiler_label);
-    }.into()).unwrap());
-    body.stmts.push(syn::parse(quote::quote! {
-       let #profiler = _profiler.profiler;
-    }.into()).unwrap());
+    };
+    let get_profiler = quote::quote! {
+        let #profiler = _profiler.profiler;
+    };
+    body.stmts.push(syn::parse(start_profiler.into()).unwrap());
+    body.stmts.push(syn::parse(get_profiler.into()).unwrap());
 }
 
 #[cfg(not(feature = "lineno"))]
@@ -354,18 +357,19 @@ fn wrap_body(sig: &syn::Signature, mut body: syn::Block, body_out: &mut syn::Blo
         });
     }
 
-    body_out.stmts.push(syn::parse((match &sig.asyncness {
+    let wrapped = match &sig.asyncness {
         None => quote::quote! {
             return (|#closure_inputs| #body)(#call_args);
         },
         Some(_) => quote::quote! {
             return (|#closure_inputs| async { #body })(#call_args).await;
         },
-    }).into()).unwrap());
+    };
+    body_out.stmts.push(syn::parse(wrapped.into()).unwrap());
 }
 
 struct ReplaceAll {
-    find: proc_macro2::Ident,
+    find:    proc_macro2::Ident,
     replace: proc_macro2::Ident,
 }
 impl visit_mut::VisitMut for ReplaceAll {
