@@ -281,10 +281,16 @@ have prepared several scripts which maximally automate the process:
     is in your `PATH`.
 
 - **Integration Tests** The integration tests are gathered in `integration-test`
-  crate. These tests require a current version of Chrome installed, and the
-  running Engine backend. They may have side effects (e.g. new Enso projects in
-  your workspace). The `node ./run integration-test` command will spawn required
-  Engine process and then run all integration tests.
+  crate. One test suite can be run with command
+  `node ./run integration-test -- --test <suite-name>`, which spawn required
+  Engine process and then set up the test server on localhost:8000 - open the
+  page in Chrome browser to see the tests running. The `<suite-name>` is a name
+  of the file in `integration-test/tests` directory without extension, for
+  example `graph_editor`. The integration tests may have some side effects, e.g.
+  leave new Enso projects in your workspace.
+
+  - Note: in the future there will be possibility to run all tests suite
+    headlessly.
 
 - **Linting** Please be sure to fix all errors reported by `node ./run lint`
   before creating a pull request to this repository.

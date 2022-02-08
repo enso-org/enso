@@ -7,7 +7,8 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 async fn create_new_project_and_add_nodes() {
-    let IntegrationTest { executor, ide } = IntegrationTest::setup().await;
+    let test = IntegrationTest::setup().await;
+    let ide = &test.ide;
     let project = ide.presenter.view().project();
     let graph_editor = project.graph();
     let controller = ide.presenter.controller();
@@ -27,6 +28,4 @@ async fn create_new_project_and_add_nodes() {
     let added_node =
         graph_editor.model.nodes.get_cloned_ref(&added_node_id).expect("Added node is not added");
     assert_eq!(added_node.view.expression.value().to_string(), "");
-    std::mem::drop(ide);
-    std::mem::drop(executor);
 }
