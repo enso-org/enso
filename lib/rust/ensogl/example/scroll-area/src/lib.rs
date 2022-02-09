@@ -145,7 +145,9 @@ fn init(app: &Application) {
 
 
     // let sprite_system = ShapeSystem::new(scene, &Circle(50.px()));
-    let sprite_system = ShapeSystem::new(&app.display, &Circle(50.px()));
+    let shape = Circle(50.px()).fill(color::Rgb::new(1.0, 0.0, 0.0));
+    let sprite_system = ShapeSystem::new(&app.display, &shape);
+    // let sprite_system = ShapeSystem::new(&app.display, &Circle(50.px()));
     let sprite: Sprite = sprite_system.new_instance();
     scene.add_child(&sprite);
     sprite.size.set(Vector2::new(100.0, 100.0));
