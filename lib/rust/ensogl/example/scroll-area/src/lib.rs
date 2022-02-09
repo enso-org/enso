@@ -31,6 +31,7 @@ use ensogl_core::display::shape::ShapeSystem;
 use ensogl_core::display::Sprite;
 use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
+use ensogl_label::Label;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf_sys::run_once_initialized;
 
@@ -100,7 +101,14 @@ fn init(app: &Application) {
     sprite.set_position_y(-100.0);
     std::mem::forget(sprite);
 
-    use ensogl_label::Label;
+    let label0 = Label::new(app);
+    scroll_area.content.add_child(&label0);
+    label0.frp.set_content(
+        "FOO BAR BAZ\n\
+        SOME MORE CONTENT\n\
+        INSIDE SCROLLBAR HOPEFULLY");
+    std::mem::forget(label0);
+
     let label = Label::new(app);
     // TODO: 'app.display' or 'scene' ?
     app.display.add_child(&label);
