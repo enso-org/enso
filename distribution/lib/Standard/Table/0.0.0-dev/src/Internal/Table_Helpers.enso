@@ -154,7 +154,7 @@ rename_columns internal_columns mapping on_problems warnings =
                     new_name = case ms of
                         Matching.Regex _ ->
                             pattern = ms.compile ((good_names.at index).at 0)
-                            pattern.replace name (good_names.at index).at 1
+                            pattern.replace name ((good_names.at index).at 1)
                         _ -> (good_names.at index).at 1
                     unique.make_unique new_name
 

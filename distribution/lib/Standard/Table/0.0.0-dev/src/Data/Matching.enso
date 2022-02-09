@@ -19,7 +19,6 @@ type Matching_Strategy
        A name is matched if its name matches the provided regular expression.
     type Regex (case_sensitivity : (True | Case_Insensitive) = True)
 
-
     ## ADVANCED
        Compiles the regular expression following the Matching_Strategy rules.
     compile : Text -> Regex_Module.Pattern
@@ -29,8 +28,9 @@ type Matching_Strategy
                 insensitive = case this.case_sensitivity of
                     True -> False
                     Case_Insensitive -> True
-                Regex_Module.compile criterion case_insensitive=insensitive
-            _ -> Error.throw "Invalid Matching_Strategy to compile"
+                re = Regex_Module.compile criterion case_insensitive=insensitive
+                re
+            Exact _ -> Error.throw "Invalid Matching_Strategy to compile"
 
 
 ## UNSTABLE
@@ -43,6 +43,7 @@ type Matching_Strategy
    Once that issue is fixed, it can be removed.
 Exact.new : (True | Case_Insensitive) -> Exact
 Exact.new (case_sensitivity = True) = Exact case_sensitivity
+
 
 ## UNSTABLE
    A temporary workaround to allow the `Regex` constructor to work with default
@@ -182,7 +183,9 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
          Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive) == True
 match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
 match_single_criterion name criterion matching_strategy = case matching_strategy of
-    Exact case_sensitivity -> case case_sensitivity of
-        True -> name == criterion
-        Case_Insensitive -> name.equals_ignore_case criterion
-    Regex _ -> matching_strategy.compile . matches name
+    Exact case_sensitivity ->
+        case case_sensitivity of
+            True -> name == criterion
+            Case_Insensitive -> name.equals_ignore_case criterion
+    Regex _ ->
+        matching_strategy.compile criterion . matches name
