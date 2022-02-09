@@ -66,13 +66,13 @@ impl {
         self.always_collect_stats = true;
     }
 
-    fn stats_enabled(&self) -> bool {
+    fn stats_collection_enabled(&self) -> bool {
         self.always_collect_stats || self.visible()
     }
 
     /// Start measuring data.
     pub fn begin(&mut self) {
-        if self.stats_enabled() {
+        if self.stats_collection_enabled() {
             let time = self.performance.now();
             if self.current_frame_measurement == FrameMeasurementState::Ended {
                 let previous_frame_stats = self.stats.begin_frame(time);
@@ -98,7 +98,7 @@ impl {
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        if self.stats_enabled() && self.current_frame_measurement == FrameMeasurementState::InProgress {
+        if self.stats_collection_enabled() && self.current_frame_measurement == FrameMeasurementState::InProgress {
             let time = self.performance.now();
             self.stats.end_frame(time);
             self.current_frame_measurement = FrameMeasurementState::Ended;
