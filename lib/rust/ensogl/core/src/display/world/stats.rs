@@ -116,7 +116,8 @@ impl {
     /// Note: a `None` result is returned if [`Monitor`] was not [`visible()`] during [`begin()`]
     /// or [`end()`] of the previous frame, or during [`begin()`] of the current frame. That's
     /// because (as a performance optimization) we're skipping stats tracking when not
-    /// [`visible()`].
+    /// [`visible()`]. (The behaviors described above can be disabled by calling
+    /// [`always_collect_stats()`].)
     /// For example, if [`Monitor`] is not [`visible()`] during a call to [`end()`], we skip a
     /// [`Stats::end_frame()`] call, which makes it impossible for [`Stats`] to correctly calculate
     /// the value of [`StatsData::frame_time`].
