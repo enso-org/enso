@@ -126,4 +126,20 @@ fn init(app: &Application) {
     std::mem::forget(label);
 
     std::mem::forget(scroll_area);
+
+
+
+
+    use ensogl_core::display::symbol::geometry::SpriteSystem;
+    let sprite_system = SpriteSystem::new(&app.display);
+    // let sprite_system = SpriteSystem::new(&world);
+
+    let sprite2 = sprite_system.new_instance();
+    let sprite1 = sprite_system.new_instance();
+    sprite1.size.set(Vector2::new(15.0, 15.0));
+    sprite2.size.set(Vector2::new(15.0, 15.0));
+    Leak::new(sprite1);
+    Leak::new(sprite2);
+
+    scene.add_child(&sprite_system);
 }
