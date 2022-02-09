@@ -65,6 +65,7 @@ impl {
                 self.prev_frame_stats = Some(prev_frame_stats);
             } else {
                 let _ = self.stats.begin_frame(time);
+                self.prev_frame_stats = None;
             }
             self.frame_measurement = FrameMeasurement::InProgress;
         } else {
