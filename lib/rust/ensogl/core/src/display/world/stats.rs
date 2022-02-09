@@ -62,6 +62,9 @@ impl {
         }
     }
 
+    /// Makes the [`Monitor`] run [`Stats`] measurements even when the Monitor panel is not
+    /// [`visible()`]. (By default, measurements are only done when [`visible()`], as an
+    /// optimization.)
     pub fn always_collect_stats(&mut self) {
         self.always_collect_stats = true;
     }
