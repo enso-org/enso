@@ -72,14 +72,16 @@ impl {
 
     /// Start measuring data.
     pub fn begin(&mut self) {
-        if self.visible() {
+        if self.stats_enabled() {
             let time = self.performance.now();
             if self.current_frame_measurement == FrameMeasurementState::Ended {
                 let previous_frame_stats = self.stats.begin_frame(time);
-                for panel in &self.panels {
-                    panel.sample_and_postprocess(&previous_frame_stats);
+                if self.visible() {
+                    for panel in &self.panels {
+                        panel.sample_and_postprocess(&previous_frame_stats);
+                    }
+                    self.monitor.draw();
                 }
-                self.monitor.draw();
                 self.previous_frame_stats = Some(previous_frame_stats);
             } else {
                 let _ = self.stats.begin_frame(time);
@@ -96,7 +98,7 @@ impl {
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        if self.visible() && self.current_frame_measurement == FrameMeasurementState::InProgress {
+        if self.stats_enabled() && self.current_frame_measurement == FrameMeasurementState::InProgress {
             let time = self.performance.now();
             self.stats.end_frame(time);
             self.current_frame_measurement = FrameMeasurementState::Ended;
