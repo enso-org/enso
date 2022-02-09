@@ -8,10 +8,8 @@ import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.published.repository.RepositoryHelper.RepositoryMethods
 import org.enso.libraryupload.DependencyExtractor
 import org.enso.pkg.PackageManager
-import org.enso.yaml.YamlHelper
 
 import java.io.File
-import java.nio.file.Files
 import scala.util.Try
 
 /** A helper class that allows to find all transitive dependencies of a specific
@@ -99,12 +97,7 @@ class DependencyResolver(
   ): LibraryManifest = {
     val cachedManifest = publishedLibraryProvider
       .findCachedLibrary(libraryName, version.version)
-      .flatMap { libraryPath =>
-        val manifestPath = libraryPath.resolve(LibraryManifest.filename)
-        if (Files.exists(manifestPath))
-          YamlHelper.load[LibraryManifest](manifestPath).toOption
-        else None
-      }
+      .flatMap(_.getManifest.flatMap(_.toOption))
     cachedManifest.getOrElse {
       version.repository
         .accessLibrary(libraryName, version.version)

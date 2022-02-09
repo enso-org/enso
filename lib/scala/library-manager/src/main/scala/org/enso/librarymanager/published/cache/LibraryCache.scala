@@ -26,7 +26,7 @@ trait LibraryCache extends ReadOnlyLibraryCache {
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[Path]
+  ): Option[CachedLibrary]
 
   /** If the cache contains the library, it is returned immediately, otherwise,
     * it tries to download the missing library.
@@ -46,7 +46,7 @@ trait LibraryCache extends ReadOnlyLibraryCache {
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[Path]
+  ): Try[CachedLibrary]
 
   /** Ensures that the given library and all of its dependencies are installed.
     *

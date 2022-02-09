@@ -4,7 +4,7 @@ import io.circe.Json
 import io.circe.literal.JsonStringContext
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
-import org.enso.pkg.Contact
+import org.enso.pkg.{ComponentGroup, Contact}
 
 object LibraryApi {
   case object EditionsListAvailable extends Method("editions/listAvailable") {
@@ -89,6 +89,21 @@ object LibraryApi {
     case class Params(edition: EditionReference)
 
     case class Result(availableLibraries: Seq[LibraryEntry])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = self.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = self.Result
+    }
+  }
+
+  case object EditionsListDefinedComponents
+      extends Method("editions/listDefinedComponents") { self =>
+
+    case class Params(editions: EditionReference)
+
+    case class Result(availableComponents: Seq[ComponentGroup])
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = self.Params
@@ -256,4 +271,12 @@ object LibraryApi {
         8010,
         s"Error occurred while discovering dependencies: $reason."
       )
+
+  case class InvalidSemverVersion(version: String)
+      extends Error(8011, s"[$version] is not a valid semver version.") {
+
+    override def payload: Option[Json] = Some(
+      json"""{ "version" : $version }"""
+    )
+  }
 }

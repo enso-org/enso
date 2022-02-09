@@ -18,7 +18,8 @@ import scala.util.{Success, Try}
 class DefaultPublishedLibraryProvider(
   primaryCache: LibraryCache,
   auxiliaryCaches: List[ReadOnlyLibraryCache]
-) extends CachedLibraryProvider(caches = primaryCache :: auxiliaryCaches) {
+) extends CachedLibraryProvider(caches = primaryCache :: auxiliaryCaches)
+    with PublishedLibraryProvider {
   private val logger = Logger[DefaultPublishedLibraryProvider]
 
   /** @inheritdoc */
@@ -27,14 +28,15 @@ class DefaultPublishedLibraryProvider(
     version: SemVer,
     recommendedRepository: Editions.Repository
   ): Try[Path] = {
-    val cached = findCachedLibrary(libraryName, version)
-    cached.map(Success(_)).getOrElse {
+    val cachedLibrary = findCachedLibrary(libraryName, version)
+    cachedLibrary.map(lib => Success(lib.path)).getOrElse {
       logger.trace(
         s"$libraryName was not found in any caches, it will need to be " +
         s"downloaded."
       )
       primaryCache
         .findOrInstallLibrary(libraryName, version, recommendedRepository)
+        .map(_.path)
     }
   }
 }

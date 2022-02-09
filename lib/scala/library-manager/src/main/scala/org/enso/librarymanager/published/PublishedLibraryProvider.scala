@@ -3,8 +3,8 @@ package org.enso.librarymanager.published
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
-
 import java.nio.file.Path
+
 import scala.util.Try
 
 /** A provider of published libraries.

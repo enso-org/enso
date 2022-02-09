@@ -50,7 +50,7 @@ class DownloadingLibraryCache(
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[Path] = {
+  ): Option[CachedLibrary] = {
     val path = LibraryCache.resolvePath(cacheRoot, libraryName, version)
     resourceManager.withResource(
       lockUserInterface,
@@ -62,7 +62,7 @@ class DownloadingLibraryCache(
           s"Library [$libraryName:$version] found cached at " +
           s"[${MaskedPath(path).applyMasking()}]."
         )
-        Some(path)
+        Some(CachedLibrary(cacheRoot, libraryName, version))
       } else None
     }
   }
@@ -72,7 +72,7 @@ class DownloadingLibraryCache(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[Path] = {
+  ): Try[CachedLibrary] = {
     val cached = findCachedLibrary(libraryName, version)
     cached match {
       case Some(result) => Success(result)
@@ -95,7 +95,7 @@ class DownloadingLibraryCache(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[Path] = Try {
+  ): Try[CachedLibrary] = Try {
     logger.trace(s"Trying to install [$libraryName:$version].")
     resourceManager.withResource(
       lockUserInterface,
@@ -108,7 +108,7 @@ class DownloadingLibraryCache(
         logger.info(
           s"Another process has just installed [$libraryName:$version]."
         )
-        cachedLibraryPath
+        CachedLibrary(cacheRoot, libraryName, version)
       } else {
         val access   = recommendedRepository.accessLibrary(libraryName, version)
         val manifest = downloadManifest(libraryName, access)
@@ -129,7 +129,7 @@ class DownloadingLibraryCache(
             destination = cachedLibraryPath
           )
 
-          cachedLibraryPath
+          CachedLibrary(cacheRoot, libraryName, version)
         } catch {
           case NonFatal(exception) =>
             logger.error(

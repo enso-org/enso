@@ -59,4 +59,13 @@ object LocalLibraryManagerProtocol {
     * Sent as a reply to [[Create]] and [[SetMetadata]].
     */
   case class EmptyResponse()
+
+  /** A base trait for failures. */
+  sealed trait Failure
+
+  /** An error when the version is not a valid semver version.
+    *
+    * @version invalid version
+    */
+  case class InvalidSemverVersionError(version: String) extends Failure
 }
