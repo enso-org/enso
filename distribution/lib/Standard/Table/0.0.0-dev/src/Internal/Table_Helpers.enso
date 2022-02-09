@@ -6,7 +6,7 @@ from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Table.Data.Position
-from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Base.Data.Ordering.Natural_Order
@@ -139,34 +139,31 @@ reorder_columns internal_columns selector position on_problems warnings =
      will be removed in the future.
 rename_columns : Vector -> Column_Mapping -> Problem_Behavior -> Warnings.Warning_System -> Map
 rename_columns internal_columns mapping on_problems warnings =
-    # ToDo: RegEx Baby
-    # ToDo: Invalid Name Errors ==> Column
-
     unique = Unique_Name_Strategy.new
-    renames = Vector.new_builder
-
-    make_unique = target ->
-        new_target = unique.make_unique target
-        if target != new_target then renames.append target
-        new_target
-
     col_count = internal_columns.length
 
-    mapped = case mapping of
-        Column_Mapping.By_Column vec ->
-            map = Map.from_vector (vec.map r-> [r.at 0 . name, r.at 1])
-            output = here.rename_columns internal_columns (Column_Mapping.By_Name map (Matching.Exact case_sensitivity=True)) on_problems warnings
-            Validation_Result output []
-        Column_Mapping.By_Name map ms ->
-            keys = map.keys
-            mapper = name->
-                index = 0.up_to col_count . find k->(Matching.match_single_criterion name k ms)
-                case index of
-                    Nothing -> Nothing
-                    _ -> make_unique (map.get (keys.at index))
+    name_mapper vec ms =
+        validation = here.validate_unique vec v->[Duplicate_Column_Selectors v] x->(x.at 1)
+        good_names = validation.valid
 
-            new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
-            Validation_Result new_names []
+        mapper = name->
+            index = 0.up_to good_names.length . find i->(Matching.match_single_criterion name ((good_names.at i).at 0) ms)
+            case index of
+                Nothing -> Nothing
+                _ ->
+                    new_name = case ms of
+                        Matching.Regex _ ->
+                            pattern = ms.compile ((good_names.at index).at 0)
+                            pattern.replace name (good_names.at index).at 1
+                        _ -> (good_names.at index).at 1
+                    unique.make_unique new_name
+
+        new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
+        Validation_Result new_names validation.problems
+
+    mapped = case mapping of
+        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Matching.Exact case_sensitivity=True)
+        Column_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Mapping.By_Index map ->
             validation = here.validate_indices col_count map.keys
             good_indices = validation.valid
@@ -175,7 +172,7 @@ rename_columns internal_columns mapping on_problems warnings =
 
             new_names = 0.up_to col_count . map i->
                 target = index_map.get_or_else i Nothing
-                if target.is_nothing then target else make_unique target
+                if target.is_nothing then target else unique.make_unique target
 
             Validation_Result new_names validation.problems
         Column_Mapping.By_Position vec ->
@@ -184,15 +181,18 @@ rename_columns internal_columns mapping on_problems warnings =
                 False -> Validation_Result vec []
             good_names = validation.valid
 
-            new_names = 0.up_to col_count . map i->if i < good_names.length then good_names.at i else Nothing
+            new_names = 0.up_to col_count . map i->if i>=good_names.length then Nothing else
+                unique.make_unique (good_names.at i)
             Validation_Result new_names validation.problems
 
     processed = mapped.valid.map_with_index i->n->
-        if n.is_nothing then (make_unique (internal_columns.at i).name) else n
+        if n.is_nothing then (unique.make_unique (internal_columns.at i).name) else n
 
-    problems = mapped.problems + (if renames.length == 0 then [] else [Duplicate_Output_Column_Names renames.to_vector])
+    problems = mapped.problems +
+        (if unique.invalid_names.length == 0 then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector]) +
+        (if unique.renames.length == 0 then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
+
     on_problems.attach_problems_before problems warnings processed
-
 
 
 ## PRIVATE
