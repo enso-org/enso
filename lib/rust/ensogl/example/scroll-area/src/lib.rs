@@ -75,9 +75,9 @@ fn init(app: &Application) {
     let background_system = ShapeSystem::new(scene, background_shape);
     let background: Sprite = background_system.new_instance();
     scene.add_child(&background);
-    background.size.set(Vector2::new(200.0, 200.0));
-    background.set_position_x(100.0);
-    background.set_position_y(-100.0);
+    background.size.set(Vector2::new(300.0, 300.0));
+    background.set_position_x(150.0);
+    background.set_position_y(-150.0);
     std::mem::forget(background);
 
 
