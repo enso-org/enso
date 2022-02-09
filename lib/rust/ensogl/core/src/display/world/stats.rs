@@ -9,6 +9,17 @@ use crate::system::web;
 
 
 
+// TODO: rename 'FrameCompletionStatus'? 'FrameMeasureCompletion'? 'FrameMeasurementStatus'?
+// 'FrameCompletion'? 'FrameEventsRegistered'? 'FrameMeasurement'?
+#[derive(Debug, PartialEq)]
+enum FrameMeasurement {
+    Skipped,
+    // TODO: rename 'Started'? [looks similar to Skipped]
+    InProgress,
+    // TODO: rename 'StartedAndFinished'?
+    Completed,
+}
+
 // ===============
 // === Monitor ===
 // ===============
@@ -18,23 +29,22 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats           : Stats,
-    /// Tracks whether [`stats`] calculations were properly started and stopped during the most
-    /// recently displayed rendering frame. Set to `false` if the panel was not [`visible()`]
-    /// during last frame's [`begin()`] or [`end()`].
-    are_stats_valid : bool,
-    performance     : web::Performance,
-    monitor         : debug::Monitor,
-    panels          : Vec<debug::monitor::Panel>
+    stats             : Stats,
+    prev_frame_stats  : Option<StatsData>,
+    frame_measurement : FrameMeasurement,
+    performance       : web::Performance,
+    monitor           : debug::Monitor,
+    panels            : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
-        let stats           = stats.clone_ref();
-        let performance     = web::performance();
-        let mut monitor     = debug::Monitor::new();
-        let are_stats_valid = false;
+        let stats             = stats.clone_ref();
+        let prev_frame_stats  = None;
+        let frame_measurement = FrameMeasurement::Skipped;
+        let performance       = web::performance();
+        let mut monitor       = debug::Monitor::new();
         let panels = vec![
             monitor.add::<debug::monitor::FrameTime>(),
             monitor.add::<debug::monitor::Fps>(),
@@ -50,43 +60,51 @@ impl {
             monitor.add::<debug::monitor::SpriteSystemCount>(),
             monitor.add::<debug::monitor::SpriteCount>(),
         ];
-        Self {stats,are_stats_valid,performance,monitor,panels}
+        Self {stats,prev_frame_stats,frame_measurement,performance,monitor,panels}
     }
 
     /// Start measuring data.
-    /// Returns a snapshot of statistics data for the previous rendering frame if the monitor is
-    /// [`visible()`] (and if it was visible during the previous frame as well).
-    pub fn begin(&mut self) -> Option<StatsData> {
-        let stats_snapshot = if !self.visible() {
-            self.are_stats_valid = false;
-            None
-        } else {
+    pub fn begin(&mut self) {
+        if self.visible() {
             let time = self.performance.now();
-            let previous_frame_stats = self.stats.begin_frame(time);
-            if !self.are_stats_valid {
-                self.are_stats_valid = true;
-                None
-            } else {
+            if self.frame_measurement == FrameMeasurement::Completed {
+                let prev_frame_stats = self.stats.begin_frame(time);
                 for panel in &self.panels {
-                    panel.sample_and_postprocess(&previous_frame_stats);
+                    panel.sample_and_postprocess(&prev_frame_stats);
                 }
                 self.monitor.draw();
-                Some(previous_frame_stats)
+                self.prev_frame_stats = Some(prev_frame_stats);
+            } else {
+                let _ = self.stats.begin_frame(time);
             }
-        };
+            self.frame_measurement = FrameMeasurement::InProgress;
+        } else {
+            self.frame_measurement = FrameMeasurement::Skipped;
+            self.prev_frame_stats = None;
+        }
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
-        stats_snapshot
     }
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        if self.visible() {
+        if self.visible() && self.frame_measurement == FrameMeasurement::InProgress {
             let time = self.performance.now();
             self.stats.end_frame(time);
+            self.frame_measurement = FrameMeasurement::Completed;
         } else {
-            self.are_stats_valid = false;
+            self.frame_measurement = FrameMeasurement::Skipped;
         }
+    }
+
+    /// Returns a snapshot of statistics data for the previous rendering frame if available.
+    ///
+    /// Note: a `None` result is returned if [`Monitor`] was not [`visible()`] during [`begin()`]
+    /// or [`end()`] of previous frame, or [`begin()`] of current frame. That's because we're
+    /// skipping stats tracking when not [`visible()`], but to properly calculate all stats of a
+    /// frame, all of the events mentioned above must be correctly registered.
+    pub fn previous_frame_stats(&self) -> Option<StatsData> {
+        self.prev_frame_stats
     }
 
     /// Checks if the monitor is visible.

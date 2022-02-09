@@ -90,9 +90,9 @@ impl World {
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
-                let previous_frame_stats = stats_monitor.begin();
+                stats_monitor.begin();
                 on_before_frame.run_all(&t);
-                if let Some(stats) = previous_frame_stats {
+                if let Some(stats) = stats_monitor.previous_frame_stats() {
                     on_stats_available.run_all(&stats);
                 }
 
