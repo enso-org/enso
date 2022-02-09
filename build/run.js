@@ -74,10 +74,10 @@ async function build_project_manager() {
 }
 
 /// Run the local project manager binary.
-function run_project_manager() {
+function run_project_manager(options = {}) {
     const bin_path = paths.get_project_manager_path(paths.dist.bin)
     console.log(`Starting the project manager from "${bin_path}".`)
-    return child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+    return child_process.execFile(bin_path, [], options, (error, stdout, stderr) => {
         console.log(`Project manager finished.`)
         console.error(stderr)
         if (error && !error.killed) {
@@ -258,9 +258,10 @@ commands.test.rust = async function (argv) {
 
 commands['integration-test'] = command('Run integration test suite')
 commands['integration-test'].rust = async function (argv) {
-    let process = null
+    let pm_process = null
     if (argv.backend !== 'false') {
-        process = await build_project_manager().then(run_project_manager)
+        let env = { ...process.env, PROJECTS_ROOT: path.resolve(os.tmpdir(), 'enso') }
+        pm_process = await build_project_manager().then(() => run_project_manager({ env: env }))
     }
     try {
         console.log(`Running Rust WASM test suite.`)
@@ -268,8 +269,8 @@ commands['integration-test'].rust = async function (argv) {
         await run_cargo('wasm-pack', args)
     } finally {
         console.log(`Shutting down Project Manager`)
-        if (process !== null) {
-            process.kill()
+        if (pm_process !== null) {
+            pm_process.kill()
         }
     }
 }
