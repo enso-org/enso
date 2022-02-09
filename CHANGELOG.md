@@ -30,6 +30,7 @@
 - [Implemented the `Table.select_columns` operation.][3230]
 - [Implemented the `Table.remove_columns` and `Table.reorder_columns`
   operations.][3240]
+- [Implemented the `Table.sort_columns` operation.][3250]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
@@ -43,6 +44,7 @@
 [3232]: https://github.com/enso-org/enso/pull/3232
 [3230]: https://github.com/enso-org/enso/pull/3230
 [3240]: https://github.com/enso-org/enso/pull/3240
+[3250]: https://github.com/enso-org/enso/pull/3250
 
 #### Enso Compiler
 

@@ -268,9 +268,7 @@ type Pattern
 
                         if found.not then Nothing else
                             builder.append (Match internal_matcher start end)
-
-                            if internal_matcher.hitEnd then Nothing else
-                                @Tail_Call go (internal_matcher.end 0) remaining_count-1
+                            @Tail_Call go (internal_matcher.end 0) remaining_count-1
 
                 go start mode
                 vector = builder.to_vector
@@ -287,9 +285,7 @@ type Pattern
 
                         if found.not then Nothing else
                             builder.append (Match internal_matcher start end)
-
-                            if internal_matcher.hitEnd then Nothing else
-                                @Tail_Call go (internal_matcher.end 0)
+                            @Tail_Call go (internal_matcher.end 0)
 
                 go start
                 vector = builder.to_vector
