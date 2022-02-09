@@ -18,22 +18,22 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats             : Stats,
-    prev_frame_stats  : Option<StatsData>,
-    frame_measurement : FrameMeasurementState,
-    performance       : web::Performance,
-    monitor           : debug::Monitor,
-    panels            : Vec<debug::monitor::Panel>
+    stats                   : Stats,
+    prev_frame_stats        : Option<StatsData>,
+    frame_measurement_state : FrameMeasurementState,
+    performance             : web::Performance,
+    monitor                 : debug::Monitor,
+    panels                  : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
-        let stats             = stats.clone_ref();
-        let prev_frame_stats  = None;
-        let frame_measurement = FrameMeasurementState::Skipped;
-        let performance       = web::performance();
-        let mut monitor       = debug::Monitor::new();
+        let stats                   = stats.clone_ref();
+        let prev_frame_stats        = None;
+        let frame_measurement_state = FrameMeasurementState::Skipped;
+        let performance             = web::performance();
+        let mut monitor             = debug::Monitor::new();
         let panels = vec![
             monitor.add::<debug::monitor::FrameTime>(),
             monitor.add::<debug::monitor::Fps>(),
@@ -49,14 +49,14 @@ impl {
             monitor.add::<debug::monitor::SpriteSystemCount>(),
             monitor.add::<debug::monitor::SpriteCount>(),
         ];
-        Self {stats,prev_frame_stats,frame_measurement,performance,monitor,panels}
+        Self {stats,prev_frame_stats,frame_measurement_state,performance,monitor,panels}
     }
 
     /// Start measuring data.
     pub fn begin(&mut self) {
         if self.visible() {
             let time = self.performance.now();
-            if self.frame_measurement == FrameMeasurementState::Completed {
+            if self.frame_measurement_state == FrameMeasurementState::Completed {
                 let prev_frame_stats = self.stats.begin_frame(time);
                 for panel in &self.panels {
                     panel.sample_and_postprocess(&prev_frame_stats);
@@ -67,9 +67,9 @@ impl {
                 let _ = self.stats.begin_frame(time);
                 self.prev_frame_stats = None;
             }
-            self.frame_measurement = FrameMeasurementState::InProgress;
+            self.frame_measurement_state = FrameMeasurementState::InProgress;
         } else {
-            self.frame_measurement = FrameMeasurementState::Skipped;
+            self.frame_measurement_state = FrameMeasurementState::Skipped;
             self.prev_frame_stats = None;
         }
         // This should be done even when hidden in order for the stats not to overflow limits.
@@ -78,12 +78,12 @@ impl {
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        if self.visible() && self.frame_measurement == FrameMeasurementState::InProgress {
+        if self.visible() && self.frame_measurement_state == FrameMeasurementState::InProgress {
             let time = self.performance.now();
             self.stats.end_frame(time);
-            self.frame_measurement = FrameMeasurementState::Completed;
+            self.frame_measurement_state = FrameMeasurementState::Completed;
         } else {
-            self.frame_measurement = FrameMeasurementState::Skipped;
+            self.frame_measurement_state = FrameMeasurementState::Skipped;
         }
     }
 
