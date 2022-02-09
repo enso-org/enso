@@ -19,7 +19,7 @@ shared! { Monitor
 #[derive(Debug)]
 pub struct MonitorData {
     stats                   : Stats,
-    prev_frame_stats        : Option<StatsData>,
+    previous_frame_stats    : Option<StatsData>,
     frame_measurement_state : FrameMeasurementState,
     performance             : web::Performance,
     monitor                 : debug::Monitor,
@@ -30,7 +30,7 @@ impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
         let stats                   = stats.clone_ref();
-        let prev_frame_stats        = None;
+        let previous_frame_stats    = None;
         let frame_measurement_state = FrameMeasurementState::Skipped;
         let performance             = web::performance();
         let mut monitor             = debug::Monitor::new();
@@ -49,7 +49,14 @@ impl {
             monitor.add::<debug::monitor::SpriteSystemCount>(),
             monitor.add::<debug::monitor::SpriteCount>(),
         ];
-        Self {stats,prev_frame_stats,frame_measurement_state,performance,monitor,panels}
+        Self {
+            stats,
+            previous_frame_stats,
+            frame_measurement_state,
+            performance,
+            monitor,
+            panels,
+        }
     }
 
     /// Start measuring data.
@@ -57,20 +64,20 @@ impl {
         if self.visible() {
             let time = self.performance.now();
             if self.frame_measurement_state == FrameMeasurementState::Completed {
-                let prev_frame_stats = self.stats.begin_frame(time);
+                let previous_frame_stats = self.stats.begin_frame(time);
                 for panel in &self.panels {
-                    panel.sample_and_postprocess(&prev_frame_stats);
+                    panel.sample_and_postprocess(&previous_frame_stats);
                 }
                 self.monitor.draw();
-                self.prev_frame_stats = Some(prev_frame_stats);
+                self.previous_frame_stats = Some(previous_frame_stats);
             } else {
                 let _ = self.stats.begin_frame(time);
-                self.prev_frame_stats = None;
+                self.previous_frame_stats = None;
             }
             self.frame_measurement_state = FrameMeasurementState::InProgress;
         } else {
             self.frame_measurement_state = FrameMeasurementState::Skipped;
-            self.prev_frame_stats = None;
+            self.previous_frame_stats = None;
         }
         // This should be done even when hidden in order for the stats not to overflow limits.
         self.stats.reset_per_frame_statistics();
@@ -98,7 +105,7 @@ impl {
     /// [`Stats::end_frame()`] call, which makes it impossible for [`Stats`] to correctly calculate
     /// the value of [`StatsData::frame_time`].
     pub fn previous_frame_stats(&self) -> Option<StatsData> {
-        self.prev_frame_stats
+        self.previous_frame_stats
     }
 
     /// Checks if the monitor is visible.
