@@ -100,6 +100,22 @@ fn init(app: &Application) {
     sprite.set_position_y(-100.0);
     std::mem::forget(sprite);
 
+    use ensogl_label::Label;
+    let label = Label::new(app);
+    // TODO: 'app.display' or 'scene' ?
+    app.display.add_child(&label);
+    label.frp.set_content(
+        "Some relatively long text with no super important meaning that should be known,\n\
+        however, spanning multiple lines and hopefully also being vertically extensive enough to matter.\n\
+        line 3\n\
+        line 4\n\
+        line 5\n\
+        line 6\n\
+        line 7\n\
+        line 8\n\
+        line 9\n\
+        line 10");
+    std::mem::forget(label);
 
     std::mem::forget(scroll_area);
 }

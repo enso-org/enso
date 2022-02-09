@@ -1349,6 +1349,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
+ "ensogl-label",
  "ensogl-scroll-area",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
