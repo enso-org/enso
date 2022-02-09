@@ -89,10 +89,10 @@ impl {
     /// Returns a snapshot of statistics data for the previous rendering frame if available.
     ///
     /// Note: a `None` result is returned if [`Monitor`] was not [`visible()`] during [`begin()`]
-    /// or [`end()`] of previous frame, or [`begin()`] of current frame. That's because (as a
-    /// performance optimization) we're skipping stats tracking when not [`visible()`], but to
-    /// properly calculate all stats of a frame, all of the events mentioned above must be
-    /// correctly registered.
+    /// or [`end()`] of the previous frame, or during [`begin()`] of the current frame. That's
+    /// because (as a performance optimization) we're skipping stats tracking when not
+    /// [`visible()`], but to properly calculate all stats of a frame, all of the events mentioned
+    /// above must be correctly registered.
     /// For example, if [`Monitor`] is not [`visible()`] during a call to [`end()`], we skip a
     /// [`Stats::end_frame()`] call, which makes it impossible for [`Stats`] to correctly calculate
     /// the value of [`StatsData::frame_time`].
