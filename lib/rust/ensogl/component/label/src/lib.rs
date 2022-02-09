@@ -183,6 +183,14 @@ impl Label {
     }
 }
 
+impl Deref for Label {
+    type Target = Frp;
+    
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
 impl display::Object for Label {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object

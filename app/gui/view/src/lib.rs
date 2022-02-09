@@ -28,6 +28,7 @@
 pub mod code_editor;
 pub mod documentation;
 pub mod open_dialog;
+pub mod debug_mode_popup;
 pub mod project;
 pub mod root;
 pub mod searcher;

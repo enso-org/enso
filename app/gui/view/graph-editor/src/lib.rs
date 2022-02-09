@@ -477,6 +477,9 @@ ensogl::define_endpoints! {
 
         // === Debug ===
 
+        /// Enable or disable debug-only features.
+        set_debug_mode(bool),
+
         /// Push a hardcoded breadcrumb without notifying the controller.
         debug_push_breadcrumb(),
         /// Pop a breadcrumb without notifying the controller.
@@ -534,6 +537,9 @@ ensogl::define_endpoints! {
     }
 
     Output {
+        // === Debug Mode ===
+
+        debug_mode                             (bool),
 
         // === Edge ===
 
@@ -3365,6 +3371,16 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp.source.default_x_gap_between_nodes.emit(default_x_gap.value());
     frp.source.default_y_gap_between_nodes.emit(default_y_gap.value());
     frp.source.min_x_spacing_for_new_nodes.emit(min_x_spacing.value());
+
+
+
+    // ==================
+    // === Debug Mode ===
+    // ==================
+
+    frp::extend! { network
+        out.source.debug_mode <+ frp.set_debug_mode;
+    }
 
     // Init defaults
     frp.edit_mode_off.emit(());
