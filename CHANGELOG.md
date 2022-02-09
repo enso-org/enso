@@ -31,6 +31,7 @@
 - [Implemented the `Table.remove_columns` and `Table.reorder_columns`
   operations.][3240]
 - [Implemented the `Table.sort_columns` operation.][3250]
+- [Fixed `Vector.sort` to handle tail-recursive comparators][3256]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
@@ -45,6 +46,7 @@
 [3230]: https://github.com/enso-org/enso/pull/3230
 [3240]: https://github.com/enso-org/enso/pull/3240
 [3250]: https://github.com/enso-org/enso/pull/3250
+[3256]: https://github.com/enso-org/enso/pull/3256
 
 #### Enso Compiler
 

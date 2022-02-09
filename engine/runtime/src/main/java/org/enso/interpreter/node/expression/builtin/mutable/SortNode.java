@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -25,6 +27,7 @@ import org.enso.interpreter.runtime.state.data.EmptyMap;
 @BuiltinMethod(type = "Array", name = "sort", description = "Sorts a mutable array in place.")
 public abstract class SortNode extends Node {
   private @Child ComparatorNode comparatorNode = ComparatorNode.build();
+  private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private final BranchProfile resultProfile = BranchProfile.create();
 
   abstract Object execute(VirtualFrame frame, Object _this, Object comparator);
@@ -97,10 +100,8 @@ public abstract class SortNode extends Node {
 
     @Override
     public int compare(Object o1, Object o2) {
-      Object[] args =
-          Function.ArgumentsHelper.buildArguments(
-              compFn, null, EmptyMap.create(), new Object[] {o1, o2});
-      Stateful result = (Stateful) (compFn).getCallTarget().call(args);
+      Stateful result =
+          callOptimiserNode.executeDispatch(compFn, null, EmptyMap.create(), new Object[] {o1, o2});
       Object value = result.getValue();
       return convertResult(value);
     }
