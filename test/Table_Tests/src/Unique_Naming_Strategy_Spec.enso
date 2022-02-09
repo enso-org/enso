@@ -1,0 +1,42 @@
+from Standard.Base import all
+
+import Standard.Table.Internal.Unique_Name_Strategy
+import Standard.Test
+
+spec = Test.group 'Unique_Name_Strategy Helper' <|
+    Test.specify 'should change an empty name to "Column"' <|
+        strategy = Unique_Name_Strategy.new
+        strategy.make_valid_name "" . should_equal "Column"
+        strategy.invalid_names.length . should_equal 1
+
+    Test.specify 'should change Nothing to "Column"' <|
+        strategy = Unique_Name_Strategy.new
+        strategy.make_valid_name Nothing . should_equal "Column"
+        strategy.invalid_names.length . should_equal 1
+
+    Test.specify 'should not rename unique names' <|
+        strategy = Unique_Name_Strategy.new
+        strategy.make_unique "A" . should_equal "A"
+        strategy.make_unique "B" . should_equal "B"
+        strategy.make_unique "C" . should_equal "C"
+        strategy.renames.length . should_equal 0
+        strategy.invalid_names.length . should_equal 0
+
+    Test.specify 'should rename duplicates names' <|
+        strategy = Unique_Name_Strategy.new
+        strategy.make_unique "A" . should_equal "A"
+        strategy.make_unique "A" . should_equal "A_1"
+        strategy.make_unique "A" . should_equal "A_2"
+        strategy.renames.length . should_equal 2
+        strategy.invalid_names.length . should_equal 0
+
+    Test.specify 'should preserve existing suffix' <|
+        strategy = Unique_Name_Strategy.new
+        strategy.make_unique "A" . should_equal "A"
+        strategy.make_unique "A_1" . should_equal "A_1"
+        strategy.make_unique "A" . should_equal "A_2"
+        strategy.make_unique "A_1" . should_equal "A_1_1"
+        strategy.renames.length . should_equal 2
+        strategy.invalid_names.length . should_equal 0
+
+main = Test.Suite.run_main here.spec
