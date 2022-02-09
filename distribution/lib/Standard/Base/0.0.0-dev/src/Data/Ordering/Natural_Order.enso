@@ -1,0 +1,78 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
+
+## Compares two text values according to the natural dictionary ordering.
+
+   > Example
+     Compare two texts according to the natural dictionary ordering.
+
+         Natural_Order.compare "a2" "a100" == Ordering.Less
+
+   > Example
+     Sort a vector of texts according to the natural dictionary ordering.
+
+         ["a2", "a1", "a100", "a001", "a0001"].sort by=Natural_Order.compare . should_equal ["a0001", "a001", "a1", "a2", "a100"]
+compare : Text -> Text -> Ordering
+compare text1 text2 =
+    ## TODO [RW] A more efficient algorithm which works better for longer texts
+       should be implemented, as described in
+       https://www.pivotaltracker.com/story/show/181176589
+    nat1 = here.to_natural_key text1
+    nat2 = here.to_natural_key text2
+    ## TODO [RW] The additional assignment to a temporary variable is a
+       workaround for the following bug:
+       https://www.pivotaltracker.com/story/show/181162108
+    res = Vector_Lexicographic_Order.compare nat1 nat2
+    res
+
+## PRIVATE
+to_natural_key : Text -> Vector
+to_natural_key text = if text.is_empty then [] else
+    splitter_regex = Regex.compile "([^0-9]+|[0-9]+)"
+    parts = splitter_regex.find text mode=Mode.All
+
+    ## TODO [RW] Currently there is no `is_digit` method. Once
+       https://www.pivotaltracker.com/story/show/181176532 is implemented, this
+       regex can be replaced with a simpler and faster `is_digit` check.
+    is_integer_regex = Regex.compile "[0-9]+"
+    parts.map part-> case is_integer_regex.matches part of
+        True ->
+            ## TODO [RW] Currently there is no `Integer.parse` method, so we
+               parse a decimal and convert it to an integer. Once
+               https://www.pivotaltracker.com/story/show/181176522 is
+               implemented, this should be changed to use `Integer.parse`.
+            value = Decimal.parse part . floor
+            Natural_Ordering_Numeric_Part value part
+        False ->
+            Natural_Ordering_Alphabetical_Part part
+
+## PRIVATE
+type Natural_Ordering_Part
+    ## PRIVATE
+    type Natural_Ordering_Alphabetical_Part (text : Text)
+
+    ## PRIVATE
+    type Natural_Ordering_Numeric_Part (value : Integer) (original_text : Text)
+
+    ## PRIVATE
+    compare_to : Natural_Ordering_Part -> Ordering
+    compare_to that = case Pair this that of
+        Pair (Natural_Ordering_Alphabetical_Part text1) (Natural_Ordering_Alphabetical_Part text2) ->
+            text1 . compare_to text2
+        Pair (Natural_Ordering_Numeric_Part value1 original1) (Natural_Ordering_Numeric_Part value2 original2) ->
+            value_ordering = value1.compare_to value2
+            case value_ordering of
+                Ordering.Equal -> original1 . compare_to original2
+                _ -> value_ordering
+        Pair (Natural_Ordering_Numeric_Part _ _) (Natural_Ordering_Alphabetical_Part _) ->
+            Ordering.Less
+        Pair (Natural_Ordering_Alphabetical_Part _) (Natural_Ordering_Numeric_Part _ _) ->
+            Ordering.Greater
+
+    to_text : Text
+    to_text = case this of
+        Natural_Ordering_Alphabetical_Part text -> text.to_text
+        Natural_Ordering_Numeric_Part v o -> [v, o].to_text
