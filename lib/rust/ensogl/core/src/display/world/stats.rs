@@ -20,7 +20,7 @@ shared! { Monitor
 pub struct MonitorData {
     stats             : Stats,
     prev_frame_stats  : Option<StatsData>,
-    frame_measurement : FrameMeasurement,
+    frame_measurement : FrameMeasurementState,
     performance       : web::Performance,
     monitor           : debug::Monitor,
     panels            : Vec<debug::monitor::Panel>
@@ -31,7 +31,7 @@ impl {
     pub fn new(stats:&Stats) -> Self {
         let stats             = stats.clone_ref();
         let prev_frame_stats  = None;
-        let frame_measurement = FrameMeasurement::Skipped;
+        let frame_measurement = FrameMeasurementState::Skipped;
         let performance       = web::performance();
         let mut monitor       = debug::Monitor::new();
         let panels = vec![
@@ -56,7 +56,7 @@ impl {
     pub fn begin(&mut self) {
         if self.visible() {
             let time = self.performance.now();
-            if self.frame_measurement == FrameMeasurement::Completed {
+            if self.frame_measurement == FrameMeasurementState::Completed {
                 let prev_frame_stats = self.stats.begin_frame(time);
                 for panel in &self.panels {
                     panel.sample_and_postprocess(&prev_frame_stats);
@@ -67,9 +67,9 @@ impl {
                 let _ = self.stats.begin_frame(time);
                 self.prev_frame_stats = None;
             }
-            self.frame_measurement = FrameMeasurement::InProgress;
+            self.frame_measurement = FrameMeasurementState::InProgress;
         } else {
-            self.frame_measurement = FrameMeasurement::Skipped;
+            self.frame_measurement = FrameMeasurementState::Skipped;
             self.prev_frame_stats = None;
         }
         // This should be done even when hidden in order for the stats not to overflow limits.
@@ -78,12 +78,12 @@ impl {
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        if self.visible() && self.frame_measurement == FrameMeasurement::InProgress {
+        if self.visible() && self.frame_measurement == FrameMeasurementState::InProgress {
             let time = self.performance.now();
             self.stats.end_frame(time);
-            self.frame_measurement = FrameMeasurement::Completed;
+            self.frame_measurement = FrameMeasurementState::Completed;
         } else {
-            self.frame_measurement = FrameMeasurement::Skipped;
+            self.frame_measurement = FrameMeasurementState::Skipped;
         }
     }
 
@@ -122,10 +122,10 @@ impl {
 }}
 
 
-// === FrameMeasurement ===
+// === FrameMeasurementState ===
 
 #[derive(Debug, PartialEq)]
-enum FrameMeasurement {
+enum FrameMeasurementState {
     Skipped,
     InProgress,
     Completed,
