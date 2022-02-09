@@ -88,6 +88,7 @@ impl {
     }
 
     /// Returns a snapshot of statistics data for the previous rendering frame, if available.
+    /// A previous rendering frame is the one before the most recent call to [`begin()`].
     ///
     /// Note: a `None` result is returned if [`Monitor`] was not [`visible()`] during [`begin()`]
     /// or [`end()`] of the previous frame, or during [`begin()`] of the current frame. That's
