@@ -60,8 +60,8 @@ object BuildInfo {
     Seq(file)
   }
 
-  private def isReleaseMode: Boolean =
-    if (sys.env.get("ENSO_RELEASE_MODE").contains("true")) true else false
+  def isReleaseMode: Boolean =
+    sys.env.get("ENSO_RELEASE_MODE").contains("true")
 
   /** Information regarding the Git repository that was used in the build.
     *
