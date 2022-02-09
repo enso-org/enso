@@ -23,6 +23,7 @@ use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
 use enso_web::HtmlDivElement;
+use enso_web::NodeInserter;
 use enso_web::StyleSetter;
 
 
@@ -49,7 +50,7 @@ impl IntegrationTest {
         let root_div = enso_web::create_div();
         root_div.set_id("root");
         root_div.set_style_or_panic("display", "none");
-        enso_web::body().append_with_node_1(&root_div).expect("Failed to add root div element.");
+        enso_web::body().append_or_panic(&root_div);
 
         let initializer = enso_gui::ide::Initializer::new(default());
         let ide = initializer.start().await.expect("Failed to initialize the application.");
