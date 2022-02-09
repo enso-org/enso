@@ -218,16 +218,14 @@ object Shortcut {
   */
 case class ModuleReference(
   libraryName: LibraryName,
-  moduleName: Option[ModuleName]
+  moduleName: ModuleName
 )
 object ModuleReference {
 
   private def toModuleString(moduleReference: ModuleReference): String = {
-    val libraryName =
-      s"${moduleReference.libraryName.namespace}${LibraryName.separator}${moduleReference.libraryName.name}"
-    moduleReference.moduleName.fold(libraryName) { moduleName =>
-      s"$libraryName${LibraryName.separator}${moduleName.name}"
-    }
+    s"${moduleReference.libraryName.namespace}${LibraryName.separator}" +
+    s"${moduleReference.libraryName.name}${LibraryName.separator}" +
+    moduleReference.moduleName.name
   }
 
   /** [[Encoder]] instance for the [[ModuleReference]]. */
@@ -239,11 +237,11 @@ object ModuleReference {
   implicit val decoder: Decoder[ModuleReference] = { json =>
     json.as[String].flatMap { moduleString =>
       moduleString.split(LibraryName.separator).toList match {
-        case namespace :: name :: module =>
+        case namespace :: name :: module :: modules =>
           Right(
             ModuleReference(
               LibraryName(namespace, name),
-              ModuleName.fromComponents(module)
+              ModuleName.fromComponents(module, modules)
             )
           )
         case _ =>
@@ -268,8 +266,8 @@ object ModuleReference {
 case class ModuleName(name: String)
 object ModuleName {
 
-  def fromComponents(items: List[String]): Option[ModuleName] =
-    Option.unless(items.isEmpty)(ModuleName(items.mkString(".")))
+  def fromComponents(item: String, items: List[String]): ModuleName =
+    ModuleName((item :: items).mkString(LibraryName.separator.toString))
 
   /** [[Encoder]] instance for the [[ModuleName]]. */
   implicit val encoder: Encoder[ModuleName] = { moduleName =>

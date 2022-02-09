@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
+
+import Standard.Test
+
+type My_Type a b
+
+spec = Test.group "Lexicographic Order on Vectors" <|
+    Test.specify "should behave as shown in examples" <|
+        Vector_Lexicographic_Order.compare [1, 2, 3] [1, 3, 0] . should_equal Ordering.Less
+        Vector_Lexicographic_Order.compare [1, 2, 3] [1, 2] . should_equal Ordering.Greater
+        Vector_Lexicographic_Order.compare [] [1] . should_equal Ordering.Less
+        Vector_Lexicographic_Order.compare [1] [1] . should_equal Ordering.Equal
+
+    Test.specify "should work correctly with a custom comparator" <|
+        comparator = x-> y-> x.a.compare_to y.a
+        Vector_Lexicographic_Order.compare [My_Type "a" 1, My_Type "b" 1, My_Type "c" 1] [My_Type "b" 1, My_Type "a" 1, My_Type "c" 1] element_comparator=comparator . should_equal Ordering.Less
+        Vector_Lexicographic_Order.compare [My_Type "a" 1, My_Type "b" 1, My_Type "c" 1] [My_Type "a" 100, My_Type "b" 2, My_Type "c" 3] element_comparator=comparator . should_equal Ordering.Equal
+
+main = Test.Suite.run_main here.spec

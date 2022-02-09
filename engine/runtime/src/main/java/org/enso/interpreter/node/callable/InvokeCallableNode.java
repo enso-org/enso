@@ -15,6 +15,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -82,11 +83,15 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   @Child private InvokeFunctionNode invokeFunctionNode;
   @Child private InvokeMethodNode invokeMethodNode;
+  @Child private InvokeConversionNode invokeConversionNode;
   @Child private ThunkExecutorNode thisExecutor;
+  @Child private ThunkExecutorNode thatExecutor;
   private final ConditionProfile functionErrorProfile = ConditionProfile.createCountingProfile();
 
   private final boolean canApplyThis;
+  private final boolean canApplyThat;
   private final int thisArgumentPosition;
+  private final int thatArgumentPosition;
 
   private final ArgumentsExecutionMode argumentsExecutionMode;
 
@@ -95,9 +100,12 @@ public abstract class InvokeCallableNode extends BaseNode {
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode) {
     Integer thisArg = thisArgumentPosition(schema);
-
     this.canApplyThis = thisArg != null;
-    this.thisArgumentPosition = thisArg == null ? 0 : thisArg;
+    this.thisArgumentPosition = thisArg == null ? -1 : thisArg;
+
+    Integer thatArg = thatArgumentPosition(schema, thisArgumentPosition);
+    this.canApplyThat = thatArg != null;
+    this.thatArgumentPosition = thatArg == null ? -1 : thatArg;
 
     this.argumentsExecutionMode = argumentsExecutionMode;
 
@@ -105,6 +113,8 @@ public abstract class InvokeCallableNode extends BaseNode {
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.invokeMethodNode =
         InvokeMethodNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+    this.invokeConversionNode =
+        InvokeConversionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   public static Integer thisArgumentPosition(CallArgumentInfo[] schema) {
@@ -120,7 +130,22 @@ public abstract class InvokeCallableNode extends BaseNode {
     return null;
   }
 
+  public static Integer thatArgumentPosition(CallArgumentInfo[] schema, int thisArgumentPosition) {
+    int idx = 0;
+    for (; idx < schema.length; idx++) {
+      CallArgumentInfo arg = schema[idx];
+
+      boolean isNamedThat = arg.isNamed() && arg.getName().equals(Constants.Names.THAT_ARGUMENT);
+      if ((arg.isPositional() && thisArgumentPosition != idx) || isNamedThat) {
+        return idx;
+      }
+    }
+    return null;
+  }
+
+
   /**
+   *
    * Creates a new instance of this node.
    *
    * @param schema a description of the arguments being applied to the callable
@@ -157,6 +182,52 @@ public abstract class InvokeCallableNode extends BaseNode {
       PanicSentinel sentinel, VirtualFrame callerFrame, Object state, Object[] arguments) {
     throw sentinel;
   }
+
+  @Specialization
+  public Stateful invokeConversion(
+      UnresolvedConversion conversion, VirtualFrame callerFrame, Object state, Object[] arguments) {
+    if (canApplyThis && canApplyThat) {
+      Object selfArgument = arguments[thisArgumentPosition];
+      Object thatArgument = arguments[thatArgumentPosition];
+      if (argumentsExecutionMode.shouldExecute()) {
+        if (thisExecutor == null) {
+          CompilerDirectives.transferToInterpreterAndInvalidate();
+          Lock lock = getLock();
+          lock.lock();
+          try {
+            if (thisExecutor == null) {
+              thisExecutor = insert(ThunkExecutorNode.build());
+            }
+          } finally {
+            lock.unlock();
+          }
+        }
+        if (thatExecutor == null) {
+          CompilerDirectives.transferToInterpreterAndInvalidate();
+          Lock lock = getLock();
+          lock.lock();
+          try {
+            if (thatExecutor == null) {
+              thatExecutor = insert(ThunkExecutorNode.build());
+            }
+          } finally {
+            lock.unlock();
+          }
+        }
+        Stateful selfResult = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
+        Stateful thatResult = thatExecutor.executeThunk(thatArgument, selfResult.getState(), TailStatus.NOT_TAIL);
+        selfArgument = selfResult.getValue();
+        thatArgument = thatResult.getValue();
+        state = thatResult.getState();
+        arguments[thisArgumentPosition] = selfArgument;
+        arguments[thatArgumentPosition] = thatArgument;
+      }
+      return invokeConversionNode.execute(callerFrame, state, conversion, selfArgument, thatArgument, arguments);
+    } else {
+      throw new RuntimeException("Conversion currying without `this` or `that` argument is not supported.");
+    }
+  }
+
 
   @Specialization
   public Stateful invokeDynamicSymbol(
@@ -217,6 +288,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     super.setTailStatus(isTail);
     invokeFunctionNode.setTailStatus(isTail);
     invokeMethodNode.setTailStatus(isTail);
+    invokeConversionNode.setTailStatus(isTail);
   }
 
   /** @return the source section for this node. */
@@ -234,5 +306,6 @@ public abstract class InvokeCallableNode extends BaseNode {
   public void setId(UUID id) {
     invokeFunctionNode.setId(id);
     invokeMethodNode.setId(id);
+    invokeConversionNode.setId(id);
   }
 }

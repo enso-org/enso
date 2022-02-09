@@ -44,7 +44,12 @@ class RuntimeStdlibTest
       new RuntimeServerEmulator(messageQueue, lockManager)
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
+      PackageManager.Default.create(
+        tmpDir.toFile,
+        packageName,
+        "Enso_Test",
+        edition = Some(TestEdition.edition)
+      )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -206,9 +211,10 @@ class RuntimeStdlibTest
             )
           ) if module.contains("Vector") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
-        xs.toVector.head.suggestion.module shouldEqual VectorLiterals.vectorModuleName
+        xs.toVector.map(_.suggestion.module)
     }
     stdlibSuggestions.nonEmpty shouldBe true
+    stdlibSuggestions.flatten should contain(VectorLiterals.vectorModuleName)
 
     // check that builtins are indexed
     val builtinsSuggestions = responses.collect {
@@ -235,9 +241,8 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    val libraryVersion = buildinfo.Info.stdLibVersion
     contentRootNotifications should contain(
-      ("Standard", "Base", libraryVersion)
+      ("Standard", "Base", TestEdition.testLibraryVersion.toString)
     )
 
     context.consumeOut shouldEqual List("Hello World!")

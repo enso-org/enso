@@ -133,13 +133,6 @@ jobs:
           sleep 1
           sbt --no-colors verifyLicensePackages
 
-      - name: Verify the Stdlib Version
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors "stdlib-version-updater/run check"
-
       # Prepare distributions
       - name: Build the Launcher Native Image
         working-directory: repo

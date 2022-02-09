@@ -1594,8 +1594,8 @@ class DataflowAnalysisTest extends CompilerTest {
 
     val ir =
       """
-        |Foo.from (value : Bar) =
-        |    Foo value 1
+        |Foo.from (that : Bar) =
+        |    Foo that 1
         |""".stripMargin.preprocessModule.analyse
 
     val depInfo = ir.getMetadata(DataflowAnalysis).get

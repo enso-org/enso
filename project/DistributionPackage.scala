@@ -1,3 +1,5 @@
+import io.circe.yaml
+import io.circe.syntax._
 import sbt.internal.util.ManagedLogger
 import sbt._
 import sbt.io.syntax.fileToRichFile
@@ -44,9 +46,12 @@ object DistributionPackage {
     val allFiles = source.allPaths.get().toSet
     Tracked.diffInputs(cache, FileInfo.lastModified)(allFiles) { diff =>
       val missing = diff.unmodified.exists { f =>
-        val destinationFile = destination / f.getName
+        val relativePath = f.relativeTo(source).get
+        val destinationFile =
+          destination.toPath.resolve(relativePath.toPath).toFile
         !destinationFile.exists()
       }
+
       if (diff.modified.nonEmpty || diff.removed.nonEmpty || missing) {
         IO.delete(destination)
         IO.copyDirectory(source, destination)
@@ -111,9 +116,13 @@ object DistributionPackage {
   def createEnginePackage(
     distributionRoot: File,
     cacheFactory: CacheStoreFactory,
+    log: Logger,
     graalVersion: String,
     javaVersion: String,
-    stdlibVersion: String
+    ensoVersion: String,
+    editionName: String,
+    sourceStdlibVersion: String,
+    targetStdlibVersion: String
   ): Unit = {
 
     copyDirectoryIncremental(
@@ -128,18 +137,24 @@ object DistributionPackage {
       cacheFactory.make("engine-jars")
     )
 
-    copyDirectoryIncremental(
-      file("distribution/editions"),
-      distributionRoot / "editions",
-      cacheFactory.make("engine-editions")
+    (distributionRoot / "editions").mkdirs()
+    Editions.writeEditionConfig(
+      editionsRoot   = distributionRoot / "editions",
+      ensoVersion    = ensoVersion,
+      editionName    = editionName,
+      libraryVersion = targetStdlibVersion,
+      log            = log
     )
 
-    copyDirectoryIncremental(
-      file("distribution/lib"),
-      distributionRoot / "lib",
-      cacheFactory.make("engine-lib")
+    copyLibraryCacheIncremental(
+      sourceRoot      = file("distribution/lib"),
+      destinationRoot = distributionRoot / "lib",
+      sourceVersion   = sourceStdlibVersion,
+      targetVersion   = targetStdlibVersion,
+      cacheFactory    = cacheFactory.sub("engine-libraries"),
+      log             = log
     )
-    getStdlibDataFiles(distributionRoot, stdlibVersion)
+    getStdlibDataFiles(distributionRoot, targetStdlibVersion)
 
     copyDirectoryIncremental(
       file("distribution/bin"),
@@ -153,6 +168,74 @@ object DistributionPackage {
       graalVersion = graalVersion,
       javaVersion  = javaVersion
     )
+  }
+
+  def fixLibraryManifest(
+    packageRoot: File,
+    targetVersion: String,
+    log: Logger
+  ): Unit = {
+    val packageConfig   = packageRoot / "package.yaml"
+    val originalContent = IO.read(packageConfig)
+    yaml.parser.parse(originalContent) match {
+      case Left(error) =>
+        log.error(s"Failed to parse $packageConfig: $error")
+        throw error
+      case Right(parsed) =>
+        val obj = parsed.asObject.getOrElse {
+          throw new IllegalStateException(s"Incorrect format of $packageConfig")
+        }
+
+        val key        = "version"
+        val updated    = obj.remove(key).add(key, targetVersion.asJson)
+        val serialized = yaml.printer.print(updated.asJson)
+        if (serialized == originalContent) {
+          log.info(
+            s"No need to update $packageConfig, already in correct version."
+          )
+        } else {
+          IO.write(packageConfig, serialized)
+          log.debug(s"Updated $packageConfig to $targetVersion")
+        }
+    }
+  }
+
+  def copyLibraryCacheIncremental(
+    sourceRoot: File,
+    destinationRoot: File,
+    sourceVersion: String,
+    targetVersion: String,
+    cacheFactory: CacheStoreFactory,
+    log: Logger
+  ): Unit = {
+    val existingLibraries =
+      collection.mutable.ArrayBuffer.empty[(String, String)]
+    for (prefix <- sourceRoot.list()) {
+      for (libName <- (sourceRoot / prefix).list()) {
+        val targetPackageRoot =
+          destinationRoot / prefix / libName / targetVersion
+        copyDirectoryIncremental(
+          source      = sourceRoot / prefix / libName / sourceVersion,
+          destination = targetPackageRoot,
+          cache       = cacheFactory.make(s"$prefix.$libName")
+        )
+        fixLibraryManifest(targetPackageRoot, targetVersion, log)
+        existingLibraries.append((prefix, libName))
+      }
+    }
+
+    val existingLibrariesSet = existingLibraries.toSet
+    for (prefix <- destinationRoot.list()) {
+      for (libName <- (destinationRoot / prefix).list()) {
+        if (!existingLibrariesSet.contains((prefix, libName))) {
+          log.info(
+            s"Removing a library $prefix.$libName from the distribution, " +
+            s"because it does not exist in the sources anymore."
+          )
+        }
+      }
+    }
+
   }
 
   private def getStdlibDataFiles(

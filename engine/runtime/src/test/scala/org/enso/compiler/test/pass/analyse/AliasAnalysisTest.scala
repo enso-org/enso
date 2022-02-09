@@ -839,8 +839,8 @@ class AliasAnalysisTest extends CompilerTest {
     implicit val ctx: ModuleContext = mkModuleContext
 
     val conversionMethod =
-      """Bar.from (value : Foo) =
-        |    Bar value.get_thing here
+      """Bar.from (that : Foo) =
+        |    Bar that.get_thing here
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method.Conversion]
 

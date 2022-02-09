@@ -132,7 +132,7 @@ class ConfigSpec
           ExtendedComponentGroup(
             module = ModuleReference(
               LibraryName("Standard", "Base"),
-              Some(ModuleName("Group 2"))
+              ModuleName("Group 2")
             ),
             color   = None,
             icon    = None,
