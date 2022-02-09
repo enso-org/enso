@@ -125,8 +125,6 @@ fn init(app: &Application) {
         line 10");
     std::mem::forget(label);
 
-    std::mem::forget(scroll_area);
-
 
 
 
@@ -141,5 +139,10 @@ fn init(app: &Application) {
     Leak::new(sprite1);
     Leak::new(sprite2);
 
-    scene.add_child(&sprite_system);
+    scroll_area.content.add_child(&sprite_system);
+    // scene.add_child(&sprite_system);
+
+
+
+    std::mem::forget(scroll_area);
 }
