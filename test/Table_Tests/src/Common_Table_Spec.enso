@@ -5,6 +5,7 @@ import Standard.Test.Problems
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Error.Warnings
 import Standard.Table.Data.Matching
+import Standard.Table.Data.Column_Mapping
 from Standard.Table.Data.Matching import Case_Insensitive
 from Standard.Table.Error as Table_Errors import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
@@ -385,3 +386,20 @@ spec prefix table_builder supports_case_sensitive_columns =
 
         Test.specify "should correctly handle various combinations of options" <|
             expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive order=Sort_Order.Descending)
+
+    Test.group prefix+"Table.rename_columns" <|
+        table =
+            col1 = ["alpha", Integer, [1,2,3]]
+            col2 = ["beta", Integer, [4,5,6]]
+            col3 = ["gamma", Integer, [16,17,18]]
+            col4 = ["delta", Integer, [19,20,21]]
+            table_builder [col1, col2, col3, col4]
+
+        Test.specify "should work as shown in the doc examples" <|
+            expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Position ["FirstColumn"])
+
+        Test.specify "should work by index" <|
+            map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
+            expect_column_names ["FirstColumn", "beta", "Another", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Index map)

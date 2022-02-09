@@ -463,6 +463,9 @@ type Table
          use this argument, as it will be removed in the future.
 
        > Example
+         Rename the first column to "FirstColumn"
+
+              table.rename_columns (Column_Mapping.By_Position ["FirstColumn"])
     rename_columns : Column_Mapping -> Problem_Behavior -> Warnings.Warning_System -> Table
     rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) (warnings=Warnings.default) =
         new_names = Table_Helpers.rename_columns internal_columns=this.columns mapping=column_map on_problems=on_problems warnings=warnings
