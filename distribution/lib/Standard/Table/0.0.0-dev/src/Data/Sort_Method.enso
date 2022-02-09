@@ -1,0 +1,25 @@
+from Standard.Base import all
+import Standard.Base.Data.Ordering.Sort_Order
+from Standard.Table.Data.Matching import Case_Insensitive
+
+## Specifies the sort methodology.
+
+   Arguments:
+   - order: Sort ordering - ascending by default.
+   - case_sensitive: Case sensitivity - case sensitive by default.
+   - natural_order: Whether to use natural ordering. Standard ordering as
+     defined by `Text.compare_to` is used by default.
+type Sort_Method (order : Sort_Order = Sort_Order.Ascending) (case_sensitive : (True | Case_Insensitive) = True) (natural_order : Boolean = False)
+
+## UNSTABLE
+   A temporary workaround to allow the `Sort_Method` constructor to work with
+   default arguments.
+
+   It is needed, because there are issues with relying on default arguments of
+   Atom constructors, as described in the following issue:
+   https://github.com/enso-org/enso/issues/1600
+   Once that issue is fixed, it can be removed.
+
+Sort_Method.new : Sort_Order -> (True | Case_Insensitive) -> Boolean -> Sort_Method
+Sort_Method.new order=Sort_Order.Ascending case_sensitive=True natural_order=False =
+    Sort_Method order case_sensitive natural_order
