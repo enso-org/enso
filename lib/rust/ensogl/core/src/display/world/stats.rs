@@ -9,17 +9,6 @@ use crate::system::web;
 
 
 
-// TODO: rename 'FrameCompletionStatus'? 'FrameMeasureCompletion'? 'FrameMeasurementStatus'?
-// 'FrameCompletion'? 'FrameEventsRegistered'? 'FrameMeasurement'?
-#[derive(Debug, PartialEq)]
-enum FrameMeasurement {
-    Skipped,
-    // TODO: rename 'Started'? [looks similar to Skipped]
-    InProgress,
-    // TODO: rename 'StartedAndFinished'?
-    Completed,
-}
-
 // ===============
 // === Monitor ===
 // ===============
@@ -131,3 +120,13 @@ impl {
         self.monitor.toggle()
     }
 }}
+
+
+// === FrameMeasurement ===
+
+#[derive(Debug, PartialEq)]
+enum FrameMeasurement {
+    Skipped,
+    InProgress,
+    Completed,
+}
