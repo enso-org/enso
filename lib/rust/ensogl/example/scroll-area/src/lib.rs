@@ -74,7 +74,7 @@ fn init(app: &Application) {
     let background_shape = Rect(background_size).corners_radius(5.5.px()).fill(background_color);
     let background_system = ShapeSystem::new(scene, background_shape);
     let background: Sprite = background_system.new_instance();
-    scene.add_child(&background);
+    scene.add_child(&background_system);
     background.size.set(Vector2::new(200.0, 200.0));
     background.set_position_x(100.0);
     background.set_position_y(-100.0);
