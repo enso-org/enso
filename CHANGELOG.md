@@ -22,7 +22,7 @@
 - [Implemented `Vector.distinct` allowing to remove duplicate elements from a
   Vector][3224]
 - [Implemented `Duration.time_execution` allowing timing of the execution of an
-- expression within the UI][3229]
+  expression within the UI][3229]
 - [Improved performance of `Vector.filter` and `Vector.each`; implemented
   `Vector.filter_with_index`. Made `Vector.at` accept negative indices and
   ensured it fails with a dataflow error on out of bounds access instead of an
