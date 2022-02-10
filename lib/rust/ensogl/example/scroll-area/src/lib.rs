@@ -95,7 +95,7 @@ fn init(app: &Application) {
 
     let sprite_system = ShapeSystem::new(scene, &Circle(50.px()));
     let sprite: Sprite = sprite_system.new_instance();
-    scroll_area.content.add_child(&sprite);
+    scroll_area.content.add_child(&sprite_system);
     sprite.size.set(Vector2::new(100.0, 100.0));
     sprite.set_position_x(100.0);
     sprite.set_position_y(-100.0);
