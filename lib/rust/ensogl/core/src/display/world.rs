@@ -76,23 +76,29 @@ impl World {
     pub fn new(dom: &web_sys::HtmlElement) -> World {
         let logger = Logger::new("world");
         let stats = default();
+        let performance = web::performance();
         let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
         let scene = Scene::new(dom, &logger, &stats, on_change);
         let uniforms = Uniforms::new(&scene.variables);
         let main_loop = animation::DynamicLoop::new();
-        let stats_monitor = stats::Monitor::new(&stats);
+        let stats_monitor = stats::Monitor::new();
         let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();
         let main_loop_frame = main_loop.on_frame(
-            f!([stats_monitor,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
+            f!([
+                stats,scene_dirty,scene,uniforms,stats_monitor,
+                on_before_frame,on_after_frame,on_stats_available
+            ]
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
-                stats_monitor.begin();
+                let previous_frame_stats = stats.begin_frame(performance.now());
                 on_before_frame.run_all(&t);
-                on_stats_available.run_all(&stats_monitor.previous_frame_stats());
+                on_stats_available.run_all(&previous_frame_stats);
+                // TODO: this should be just a callback registered in on_stats_available
+                stats_monitor.draw(&previous_frame_stats);
 
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
@@ -100,7 +106,7 @@ impl World {
                 scene.renderer.run();
 
                 on_after_frame.run_all(&t);
-                stats_monitor.end();
+                stats.end_frame(performance.now());
             }),
         );
 

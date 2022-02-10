@@ -3,9 +3,7 @@
 use crate::prelude::*;
 
 use crate::debug;
-use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
-use crate::system::web;
 
 
 
@@ -18,20 +16,14 @@ shared! { Monitor
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct MonitorData {
-    stats                : Stats,
-    previous_frame_stats : StatsData,
-    performance          : web::Performance,
-    monitor              : debug::Monitor,
-    panels               : Vec<debug::monitor::Panel>
+    monitor : debug::Monitor,
+    panels  : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
-    pub fn new(stats:&Stats) -> Self {
-        let stats                = stats.clone_ref();
-        let previous_frame_stats = default();
-        let performance          = web::performance();
-        let mut monitor          = debug::Monitor::new();
+    pub fn new() -> Self {
+        let mut monitor = debug::Monitor::new();
         let panels = vec![
             monitor.add::<debug::monitor::FrameTime>(),
             monitor.add::<debug::monitor::Fps>(),
@@ -47,32 +39,16 @@ impl {
             monitor.add::<debug::monitor::SpriteSystemCount>(),
             monitor.add::<debug::monitor::SpriteCount>(),
         ];
-        Self { stats, previous_frame_stats, performance, monitor, panels }
+        Self { monitor, panels }
     }
 
-    /// Start measuring data.
-    pub fn begin(&mut self) {
-        let time = self.performance.now();
-        self.previous_frame_stats = self.stats.begin_frame(time);
+    pub fn draw(&mut self, stats: &StatsData) {
         if self.visible() {
             for panel in &self.panels {
-                panel.sample_and_postprocess(&self.previous_frame_stats);
+                panel.sample_and_postprocess(stats);
             }
             self.monitor.draw();
         }
-        self.stats.reset_per_frame_statistics();
-    }
-
-    /// Finish measuring data.
-    pub fn end(&mut self) {
-        let time = self.performance.now();
-        self.stats.end_frame(time);
-    }
-
-    /// Returns a snapshot of statistics data for the previous rendering frame.
-    /// A previous rendering frame is the one before the most recent call to [`begin()`].
-    pub fn previous_frame_stats(&self) -> StatsData {
-        self.previous_frame_stats
     }
 
     /// Checks if the monitor is visible.

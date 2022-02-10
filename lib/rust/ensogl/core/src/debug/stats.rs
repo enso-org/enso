@@ -55,11 +55,6 @@ impl Stats {
     pub fn end_frame(&self, time: f64) {
         self.rc.borrow_mut().end_frame(time);
     }
-
-    /// Resets the per-frame statistics.
-    pub fn reset_per_frame_statistics(&self) {
-        self.rc.borrow_mut().reset_per_frame_statistics();
-    }
 }
 
 /// Emits the 2nd argument only if the 1st argument is an integer type. A helper macro for
@@ -210,6 +205,7 @@ impl StatsData {
         };
         self.frame_counter += 1;
         self.frame_begin_time = time;
+        self.reset_per_frame_statistics();
         previous_frame_snapshot
     }
 
