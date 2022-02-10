@@ -312,7 +312,7 @@ impl Renderer {
         }
     }
 
-    /// Draw the widget and update all of the plots.
+    /// Draw the widget and update all of the graphs.
     fn draw(&mut self) {
         if let Some(dom) = self.dom.clone() {
             if self.first_draw {
