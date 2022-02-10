@@ -23,17 +23,32 @@ use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
-
+use ide_view_graph_editor::NodeSource;
 
 
 // ===========
 // === FRP ===
 // ===========
 
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SearcherParams {
+    pub input:       NodeId,
+    pub source_node: Option<NodeSource>,
+}
+
+impl SearcherParams {
+    fn new_for_new_node(node_id: NodeId, source_node: Option<NodeSource>) -> Self {
+        Self { input: node_id, source_node }
+    }
+
+    fn new_for_edited_node(node_id: NodeId) -> Self {
+        Self { input: node_id, source_node: None }
+    }
+}
+
 ensogl::define_endpoints! {
     Input {
-        /// Open the searcher.
-        open_searcher(),
         /// Open the Open File or Project Dialog.
         show_open_dialog(),
         /// Close the searcher without taking any actions
@@ -55,9 +70,8 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (NodeId, Option<NodeId>),
+        searcher                            (Option<SearcherParams>),
         adding_new_node                     (bool),
-        is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
         editing_aborted                     (NodeId),
         editing_committed                   (NodeId, Option<searcher::entry::Id>),
@@ -203,14 +217,14 @@ impl Model {
     /// Update Searcher View - its visibility and position - when edited node changed.
     fn update_searcher_view(
         &self,
-        edited_node: Option<NodeId>,
+        searcher_parameters: Option<SearcherParams>,
         is_searcher_empty: bool,
         searcher_left_top_position: &DEPRECATED_Animation<Vector2<f32>>,
     ) {
-        match edited_node {
-            Some(id) if !is_searcher_empty => {
+        match searcher_parameters {
+            Some(SearcherParams { input, .. }) if !is_searcher_empty => {
                 self.searcher.show();
-                let new_position = self.searcher_left_top_position_when_under_node(id);
+                let new_position = self.searcher_left_top_position_when_under_node(input);
                 searcher_left_top_position.set_target_value(new_position);
             }
             _ => {
@@ -391,29 +405,62 @@ impl View {
             });
 
 
+            // === Closing Searcher
+
+            is_searcher_opened <- frp.searcher.map(|s| s.is_some());
+            last_searcher <- frp.searcher.filter_map(|&s| s);
+
+            finished_with_searcher <- graph.node_editing_finished.gate(&is_searcher_opened);
+            frp.source.searcher <+ frp.close_searcher.constant(None);
+            frp.source.searcher <+ searcher.editing_committed.constant(None);
+            frp.source.searcher <+ finished_with_searcher.constant(None);
+
+            committed_in_searcher <-
+                searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
+            aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
+            frp.source.editing_committed <+ committed_in_searcher;
+            frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
+            frp.source.editing_aborted <+ aborted_in_searcher;
+
+
+            // === Adding Node ===
+
+            searcher_for_adding <- graph.node_added.map(
+                |&(node, src)| SearcherParams::new_for_new_node(node, src)
+            );
+            frp.source.adding_new_node <+ searcher_for_adding.to_true();
+            frp.source.searcher <+ searcher_for_adding.map(|&s| Some(s));
+
+            adding_committed <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
+            adding_aborted <- frp.editing_aborted.gate(&frp.adding_new_node);
+            adding_finished <- any(adding_committed,adding_aborted);
+            frp.source.adding_new_node <+ adding_finished.constant(false);
+            frp.source.searcher <+ adding_finished.constant(None);
+
+            eval adding_committed ([graph](node) {
+                graph.deselect_all_nodes();
+                graph.select_node(node);
+            });
+            eval adding_aborted  ((node) graph.remove_node(node));
+
+
             // === Editing ===
 
-            // The order of instructions below is important to properly distinguish between
-            // committing and aborting node editing.
+            editing_started_with_searcher <- graph.node_editing_started.map2(&frp.searcher, |&n,&s| (n,s));
+            new_node_is_edited <- editing_started_with_searcher.filter_map(|&(node_id, searcher)| {
+                searcher.map_or(true, |s| s.input != node_id).as_some(node_id)
+            });
+            frp.source.searcher <+ new_node_is_edited.map(
+                |&node| Some(SearcherParams::new_for_edited_node(node))
+            );
 
-            frp.source.editing_committed <+ searcher.editing_committed
-                .map2(&graph.output.node_being_edited, |entry,id| (*id,*entry))
-                .filter_map(|(id,entry)| Some(((*id)?, *entry)));
 
-            // This node is true when received "abort_node_editing" signal, and should get false
-            // once processing of "node_being_edited" event from graph is performed.
-            editing_aborted              <- any(...);
-            editing_aborted              <+ frp.close_searcher.constant(true);
-            editing_commited_in_searcher <- searcher.editing_committed.constant(());
-            should_finish_editing_if_any <- any(frp.close_searcher,editing_commited_in_searcher
-                ,frp.open_searcher,frp.show_open_dialog);
-            should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
-            eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
+            // === Searcher Position and Visibility ===
 
-            visibility_conditions <- all(&graph.output.node_being_edited,&searcher.is_empty);
+            visibility_conditions <- all(&frp.searcher,&searcher.is_empty);
             _eval                 <- visibility_conditions.map2(&searcher.is_visible,
-                f!([model,searcher_left_top_position]((node_id,is_searcher_empty),is_visible) {
-                    model.update_searcher_view(*node_id,*is_searcher_empty,&searcher_left_top_position);
+                f!([model,searcher_left_top_position]((searcher,is_searcher_empty),is_visible) {
+                    model.update_searcher_view(*searcher,*is_searcher_empty,&searcher_left_top_position);
                     if !is_visible {
                         // Do not animate
                         searcher_left_top_position.skip();
@@ -421,46 +468,14 @@ impl View {
                 })
             );
 
-            _eval <- graph.output.node_position_set.map2(&graph.output.node_being_edited,
-                f!([searcher_left_top_position]((node_id,position),edited_node_id) {
-                    if edited_node_id.contains(node_id) {
-                        let new = Model::searcher_left_top_position_when_under_node_at(*position);
+            _eval <- graph.output.node_position_set.map2(&frp.searcher,
+                f!([searcher_left_top_position](&(node_id, position), &searcher) {
+                    if searcher.map_or(false, |s| s.input == node_id) {
+                        let new = Model::searcher_left_top_position_when_under_node_at(position);
                         searcher_left_top_position.set_target_value(new);
                     }
                 })
             );
-            let editing_finished         =  graph.output.node_editing_finished.clone_ref();
-            editing_finished_no_entry    <- editing_finished.gate_not(&editing_aborted);
-            frp.source.editing_committed <+ editing_finished_no_entry.map(|id| (*id,None));
-            frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
-            editing_aborted              <+ graph.output.node_editing_finished.constant(false);
-
-            frp.source.is_searcher_opened <+ graph.output.node_being_edited.map(|n| n.is_some());
-
-
-            // === Adding Node ===
-
-            frp.source.adding_new_node <+ graph.output.node_added.to_true();
-
-            node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
-
-            trace graph.output.node_added;
-            trace graph.output.on_node_added_with_known_source;
-            let node_added_with_known_source = graph.output.on_node_added_with_known_source.clone_ref();
-
-            // TODO: do not trigger endpoint twice
-            frp.source.searcher_opened <+ node_being_edited.map(|id| (*id, None));
-            frp.source.searcher_opened <+ node_added_with_known_source.map(|(id, source)| (*id, Some(*source)));
-
-            adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
-            adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
-            frp.source.adding_new_node <+ any(&adding_committed,&adding_aborted).constant(false);
-
-            eval adding_committed ([graph](node) {
-                graph.deselect_all_nodes();
-                graph.select_node(node);
-            });
-            eval adding_aborted  ((node) graph.remove_node(node));
 
 
             // === Opening Open File or Project Dialog ===
@@ -524,7 +539,7 @@ impl View {
             let prompt_size            = styles.get_number(prompt_size_path);
             prompt_size                <- all(&prompt_size,&init)._0();
 
-            disable_after_opening_searcher <- frp.is_searcher_opened.filter(|v| *v).constant(());
+            disable_after_opening_searcher <- frp.searcher.filter_map(|s| s.map(|_| ()));
             disable                        <- any(frp.disable_prompt,disable_after_opening_searcher);
             disabled                       <- disable.constant(true);
             show_prompt                    <- frp.show_prompt.gate_not(&disabled);
@@ -574,11 +589,6 @@ impl View {
     /// Searcher View.
     pub fn searcher(&self) -> &searcher::View {
         &self.model.searcher
-    }
-
-    /// Searcher 2.0 FRP.
-    pub fn new_searcher_frp(&self) -> &searcher::new::Frp<usize> {
-        self.model.searcher.new_frp()
     }
 
     /// Code Editor View.
