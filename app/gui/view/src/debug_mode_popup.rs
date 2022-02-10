@@ -31,7 +31,7 @@ define_debug_mode_shortcut!("ctrl shift d");
 const DEBUG_MODE_DISABLED: &str = "Debug Mode disabled.";
 
 const LABEL_VISIBILITY_DELAY_MS: f32 = 3_000.0;
-const LABEL_PADDING_TOP: f32 = 100.0;
+const LABEL_PADDING_TOP: f32 = 50.0;
 
 // ==================
 // === PopupLabel ===
@@ -57,16 +57,20 @@ impl PopupLabel {
     pub fn new(app: &Application, text: &str, delay: f32) -> Self {
         let network = frp::Network::new("PopupLabel");
         let label = Label::new(app);
+        label.set_content(text);
+        label.set_opacity(0.0);
+        let background_layer = &app.display.scene().layers.panel;
+        let text_layer = &app.display.scene().layers.panel_text;
+        label.set_layers(background_layer, text_layer);
+
+        let opacity_animation = Animation::new(&network);
+        network.store(&opacity_animation);
         let delay_animation = DelayedAnimation::new(&network);
         delay_animation.set_delay(delay);
         delay_animation.set_duration(0.0);
         network.store(&delay_animation);
-        label.set_content(text);
-        label.set_opacity(0.0);
-        let opacity_animation = Animation::new(&network);
-        network.store(&opacity_animation);
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             show <- source_();
             hide <- source_();
 
@@ -100,14 +104,10 @@ struct Model {
 impl Model {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let scene = app.display.scene();
         let logger = Logger::new("DebugModePopup");
         let display_object = display::object::Instance::new(&logger);
         let enabled_label = PopupLabel::new(app, DEBUG_MODE_ENABLED, LABEL_VISIBILITY_DELAY_MS);
         let disabled_label = PopupLabel::new(app, DEBUG_MODE_DISABLED, LABEL_VISIBILITY_DELAY_MS);
-
-        scene.layers.panel_text.add_exclusive(&enabled_label);
-        scene.layers.panel_text.add_exclusive(&disabled_label);
 
         Self { display_object, enabled_label, disabled_label, logger }
     }
