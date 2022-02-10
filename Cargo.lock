@@ -954,6 +954,7 @@ dependencies = [
  "enso-frp",
  "enso-logger",
  "enso-prelude",
+ "enso-profiler",
  "enso-shapely",
  "enso-text",
  "enso-web",
@@ -1054,6 +1055,25 @@ dependencies = [
  "wasm-bindgen-test 0.2.50",
  "weak-table",
  "web-sys",
+]
+
+[[package]]
+name = "enso-profiler"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler-macros",
+ "futures 0.3.17",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "enso-profiler-macros"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "proc-macro2 1.0.32",
+ "quote 1.0.10",
+ "syn",
 ]
 
 [[package]]
