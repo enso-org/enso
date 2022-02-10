@@ -198,12 +198,14 @@ impl Drop for DomData {
 // === Monitor ===
 // ===============
 
+/// Visual panel showing performance-related statistics.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Monitor {
     renderer: Rc<RefCell<Renderer>>,
 }
 
 impl Monitor {
+    /// Constructor.
     pub fn new() -> Self {
         let mut renderer = Renderer::new();
         renderer.add::<FrameTime>();
@@ -222,6 +224,7 @@ impl Monitor {
         Self { renderer: Rc::new(RefCell::new(renderer)) }
     }
 
+    /// Draw the monitor and update its graphs based on the provided stats data.
     pub fn draw(&self, stats: &StatsData) {
         let mut renderer = self.renderer.borrow_mut();
         if renderer.visible() {
@@ -232,6 +235,7 @@ impl Monitor {
         }
     }
 
+    /// Toggle the visibility of the monitor.
     pub fn toggle(&self) {
         self.renderer.borrow_mut().toggle();
     }
