@@ -229,7 +229,7 @@ impl Default for Monitor {
 }
 
 impl Monitor {
-    /// Cnstructor.
+    /// Constructor.
     pub fn new() -> Self {
         default()
     }
