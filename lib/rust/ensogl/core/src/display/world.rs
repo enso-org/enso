@@ -11,6 +11,7 @@ use crate::animation;
 use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
+use crate::debug;
 use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
@@ -63,7 +64,7 @@ pub struct World {
     main_loop:          animation::DynamicLoop,
     uniforms:           Uniforms,
     stats:              Stats,
-    stats_monitor:      stats::Monitor,
+    stats_monitor:      debug::monitor::Monitor,
     main_loop_frame:    callback::Handle,
     on_before_frame:    callback::SharedRegistryMut1<animation::TimeInfo>,
     on_after_frame:     callback::SharedRegistryMut1<animation::TimeInfo>,
@@ -82,7 +83,7 @@ impl World {
         let scene = Scene::new(dom, &logger, &stats, on_change);
         let uniforms = Uniforms::new(&scene.variables);
         let main_loop = animation::DynamicLoop::new();
-        let stats_monitor = stats::Monitor::new();
+        let stats_monitor = debug::monitor::Monitor::new();
         let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();

@@ -198,9 +198,52 @@ impl Drop for DomData {
 // === Monitor ===
 // ===============
 
+#[derive(Debug, Clone, CloneRef)]
+pub struct Monitor {
+    renderer: Rc<RefCell<Renderer>>,
+}
+
+impl Monitor {
+    pub fn new() -> Self {
+        let mut renderer = Renderer::new();
+        renderer.add::<FrameTime>();
+        renderer.add::<Fps>();
+        renderer.add::<WasmMemory>();
+        renderer.add::<GpuMemoryUsage>();
+        renderer.add::<DrawCallCount>();
+        renderer.add::<DataUploadCount>();
+        renderer.add::<DataUploadSize>();
+        renderer.add::<BufferCount>();
+        renderer.add::<SymbolCount>();
+        renderer.add::<ShaderCount>();
+        renderer.add::<ShaderCompileCount>();
+        renderer.add::<SpriteSystemCount>();
+        renderer.add::<SpriteCount>();
+        Self {
+            renderer: Rc::new(RefCell::new(renderer)),
+        }
+    }
+
+    pub fn draw(&mut self, stats: &StatsData) {
+        let renderer = self.renderer.borrow_mut();
+        if renderer.visible() {
+            for panel in renderer.panels() {
+                panel.sample_and_postprocess(stats);
+            }
+            renderer.draw();
+        }
+    }
+}
+
+
+
+// ================
+// === Renderer ===
+// ================
+
 /// Implementation of the monitoring panel.
 #[derive(Debug)]
-pub struct Monitor {
+struct Renderer {
     user_config: Config,
     config:      SamplerConfig,
     width:       f64,
@@ -211,10 +254,8 @@ pub struct Monitor {
 }
 
 
-// === Public API ===
-
-impl Default for Monitor {
-    fn default() -> Self {
+impl Renderer {
+    fn new() -> Self {
         let user_config = Config::default();
         let panels = default();
         let width = default();
@@ -226,35 +267,25 @@ impl Default for Monitor {
         out.update_config();
         out
     }
-}
-
-impl Monitor {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-
-    /// Modify the Monitor's config and update the view.
-    pub fn mod_config<F: FnOnce(&mut Config)>(&mut self, f: F) {
-        f(&mut self.user_config);
-        self.update_config();
-    }
 
     /// Add new display element.
-    pub fn add<S: Sampler + Default + 'static>(&mut self) -> Panel {
+    fn add<S: Sampler + Default + 'static>(&mut self) {
         let panel = Panel::new(self.config.clone(), S::default());
-        self.panels.push(panel.clone());
+        self.panels.push(panel);
         self.resize();
-        panel
+    }
+
+    fn panels(&self) -> &Vec<Panel> {
+        self.panels
     }
 
     /// Check whether the monitor is visible.
-    pub fn visible(&self) -> bool {
+    fn visible(&self) -> bool {
         self.dom.is_some()
     }
 
     /// Show the monitor and add it's DOM to the scene.
-    pub fn show(&mut self) {
+    fn show(&mut self) {
         if !self.visible() {
             self.first_draw = true;
             self.dom = Some(Dom::new());
@@ -263,12 +294,12 @@ impl Monitor {
     }
 
     /// Hides the monitor and remove it's DOM from the scene.
-    pub fn hide(&mut self) {
+    fn hide(&mut self) {
         self.dom = None;
     }
 
     /// Toggle the visibility of the monitor.
-    pub fn toggle(&mut self) {
+    fn toggle(&mut self) {
         if self.visible() {
             self.hide();
         } else {
@@ -276,8 +307,8 @@ impl Monitor {
         }
     }
 
-    /// Draw the Monitor and update all of it's values.
-    pub fn draw(&mut self) {
+    /// Draw the widget and update all of the plots.
+    fn draw(&mut self) {
         if let Some(dom) = self.dom.clone() {
             if self.first_draw {
                 self.first_draw = false;
@@ -288,12 +319,7 @@ impl Monitor {
             self.draw_plots(&dom);
         }
     }
-}
 
-
-// === Private API ===
-
-impl Monitor {
     fn update_config(&mut self) {
         self.config = self.user_config.to_js_config()
     }
