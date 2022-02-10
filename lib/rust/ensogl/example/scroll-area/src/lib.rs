@@ -180,9 +180,9 @@ fn init(app: &Application) {
 pub fn shape() -> AnyShape {
     let circle1 = Circle(50.px());
     let circle_bg = circle1.translate_x(-(50.0.px()));
-    let circle_sub = circle1.translate_y(-(50.0.px()));
-    let rect = Rect((100.0.px(), 100.0.px()));
-    let shape = circle_bg + rect - circle_sub;
+    // let circle_sub = circle1.translate_y(-(50.0.px()));
+    // let rect = Rect((100.0.px(), 100.0.px()));
+    let shape = circle_bg; // + rect - circle_sub;
     let shape = shape.fill(color::Rgb::new(1.0, 0.0, 0.0));
     shape.into()
 }
