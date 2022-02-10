@@ -63,6 +63,7 @@ pub struct World {
     uniforms:           Uniforms,
     stats:              Stats,
     stats_monitor:      debug::monitor::Monitor,
+    stats_draw_handle:  callback::Handle,
     main_loop_frame:    callback::Handle,
     on_before_frame:    callback::SharedRegistryMut1<animation::TimeInfo>,
     on_after_frame:     callback::SharedRegistryMut1<animation::TimeInfo>,
@@ -85,6 +86,11 @@ impl World {
         let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();
+        let stats_draw_handle = on_stats_available.add(
+            f!([stats_monitor] (stats: &StatsData) {
+                stats_monitor.draw(stats);
+            })
+        );
         let main_loop_frame = main_loop.on_frame(
             f!([
                 stats,scene_dirty,scene,uniforms,stats_monitor,
@@ -97,7 +103,7 @@ impl World {
                 on_before_frame.run_all(&t);
                 on_stats_available.run_all(&previous_frame_stats);
                 // TODO: this should be just a callback registered in on_stats_available
-                stats_monitor.draw(&previous_frame_stats);
+                // stats_monitor.draw(&previous_frame_stats);
 
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
@@ -117,6 +123,7 @@ impl World {
             uniforms,
             stats,
             stats_monitor,
+            stats_draw_handle,
             main_loop_frame,
             on_before_frame,
             on_after_frame,
