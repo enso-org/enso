@@ -403,3 +403,18 @@ spec prefix table_builder supports_case_sensitive_columns =
             map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
             expect_column_names ["FirstColumn", "beta", "Another", "delta"] <|
                 table.rename_columns (Column_Mapping.By_Index map)
+
+        Test.specify "should work by position" <|
+            vec = ["one", "two", "three"]
+            expect_column_names ["one", "two", "three", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Position vec)
+
+        Test.specify "should work by name" <|
+            map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                table.rename_columns (Column_Mapping.By_Name map (Matching.Exact True))
+
+        Test.specify "should work by name case insensitively" <|
+            map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                table.rename_columns (Column_Mapping.By_Name map (Matching.Exact Matching.Case_Insensitive))
