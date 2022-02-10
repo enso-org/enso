@@ -224,14 +224,18 @@ impl Monitor {
         }
     }
 
-    pub fn draw(&mut self, stats: &StatsData) {
-        let renderer = self.renderer.borrow_mut();
+    pub fn draw(&self, stats: &StatsData) {
+        let mut renderer = self.renderer.borrow_mut();
         if renderer.visible() {
             for panel in renderer.panels() {
                 panel.sample_and_postprocess(stats);
             }
             renderer.draw();
         }
+    }
+
+    pub fn toggle(&self) {
+        self.renderer.borrow_mut().toggle();
     }
 }
 
@@ -276,7 +280,7 @@ impl Renderer {
     }
 
     fn panels(&self) -> &Vec<Panel> {
-        self.panels
+        &self.panels
     }
 
     /// Check whether the monitor is visible.
