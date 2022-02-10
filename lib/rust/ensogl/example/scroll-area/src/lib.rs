@@ -167,7 +167,8 @@ fn init(app: &Application) {
     let sprite = sprite_system.new_instance();
 
     sprite.size.set(Vector2::new(300.0, 300.0));
-    sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+    sprite.set_position_x(100.0);
+    sprite.set_position_y(-100.0);
 
     scroll_area.content.add_child(&sprite_system);
     Leak::new(sprite);
