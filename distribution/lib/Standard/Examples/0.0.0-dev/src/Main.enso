@@ -141,7 +141,7 @@ throw_panic = Panic.throw <| My_Error "Example panic."
 ## A URL for open-source geographic data about the locations of bus-stop ads in
    Los Angeles.
 geo_data_url : Text
-geo_data_url = "https://opendata.arcgis.com/datasets/0f77c86999a440178f2be3650d00f7f6_2.geojson"
+geo_data_url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/Bus_Stop_Benches.geojson"
 
 ## Gets an HTTP response from a network endpoint.
 
@@ -292,4 +292,3 @@ match =
     engine = Default_Engine.new
     pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
     pattern.match "aa ab abc a bc bcd" mode=Regex_Mode.First
-
