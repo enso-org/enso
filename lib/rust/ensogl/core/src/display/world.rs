@@ -90,7 +90,7 @@ impl World {
             stats_monitor.draw(stats);
         }));
         let main_loop_frame = main_loop.on_frame(
-            f!([stats,scene_dirty,scene,uniforms,on_before_frame,on_after_frame,on_stats_available]
+            f!([stats,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
