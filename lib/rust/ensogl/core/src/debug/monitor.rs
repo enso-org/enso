@@ -204,9 +204,8 @@ pub struct Monitor {
     renderer: Rc<RefCell<Renderer>>,
 }
 
-impl Monitor {
-    /// Constructor.
-    pub fn new() -> Self {
+impl Default for Monitor {
+    fn default() -> Self {
         let mut renderer = Renderer::new();
         renderer.add::<FrameTime>();
         renderer.add::<Fps>();
@@ -222,6 +221,13 @@ impl Monitor {
         renderer.add::<SpriteSystemCount>();
         renderer.add::<SpriteCount>();
         Self { renderer: Rc::new(RefCell::new(renderer)) }
+    }
+}
+
+impl Monitor {
+    /// Constructor.
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Draw the monitor and update its graphs based on the provided stats data.
