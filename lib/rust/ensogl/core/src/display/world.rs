@@ -92,9 +92,7 @@ impl World {
 
                 stats_monitor.begin();
                 on_before_frame.run_all(&t);
-                if let Some(stats) = stats_monitor.previous_frame_stats() {
-                    on_stats_available.run_all(&stats);
-                }
+                on_stats_available.run_all(&stats_monitor.previous_frame_stats());
 
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
