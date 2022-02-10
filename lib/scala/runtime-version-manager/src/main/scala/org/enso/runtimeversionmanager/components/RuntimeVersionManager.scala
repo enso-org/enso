@@ -401,7 +401,9 @@ class RuntimeVersionManager(
     */
   private def isEngineVersionCompatibleWithThisInstaller(
     manifest: Manifest
-  ): Boolean = CurrentVersion.version >= manifest.minimumRequiredVersion
+  ): Boolean =
+    CurrentVersion.isDevVersion ||
+    CurrentVersion.version >= manifest.minimumRequiredVersion
 
   /** Installs the engine with the provided version.
     *

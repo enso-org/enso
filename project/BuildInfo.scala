@@ -14,6 +14,7 @@ object BuildInfo {
     *
     * @param file location where to write the Scala code
     * @param log a logger instance for diagnostics
+    * @param defaultDevEnsoVersion the default version used for dev builds
     * @param ensoVersion Enso version
     * @param scalacVersion Scala compiler version used in the project
     * @param graalVersion GraalVM version used in the project
@@ -25,6 +26,7 @@ object BuildInfo {
   def writeBuildInfoFile(
     file: File,
     log: ManagedLogger,
+    defaultDevEnsoVersion: String,
     ensoVersion: String,
     scalacVersion: String,
     graalVersion: String,
@@ -39,10 +41,11 @@ object BuildInfo {
          |object Info {
          |
          |  // Versions
-         |  val ensoVersion   = "$ensoVersion"
-         |  val scalacVersion = "$scalacVersion"
-         |  val graalVersion  = "$graalVersion"
-         |  val currentEdition = "$currentEdition"
+         |  val defaultDevEnsoVersion = "$defaultDevEnsoVersion"
+         |  val ensoVersion           = "$ensoVersion"
+         |  val scalacVersion         = "$scalacVersion"
+         |  val graalVersion          = "$graalVersion"
+         |  val currentEdition        = "$currentEdition"
          |
          |  // Git Info
          |  val commit            = "${gitInfo.commitHash}"
@@ -61,7 +64,7 @@ object BuildInfo {
   }
 
   private def isReleaseMode: Boolean =
-    if (sys.env.get("ENSO_RELEASE_MODE").contains("true")) true else false
+    sys.env.get("ENSO_RELEASE_MODE").contains("true")
 
   /** Information regarding the Git repository that was used in the build.
     *
