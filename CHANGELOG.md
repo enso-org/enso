@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [Debug Mode can be activated/deactivated using a shortcut.][3264]
 - [New nodes can be created by dragging and dropping a connection on the
   scene.][3231]
 - [Node connections can be dropped by pressing the Esc key while dragging
@@ -43,6 +44,7 @@
 [3232]: https://github.com/enso-org/enso/pull/3232
 [3230]: https://github.com/enso-org/enso/pull/3230
 [3240]: https://github.com/enso-org/enso/pull/3240
+[3264]: https://github.com/enso-org/enso/pull/3264
 
 #### Enso Compiler
 
