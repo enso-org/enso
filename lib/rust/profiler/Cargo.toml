@@ -5,8 +5,9 @@ edition = "2021"
 authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
-wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
 enso-profiler-macros = { path = "macros" }
+serde = { version = "1.0", features = ["derive"] }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
 
 [dev-dependencies]
 futures = "0.3"

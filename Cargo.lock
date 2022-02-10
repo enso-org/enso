@@ -1063,6 +1063,7 @@ version = "0.1.0"
 dependencies = [
  "enso-profiler-macros",
  "futures 0.3.17",
+ "serde",
  "wasm-bindgen",
 ]
 

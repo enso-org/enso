@@ -143,14 +143,14 @@ fn enabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#ChildIdent> for #ParentIdent {
-            fn new_child(&self, label:Label) -> Started<#ChildIdent> {
+            fn new_child(&self, label: Label<'static>) -> Started<#ChildIdent> {
                 let profiler = #ChildIdent(ProfilerId::new());
                 let parent = self.0;
                 let start = Some(Timestamp::now());
                 let data = ProfilerData { parent, start, label };
                 Started { profiler, data }
             }
-            fn new_child_same_start(&self, label:Label) -> Started<#ChildIdent> {
+            fn new_child_same_start(&self, label: Label<'static>) -> Started<#ChildIdent> {
                 let profiler = #ChildIdent(ProfilerId::new());
                 let parent = self.0;
                 let start = None;
@@ -171,10 +171,10 @@ fn disabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#ChildIdent> for #ParentIdent {
-            fn new_child(&self, label: Label) -> Started<#ChildIdent> {
+            fn new_child(&self, label: Label<'static>) -> Started<#ChildIdent> {
                 self.new_child_same_start(label)
             }
-            fn new_child_same_start(&self, _label: Label) -> Started<#ChildIdent> {
+            fn new_child_same_start(&self, _label: Label<'static>) -> Started<#ChildIdent> {
                 let profiler = #ChildIdent(());
                 let data = ();
                 Started { profiler, data }

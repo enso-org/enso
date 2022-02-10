@@ -157,7 +157,7 @@ use std::str;
 
 /// The label of a profiler; this includes the name given at its creation, along with file and
 /// line-number information.
-pub type Label = &'static str;
+pub type Label<'a> = &'a str;
 
 
 
@@ -170,7 +170,7 @@ pub type Label = &'static str;
 /// Stored in units of 100us, because that is maximum resolution of performance.now():
 /// - [in the specification](https://www.w3.org/TR/hr-time-3), 100us is the limit
 /// - in practice, as observed in debug consoles: Chromium 97 (100us) and Firefox 95 (1ms)
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Timestamp(num::NonZeroU64);
 
 /// Offset used to encode a timestamp, which may be 0, in a [`NonZeroU64`].
@@ -246,7 +246,7 @@ pub mod js {
 // ==================
 
 /// Uniquely identifies a runtime measurement.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct ProfilerId(u32);
 
 impl ProfilerId {
@@ -297,7 +297,7 @@ pub struct ProfilerData {
     /// Start time for this [`Measurement`], or None to indicate it is the same as `parent`.
     pub start:  Option<Timestamp>,
     /// Identifies where in the code this [`Measurement`] originates.
-    pub label:  Label,
+    pub label:  Label<'static>,
 }
 
 // === Trait Implementations ===
@@ -320,8 +320,8 @@ impl StartedProfiler for ProfilerData {
 // ===================
 
 /// Record of a profiled section, the parent it was reached by, and its entry and exit times.
-#[derive(Debug, Copy, Clone)]
-pub struct Measurement {
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
+pub struct Measurement<'a> {
     /// A unique identifier.
     pub profiler: ProfilerId,
     /// Identifies parent [`Measurement`] by its `profiler` field.
@@ -331,7 +331,8 @@ pub struct Measurement {
     /// The end time.
     pub end:      Timestamp,
     /// Identifies where in the code this [`Measurement`] originates.
-    pub label:    Label,
+    #[serde(borrow)]
+    pub label:    Label<'a>,
 }
 
 /// Internal
@@ -386,7 +387,7 @@ pub mod internal {
 
     thread_local! {
         /// Global log of [`Measurement`]s.
-        pub static MEASUREMENTS: LocalVecBuilder<Measurement> = LocalVecBuilder::new();
+        pub static MEASUREMENTS: LocalVecBuilder<Measurement<'static>> = LocalVecBuilder::new();
     }
 }
 
@@ -394,7 +395,7 @@ pub mod internal {
 pub use internal::MEASUREMENTS;
 
 /// Gather all measurements taken since the last time take_log() was called.
-pub fn take_log() -> Vec<Measurement> {
+pub fn take_log() -> Vec<Measurement<'static>> {
     MEASUREMENTS.with(|log| log.build())
 }
 
@@ -421,9 +422,9 @@ pub trait Profiler: Copy {
 /// Any object representing a profiler that is a valid parent for a profiler of type T.
 pub trait Parent<T: Profiler> {
     /// Start a new profiler, with `self` as its parent.
-    fn new_child(&self, label: Label) -> Started<T>;
+    fn new_child(&self, label: Label<'static>) -> Started<T>;
     /// Create a new profiler, with `self` as its parent, and the same start time as `self`.
-    fn new_child_same_start(&self, label: Label) -> Started<T>;
+    fn new_child_same_start(&self, label: Label<'static>) -> Started<T>;
 }
 
 
@@ -456,11 +457,11 @@ where
     U: Parent<T> + Profiler,
     T: Profiler,
 {
-    fn new_child(&self, label: Label) -> Started<T> {
+    fn new_child(&self, label: Label<'static>) -> Started<T> {
         self.profiler.new_child(label)
     }
 
-    fn new_child_same_start(&self, label: Label) -> Started<T> {
+    fn new_child_same_start(&self, label: Label<'static>) -> Started<T> {
         self.profiler.new_child_same_start(label)
     }
 }
@@ -702,7 +703,7 @@ mod bench {
     }
 
     /// For comparison with time taken by [`log_measurements`].
-    fn push_vec(count: usize, measurements: &mut Vec<profiler::Measurement>) {
+    fn push_vec(count: usize, measurements: &mut Vec<profiler::Measurement<'static>>) {
         let some_timestamp = profiler::Timestamp(std::num::NonZeroU64::new(1).unwrap());
         for _ in 0..count {
             measurements.push(profiler::Measurement {
