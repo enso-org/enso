@@ -23,7 +23,6 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::AnyShape;
 use ensogl_core::display::shape::Circle;
 use ensogl_core::display::shape::PixelDistance;
 use ensogl_core::display::shape::Rect;
@@ -159,10 +158,12 @@ fn init(app: &Application) {
 
 
 
-    // from shape-system:
+    // based on shape-system demo:
 
-    // let sprite_system = ShapeSystem::new(&app.display, &shape());
-    let sprite_system = ShapeSystem::new(scene, &shape());
+    let circle1 = Circle(50.px())
+        .translate_x(-(50.0.px()))
+        .fill(color::Rgb::new(1.0, 0.0, 0.0));
+    let sprite_system = ShapeSystem::new(scene, &circle1);
     let sprite = sprite_system.new_instance();
 
     sprite.size.set(Vector2::new(300.0, 300.0));
@@ -174,15 +175,4 @@ fn init(app: &Application) {
 
 
     std::mem::forget(scroll_area);
-}
-
-/// The shape definition.
-pub fn shape() -> AnyShape {
-    let circle1 = Circle(50.px());
-    let circle_bg = circle1.translate_x(-(50.0.px()));
-    // let circle_sub = circle1.translate_y(-(50.0.px()));
-    // let rect = Rect((100.0.px(), 100.0.px()));
-    let shape = circle_bg; // + rect - circle_sub;
-    let shape = shape.fill(color::Rgb::new(1.0, 0.0, 0.0));
-    shape.into()
 }
