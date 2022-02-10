@@ -161,13 +161,14 @@ fn init(app: &Application) {
 
     // from shape-system:
 
-    let sprite_system = ShapeSystem::new(&app.display, &shape());
+    // let sprite_system = ShapeSystem::new(&app.display, &shape());
+    let sprite_system = ShapeSystem::new(scene, &shape());
     let sprite = sprite_system.new_instance();
 
     sprite.size.set(Vector2::new(300.0, 300.0));
     sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
-    app.display.add_child(&sprite_system);
+    scroll_area.content.add_child(&sprite_system);
     Leak::new(sprite);
 
 
