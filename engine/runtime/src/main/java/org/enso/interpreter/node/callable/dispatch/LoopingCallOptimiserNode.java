@@ -18,6 +18,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -57,7 +58,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    */
   @Specialization
   public Stateful dispatch(
-      Object function,
+      Function function,
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
@@ -73,7 +74,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
   @Specialization(replaces = "dispatch")
   @CompilerDirectives.TruffleBoundary
   public Stateful uncachedDispatch(
-      Object function,
+      Function function,
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
@@ -139,7 +140,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      */
     private void setNextCall(
         VirtualFrame frame,
-        Object function,
+        Function function,
         CallerInfo callerInfo,
         Object state,
         Object[] arguments) {
@@ -171,10 +172,10 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @param frame the stack frame for execution
      * @return the function to be executed next in the loop
      */
-    public Object getNextFunction(VirtualFrame frame) {
+    public Function getNextFunction(VirtualFrame frame) {
       Object result = FrameUtil.getObjectSafe(frame, functionSlot);
       frame.setObject(functionSlot, null);
-      return result;
+      return (Function) result;
     }
 
     /**
@@ -211,7 +212,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
     public boolean executeRepeating(VirtualFrame frame) {
       lookupContextReference(Language.class).get().getThreadManager().poll();
       try {
-        Object function = getNextFunction(frame);
+        Function function = getNextFunction(frame);
         Object state = getNextState(frame);
         Object[] arguments = getNextArgs(frame);
         CallerInfo callerInfo = getCallerInfo(frame);

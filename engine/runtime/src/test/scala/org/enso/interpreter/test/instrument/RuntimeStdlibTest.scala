@@ -211,9 +211,10 @@ class RuntimeStdlibTest
             )
           ) if module.contains("Vector") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
-        xs.toVector.head.suggestion.module shouldEqual VectorLiterals.vectorModuleName
+        xs.toVector.map(_.suggestion.module)
     }
     stdlibSuggestions.nonEmpty shouldBe true
+    stdlibSuggestions.flatten should contain(VectorLiterals.vectorModuleName)
 
     // check that builtins are indexed
     val builtinsSuggestions = responses.collect {

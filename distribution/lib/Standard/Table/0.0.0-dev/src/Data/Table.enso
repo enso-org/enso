@@ -11,6 +11,7 @@ import Standard.Table.Internal.Table_Helpers
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
+from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Table.Data.Position
 import Standard.Base.Error.Warnings
@@ -271,7 +272,7 @@ type Table
              table.select_columns (By_Name.new ["bar", "foo"])
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
-          the above should be replaced with just `Matching.Exact`.
+          the above should be replaced with just `By_Name`.
           See: https://github.com/enso-org/enso/issues/1600
 
        > Example
@@ -325,7 +326,7 @@ type Table
              table.remove_columns (By_Name.new ["bar", "foo"])
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
-          the above should be replaced with just `Matching.Exact`.
+          the above should be replaced with just `By_Name`.
           See: https://github.com/enso-org/enso/issues/1600
 
        > Example
@@ -379,7 +380,7 @@ type Table
              table.reorder_columns (By_Name.new ["foo"]) position=After_Other_Columns
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
-          the above should be replaced with just `Matching.Exact`.
+          the above should be replaced with just `By_Name`.
           See: https://github.com/enso-org/enso/issues/1600
 
        > Example
@@ -404,6 +405,33 @@ type Table
     reorder_columns : Column_Selector -> Position.Position -> Problem_Behavior -> Warnings.Warning_System -> Table
     reorder_columns (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) (warnings = Warnings.default) =
         new_columns = Table_Helpers.reorder_columns internal_columns=this.columns selector=columns position=position on_problems=on_problems warnings=warnings
+        here.new new_columns
+
+    ## Returns a new table with the columns sorted by name according to the
+       specified sort method. By default, sorting will be according to
+       case-sensitive ascending order based on the `compare_to` operator for
+       `Text`.
+
+       Arguments:
+       - sort_method: The sort methodology to use.
+
+       > Example
+         Sort columns according to the default ordering.
+
+             table.sort_columns
+
+       > Example
+         Sort columns according to the natural case-insensitive ordering.
+
+             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive)
+
+       > Example
+         Sort columns in descending order.
+
+             table.reorder_columns (Sort_Method order=Sort_Order.Descending)
+    sort_columns : Sort_Method -> Table
+    sort_columns (sort_method = Sort_Method.new) =
+        new_columns = Table_Helpers.sort_columns internal_columns=this.columns sort_method
         here.new new_columns
 
     ## ALIAS Filter Rows
