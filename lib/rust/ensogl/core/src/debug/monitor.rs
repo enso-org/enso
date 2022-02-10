@@ -247,7 +247,7 @@ impl Monitor {
 // === Renderer ===
 // ================
 
-/// Implementation of the monitoring panel.
+/// Code responsible for drawing [`Monitor`]'s data.
 #[derive(Debug)]
 struct Renderer {
     user_config: Config,
@@ -258,7 +258,6 @@ struct Renderer {
     panels:      Vec<Panel>,
     first_draw:  bool,
 }
-
 
 impl Renderer {
     fn new() -> Self {
