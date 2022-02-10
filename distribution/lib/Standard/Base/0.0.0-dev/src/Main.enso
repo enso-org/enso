@@ -1,55 +1,57 @@
-import Standard.Base.Data.Any.Extensions
-import Standard.Base.Data.Array.Extensions
-import Standard.Base.Data.Interval
-import Standard.Base.Data.Json
-import Standard.Base.Data.List
-import Standard.Base.Data.Locale
-import Standard.Base.Data.Map
-import Standard.Base.Data.Maybe
-import Standard.Base.Data.Noise
-import Standard.Base.Data.Number.Extensions
-import Standard.Base.Data.Ordering
-import Standard.Base.Data.Ordering.Sort_Order
-import Standard.Base.Data.Pair
-import Standard.Base.Data.Range
-import Standard.Base.Data.Text.Extensions
-import Standard.Base.Data.Vector
-import Standard.Base.Error.Common
-import Standard.Base.Error.Extensions
-import Standard.Base.Math
-import Standard.Base.Meta
-import Standard.Base.Meta.Enso_Project
-import Standard.Base.Polyglot.Java
-import Standard.Base.System.File
-import Standard.Base.Data.Text.Regex.Mode as Regex_Mode
+import project.Data.Any.Extensions
+import project.Data.Array.Extensions
+import project.Data.Interval
+import project.Data.Json
+import project.Data.List
+import project.Data.Locale
+import project.Data.Map
+import project.Data.Maybe
+import project.Data.Noise
+import project.Data.Number.Extensions
+import project.Data.Ordering
+import project.Data.Ordering.Sort_Order
+import project.Data.Pair
+import project.Data.Range
+import project.Data.Text.Extensions
+import project.Data.Vector
+import project.Error.Common
+import project.Error.Extensions
+import project.Math
+import project.Meta
+import project.Meta.Enso_Project
+import project.Polyglot.Java
+import project.Runtime.Extensions
+import project.System.File
+import project.Data.Text.Regex.Mode as Regex_Mode
 
 from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
 
-export Standard.Base.Data.Interval
-export Standard.Base.Data.Json
-export Standard.Base.Data.Locale
-export Standard.Base.Data.Map
-export Standard.Base.Data.Maybe
-export Standard.Base.Data.Ordering
-export Standard.Base.Data.Ordering.Sort_Order
-export Standard.Base.Data.Vector
-export Standard.Base.Math
-export Standard.Base.Meta
-export Standard.Base.System.File
-export Standard.Base.Data.Text.Regex.Mode as Regex_Mode
+export project.Data.Interval
+export project.Data.Json
+export project.Data.Locale
+export project.Data.Map
+export project.Data.Maybe
+export project.Data.Ordering
+export project.Data.Ordering.Sort_Order
+export project.Data.Vector
+export project.Math
+export project.Meta
+export project.System.File
+export project.Data.Text.Regex.Mode as Regex_Mode
 
-from Standard.Base.Data.Any.Extensions export all
-from Standard.Base.Data.Array.Extensions export all
-from Standard.Base.Data.List export Nil, Cons
-from Standard.Base.Data.Number.Extensions export all hiding Math, String, Double
-from Standard.Base.Data.Noise export all hiding Noise
-from Standard.Base.Data.Pair export Pair
-from Standard.Base.Data.Range export Range
-from Standard.Base.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style
-from Standard.Base.Error.Common export all
-from Standard.Base.Error.Extensions export all
-from Standard.Base.Meta.Enso_Project export all
-from Standard.Base.Polyglot.Java export all
+from project.Data.Any.Extensions export all
+from project.Data.Array.Extensions export all
+from project.Data.List export Nil, Cons
+from project.Data.Number.Extensions export all hiding Math, String, Double
+from project.Data.Noise export all hiding Noise
+from project.Data.Pair export Pair
+from project.Data.Range export Range
+from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style
+from project.Error.Common export all
+from project.Error.Extensions export all
+from project.Meta.Enso_Project export all
+from project.Polyglot.Java export all
+from project.Runtime.Extensions export all
 
 from Standard.Builtins export all hiding Meta, Less, Equal, Greater, Ordering
 

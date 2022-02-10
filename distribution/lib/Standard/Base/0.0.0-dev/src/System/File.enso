@@ -598,6 +598,9 @@ type File
                     matcher.matches (Path.of pathStr)
         filtered
 
+    is_child_of other = this.prim_file.startsWith other.prim_file
+    relativize child = File (this.prim_file.relativize child.prim_file)
+
 ## An output stream, allowing for interactive writing of contents into an
    open file.
 type Output_Stream

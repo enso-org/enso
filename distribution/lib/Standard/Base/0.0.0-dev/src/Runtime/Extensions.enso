@@ -1,0 +1,47 @@
+from Standard.Base import all
+
+type Source_Location
+    type Source_Location prim_location
+
+    to_text =
+        '(Source_Location ' + this.formatted_coordinates + ')'
+
+    start_line = this.prim_location.getStartLine
+    end_line = this.prim_location.getEndLine
+    start_column = this.prim_location.getStartColumn
+    end_column = this.prim_location.getEndColumn
+
+    formatted_coordinates =
+        start_line = this.start_line
+        end_line = this.end_line
+        indices = case start_line == end_line of
+            True ->
+                row = start_line.to_text
+                start = this.start_column.to_text
+                end = this.end_column.to_text
+                row + ":" + start + "-" + end
+            False ->
+                start_line + '-' + end_line
+        cwd = File.current_directory
+        file = this.file.absolute
+        formatted_file = case file.is_child_of cwd of
+            True -> cwd.relativize file . path
+            _ -> file.path
+        formatted_file + ":" + indices
+
+    file = File.new this.prim_location.getSource.getPath
+
+
+type Stack_Trace_Element
+    type Stack_Trace_Element name source_location
+
+Runtime.get_stack_trace =
+    prim_stack = this.primitive_get_stack_trace
+    stack_with_prims = Vector.Vector prim_stack
+    stack = stack_with_prims.map el->
+        loc = case Polyglot.has_source_location el of
+            True -> Source_Location (Polyglot.get_source_location el)
+            False -> Nothing
+        name = Polyglot.get_executable_name el
+        Stack_Trace_Element name loc
+    stack
