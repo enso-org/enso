@@ -86,11 +86,9 @@ impl World {
         let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();
-        let stats_draw_handle = on_stats_available.add(
-            f!([stats_monitor] (stats: &StatsData) {
-                stats_monitor.draw(stats);
-            })
-        );
+        let stats_draw_handle = on_stats_available.add(f!([stats_monitor] (stats: &StatsData) {
+            stats_monitor.draw(stats);
+        }));
         let main_loop_frame = main_loop.on_frame(
             f!([stats,scene_dirty,scene,uniforms,on_before_frame,on_after_frame,on_stats_available]
             (t:animation::TimeInfo) {

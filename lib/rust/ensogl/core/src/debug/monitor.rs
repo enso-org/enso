@@ -219,9 +219,7 @@ impl Monitor {
         renderer.add::<ShaderCompileCount>();
         renderer.add::<SpriteSystemCount>();
         renderer.add::<SpriteCount>();
-        Self {
-            renderer: Rc::new(RefCell::new(renderer)),
-        }
+        Self { renderer: Rc::new(RefCell::new(renderer)) }
     }
 
     pub fn draw(&self, stats: &StatsData) {
