@@ -248,7 +248,7 @@ impl Monitor {
         panel
     }
 
-    /// Check whether the mointor is visible.
+    /// Check whether the monitor is visible.
     pub fn visible(&self) -> bool {
         self.dom.is_some()
     }
