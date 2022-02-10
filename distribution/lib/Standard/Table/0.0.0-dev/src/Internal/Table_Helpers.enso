@@ -11,6 +11,8 @@ import Standard.Table.Data.Column_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Base.Data.Ordering.Natural_Order
 
+polyglot java import java.util.HashSet
+
 ## PRIVATE
    A helper function encapsulating shared code for `select_columns`
    implementations of various Table variants. See the documentation for the
@@ -143,14 +145,16 @@ rename_columns internal_columns mapping on_problems warnings =
     col_count = internal_columns.length
 
     name_mapper vec ms =
-        validation = here.validate_unique vec v->[Duplicate_Column_Selectors v] x->(x.at 1)
+        validation = here.validate_unique vec v->[Duplicate_Column_Selectors (v.map c->(c.at 0))] x->(x.at 0)
         good_names = validation.valid
+        matched = HashSet.new
 
         mapper = name->
             index = 0.up_to good_names.length . find i->(Matching.match_single_criterion name ((good_names.at i).at 0) ms)
             case index of
                 Nothing -> Nothing
                 _ ->
+                    matched.add index
                     new_name = case ms of
                         Matching.Regex _ ->
                             pattern = ms.compile ((good_names.at index).at 0)
@@ -159,7 +163,9 @@ rename_columns internal_columns mapping on_problems warnings =
                     unique.make_unique new_name
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
-        Validation_Result new_names validation.problems
+        unused = good_names.filter_with_index i->_->(matched.contains i).not . map e->(e.at 0)
+
+        Validation_Result new_names (validation.problems + if unused.is_empty then [] else [Missing_Input_Columns unused])
 
     mapped = case mapping of
         Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Matching.Exact case_sensitivity=True)
@@ -168,7 +174,7 @@ rename_columns internal_columns mapping on_problems warnings =
             validation = here.validate_indices col_count map.keys
             good_indices = validation.valid
 
-            index_map = Map.from_vector <| good_indices.map i->[i, map.get_or_else i (map.get (i - col_count))]
+            index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
 
             new_names = 0.up_to col_count . map i->
                 target = index_map.get_or_else i Nothing
@@ -177,7 +183,7 @@ rename_columns internal_columns mapping on_problems warnings =
             Validation_Result new_names validation.problems
         Column_Mapping.By_Position vec ->
             validation = case vec.length > col_count of
-                True -> Validation_Result (vec.take_start col_count) [Too_Many_Column_Names_Provided vec.drop_start col_count]
+                True -> Validation_Result (vec.take_start col_count) [Too_Many_Column_Names_Provided (vec.drop_start col_count)]
                 False -> Validation_Result vec []
             good_names = validation.valid
 
@@ -188,9 +194,9 @@ rename_columns internal_columns mapping on_problems warnings =
     processed = mapped.valid.map_with_index i->n->
         if n.is_nothing then (unique.make_unique (internal_columns.at i).name) else n
 
-    problems = mapped.problems +
-        (if unique.invalid_names.length == 0 then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector]) +
-        (if unique.renames.length == 0 then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
+    invalid_names = (if unique.invalid_names.length == 0 then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
+    duplicate_names = (if unique.renames.length == 0 then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
+    problems = mapped.problems + invalid_names + duplicate_names
 
     on_problems.attach_problems_before problems warnings processed
 
@@ -252,7 +258,7 @@ select_columns_helper internal_columns selector reorder on_problems warnings = c
                 Matching.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
     By_Index indices ->
         validation  = here.validate_indices internal_columns.length indices
-        good_indices = validation.valid
+        good_indices = validation.valid.map p->(p.at 0)
 
         on_problems.attach_problems_before validation.problems warnings <| case reorder of
             True ->
@@ -321,7 +327,7 @@ validate_indices length indices =
 
     resolver = ix->(here.resolve_index length ix)
     alias_uniques = here.validate_unique uniques.valid v->[Input_Indices_Already_Matched v] resolver
-    good_indices = alias_uniques.valid.map resolver
+    good_indices = alias_uniques.valid.map i->[resolver i, i]
 
     problems = oob_problems + uniques.problems + alias_uniques.problems
 

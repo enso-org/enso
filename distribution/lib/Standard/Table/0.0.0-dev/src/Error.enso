@@ -21,6 +21,10 @@ Column_Indexes_Out_Of_Range.to_display_text = case this.indexes.length == 1 of
    Can occur when using By_Position.
 type Too_Many_Column_Names_Provided (column_names : [Text])
 
+Too_Many_Column_Names_Provided.to_display_text : Text
+Too_Many_Column_Names_Provided.to_display_text =
+    "Too many column names provided. " + (this.column_names.at 0).to_text + " unused."
+
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names (column_names : [Text])
 

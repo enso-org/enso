@@ -469,8 +469,9 @@ type Table
     rename_columns : Column_Mapping -> Problem_Behavior -> Warnings.Warning_System -> Table
     rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) (warnings=Warnings.default) =
         new_names = Table_Helpers.rename_columns internal_columns=this.columns mapping=column_map on_problems=on_problems warnings=warnings
-        new_columns = this.columns.map_with_index i->c->(c.rename (new_names.at i))
-        here.new new_columns
+        if new_names.is_error then new_names else
+            new_columns = this.columns.map_with_index i->c->(c.rename (new_names.at i))
+            here.new new_columns
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns
