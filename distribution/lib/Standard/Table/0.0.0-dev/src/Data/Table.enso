@@ -473,6 +473,41 @@ type Table
             new_columns = this.columns.map_with_index i->c->(c.rename (new_names.at i))
             here.new new_columns
 
+    ## Returns a new table with the columns renamed based on entries in the
+       first row.
+
+       Arguments:
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices would refer to the same column, a
+           `Input_Indices_Already_Matched`, indicating that the additional
+           indices will not introduce additional columns.
+         - If any of the new names are invalid, an
+           `Invalid_Output_Column_Names`.
+         - If any of the new names clash either with existing names or each
+           other, a Duplicate_Output_Column_Names.
+       - warnings: A `Warning_System` instance specifying how to handle
+         warnings. This is a temporary workaround to allow for testing the
+         warning mechanism. Once the proper warning system is implemented, this
+         argument will become obsolete and will be removed. No user code should
+         use this argument, as it will be removed in the future.
+
+       > Example
+         Rename the column based on the first row
+
+              table.use_first_row_as_names
+    use_first_row_as_names : Problem_Behavior -> Warnings.Warning_System -> Table
+    use_first_row_as_names (on_problems=Report_Warning) (warnings=Warnings.default) =
+        new_names = this.columns.map col->(col.at 0).to_text
+        this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems warnings=warnings
+
     ## ALIAS Filter Rows
        ALIAS Mask Columns
 
