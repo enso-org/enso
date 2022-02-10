@@ -92,18 +92,13 @@ impl World {
             })
         );
         let main_loop_frame = main_loop.on_frame(
-            f!([
-                stats,scene_dirty,scene,uniforms,stats_monitor,
-                on_before_frame,on_after_frame,on_stats_available
-            ]
+            f!([stats,scene_dirty,scene,uniforms,on_before_frame,on_after_frame,on_stats_available]
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
                 let previous_frame_stats = stats.begin_frame(performance.now());
                 on_before_frame.run_all(&t);
                 on_stats_available.run_all(&previous_frame_stats);
-                // TODO: this should be just a callback registered in on_stats_available
-                // stats_monitor.draw(&previous_frame_stats);
 
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
