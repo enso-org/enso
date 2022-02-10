@@ -122,9 +122,7 @@ object DistributionPackage {
     ensoVersion: String,
     editionName: String,
     sourceStdlibVersion: String,
-    targetStdlibVersion: String,
-    minimumLauncherVersion: String,
-    minimumProjectManagerVersion: String
+    targetStdlibVersion: String
   ): Unit = {
 
     copyDirectoryIncremental(
@@ -165,12 +163,10 @@ object DistributionPackage {
     )
 
     buildEngineManifest(
-      template                     = file("distribution/manifest.template.yaml"),
-      destination                  = distributionRoot / "manifest.yaml",
-      graalVersion                 = graalVersion,
-      javaVersion                  = javaVersion,
-      minimumLauncherVersion       = minimumLauncherVersion,
-      minimumProjectManagerVersion = minimumProjectManagerVersion
+      template     = file("distribution/manifest.template.yaml"),
+      destination  = distributionRoot / "manifest.yaml",
+      graalVersion = graalVersion,
+      javaVersion  = javaVersion
     )
   }
 
@@ -259,16 +255,12 @@ object DistributionPackage {
     template: File,
     destination: File,
     graalVersion: String,
-    javaVersion: String,
-    minimumLauncherVersion: String,
-    minimumProjectManagerVersion: String
+    javaVersion: String
   ): Unit = {
     val base = IO.read(template)
     val extensions =
       s"""graal-vm-version: $graalVersion
          |graal-java-version: $javaVersion
-         |minimum-launcher-version: $minimumLauncherVersion
-         |minimum-project-manager-version: $minimumProjectManagerVersion
          |""".stripMargin
     IO.write(destination, base + extensions)
   }

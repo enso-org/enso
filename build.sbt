@@ -15,12 +15,10 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion                = "2.13.7"
-val graalVersion                 = "21.1.0"
-val javaVersion                  = "11"
-val defaultDevEnsoVersion        = "0.0.0-dev"
-val minimumLauncherVersion       = "0.2.13"
-val minimumProjectManagerVersion = "0.2.13"
+val scalacVersion         = "2.13.7"
+val graalVersion          = "21.1.0"
+val javaVersion           = "11"
+val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
   defaultDevEnsoVersion
@@ -1723,24 +1721,16 @@ buildEngineDistribution := {
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
-  val minLauncherVersion =
-    if (BuildInfo.isReleaseMode) minimumLauncherVersion
-    else defaultDevEnsoVersion
-  val minProjectManagerVersion =
-    if (BuildInfo.isReleaseMode) minimumProjectManagerVersion
-    else defaultDevEnsoVersion
   DistributionPackage.createEnginePackage(
-    distributionRoot             = root,
-    cacheFactory                 = cacheFactory,
-    log                          = log,
-    graalVersion                 = graalVersion,
-    javaVersion                  = javaVersion,
-    ensoVersion                  = ensoVersion,
-    editionName                  = currentEdition,
-    sourceStdlibVersion          = stdLibVersion,
-    targetStdlibVersion          = targetStdlibVersion,
-    minimumLauncherVersion       = minLauncherVersion,
-    minimumProjectManagerVersion = minProjectManagerVersion
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    graalVersion        = graalVersion,
+    javaVersion         = javaVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion
   )
   log.info(s"Engine package created at $root")
 }
