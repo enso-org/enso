@@ -11,7 +11,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
-ensogl-label = { path = "../../component/label" }
 ensogl-scroll-area = { path = "../../component/scroll-area" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }
