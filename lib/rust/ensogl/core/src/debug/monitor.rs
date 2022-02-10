@@ -1,4 +1,4 @@
-//! This module implements performance monitoring utils.
+//! This module implements the stats monitor view, which can be visible on the screen in debug mode.
 
 use crate::prelude::*;
 

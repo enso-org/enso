@@ -1,8 +1,6 @@
 //! This module implements `World`, the main object responsible for handling what you see on the
 //! screen.
 
-pub mod stats;
-
 pub use crate::display::symbol::types::*;
 
 use crate::prelude::*;
