@@ -505,7 +505,13 @@ type Table
               table.use_first_row_as_names
     use_first_row_as_names : Problem_Behavior -> Warnings.Warning_System -> Table
     use_first_row_as_names (on_problems=Report_Warning) (warnings=Warnings.default) =
-        new_names = this.columns.map col->(col.at 0).to_text
+        mapper = col->
+            val = col.at 0
+            case val of
+                Text -> val
+                Nothing -> Nothing
+                _ -> val.to_text
+        new_names = this.columns.map mapper
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems warnings=warnings
 
     ## ALIAS Filter Rows
