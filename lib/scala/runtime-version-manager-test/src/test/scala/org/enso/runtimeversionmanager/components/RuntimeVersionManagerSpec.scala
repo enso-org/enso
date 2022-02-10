@@ -187,12 +187,10 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         InstallerKind.ProjectManager
       ) shouldEqual bigVersion
 
-      val upgradeException = intercept[UpgradeRequiredError] {
-        projectManager.findOrInstallEngine(
-          engineWithDifferentVersionRequirements
-        )
-      }
-      upgradeException.expectedVersion shouldEqual bigVersion
+      val engine = projectManager.findOrInstallEngine(
+        engineWithDifferentVersionRequirements
+      )
+      engine.version shouldEqual engineWithDifferentVersionRequirements
     }
 
     "support bundled components" in {
