@@ -23,6 +23,7 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::shape::AnyShape;
 use ensogl_core::display::shape::Circle;
 use ensogl_core::display::shape::PixelDistance;
 use ensogl_core::display::shape::Rect;
@@ -145,8 +146,8 @@ fn init(app: &Application) {
 
 
     // let sprite_system = ShapeSystem::new(scene, &Circle(50.px()));
-    let shape = Circle(50.px()).fill(color::Rgb::new(1.0, 0.0, 0.0));
-    let sprite_system = ShapeSystem::new(&app.display, &shape);
+    let circle = Circle(50.px()).fill(color::Rgb::new(1.0, 0.0, 0.0));
+    let sprite_system = ShapeSystem::new(&app.display, &circle);
     // let sprite_system = ShapeSystem::new(&app.display, &Circle(50.px()));
     let sprite: Sprite = sprite_system.new_instance();
     // scene.add_child(&sprite);
@@ -156,5 +157,31 @@ fn init(app: &Application) {
     // sprite.set_position_y(-100.0);
     std::mem::forget(sprite);
 
+
+
+    // from shape-system:
+
+    let sprite_system = ShapeSystem::new(&app.display, &shape());
+    let sprite = sprite_system.new_instance();
+
+    sprite.size.set(Vector2::new(300.0, 300.0));
+    sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+
+    app.display.add_child(&sprite_system);
+    Leak::new(sprite);
+
+
+
     std::mem::forget(scroll_area);
+}
+
+/// The shape definition.
+pub fn shape() -> AnyShape {
+    let circle1 = Circle(50.px());
+    let circle_bg = circle1.translate_x(-(50.0.px()));
+    let circle_sub = circle1.translate_y(-(50.0.px()));
+    let rect = Rect((100.0.px(), 100.0.px()));
+    let shape = circle_bg + rect - circle_sub;
+    let shape = shape.fill(color::Rgb::new(1.0, 0.0, 0.0));
+    shape.into()
 }
