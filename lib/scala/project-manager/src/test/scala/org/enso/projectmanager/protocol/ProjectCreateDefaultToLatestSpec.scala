@@ -1,10 +1,18 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.literal.JsonStringContext
+import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.BaseServerSpec
+import org.enso.runtimeversionmanager.CurrentVersion
 
 class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
+
+  private val testVersion = SemVer("0.1.0").get
+
   "project/create" should {
+
+    CurrentVersion.internalOverrideVersion(testVersion)
+
     "default to latest available engine version if none are installed" in {
       implicit val client = new WsTestClient(address)
       client.send(json"""
