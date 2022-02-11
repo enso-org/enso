@@ -105,11 +105,10 @@ Text.at : Integer -> Text ! Index_Out_Of_Bounds_Error
 Text.at index =
     case index < 0 of
         True ->
-            # Will realise the entire collection of graphemes
-            graphemes = this.characters
-            new_index = index + graphemes.length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error index graphemes.length) else
-                graphemes.at new_index
+            length = this.length
+            new_index = index + length
+            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error index length) else
+                this.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText this
