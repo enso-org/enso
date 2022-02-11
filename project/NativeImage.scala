@@ -201,7 +201,7 @@ object NativeImage {
     * Checks for existence of its directory and if it does not exist, downloads
     * and extracts the bundle. After extracting it does the required
     * initialization (renaming paths to be absolute and creating a shell script
-    * called `musl-gcc`).
+    * called `x86_64-linux-musl-gcc`).
     *
     * `musl` is needed for static builds on Linux.
     *
@@ -217,7 +217,7 @@ object NativeImage {
     val muslRoot       = buildCache / "musl-1.2.0"
     val bundleLocation = muslRoot / "bundle"
     val binaryLocation = bundleLocation / "bin"
-    val gccLocation    = binaryLocation / "musl-gcc"
+    val gccLocation    = binaryLocation / "x86_64-linux-musl-gcc"
     def isMuslInstalled =
       gccLocation.exists() && gccLocation.isOwnerExecutable
     if (!isMuslInstalled) {
@@ -297,7 +297,7 @@ object NativeImage {
       s"""#!/bin/sh
          |exec "$${REALGCC:-gcc}" "$$@" -specs "$bundlePath/lib/musl-gcc.specs"
          |""".stripMargin
-    val wrapper = bundleLocation / "bin" / "musl-gcc"
+    val wrapper = bundleLocation / "bin" / "x86_64-linux-musl-gcc"
     IO.write(wrapper, content)
     wrapper.setExecutable(true)
   }
@@ -320,14 +320,14 @@ object NativeImage {
  * errors may arise.
  *
  * Currently, to use `musl`, the `--libc=musl` option has to be added to the
- * build and `gcc-musl` must be available in the system PATH for the
+ * build and `x86_64-linux-musl-gcc` must be available in the system PATH for the
  * native-image. In the future it is possible that a different option will be
  * used or that the bundle will not be required anymore if it became
  * prepackaged. This task may thus need an update when moving to a newer version
  * of Graal.
  *
  * Currently to make the bundle work correctly with GraalVM 20.2, a shell script
- * called `gcc-musl` which loads the bundle's configuration is created by the
+ * called `x86_64-linux-musl-gcc` which loads the bundle's configuration is created by the
  * task and the paths starting with `/build/bundle` in `musl-gcc.specs` are
  * replaced with absolute paths to the bundle location.
  */
