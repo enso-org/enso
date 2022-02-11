@@ -1315,7 +1315,7 @@ impl GraphEditorModelWithNetwork {
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
-        let should_edit = matches!(way, AddNodeEvent);
+        let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
         let source_node = match way {
             AddNodeEvent => None,
@@ -2738,6 +2738,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
         add_node_way <- any (input_add_node_way, input_start_creation_way, add_with_button_way, add_with_edge_drop_way);
+        trace add_node_way;
 
         new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
             let ctx = NodeCreationContext {
@@ -2749,8 +2750,11 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             };
             model.create_node(&ctx, *way, *mouse_pos)
         }));
+        trace new_node;
         out.source.node_added <+ new_node.map(|&(id, src, _)| (id, src));
+        trace out.node_added;
         out.source.node_editing_started  <+ new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
+        trace out.node_editing_started;
 
 
         // === Event Propagation ===
