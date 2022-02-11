@@ -1,6 +1,7 @@
 package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
+
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
@@ -11,10 +12,12 @@ import org.enso.runtimeversionmanager.test.{
   RuntimeVersionManagerTest,
   TestRuntimeVersionManagementUserInterface
 }
-import org.enso.runtimeversionmanager.components
+import org.enso.runtimeversionmanager.{components, CurrentVersion}
 import org.enso.testkit.OsSpec
 
 class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
+
+  CurrentVersion.internalOverrideVersion(SemVer(0, 0, 1))
 
   "RuntimeVersionManager" should {
     "find the latest engine version in semver ordering " +
@@ -187,10 +190,12 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         InstallerKind.ProjectManager
       ) shouldEqual bigVersion
 
-      val engine = projectManager.findOrInstallEngine(
-        engineWithDifferentVersionRequirements
-      )
-      engine.version shouldEqual engineWithDifferentVersionRequirements
+      val upgradeException = intercept[UpgradeRequiredError] {
+        projectManager.findOrInstallEngine(
+          engineWithDifferentVersionRequirements
+        )
+      }
+      upgradeException.expectedVersion shouldEqual bigVersion
     }
 
     "support bundled components" in {
