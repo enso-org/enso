@@ -782,7 +782,7 @@ macro_rules! stats_sampler {
             fn check(&self, stats: &StatsData) -> ValueCheck {
                 // Before the first frame, all stat values will be 0, which in (only) this case is
                 // correct.
-                if !stats.valid_frame {
+                if !stats.valid {
                     ValueCheck::Correct
                 } else {
                     let value = self.value(&stats);
