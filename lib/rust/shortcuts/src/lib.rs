@@ -945,8 +945,8 @@ mod benchmarks {
     use super::*;
     use test::Bencher;
 
-    const CONS_SIMPLE: &'static str = "ctrl";
-    const CONS_COMPLEX: &'static str = "ctrl cmd alt shift";
+    const CONS_SIMPLE: &str = "ctrl";
+    const CONS_COMPLEX: &str = "ctrl cmd alt shift";
 
     // === Construction ===
 

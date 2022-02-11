@@ -339,6 +339,14 @@ where
 }
 
 impl<K, V, S> SharedHashMap<K, V, S> {
+    pub fn len(&self) -> usize {
+        self.raw.borrow().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.raw.borrow().is_empty()
+    }
+
     pub fn clear(&self) {
         self.raw.borrow_mut().clear()
     }

@@ -161,7 +161,7 @@ mod test {
 
         let mut bit_field = BitField32::default();
         for bit in tested_bits {
-            assert_eq!(bit_field.get_bit(*bit), false);
+            assert!(!bit_field.get_bit(*bit));
         }
 
         // Set bits one by one
@@ -189,7 +189,7 @@ mod test {
 
         let mut bit_field = BitField256::default();
         for bit in tested_bits {
-            assert_eq!(bit_field.get_bit(*bit), false);
+            assert!(!bit_field.get_bit(*bit));
         }
 
         // Set bits one by one

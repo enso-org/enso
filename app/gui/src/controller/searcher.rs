@@ -1304,7 +1304,7 @@ pub mod test {
             let entry3 = model::suggestion_database::Entry {
                 name: "testMethod1".to_string(),
                 kind: Kind::Method,
-                self_type: Some(module_name.clone().into()),
+                self_type: Some(module_name.into()),
                 scope: Scope::Everywhere,
                 arguments: vec![
                     Argument {
@@ -1796,7 +1796,7 @@ pub mod test {
                     .use_suggestion(action::Suggestion::FromDatabase(f.entry1.clone()))
                     .unwrap();
                 let new_parsed_input =
-                    ParsedInput::new("var.testFunction1", &f.searcher.ide.parser());
+                    ParsedInput::new("var.testFunction1", f.searcher.ide.parser());
                 f.searcher.data.borrow_mut().input = new_parsed_input.unwrap();
             }),
             // Variable name already present, need to use it. And not break it.
