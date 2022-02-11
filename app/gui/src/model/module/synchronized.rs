@@ -250,6 +250,10 @@ impl API for Module {
     ) -> FallibleResult {
         self.model.boxed_update_project_metadata(fun)
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 
@@ -538,7 +542,7 @@ pub mod test {
             client.expect.apply_text_file_edit(move |edits| {
                 let content_so_far = this.current_ls_content.get();
                 let result = f(edits);
-                let new_content = apply_edits(content_so_far, &edits);
+                let new_content = apply_edits(content_so_far, edits);
                 let actual_old = this.current_ls_version.get();
                 let actual_new =
                     Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));

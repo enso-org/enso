@@ -653,7 +653,7 @@ mod tests {
         }
     }
 
-
+    #[allow(clippy::type_complexity)]
     impl FromSorted<((usize, usize), (usize, usize), (usize, usize), (usize, usize))> for Tree4 {
         fn from_sorted(
             t: ((usize, usize), (usize, usize), (usize, usize), (usize, usize)),

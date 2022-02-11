@@ -927,7 +927,7 @@ mod test {
 
         for case in cases {
             let (crumbs, expected_crumbs, expected_remaining_ast_crumbs) = case;
-            let result = root.clone().get_descendant_by_ast_crumbs(&crumbs).unwrap();
+            let result = root.clone().get_descendant_by_ast_crumbs(crumbs).unwrap();
             assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs);
             assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice());
         }

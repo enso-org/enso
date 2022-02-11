@@ -317,7 +317,7 @@ mod tests {
         let mock_error_message = "This is error".to_string();
         let mut mock_reply = MessageFromServer::new(FromServerPayloadOwned::Error {
             code:    mock_error_code,
-            message: mock_error_message.clone(),
+            message: mock_error_message,
             data:    None,
         });
         mock_reply.correlation_id = Some(generated_message.message_id);
@@ -359,7 +359,7 @@ mod tests {
             |client| client.read_file(&path),
             data.clone(),
             ToServerPayloadOwned::ReadFile { path: path.clone() },
-            FromServerPayloadOwned::FileContentsReply { contents: data.clone() },
+            FromServerPayloadOwned::FileContentsReply { contents: data },
         );
     }
 
@@ -384,8 +384,8 @@ mod tests {
         };
         let data = Vec::from("Hello".as_bytes());
         let message = MessageFromServer::new(FromServerPayloadOwned::VisualizationUpdate {
-            data:    data.clone(),
-            context: context.clone(),
+            data: data.clone(),
+            context,
         });
 
 
