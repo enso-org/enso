@@ -34,6 +34,7 @@
 - [Fixed `Vector.sort` to handle tail-recursive comparators][3256]
 - [Implemented `Range.find`, `Table.rename_columns` and
   `Table.use_first_row_as_names` operations][3249]
+- [Implemented `Text.at` and `Text.is_digit` methods][3269]
 
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
@@ -50,6 +51,7 @@
 [3250]: https://github.com/enso-org/enso/pull/3250
 [3256]: https://github.com/enso-org/enso/pull/3256
 [3249]: https://github.com/enso-org/enso/pull/3249
+[3269]: https://github.com/enso-org/enso/pull/3269
 
 #### Enso Compiler
 
