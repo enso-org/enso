@@ -44,7 +44,8 @@ impl Stats {
     /// Returns a snapshot of statistics data for the previous frame.
     ///
     /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
-    /// (this special case can be recognized by checking that [`StatsData::valid`] is `false`).
+    /// (this special case can be recognized by checking that [`StatsData::initialized`] is
+    /// `false`).
     ///
     /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
     /// called properly on every frame (behavior in case of missed frames or missed calls is not
@@ -79,7 +80,7 @@ macro_rules! gen_stats {
         #[allow(missing_docs)]
         pub struct StatsData {
             frame_begin_time: f64,
-            pub valid:        bool,
+            pub initialized:  bool,
             $(pub $field : $field_type),*
         }
 
@@ -143,8 +144,8 @@ gen_stats! {
 impl StatsData {
     fn begin_frame(&mut self, time: f64) -> StatsData {
         // See [Stats::begin_frame()] docs for explanation of this check.
-        let previous_frame_snapshot = if !self.valid {
-            self.valid = true;
+        let previous_frame_snapshot = if !self.initialized {
+            self.initialized = true;
             default()
         } else {
             let end_time = time;
