@@ -42,9 +42,10 @@ const LABEL_PADDING_TOP: f32 = 50.0;
 /// Text label that disappears after a predefined delay.
 #[derive(Debug, Clone, CloneRef)]
 struct PopupLabel {
-    label:   Label,
-    network: frp::Network,
-    show:    frp::Source<String>,
+    label:           Label,
+    network:         frp::Network,
+    delay_animation: DelayedAnimation,
+    show:            frp::Source<String>,
 }
 
 impl display::Object for PopupLabel {
@@ -54,11 +55,10 @@ impl display::Object for PopupLabel {
 }
 
 impl PopupLabel {
-    /// Constructor. Label will have `text` content and will disappear after `delay` milliseconds.
-    pub fn new(app: &Application, text: &str, delay: f32) -> Self {
+    /// Constructor.
+    pub fn new(app: &Application) -> Self {
         let network = frp::Network::new("PopupLabel");
         let label = Label::new(app);
-        label.set_content(text);
         label.set_opacity(0.0);
         let background_layer = &app.display.scene().layers.panel;
         let text_layer = &app.display.scene().layers.panel_text;
@@ -67,7 +67,7 @@ impl PopupLabel {
         let opacity_animation = Animation::new(&network);
         network.store(&opacity_animation);
         let delay_animation = DelayedAnimation::new(&network);
-        delay_animation.set_delay(delay);
+        delay_animation.set_delay(0.0);
         delay_animation.set_duration(0.0);
         network.store(&delay_animation);
 
@@ -79,13 +79,18 @@ impl PopupLabel {
                 delay_animation.reset();
                 delay_animation.start();
             });
-            
+
             opacity_animation.target <+ show.constant(1.0);
             opacity_animation.target <+ delay_animation.on_end.constant(0.0);
             label.set_opacity <+ opacity_animation.value;
         }
 
-        Self { label, network, show, }
+        Self { label, network, show, delay_animation }
+    }
+
+    /// Set a delay in milliseconds after which the label will disappear.
+    pub fn set_delay(&self, delay: f32) {
+        self.delay_animation.set_delay(delay);
     }
 }
 
@@ -98,7 +103,7 @@ impl PopupLabel {
 #[derive(Debug, Clone, CloneRef)]
 struct Model {
     display_object: display::object::Instance,
-    label: PopupLabel,
+    label:          PopupLabel,
     logger:         Logger,
 }
 
@@ -107,25 +112,25 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new("DebugModePopup");
         let display_object = display::object::Instance::new(&logger);
-        let label = PopupLabel::new(app, DEBUG_MODE_ENABLED, LABEL_VISIBILITY_DELAY_MS);
+        let label = PopupLabel::new(app);
+        label.set_delay(LABEL_VISIBILITY_DELAY_MS);
         display_object.add_child(&label);
 
         Self { display_object, label, logger }
     }
 
-    /// Show "Debug Mode enabled" label. Hides another one.
+    /// Show "Debug Mode enabled" label.
     pub fn show_enabled_label(&self) {
         self.label.show.emit(String::from(DEBUG_MODE_ENABLED));
     }
 
-    /// Show "Debug Mode disabled" label. Hides another one.
+    /// Show "Debug Mode disabled" label.
     pub fn show_disabled_label(&self) {
         self.label.show.emit(String::from(DEBUG_MODE_DISABLED));
     }
 
     /// Return the height of the label.
     pub fn label_height(&self) -> f32 {
-        // Both labels are identical, so we can ask either one.
         self.label.label.size.value().y
     }
 }
