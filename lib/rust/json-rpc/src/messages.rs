@@ -322,14 +322,14 @@ mod tests {
     #[test]
     fn test_response_deserialization() {
         let response = r#"{"jsonrpc":"2.0","id":0,"result":{"exists":true}}"#;
-        let msg = serde_json::from_str(&response).unwrap();
+        let msg = serde_json::from_str(response).unwrap();
         if let IncomingMessage::Response(resp) = msg {
             assert_eq!(resp.id, Id(0));
             if let Result::Success(ret) = resp.result {
                 let obj = ret.result.as_object().expect("expected object ret");
                 assert_eq!(obj.len(), 1);
                 let exists = obj.get("exists").unwrap().as_bool().unwrap();
-                assert_eq!(exists, true)
+                assert!(exists)
             } else {
                 panic!("Expected a success result")
             }

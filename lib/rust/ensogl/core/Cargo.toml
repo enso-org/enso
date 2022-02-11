@@ -21,7 +21,7 @@ enso-generics = { path = "../../generics"}
 enso-logger = { path = "../../logger"}
 enso-optics = { path = "../../optics"}
 enso-prelude = { path = "../../prelude"}
-enso-shapely = { path = "../../shapely/impl"}
+enso-shapely = { path = "../../shapely"}
 enso-shortcuts = { path = "../../shortcuts" }
 enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }

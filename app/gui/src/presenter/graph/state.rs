@@ -777,33 +777,33 @@ mod tests {
         let ast_con2 = AstConnection { source: src.clone(), destination: dest2.clone() };
         let view_con1 = ensogl::display::object::Id::from(1).into();
         let view_con2 = ensogl::display::object::Id::from(2).into();
-        let view_src = EdgeEndpoint { node_id: nodes[0].view, port: src.port.clone() };
-        let view_tgt1 = EdgeEndpoint { node_id: nodes[1].view, port: dest1.port.clone() };
-        let view_tgt2 = EdgeEndpoint { node_id: nodes[1].view, port: dest2.port.clone() };
+        let view_src = EdgeEndpoint { node_id: nodes[0].view, port: src.port };
+        let view_tgt1 = EdgeEndpoint { node_id: nodes[1].view, port: dest1.port };
+        let view_tgt2 = EdgeEndpoint { node_id: nodes[1].view, port: dest2.port };
         let view_pair1 = (view_src.clone(), view_tgt1.clone());
 
         let from_controller = state.update_from_controller();
         let from_view = state.update_from_view();
 
-        assert_eq!(from_controller.set_connection(ast_con1.clone()), Some(view_pair1.clone()));
+        assert_eq!(from_controller.set_connection(ast_con1.clone()), Some(view_pair1));
 
         assert_eq!(
             from_view.create_connection_from_endpoints(view_con1, view_src.clone(), view_tgt1),
             None
         );
         assert_eq!(
-            from_view.create_connection_from_endpoints(view_con2, view_src.clone(), view_tgt2),
+            from_view.create_connection_from_endpoints(view_con2, view_src, view_tgt2),
             Some(ast_con2.clone())
         );
 
-        let all_connections = [ast_con1.clone(), ast_con2.clone()].into_iter().collect();
+        let all_connections = [ast_con1, ast_con2.clone()].into_iter().collect();
         assert_eq!(from_controller.retain_connections(&all_connections), vec![]);
         assert_eq!(
             from_controller.retain_connections(&[ast_con2.clone()].into_iter().collect()),
             vec![view_con1]
         );
 
-        assert_eq!(from_view.remove_connection(view_con2), Some(ast_con2.clone()));
+        assert_eq!(from_view.remove_connection(view_con2), Some(ast_con2));
     }
 
     #[wasm_bindgen_test]

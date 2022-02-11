@@ -26,6 +26,41 @@ use crate::prelude::*;
 use futures::task::LocalSpawn;
 use futures::task::LocalSpawnExt;
 
+/// Global spawner container. This structure is kept in the global variable `SPAWNER`. See module
+/// docs for details.
+struct GlobalSpawner {
+    logger:  Logger,
+    spawner: RefCell<Option<Box<dyn LocalSpawn>>>,
+}
+
+impl Default for GlobalSpawner {
+    fn default() -> Self {
+        Self { logger: Logger::new("GlobalSpawner"), spawner: default() }
+    }
+}
+
+impl GlobalSpawner {
+    fn set_spawner(&self, spawner_to_set: impl LocalSpawn + 'static) {
+        info!(self.logger, "Setting new spawner");
+        *self.spawner.borrow_mut() = Some(Box::new(spawner_to_set))
+    }
+
+    fn spawn(&self, f: impl Future<Output = ()> + 'static) {
+        // Note [Global Executor Safety]
+        let mut borrowed = self.spawner.borrow_mut();
+        if let Some(unwrapped) = borrowed.as_mut() {
+            if unwrapped.spawn_local(f).is_err() {
+                error!(
+                    self.logger,
+                    "Failed to spawn the task. Global executor might have been dropped."
+                );
+            }
+        } else {
+            error!(self.logger, "Fail to spawn the task. No global executor has been provided.")
+        }
+    }
+}
+
 thread_local! {
     /// Global spawner handle.
     ///
@@ -34,7 +69,7 @@ thread_local! {
     ///
     /// This is made thread local for tests which may be run in parallel; Each test should set
     /// executor independently.
-    static SPAWNER: RefCell<Option<Box<dyn LocalSpawn>>> = default();
+    static SPAWNER: GlobalSpawner = default();
 }
 
 /// Sets the global spawner. It will remain accessible until it is set again to
@@ -44,21 +79,14 @@ thread_local! {
 /// time, so e.g. it must not drop the executor connected with this spawner.
 pub fn set_spawner(spawner_to_set: impl LocalSpawn + 'static) {
     // Note [Global Executor Safety]
-    SPAWNER.with(|s| *s.borrow_mut() = Some(Box::new(spawner_to_set)));
+    SPAWNER.with(|s| s.set_spawner(spawner_to_set));
 }
 
 /// Spawns a task using the global spawner.
 /// Panics, if called when there is no global spawner set or if it fails to
 /// spawn task (e.g. because the connected executor was prematurely dropped).
 pub fn spawn(f: impl Future<Output = ()> + 'static) {
-    SPAWNER.with(|spawner| {
-        let error_msg = "No global executor has been provided.";
-        // Note [Global Executor Safety]
-        let mut borrowed = spawner.borrow_mut();
-        let unwrapped = borrowed.as_mut().expect(error_msg);
-        let error_msg = "Failed to spawn the task. Global executor might have been dropped.";
-        unwrapped.spawn_local(f).expect(error_msg);
-    });
+    SPAWNER.with(|s| s.spawn(f));
 }
 /// Process stream elements while object under `weak` handle exists.
 ///

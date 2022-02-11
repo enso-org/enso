@@ -265,20 +265,20 @@ mod tests {
 
 
         // Default is false.
-        assert_eq!(is_dragged.value(), false);
+        assert!(!is_dragged.value());
 
         // Mouse down over shape activates dragging.
         shape.mouse_over.emit(());
         mouse.down.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(), true);
+        assert!(is_dragged.value());
 
         // Release mouse stops dragging.
         mouse.up.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(), false);
+        assert!(!is_dragged.value());
 
         // Mouse down while not over shape  does not activate dragging.
         shape.mouse_out.emit(());
         mouse.down.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(), false);
+        assert!(!is_dragged.value());
     }
 }

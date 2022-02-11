@@ -22,7 +22,6 @@ use enso_generics as generics;
 use enso_generics::traits::*;
 
 
-
 // ========================
 // === Network Node API ===
 // ========================
