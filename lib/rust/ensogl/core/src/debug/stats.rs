@@ -44,8 +44,13 @@ impl Stats {
     /// Starts tracking data for a new animation frame.
     /// Also, calculates the `fps` stat and updates `frame_counter`.
     /// Returns a snapshot of statistics data for the previous frame.
+    ///
     /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
     /// (this special case can be recognized by checking `frame_counter == 0`).
+    ///
+    /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
+    /// called properly on every frame (behavior in case of missed frames or missed calls is not
+    /// specified).
     pub fn begin_frame(&self, time: f64) -> StatsData {
         self.rc.borrow_mut().begin_frame(time)
     }
