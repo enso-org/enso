@@ -12,6 +12,8 @@ import Standard.Base.Meta
 
 from Standard.Builtins export Text
 
+from Standard.Base.Data.Vector import Index_Out_Of_Bounds_Error
+
 export Standard.Base.Data.Text.Split_Kind
 export Standard.Base.Data.Text.Line_Ending_Style
 
@@ -72,6 +74,46 @@ Text.each function =
         @Tail_Call iterate nxt next_nxt
     iterate fst nxt
     Nothing
+
+## ALIAS Get Character
+
+   Returns a character from the text at the specified index (0-based).
+
+   Arguments:
+     - index: The location in the text to get the character from. The
+       index is also allowed be negative, then the characters are
+       counted from the end of the text, i.e. -1 will correspond to the
+       last character.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the individual characters in the text "건반(Korean)".
+
+         "건반(Korean)".at 1 == "반"
+Text.at : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.at index =
+    case index < 0 of
+        True ->
+            # Will realise the entire collection of graphemes
+            this.characters.at index
+        False ->
+            iterator = BreakIterator.getCharacterInstance
+            iterator.setText this
+
+            loop prev next count = if count == index then (Text_Utils.substring this prev next) else
+                next_next = iterator.next
+                if next_next == -1 then count else
+                    @Tail_Call loop next next_next (count + 1)
+
+            first = iterator.next
+            result = if (first == -1) then 0 else (loop 0 first 0)
+            case result of
+                Integer -> Error.throw (Index_Out_Of_Bounds_Error index result)
+                _ -> result
 
 ## ALIAS Get Characters
 
