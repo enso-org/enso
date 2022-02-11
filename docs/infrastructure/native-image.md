@@ -55,7 +55,7 @@ information may be found in
 
 To make the bundle work correctly with GraalVM 20.2, a shell script called
 `x86_64-linux-musl-gcc` which loads the bundle's configuration is created by the
-task and the paths starting with `/build/bundle` in `smusl-gcc.specs` are
+task and the paths starting with `/build/bundle` in `musl-gcc.specs` are
 replaced with absolute paths to the bundle location.
 
 ## Static Builds
