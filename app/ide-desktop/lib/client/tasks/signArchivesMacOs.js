@@ -248,7 +248,7 @@ const extra = [
 ]
 
 // The list of readonly files in the GraalVM distribution.
-const readonly = [`enso/runtime/${GRAALVM}/Contents/Home/lib/server/classes.jsa`]
+const readonly = []
 
 function beforeSign() {
     for (let file of readonly) {
