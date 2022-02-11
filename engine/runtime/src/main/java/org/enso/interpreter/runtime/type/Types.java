@@ -20,7 +20,6 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
-import org.yaml.snakeyaml.scanner.Constant;
 
 /**
  * This class defines the interpreter-level type system for Enso.

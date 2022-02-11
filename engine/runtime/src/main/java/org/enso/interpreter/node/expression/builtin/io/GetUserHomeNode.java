@@ -1,8 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.io;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.Node;
-import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.text.Text;
 
