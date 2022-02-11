@@ -1505,20 +1505,20 @@ mod tests {
         node4.add_child(&node5);
         node5.add_child(&node6);
 
-        assert_eq!(node3.is_visible(), false);
-        assert_eq!(node4.is_visible(), false);
-        assert_eq!(node5.is_visible(), false);
-        assert_eq!(node6.is_visible(), false);
+        assert!(!node3.is_visible());
+        assert!(!node4.is_visible());
+        assert!(!node5.is_visible());
+        assert!(!node6.is_visible());
 
 
         // === Init Update ===
 
         world.update(&());
 
-        assert_eq!(node3.is_visible(), true);
-        assert_eq!(node4.is_visible(), true);
-        assert_eq!(node5.is_visible(), true);
-        assert_eq!(node6.is_visible(), true);
+        assert!(node3.is_visible());
+        assert!(node4.is_visible());
+        assert!(node5.is_visible());
+        assert!(node6.is_visible());
 
         assert_eq!(node1.global_position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(0.0, 0.0, 0.0));
@@ -1551,10 +1551,10 @@ mod tests {
         node3.unset_parent();
         world.update(&());
 
-        assert_eq!(node3.is_visible(), false);
-        assert_eq!(node4.is_visible(), false);
-        assert_eq!(node5.is_visible(), false);
-        assert_eq!(node6.is_visible(), false);
+        assert!(!node3.is_visible());
+        assert!(!node4.is_visible());
+        assert!(!node5.is_visible());
+        assert!(!node6.is_visible());
     }
 
     #[test]

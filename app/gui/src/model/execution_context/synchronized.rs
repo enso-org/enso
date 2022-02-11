@@ -340,7 +340,7 @@ pub mod test {
             data: &MockData,
             ls: &mut language_server::MockClient,
         ) {
-            Self::mock_create_destroy_calls(&data, ls);
+            Self::mock_create_destroy_calls(data, ls);
             let id = data.context_id;
             let root_frame = language_server::ExplicitCall {
                 method_pointer:                   data.main_method_pointer(),

@@ -26,7 +26,7 @@ ensogl-example-text-area = { path = "text-area" }
 #enso-frp = { path = "../../frp" }
 #enso-logger = { path = "../../logger"}
 #enso-prelude = { path = "../../prelude"}
-#enso-shapely = { path = "../../shapely/impl"}
+#enso-shapely = { path = "../../shapely"}
 #enso-text = { path = "../../text" }
 #ensogl-core = { path = "../core" }
 #ensogl-gui-component = { path = "../component/gui" }
