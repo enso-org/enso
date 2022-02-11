@@ -997,11 +997,11 @@ main = here.method1 10"#;
             repr_after_insertion(Placement::Begin)
         );
         assert_eq!(
-            repr_after_insertion(Placement::After(method1_id.clone())),
+            repr_after_insertion(Placement::After(method1_id)),
             repr_after_insertion(Placement::Before(main_id.clone()))
         );
         assert_eq!(
-            repr_after_insertion(Placement::After(main_id.clone())),
+            repr_after_insertion(Placement::After(main_id)),
             repr_after_insertion(Placement::End)
         );
 

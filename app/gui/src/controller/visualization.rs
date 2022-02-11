@@ -275,7 +275,7 @@ mod tests {
             vec![embedded_visualization, javascript_vis0, javascript_vis1];
         let zipped = visualizations.iter().zip(expected_visualizations.iter());
         for (visualization, expected_definition) in zipped {
-            let loaded_definition = vis_controller.load_visualization(&visualization).await;
+            let loaded_definition = vis_controller.load_visualization(visualization).await;
             let loaded_definition =
                 loaded_definition.expect("Couldn't load visualization's content.");
             let loaded_signature = &loaded_definition.signature;

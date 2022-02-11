@@ -1,96 +1,21 @@
 [workspace]
 
+# Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
+# If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/example`), just add it as a path dependency
+# where plausible.
 members = [
     "app/gui",
-    "app/gui/controller",
-    "app/gui/controller/double-representation",
-    "app/gui/controller/engine-model",
-    "app/gui/controller/engine-protocol",
-    "app/gui/analytics",
-    "app/gui/config",
-    "app/gui/language/ast/impl",
-    "app/gui/language/ast/macros",
-    "app/gui/language/parser",
-    "app/gui/language/span-tree",
-    "app/gui/language/span-tree/example",
-    "app/gui/view",
-    "app/gui/view/debug_scene",
-    "app/gui/view/debug_scene/interface",
-    "app/gui/view/debug_scene/visualization",
-    "app/gui/view/graph-editor",
-    "app/gui/view/welcome-screen",
     "build/rust-scripts",
-    "lib/rust/automata",
-    "lib/rust/build-utils",
-    "lib/rust/callback",
-    "lib/rust/code-builder",
-    "lib/rust/config-reader",
-    "lib/rust/data-structures",
-    "lib/rust/ensogl",
-    "lib/rust/ensogl/app/theme/hardcoded",
-    "lib/rust/ensogl/core",
-    "lib/rust/ensogl/component",
-    "lib/rust/ensogl/component/drop-down-menu",
-    "lib/rust/ensogl/component/drop-manager",
-    "lib/rust/ensogl/component/file-browser",
-    "lib/rust/ensogl/component/gui",
-    "lib/rust/ensogl/component/label",
-    "lib/rust/ensogl/component/list-view",
-    "lib/rust/ensogl/component/scroll-area",
-    "lib/rust/ensogl/component/scrollbar",
-    "lib/rust/ensogl/component/selector",
-    "lib/rust/ensogl/component/shadow",
-    "lib/rust/ensogl/component/text",
-    "lib/rust/ensogl/component/text/embedded-fonts",
-    "lib/rust/ensogl/component/text/msdf-sys",
-    "lib/rust/ensogl/component/toggle-button",
-    "lib/rust/ensogl/example",
-    "lib/rust/ensogl/example/animation",
-    "lib/rust/ensogl/example/complex-shape-system",
-    "lib/rust/ensogl/example/dom-symbols",
-    "lib/rust/ensogl/example/drop-manager",
-    "lib/rust/ensogl/example/easing-animator",
-    "lib/rust/ensogl/example/glyph-system",
-    "lib/rust/ensogl/example/list-view",
-    "lib/rust/ensogl/example/mouse-events",
-    "lib/rust/ensogl/example/scroll-area",
-    "lib/rust/ensogl/example/shape-system",
-    "lib/rust/ensogl/example/slider",
-    "lib/rust/ensogl/example/sprite-system",
-    "lib/rust/ensogl/example/sprite-system-benchmark",
-    "lib/rust/ensogl/example/stats",
-    "lib/rust/ensogl/example/text-area",
-    "lib/rust/frp",
-    "lib/rust/fuzzly",
-    "lib/rust/generics",
-    "lib/rust/json-rpc",
-    "lib/rust/launcher-shims",
-    "lib/rust/logger",
-    "lib/rust/macro-utils",
-    "lib/rust/optics",
-    "lib/rust/parser",
-    "lib/rust/parser/ast",
-    "lib/rust/parser/flexer",
-    "lib/rust/prelude",
-    "lib/rust/profiler",
-    "lib/rust/profiler/macros",
-    "lib/rust/parser/flexer-testing/definition",
-    "lib/rust/parser/flexer-testing/generation",
-    "lib/rust/parser/lexer/definition",
-    "lib/rust/parser/lexer/generation",
-    "lib/rust/parser/parser-jni",
-    "lib/rust/parser/lazy-reader",
-    "lib/rust/shapely/impl",
-    "lib/rust/shapely/macros",
-    "lib/rust/shortcuts",
-    "lib/rust/shortcuts/example",
-    "lib/rust/text",
-    "lib/rust/types",
-    "lib/rust/web",
-    "lib/rust/not-used/eval-tt",
-    "lib/rust/not-used/web-test",
-    "lib/rust/not-used/web-test-proc-macro",
+    "lib/rust/*",
+    "lib/rust/not-used/*",
+    "integration-test"
 ]
+
+# This directory is not a crate
+exclude = ["lib/rust/not-used"]
+
+# The default memebers are those we want to check and test by default.
+default-members = ["app/gui", "lib/rust/*"]
 
 [profile.dev]
 opt-level = 0
@@ -115,3 +40,7 @@ opt-level = 0
 lto = false
 debug = true
 debug-assertions = true
+
+[profile.integration-test]
+inherits = "test"
+opt-level = 2

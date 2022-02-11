@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::config;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
+use crate::FailedIde;
 
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
@@ -49,7 +50,6 @@ pub struct Initializer {
     logger: Logger,
 }
 
-
 impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config: config::Startup) -> Self {
@@ -62,49 +62,50 @@ impl Initializer {
     pub fn start_and_forget(self) {
         let executor = setup_global_executor();
         executor::global::spawn(async move {
-            info!(self.logger, "Starting IDE with the following config: {self.config:?}");
-
-            let application = Application::new(&web::get_html_element_by_id("root").unwrap());
-            Initializer::register_views(&application);
-            let view = application.new_view::<ide_view::root::View>();
-
-            // IDE was opened with `project` argument, we should skip the Welcome Screen.
-            // We are doing it early, because Controllers initialization
-            // takes some time and Welcome Screen might be visible for a brief moment while
-            // controllers are not ready.
-            if self.config.project_name.is_some() {
-                view.switch_view_to_project();
-            }
-
-            let status_bar = view.status_bar().clone_ref();
-            application.display.add_child(&view);
-            // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
-            //      issues to user, such information should be properly passed
-            //      in case of setup failure.
-            let result: FallibleResult<Ide> = (async {
-                let controller = self.initialize_ide_controller().await?;
-                Ok(Ide::new(application, view.clone_ref(), controller).await)
-            })
-            .await;
-
-            match result {
-                Ok(ide) => {
-                    info!(self.logger, "Setup done.");
-                    std::mem::forget(ide);
-                }
-                Err(err) => {
-                    let message = iformat!("Failed to initialize application: {err}");
-                    error!(self.logger, "{message}");
-                    status_bar.add_event(ide_view::status_bar::event::Label::new(message));
-                    std::mem::forget(view);
-                }
-            }
-
+            let ide = self.start();
             web::get_element_by_id("loader")
                 .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
                 .ok();
+            std::mem::forget(ide);
         });
         std::mem::forget(executor);
+    }
+
+    /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
+    pub async fn start(self) -> Result<Ide, FailedIde> {
+        info!(self.logger, "Starting IDE with the following config: {self.config:?}");
+
+        let root_element = web::get_html_element_by_id("root").unwrap();
+        let ensogl_app = ensogl::application::Application::new(&root_element);
+        Initializer::register_views(&ensogl_app);
+        let view = ensogl_app.new_view::<ide_view::root::View>();
+
+        // IDE was opened with `project` argument, we should skip the Welcome Screen.
+        // We are doing it early, because Controllers initialization
+        // takes some time and Welcome Screen might be visible for a brief moment while
+        // controllers are not ready.
+        if self.config.project_name.is_some() {
+            view.switch_view_to_project();
+        }
+
+        let status_bar = view.status_bar().clone_ref();
+        ensogl_app.display.add_child(&view);
+        // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
+        //      issues to user, such information should be properly passed
+        //      in case of setup failure.
+        match self.initialize_ide_controller().await {
+            Ok(controller) => {
+                let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
+                info!(self.logger, "Setup done.");
+                Ok(ide)
+            }
+            Err(error) => {
+                let message = format!("Failed to initialize application: {error}");
+                error!(self.logger, "{message}");
+                status_bar.add_event(ide_view::status_bar::event::Label::new(message));
+                Err(FailedIde { view })
+            }
+        }
     }
 
     fn register_views(app: &Application) {
