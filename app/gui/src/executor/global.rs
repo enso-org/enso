@@ -26,6 +26,8 @@ use crate::prelude::*;
 use futures::task::LocalSpawn;
 use futures::task::LocalSpawnExt;
 
+/// Global spawner container. This structure is kept in the global variable `SPAWNER`. See module
+/// docs for details.
 struct GlobalSpawner {
     logger:  Logger,
     spawner: RefCell<Option<Box<dyn LocalSpawn>>>,

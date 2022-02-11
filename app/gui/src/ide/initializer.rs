@@ -100,7 +100,7 @@ impl Initializer {
                 Ok(ide)
             }
             Err(error) => {
-                let message = iformat!("Failed to initialize application: {error}");
+                let message = format!("Failed to initialize application: {error}");
                 error!(self.logger, "{message}");
                 status_bar.add_event(ide_view::status_bar::event::Label::new(message));
                 Err(FailedIde { view })

@@ -13,7 +13,7 @@ async fn create_new_project_and_add_nodes() {
     let graph_editor = project.graph();
     let controller = ide.presenter.controller();
     let project_management =
-        controller.manage_projects().expect("Should be able to manage projects");
+        controller.manage_projects().expect("Cannot access Managing Project API");
 
     let expect_prompt = project.show_prompt.next_event();
     project_management.create_new_project(None).await.expect("Failed to create new project");

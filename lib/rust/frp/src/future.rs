@@ -37,7 +37,7 @@ impl<Out> FutureEvent<Out> {
         T: EventOutput<Output = Out> + HasLabel,
         Out: node::Data, {
         let label = node.label();
-        let network = Network::new(iformat!("{label}.future_event"));
+        let network = Network::new(format!("{label}.future_event"));
         let value: Rc<RefCell<Option<Out>>> = default();
         let wakers: Rc<RefCell<SmallVec<[std::task::Waker; 1]>>> = default();
         extend! { network
