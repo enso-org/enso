@@ -74,11 +74,11 @@ mod tests {
 
     #[test]
     fn test_applicative() {
-        assert_eq!(is_applicative("<$>"), true);
-        assert_eq!(is_applicative("<*>"), true);
-        assert_eq!(is_applicative("<*"), true);
-        assert_eq!(is_applicative("*>"), true);
-        assert_eq!(is_applicative("="), false);
-        assert_eq!(is_applicative("++"), false);
+        assert!(is_applicative("<$>"));
+        assert!(is_applicative("<*>"));
+        assert!(is_applicative("<*"));
+        assert!(is_applicative("*>"));
+        assert!(!is_applicative("="));
+        assert!(!is_applicative("++"));
     }
 }

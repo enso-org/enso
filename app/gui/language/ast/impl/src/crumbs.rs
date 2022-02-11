@@ -1723,14 +1723,8 @@ mod tests {
             set(to_crumb_enum, &infix, InfixCrumb::LeftOperand, baz.clone())?.repr(),
             "baz + bar"
         );
-        assert_eq!(
-            set(to_crumb_enum, &infix, InfixCrumb::Operator, times.clone())?.repr(),
-            "foo * bar"
-        );
-        assert_eq!(
-            set(to_crumb_enum, &infix, InfixCrumb::RightOperand, baz.clone())?.repr(),
-            "foo + baz"
-        );
+        assert_eq!(set(to_crumb_enum, &infix, InfixCrumb::Operator, times)?.repr(), "foo * bar");
+        assert_eq!(set(to_crumb_enum, &infix, InfixCrumb::RightOperand, baz)?.repr(), "foo + baz");
 
         Ok(())
     }
@@ -1935,8 +1929,8 @@ mod tests {
         assert_eq!(get(PrefixCrumb::Func)?.repr(), "func");
         assert_eq!(get(PrefixCrumb::Arg)?.repr(), "arg");
 
-        assert_eq!(set(PrefixCrumb::Func, foo.clone())?.repr(), "foo arg");
-        assert_eq!(set(PrefixCrumb::Arg, x.clone())?.repr(), "func x");
+        assert_eq!(set(PrefixCrumb::Func, foo)?.repr(), "foo arg");
+        assert_eq!(set(PrefixCrumb::Arg, x)?.repr(), "func x");
 
         Ok(())
     }
@@ -1975,8 +1969,8 @@ mod tests {
         assert_eq!(get(SectionLeftCrumb::Arg)?.repr(), "foo");
         assert_eq!(get(SectionLeftCrumb::Opr)?.repr(), "bar");
 
-        assert_eq!(set(SectionLeftCrumb::Arg, arg.clone())?.repr(), "arg bar");
-        assert_eq!(set(SectionLeftCrumb::Opr, opr.clone())?.repr(), "foo opr");
+        assert_eq!(set(SectionLeftCrumb::Arg, arg)?.repr(), "arg bar");
+        assert_eq!(set(SectionLeftCrumb::Opr, opr)?.repr(), "foo opr");
 
         Ok(())
     }
@@ -2014,8 +2008,8 @@ mod tests {
         assert_eq!(get(SectionRightCrumb::Opr)?.repr(), "foo");
         assert_eq!(get(SectionRightCrumb::Arg)?.repr(), "bar");
 
-        assert_eq!(set(SectionRightCrumb::Opr, opr.clone())?.repr(), "opr bar");
-        assert_eq!(set(SectionRightCrumb::Arg, arg.clone())?.repr(), "foo arg");
+        assert_eq!(set(SectionRightCrumb::Opr, opr)?.repr(), "opr bar");
+        assert_eq!(set(SectionRightCrumb::Arg, arg)?.repr(), "foo arg");
 
         Ok(())
     }
@@ -2050,7 +2044,7 @@ mod tests {
         assert_eq!(app.repr(), "foo");
 
         assert_eq!(get(SectionSidesCrumb)?.repr(), "foo");
-        assert_eq!(set(SectionSidesCrumb, opr.clone())?.repr(), "opr");
+        assert_eq!(set(SectionSidesCrumb, opr)?.repr(), "opr");
 
         Ok(())
     }
@@ -2132,14 +2126,14 @@ mod tests {
             elem: Shifted { off: 0, wrapped: var.clone() },
         }));
         let body = Rc::new(MacroPatternMatchRaw::Seq(MacroPatternMatchRawSeq {
-            pat:  MacroPatternRawSeq { pat1: pat.clone(), pat2: pat.clone() },
-            elem: (tok.clone(), tok.clone()),
+            pat:  MacroPatternRawSeq { pat1: pat.clone(), pat2: pat },
+            elem: (tok.clone(), tok),
         }));
         let segs = ShiftedVec1 {
             head: MacroMatchSegment { head: var.clone(), body: body.clone() },
             tail: vec![],
         };
-        Match { pfx: Some(body), segs, resolved: Some(var.clone()) }
+        Match { pfx: Some(body), segs, resolved: Some(var) }
     }
 
     #[test]

@@ -257,9 +257,9 @@ mod test {
                 let ast_id = ast.id;
                 let tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
                 let node = tree.root_ref().find_by_span(&self.span.clone().into());
-                let node = node.expect(
-                    format!("Invalid case {:?}: no node with span {:?}", self, self.span).as_str(),
-                );
+                let node = node.unwrap_or_else(|| {
+                    panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
+                });
                 let arg = Ast::new(ast::Var { name: "foo".to_string() }, None);
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
@@ -341,9 +341,9 @@ mod test {
                 let ast = parser.parse_line_ast(self.expr).unwrap();
                 let tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
                 let node = tree.root_ref().find_by_span(&self.span.clone().into());
-                let node = node.expect(
-                    format!("Invalid case {:?}: no node with span {:?}", self, self.span).as_str(),
-                );
+                let node = node.unwrap_or_else(|| {
+                    panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
+                });
 
                 let expected: HashSet<Action> = self.expected.iter().cloned().collect();
                 for action in &[Set, Erase] {

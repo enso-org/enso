@@ -418,7 +418,7 @@ mod tests {
                 let main_crumb = Crumb::from(main.crumb());
                 module.ast = module.ast.set(&main_crumb, new_main.ast().clone()).unwrap();
                 module.add_method(collapsed.new_method, placement, parser).unwrap();
-                ast::test_utils::assert_unique_ids(&module.ast.as_ref());
+                ast::test_utils::assert_unique_ids(module.ast.as_ref());
                 info!(logger, "Updated method:\n{&module.ast}");
                 assert_eq!(new_method.repr(), self.expected_generated);
                 assert_eq!(new_main.repr(), self.expected_refactored);

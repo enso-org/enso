@@ -222,7 +222,7 @@ mod tests {
 
     fn find_graph(parser: &parser::Parser, program: impl Str, name: impl Str) -> GraphInfo {
         let module = parser.parse_module(program.into(), default()).unwrap();
-        let crumbs = name.into().split(".").map(|name| DefinitionName::new_plain(name)).collect();
+        let crumbs = name.into().split('.').map(DefinitionName::new_plain).collect();
         let id = Id { crumbs };
         let definition = get_definition(&module, &id).unwrap();
         GraphInfo::from_definition(definition)
@@ -230,7 +230,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn detect_a_node() {
-        let mut parser = parser::Parser::new_or_panic();
+        let parser = parser::Parser::new_or_panic();
         // Each of these programs should have a `main` definition with a single `2+2` node.
         let programs = vec![
             "main = 2+2",
@@ -239,7 +239,7 @@ mod tests {
             "main = \n    foo = 2+2\n    bar b = 2+2", // `bar` is a definition, not a node
         ];
         for program in programs {
-            let graph = main_graph(&mut parser, program);
+            let graph = main_graph(&parser, program);
             let nodes = graph.nodes();
             assert_eq!(nodes.len(), 1);
             let node = &nodes[0];
@@ -300,14 +300,14 @@ mod tests {
     foo = node
     foo a = not_node
     print "hello""#;
-        let mut parser = parser::Parser::new_or_panic();
-        let mut graph = main_graph(&mut parser, program);
+        let parser = parser::Parser::new_or_panic();
+        let mut graph = main_graph(&parser, program);
 
-        let node_to_add0 = new_expression_node(&mut parser, "4 + 4");
-        let node_to_add1 = new_expression_node(&mut parser, "a + b");
-        let node_to_add2 = new_expression_node(&mut parser, "x * x");
-        let node_to_add3 = new_expression_node(&mut parser, "x / x");
-        let node_to_add4 = new_expression_node(&mut parser, "2 - 2");
+        let node_to_add0 = new_expression_node(&parser, "4 + 4");
+        let node_to_add1 = new_expression_node(&parser, "a + b");
+        let node_to_add2 = new_expression_node(&parser, "x * x");
+        let node_to_add3 = new_expression_node(&parser, "x / x");
+        let node_to_add4 = new_expression_node(&parser, "2 - 2");
 
         graph.add_node(&node_to_add0, LocationHint::Start).unwrap();
         graph.add_node(&node_to_add1, LocationHint::Before(graph.nodes()[0].id())).unwrap();
@@ -339,7 +339,7 @@ mod tests {
     x / x"#;
         graph.expect_code(expected_code);
 
-        let mut graph = find_graph(&mut parser, program, "main.foo");
+        let mut graph = find_graph(&parser, program, "main.foo");
         assert_eq!(graph.nodes().len(), 1);
         graph.add_node(&node_to_add4, LocationHint::Start).unwrap();
         assert_eq!(graph.nodes().len(), 2);
@@ -359,14 +359,14 @@ mod tests {
     node2
 
 foo = 5";
-        let mut parser = parser::Parser::new_or_panic();
-        let mut graph = main_graph(&mut parser, program);
+        let parser = parser::Parser::new_or_panic();
+        let mut graph = main_graph(&parser, program);
 
         let id2 = graph.nodes()[0].id();
-        let node_to_add0 = new_expression_node(&mut parser, "node0");
-        let node_to_add1 = new_expression_node(&mut parser, "node1");
-        let node_to_add3 = new_expression_node(&mut parser, "node3");
-        let node_to_add4 = new_expression_node(&mut parser, "node4");
+        let node_to_add0 = new_expression_node(&parser, "node0");
+        let node_to_add1 = new_expression_node(&parser, "node1");
+        let node_to_add3 = new_expression_node(&parser, "node3");
+        let node_to_add4 = new_expression_node(&parser, "node4");
 
         graph.add_node(&node_to_add0, LocationHint::Start).unwrap();
         graph.add_node(&node_to_add1, LocationHint::Before(id2)).unwrap();
@@ -387,7 +387,7 @@ foo = 5";
 
     #[wasm_bindgen_test]
     fn multiple_node_graph() {
-        let mut parser = parser::Parser::new_or_panic();
+        let parser = parser::Parser::new_or_panic();
         let program = r"
 main =
     ## Faux docstring
@@ -403,7 +403,7 @@ main =
         // TODO [mwu]
         //  Add case like `Int.+ a = not_node` once https://github.com/enso-org/enso/issues/565 is fixed
 
-        let graph = main_graph(&mut parser, program);
+        let graph = main_graph(&parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes[0].documentation_text(), Some(" Docstring 0".into()));
         assert_eq!(nodes[0].ast().repr(), "foo = node0");
@@ -418,12 +418,12 @@ main =
 
     #[wasm_bindgen_test]
     fn removing_node_from_graph() {
-        let mut parser = parser::Parser::new_or_panic();
+        let parser = parser::Parser::new_or_panic();
         let program = r"
 main =
     foo = 2 + 2
     bar = 3 + 17";
-        let mut graph = main_graph(&mut parser, program);
+        let mut graph = main_graph(&parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 2);
         assert_eq!(nodes[0].expression().repr(), "2 + 2");
@@ -444,11 +444,11 @@ main =
 
     #[wasm_bindgen_test]
     fn removing_last_node_from_graph() {
-        let mut parser = parser::Parser::new_or_panic();
+        let parser = parser::Parser::new_or_panic();
         let program = r"
 main =
     foo = 2 + 2";
-        let mut graph = main_graph(&mut parser, program);
+        let mut graph = main_graph(&parser, program);
         DEBUG!("aa");
         let (node,) = graph.nodes().expect_tuple();
         assert_eq!(node.expression().repr(), "2 + 2");
@@ -464,7 +464,7 @@ main =
 
     #[wasm_bindgen_test]
     fn editing_nodes_expression_in_graph() {
-        let mut parser = parser::Parser::new_or_panic();
+        let parser = parser::Parser::new_or_panic();
         let program = r"
 main =
     foo = 2 + 2
@@ -472,7 +472,7 @@ main =
         let new_expression = parser.parse("print \"HELLO\"".to_string(), default()).unwrap();
         let new_expression = expect_single_line(&new_expression).clone();
 
-        let mut graph = main_graph(&mut parser, program);
+        let mut graph = main_graph(&parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 2);
         assert_eq!(nodes[0].expression().repr(), "2 + 2");

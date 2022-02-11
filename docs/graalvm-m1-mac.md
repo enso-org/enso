@@ -32,23 +32,23 @@ version and Java version. Currently, it would be version `21.1.0` with Java 11.
 
 #### Install GraalVM
 
-Go to [https://github.com/graalvm/graalvm-ce-builds]() and download the release
-tarball. Unpack it and install into the system directory:
+Go to [GraalVM CE releases](https://github.com/graalvm/graalvm-ce-builds) and
+download the release tarball. Unpack it and install into the system directory:
 
 ```
-$ tar xzf graalvm-ee-java11-darwin-amd64-21.1.0.tar.gz
-$ sudo mv graalvm-ee-java11-21.1.0 /Library/Java/JavaVirtualMachines
+$ tar xzf graalvm-ce-java11-darwin-amd64-21.1.0.tar.gz
+$ sudo mv graalvm-ce-java11-21.1.0 /Library/Java/JavaVirtualMachines
 ```
 
 If you use MacOS Catalina or later, you need to unquarantine it:
 
 ```
-$ sudo xattr -r -d com.apple.quarantine /Library/Java/JavaVirtualMachines/ graalvm-ee-java11-21.1.0
+$ sudo xattr -r -d com.apple.quarantine /Library/Java/JavaVirtualMachines/graalvm-ce-java11-21.1.0
 ```
 
 #### (Optional) Add installed JVM to sdkman
 
 ```
-$ sdk install java 21.1.0.r11-grl /Library/Java/JavaVirtualMachines/graalvm-ee-java11-21.1.0/Contents/Home
+$ sdk install java 21.1.0.r11-grl /Library/Java/JavaVirtualMachines/graalvm-ce-java11-21.1.0/Contents/Home
 $ sdk default java 21.1.0.r11-grl
 ```

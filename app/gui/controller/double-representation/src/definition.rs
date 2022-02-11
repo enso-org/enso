@@ -556,7 +556,7 @@ mod tests {
         assert_eq!(lhs, rhs)
     }
 
-    fn to_names(defs: &Vec<DefinitionInfo>) -> Vec<String> {
+    fn to_names(defs: &[DefinitionInfo]) -> Vec<String> {
         defs.iter().map(|def| def.name.to_string()).collect()
     }
 

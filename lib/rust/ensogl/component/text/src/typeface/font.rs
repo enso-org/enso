@@ -348,8 +348,8 @@ mod tests {
     const TEST_FONT_NAME: &str = "DejaVuSansMono-Bold";
 
     fn create_test_font() -> Font {
-        let mut embedded_fonts = EmbeddedFonts::create_and_fill();
-        Font::try_from_embedded(&mut embedded_fonts, TEST_FONT_NAME).unwrap()
+        let embedded_fonts = EmbeddedFonts::create_and_fill();
+        Font::try_from_embedded(&embedded_fonts, TEST_FONT_NAME).unwrap()
     }
 
     wasm_bindgen_test_configure!(run_in_browser);
