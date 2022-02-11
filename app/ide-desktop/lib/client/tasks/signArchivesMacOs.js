@@ -35,7 +35,7 @@ const ID = '"Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)"'
 // Placeholder name for temporary archives.
 const tmpArchive = 'temporary_archive.zip'
 
-const GRAALVM = 'graalvm-ce-java11-21.3.0'
+const GRAALVM = 'graalvm-ce-java11-21.1.0'
 
 // Helper to execute a command in a given directory and return the output.
 const run = (cmd, cwd) => child_process.execSync(cmd, { shell: true, cwd }).toString()
@@ -248,7 +248,7 @@ const extra = [
 ]
 
 // The list of readonly files in the GraalVM distribution.
-const readonly = []
+const readonly = [`enso/runtime/${GRAALVM}/Contents/Home/lib/server/classes.jsa`]
 
 function beforeSign() {
     for (let file of readonly) {
