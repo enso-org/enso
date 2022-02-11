@@ -44,8 +44,7 @@ const LABEL_PADDING_TOP: f32 = 50.0;
 struct PopupLabel {
     label:   Label,
     network: frp::Network,
-    show:    frp::Source,
-    hide:    frp::Source,
+    show:    frp::Source<String>,
 }
 
 impl display::Object for PopupLabel {
@@ -73,19 +72,20 @@ impl PopupLabel {
         network.store(&delay_animation);
 
         frp::extend! { network
-            show <- source_();
-            hide <- source_();
+            show <- source::<String>();
 
-            delay_animation.start <+ show;
-            delay_animation.reset <+ hide;
-            should_hide <- any(hide, delay_animation.on_end);
-
+            eval show ([label, delay_animation](text) {
+                label.set_content(text);
+                delay_animation.reset();
+                delay_animation.start();
+            });
+            
             opacity_animation.target <+ show.constant(1.0);
-            opacity_animation.target <+ should_hide.constant(0.0);
+            opacity_animation.target <+ delay_animation.on_end.constant(0.0);
             label.set_opacity <+ opacity_animation.value;
         }
 
-        Self { label, network, show, hide }
+        Self { label, network, show, }
     }
 }
 
@@ -98,8 +98,7 @@ impl PopupLabel {
 #[derive(Debug, Clone, CloneRef)]
 struct Model {
     display_object: display::object::Instance,
-    enabled_label:  PopupLabel,
-    disabled_label: PopupLabel,
+    label: PopupLabel,
     logger:         Logger,
 }
 
@@ -108,32 +107,26 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new("DebugModePopup");
         let display_object = display::object::Instance::new(&logger);
-        let enabled_label = PopupLabel::new(app, DEBUG_MODE_ENABLED, LABEL_VISIBILITY_DELAY_MS);
-        let disabled_label = PopupLabel::new(app, DEBUG_MODE_DISABLED, LABEL_VISIBILITY_DELAY_MS);
+        let label = PopupLabel::new(app, DEBUG_MODE_ENABLED, LABEL_VISIBILITY_DELAY_MS);
+        display_object.add_child(&label);
 
-        Self { display_object, enabled_label, disabled_label, logger }
+        Self { display_object, label, logger }
     }
 
     /// Show "Debug Mode enabled" label. Hides another one.
     pub fn show_enabled_label(&self) {
-        self.disabled_label.hide.emit(());
-        self.display_object.remove_child(&self.disabled_label);
-        self.display_object.add_child(&self.enabled_label);
-        self.enabled_label.show.emit(());
+        self.label.show.emit(String::from(DEBUG_MODE_ENABLED));
     }
 
     /// Show "Debug Mode disabled" label. Hides another one.
     pub fn show_disabled_label(&self) {
-        self.enabled_label.hide.emit(());
-        self.display_object.remove_child(&self.enabled_label);
-        self.display_object.add_child(&self.disabled_label);
-        self.disabled_label.show.emit(());
+        self.label.show.emit(String::from(DEBUG_MODE_DISABLED));
     }
 
     /// Return the height of the label.
     pub fn label_height(&self) -> f32 {
         // Both labels are identical, so we can ask either one.
-        self.enabled_label.label.size.value().y
+        self.label.label.size.value().y
     }
 }
 
