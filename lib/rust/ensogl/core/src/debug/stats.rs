@@ -42,11 +42,11 @@ impl Default for Stats {
 
 impl Stats {
     /// Starts tracking data for a new animation frame.
-    /// Also, calculates the `fps` stat and updates `frame_counter`.
+    /// Also, calculates the [`fps`] stat and updates [`valid_frame`].
     /// Returns a snapshot of statistics data for the previous frame.
     ///
     /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
-    /// (this special case can be recognized by checking `frame_counter == 0`).
+    /// (this special case can be recognized by checking `valid_frame == true`).
     ///
     /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
     /// called properly on every frame (behavior in case of missed frames or missed calls is not
@@ -80,8 +80,8 @@ macro_rules! gen_stats {
         #[derive(Debug,Default,Clone,Copy)]
         #[allow(missing_docs)]
         pub struct StatsData {
-            frame_begin_time:  f64,
-            pub frame_counter: u64,
+            frame_begin_time: f64,
+            pub valid_frame:  bool,
             $(pub $field : $field_type),*
         }
 
@@ -201,14 +201,14 @@ gen_stats! {
 impl StatsData {
     fn begin_frame(&mut self, time: f64) -> StatsData {
         // See [Stats::begin_frame()] docs for explanation of this check.
-        let previous_frame_snapshot = if self.frame_counter == 0 {
+        let previous_frame_snapshot = if !self.valid_frame {
             default()
         } else {
             let end_time = time;
             self.fps = 1000.0 / (end_time - self.frame_begin_time);
             *self
         };
-        self.frame_counter += 1;
+        self.valid_frame = true;
         self.frame_begin_time = time;
         self.reset_per_frame_statistics();
         previous_frame_snapshot
