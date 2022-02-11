@@ -20,7 +20,6 @@
 use inflector::Inflector;
 use quote::ToTokens;
 use std::env;
-use std::mem;
 use syn::parse::Parser;
 use syn::punctuated;
 use syn::visit_mut;
@@ -56,15 +55,23 @@ fn define_profiler(
 
             #[doc = #doc_obj]
             #[derive(Copy, Clone, Debug)]
-            pub struct #ObjIdent(pub ProfilerId);
+            pub struct #ObjIdent(pub EventId);
 
 
             // === Trait Implementations ===
 
             impl Profiler for #ObjIdent {
-                type Started = ProfilerData;
-                fn finish(self, data: &Self::Started) {
-                    data.finish(self.0);
+                fn start(parent: EventId, label: Label, time: Option<Timestamp>) -> Self {
+                    #ObjIdent(EventLog.start(parent, label, time))
+                }
+                fn finish(self) {
+                    EventLog.end(self.0, Timestamp::now())
+                }
+                fn pause(&self) {
+                    EventLog.pause(self.0, Timestamp::now());
+                }
+                fn resume(&self) {
+                    EventLog.resume(self.0, Timestamp::now());
                 }
             }
 
@@ -108,8 +115,10 @@ fn define_profiler(
             // === Trait Implementations ===
 
             impl Profiler for #ObjIdent {
-                type Started = ();
-                fn finish(self, _: &Self::Started) {}
+                fn start(_: EventId, _: Label, _: Option<Timestamp>) -> Self { Self(()) }
+                fn finish(self) {}
+                fn pause(&self) {}
+                fn resume(&self) { }
             }
 
 
@@ -119,14 +128,14 @@ fn define_profiler(
             #[macro_export]
             macro_rules! #start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started { profiler: profiler::#ObjIdent(()), data: () }
+                    profiler::Started(profiler::#ObjIdent(()))
                 }
             }
             #[macro_export]
             #[doc = #doc_with_same_start]
             macro_rules! #with_same_start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started { profiler: profiler::#ObjIdent(()), data: () }
+                    profiler::Started(profiler::#ObjIdent(()))
                 }
             }
         }
@@ -144,18 +153,11 @@ fn enabled_impl_parent(
     let ts = quote::quote! {
         impl Parent<#ChildIdent> for #ParentIdent {
             fn new_child(&self, label:Label) -> Started<#ChildIdent> {
-                let profiler = #ChildIdent(ProfilerId::new());
-                let parent = self.0;
                 let start = Some(Timestamp::now());
-                let data = ProfilerData { parent, start, label };
-                Started { profiler, data }
+                Started(#ChildIdent::start(self.0, label, start))
             }
             fn new_child_same_start(&self, label:Label) -> Started<#ChildIdent> {
-                let profiler = #ChildIdent(ProfilerId::new());
-                let parent = self.0;
-                let start = None;
-                let data = ProfilerData { parent, start, label };
-                Started { profiler, data }
+                Started(#ChildIdent::start(self.0, label, None))
             }
         }
     };
@@ -175,9 +177,7 @@ fn disabled_impl_parent(
                 self.new_child_same_start(label)
             }
             fn new_child_same_start(&self, _label: Label) -> Started<#ChildIdent> {
-                let profiler = #ChildIdent(());
-                let data = ();
-                Started { profiler, data }
+                Started(#ChildIdent(()))
             }
         }
     };
@@ -246,51 +246,78 @@ pub fn profile(
     args: proc_macro::TokenStream,
     ts: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    assert!(args.is_empty(), "#[profile] does not expect any arguments");
     let mut func = syn::parse_macro_input!(ts as syn::ItemFn);
-    let body_default =
-        Box::new(syn::Block { brace_token: Default::default(), stmts: vec![] });
-    let mut new_body = body_default.clone();
-    let orig_body = mem::replace(&mut func.block, body_default);
-    let orig_sig = func.sig.clone();
-
-    // Emit instrumentation at the beginning of the new body; genericize the wrapper's signature.
-    instrument(&mut func.sig, &mut new_body);
-    // Instead of inserting the original body directly, wrap it in a closure that is not generic
-    // over `impl Parent`; this avoids the code-size cost of monomorphizing it.
-    wrap_body(&orig_sig, *orig_body, &mut new_body);
-
-    func.block = new_body;
+    #[allow(non_snake_case)]
+    let ObjIdent: syn::Ident = syn::parse(args)
+        .expect("The `profile` macro requires a profiling-level argument, e.g. #[profile(Task)]");
+    let label = make_label(&func.sig.ident);
+    match func.sig.asyncness {
+        Some(_) => profile_async(ObjIdent, label, &mut func),
+        None => profile_sync(ObjIdent, label, &mut func),
+    };
     func.into_token_stream().into()
 }
 
-// === instrument ===
-
-/// Insert instrumentation into the body, and genericize the profiler input to `impl Parent`.
-fn instrument(sig: &mut syn::Signature, body: &mut syn::Block) {
-    let profiler_label = make_label(&sig.ident);
-
-    // Parse profiler argument in signature.
-    let last_arg = match sig.inputs.last_mut() {
-        Some(syn::FnArg::Typed(pat_type)) => pat_type,
-        _ => panic!("Function annotated with #[profile] must have a profiler argument."),
+#[allow(non_snake_case)]
+fn profile_async(ObjIdent: syn::Ident, label: String, func: &mut syn::ItemFn) {
+    let start_profiler = start_profiler(ObjIdent, label, func.sig.asyncness.is_some());
+    for s in &mut func.block.stmts {
+        WrapAwait.visit_stmt_mut(s);
+    }
+    let block = &func.block;
+    let body = quote::quote! {{
+        #start_profiler
+        async move {
+            profiler::Profiler::resume(&__profiler_scope.0);
+            let result = #block;
+            std::mem::drop(__profiler_scope);
+            result
+        }
+    }};
+    let output_ty = match &func.sig.output {
+        syn::ReturnType::Default => quote::quote! { () },
+        syn::ReturnType::Type(_, ty) => ty.to_token_stream(),
     };
-    let profiler = last_arg.pat.clone();
-
-    // Replace profiler type `T `in sig with `impl Parent<T>`.
-    let profiler_type_in = last_arg.ty.clone();
-    let profiler_generic_parent = quote::quote! { impl profiler::Parent<#profiler_type_in> };
-    last_arg.ty = Box::new(syn::Type::Verbatim(profiler_generic_parent));
-
-    // Emit instrumentation statements.
-    let start_profiler = quote::quote! {
-        let _profiler = #profiler.new_child(#profiler_label);
+    let output = quote::quote! {
+        -> impl std::future::Future<Output=#output_ty>
     };
-    let get_profiler = quote::quote! {
-        let #profiler = _profiler.profiler;
+    func.sig.asyncness = None;
+    func.sig.output = syn::parse2(output).unwrap();
+    func.block = syn::parse2(body).unwrap();
+}
+
+#[allow(non_snake_case)]
+fn profile_sync(ObjIdent: syn::Ident, label: String, func: &mut syn::ItemFn) {
+    let start_profiler = start_profiler(ObjIdent, label, func.sig.asyncness.is_some());
+    let block = &func.block;
+    let body = quote::quote! {{
+        #start_profiler
+        #block
+    }};
+    func.block = syn::parse2(body).unwrap();
+}
+
+#[allow(non_snake_case)]
+fn start_profiler(
+    ObjIdent: syn::Ident,
+    label: String,
+    asyncness: bool,
+) -> proc_macro2::TokenStream {
+    // TODO Optimization: pause_at(now)
+    let start_await = match asyncness {
+        true => quote::quote! { profiler.pause(); },
+        false => quote::quote! {},
     };
-    body.stmts.push(syn::parse(start_profiler.into()).unwrap());
-    body.stmts.push(syn::parse(get_profiler.into()).unwrap());
+    quote::quote! {
+        let __profiler_scope = {
+            use profiler::Profiler;
+            let parent = profiler::IMPLICIT_ID;
+            let now = Some(profiler::Timestamp::now());
+            let profiler = profiler::#ObjIdent::start(parent, #label, now);
+            #start_await
+            profiler::Started(profiler)
+        };
+    }
 }
 
 #[cfg(not(feature = "lineno"))]
@@ -309,103 +336,31 @@ fn make_label(ident: &syn::Ident) -> String {
     format!("{} ({}:{})", ident, path, line)
 }
 
-// === wrap_body ===
+struct WrapAwait;
 
-type ClosureInputs = punctuated::Punctuated<syn::Pat, syn::Token![,]>;
-type CallArgs = punctuated::Punctuated<syn::Expr, syn::Token![,]>;
-
-/// Transforms a function's body into a new body that:
-/// - Defines a nested function whose body is the original body.
-/// - Calls the inner function, forwarding all arguments, returning its result.
-///
-/// The output of this transformation is operationally equivalent to the input; it is only useful in
-/// conjunction with additional transformations. In particular, if after further transformation the
-/// outer function is more generic than the inner function for some parameters, this pattern avoids
-/// the code-size cost of monomorphization for those parameters.
-///
-/// # Implementation
-///
-/// For the nested function, we generate a closure rather than the more common `fn` seen with this
-/// pattern because we need to be able to forward a `self` argument, but have no way to determine
-/// the type of `Self`, so we can't write a function signature. In a closure definition, we can
-/// simply leave the type of that argument implicit.
-///
-/// # Limitations
-///
-/// Not currently supported:
-/// - `unsafe` functions
-/// - functions with destructuring bindings
-/// - functions containing an `impl` for a `struct` or `trait`
-fn wrap_body(sig: &syn::Signature, mut body: syn::Block, body_out: &mut syn::Block) {
-    // If there's a `self` parameter, we need to replace it with an ordinary binding in the wrapped
-    // block (here) and signature (below, building `closure_inputs`).
-    let placeholder_self = syn::Ident::new("__wrap_body__self", proc_macro2::Span::call_site());
-    let find = syn::Ident::new("self", proc_macro2::Span::call_site());
-    let replace = placeholder_self.clone();
-    ReplaceAll { find, replace }.visit_block_mut(&mut body);
-
-    let mut call_args = CallArgs::new();
-    let mut closure_inputs = ClosureInputs::new();
-    for input in &sig.inputs {
-        call_args.push(match input {
-            syn::FnArg::Receiver(r) => ident_to_expr(r.self_token.into()),
-            syn::FnArg::Typed(pat_type) => pat_to_expr(&pat_type.pat),
-        });
-        closure_inputs.push(match input {
-            syn::FnArg::Receiver(_) => ident_to_pat(placeholder_self.clone()),
-            syn::FnArg::Typed(pat_ty) => pat_ty.clone().into(),
-        });
+impl visit_mut::VisitMut for WrapAwait {
+    fn visit_expr_mut(&mut self, expr: &mut syn::Expr) {
+        if let syn::Expr::Await(await_) = expr {
+            let new_expr = wrap_await(await_);
+            *expr = new_expr;
+        }
     }
+}
 
-    let wrapped = match &sig.asyncness {
-        None => quote::quote! {
-            return (|#closure_inputs| #body)(#call_args);
-        },
-        Some(_) => quote::quote! {
-            return (|#closure_inputs| async { #body })(#call_args).await;
-        },
+fn wrap_await(await_: &syn::ExprAwait) -> syn::Expr {
+    let expr = &await_.base;
+    assert!(
+        await_.attrs.is_empty(),
+        "#[profile] cannot wrap a function that applies attributes to an .await expression"
+    );
+    let wrapped = quote::quote! {
+        {
+            let future = #expr;
+            profiler::Profiler::pause(&__profiler_scope.0);
+            let result = future.await;
+            profiler::Profiler::resume(&__profiler_scope.0);
+            result
+        }
     };
-    body_out.stmts.push(syn::parse(wrapped.into()).unwrap());
-}
-
-struct ReplaceAll {
-    find:    proc_macro2::Ident,
-    replace: proc_macro2::Ident,
-}
-impl visit_mut::VisitMut for ReplaceAll {
-    fn visit_ident_mut(&mut self, i: &mut syn::Ident) {
-        if i == &self.find {
-            *i = self.replace.clone();
-        }
-    }
-}
-
-fn pat_to_expr(pat: &syn::Pat) -> syn::Expr {
-    match pat {
-        syn::Pat::Ident(syn::PatIdent { ident, .. }) => ident_to_expr(ident.to_owned()),
-        syn::Pat::Reference(syn::PatReference { pat, mutability, .. }) => {
-            let expr = Box::new(pat_to_expr(pat));
-            let mutability = mutability.to_owned();
-            let attrs = Default::default();
-            let and_token = Default::default();
-            let raw = Default::default();
-            syn::ExprReference { expr, mutability, attrs, and_token, raw }.into()
-        }
-        _ => unimplemented!("destructuring-bind in signature of fn wrapped by #[profile]"),
-    }
-}
-
-fn ident_to_expr(ident: syn::Ident) -> syn::Expr {
-    let path = ident.into();
-    let attrs = Default::default();
-    let qself = Default::default();
-    syn::ExprPath { path, qself, attrs }.into()
-}
-
-fn ident_to_pat(ident: syn::Ident) -> syn::Pat {
-    let attrs = Default::default();
-    let by_ref = None;
-    let mutability = None;
-    let subpat = None;
-    syn::PatIdent { attrs, by_ref, mutability, ident, subpat }.into()
+    syn::parse2(wrapped).unwrap()
 }
