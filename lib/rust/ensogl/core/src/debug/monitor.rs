@@ -286,8 +286,8 @@ impl Renderer {
         self.resize();
     }
 
-    fn panels(&self) -> &Vec<Panel> {
-        &self.panels
+    fn panels(&self) -> &[Panel] {
+        &self.panels.as_slice()
     }
 
     /// Check whether the monitor is visible.
