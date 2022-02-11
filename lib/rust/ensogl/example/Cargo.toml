@@ -21,7 +21,6 @@ ensogl-example-shape-system = { path = "shape-system" }
 ensogl-example-slider = { path = "slider" }
 ensogl-example-sprite-system = { path = "sprite-system" }
 ensogl-example-sprite-system-benchmark = { path = "sprite-system-benchmark" }
-ensogl-example-stats = { path = "stats" }
 ensogl-example-text-area = { path = "text-area" }
 #enso-frp = { path = "../../frp" }
 #enso-logger = { path = "../../logger"}

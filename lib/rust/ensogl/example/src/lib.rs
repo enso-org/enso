@@ -33,5 +33,4 @@ pub use ensogl_example_shape_system as shape_system;
 pub use ensogl_example_slider as slider;
 pub use ensogl_example_sprite_system as sprite_system;
 pub use ensogl_example_sprite_system_benchmark as sprite_system_benchmark;
-pub use ensogl_example_stats as stats;
 pub use ensogl_example_text_area as text_area;
