@@ -126,7 +126,6 @@ const sharp = require('sharp')
 const path = require('path')
 const platform = require('os').platform
 
-
 const thisPath = path.resolve(__dirname)
 const root = path.resolve(thisPath, '..', '..', '..', '..', '..')
 const distPath = path.resolve(root, 'dist', 'icons')
