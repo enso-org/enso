@@ -144,13 +144,13 @@ impl StatsData {
     fn begin_frame(&mut self, time: f64) -> StatsData {
         // See [Stats::begin_frame()] docs for explanation of this check.
         let previous_frame_snapshot = if !self.valid {
+            self.valid = true;
             default()
         } else {
             let end_time = time;
             self.fps = 1000.0 / (end_time - self.frame_begin_time);
             *self
         };
-        self.valid = true;
         self.frame_begin_time = time;
         self.reset_per_frame_statistics();
         previous_frame_snapshot
