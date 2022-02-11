@@ -1343,17 +1343,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-example-stats"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-label",
- "ensogl-text-msdf-sys",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "ensogl-example-text-area"
 version = "0.1.0"
 dependencies = [
@@ -1381,7 +1370,6 @@ dependencies = [
  "ensogl-example-slider",
  "ensogl-example-sprite-system",
  "ensogl-example-sprite-system-benchmark",
- "ensogl-example-stats",
  "ensogl-example-text-area",
 ]
 

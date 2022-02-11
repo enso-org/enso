@@ -198,7 +198,7 @@ macro_rules! gen_min {
     )*};
 }
 
-gen_min!([f32, f64, i32, i64, u32, usize]);
+gen_min!([f32, f64, i32, i64, usize]);
 
 
 
@@ -225,7 +225,7 @@ macro_rules! gen_max {
     )*};
 }
 
-gen_max!([f32, f64, i32, i64, u32, usize]);
+gen_max!([f32, f64, i32, i64, usize]);
 
 
 
