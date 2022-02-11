@@ -231,14 +231,9 @@ impl Monitor {
     }
 
     /// Draw the monitor and update its graphs based on the provided stats data.
-    pub fn draw(&self, stats: &StatsData) {
-        let mut renderer = self.renderer.borrow_mut();
-        if renderer.visible() {
-            for panel in renderer.panels() {
-                panel.sample_and_postprocess(stats);
-            }
-            renderer.draw();
-        }
+    /// Does nothing if the monitor is not visible (see: [`toggle()`]).
+    pub fn sample_and_draw(&self, stats: &StatsData) {
+        self.renderer.borrow_mut().sample_and_draw(stats);
     }
 
     /// Toggle the visibility of the monitor.
@@ -286,10 +281,6 @@ impl Renderer {
         self.resize();
     }
 
-    fn panels(&self) -> &[Panel] {
-        &self.panels.as_slice()
-    }
-
     /// Check whether the monitor is visible.
     fn visible(&self) -> bool {
         self.dom.is_some()
@@ -315,6 +306,15 @@ impl Renderer {
             self.hide();
         } else {
             self.show();
+        }
+    }
+
+    fn sample_and_draw(&mut self, stats: &StatsData) {
+        if self.visible() {
+            for panel in &self.panels {
+                panel.sample_and_postprocess(stats);
+            }
+            self.draw();
         }
     }
 
