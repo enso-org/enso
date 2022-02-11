@@ -289,7 +289,7 @@ mod test {
 {expected_metadata}"#
         );
 
-        assert_eq!(serialized.content, expected_content.to_string());
+        assert_eq!(serialized.content, expected_content);
         assert_eq!(serialized.code_slice(), "main = 2 + 2");
         assert_eq!(serialized.id_map_slice(), expected_id_map.as_str());
         assert_eq!(serialized.metadata_slice(), expected_metadata.as_str());

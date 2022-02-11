@@ -82,7 +82,7 @@ impl Fixture {
     fn test_shape<T, F>(&mut self, program: &str, tester: F)
     where
         for<'t> &'t Shape<Ast>: TryInto<&'t T>,
-        F: FnOnce(&T) -> (), {
+        F: FnOnce(&T), {
         let ast = self.parser.parse_line_ast(program).unwrap();
         let shape = expect_shape(&ast);
         tester(shape);
@@ -203,7 +203,7 @@ impl Fixture {
     }
 
     fn test_text_fmt_segment<F>(&mut self, program: &str, tester: F)
-    where F: FnOnce(&SegmentFmt<Ast>) -> () {
+    where F: FnOnce(&SegmentFmt<Ast>) {
         self.test_shape(program, |shape: &TextLineFmt<Ast>| {
             let (segment,) = (&shape.text).expect_tuple();
             tester(segment)
@@ -357,7 +357,7 @@ impl Fixture {
             assert_eq!(block.ty, BlockType::Continuous {});
             assert_eq!(block.indent, 1);
             assert_eq!(block.empty_lines.len(), 0);
-            assert_eq!(block.is_orphan, true);
+            assert!(block.is_orphan);
 
             let first_line = &block.first_line;
             assert_eq!(first_line.off, 0);
@@ -501,7 +501,7 @@ fn nested_macros() {
 main =
     operator13 = Json.from_pairs [["a", 42], ["foo", [1,2,3]]]
     var1 = [operator13, operator13]"#;
-    roundtrip_program_with(&parser, &program);
+    roundtrip_program_with(&parser, program);
 
     let program = r#"triplets n = 1.up_to n . to_vector . flat_map a->
     a+1 . up_to n . to_vector . flat_map b->
@@ -510,7 +510,7 @@ main =
 n = 10
 here.triplets n
 IO.println(here.triplets n)"#;
-    roundtrip_program_with(&parser, &program);
+    roundtrip_program_with(&parser, program);
 }
 
 #[wasm_bindgen_test]

@@ -43,6 +43,7 @@ impl Model {
         *self.current_project.borrow_mut() = None;
 
         if let Some(project_model) = self.controller.current_project() {
+            self.view.switch_view_to_project();
             // We know the name of new project before it loads. We set it right now to avoid
             // displaying placeholder on the scene during loading.
             let project_view = self.view.project();
@@ -226,5 +227,19 @@ impl Presenter {
                 }
             }
         });
+    }
+}
+
+
+// === Getters ===
+
+#[allow(missing_docs)]
+impl Presenter {
+    pub fn view(&self) -> &view::root::View {
+        &self.model.view
+    }
+
+    pub fn controller(&self) -> &controller::Ide {
+        &self.model.controller
     }
 }
