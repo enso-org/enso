@@ -188,7 +188,7 @@ async fn ls_text_protocol_test() {
         client.delete_file(&move_path).await.expect("Couldn't delete file");
         let file = client.file_exists(&move_path).await;
         let file = file.expect("Couldn't check if file exists.");
-        assert_eq!(file.exists, false);
+        assert!(!file.exists);
     }
 
     client.move_file(&new_path, &move_path).await.expect("Couldn't move file");
@@ -248,7 +248,7 @@ async fn file_events() {
         client.delete_file(&path).await.expect("Couldn't delete file");
         let file = client.file_exists(&path).await;
         let file = file.expect("Couldn't check if file exists.");
-        assert_eq!(file.exists, false);
+        assert!(!file.exists);
     }
 
     let path = Path { root_id, segments: vec![] };

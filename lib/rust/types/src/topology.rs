@@ -104,6 +104,9 @@ mod tests {
 
 
     #[test]
+    // Clippy complains about `-180.0.degrees()`, but the precedence is irrelevant, and code looks
+    // cleaner without parentheses
+    #[allow(clippy::precedence)]
     fn degree_radian_conversions() {
         fn assert_equivalence(deg: Degrees, rad: Radians) {
             let deg_from_rad = Degrees::from(rad);

@@ -1,32 +1,24 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.Assumption;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.nodes.InvalidAssumptionException;
+import com.oracle.truffle.api.ThreadLocalAction;
+import com.oracle.truffle.api.TruffleLanguage.Env;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.locks.ReentrantLock;
 
 /** Manages threads running guest code, exposing a safepoint-like functionality. */
 public class ThreadManager {
-  private final Phaser safepointPhaser =
-      new Phaser() {
-        @Override
-        protected boolean onAdvance(int phase, int registeredParties) {
-          // Ensure the phaser never terminates, even if the number of parties drops to zero at some
-          // point.
-          return false;
-        }
-      };
   private final ReentrantLock lock = new ReentrantLock();
+  private final Env env;
 
-  private volatile boolean safepoint = false;
   private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
   private static final Object ENTERED = new Object();
   private static final Object NO_OP = new Object();
+
+  public ThreadManager(Env env) {
+    this.env = env;
+  }
 
   /**
    * Registers the current thread as running guest code.
@@ -42,7 +34,6 @@ public class ThreadManager {
    */
   public Object enter() {
     if (interruptFlags.get(Thread.currentThread()) == null) {
-      safepointPhaser.register();
       interruptFlags.put(Thread.currentThread(), false);
       return ENTERED;
     }
@@ -58,20 +49,7 @@ public class ThreadManager {
    */
   public void leave(Object token) {
     if (token != NO_OP) {
-      safepointPhaser.arriveAndDeregister();
       interruptFlags.remove(Thread.currentThread());
-    }
-  }
-
-  /** Called from the interpreter to periodically perform a safepoint check. */
-  public void poll() {
-    if (safepoint) {
-      CompilerDirectives.transferToInterpreter();
-      safepointPhaser.arriveAndAwaitAdvance();
-      if (interruptFlags.get(Thread.currentThread())) {
-        interruptFlags.put(Thread.currentThread(), false);
-        throw new ThreadInterruptedException();
-      }
     }
   }
 
@@ -91,9 +69,15 @@ public class ThreadManager {
       interruptFlags.replaceAll((t, b) -> true);
       Object p = enter();
       try {
-        safepoint = true;
-        safepointPhaser.arriveAndAwaitAdvance();
-        safepoint = false;
+        env.submitThreadLocal(null, new ThreadLocalAction(true, false) {
+          @Override
+          protected void perform(ThreadLocalAction.Access access) {
+            Boolean interrupt = interruptFlags.get(access.getThread());
+            if (Boolean.TRUE.equals(interrupt)) {
+                throw new ThreadInterruptedException();
+            }
+          }
+        });
       } finally {
         leave(p);
       }

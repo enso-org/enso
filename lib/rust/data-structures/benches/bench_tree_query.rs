@@ -88,9 +88,7 @@ fn map_in_place(c: &mut Criterion) {
     c.bench_function("Map in Place", |b| {
         b.iter(|| {
             let mut tree = tree.clone();
-            black_box(
-                tree.iter_mut().for_each(black_box(|(_, v): (Vec<&usize>, &mut usize)| *v *= 2)),
-            );
+            tree.iter_mut().for_each(black_box(|(_, v): (Vec<&usize>, &mut usize)| *v *= 2));
         })
     });
 }

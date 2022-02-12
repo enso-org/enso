@@ -1,0 +1,15 @@
+[package]
+name = "enso-integration-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ensogl = { path = "../lib/rust/ensogl" }
+enso-frp = { path = "../lib/rust/frp" }
+enso-prelude = { path = "../lib/rust/prelude" }
+enso-gui = { path = "../app/gui" }
+enso-web = { path = "../lib/rust/web" }
+wasm-bindgen = { version = "=0.2.58" }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.8"

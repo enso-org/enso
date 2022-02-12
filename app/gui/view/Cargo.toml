@@ -13,7 +13,7 @@ enso-config = { path = "../config" }
 enso-frp = { path = "../../../lib/rust/frp" }
 enso-logger = { path = "../../../lib/rust/logger"}
 enso-prelude = { path = "../../../lib/rust/prelude"}
-enso-shapely = { path = "../../../lib/rust/shapely/impl"}
+enso-shapely = { path = "../../../lib/rust/shapely"}
 engine-protocol = { path = "../controller/engine-protocol" }
 ensogl = { path = "../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../lib/rust/ensogl/component" }
