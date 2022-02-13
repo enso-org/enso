@@ -15,3 +15,6 @@ spec = Test.group "Stack traces" <|
         stack = My_Type.foo
         names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]
         stack.take_start 5 . map .name . should_equal names
+        file = Enso_Project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
+        stack.take_start 5 . map (.source_location >> .file) . each (_.should_equal file)
+
