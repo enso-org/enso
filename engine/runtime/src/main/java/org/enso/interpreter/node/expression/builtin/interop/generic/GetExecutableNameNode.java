@@ -7,6 +7,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -27,7 +28,7 @@ public class GetExecutableNameNode extends Node {
       return Text.create(stringsLibrary.asString(functionsLibrary.getExecutableName(function)));
     } catch (UnsupportedMessageException e) {
       err.enter();
-      Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+      Builtins builtins = Context.get(this).getBuiltins();
       throw new PanicException(
           builtins.error().makeTypeError(builtins.function(), function, "function"), this);
     }
