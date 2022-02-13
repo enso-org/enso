@@ -1,0 +1,13 @@
+from Standard.Base import all
+import Standard.Test
+
+type My_Type
+
+bar = Runtime.get_stack_trace
+baz = here.bar
+Number.foo = here.baz
+foo x = x.foo
+My_Type.foo = here.foo 123
+
+spec = Test.group "Stack traces" <|
+    
