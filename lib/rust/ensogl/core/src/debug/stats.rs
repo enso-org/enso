@@ -78,11 +78,6 @@ impl<T: TimeProvider> FrameStats<T> {
     pub fn end_frame(&self) {
         self.rc.borrow_mut().end_frame();
     }
-
-    fn now(&self) -> f64 {
-        self.time_provider.now()
-    }
-
 }
 
 
@@ -100,7 +95,7 @@ pub struct StatsCollector<T: TimeProvider> {
 
 impl<T: TimeProvider> StatsCollector<T> {
     /// Constructor.
-    pub fn new(time_provider: T) {
+    pub fn new(time_provider: T) -> Self {
         let stats_data = default();
         let had_previous_frame = false;
         let frame_begin_time = None;
@@ -127,12 +122,11 @@ impl<T: TimeProvider> StatsCollector<T> {
             data_upload_size: 0,
             ..self.stats_data
         };
-        let mut previous_frame = mem::swap(self.stats_data, new_frame);
-        match self.frame_begin_time.swap(Some(time)) {
-            Some(previous_frame_begin) => {
+        let mut previous_frame = mem::replace(&mut self.stats_data, new_frame);
+        match self.frame_begin_time.replace(time) {
+            Some(previous_frame_begin_time) => {
                 let end_time = time;
-                let begin_time = self.frame_begin_time;
-                previous_frame.fps = 1000.0 / (end_time - begin_time);
+                previous_frame.fps = 1000.0 / (end_time - previous_frame_begin_time);
             },
             None => (),
         }
@@ -142,8 +136,10 @@ impl<T: TimeProvider> StatsCollector<T> {
     /// Ends tracking data for the current animation frame.
     /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
     pub fn end_frame(&mut self) {
-        let time = self.time_provider.now();
-        self.stats_data.frame_time = time - self.frame_begin_time;
+        if let Some(begin_time) = self.frame_begin_time {
+            let end_time = self.time_provider.now();
+            self.stats_data.frame_time = end_time - begin_time;
+        }
 
         // TODO[MC,IB]: drop the `cfg!` (outlier in our codebase) once wasm_bindgen::memory()
         // doesn't panic in non-WASM builds (https://www.pivotaltracker.com/story/show/180978631)
@@ -152,10 +148,6 @@ impl<T: TimeProvider> StatsCollector<T> {
             let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
             self.stats_data.wasm_memory_usage = buffer.byte_length();
         }
-    }
-
-    fn now(&self) -> f64 {
-        self.time_provider.borrow().now()
     }
 }
 
