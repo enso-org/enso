@@ -53,12 +53,18 @@ pub type Stats = StatsOverTime<Performance>;
 
 /// Tracks stats related to the current rendering frame, providing methods for modifying and
 /// retrieving their values.
-#[derive(Debug, Clone, CloneRef)]
-pub struct StatsOverTime<T: TimeProvider + Clone> {
+#[derive(Debug, CloneRef)]
+pub struct StatsOverTime<T: TimeProvider> {
     rc: Rc<RefCell<StatsCollector<T>>>,
 }
 
-impl<T: TimeProvider + Clone> StatsOverTime<T> {
+impl<T: TimeProvider> Clone for StatsOverTime<T> {
+    fn clone(&self) -> Self {
+        Self { rc: self.rc.clone() }
+    }
+}
+
+impl<T: TimeProvider> StatsOverTime<T> {
     /// Constructor.
     pub fn new(time_provider: T) -> Self {
         let stats_collector = StatsCollector::new(time_provider);
@@ -93,14 +99,14 @@ impl<T: TimeProvider + Clone> StatsOverTime<T> {
 // === StatsCollector ===
 // ======================
 
-#[derive(Debug, Clone)]
-struct StatsCollector<T: TimeProvider + Clone> {
+#[derive(Debug)]
+struct StatsCollector<T: TimeProvider> {
     time_provider:    T,
     stats_data:       StatsData,
     frame_begin_time: Option<f64>,
 }
 
-impl<T: TimeProvider + Clone> StatsCollector<T> {
+impl<T: TimeProvider> StatsCollector<T> {
     /// Constructor.
     fn new(time_provider: T) -> Self {
         let stats_data = default();
@@ -169,7 +175,7 @@ macro_rules! gen_stats {
 
         // === Stats fields accessors ===
 
-        impl<T: TimeProvider + Clone> StatsOverTime<T> { $(
+        impl<T: TimeProvider> StatsOverTime<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
                 self.rc.borrow().stats_data.$field
