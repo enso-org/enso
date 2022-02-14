@@ -26,7 +26,9 @@ use wasm_bindgen::JsCast;
 // === TimeProvider ===
 // ====================
 
+/// An entity that can retrieve current time.
 pub trait TimeProvider {
+    /// Returns current time, measured in milliseconds.
     fn now(&self) -> f64;
 }
 
@@ -64,9 +66,7 @@ impl<T: TimeProvider + Clone> FrameStats<T> {
     /// Also, calculates the [`fps`] stat.
     /// Returns a snapshot of statistics data for the previous frame.
     ///
-    /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
-    /// (this special case can be recognized by checking that [`StatsData::initialized`] is
-    /// `false`).
+    /// Note: on first ever frame, there was no "previous frame", so the returned stats may be zero.
     ///
     /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
     /// called properly on every frame (behavior in case of missed frames or missed calls is not
@@ -103,18 +103,7 @@ impl<T: TimeProvider + Clone> StatsCollector<T> {
         Self { time_provider, stats_data, frame_begin_time }
     }
 
-    /// Starts tracking data for a new animation frame.
-    /// Also, calculates the [`fps`] stat.
-    /// Returns a snapshot of statistics data for the previous frame.
-    ///
-    /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
-    /// (this special case can be recognized by checking that [`StatsData::initialized`] is
-    /// `false`).
-    ///
-    /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
-    /// called properly on every frame (behavior in case of missed frames or missed calls is not
-    /// specified).
-    pub fn begin_frame(&mut self) -> StatsData {
+    fn begin_frame(&mut self) -> StatsData {
         let time = self.time_provider.now();
         let new_frame = StatsData {
             draw_call_count: 0,
@@ -134,9 +123,7 @@ impl<T: TimeProvider + Clone> StatsCollector<T> {
         previous_frame
     }
 
-    /// Ends tracking data for the current animation frame.
-    /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
-    pub fn end_frame(&mut self) {
+    fn end_frame(&mut self) {
         if let Some(begin_time) = self.frame_begin_time {
             let end_time = self.time_provider.now();
             self.stats_data.frame_time = end_time - begin_time;
