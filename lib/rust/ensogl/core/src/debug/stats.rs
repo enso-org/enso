@@ -45,12 +45,12 @@ pub type Stats = FrameStats<Performance>;
 
 // == FrameStats ==
 
-#[derive(Debug)]
-pub struct FrameStats<T: TimeProvider> {
+#[derive(Debug, Clone, CloneRef)]
+pub struct FrameStats<T: TimeProvider + Clone> {
     rc: Rc<RefCell<StatsCollector<T>>>,
 }
 
-impl<T: TimeProvider> FrameStats<T> {
+impl<T: TimeProvider + Clone> FrameStats<T> {
     /// Constructor.
     pub fn new(time_provider: T) -> Self {
         let stats_collector = StatsCollector::new(time_provider);
@@ -87,13 +87,13 @@ impl<T: TimeProvider> FrameStats<T> {
 // ======================
 
 #[derive(Debug, Clone)]
-pub struct StatsCollector<T: TimeProvider> {
+pub struct StatsCollector<T: TimeProvider + Clone> {
     time_provider: T,
     stats_data: StatsData,
     frame_begin_time: Option<f64>,
 }
 
-impl<T: TimeProvider> StatsCollector<T> {
+impl<T: TimeProvider + Clone> StatsCollector<T> {
     /// Constructor.
     pub fn new(time_provider: T) -> Self {
         let stats_data = default();
@@ -176,7 +176,7 @@ macro_rules! gen_stats {
 
         // === Stats fields accessors ===
 
-        impl<T: TimeProvider> FrameStats<T> { $(
+        impl<T: TimeProvider + Clone> FrameStats<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
                 self.rc.borrow().stats_data.$field

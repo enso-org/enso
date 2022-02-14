@@ -75,7 +75,7 @@ impl World {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(dom: &web_sys::HtmlElement) -> World {
         let logger = Logger::new("world");
-        let stats = default();
+        let stats = debug::stats::Stats::new(web::performance());
         let performance = web::performance();
         let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
@@ -94,7 +94,7 @@ impl World {
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
-                let previous_frame_stats = stats.begin_frame(performance.now());
+                let previous_frame_stats = stats.begin_frame();
                 on_before_frame.run_all(&t);
                 on_stats_available.run_all(&previous_frame_stats);
 
@@ -104,7 +104,7 @@ impl World {
                 scene.renderer.run();
 
                 on_after_frame.run_all(&t);
-                stats.end_frame(performance.now());
+                stats.end_frame();
             }),
         );
 
