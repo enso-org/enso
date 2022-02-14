@@ -31,7 +31,9 @@ pub trait TimeProvider {
 }
 
 impl TimeProvider for Performance {
-    fn now(&self) -> f64 { self.now() }
+    fn now(&self) -> f64 {
+        self.now()
+    }
 }
 
 
@@ -88,8 +90,8 @@ impl<T: TimeProvider + Clone> FrameStats<T> {
 
 #[derive(Debug, Clone)]
 pub struct StatsCollector<T: TimeProvider + Clone> {
-    time_provider: T,
-    stats_data: StatsData,
+    time_provider:    T,
+    stats_data:       StatsData,
     frame_begin_time: Option<f64>,
 }
 
@@ -97,7 +99,6 @@ impl<T: TimeProvider + Clone> StatsCollector<T> {
     /// Constructor.
     pub fn new(time_provider: T) -> Self {
         let stats_data = default();
-        let had_previous_frame = false;
         let frame_begin_time = None;
         Self { time_provider, stats_data, frame_begin_time }
     }
@@ -127,7 +128,7 @@ impl<T: TimeProvider + Clone> StatsCollector<T> {
             Some(previous_frame_begin_time) => {
                 let end_time = time;
                 previous_frame.fps = 1000.0 / (end_time - previous_frame_begin_time);
-            },
+            }
             None => (),
         }
         previous_frame
