@@ -76,13 +76,12 @@ impl<T: TimeProvider> StatsOverTime<T> {
     /// Also, calculates the [`fps`] stat.
     /// Returns a snapshot of statistics data for the previous frame.
     ///
-    /// Note: on first ever frame, there was no "previous frame", so some (or all) of the returned
-    /// stats may be zero.
+    /// Note: on first ever frame, there was no "previous frame", so no data will be returned.
     ///
     /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
     /// called properly on every frame (behavior in case of missed frames or missed calls is not
     /// specified).
-    pub fn begin_frame(&self) -> StatsData {
+    pub fn begin_frame(&self) -> Option<StatsData> {
         self.rc.borrow_mut().begin_frame()
     }
 
@@ -114,7 +113,7 @@ impl<T: TimeProvider> StatsCollector<T> {
         Self { time_provider, stats_data, frame_begin_time }
     }
 
-    fn begin_frame(&mut self) -> StatsData {
+    fn begin_frame(&mut self) -> Option<StatsData> {
         let time = self.time_provider.now();
         let new_frame = StatsData {
             draw_call_count: 0,
@@ -128,10 +127,10 @@ impl<T: TimeProvider> StatsCollector<T> {
             Some(previous_frame_begin_time) => {
                 let end_time = time;
                 previous_frame.fps = 1000.0 / (end_time - previous_frame_begin_time);
+                Some(previous_frame)
             }
-            None => (),
+            None => None,
         }
-        previous_frame
     }
 
     fn end_frame(&mut self) {

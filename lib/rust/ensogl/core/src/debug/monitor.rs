@@ -780,14 +780,8 @@ macro_rules! stats_sampler {
                 $precision
             }
             fn check(&self, stats: &StatsData) -> ValueCheck {
-                // Before the first frame, all stat values will be 0, which in (only) this case is
-                // correct.
-                if !stats.initialized {
-                    ValueCheck::Correct
-                } else {
-                    let value = self.value(&stats);
-                    ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
-                }
+                let value = self.value(&stats);
+                ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
             }
             fn max_value(&self) -> Option<f64> {
                 $max_value
@@ -873,10 +867,23 @@ mod tests {
         ($test:expr, $expected_value:expr, $expected_check:path
         ; next: $frame_time:expr, $post_frame_delay:expr) => {
             let prev_frame_stats = $test.stats.begin_frame();
-            let tested_value = $test.sampler.value(&prev_frame_stats);
-            let tested_check = $test.sampler.check(&prev_frame_stats);
-            assert_approx_eq!(tested_value, $expected_value, 0.001);
-            assert!(matches!(tested_check, $expected_check));
+            if let Some(prev_frame_stats) = prev_frame_stats {
+                let tested_value = $test.sampler.value(&prev_frame_stats);
+                let tested_check = $test.sampler.check(&prev_frame_stats);
+                assert_approx_eq!(tested_value, $expected_value, 0.001);
+                let mismatch_msg = iformat!("expected: " $expected_check;? ", got: " tested_check;?);
+                assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
+            } else {
+                assert!(false, "Got None from begin_frame()");
+            }
+            $test.t += $frame_time;
+            $test.stats.end_frame();
+            $test.t += $post_frame_delay;
+        };
+
+        ($test:expr ; next: $frame_time:expr, $post_frame_delay:expr) => {
+            let prev_frame_stats = $test.stats.begin_frame();
+            assert!(matches!(prev_frame_stats, None), "Got non-empty {:?}", prev_frame_stats);
             $test.t += $frame_time;
             $test.stats.end_frame();
             $test.t += $post_frame_delay;
@@ -896,10 +903,8 @@ mod tests {
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
-        // Note: there is no frame before "Frame 1", so the tested value for the previous frame
-        // will always be 0.0 and "Correct" at this point (which is a special case - depending on
-        // tested stat, for later frames 0.0 could result in a threshold warning/error).
-        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
+        // Note: there is no frame before "Frame 1", so the previous frame will not be tested.
+        test_and_advance_frame!(test; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
         // starting next frame.
@@ -932,7 +937,7 @@ mod tests {
         // frame will always be 0.0 and [`Correct`] at this point (which is a special case -
         // depending on tested stat, for later frames 0.0 could result in a threshold
         // warning/error).
-        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
+        test_and_advance_frame!(test; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
         // starting next frame.
