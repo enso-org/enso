@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
@@ -40,6 +41,25 @@ spec =
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
+
+        Test.specify "should allow access by index to a grapheme cluster" <|
+            str = kshi + facepalm + accent_1 + accent_2
+            str.at 0 . should_equal kshi
+            str.at 1 . should_equal facepalm
+            str.at 2 . should_equal accent_1
+            str.at 3 . should_equal accent_2
+
+        Test.specify "should allow access by negative index to a grapheme cluster" <|
+            str = kshi + facepalm + accent_1 + accent_2
+            str.at -4 . should_equal kshi
+            str.at -3 . should_equal facepalm
+            str.at -2 . should_equal accent_1
+            str.at -1 . should_equal accent_2
+
+        Test.specify "should return a dataflow error when accessing characters out of bounds" <|
+            str = kshi + facepalm + accent_1 + accent_2
+            str.at -5 . should_fail_with Index_Out_Of_Bounds_Error
+            str.at 4 . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to split the text into words" <|
             sentences.words . should_equal sentence_words
@@ -99,6 +119,27 @@ spec =
         Test.specify "should convert an array of utf-16 characters to text" <|
             kshi_chars = [2325, 2381, 2359, 2367]
             Text.from_utf_16 kshi_chars . should_equal kshi
+
+        Test.specify "should be able to check by index if is a digit" <|
+            str = kshi + "A12" + accent_2
+            str.is_digit . should_be_false
+            str.is_digit 1 . should_be_false
+            str.is_digit 2 . should_be_true
+            str.is_digit 3 . should_be_true
+            str.is_digit 4 . should_be_false
+
+        Test.specify "should be able to check by negative index if is a digit" <|
+            str = kshi + "A12" + accent_2
+            str.is_digit -1 . should_be_false
+            str.is_digit -2 . should_be_true
+            str.is_digit -3 . should_be_true
+            str.is_digit -4 . should_be_false
+            str.is_digit -5 . should_be_false
+
+        Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
+            str = kshi + "A12" + accent_2
+            str.at -6 . should_fail_with Index_Out_Of_Bounds_Error
+            str.at 5 . should_fail_with Index_Out_Of_Bounds_Error
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
@@ -288,3 +329,4 @@ spec =
             result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" comments=True
             result . should_equal "aaa"
 
+main = Test.Suite.run_main here.spec
