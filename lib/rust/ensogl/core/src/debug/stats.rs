@@ -47,7 +47,7 @@ impl TimeProvider for Performance {
 pub type Stats = FrameStats<Performance>;
 
 
-// == FrameStats ==
+// === FrameStats ===
 
 #[derive(Debug, Clone, CloneRef)]
 pub struct FrameStats<T: TimeProvider + Clone> {
