@@ -39,7 +39,13 @@ compare text1 text2 =
 
         n = find_number text next iter
         s = Text_Utils.substring text prev n.abs
+        
+        ## TODO [RW] Currently there is no `Integer.parse` method, so we
+               parse a decimal and convert it to an integer. Once
+               https://www.pivotaltracker.com/story/show/181176522 is
+               implemented, this should be changed to use `Integer.parse`.        
         d = Decimal.parse s . floor
+
         i = if n < 0 then -1 else iter.current
         [s, d, n, i]
 
