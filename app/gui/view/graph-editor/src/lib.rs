@@ -3380,6 +3380,11 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
         out.source.debug_mode <+ frp.set_debug_mode;
+
+        limit_max_zoom <- frp.set_debug_mode.on_true();
+        unlimit_max_zoom <- frp.set_debug_mode.on_false();
+        eval_ limit_max_zoom (model.navigator.set_max_zoom_level(Some(1.0)));
+        eval_ unlimit_max_zoom (model.navigator.set_max_zoom_level(None));
     }
 
     // Init defaults

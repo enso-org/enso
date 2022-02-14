@@ -29,6 +29,7 @@ pub struct NavigatorModel {
     /// Indicates whether events handled the navigator should be stopped from propagating further
     /// after being handled by the Navigator.
     disable_events:  Rc<Cell<bool>>,
+    max_zoom_limit:  Rc<Cell<Option<f32>>>,
 }
 
 impl NavigatorModel {
@@ -38,6 +39,7 @@ impl NavigatorModel {
         let min_zoom = 10.0;
         let max_zoom = 10000.0;
         let disable_events = Rc::new(Cell::new(true));
+        let max_zoom_limit = default();
         let (simulator, resize_callback, _events) = Self::start_navigator_events(
             scene,
             camera,
@@ -46,8 +48,9 @@ impl NavigatorModel {
             Rc::clone(&zoom_speed),
             Rc::clone(&pan_speed),
             Rc::clone(&disable_events),
+            Rc::clone(&max_zoom_limit),
         );
-        Self { _events, simulator, resize_callback, zoom_speed, pan_speed, disable_events }
+        Self { _events, simulator, resize_callback, zoom_speed, pan_speed, disable_events, max_zoom_limit }
     }
 
     fn create_simulator(camera: &Camera2d) -> physics::inertia::DynSimulator<Vector3> {
@@ -69,6 +72,7 @@ impl NavigatorModel {
         zoom_speed: SharedSwitch<f32>,
         pan_speed: SharedSwitch<f32>,
         disable_events: Rc<Cell<bool>>,
+        min_zoom_limit: Rc<Cell<Option<f32>>>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
         let simulator = Self::create_simulator(camera);
         let panning_callback = enclose!((scene,camera,mut simulator,pan_speed) move |pan: PanEvent| {
@@ -90,7 +94,7 @@ impl NavigatorModel {
             }),
         );
 
-        let zoom_callback = enclose!((scene,camera,simulator) move |zoom:ZoomEvent| {
+        let zoom_callback = enclose!((scene,camera,simulator,min_zoom_limit) move |zoom:ZoomEvent| {
             let point       = zoom.focus;
             let normalized  = normalize_point2(point,scene.shape().value().into());
             let normalized  = normalized_to_range2(normalized, -1.0, 1.0);
@@ -105,8 +109,10 @@ impl NavigatorModel {
             let min_zoom       = camera.clipping().near + min_zoom;
             let zoom_amount    = zoom.amount * position.z;
             let direction      = direction   * zoom_amount;
+            DEBUG!("Position: {position.z}");
+            DEBUG!("Direction: {direction.z}");
             let max_zoom_limit = max_zoom - position.z;
-            let min_zoom_limit = min_zoom - position.z;
+            let min_zoom_limit = if let Some(limit) = min_zoom_limit.get() { limit } else { min_zoom - position.z };
             let too_far        = direction.z > max_zoom_limit;
             let too_close      = direction.z < min_zoom_limit;
             let zoom_factor    = if too_far   { max_zoom_limit / direction.z }
@@ -139,6 +145,10 @@ impl NavigatorModel {
         self.pan_speed.update(|switch| switch.switched(false));
         self.zoom_speed.update(|switch| switch.switched(false));
         self.disable_events.set(false);
+    }
+
+    pub fn set_max_zoom_level(&self, value: Option<f32>) {
+        self.max_zoom_limit.set(value);
     }
 }
 
