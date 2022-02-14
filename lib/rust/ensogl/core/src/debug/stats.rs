@@ -40,21 +40,22 @@ impl TimeProvider for Performance {
 // === Stats ===
 // =============
 
-pub type Stats = StatsCollector<Performance>;
+pub type Stats = FrameStats<Performance>;
 
-/// Structure containing all the gathered stats.
-#[derive(Debug, Clone, CloneRef)]
-pub struct StatsCollector<T: TimeProvider> {
-    time_provider: Rc<RefCell<T>>,
-    rc: Rc<RefCell<StatsData>>,
+
+// == FrameStats ==
+
+#[derive(Debug)]
+pub struct FrameStats<T: TimeProvider> {
+    rc: Rc<RefCell<StatsCollector<T>>>,
 }
 
-impl<T: TimeProvider> StatsCollector<T> {
+impl<T: TimeProvider> FrameStats<T> {
     /// Constructor.
-    pub fn new(time_provider: T) {
-        let time_provider = Rc::new(RefCell::new(time_provider));
-        let rc = Rc::new(RefCell::new(default()));
-        Self { time_provider, rc }
+    pub fn new(time_provider: T) -> Self {
+        let stats_collector = StatsCollector::new(time_provider);
+        let rc = Rc::new(RefCell::new(stats_collector));
+        Self { rc }
     }
 
     /// Starts tracking data for a new animation frame.
@@ -69,13 +70,88 @@ impl<T: TimeProvider> StatsCollector<T> {
     /// called properly on every frame (behavior in case of missed frames or missed calls is not
     /// specified).
     pub fn begin_frame(&self) -> StatsData {
-        self.rc.borrow_mut().begin_frame(self.now())
+        self.rc.borrow_mut().begin_frame()
     }
 
     /// Ends tracking data for the current animation frame.
     /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
     pub fn end_frame(&self) {
-        self.rc.borrow_mut().end_frame(self.now());
+        self.rc.borrow_mut().end_frame();
+    }
+
+    fn now(&self) -> f64 {
+        self.time_provider.now()
+    }
+
+}
+
+
+
+// ======================
+// === StatsCollector ===
+// ======================
+
+#[derive(Debug, Clone)]
+pub struct StatsCollector<T: TimeProvider> {
+    time_provider: T,
+    stats_data: StatsData,
+    frame_begin_time: Option<f64>,
+}
+
+impl<T: TimeProvider> StatsCollector<T> {
+    /// Constructor.
+    pub fn new(time_provider: T) {
+        let stats_data = default();
+        let had_previous_frame = false;
+        let frame_begin_time = None;
+        Self { time_provider, stats_data, frame_begin_time }
+    }
+
+    /// Starts tracking data for a new animation frame.
+    /// Also, calculates the [`fps`] stat.
+    /// Returns a snapshot of statistics data for the previous frame.
+    ///
+    /// Note: on first ever frame, there was no "previous frame", so all returned stats are zero
+    /// (this special case can be recognized by checking that [`StatsData::initialized`] is
+    /// `false`).
+    ///
+    /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
+    /// called properly on every frame (behavior in case of missed frames or missed calls is not
+    /// specified).
+    pub fn begin_frame(&mut self) -> StatsData {
+        let time = self.time_provider.now();
+        let new_frame = StatsData {
+            draw_call_count: 0,
+            shader_compile_count: 0,
+            data_upload_count: 0,
+            data_upload_size: 0,
+            ..self.stats_data
+        };
+        let mut previous_frame = mem::swap(self.stats_data, new_frame);
+        match self.frame_begin_time.swap(Some(time)) {
+            Some(previous_frame_begin) => {
+                let end_time = time;
+                let begin_time = self.frame_begin_time;
+                previous_frame.fps = 1000.0 / (end_time - begin_time);
+            },
+            None => (),
+        }
+        previous_frame
+    }
+
+    /// Ends tracking data for the current animation frame.
+    /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
+    pub fn end_frame(&mut self) {
+        let time = self.time_provider.now();
+        self.stats_data.frame_time = time - self.frame_begin_time;
+
+        // TODO[MC,IB]: drop the `cfg!` (outlier in our codebase) once wasm_bindgen::memory()
+        // doesn't panic in non-WASM builds (https://www.pivotaltracker.com/story/show/180978631)
+        if cfg!(target_arch = "wasm32") {
+            let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
+            let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
+            self.stats_data.wasm_memory_usage = buffer.byte_length();
+        }
     }
 
     fn now(&self) -> f64 {
@@ -101,7 +177,6 @@ macro_rules! gen_stats {
         #[derive(Debug,Default,Clone,Copy)]
         #[allow(missing_docs)]
         pub struct StatsData {
-            frame_begin_time: f64,
             pub initialized:  bool,
             $(pub $field : $field_type),*
         }
@@ -109,15 +184,15 @@ macro_rules! gen_stats {
 
         // === Stats fields accessors ===
 
-        impl<T: TimeProvider> StatsCollector<T> { $(
+        impl<T: TimeProvider> FrameStats<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
-                self.rc.borrow().$field
+                self.rc.borrow().stats_data.$field
             }
 
             /// Field setter.
             pub fn [<set _ $field>](&self, value:$field_type) {
-                self.rc.borrow_mut().$field = value;
+                self.rc.borrow_mut().stats_data.$field = value;
             }
 
             /// Field modifier.
@@ -158,45 +233,6 @@ gen_stats! {
     mesh_count           : usize,
     shader_count         : usize,
     shader_compile_count : usize,
-}
-
-
-// === StatsData methods ===
-
-impl StatsData {
-    fn begin_frame(&mut self, time: f64) -> StatsData {
-        // See [StatsCollector::begin_frame()] docs for explanation of this check.
-        let previous_frame_snapshot = if !self.initialized {
-            self.initialized = true;
-            default()
-        } else {
-            let end_time = time;
-            self.fps = 1000.0 / (end_time - self.frame_begin_time);
-            *self
-        };
-        self.frame_begin_time = time;
-        self.reset_per_frame_statistics();
-        previous_frame_snapshot
-    }
-
-    fn end_frame(&mut self, time: f64) {
-        self.frame_time = time - self.frame_begin_time;
-
-        // TODO[MC,IB]: drop the `cfg!` (outlier in our codebase) once wasm_bindgen::memory()
-        // doesn't panic in non-WASM builds (https://www.pivotaltracker.com/story/show/180978631)
-        if cfg!(target_arch = "wasm32") {
-            let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
-            let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
-            self.wasm_memory_usage = buffer.byte_length();
-        }
-    }
-
-    fn reset_per_frame_statistics(&mut self) {
-        self.draw_call_count = 0;
-        self.shader_compile_count = 0;
-        self.data_upload_count = 0;
-        self.data_upload_size = 0;
-    }
 }
 
 /// Keeps the body if the `statistics` compilation flag was enabled.
