@@ -15,9 +15,24 @@
 
 use enso_prelude::*;
 
+use enso_web::Performance;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use wasm_bindgen::JsCast;
+
+
+
+// ====================
+// === TimeProvider ===
+// ====================
+
+pub trait TimeProvider {
+    fn now(&self) -> f64;
+}
+
+impl TimeProvider for Performance {
+    fn now(&self) -> f64 { self.now() }
+}
 
 
 
@@ -25,20 +40,23 @@ use wasm_bindgen::JsCast;
 // === Stats ===
 // =============
 
+pub type Stats = StatsCollector<Performance>;
+
 /// Structure containing all the gathered stats.
 #[derive(Debug, Clone, CloneRef)]
-pub struct Stats {
+pub struct StatsCollector<T: TimeProvider> {
+    time_provider: Rc<RefCell<T>>,
     rc: Rc<RefCell<StatsData>>,
 }
 
-impl Default for Stats {
-    fn default() -> Self {
+impl<T: TimeProvider> StatsCollector<T> {
+    /// Constructor.
+    pub fn new(time_provider: T) {
+        let time_provider = Rc::new(RefCell::new(time_provider));
         let rc = Rc::new(RefCell::new(default()));
-        Self { rc }
+        Self { time_provider, rc }
     }
-}
 
-impl Stats {
     /// Starts tracking data for a new animation frame.
     /// Also, calculates the [`fps`] stat.
     /// Returns a snapshot of statistics data for the previous frame.
@@ -50,14 +68,18 @@ impl Stats {
     /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
     /// called properly on every frame (behavior in case of missed frames or missed calls is not
     /// specified).
-    pub fn begin_frame(&self, time: f64) -> StatsData {
-        self.rc.borrow_mut().begin_frame(time)
+    pub fn begin_frame(&self) -> StatsData {
+        self.rc.borrow_mut().begin_frame(self.now())
     }
 
     /// Ends tracking data for the current animation frame.
     /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
-    pub fn end_frame(&self, time: f64) {
-        self.rc.borrow_mut().end_frame(time);
+    pub fn end_frame(&self) {
+        self.rc.borrow_mut().end_frame(self.now());
+    }
+
+    fn now(&self) -> f64 {
+        self.time_provider.borrow().now()
     }
 }
 
@@ -87,7 +109,7 @@ macro_rules! gen_stats {
 
         // === Stats fields accessors ===
 
-        impl Stats { $(
+        impl<T: TimeProvider> StatsCollector<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
                 self.rc.borrow().$field
@@ -143,7 +165,7 @@ gen_stats! {
 
 impl StatsData {
     fn begin_frame(&mut self, time: f64) -> StatsData {
-        // See [Stats::begin_frame()] docs for explanation of this check.
+        // See [StatsCollector::begin_frame()] docs for explanation of this check.
         let previous_frame_snapshot = if !self.initialized {
             self.initialized = true;
             default()
