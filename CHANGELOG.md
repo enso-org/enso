@@ -2,6 +2,9 @@
 
 #### Visual Environment
 
+- [Debug Mode for Graph Editor can be activated/deactivated using a
+  shortcut.][3264] It allows access to a set of restricted features. See
+  [debug-shortcuts].
 - [New nodes can be created by dragging and dropping a connection on the
   scene.][3231]
 - [Node connections can be dropped by pressing the Esc key while dragging
@@ -36,6 +39,8 @@
   `Table.use_first_row_as_names` operations][3249]
 - [Implemented `Text.at` and `Text.is_digit` methods][3269]
 
+[debug-shortcuts]:
+  https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
 [3181]: https://github.com/enso-org/enso/pull/3181
@@ -51,6 +56,7 @@
 [3250]: https://github.com/enso-org/enso/pull/3250
 [3256]: https://github.com/enso-org/enso/pull/3256
 [3249]: https://github.com/enso-org/enso/pull/3249
+[3264]: https://github.com/enso-org/enso/pull/3264
 [3269]: https://github.com/enso-org/enso/pull/3269
 
 #### Enso Compiler
