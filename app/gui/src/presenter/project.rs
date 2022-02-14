@@ -9,8 +9,8 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
-use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
+
 
 
 // =============

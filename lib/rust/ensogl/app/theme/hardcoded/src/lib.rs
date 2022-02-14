@@ -486,6 +486,21 @@ define_themes! { [light:0, dark:1]
                 size = 20.0, 20.0;
             }
         }
+        add_node_button {
+            margin = 28.0, 28.0;
+            size = 120.0, 120.0;
+            background = Rgba(1.0, 1.0, 1.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
+            color = Rgba(0.0, 0.451, 0.859, 0.0), Rgba(0.0, 0.451, 0.859, 0.0);
+
+            hover {
+                background = Rgba(0.8, 0.8, 1.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
+                color = Rgba(0.0, 0.451, 0.859, 0.0), Rgba(0.0, 0.451, 0.859, 0.0);
+            }
+            click {
+                background = Rgba(0.6, 0.6, 1.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
+                color = Rgba(0.0, 0.451, 0.859, 0.0), Rgba(0.0, 0.451, 0.859, 0.0);
+            }
+        }
     }
     widget {
         list_view {

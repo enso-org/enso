@@ -71,6 +71,7 @@ ensogl::define_endpoints! {
 
     Output {
         searcher                            (Option<SearcherParams>),
+        is_searcher_opened                  (bool),
         adding_new_node                     (bool),
         old_expression_of_edited_node       (Expression),
         editing_aborted                     (NodeId),
@@ -232,6 +233,11 @@ impl Model {
             }
         }
     }
+
+    // fn expression_of_node(&self, node_id: NodeId) -> Expression {
+    //     let node = self.graph_editor.model.nodes.get_cloned_ref(&node_id);
+    //     node.map(|n| n.view.model.input..).unwr
+    // }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
         let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
@@ -407,20 +413,26 @@ impl View {
 
             // === Closing Searcher
 
-            is_searcher_opened <- frp.searcher.map(|s| s.is_some());
+            frp.source.is_searcher_opened <+ frp.searcher.map(|s| s.is_some());
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
-            finished_with_searcher <- graph.node_editing_finished.gate(&is_searcher_opened);
+            finished_with_searcher <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
             frp.source.searcher <+ frp.close_searcher.constant(None);
             frp.source.searcher <+ searcher.editing_committed.constant(None);
             frp.source.searcher <+ finished_with_searcher.constant(None);
 
             committed_in_searcher <-
                 searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
+            trace committed_in_searcher;
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
+            trace aborted_in_searcher;
             frp.source.editing_committed <+ committed_in_searcher;
             frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
+
+            committed_in_searcher_event <- committed_in_searcher.constant(());
+            aborted_in_searcher_event <- aborted_in_searcher.constant(());
+            graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
 
 
             // === Adding Node ===
@@ -429,7 +441,8 @@ impl View {
                 |&(node, src)| SearcherParams::new_for_new_node(node, src)
             );
             frp.source.adding_new_node <+ searcher_for_adding.to_true();
-            frp.source.searcher <+ searcher_for_adding.map(|&s| Some(s));
+            new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
+            frp.source.searcher <+ searcher_for_adding.sample(&new_node_edited).map(|&s| Some(s));
 
             adding_committed <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted <- frp.editing_aborted.gate(&frp.adding_new_node);
@@ -446,11 +459,11 @@ impl View {
 
             // === Editing ===
 
-            editing_started_with_searcher <- graph.node_editing_started.map2(&frp.searcher, |&n,&s| (n,s));
-            new_node_is_edited <- editing_started_with_searcher.filter_map(|&(node_id, searcher)| {
-                searcher.map_or(true, |s| s.input != node_id).as_some(node_id)
-            });
-            frp.source.searcher <+ new_node_is_edited.map(
+            existing_node_edited <- graph.node_editing_started.gate_not(&frp.adding_new_node);
+            // frp.source.old_expression_of_edited_node <+ existing_node_edited.map(f!((node_id)
+            //     model.graph_editor.model.nodes
+            // ));
+            frp.source.searcher <+ existing_node_edited.map(
                 |&node| Some(SearcherParams::new_for_edited_node(node))
             );
 

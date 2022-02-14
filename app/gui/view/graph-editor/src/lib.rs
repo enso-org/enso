@@ -1333,6 +1333,9 @@ impl GraphEditorModelWithNetwork {
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
+        if should_edit {
+            node.view.set_expression(node::Expression::default());
+        }
         (node.id(), source, should_edit)
     }
 
@@ -1508,6 +1511,7 @@ pub struct GraphEditorModel {
     navigator:            Navigator,
     profiling_statuses:   profiling::Statuses,
     profiling_button:     component::profiling::Button,
+    add_node_button:      component::add_node_button::AddNodeButton,
     styles_frp:           StyleWatchFrp,
     selection_controller: selection::Controller,
 }
@@ -1533,6 +1537,7 @@ impl GraphEditorModel {
         let tooltip = Tooltip::new(&app);
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button = component::profiling::Button::new(&app);
+        let add_node_button = component::add_node_button::AddNodeButton::new(&app);
         let drop_manager = ensogl_drop_manager::Manager::new(&scene.dom.root);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller =
@@ -1555,6 +1560,7 @@ impl GraphEditorModel {
             navigator,
             profiling_statuses,
             profiling_button,
+            add_node_button,
             styles_frp,
             selection_controller,
         }
@@ -1570,6 +1576,7 @@ impl GraphEditorModel {
         self.breadcrumbs.gap_width(traffic_lights_gap_width());
         self.scene().add_child(&self.tooltip);
         self.add_child(&self.profiling_button);
+        self.add_child(&self.add_node_button);
         self
     }
 
@@ -2278,7 +2285,7 @@ impl application::View for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
-            (Press, "!node_editing", "tab", "add_node_and_edit"),
+            (Press, "!node_editing", "tab", "start_node_creation"),
             // === Drag ===
             (Press, "", "left-mouse-button", "node_press"),
             (Release, "", "left-mouse-button", "node_release"),
@@ -2753,7 +2760,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         trace new_node;
         out.source.node_added <+ new_node.map(|&(id, src, _)| (id, src));
         trace out.node_added;
-        out.source.node_editing_started  <+ new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
+        out.source.node_editing_started <+ new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
         trace out.node_editing_started;
 
 
