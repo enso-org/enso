@@ -167,7 +167,6 @@ macro_rules! gen_stats {
         #[derive(Debug,Default,Clone,Copy)]
         #[allow(missing_docs)]
         pub struct StatsData {
-            pub initialized:  bool,
             $(pub $field : $field_type),*
         }
 
