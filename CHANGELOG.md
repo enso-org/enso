@@ -41,6 +41,8 @@
 - [Implemented `Runtime.get_stack_trace` together with some utilities to process
   stack traces and code locations][3271]
 - [Implemented `Vector.flatten`][3259]
+- [Significant performance improvement in `Natural_Order` and new `Faker`
+  methods added to `Standard.Test`][3276]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -63,6 +65,7 @@
 [3269]: https://github.com/enso-org/enso/pull/3269
 [3271]: https://github.com/enso-org/enso/pull/3271
 [3259]: https://github.com/enso-org/enso/pull/3259
+[3276]: https://github.com/enso-org/enso/pull/3276
 
 #### Enso Compiler
 
