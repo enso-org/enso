@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-logger = { path = "../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../lib/rust/prelude"}
-enso-shapely = { path = "../../../../lib/rust/shapely/impl"}
+enso-shapely = { path = "../../../../lib/rust/shapely"}
 enso-text = { path = "../../../../lib/rust/text"}
 json-rpc = { path = "../../../../lib/rust/json-rpc" }
 chrono = { version = "0.4", features = ["serde"] }

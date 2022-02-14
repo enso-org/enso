@@ -82,7 +82,7 @@ public class Context {
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
-    this.threadManager = new ThreadManager();
+    this.threadManager = new ThreadManager(environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);

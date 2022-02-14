@@ -37,6 +37,7 @@
 - [Fixed `Vector.sort` to handle tail-recursive comparators][3256]
 - [Implemented `Range.find`, `Table.rename_columns` and
   `Table.use_first_row_as_names` operations][3249]
+- [Implemented `Text.at` and `Text.is_digit` methods][3269]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -56,12 +57,15 @@
 [3256]: https://github.com/enso-org/enso/pull/3256
 [3249]: https://github.com/enso-org/enso/pull/3249
 [3264]: https://github.com/enso-org/enso/pull/3264
+[3269]: https://github.com/enso-org/enso/pull/3269
 
 #### Enso Compiler
 
 - [Added overloaded `from` conversions.][3227]
+- [Upgraded to Graal VM 21.3.0][3258]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
+[3258]: https://github.com/enso-org/enso/pull/3258
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

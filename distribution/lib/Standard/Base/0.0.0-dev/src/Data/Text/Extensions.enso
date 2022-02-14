@@ -19,6 +19,15 @@ polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
 
+## UNSTABLE
+
+   An error for when an index is out of bounds in a text.
+
+   Arguments:
+   - index: The requested index in the text.
+   - length: The length of the text.
+type Index_Out_Of_Bounds_Error index length
+
 ## ALIAS Length
 
    Computes the number of characters in the text.
@@ -72,6 +81,48 @@ Text.each function =
         @Tail_Call iterate nxt next_nxt
     iterate fst nxt
     Nothing
+
+## ALIAS Get Character
+
+   Returns a character from the text at the specified index (0-based).
+
+   Arguments:
+     - index: The location in the text to get the character from. The
+       index is also allowed be negative, then the characters are
+       counted from the end of the text, i.e. -1 will correspond to the
+       last character.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the individual characters in the text "건반(Korean)".
+
+         "건반(Korean)".at 1 == "반"
+Text.at : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.at index =
+    case index < 0 of
+        True ->
+            length = this.length
+            new_index = index + length
+            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error index length) else
+                this.at new_index
+        False ->
+            iterator = BreakIterator.getCharacterInstance
+            iterator.setText this
+
+            loop prev next count = if count == index then (Text_Utils.substring this prev next) else
+                next_next = iterator.next
+                if next_next == -1 then count else
+                    @Tail_Call loop next next_next (count + 1)
+
+            first = iterator.next
+            result = if (first == -1) then 0 else (loop 0 first 0)
+            case result of
+                Integer -> Error.throw (Index_Out_Of_Bounds_Error index result)
+                _ -> result
 
 ## ALIAS Get Characters
 
@@ -546,6 +597,34 @@ Text.is_empty = this == ""
          "aaa".not_empty
 Text.not_empty : Boolean
 Text.not_empty = this.is_empty.not
+
+## Returns if a character from the text at the specified index (0-based) is a
+   digit (0-9).
+
+   Arguments:
+     - index: The location in the text to get the character from. The
+       index is also allowed be negative, then the characters are
+       counted from the end of the text, i.e. -1 will correspond to the
+       last character.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Check if an individual character is a digit:
+
+         "0".is_digit == True
+         "A0".is_digit == False
+         "A0".is_digit 1 == True
+         "건반(Korean)".is_digit 1 == False
+Text.is_digit : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.is_digit (index=0) =
+    grapheme = this.at index
+    if grapheme.is_error then grapheme else
+        char = (Text_Utils.get_chars grapheme).at 0
+        char>=48 && char<=57
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.

@@ -1,0 +1,5 @@
+{
+  "goog:chromeOptions": {
+    "args": ["--no-proxy-server", "--no-sandbox"]
+  }
+}

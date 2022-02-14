@@ -168,7 +168,7 @@ mod tests {
 
     impl TestRun {
         fn from_definition(definition: DefinitionInfo) -> TestRun {
-            let graph = GraphInfo::from_definition(definition.clone());
+            let graph = GraphInfo::from_definition(definition);
             let repr_of = |connection: &Connection| {
                 let endpoint = &connection.source;
                 let node = graph.find_node(endpoint.node).unwrap();
@@ -177,7 +177,7 @@ mod tests {
             };
 
             let mut connections = graph.connections();
-            connections.sort_by(|lhs, rhs| repr_of(&lhs).cmp(&repr_of(&rhs)));
+            connections.sort_by_key(|con| repr_of(con));
 
             TestRun { graph, connections }
         }
@@ -273,7 +273,7 @@ f = fun 2";
         for node in nodes {
             let node_repr = node.ast().repr();
             let expected = expected_dependent_nodes.get(node_repr.as_str()).unwrap();
-            let result = dependent_nodes_in_def(&graph.source.body().item, node.id());
+            let result = dependent_nodes_in_def(graph.source.body().item, node.id());
             let result_node = result.iter().map(|id| graph.find_node(*id).unwrap());
             let mut result_repr = result_node.map(|n| n.ast().repr()).collect_vec();
             result_repr.sort();
