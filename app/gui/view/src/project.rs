@@ -3,6 +3,8 @@
 use crate::prelude::*;
 
 use crate::code_editor;
+use crate::debug_mode_popup;
+use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
@@ -92,6 +94,10 @@ ensogl::define_endpoints! {
         show_prompt(),
         /// Disable the prompt. It will be hidden if currently visible.
         disable_prompt(),
+        // Enable Debug Mode of Graph Editor.
+        enable_debug_mode(),
+        // Disable Debug Mode of Graph Editor.
+        disable_debug_mode(),
     }
 
     Output {
@@ -106,6 +112,7 @@ ensogl::define_endpoints! {
         style                               (Theme),
         fullscreen_visualization_shown      (bool),
         drop_files_enabled                  (bool),
+        debug_mode                          (bool),
     }
 }
 
@@ -153,6 +160,7 @@ struct Model {
     prompt_background:      prompt_background::View,
     prompt:                 ensogl_text::Area,
     open_dialog:            Rc<OpenDialog>,
+    debug_mode_popup:       debug_mode_popup::View,
 }
 
 impl Model {
@@ -166,6 +174,7 @@ impl Model {
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new(&logger);
         let prompt = ensogl_text::Area::new(app);
+        let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
@@ -174,6 +183,7 @@ impl Model {
         });
         let window_control_buttons = Immutable(window_control_buttons);
         let open_dialog = Rc::new(OpenDialog::new(app));
+
         prompt_background.add_child(&prompt);
         prompt.set_content("Press the tab key to search for components.");
         scene.layers.panel.add_exclusive(&prompt_background);
@@ -184,6 +194,7 @@ impl Model {
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
         display_object.add_child(&prompt_background);
+        display_object.add_child(&debug_mode_popup);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -200,6 +211,7 @@ impl Model {
             prompt_background,
             prompt,
             open_dialog,
+            debug_mode_popup,
         }
     }
 
@@ -625,6 +637,14 @@ impl View {
 
             frp.source.drop_files_enabled <+ init.constant(true);
             frp.source.drop_files_enabled <+ frp.open_dialog_shown.map(|v| !v);
+
+            // === Debug Mode ===
+
+            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
+            graph.set_debug_mode <+ frp.source.debug_mode;
+
+            model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
+            model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
         }
         init.emit(());
         std::mem::forget(prompt_visibility);
@@ -697,6 +717,8 @@ impl application::View for View {
             (Press, "", "cmd s", "save_module"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
+            (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
+            (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
         ])
             .iter()
             .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

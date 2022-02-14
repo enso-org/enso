@@ -18,6 +18,7 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::*;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
@@ -91,23 +92,27 @@ impl Model {
         let label = app.new_view::<text::Area>();
         let background = background::View::new(&logger);
 
-        // FIXME[MM/WD]: Depth sorting of labels to in front of everything else in the scene.
-        //  Temporary solution. The depth management needs to allow defining relative position of
-        //  the text and background and let the whole component to be set to am an arbitrary layer.
-        label.remove_from_scene_layer(&scene.layers.main);
-        label.add_to_scene_layer(&scene.layers.tooltip_text);
-        scene.layers.tooltip.add_exclusive(&background);
-
         display_object.add_child(&background);
         display_object.add_child(&label);
 
         let style = StyleWatch::new(&app.display.scene().style_sheet);
 
-        Model { background, label, display_object, style }
+        let model = Model { background, label, display_object, style };
+        model.set_layers(&scene.layers.tooltip, &scene.layers.tooltip_text);
+        model
     }
 
     pub fn height(&self) -> f32 {
         self.style.get_number(theme::height)
+    }
+
+    /// Set scene layers for background and text respectively.
+    pub fn set_layers(&self, background_layer: &Layer, text_layer: &Layer) {
+        // FIXME[MM/WD]: Depth sorting of labels to in front of everything else in the scene.
+        //  Temporary solution. The depth management needs to allow defining relative position of
+        //  the text and background and let the whole component to be set to am an arbitrary layer.
+        background_layer.add_exclusive(&self.background);
+        self.label.add_to_scene_layer(text_layer);
     }
 
     fn set_width(&self, width: f32) -> Vector2 {
@@ -166,6 +171,13 @@ impl Label {
         Label { model, frp }.init()
     }
 
+    /// Set layers for Label's background and text respectively. This is needed because
+    /// `text::Area` uses its own `add_to_scene_layer` method instead of utilizing more common
+    /// [`Layer::add_exclusive`].
+    pub fn set_layers(&self, background_layer: &Layer, text_layer: &Layer) {
+        self.model.set_layers(background_layer, text_layer);
+    }
+
     fn init(self) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
@@ -180,6 +192,14 @@ impl Label {
         }
 
         self
+    }
+}
+
+impl Deref for Label {
+    type Target = Frp;
+
+    fn deref(&self) -> &Self::Target {
+        &self.frp
     }
 }
 

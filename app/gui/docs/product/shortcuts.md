@@ -120,6 +120,7 @@ broken and require further investigation.
 
 | Shortcut                                                           | Action                                                                                                                         |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>d</kbd>                  | Toggle Debug Mode. All actions below are only possible when it is activated.                                                   |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>i</kbd> | Open the developer console.                                                                                                    |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>r</kbd> | Reload the visual interface.                                                                                                   |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>0 - 10</kbd>               | Switch between debug rendering modes (0 is the normal mode).                                                                   |
