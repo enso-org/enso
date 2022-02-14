@@ -830,7 +830,7 @@ mod tests {
 
     #[derive(Default, Clone)]
     struct MockTimeProvider {
-        t: Rc<RefCell<f64>>
+        t: Rc<RefCell<f64>>,
     }
 
     impl TimeProvider for MockTimeProvider {
