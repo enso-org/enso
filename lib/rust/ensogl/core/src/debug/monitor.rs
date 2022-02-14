@@ -823,32 +823,68 @@ stats_sampler!(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use enso_prelude::*;
 
-    use crate::debug::stats::Stats;
+    use crate::debug::stats::StatsOverTime;
+    use crate::debug::stats::TimeProvider;
+    use std::ops::AddAssign;
 
     use assert_approx_eq::assert_approx_eq;
 
 
-    #[derive(Default)]
+    // === MockTimeProvider ===
+
+    #[derive(Default, Clone)]
+    struct MockTimeProvider {
+        t: Rc<RefCell<f64>>
+    }
+
+    impl TimeProvider for MockTimeProvider {
+        fn now(&self) -> f64 {
+            *self.t.borrow()
+        }
+    }
+
+    impl AddAssign<f64> for MockTimeProvider {
+        fn add_assign(&mut self, dt: f64) {
+            *self.t.borrow_mut() += dt;
+        }
+    }
+
+
+    // === TestSampler ===
+
     struct TestSampler<S: Sampler> {
-        stats:   Stats,
+        stats:   StatsOverTime<MockTimeProvider>,
         sampler: S,
-        t:       f64,
+        t:       MockTimeProvider,
+    }
+
+    impl<S: Sampler + Default> Default for TestSampler<S> {
+        fn default() -> Self {
+            let t: MockTimeProvider = default();
+            let stats = StatsOverTime::new(t.clone());
+            let sampler = default();
+            Self { stats, sampler, t }
+        }
     }
 
     macro_rules! test_and_advance_frame {
         ($test:expr, $expected_value:expr, $expected_check:path
         ; next: $frame_time:expr, $post_frame_delay:expr) => {
-            let prev_frame_stats = $test.stats.begin_frame($test.t);
+            let prev_frame_stats = $test.stats.begin_frame();
             let tested_value = $test.sampler.value(&prev_frame_stats);
             let tested_check = $test.sampler.check(&prev_frame_stats);
             assert_approx_eq!(tested_value, $expected_value, 0.001);
             assert!(matches!(tested_check, $expected_check));
             $test.t += $frame_time;
-            $test.stats.end_frame($test.t);
+            $test.stats.end_frame();
             $test.t += $post_frame_delay;
         };
     }
+
+
+    // === Tests ===
 
     #[test]
     fn frame_time() {
