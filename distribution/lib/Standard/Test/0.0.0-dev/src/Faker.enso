@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 polyglot java import java.util.Random
+polyglot java import org.enso.base.Text_Utils
 
 upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".utf_8
 numbers = "0123456789".utf_8
