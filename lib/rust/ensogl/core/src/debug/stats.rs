@@ -66,7 +66,8 @@ impl<T: TimeProvider + Clone> FrameStats<T> {
     /// Also, calculates the [`fps`] stat.
     /// Returns a snapshot of statistics data for the previous frame.
     ///
-    /// Note: on first ever frame, there was no "previous frame", so the returned stats may be zero.
+    /// Note: on first ever frame, there was no "previous frame", so some (or all) of the returned
+    /// stats may be zero.
     ///
     /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
     /// called properly on every frame (behavior in case of missed frames or missed calls is not
