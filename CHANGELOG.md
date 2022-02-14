@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
 - [Debug Mode for Graph Editor can be activated/deactivated using a
   shortcut.][3264] It allows access to a set of restricted features. See
   [debug-shortcuts].
@@ -58,6 +59,7 @@
 [3249]: https://github.com/enso-org/enso/pull/3249
 [3264]: https://github.com/enso-org/enso/pull/3264
 [3269]: https://github.com/enso-org/enso/pull/3269
+[3273]: https://github.com/enso-org/enso/pull/3273
 
 #### Enso Compiler
 
