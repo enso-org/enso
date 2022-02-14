@@ -74,16 +74,16 @@ async function build_project_manager() {
 }
 
 /// Run the local project manager binary.
-function run_project_manager(options = {}) {
+function run_project_manager() {
     const bin_path = paths.get_project_manager_path(paths.dist.bin)
     console.log(`Starting the project manager from "${bin_path}".`)
-    return child_process.execFile(bin_path, [], options, (error, stdout, stderr) => {
-        console.log(`Project manager finished.`)
+    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
         console.error(stderr)
-        if (error && !error.killed) {
+        if (error) {
             throw error
         }
         console.log(stdout)
+        console.log(`Project manager running.`)
     })
 }
 
@@ -115,13 +115,7 @@ commands.clean.rust = async function () {
 
 commands.check = command(`Fast check if project builds (only Rust target)`)
 commands.check.rust = async function () {
-    await run_cargo('cargo', [
-        'check',
-        '--workspace',
-        ' -p',
-        'enso-integration-test',
-        '--all-targets',
-    ])
+    await run_cargo('cargo', ['check'])
 }
 
 // === Build ===
@@ -254,41 +248,11 @@ commands.test.rust = async function (argv) {
     }
 }
 
-// === Integration Test ===
-
-commands['integration-test'] = command('Run integration test suite')
-commands['integration-test'].rust = async function (argv) {
-    let pm_process = null
-    if (argv.backend !== 'false') {
-        let env = { ...process.env, PROJECTS_ROOT: path.resolve(os.tmpdir(), 'enso') }
-        pm_process = await build_project_manager().then(() => run_project_manager({ env: env }))
-    }
-    try {
-        console.log(`Running Rust WASM test suite.`)
-        let args = ['test', '--chrome', 'integration-test', '--profile=integration-test']
-        await run_cargo('wasm-pack', args)
-    } finally {
-        console.log(`Shutting down Project Manager`)
-        if (pm_process !== null) {
-            pm_process.kill()
-        }
-    }
-}
-
 // === Lint ===
 
 commands.lint = command(`Lint the codebase`)
 commands.lint.rust = async function () {
-    await run_cargo('cargo', [
-        'clippy',
-        '--workspace',
-        '-p',
-        'enso-integration-test',
-        '--all-targets',
-        '--',
-        '-D',
-        'warnings',
-    ])
+    await run_cargo('cargo', ['clippy', '--', '-D', 'warnings'])
     await run_cargo('cargo', ['fmt', '--', '--check'])
 }
 

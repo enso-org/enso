@@ -587,9 +587,6 @@ pub trait API: Debug + model::undo_redo::Aware {
     fn info(&self) -> double_representation::module::Info {
         double_representation::module::Info::from(self.ast())
     }
-
-    /// Returns self as any. Used for casting down the [`Module`] object.
-    fn as_any(&self) -> &dyn Any;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.
@@ -621,7 +618,6 @@ pub type Module = Rc<dyn API>;
 pub type Plain = plain::Module;
 /// Module Model which synchronizes all changes with Language Server.
 pub type Synchronized = synchronized::Module;
-
 
 
 // ============

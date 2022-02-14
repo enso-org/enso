@@ -281,7 +281,7 @@ mod tests {
         }
 
         {
-            let mut chain = chain;
+            let mut chain = chain.clone();
             chain.insert_arg(4, arg("arg"));
             assert_eq!(chain.repr(), "a b c _ _ arg");
         }

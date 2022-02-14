@@ -214,10 +214,6 @@ impl model::module::API for Module {
             content.metadata.ide.project = Some(data);
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 impl model::undo_redo::Aware for Module {
@@ -290,13 +286,13 @@ mod test {
         // Metadata update
         let id = Uuid::new_v4();
         let node_metadata = NodeMetadata { position: Some(Position::new(1.0, 2.0)), ..default() };
-        module.set_node_metadata(id, node_metadata.clone()).unwrap();
+        module.set_node_metadata(id.clone(), node_metadata.clone()).unwrap();
         expect_notification(NotificationKind::MetadataChanged);
 
-        module.remove_node_metadata(id).unwrap();
+        module.remove_node_metadata(id.clone()).unwrap();
         expect_notification(NotificationKind::MetadataChanged);
 
-        module.with_node_metadata(id, Box::new(|md| *md = node_metadata.clone())).unwrap();
+        module.with_node_metadata(id.clone(), Box::new(|md| *md = node_metadata.clone())).unwrap();
         expect_notification(NotificationKind::MetadataChanged);
 
         // Whole update
@@ -316,17 +312,17 @@ mod test {
         let module = model::module::test::plain_from_code("");
 
         let id = Uuid::new_v4();
-        let initial_md = module.node_metadata(id);
+        let initial_md = module.node_metadata(id.clone());
         assert!(initial_md.is_err());
 
         let md_to_set = NodeMetadata { position: Some(Position::new(1.0, 2.0)), ..default() };
-        module.set_node_metadata(id, md_to_set.clone()).unwrap();
-        assert_eq!(md_to_set.position, module.node_metadata(id).unwrap().position);
+        module.set_node_metadata(id.clone(), md_to_set.clone()).unwrap();
+        assert_eq!(md_to_set.position, module.node_metadata(id.clone()).unwrap().position);
 
         let new_pos = Position::new(4.0, 5.0);
         module
             .with_node_metadata(
-                id,
+                id.clone(),
                 Box::new(|md| {
                     assert_eq!(md_to_set.position, md.position);
                     md.position = Some(new_pos);
