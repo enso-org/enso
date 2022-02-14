@@ -82,6 +82,7 @@ impl NavigatorModel {
         simulator
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn start_navigator_events(
         scene: &Scene,
         camera: &Camera2d,
