@@ -38,6 +38,8 @@
 - [Implemented `Range.find`, `Table.rename_columns` and
   `Table.use_first_row_as_names` operations][3249]
 - [Implemented `Text.at` and `Text.is_digit` methods][3269]
+- [Implemented `Runtime.get_stack_trace` together with some utilities to
+  to process stack traces and code locations][3271]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -58,6 +60,9 @@
 [3249]: https://github.com/enso-org/enso/pull/3249
 [3264]: https://github.com/enso-org/enso/pull/3264
 [3269]: https://github.com/enso-org/enso/pull/3269
+[3271]: https://github.com/enso-org/enso/pull/3271
+
+>>>>>>> Stashed changes
 
 #### Enso Compiler
 
