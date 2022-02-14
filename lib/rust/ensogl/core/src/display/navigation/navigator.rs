@@ -94,7 +94,7 @@ impl NavigatorModel {
         max_zoom_limit: Rc<Cell<Option<f32>>>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
         let simulator = Self::create_simulator(camera);
-        let panning_callback = enclose!((scene,camera,mut simulator,pan_speed) move |pan: PanEvent| {
+        let panning_callback = f!([scene,camera,simulator,pan_speed] (pan: PanEvent) {
             let fovy_slope                  = camera.half_fovy_slope();
             let distance                    = camera.position().z;
             let distance_to_show_full_ui    = scene.shape().value().height / 2.0 / fovy_slope;
@@ -113,7 +113,7 @@ impl NavigatorModel {
             }),
         );
 
-        let zoom_callback = enclose!((scene,camera,simulator,max_zoom_limit) move |zoom:ZoomEvent| {
+        let zoom_callback = f!([scene,camera,simulator,max_zoom_limit] (zoom:ZoomEvent) {
             let point       = zoom.focus;
             let normalized  = normalize_point2(point,scene.shape().value().into());
             let normalized  = normalized_to_range2(normalized, -1.0, 1.0);
