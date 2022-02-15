@@ -2737,8 +2737,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // === Node Creation  ===
     frp::extend! { network
-        // In future, this event will be emitted after clicking + button
-        node_added_with_button <- source::<()>();
+        let node_added_with_button = model.add_node_button.clicked.clone_ref();
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
         input_start_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartCreationEvent);

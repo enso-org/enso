@@ -88,8 +88,6 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::*;
-use ensogl_core::display::style;
-use ensogl_core::display::style::data::DataMatch;
 use ensogl_core::gui::component::ShapeView;
 
 
@@ -118,8 +116,8 @@ pub mod prelude {
 // === Constants ===
 // =================
 
-/// Button radius to be used if theme-provided value is not available.
-pub const RADIUS_FALLBACK: f32 = 12.0;
+/// The default button's shape size.
+const DEFAULT_SIZE_XY: (f32, f32) = (12.0, 12.0);
 
 
 
@@ -229,27 +227,6 @@ impl<Shape: ButtonShape> Model<Shape> {
     pub fn set_icon_color(&self, color: impl Into<Rgba>) {
         self.shape.icon_color().set(color.into().into());
     }
-
-    /// Retrieves circle radius value from an frp sampler event.
-    fn get_radius(radius: &Option<style::data::Data>) -> f32 {
-        radius.as_ref().and_then(DataMatch::number).unwrap_or(RADIUS_FALLBACK)
-    }
-
-    /// Set radius, updating the shape sizes and position.
-    pub fn set_radius(&self, radius: &Option<style::data::Data>) -> Vector2<f32> {
-        DEBUG!("Setting radius {radius:?}");
-        let radius = Self::get_radius(radius);
-        let size = Self::size_for_radius(radius);
-        self.shape.size().set(size);
-        self.shape.set_position_x(radius);
-        self.shape.set_position_y(-radius);
-        size
-    }
-
-    /// Calculate the size of button for a given radius value.
-    pub fn size_for_radius(radius: f32) -> Vector2<f32> {
-        Vector2(radius, radius) * 2.0
-    }
 }
 
 
@@ -260,6 +237,7 @@ impl<Shape: ButtonShape> Model<Shape> {
 
 ensogl_core::define_endpoints! {
     Input {
+        set_size (Vector2),
         mouse_nearby (bool),
     }
     Output {
@@ -296,7 +274,7 @@ impl<Shape: ButtonShape> View<Shape> {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(app);
+        let model = Model::<Shape>::new(app);
         let network = &frp.network;
         let scene = app.display.scene();
         let style = StyleWatchFrp::new(&scene.style_sheet);
@@ -316,11 +294,6 @@ impl<Shape: ButtonShape> View<Shape> {
         background_color.target(color::Lcha::from(default_background_color));
         model.set_icon_color(default_background_color);
 
-        // Radius initialization
-        let unconcerned_size = style.get(Shape::size_path(State::Unconcerned));
-        let hovered_size = style.get(Shape::size_path(State::Hovered));
-        let pressed_size = style.get(Shape::size_path(State::Pressed));
-
         // Style's relevant color FRP endpoints.
         let background_unconcerned_color =
             style.get_color(Shape::background_color_path(State::Unconcerned));
@@ -334,9 +307,13 @@ impl<Shape: ButtonShape> View<Shape> {
         let icon_pressed_color = style.get_color(Shape::icon_color_path(State::Pressed));
 
         model.set_background_color(background_unconcerned_color.value());
+        model.set_icon_color(icon_unconcerned_color.value());
         let events = &model.shape.events;
 
         frp::extend! { network
+            eval frp.set_size ((&size) model.shape.size().set(size));
+            frp.source.size <+ frp.set_size;
+
             // Mouse
             frp.source.is_hovered <+ bool(&events.mouse_out,&events.mouse_over);
             pressed_on_me         <- model.shape.events.mouse_down.gate(&frp.is_hovered);
@@ -356,20 +333,6 @@ impl<Shape: ButtonShape> View<Shape> {
                     });
 
             frp.source.state <+ state;
-
-            init_size <- source();
-            frp.source.size <+ all_with5(&init_size, &frp.source.state, &unconcerned_size,
-                &hovered_size, &pressed_size,
-                f!([model]((), state, unconcerned, hovered, pressed) {
-                    let radius = match state {
-                        State::Hovered => hovered,
-                        State::Pressed => pressed,
-                        _              => unconcerned,
-                    };
-                    model.set_radius(radius)
-                })
-            );
-
             // Color animations
             background_color.target <+ all_with4(&frp.source.state,&background_unconcerned_color,
                 &background_hovered_color,&background_pressed_color,
@@ -395,7 +358,8 @@ impl<Shape: ButtonShape> View<Shape> {
             eval icon_color.value       ((color) model.set_icon_color(color));
         }
 
-        init_size.emit(());
+        let (size_x, size_y) = DEFAULT_SIZE_XY;
+        frp.set_size.emit(Vector2(size_x, size_y));
 
         Self { frp, model, style }
     }

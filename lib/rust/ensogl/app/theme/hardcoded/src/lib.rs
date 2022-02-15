@@ -487,8 +487,8 @@ define_themes! { [light:0, dark:1]
             }
         }
         add_node_button {
-            margin = 28.0, 28.0;
-            size = 30.0, 30.0;
+            margin = 14.0, 14.0;
+            size = 60.0, 60.0;
             background = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(0.0, 0.0, 0.0, 1.0);
             color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
 

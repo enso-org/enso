@@ -18,8 +18,9 @@ mod shape {
 
     ensogl::define_shape_system! {
         (style: Style, background_color:Vector4<f32>, icon_color:Vector4<f32>) {
-            let size       = Var::canvas_size();
-            let radius     = Min::min(size.x(),size.y()) / 2.0;
+            let size = Var::canvas_size();
+            let shadow_size = style.get_number(ensogl_hardcoded_theme::shadow::size);
+            let radius = Min::min(size.x(),size.y()) / 2.0 - shadow_size.px();
 
             let angle      = Radians::from(90.0.degrees());
             let bar_length = &radius * 4.0 / 3.0;
@@ -77,6 +78,13 @@ pub struct AddNodeButton {
     style_watch: StyleWatchFrp,
 }
 
+impl Deref for AddNodeButton {
+    type Target = ensogl_component::button::Frp;
+    fn deref(&self) -> &Self::Target {
+        self.view.deref()
+    }
+}
+
 impl AddNodeButton {
     pub fn new(app: &Application) -> Self {
         let view = ensogl_component::button::View::new(app);
@@ -86,6 +94,7 @@ impl AddNodeButton {
         let style_watch = StyleWatchFrp::new(&scene.style_sheet);
 
         let size = style_watch.get_number(theme::size);
+        let shadow = style_watch.get_number(ensogl_hardcoded_theme::shadow::size);
         let margin = style_watch.get_number(theme::margin);
         frp::extend! { network
             init <- source();
@@ -93,6 +102,11 @@ impl AddNodeButton {
             update_position <- all(init, camera_changed, size, margin);
             eval update_position ([view, camera] (&((), (), size, margin)) {
                 Self::update_position(&view, &camera, size, margin);
+            });
+            update_size <- all(init, size, shadow);
+            view.set_size <+ update_size.map(|&((), size, shadow)| {
+                let view_size_1d = size + shadow * 2.0;
+                Vector2(view_size_1d, view_size_1d)
             });
         }
 
@@ -104,9 +118,8 @@ impl AddNodeButton {
 
     fn update_position(view: &View, camera: &Camera2d, size: f32, margin: f32) {
         let screen = camera.screen();
-        let x = -screen.width / 2.0 + margin;
-        let y = -screen.height / 2.0 + margin + size * 2.0 + 30.0;
-        DEBUG!("Setting position {x},{y}");
+        let x = -screen.width / 2.0 + margin + size / 2.0;
+        let y = -screen.height / 2.0 + margin + size / 2.0 + 30.0;
         view.set_position_x(x.round());
         view.set_position_y(y.round());
     }
