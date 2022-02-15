@@ -39,6 +39,7 @@
 - [Implemented `Range.find`, `Table.rename_columns` and
   `Table.use_first_row_as_names` operations][3249]
 - [Implemented `Text.at` and `Text.is_digit` methods][3269]
+- [Implemented `Vector.flatten`][3259]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -59,6 +60,7 @@
 [3249]: https://github.com/enso-org/enso/pull/3249
 [3264]: https://github.com/enso-org/enso/pull/3264
 [3269]: https://github.com/enso-org/enso/pull/3269
+[3259]: https://github.com/enso-org/enso/pull/3259
 [3273]: https://github.com/enso-org/enso/pull/3273
 
 #### Enso Compiler

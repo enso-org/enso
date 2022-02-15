@@ -762,12 +762,13 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
         .writeBuildInfoFile(
-          file           = file,
-          log            = state.value.log,
-          ensoVersion    = ensoVersion,
-          scalacVersion  = scalacVersion,
-          graalVersion   = graalVersion,
-          currentEdition = currentEdition
+          file                  = file,
+          log                   = state.value.log,
+          defaultDevEnsoVersion = defaultDevEnsoVersion,
+          ensoVersion           = ensoVersion,
+          scalacVersion         = scalacVersion,
+          graalVersion          = graalVersion,
+          currentEdition        = currentEdition
         )
     }.taskValue
   )

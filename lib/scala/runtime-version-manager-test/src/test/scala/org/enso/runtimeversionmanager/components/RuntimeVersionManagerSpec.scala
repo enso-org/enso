@@ -1,6 +1,7 @@
 package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
+
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
@@ -8,13 +9,19 @@ import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.releases.ReleaseNotFound
 import org.enso.runtimeversionmanager.test.{
+  OverrideTestVersionSuite,
   RuntimeVersionManagerTest,
   TestRuntimeVersionManagementUserInterface
 }
 import org.enso.runtimeversionmanager.components
 import org.enso.testkit.OsSpec
 
-class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
+class RuntimeVersionManagerSpec
+    extends RuntimeVersionManagerTest
+    with OsSpec
+    with OverrideTestVersionSuite {
+
+  override val testVersion: SemVer = SemVer(0, 0, 1)
 
   "RuntimeVersionManager" should {
     "find the latest engine version in semver ordering " +
