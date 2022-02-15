@@ -16,12 +16,12 @@ code from modules.
 
 - [Qualified Names](#qualified-names)
 - [Import Syntax](#import-syntax)
-   - [Qualified Imports](#qualified-imports)
-   - [Unqualified Imports](#unqualified-imports)
+  - [Qualified Imports](#qualified-imports)
+  - [Unqualified Imports](#unqualified-imports)
 - [Export Syntax](#export-syntax)
-   - [Qualified Exports](#qualified-exports)
-   - [Unqualified Exports](#unqualified-exports)
-   - [Visibility of Export Bindings](#visibility-of-export-bindings)
+  - [Qualified Exports](#qualified-exports)
+  - [Unqualified Exports](#unqualified-exports)
+  - [Visibility of Export Bindings](#visibility-of-export-bindings)
 
 <!-- /MarkdownTOC -->
 
