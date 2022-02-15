@@ -37,11 +37,11 @@ pub type Stats = StatsOverTime<Performance>;
 /// Tracks stats related to the current rendering frame, providing methods for modifying and
 /// retrieving their values.
 #[derive(Debug, CloneRef)]
-pub struct StatsOverTime<T: TimeProvider> {
+pub struct StatsOverTime<T> {
     rc: Rc<RefCell<StatsCollector<T>>>,
 }
 
-impl<T: TimeProvider> Clone for StatsOverTime<T> {
+impl<T> Clone for StatsOverTime<T> {
     fn clone(&self) -> Self {
         Self { rc: self.rc.clone() }
     }
@@ -82,7 +82,7 @@ impl<T: TimeProvider> StatsOverTime<T> {
 // ======================
 
 #[derive(Debug)]
-struct StatsCollector<T: TimeProvider> {
+struct StatsCollector<T> {
     time_provider:    T,
     stats_data:       StatsData,
     frame_begin_time: Option<f64>,
