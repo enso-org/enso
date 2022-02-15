@@ -912,8 +912,7 @@ mod tests {
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
-        // Note: we expect no data to be returned for the time period before the 1st frame was
-        // started.
+        // Note: we expect no stats data to be returned before the 1st frame was started.
         test_and_advance_frame!(test, None; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
@@ -943,8 +942,7 @@ mod tests {
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
-        // Note: we expect no data to be returned for the time period before the 1st frame was
-        // started.
+        // Note: we expect no stats data to be returned before the 1st frame was started.
         test_and_advance_frame!(test, None; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
