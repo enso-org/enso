@@ -134,6 +134,12 @@ impl<T: TimeProvider> FramedStatsData<T> {
     }
 }
 
+
+
+// ========================
+// === Macro gen_stats! ===
+// ========================
+
 /// Emits the 2nd argument only if the 1st argument is an integer type. A helper macro for
 /// gen_stats!, supports only the types currently used with gen_stats!.
 macro_rules! emit_if_integer {
@@ -142,6 +148,8 @@ macro_rules! emit_if_integer {
     (f64, $($block:tt)*) => ();
 }
 
+/// Macro emitting the StatsData struct, and extending StatsWithTimeProvider with accessors to
+/// StatsData fields.
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
 
@@ -156,7 +164,7 @@ macro_rules! gen_stats {
         }
 
 
-        // === Stats fields accessors ===
+        // === StatsWithTimeProvider fields accessors ===
 
         impl<T: TimeProvider> StatsWithTimeProvider<T> { $(
             /// Field getter.
