@@ -1,8 +1,7 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
-import org.enso.pkg.Contact
-
+import org.enso.pkg.{ComponentGroups, Contact}
 import java.nio.file.Path
 
 object LocalLibraryManagerProtocol {
@@ -25,6 +24,15 @@ object LocalLibraryManagerProtocol {
     description: Option[String],
     tagLine: Option[String]
   ) extends Request
+
+  /** A request to get the library package. */
+  case class GetPackage(libraryName: LibraryName) extends Request
+
+  /** A response to the [[GetPackage]] request. */
+  case class GetPackageResponse(
+    license: String,
+    componentGroups: Option[ComponentGroups]
+  )
 
   /** A request to list local libraries. */
   case object ListLocalLibraries extends Request

@@ -6,10 +6,10 @@ import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.downloader.http.{HTTPDownload, URIBuilder}
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
-import org.enso.pkg.Package
+import org.enso.pkg.{Config, Package}
 import org.enso.yaml.YamlHelper
-
 import java.nio.file.Path
+
 import scala.util.Failure
 
 /** A class that manages the HTTP API of the Library Repository.
@@ -60,7 +60,7 @@ object RepositoryHelper {
       * generic [[LibraryDownloadFailure]].
       */
     def downloadManifest(): TaskProgress[LibraryManifest] = {
-      val url = (libraryRoot / manifestFilename).build()
+      val url = (libraryRoot / LibraryManifest.filename).build()
       HTTPDownload.fetchString(url).flatMap { response =>
         response.statusCode match {
           case 200 =>
@@ -73,6 +73,34 @@ object RepositoryHelper {
             Failure(
               new LibraryDownloadFailure(
                 s"Could not download the manifest: The repository responded " +
+                s"with $code status code."
+              )
+            )
+        }
+      }
+    }
+
+    /** Downloads and parses the package config file.
+      *
+      * If the repository responds with 404 status code, it returns a special
+      * [[LibraryNotFoundException]] indicating that the repository does not
+      * provide that library. Any other failures are indicated with the more
+      * generic [[LibraryDownloadFailure]].
+      */
+    def fetchPackageConfig(): TaskProgress[Config] = {
+      val url = (libraryRoot / Package.configFileName).build()
+      HTTPDownload.fetchString(url).flatMap { response =>
+        response.statusCode match {
+          case 200 =>
+            YamlHelper.parseString[Config](response.content).toTry
+          case 404 =>
+            Failure(
+              LibraryNotFoundException(libraryName, version, url.toString)
+            )
+          case code =>
+            Failure(
+              new LibraryDownloadFailure(
+                s"Could not download the package config: The repository responded " +
                 s"with $code status code."
               )
             )
@@ -107,9 +135,6 @@ object RepositoryHelper {
       destinationDirectory: Path
     ): TaskProgress[Unit] = downloadArtifact(archiveName, destinationDirectory)
   }
-
-  /** Name of the manifest file. */
-  val manifestFilename = "manifest.yaml"
 
   /** Name of the attached license file. */
   val licenseFilename = "LICENSE.md"

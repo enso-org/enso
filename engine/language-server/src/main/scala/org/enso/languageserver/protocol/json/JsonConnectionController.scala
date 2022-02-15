@@ -521,7 +521,12 @@ class JsonConnectionController(
       LibraryPublish -> LibraryPublishHandler
         .props(requestTimeout, libraryConfig.localLibraryManager),
       LibrarySetMetadata -> LibrarySetMetadataHandler
-        .props(requestTimeout, libraryConfig.localLibraryManager)
+        .props(requestTimeout, libraryConfig.localLibraryManager),
+      LibraryGetPackage -> LibraryGetPackageHandler.props(
+        requestTimeout,
+        libraryConfig.localLibraryManager,
+        libraryConfig.publishedLibraryCache
+      )
     )
   }
 

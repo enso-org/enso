@@ -80,6 +80,7 @@ object JsonRpc {
     .registerRequest(LibraryCreate)
     .registerRequest(LibraryGetMetadata)
     .registerRequest(LibrarySetMetadata)
+    .registerRequest(LibraryGetPackage)
     .registerRequest(LibraryPublish)
     .registerRequest(LibraryPreinstall)
     .registerNotification(TaskStarted)
