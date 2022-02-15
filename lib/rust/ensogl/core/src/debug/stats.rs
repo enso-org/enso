@@ -149,8 +149,8 @@ macro_rules! emit_if_integer {
     (f64, $($block:tt)*) => ();
 }
 
-/// Macro emitting the StatsData struct, and extending StatsWithTimeProvider with accessors to
-/// StatsData fields.
+/// Emits the StatsData struct, and extends StatsWithTimeProvider with accessors to StatsData
+/// fields.
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
 
