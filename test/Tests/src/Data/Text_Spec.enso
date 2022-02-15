@@ -38,6 +38,11 @@ spec =
             "abc"=="def" . should_be_false
             accent_1 . should_equal accent_2
 
+            accent_1+"a" . compare_to accent_2+"b" . should_equal Ordering.Less
+            accent_2+"a" . compare_to accent_1+"b" . should_equal Ordering.Less
+            accent_1+"b" . compare_to accent_2+"a" . should_equal Ordering.Greater
+            accent_2+"b" . compare_to accent_1+"a" . should_equal Ordering.Greater
+
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
