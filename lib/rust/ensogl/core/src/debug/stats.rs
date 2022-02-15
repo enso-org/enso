@@ -16,27 +16,10 @@
 use enso_prelude::*;
 
 use enso_web::Performance;
+use enso_web::TimeProvider;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use wasm_bindgen::JsCast;
-
-
-
-// ====================
-// === TimeProvider ===
-// ====================
-
-/// An entity that can retrieve current time.
-pub trait TimeProvider {
-    /// Returns current time, measured in milliseconds.
-    fn now(&self) -> f64;
-}
-
-impl TimeProvider for Performance {
-    fn now(&self) -> f64 {
-        self.now()
-    }
-}
 
 
 
