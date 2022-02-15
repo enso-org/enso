@@ -873,10 +873,14 @@ mod tests {
                 let tested_value = $test.sampler.value(&prev_frame_stats);
                 let tested_check = $test.sampler.check(&prev_frame_stats);
                 assert_approx_eq!(tested_value, $expected_value, STAT_VALUE_COMPARISON_PRECISION);
-                let mismatch_msg = iformat!("expected: " $expected_check;? ", got: " tested_check;?);
+                let mismatch_msg = iformat!(
+                    "Stat check was expected to return: " $expected_check;?
+                    ", but got: " tested_check;? " instead.");
                 assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
             } else {
-                assert!(false, "Got None from begin_frame()");
+                assert!(false,
+                    "Expected some previous frame's stats to be returned by begin_frame(), \
+                    but got none.");
             }
             $test.t += $frame_time;
             $test.stats.end_frame();
@@ -885,7 +889,10 @@ mod tests {
 
         ($test:expr ; next: $frame_time:expr, $post_frame_delay:expr) => {
             let prev_frame_stats = $test.stats.begin_frame();
-            assert!(matches!(prev_frame_stats, None), "Got non-empty {:?}", prev_frame_stats);
+            let mismatch_msg = iformat!(
+                "Expected no previous frame's stats to be returned by begin_frame(), \
+                but got: " prev_frame_stats;? " instead.");
+            assert!(matches!(prev_frame_stats, None), "{}", mismatch_msg);
             $test.t += $frame_time;
             $test.stats.end_frame();
             $test.t += $post_frame_delay;
