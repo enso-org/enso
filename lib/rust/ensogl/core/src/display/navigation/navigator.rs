@@ -41,7 +41,7 @@ pub struct NavigatorModel {
     /// Indicates whether events handled the navigator should be stopped from propagating further
     /// after being handled by the Navigator.
     disable_events:  Rc<Cell<bool>>,
-    max_zoom:  Rc<Cell<Option<f32>>>,
+    max_zoom:        Rc<Cell<Option<f32>>>,
 }
 
 impl NavigatorModel {
@@ -88,7 +88,7 @@ impl NavigatorModel {
         disable_events: Rc<Cell<bool>>,
         max_zoom: Rc<Cell<Option<f32>>>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
-        let distance_to_zoom_factor_of_1 = |scene:&Scene, camera: &Camera2d| {
+        let distance_to_zoom_factor_of_1 = |scene: &Scene, camera: &Camera2d| {
             let fovy_slope = camera.half_fovy_slope();
             scene.shape().value().height / 2.0 / fovy_slope
         };
