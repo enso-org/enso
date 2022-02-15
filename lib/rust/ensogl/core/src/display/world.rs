@@ -12,6 +12,7 @@ use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
+use crate::debug::stats::StatsData;
 use crate::display;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
@@ -56,16 +57,17 @@ impl Uniforms {
 /// It is responsible for updating the system on every animation frame.
 #[derive(Clone, CloneRef, Debug)]
 pub struct World {
-    logger:          Logger,
-    scene:           Scene,
-    scene_dirty:     dirty::SharedBool,
-    main_loop:       animation::DynamicLoop,
-    uniforms:        Uniforms,
-    stats:           Stats,
-    stats_monitor:   stats::Monitor,
-    main_loop_frame: callback::Handle,
-    on_before_frame: callback::SharedRegistryMut1<animation::TimeInfo>,
-    on_after_frame:  callback::SharedRegistryMut1<animation::TimeInfo>,
+    logger:             Logger,
+    scene:              Scene,
+    scene_dirty:        dirty::SharedBool,
+    main_loop:          animation::DynamicLoop,
+    uniforms:           Uniforms,
+    stats:              Stats,
+    stats_monitor:      stats::Monitor,
+    main_loop_frame:    callback::Handle,
+    on_before_frame:    callback::SharedRegistryMut1<animation::TimeInfo>,
+    on_after_frame:     callback::SharedRegistryMut1<animation::TimeInfo>,
+    on_stats_available: callback::SharedRegistryMut1<StatsData>,
 }
 
 impl World {
@@ -82,13 +84,17 @@ impl World {
         let stats_monitor = stats::Monitor::new(&stats);
         let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
+        let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();
         let main_loop_frame = main_loop.on_frame(
-            f!([stats_monitor,on_before_frame,on_after_frame,uniforms,scene_dirty,scene]
+            f!([stats_monitor,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
                 stats_monitor.begin();
                 on_before_frame.run_all(&t);
+                if let Some(stats) = stats_monitor.previous_frame_stats() {
+                    on_stats_available.run_all(&stats);
+                }
 
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
@@ -111,6 +117,7 @@ impl World {
             main_loop_frame,
             on_before_frame,
             on_after_frame,
+            on_stats_available,
         }
         .init()
     }
@@ -209,6 +216,15 @@ impl World {
         mut callback: F,
     ) -> callback::Handle {
         self.on_after_frame.add(move |time: &animation::TimeInfo| callback(*time))
+    }
+
+    /// Register a callback which should be run when runtime stats of the previous animation frame
+    /// are available.
+    pub fn on_stats_available<F: FnMut(StatsData) + 'static>(
+        &self,
+        mut callback: F,
+    ) -> callback::Handle {
+        self.on_stats_available.add(move |stats: &StatsData| callback(*stats))
     }
 
     /// Keeps the world alive even when all references are dropped. Use only if you want to keep one
