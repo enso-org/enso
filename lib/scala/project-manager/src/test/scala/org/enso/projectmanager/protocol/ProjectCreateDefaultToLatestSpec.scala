@@ -14,8 +14,6 @@ class ProjectCreateDefaultToLatestSpec
 
   "project/create" should {
 
-    CurrentVersion.internalOverrideVersion(testVersion)
-
     "default to latest available engine version if none are installed" in {
       implicit val client = new WsTestClient(address)
       client.send(json"""
