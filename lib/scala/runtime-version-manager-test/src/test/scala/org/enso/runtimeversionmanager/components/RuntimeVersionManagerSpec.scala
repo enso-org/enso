@@ -9,15 +9,19 @@ import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.releases.ReleaseNotFound
 import org.enso.runtimeversionmanager.test.{
+  OverrideTestVersionSuite,
   RuntimeVersionManagerTest,
   TestRuntimeVersionManagementUserInterface
 }
-import org.enso.runtimeversionmanager.{components, CurrentVersion}
+import org.enso.runtimeversionmanager.components
 import org.enso.testkit.OsSpec
 
-class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
+class RuntimeVersionManagerSpec
+    extends RuntimeVersionManagerTest
+    with OsSpec
+    with OverrideTestVersionSuite {
 
-  CurrentVersion.internalOverrideVersion(SemVer(0, 0, 1))
+  override val testVersion: SemVer = SemVer(0, 0, 1)
 
   "RuntimeVersionManager" should {
     "find the latest engine version in semver ordering " +

@@ -4,10 +4,13 @@ import io.circe.literal.JsonStringContext
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 
-class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
+class ProjectCreateDefaultToLatestSpec
+    extends BaseServerSpec
+    with OverrideTestVersionSuite {
 
-  private val testVersion = SemVer("0.1.0").get
+  override val testVersion: SemVer = SemVer(0, 1, 0)
 
   "project/create" should {
 
@@ -38,7 +41,7 @@ class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
             "jsonrpc":"2.0",
             "id":1,
             "error": {
-              "code": 4022, 
+              "code": 4022,
               "message": $message,
               "data" : {
                 "minimumRequiredVersion" : "9999.0.0"
