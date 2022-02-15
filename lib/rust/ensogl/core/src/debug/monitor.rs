@@ -819,7 +819,7 @@ mod tests {
     use super::*;
     use enso_prelude::*;
 
-    use crate::debug::stats::StatsOverTime;
+    use crate::debug::stats::StatsWithTimeProvider;
     use enso_web::TimeProvider;
     use std::ops::AddAssign;
 
@@ -849,7 +849,7 @@ mod tests {
     // === TestSampler ===
 
     struct TestSampler<S: Sampler> {
-        stats:   StatsOverTime<MockTimeProvider>,
+        stats:   StatsWithTimeProvider<MockTimeProvider>,
         sampler: S,
         t:       MockTimeProvider,
     }
@@ -857,7 +857,7 @@ mod tests {
     impl<S: Sampler + Default> Default for TestSampler<S> {
         fn default() -> Self {
             let t: MockTimeProvider = default();
-            let stats = StatsOverTime::new(t.clone());
+            let stats = StatsWithTimeProvider::new(t.clone());
             let sampler = default();
             Self { stats, sampler, t }
         }
@@ -887,7 +887,7 @@ mod tests {
             $test.t += $post_frame_delay;
         };
 
-        ($test:expr ; next: $frame_time:expr, $post_frame_delay:expr) => {
+        ($test:expr, None; next: $frame_time:expr, $post_frame_delay:expr) => {
             let prev_frame_stats = $test.stats.begin_frame();
             let mismatch_msg = iformat!(
                 "Expected no previous frame's stats to be returned by begin_frame(), \
@@ -913,7 +913,7 @@ mod tests {
         // starting next frame.
         //
         // Note: there is no frame before "Frame 1", so the previous frame will not be tested.
-        test_and_advance_frame!(test; next: 10.0, 6.0);
+        test_and_advance_frame!(test, None; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
         // starting next frame.
@@ -946,7 +946,7 @@ mod tests {
         // frame will always be 0.0 and [`Correct`] at this point (which is a special case -
         // depending on tested stat, for later frames 0.0 could result in a threshold
         // warning/error).
-        test_and_advance_frame!(test; next: 10.0, 6.0);
+        test_and_advance_frame!(test, None; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
         // starting next frame.
