@@ -55,8 +55,8 @@ impl<T> Clone for StatsWithTimeProvider<T> {
 impl<T: TimeProvider> StatsWithTimeProvider<T> {
     /// Constructor.
     pub fn new(time_provider: T) -> Self {
-        let stats_collector = FramedStatsData::new(time_provider);
-        let rc = Rc::new(RefCell::new(stats_collector));
+        let framed_stats_data = FramedStatsData::new(time_provider);
+        let rc = Rc::new(RefCell::new(framed_stats_data));
         Self { rc }
     }
 
