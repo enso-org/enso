@@ -29,28 +29,31 @@ use wasm_bindgen::JsCast;
 
 /// Tracks stats related to the current rendering frame, providing methods for modifying and
 /// retrieving their values.
-pub type Stats = StatsOverTime<Performance>;
+pub type Stats = StatsWithTimeProvider<Performance>;
 
 
-// === StatsOverTime ===
+
+// =============================
+// === StatsWithTimeProvider ===
+// =============================
 
 /// Tracks stats related to the current rendering frame, providing methods for modifying and
 /// retrieving their values.
 #[derive(Debug, CloneRef)]
-pub struct StatsOverTime<T> {
-    rc: Rc<RefCell<StatsCollector<T>>>,
+pub struct StatsWithTimeProvider<T> {
+    rc: Rc<RefCell<FramedStatsData<T>>>,
 }
 
-impl<T> Clone for StatsOverTime<T> {
+impl<T> Clone for StatsWithTimeProvider<T> {
     fn clone(&self) -> Self {
         Self { rc: self.rc.clone() }
     }
 }
 
-impl<T: TimeProvider> StatsOverTime<T> {
+impl<T: TimeProvider> StatsWithTimeProvider<T> {
     /// Constructor.
     pub fn new(time_provider: T) -> Self {
-        let stats_collector = StatsCollector::new(time_provider);
+        let stats_collector = FramedStatsData::new(time_provider);
         let rc = Rc::new(RefCell::new(stats_collector));
         Self { rc }
     }
@@ -77,18 +80,18 @@ impl<T: TimeProvider> StatsOverTime<T> {
 
 
 
-// ======================
-// === StatsCollector ===
-// ======================
+// =======================
+// === FramedStatsData ===
+// =======================
 
 #[derive(Debug)]
-struct StatsCollector<T> {
+struct FramedStatsData<T> {
     time_provider:    T,
     stats_data:       StatsData,
     frame_begin_time: Option<f64>,
 }
 
-impl<T: TimeProvider> StatsCollector<T> {
+impl<T: TimeProvider> FramedStatsData<T> {
     /// Constructor.
     fn new(time_provider: T) -> Self {
         let stats_data = default();
@@ -155,7 +158,7 @@ macro_rules! gen_stats {
 
         // === Stats fields accessors ===
 
-        impl<T: TimeProvider> StatsOverTime<T> { $(
+        impl<T: TimeProvider> StatsWithTimeProvider<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
                 self.rc.borrow().stats_data.$field
