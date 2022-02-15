@@ -863,6 +863,8 @@ mod tests {
         }
     }
 
+    const STAT_VALUE_COMPARISON_PRECISION: f64 = 0.001;
+
     macro_rules! test_and_advance_frame {
         ($test:expr, $expected_value:expr, $expected_check:path
         ; next: $frame_time:expr, $post_frame_delay:expr) => {
@@ -870,7 +872,7 @@ mod tests {
             if let Some(prev_frame_stats) = prev_frame_stats {
                 let tested_value = $test.sampler.value(&prev_frame_stats);
                 let tested_check = $test.sampler.check(&prev_frame_stats);
-                assert_approx_eq!(tested_value, $expected_value, 0.001);
+                assert_approx_eq!(tested_value, $expected_value, STAT_VALUE_COMPARISON_PRECISION);
                 let mismatch_msg = iformat!("expected: " $expected_check;? ", got: " tested_check;?);
                 assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
             } else {
