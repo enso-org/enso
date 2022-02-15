@@ -62,11 +62,10 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
     /// Also, calculates the [`fps`] stat.
     /// Returns a snapshot of statistics data for the previous frame.
     ///
-    /// Note: on first ever frame, there was no "previous frame", so no data will be returned.
-    ///
     /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
-    /// called properly on every frame (behavior in case of missed frames or missed calls is not
-    /// specified).
+    /// called, respectively, at the beginning and end of every frame. The very first time
+    /// [`begin_frame()`] is called, it returns `None`, because it does not have complete
+    /// statistics data for the preceding frame.
     pub fn begin_frame(&self) -> Option<StatsData> {
         self.rc.borrow_mut().begin_frame()
     }
