@@ -144,7 +144,7 @@ fn init(app: &Application) {
     let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id, expression_2.clone()));
 
-    let expression_3 = expression_mock2();
+    let expression_3 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node3_id, expression_3));
     let kind = Immutable(graph_editor::component::node::error::Kind::Panic);
     let message = Rc::new(Some("Runtime Error".to_owned()));

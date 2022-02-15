@@ -237,6 +237,7 @@ impl<Shape: ButtonShape> Model<Shape> {
 
     /// Set radius, updating the shape sizes and position.
     pub fn set_radius(&self, radius: &Option<style::data::Data>) -> Vector2<f32> {
+        DEBUG!("Setting radius {radius:?}");
         let radius = Self::get_radius(radius);
         let size = Self::size_for_radius(radius);
         self.shape.size().set(size);

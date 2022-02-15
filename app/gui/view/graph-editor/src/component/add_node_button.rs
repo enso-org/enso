@@ -25,7 +25,7 @@ mod shape {
             let bar_length = &radius * 4.0 / 3.0;
             let bar_width  = &bar_length / 6.5;
             #[allow(clippy::blacklisted_name)] // The `bar` name here is totally legit.
-            let bar        = Rect((bar_length, &bar_width)).corners_radius(bar_width);
+            let bar        = Rect((bar_length, &bar_width));
             let plus       = (bar.rotate(angle) + bar).into();
             shape(background_color, icon_color, plus, radius)
         }
@@ -85,7 +85,6 @@ impl AddNodeButton {
 
         let size = style_watch.get_number(theme::size);
         let margin = style_watch.get_number(theme::margin);
-
         frp::extend! { network
             init <- source();
             let camera_changed = scene.frp.camera_changed.clone_ref();
@@ -95,6 +94,7 @@ impl AddNodeButton {
             });
         }
 
+        scene.layers.panel.add_exclusive(&view);
         init.emit(());
 
         Self { network, view, style_watch }
@@ -102,8 +102,9 @@ impl AddNodeButton {
 
     fn update_position(view: &View, camera: &Camera2d, size: f32, margin: f32) {
         let screen = camera.screen();
-        let x = -screen.width / 2.0 + margin + size / 2.0;
-        let y = -screen.height / 2.0 + margin + size / 2.0;
+        let x = -screen.width / 2.0 + margin;
+        let y = -screen.height / 2.0 + margin + size * 2.0 + 30.0;
+        DEBUG!("Setting position {x},{y}");
         view.set_position_x(x.round());
         view.set_position_y(y.round());
     }
