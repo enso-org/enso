@@ -848,7 +848,7 @@ mod tests {
 
     // === TestSampler ===
 
-    struct TestSampler<S: Sampler> {
+    struct TestSampler<S> {
         stats:   StatsWithTimeProvider<MockTimeProvider>,
         sampler: S,
         t:       MockTimeProvider,
