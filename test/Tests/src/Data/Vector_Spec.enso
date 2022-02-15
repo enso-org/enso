@@ -135,6 +135,15 @@ spec = Test.group "Vectors" <|
         mapped = vec.flat_map n-> Vector.fill n n
         mapped.should_equal [1, 2, 2, 3, 3, 3]
 
+    Test.specify "should allow to flatten a nested vector" <|
+        [[1, 2, 3], [4, 10], [], [0], [0]] . flatten . should_equal [1, 2, 3, 4, 10, 0, 0]
+        [].flatten . should_equal []
+        [[]].flatten . should_equal []
+        [[], []].flatten . should_equal []
+        [[1]].flatten . should_equal [1]
+        [[[1], [2, 3]], [[4]]].flatten . should_equal [[1], [2, 3], [4]]
+        [["a", 2], [], [[[3]]], [T 1 2, 44]].flatten . should_equal ["a", 2, [[3]], T 1 2, 44]
+
     Test.specify "should allow applying a function to each element" <|
         vec = [1, 2, 3, 4]
         vec_mut = Vector.new_builder
