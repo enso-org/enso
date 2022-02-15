@@ -28,8 +28,8 @@ use wasm_bindgen::JsCast;
 // =============
 
 /// Contains all the gathered stats, and provides methods for modifying and retrieving their
-/// values. Uses the Web Performance API to access current time in order to calculate
-/// time-dependent stats (e.g. FPS).
+/// values. Uses the Web Performance API to access current time for calculating time-dependent
+/// stats (e.g. FPS).
 pub type Stats = StatsWithTimeProvider<Performance>;
 
 
@@ -40,7 +40,7 @@ pub type Stats = StatsWithTimeProvider<Performance>;
 
 /// Contains all the gathered stats, and provides methods for modifying and retrieving their
 /// values.
-/// Uses [`T`] to access current time in order to calculate time-dependent stats (e.g. FPS).
+/// Uses [`T`] to access current time for calculating time-dependent stats (e.g. FPS).
 #[derive(Debug, CloneRef)]
 pub struct StatsWithTimeProvider<T> {
     rc: Rc<RefCell<FramedStatsData<T>>>,
