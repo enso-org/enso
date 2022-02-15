@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
-import cats.derived.IterState.Cont;
 import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
