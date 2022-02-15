@@ -3,7 +3,6 @@ package org.enso.projectmanager.protocol
 import io.circe.literal.JsonStringContext
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.BaseServerSpec
-import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 
 class ProjectCreateDefaultToLatestSpec
