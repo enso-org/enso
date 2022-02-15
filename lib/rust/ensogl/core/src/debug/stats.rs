@@ -98,22 +98,14 @@ impl<T: TimeProvider> StatsCollector<T> {
 
     fn begin_frame(&mut self) -> Option<StatsData> {
         let time = self.time_provider.now();
-        let new_frame = StatsData {
-            draw_call_count: 0,
-            shader_compile_count: 0,
-            data_upload_count: 0,
-            data_upload_size: 0,
-            ..self.stats_data
-        };
-        let mut previous_frame = mem::replace(&mut self.stats_data, new_frame);
-        match self.frame_begin_time.replace(time) {
-            Some(previous_frame_begin_time) => {
-                let end_time = time;
-                previous_frame.fps = 1000.0 / (end_time - previous_frame_begin_time);
-                Some(previous_frame)
-            }
-            None => None,
-        }
+        let mut previous_frame_stats = self.stats_data;
+        self.reset_per_frame_statistics();
+        let previous_frame_begin_time = self.frame_begin_time.replace(time);
+        previous_frame_begin_time.map(|begin_time| {
+            let end_time = time;
+            previous_frame_stats.fps = 1000.0 / (end_time - begin_time);
+            previous_frame_stats
+        })
     }
 
     fn end_frame(&mut self) {
@@ -129,6 +121,13 @@ impl<T: TimeProvider> StatsCollector<T> {
             let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
             self.stats_data.wasm_memory_usage = buffer.byte_length();
         }
+    }
+
+    fn reset_per_frame_statistics(&mut self) {
+        self.stats_data.draw_call_count = 0;
+        self.stats_data.shader_compile_count = 0;
+        self.stats_data.data_upload_count = 0;
+        self.stats_data.data_upload_size = 0;
     }
 }
 
