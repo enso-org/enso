@@ -820,7 +820,7 @@ mod tests {
     use enso_prelude::*;
 
     use crate::debug::stats::StatsOverTime;
-    use crate::debug::stats::TimeProvider;
+    use enso_web::TimeProvider;
     use std::ops::AddAssign;
 
     use assert_approx_eq::assert_approx_eq;
