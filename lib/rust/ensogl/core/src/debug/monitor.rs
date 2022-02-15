@@ -890,8 +890,8 @@ mod tests {
         ($test:expr, None; next: $frame_time:expr, $post_frame_delay:expr) => {
             let prev_frame_stats = $test.stats.begin_frame();
             let mismatch_msg = iformat!(
-                "Expected no previous frame's stats to be returned by begin_frame(), \
-                but got: " prev_frame_stats;? " instead.");
+                "Expected no stats to be returned by begin_frame(), but got: "
+                prev_frame_stats;? " instead.");
             assert!(matches!(prev_frame_stats, None), "{}", mismatch_msg);
             $test.t += $frame_time;
             $test.stats.end_frame();
