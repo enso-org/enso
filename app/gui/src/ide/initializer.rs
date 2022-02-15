@@ -62,7 +62,7 @@ impl Initializer {
     pub fn start_and_forget(self) {
         let executor = setup_global_executor();
         executor::global::spawn(async move {
-            let ide = self.start();
+            let ide = self.start().await;
             web::get_element_by_id("loader")
                 .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
                 .ok();
