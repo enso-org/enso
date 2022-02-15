@@ -348,6 +348,7 @@ impl<Shape: ButtonShape> View<Shape> {
                 |strict_hover,nearby_hover,clicked| {
                     match (strict_hover,nearby_hover,clicked)  {
                             (true , _    , true) => State::Pressed,
+                            (true , _    , _   ) => State::Hovered,
                             (_    , true , _   ) => State::Hovered,
                             (_    , _    , true) => State::Hovered,
                             _                    => State::Unconcerned,

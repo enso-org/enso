@@ -1511,7 +1511,7 @@ pub struct GraphEditorModel {
     navigator:            Navigator,
     profiling_statuses:   profiling::Statuses,
     profiling_button:     component::profiling::Button,
-    add_node_button:      component::add_node_button::AddNodeButton,
+    add_node_button:      Rc<component::add_node_button::AddNodeButton>,
     styles_frp:           StyleWatchFrp,
     selection_controller: selection::Controller,
 }
@@ -1537,7 +1537,7 @@ impl GraphEditorModel {
         let tooltip = Tooltip::new(&app);
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button = component::profiling::Button::new(&app);
-        let add_node_button = component::add_node_button::AddNodeButton::new(&app);
+        let add_node_button = Rc::new(component::add_node_button::AddNodeButton::new(&app));
         let drop_manager = ensogl_drop_manager::Manager::new(&scene.dom.root);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller =
@@ -1576,7 +1576,7 @@ impl GraphEditorModel {
         self.breadcrumbs.gap_width(traffic_lights_gap_width());
         self.scene().add_child(&self.tooltip);
         self.add_child(&self.profiling_button);
-        self.add_child(&self.add_node_button);
+        self.add_child(&*self.add_node_button);
         self
     }
 

@@ -17,17 +17,19 @@ mod shape {
     use super::*;
 
     ensogl::define_shape_system! {
-        (background_color:Vector4<f32>, icon_color:Vector4<f32>) {
+        (style: Style, background_color:Vector4<f32>, icon_color:Vector4<f32>) {
             let size       = Var::canvas_size();
             let radius     = Min::min(size.x(),size.y()) / 2.0;
 
             let angle      = Radians::from(90.0.degrees());
             let bar_length = &radius * 4.0 / 3.0;
-            let bar_width  = &bar_length / 6.5;
+            let bar_width  = &bar_length / 10.0;
             #[allow(clippy::blacklisted_name)] // The `bar` name here is totally legit.
             let bar        = Rect((bar_length, &bar_width));
             let plus       = (bar.rotate(angle) + bar).into();
-            shape(background_color, icon_color, plus, radius)
+            let shape = shape(background_color, icon_color, plus, radius);
+            let shadow = ensogl_component::shadow::from_shape(shape.clone(), &style);
+            (shadow + shape).into()
         }
     }
 }
