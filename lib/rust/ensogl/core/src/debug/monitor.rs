@@ -879,7 +879,7 @@ mod tests {
                 assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
             } else {
                 assert!(false,
-                    "Expected some previous frame's stats to be returned by begin_frame(), \
+                    "Expected previous frame's stats to be returned by begin_frame(), \
                     but got none.");
             }
             $test.t += $frame_time;
