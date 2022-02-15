@@ -128,7 +128,7 @@ impl NavigatorModel {
             let translation    = direction   * zoom_amount;
 
             let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
-            let max_zoom                 = max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM);
+            let max_zoom                     = max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM);
             // Usage of min/max prefixes might be confusing here. Remember that the max zoom means
             // the maximum visible size, thus the minimal distance from the camera and vice versa.
             let min_distance =  distance_to_zoom_factor_of_1 / max_zoom + camera.clipping().near;
