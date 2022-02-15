@@ -26,28 +26,28 @@ compare text1 text2 =
     iter2 = BreakIterator.getCharacterInstance
     iter2.setText text2
 
-    is_digit=c -> c>=48 && c<=57
+    is_digit=character -> character>=48 && character<=57
 
     get_number text prev next iter =
         find_number text next iter =
             new_next = iter.next
             if (new_next == -1) then -next else
                 substring = Text_Utils.substring text next new_next
-                c = Text_Utils.get_chars substring . at 0
-                if (is_digit c).not then next else
+                character = Text_Utils.get_chars substring . at 0
+                if (is_digit character).not then next else
                     @Tail_Call find_number text new_next iter
 
-        n = find_number text next iter
-        s = Text_Utils.substring text prev n.abs
+        end_index = find_number text next iter
+        substring = Text_Utils.substring text prev n.abs
         
         ## TODO [RW] Currently there is no `Integer.parse` method, so we
                parse a decimal and convert it to an integer. Once
                https://www.pivotaltracker.com/story/show/181176522 is
                implemented, this should be changed to use `Integer.parse`.        
-        d = Decimal.parse s . floor
+        decimal = Decimal.parse substring . floor
 
-        i = if n < 0 then -1 else iter.current
-        [s, d, n, i]
+        next_index = if end_index < 0 then -1 else iter.current
+        [substring, decimal, end_index, next_index]
 
 
     ## Ordering: Nothing < Number < Text
@@ -57,24 +57,29 @@ compare text1 text2 =
                 if (next2 == -1) then Ordering.Equal else Ordering.Less
             False ->
                 if (next2 == -1) then Ordering.Greater else
-                    s1 = Text_Utils.substring text1 prev1 next1
-                    c1 = Text_Utils.get_chars s1 . at 0
+                    substring1 = Text_Utils.substring text1 prev1 next1
+                    character1 = Text_Utils.get_chars substring1 . at 0
 
-                    s2 = Text_Utils.substring text2 prev2 next2
-                    c2 = Text_Utils.get_chars s2 . at 0
+                    substring2 = Text_Utils.substring text2 prev2 next2
+                    character2 = Text_Utils.get_chars substring2 . at 0
 
-                    case (is_digit c1) of
+                    case (is_digit character1) of
                         True ->
-                            if (is_digit c2).not then Ordering.Less else
-                                a1 = get_number text1 prev1 next1 iter1
-                                a2 = get_number text2 prev2 next2 iter2
+                            if (is_digit character2).not then Ordering.Less else
+                                parsed1 = get_number text1 prev1 next1 iter1
+                                num_text1 = parsed1.at 0
+                                value1 = parsed1.at 1
 
-                                if (a1.at 1) != (a2.at 1) then (a1.at 1).compare_to (a2.at 1) else
-                                    if (a1.at 0) != (a2.at 0) then (a1.at 0).compare_to (a2.at 0) else
-                                        @Tail_Call order (a1.at 2) (a1.at 3) (a2.at 2) (a2.at 3)
+                                parsed2 = get_number text2 prev2 next2 iter2
+                                num_text2 = parsed2.at 0
+                                value2 = parsed2.at 1
+
+                                if value1 != value2 then value1.compare_to value2 else
+                                    if num_text1 != num_text2 then num_text1.compare_to num_text2 else
+                                        @Tail_Call order (parsed1.at 2) (parsed1.at 3) (parsed2.at 2) (parsed2.at 3)
                         False ->
-                            if (is_digit c2) then Ordering.Greater else
-                                if s2 != s1 then s1.compare_to s2 else
+                            if (is_digit character2) then Ordering.Greater else
+                                if substring1 != substring2 then substring1.compare_to substring2 else
                                     @Tail_Call order next1 iter1.next next2 iter2.next
 
     order 0 iter1.next 0 iter2.next
