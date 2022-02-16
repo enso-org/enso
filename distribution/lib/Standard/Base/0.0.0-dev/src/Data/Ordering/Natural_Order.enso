@@ -4,6 +4,9 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 
+polyglot java import org.enso.base.Text_Utils
+polyglot java import com.ibm.icu.text.BreakIterator
+
 ## Compares two text values according to the natural dictionary ordering.
 
    > Example
@@ -17,62 +20,85 @@ import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
          ["a2", "a1", "a100", "a001", "a0001"].sort by=Natural_Order.compare . should_equal ["a0001", "a001", "a1", "a2", "a100"]
 compare : Text -> Text -> Ordering
 compare text1 text2 =
-    ## TODO [RW] A more efficient algorithm which works better for longer texts
-       should be implemented, as described in
-       https://www.pivotaltracker.com/story/show/181176589
-    nat1 = here.to_natural_key text1
-    nat2 = here.to_natural_key text2
-    ## TODO [RW] The additional assignment to a temporary variable is a
-       workaround for the following bug:
-       https://www.pivotaltracker.com/story/show/181162108
-    res = Vector_Lexicographic_Order.compare nat1 nat2
-    res
+    iter1 = BreakIterator.getCharacterInstance
+    iter1.setText text1
 
-## PRIVATE
-to_natural_key : Text -> Vector
-to_natural_key text = if text.is_empty then [] else
-    splitter_regex = Regex.compile "([^0-9]+|[0-9]+)"
-    parts = splitter_regex.find text mode=Mode.All
+    iter2 = BreakIterator.getCharacterInstance
+    iter2.setText text2
 
-    ## TODO [RW] Currently there is no `is_digit` method. Once
-       https://www.pivotaltracker.com/story/show/181176532 is implemented, this
-       regex can be replaced with a simpler and faster `is_digit` check.
-    is_integer_regex = Regex.compile "[0-9]+"
-    parts.map part-> case is_integer_regex.matches part of
-        True ->
-            ## TODO [RW] Currently there is no `Integer.parse` method, so we
+    ## check if a single character is between '0' and '9'
+    ascii_code_zero = 48
+    ascii_code_nine = 57
+    is_digit=character -> character>=ascii_code_zero && character<=ascii_code_nine
+
+    ## Find the end of a number and then return the substring, value and new
+       indices of the bounds of the next character. If the end of the text has
+       been reached then the second index will be -1.
+    get_number text prev next iter =
+        ## Find end of number and return pair of index and flag if reached end
+        loop text next iter =
+            new_next = iter.next
+            if (new_next == -1) then (Pair next True) else
+                substring = Text_Utils.substring text next new_next
+                character = Text_Utils.get_chars substring . at 0
+                if (is_digit character).not then (Pair next False) else
+                    @Tail_Call loop text new_next iter
+
+        pair = loop text next iter
+        substring = Text_Utils.substring text prev pair.first
+        
+        ## TODO [RW] Currently there is no `Integer.parse` method, so we
                parse a decimal and convert it to an integer. Once
                https://www.pivotaltracker.com/story/show/181176522 is
                implemented, this should be changed to use `Integer.parse`.
-            value = Decimal.parse part . floor
-            Natural_Ordering_Numeric_Part value part
-        False ->
-            Natural_Ordering_Alphabetical_Part part
+        decimal = Decimal.parse substring . floor
 
-## PRIVATE
-type Natural_Ordering_Part
-    ## PRIVATE
-    type Natural_Ordering_Alphabetical_Part (text : Text)
+        next_index = if pair.second then -1 else iter.current
+        [substring, decimal, pair.first, next_index]
 
-    ## PRIVATE
-    type Natural_Ordering_Numeric_Part (value : Integer) (original_text : Text)
 
-    ## PRIVATE
-    compare_to : Natural_Ordering_Part -> Ordering
-    compare_to that = case Pair this that of
-        Pair (Natural_Ordering_Alphabetical_Part text1) (Natural_Ordering_Alphabetical_Part text2) ->
-            text1 . compare_to text2
-        Pair (Natural_Ordering_Numeric_Part value1 original1) (Natural_Ordering_Numeric_Part value2 original2) ->
-            value_ordering = value1.compare_to value2
-            case value_ordering of
-                Ordering.Equal -> original1 . compare_to original2
-                _ -> value_ordering
-        Pair (Natural_Ordering_Numeric_Part _ _) (Natural_Ordering_Alphabetical_Part _) ->
-            Ordering.Less
-        Pair (Natural_Ordering_Alphabetical_Part _) (Natural_Ordering_Numeric_Part _ _) ->
-            Ordering.Greater
+    ## Loop to computer the ordering of text1 and text2.
+       Ordering: Nothing < Number < Text
+       prev1 - index to start of current character in text1.
+       next1 - index to start of next character (or -1 if finished) in text1.
+       prev2 - index to start of current character in text2.
+       next2 - index to start of next character (or -1 if finished) in text2.
+    order prev1 next1 prev2 next2 =
+        case (Pair (next1 == -1) (next2 == -1)) of
+            Pair True True -> Ordering.Equal
+            Pair True False -> Ordering.Less
+            Pair False True -> Ordering.Greater
+            Pair False False ->
+                substring1 = Text_Utils.substring text1 prev1 next1
+                first_char_1 = Text_Utils.get_chars substring1 . at 0
 
-    to_text : Text
-    to_text = case this of
-        Natural_Ordering_Alphabetical_Part text -> text.to_text
-        Natural_Ordering_Numeric_Part v o -> [v, o].to_text
+                substring2 = Text_Utils.substring text2 prev2 next2
+                first_char_2 = Text_Utils.get_chars substring2 . at 0
+
+                tmp = Pair (is_digit first_char_1) (is_digit first_char_2)
+                ## ToDo: Move to case on second block
+                   Appears to be an issue using a nested case statement on a pair
+                   https://www.pivotaltracker.com/story/show/181280737
+                if (tmp.first && tmp.second.not) then Ordering.Less else
+                    if (tmp.first.not && tmp.second) then Ordering.Greater else
+                        case tmp.first.not of
+                            True ->
+                                text_comparison = substring1.compare_to substring2
+                                if text_comparison != Ordering.Equal then text_comparison else
+                                    @Tail_Call order next1 iter1.next next2 iter2.next
+                            False ->
+                                parsed1 = get_number text1 prev1 next1 iter1
+                                num_text1 = parsed1.at 0
+                                value1 = parsed1.at 1
+
+                                parsed2 = get_number text2 prev2 next2 iter2
+                                num_text2 = parsed2.at 0
+                                value2 = parsed2.at 1
+
+                                value_comparison = value1.compare_to value2
+                                if value_comparison != Ordering.Equal then value_comparison else
+                                    text_comparison = num_text1.compare_to num_text2
+                                    if text_comparison != Ordering.Equal then text_comparison else
+                                        @Tail_Call order (parsed1.at 2) (parsed1.at 3) (parsed2.at 2) (parsed2.at 3)
+
+    order 0 iter1.next 0 iter2.next
