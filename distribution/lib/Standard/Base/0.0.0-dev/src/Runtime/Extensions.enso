@@ -1,0 +1,93 @@
+from Standard.Base import all
+
+## ADVANCED
+   UNSTABLE
+   Represents a source location in Enso code. Contains information about the
+   source file and code position within it.
+type Source_Location
+    ## PRIVATE
+    type Source_Location prim_location
+
+    ## UNSTABLE
+       Pretty prints the location.
+    to_text : Text
+    to_text =
+        '(Source_Location ' + this.formatted_coordinates + ')'
+
+    ## UNSTABLE
+
+       Returns the 1-based line index of the start of this code range.
+    start_line : Integer
+    start_line = this.prim_location.getStartLine
+
+    ## UNSTABLE
+
+       Returns the 1-based line index of the end of this code range.
+    end_line : Integer
+    end_line = this.prim_location.getEndLine
+
+    ## UNSTABLE
+
+       Returns the 1-based column index of the start of this code range.
+    start_column : Integer
+    start_column = this.prim_location.getStartColumn
+
+    ## UNSTABLE
+
+       Returns the 1-based column index of the end of this code range.
+    end_column : Integer
+    end_column = this.prim_location.getEndColumn
+
+    ## UNSTABLE
+
+       Returns a pretty-printed location (file and line info).
+    formatted_coordinates : Text
+    formatted_coordinates =
+        start_line = this.start_line
+        end_line = this.end_line
+        indices = case start_line == end_line of
+            True ->
+                row = start_line.to_text
+                start = this.start_column.to_text
+                end = this.end_column.to_text
+                row + ":" + start + "-" + end
+            False ->
+                start_line + '-' + end_line
+        cwd = File.current_directory
+        file = this.file.absolute
+        formatted_file = case file.is_child_of cwd of
+            True -> cwd.relativize file . path
+            _ -> file.path
+        formatted_file + ":" + indices
+
+    ## UNSTABLE
+
+       Return the source file corresponding to this location.
+    file : File.File
+    file = File.new this.prim_location.getSource.getPath
+
+## ADVANCED
+   UNSTABLE
+
+   Represents a single stack frame in an Enso stack trace.
+type Stack_Trace_Element
+    ## PRIVATE
+    type Stack_Trace_Element name source_location
+
+## ADVANCED
+   UNSTABLE
+
+   Returns the execution stack trace of its call site. The ordering of the
+   resulting vector is such that the top stack frame is the first element.
+Runtime.get_stack_trace : Vector.Vector Stack_Trace_Element
+Runtime.get_stack_trace =
+    prim_stack = this.primitive_get_stack_trace
+    stack_with_prims = Vector.Vector prim_stack
+    stack = stack_with_prims.map el->
+        loc = case Polyglot.has_source_location el of
+            True -> Source_Location (Polyglot.get_source_location el)
+            False -> Nothing
+        name = Polyglot.get_executable_name el
+        Stack_Trace_Element name loc
+    # drop this frame and the one from `Runtime.primitive_get_stack_trace`
+    stack.drop_start 2

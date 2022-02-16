@@ -24,6 +24,7 @@ import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
+import org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineWithArgMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -157,6 +158,7 @@ public class Builtins {
     scope.registerMethod(
         runtime, "no_inline_with_arg", NoInlineWithArgMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
+    scope.registerMethod(runtime, "primitive_get_stack_trace", GetStackTraceMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
