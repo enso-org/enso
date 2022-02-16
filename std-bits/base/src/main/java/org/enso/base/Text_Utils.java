@@ -1,5 +1,6 @@
 package org.enso.base;
 
+import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import java.nio.charset.StandardCharsets;
@@ -200,7 +201,41 @@ public class Text_Utils {
    *     positive value if {@code a} is after {@code b}
    */
   public static int compare_normalized(String a, String b) {
-    return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
+    Normalizer2 nfd = Normalizer2.getNFDInstance();
+    BreakIterator iter1 = BreakIterator.getCharacterInstance();
+    BreakIterator iter2 = BreakIterator.getCharacterInstance();
+    iter1.setText(a);
+    iter2.setText(b);
+    int prev1 = iter1.first();
+    int next1 = iter1.next();
+    int prev2 = iter2.first();
+    int next2 = iter2.next();
+    while (next1 != -1 && next2 != -1) {
+      String cluster1 = a.substring(prev1, next1);
+      String cluster2 = b.substring(prev2, next2);
+
+      cluster1 = nfd.normalize(cluster1);
+      cluster2 = nfd.normalize(cluster2);
+      int cmp = cluster1.compareTo(cluster2);
+      if (cmp == 0) {
+        prev1 = next1;
+        prev2 = next2;
+        next1 = iter1.next();
+        next2 = iter2.next();
+        continue;
+      }
+      return cmp;
+    }
+
+    if (next1 == -1) {
+      if (next2 == -1) {
+        return 0;
+      } else {
+        return -1;
+      }
+    } else {
+      return 1;
+    }
   }
 
   /**
