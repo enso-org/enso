@@ -3,8 +3,8 @@ from Standard.Base import all
 polyglot java import java.util.Random
 polyglot java import org.enso.base.Text_Utils
 
-upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".utf_8
-numbers = "0123456789".utf_8
+upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".utf_16
+numbers = "0123456789".utf_16
 
 ## Creates a random number generator which can be used for creating test values.
 
@@ -18,22 +18,21 @@ make_generator (seed = 0) =
 ## Creates a random string based on a template and random number generator.
 
    Arguments:
-   - template: Vector of character arrays that represent the possible
-     characters for each letter.
+   - template: Vector of vectors that represent the possible characters for each
+     letter, as UTF-16 code units.
    - generator: Random number generator
 
    > Examples:
      Creates a fake UK National Insurance number:
 
-            l = "ABCEGHJKLMNOPRSTWXYZ".utf_8
-            n = "0123456789".utf_8
-            s = "ABCDFMP ".utf_8
+            l = "ABCEGHJKLMNOPRSTWXYZ".utf_16
+            n = "0123456789".utf_16
+            s = "ABCDFMP ".utf_16
             template = [l, l, n, n, n, n, n, s]
             ni_number = make_string template make_generator
 make_string : Vector -> Any -> Text
 make_string template generator =
-    output = Array.new template.length
-    0.up_to template.length . each i->
-        a = template.at i
-        output.set_at i (a.at (generator.nextInt a.length))
-    Text_Utils.from_utf_8 output
+    characters = template.map possible_chars->
+        selected_char_ix = generator.nextInt possible_chars.length
+        possible_chars.at selected_char_ix
+    Text.from_utf_16 characters
