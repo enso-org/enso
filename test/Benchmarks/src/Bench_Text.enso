@@ -1,0 +1,52 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+import Standard.Test.Faker
+
+from Standard.Builtins import Prim_Text_Helper
+
+polyglot java import java.lang.StringBuilder
+
+build_long n =
+    res = 1.up_to n . fold "" acc-> n-> acc + n.to_text
+    Prim_Text_Helper.optimize res
+    res
+
+build_long_bldr n =
+    bldr = StringBuilder.new
+    1.up_to n . each n-> bldr.append n
+    res = bldr.toString
+    res
+
+compare_all_adjacent text_vector =
+    res = 1.up_to text_vector.length . fold False acc-> ix->
+        compare_result = (text_vector.at ix-1) < (text_vector.at ix)
+        acc && compare_result
+    res
+
+main =
+    gen = Faker.make_generator
+    make_alpha_template length = Vector.new length _-> Faker.upper_case_letters
+    very_short_template = make_alpha_template 4
+    very_short = Vector.new 100000 _-> Faker.make_string very_short_template gen
+    medium_template = make_alpha_template 64
+    medium = Vector.new 10000 _-> Faker.make_string medium_template gen
+
+    big_a_codepoint = 65
+    big_template = make_alpha_template 100000
+    big_random = Vector.new 100 _-> Faker.make_string big_template gen
+    big_early_difference = Vector.new 100 ix->
+        "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (Faker.make_string big_template gen)
+    prefix = "A".repeat 100000
+    big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
+
+    Bench.measure (here.compare_all_adjacent very_short) "string compare very short" 10 10
+    Bench.measure (here.compare_all_adjacent medium) "string compare medium" 10 10
+    Bench.measure (here.compare_all_adjacent big_random) "string compare big - random" 10 10
+    Bench.measure (here.compare_all_adjacent big_early_difference) "string compare big - early difference" 10 10
+    Bench.measure (here.compare_all_adjacent big_late_difference) "string compare big - late difference" 10 10
+
+    n = 1000000
+    Bench.measure (here.build_long_bldr n) "string append bldr" 1 1
+    Bench.measure (here.build_long n) "string append" 1 1
+    IO.println "Bye"
