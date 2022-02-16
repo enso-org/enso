@@ -1,5 +1,7 @@
 package org.enso.librarymanager.published.cache
 
+import java.nio.file.{Files, Path}
+
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
@@ -21,8 +23,8 @@ import org.enso.librarymanager.published.repository.RepositoryHelper.{
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
 import org.enso.yaml.YamlHelper
+import org.enso.librarymanager.resolved.LibraryPath
 
-import java.nio.file.{Files, Path}
 import scala.util.control.NonFatal
 import scala.util.{Success, Try}
 
@@ -50,7 +52,7 @@ class DownloadingLibraryCache(
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[CachedLibrary] = {
+  ): Option[LibraryPath] = {
     val path = LibraryCache.resolvePath(cacheRoot, libraryName, version)
     resourceManager.withResource(
       lockUserInterface,
@@ -62,7 +64,7 @@ class DownloadingLibraryCache(
           s"Library [$libraryName:$version] found cached at " +
           s"[${MaskedPath(path).applyMasking()}]."
         )
-        Some(CachedLibrary(cacheRoot, libraryName, version))
+        Some(LibraryPath(path))
       } else None
     }
   }
@@ -72,7 +74,7 @@ class DownloadingLibraryCache(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[CachedLibrary] = {
+  ): Try[LibraryPath] = {
     val cached = findCachedLibrary(libraryName, version)
     cached match {
       case Some(result) => Success(result)
@@ -95,7 +97,7 @@ class DownloadingLibraryCache(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[CachedLibrary] = Try {
+  ): Try[LibraryPath] = Try {
     logger.trace(s"Trying to install [$libraryName:$version].")
     resourceManager.withResource(
       lockUserInterface,
@@ -108,7 +110,7 @@ class DownloadingLibraryCache(
         logger.info(
           s"Another process has just installed [$libraryName:$version]."
         )
-        CachedLibrary(cacheRoot, libraryName, version)
+        LibraryPath(cachedLibraryPath)
       } else {
         val access   = recommendedRepository.accessLibrary(libraryName, version)
         val manifest = downloadManifest(libraryName, access)
@@ -129,7 +131,7 @@ class DownloadingLibraryCache(
             destination = cachedLibraryPath
           )
 
-          CachedLibrary(cacheRoot, libraryName, version)
+          LibraryPath(cachedLibraryPath)
         } catch {
           case NonFatal(exception) =>
             logger.error(

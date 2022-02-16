@@ -59,7 +59,7 @@ class DependencyResolver(
         case LibraryVersion.Local =>
           val libraryPath = localLibraryProvider.findLibrary(libraryName)
           val libraryPackage = libraryPath.map(path =>
-            PackageManager.Default.loadPackage(path.toFile).get
+            PackageManager.Default.loadPackage(path.location.toFile).get
           )
 
           val dependencies = libraryPackage match {
@@ -97,7 +97,7 @@ class DependencyResolver(
   ): LibraryManifest = {
     val cachedManifest = publishedLibraryProvider
       .findCachedLibrary(libraryName, version.version)
-      .flatMap(_.getManifest.flatMap(_.toOption))
+      .flatMap(_.getReadAccess.readManifest().flatMap(_.toOption))
     cachedManifest.getOrElse {
       version.repository
         .accessLibrary(libraryName, version.version)

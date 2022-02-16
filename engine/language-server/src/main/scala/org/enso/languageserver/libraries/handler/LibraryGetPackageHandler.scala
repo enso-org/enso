@@ -123,13 +123,15 @@ class LibraryGetPackageHandler(
   ): Option[Try[LocalLibraryManagerProtocol.GetPackageResponse]] =
     publishedLibraryCache
       .findCachedLibrary(libraryName, version)
-      .map { cachedLibrary =>
-        cachedLibrary.getPackage.map(config =>
-          LocalLibraryManagerProtocol.GetPackageResponse(
-            config.license,
-            config.componentGroups.toOption
+      .map { libraryPath =>
+        libraryPath.getReadAccess
+          .readPackage()
+          .map(config =>
+            LocalLibraryManagerProtocol.GetPackageResponse(
+              config.license,
+              config.componentGroups.toOption
+            )
           )
-        )
       }
 
   private def fetchPublishedPackage(

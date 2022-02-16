@@ -124,8 +124,9 @@ class LibraryGetMetadataHandler(
   ): Option[Try[LocalLibraryManagerProtocol.GetMetadataResponse]] =
     publishedLibraryCache
       .findCachedLibrary(libraryName, version)
-      .map { cachedLibrary =>
-        cachedLibrary.getManifest
+      .map { libraryPath =>
+        libraryPath.getReadAccess
+          .readManifest()
           .map { manifestAttempt =>
             manifestAttempt.map(manifest =>
               LocalLibraryManagerProtocol.GetMetadataResponse(

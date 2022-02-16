@@ -4,7 +4,7 @@ import io.circe.Json
 import io.circe.literal.JsonStringContext
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
-import org.enso.pkg.{ComponentGroup, ComponentGroups, Contact}
+import org.enso.pkg.{ComponentGroups, Contact}
 
 object LibraryApi {
   case object EditionsListAvailable extends Method("editions/listAvailable") {
@@ -103,7 +103,7 @@ object LibraryApi {
 
     case class Params(editions: EditionReference)
 
-    case class Result(availableComponents: Seq[ComponentGroup])
+    case class Result(availableComponents: Seq[LibraryComponentGroup])
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = self.Params

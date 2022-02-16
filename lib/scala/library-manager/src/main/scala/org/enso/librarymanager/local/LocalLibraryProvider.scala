@@ -1,17 +1,20 @@
 package org.enso.librarymanager.local
 
+import java.nio.file.Path
+
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.editions.LibraryName
-
-import java.nio.file.Path
+import org.enso.librarymanager.resolved.LibraryPath
 
 /** A provider for local libraries. */
 trait LocalLibraryProvider {
 
-  /** Returns the path to a local instance of the requested library, if it is
-    * available.
+  /** Find the local library by name.
+    *
+    * @param libraryName the library name
+    * @return the location of the requested library, if it is available.
     */
-  def findLibrary(libraryName: LibraryName): Option[Path]
+  def findLibrary(libraryName: LibraryName): Option[LibraryPath]
 }
 
 object LocalLibraryProvider {

@@ -7,8 +7,8 @@ import org.enso.librarymanager.published.cache.{
   LibraryCache,
   ReadOnlyLibraryCache
 }
+import org.enso.librarymanager.resolved.LibraryPath
 
-import java.nio.file.Path
 import scala.util.{Success, Try}
 
 /** A default implementation of [[PublishedLibraryProvider]] which uses one
@@ -27,16 +27,15 @@ class DefaultPublishedLibraryProvider(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[Path] = {
+  ): Try[LibraryPath] = {
     val cachedLibrary = findCachedLibrary(libraryName, version)
-    cachedLibrary.map(lib => Success(lib.path)).getOrElse {
+    cachedLibrary.map(Success(_)).getOrElse {
       logger.trace(
         s"$libraryName was not found in any caches, it will need to be " +
         s"downloaded."
       )
       primaryCache
         .findOrInstallLibrary(libraryName, version, recommendedRepository)
-        .map(_.path)
     }
   }
 }

@@ -2,6 +2,7 @@ package org.enso.librarymanager.published.cache
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.LibraryName
+import org.enso.librarymanager.resolved.LibraryPath
 
 /** A read-only cache may contain some pre-defined set of libraries, but it does
   * not necessarily install any additional libraries.
@@ -16,5 +17,5 @@ trait ReadOnlyLibraryCache {
   def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[CachedLibrary]
+  ): Option[LibraryPath]
 }

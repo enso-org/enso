@@ -506,6 +506,12 @@ class JsonConnectionController(
         .props(requestTimeout, projectSettingsManager),
       EditionsSetLocalLibrariesPreference -> EditionsSetProjectLocalLibrariesPreferenceHandler
         .props(requestTimeout, projectSettingsManager),
+      EditionsListDefinedComponents -> EditionsListDefinedComponentsHandler
+        .props(
+          libraryConfig.editionReferenceResolver,
+          libraryConfig.localLibraryProvider,
+          libraryConfig.publishedLibraryCache
+        ),
       LibraryCreate -> LibraryCreateHandler
         .props(requestTimeout, libraryConfig.localLibraryManager),
       LibraryListLocal -> LibraryListLocalHandler

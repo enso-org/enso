@@ -5,7 +5,6 @@ import java.nio.file.{Files, Path}
 
 import akka.actor.Props
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
