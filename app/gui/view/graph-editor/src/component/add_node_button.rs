@@ -1,3 +1,5 @@
+//! A module containing definition of (+) button for adding nodes.
+
 use ensogl_component::button::prelude::*;
 
 use crate::display::camera::Camera2d;
@@ -5,7 +7,6 @@ use crate::display::camera::Camera2d;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::Scene;
 use ensogl_hardcoded_theme::graph_editor::add_node_button as theme;
 
 
@@ -29,7 +30,7 @@ mod shape {
             let bar        = Rect((bar_length, &bar_width));
             let plus       = (bar.rotate(angle) + bar).into();
             let shape = shape(background_color, icon_color, plus, radius);
-            let shadow = ensogl_component::shadow::from_shape(shape.clone(), &style);
+            let shadow = ensogl_component::shadow::from_shape(shape.clone(), style);
             (shadow + shape).into()
         }
     }
@@ -40,7 +41,7 @@ impl ButtonShape for shape::DynamicShape {
         "AddNodeButton"
     }
 
-    fn size_path(state: State) -> StaticPath {
+    fn size_path(_state: State) -> StaticPath {
         theme::size
     }
 
@@ -69,8 +70,18 @@ impl ButtonShape for shape::DynamicShape {
     }
 }
 
+
+
+// =====================
+// === AddNodeButton ===
+// =====================
+
 type View = ensogl_component::button::View<shape::DynamicShape>;
 
+/// Add Node Button Component.
+///
+/// This is a button with + icon, which sticks to the left-bottom corner of the scene. It exposes
+/// the FRP of EnsoGL Button Component, including the main "click" event.
 #[derive(Clone, CloneRef, Debug)]
 pub struct AddNodeButton {
     network:     frp::Network,
@@ -86,6 +97,7 @@ impl Deref for AddNodeButton {
 }
 
 impl AddNodeButton {
+    /// Create new component.
     pub fn new(app: &Application) -> Self {
         let view = ensogl_component::button::View::new(app);
         let network = frp::Network::new("AddNodeButton");

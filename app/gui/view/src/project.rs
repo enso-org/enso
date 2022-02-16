@@ -26,14 +26,18 @@ use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
 
 
+
 // ===========
 // === FRP ===
 // ===========
 
-
+/// The parameters of the displayed searcher.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SearcherParams {
+    /// The node being an Expression Input.
     pub input:       NodeId,
+    /// The node being a source for the edited node data - usually it's output shall be a this port
+    /// for inserted expression.
     pub source_node: Option<NodeSource>,
 }
 
@@ -70,17 +74,17 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher                            (Option<SearcherParams>),
-        is_searcher_opened                  (bool),
-        adding_new_node                     (bool),
-        old_expression_of_edited_node       (Expression),
-        editing_aborted                     (NodeId),
-        editing_committed                   (NodeId, Option<searcher::entry::Id>),
-        open_dialog_shown                   (bool),
-        code_editor_shown                   (bool),
-        style                               (Theme),
-        fullscreen_visualization_shown      (bool),
-        drop_files_enabled                  (bool),
+        searcher                       (Option<SearcherParams>),
+        is_searcher_opened             (bool),
+        adding_new_node                (bool),
+        old_expression_of_edited_node  (Expression),
+        editing_aborted                (NodeId),
+        editing_committed              (NodeId, Option<searcher::entry::Id>),
+        open_dialog_shown              (bool),
+        code_editor_shown              (bool),
+        style                          (Theme),
+        fullscreen_visualization_shown (bool),
+        drop_files_enabled             (bool),
     }
 }
 

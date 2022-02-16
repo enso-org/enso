@@ -46,10 +46,10 @@ use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
+use crate::free_place_finder::find_free_place;
+use crate::free_place_finder::OccupiedArea;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
-use crate::free_place_finder::FreePlaceFinder;
-use crate::free_place_finder::OccupiedArea;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
@@ -1667,7 +1667,7 @@ impl GraphEditorModel {
             let bottom = position.y - node.view.model.height() / 2.0 - y_gap;
             OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
         });
-        FreePlaceFinder::new(starting_from, direction, node_areas).map(|f| f.find())
+        find_free_place(starting_from, direction, node_areas)
     }
 
     pub fn start_editing_new_node(&self, node_id: NodeId) {
