@@ -10,6 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Engine builds are slow and our runners limited in capacity. Thus cancel any workflow runs for older commits
+  # on this branch.
   cancel:
     name: Cancel previous runs
     runs-on:
@@ -35,8 +37,6 @@ jobs:
         os: [Windows, Linux]
       fail-fast: false
     steps:
-      # Engine builds are slow and our runners limited in capacity. Thus cancel any workflow runs for older commits
-      # on this branch.
       - uses: actions/checkout@v2
         with:
           clean: false
