@@ -10,6 +10,19 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Engine builds are slow and our runners limited in capacity. Thus we cancel any workflow runs for older commits
+  # on this branch.
+  cancel:
+    name: Cancel previous runs
+    runs-on:
+      # We can run pretty much on any runner. The label below is the one present everywhere.
+      - X64
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
   test_and_publish:
     name: Engine
     runs-on:
