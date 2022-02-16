@@ -7,7 +7,7 @@ import org.enso.librarymanager.published.cache.{
   LibraryCache,
   ReadOnlyLibraryCache
 }
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 
 import scala.util.{Success, Try}
 
@@ -27,7 +27,7 @@ class DefaultPublishedLibraryProvider(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[LibraryPath] = {
+  ): Try[LibraryRoot] = {
     val cachedLibrary = findCachedLibrary(libraryName, version)
     cachedLibrary.map(Success(_)).getOrElse {
       logger.trace(

@@ -3,8 +3,8 @@ package org.enso.librarymanager
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.librarymanager.resolved.{
   FilesystemLibraryReadAccess,
-  LibraryPath,
-  LibraryReadAccess
+  LibraryReadAccess,
+  LibraryRoot
 }
 
 /** Represents a resolved library that is located somewhere on the filesystem.
@@ -16,7 +16,7 @@ import org.enso.librarymanager.resolved.{
 case class ResolvedLibrary(
   name: LibraryName,
   version: LibraryVersion,
-  location: LibraryPath
+  location: LibraryRoot
 )
 object ResolvedLibrary {
 

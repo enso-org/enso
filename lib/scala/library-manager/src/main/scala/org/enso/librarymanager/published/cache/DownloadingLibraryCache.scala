@@ -23,7 +23,7 @@ import org.enso.librarymanager.published.repository.RepositoryHelper.{
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
 import org.enso.yaml.YamlHelper
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 
 import scala.util.control.NonFatal
 import scala.util.{Success, Try}
@@ -52,7 +52,7 @@ class DownloadingLibraryCache(
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[LibraryPath] = {
+  ): Option[LibraryRoot] = {
     val path = LibraryCache.resolvePath(cacheRoot, libraryName, version)
     resourceManager.withResource(
       lockUserInterface,
@@ -64,7 +64,7 @@ class DownloadingLibraryCache(
           s"Library [$libraryName:$version] found cached at " +
           s"[${MaskedPath(path).applyMasking()}]."
         )
-        Some(LibraryPath(path))
+        Some(LibraryRoot(path))
       } else None
     }
   }
@@ -74,7 +74,7 @@ class DownloadingLibraryCache(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[LibraryPath] = {
+  ): Try[LibraryRoot] = {
     val cached = findCachedLibrary(libraryName, version)
     cached match {
       case Some(result) => Success(result)
@@ -97,7 +97,7 @@ class DownloadingLibraryCache(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[LibraryPath] = Try {
+  ): Try[LibraryRoot] = Try {
     logger.trace(s"Trying to install [$libraryName:$version].")
     resourceManager.withResource(
       lockUserInterface,
@@ -110,7 +110,7 @@ class DownloadingLibraryCache(
         logger.info(
           s"Another process has just installed [$libraryName:$version]."
         )
-        LibraryPath(cachedLibraryPath)
+        LibraryRoot(cachedLibraryPath)
       } else {
         val access   = recommendedRepository.accessLibrary(libraryName, version)
         val manifest = downloadManifest(libraryName, access)
@@ -131,7 +131,7 @@ class DownloadingLibraryCache(
             destination = cachedLibraryPath
           )
 
-          LibraryPath(cachedLibraryPath)
+          LibraryRoot(cachedLibraryPath)
         } catch {
           case NonFatal(exception) =>
             logger.error(

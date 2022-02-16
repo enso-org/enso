@@ -6,11 +6,11 @@ import java.nio.file.Path
   *
   * @param location the library location on a filesystem
   */
-case class LibraryPath(location: Path)
-object LibraryPath {
+case class LibraryRoot(location: Path)
+object LibraryRoot {
 
-  /** Extension methods of [[LibraryPath]]. */
-  implicit class LibraryPathMethods(val libraryPath: LibraryPath)
+  /** Extension methods of [[LibraryRoot]]. */
+  implicit class LibraryRootMethods(val libraryPath: LibraryRoot)
       extends AnyVal {
 
     /** Get the read access to the library files. */
@@ -20,9 +20,9 @@ object LibraryPath {
 
   /** Syntax allowing to write nested paths in a more readable and concise way.
     */
-  implicit class LibraryPathSyntax(val libraryPath: LibraryPath)
+  implicit class LibraryRootSyntax(val libraryRoot: LibraryRoot)
       extends AnyVal {
-    def /(other: String): Path = libraryPath.location.resolve(other)
-    def /(other: Path): Path   = libraryPath.location.resolve(other)
+    def /(other: String): Path = libraryRoot.location.resolve(other)
+    def /(other: Path): Path   = libraryRoot.location.resolve(other)
   }
 }

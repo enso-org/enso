@@ -10,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import java.nio.file.Path
 
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 
 class LibraryResolverSpec
     extends AnyWordSpec
@@ -62,10 +62,10 @@ class LibraryResolverSpec
       /** @inheritdoc */
       override def findLibrary(
         libraryName: LibraryName
-      ): Option[LibraryPath] =
+      ): Option[LibraryRoot] =
         fixtures
           .get(libraryName)
-          .map(LibraryPath(_))
+          .map(LibraryRoot(_))
     }
 
     val localLibraries = Map(

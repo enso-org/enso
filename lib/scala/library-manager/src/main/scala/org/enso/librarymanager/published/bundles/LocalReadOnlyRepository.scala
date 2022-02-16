@@ -9,7 +9,7 @@ import org.enso.librarymanager.published.cache.{
   LibraryCache,
   ReadOnlyLibraryCache
 }
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
 
 /** Implements a read-only cache backed by a repository on the local filesystem.
@@ -32,13 +32,13 @@ class LocalReadOnlyRepository(root: Path) extends ReadOnlyLibraryCache {
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[LibraryPath] = {
+  ): Option[LibraryRoot] = {
     val path = LibraryCache.resolvePath(root, libraryName, version)
     if (Files.exists(path)) {
       logger.trace(
         s"$libraryName found at [${MaskedPath(path).applyMasking()}]."
       )
-      Some(LibraryPath(path))
+      Some(LibraryRoot(path))
     } else {
       logger.trace(
         s"Did not find $libraryName at [${MaskedPath(path).applyMasking()}]."

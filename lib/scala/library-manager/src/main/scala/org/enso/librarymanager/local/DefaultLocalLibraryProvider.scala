@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
 
 import scala.annotation.tailrec
@@ -17,9 +17,9 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
   private val logger = Logger[DefaultLocalLibraryProvider]
 
   /** @inheritdoc */
-  override def findLibrary(libraryName: LibraryName): Option[LibraryPath] = {
+  override def findLibrary(libraryName: LibraryName): Option[LibraryRoot] = {
     findLibraryHelper(libraryName, searchPaths)
-      .map(LibraryPath(_))
+      .map(LibraryRoot(_))
   }
 
   /** Searches through the available library paths, checking if any one of them

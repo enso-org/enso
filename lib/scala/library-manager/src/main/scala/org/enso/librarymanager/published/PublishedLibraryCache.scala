@@ -6,7 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 
 /** An interface that allows to check if a given published library version is
   * cached.
@@ -22,7 +22,7 @@ trait PublishedLibraryCache {
   def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[LibraryPath]
+  ): Option[LibraryRoot]
 }
 
 object PublishedLibraryCache {

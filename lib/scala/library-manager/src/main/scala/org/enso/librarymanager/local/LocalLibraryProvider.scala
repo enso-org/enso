@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.editions.LibraryName
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 
 /** A provider for local libraries. */
 trait LocalLibraryProvider {
@@ -14,7 +14,7 @@ trait LocalLibraryProvider {
     * @param libraryName the library name
     * @return the location of the requested library, if it is available.
     */
-  def findLibrary(libraryName: LibraryName): Option[LibraryPath]
+  def findLibrary(libraryName: LibraryName): Option[LibraryRoot]
 }
 
 object LocalLibraryProvider {

@@ -1,7 +1,7 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
-import org.enso.librarymanager.resolved.LibraryPath
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.pkg.{ComponentGroups, Contact}
 
 object LocalLibraryManagerProtocol {
@@ -52,7 +52,7 @@ object LocalLibraryManagerProtocol {
   case class FindLibrary(libraryName: LibraryName) extends Request
 
   /** A response to [[FindLibrary]]. */
-  case class FindLibraryResponse(libraryRoot: Option[LibraryPath])
+  case class FindLibraryResponse(libraryRoot: Option[LibraryRoot])
 
   /** Indicates that a library with the given name was not found among local
     * libraries.

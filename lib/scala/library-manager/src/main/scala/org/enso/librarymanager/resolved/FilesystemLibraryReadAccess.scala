@@ -12,7 +12,7 @@ import scala.util.Try
   *
   * @param libraryPath the library location on the filesystem
   */
-class FilesystemLibraryReadAccess(libraryPath: LibraryPath)
+class FilesystemLibraryReadAccess(libraryPath: LibraryRoot)
     extends LibraryReadAccess {
 
   /** @inheritdoc */
