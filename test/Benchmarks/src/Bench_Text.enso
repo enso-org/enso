@@ -25,30 +25,34 @@ compare_all_adjacent text_vector =
     res
 
 main =
-    gen = Faker.make_generator
-    ## Warning: this relies on the fact that Faker will treat the accent
-       codepoint `\u{301}` as a separate code unit. We rely on this to add
-       accents randomly to neighboring characters. If the implementation of
-       Faker is changed, this must be modified accordingly.
-    make_alpha_template length = Vector.new length _-> Faker.upper_case_letters + 'ę\u{301}\u{302}'.utf_16
-    very_short_template = make_alpha_template 4
-    very_short = Vector.new 100000 _-> '🤩' + Faker.make_string very_short_template gen
-    medium_template = make_alpha_template 64
-    medium = Vector.new 10000 _-> Faker.make_string medium_template gen
+    bench_strcmp suite_prefix character_template common_prefix =
+        gen = Faker.make_generator
+        ## Warning: this relies on the fact that Faker will treat the accent
+           codepoint `\u{301}` as a separate code unit. We rely on this to add
+           accents randomly to neighboring characters. If the implementation of
+           Faker is changed, this must be modified accordingly.
+        make_alpha_template length = Vector.new length _-> character_template
+        very_short_template = make_alpha_template 4
+        very_short = Vector.new 100000 _-> '🤩' + Faker.make_string very_short_template gen
+        medium_template = make_alpha_template 64
+        medium = Vector.new 10000 _-> Faker.make_string medium_template gen
 
-    big_a_codepoint = 65
-    big_template = make_alpha_template 100000
-    big_random = Vector.new 100 _-> Faker.make_string big_template gen
-    big_early_difference = Vector.new 100 ix->
-        "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (Faker.make_string big_template gen)
-    prefix = "ę\u{301}".repeat 50000
-    big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
+        big_a_codepoint = 65
+        big_template = make_alpha_template 100000
+        big_random = Vector.new 100 _-> Faker.make_string big_template gen
+        big_early_difference = Vector.new 100 ix->
+            "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (Faker.make_string big_template gen)
+        prefix = common_prefix.repeat 100000
+        big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
 
-    Bench.measure (here.compare_all_adjacent very_short) "string compare very short" 10 10
-    Bench.measure (here.compare_all_adjacent medium) "string compare medium" 10 10
-    Bench.measure (here.compare_all_adjacent big_random) "string compare big - random" 10 10
-    Bench.measure (here.compare_all_adjacent big_early_difference) "string compare big - early difference" 10 10
-    Bench.measure (here.compare_all_adjacent big_late_difference) "string compare big - late difference" 10 10
+        Bench.measure (here.compare_all_adjacent very_short) suite_prefix+"very short" 10 10
+        Bench.measure (here.compare_all_adjacent medium) suite_prefix+"medium" 10 10
+        Bench.measure (here.compare_all_adjacent big_random) suite_prefix+"big - random" 10 10
+        Bench.measure (here.compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 10 10
+        Bench.measure (here.compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 10 10
+
+    bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.utf_16) 'ę\u{301}'
+    bench_strcmp "strcmp ASCII " Faker.upper_case_letters 'A'
 
     n = 1000000
     Bench.measure (here.build_long_bldr n) "string append bldr" 1 1
