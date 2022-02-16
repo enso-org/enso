@@ -49,14 +49,14 @@ impl NavigatorModel {
         let zoom_speed = Rc::new(Cell::new(Switch::On(10.0 / 1000.0)));
         let pan_speed = Rc::new(Cell::new(Switch::On(1.0)));
         let disable_events = Rc::new(Cell::new(true));
-        let max_zoom = default();
+        let max_zoom: Rc<Cell<_>> = default();
         let (simulator, resize_callback, _events) = Self::start_navigator_events(
             scene,
             camera,
-            Rc::clone(&zoom_speed),
-            Rc::clone(&pan_speed),
-            Rc::clone(&disable_events),
-            Rc::clone(&max_zoom),
+            zoom_speed.clone_ref(),
+            pan_speed.clone_ref(),
+            disable_events.clone_ref(),
+            max_zoom.clone_ref(),
         );
         Self {
             _events,
@@ -139,14 +139,14 @@ impl NavigatorModel {
             let negative_z_translation_limit = min_distance - position.z;
             let too_far = translation.z > positive_z_translation_limit;
             let too_close = translation.z < negative_z_translation_limit;
-            let limiting_factor = if too_far {
+            let z_axis_movement_limiting_factor = if too_far {
                 positive_z_translation_limit / translation.z
             } else if too_close {
                 negative_z_translation_limit / translation.z
             } else {
                 1.0
             };
-            position += translation * limiting_factor;
+            position += translation * z_axis_movement_limiting_factor;
             simulator.set_target_value(position);
         });
         (
