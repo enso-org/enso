@@ -16,4 +16,4 @@ ide-view = { path = "../.." }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
 serde_json = { version = "1.0" }
-wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.58", features = ["nightly"] }

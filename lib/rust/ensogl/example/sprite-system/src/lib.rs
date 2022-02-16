@@ -1,6 +1,5 @@
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]

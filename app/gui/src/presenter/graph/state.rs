@@ -236,7 +236,7 @@ impl Expressions {
     pub fn retain_expression_of_nodes(&mut self, nodes: &HashSet<AstNodeId>) {
         let nodes_to_remove =
             self.expressions_of_node.drain_filter(|node_id, _| !nodes.contains(node_id));
-        let expr_to_remove = nodes_to_remove.map(|(_, exprs)| exprs).flatten();
+        let expr_to_remove = nodes_to_remove.flat_map(|(_, exprs)| exprs);
         for expression_id in expr_to_remove {
             self.expressions.remove(&expression_id);
         }
