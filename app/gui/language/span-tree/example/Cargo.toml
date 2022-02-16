@@ -14,7 +14,7 @@ span-tree = { path = "../../span-tree" }
 enso-web = { path = "../../../../../lib/rust/web" }
 enso-prelude = { path = "../../../../../lib/rust/prelude"}
 enso-logger = { path = "../../../../../lib/rust/logger"}
-wasm-bindgen = { version = "=0.2.58", features = [
+wasm-bindgen = { version = "0.2.58", features = [
   "nightly",
   "serde-serialize"
 ] }

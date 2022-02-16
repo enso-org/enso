@@ -213,9 +213,9 @@ impl Searcher {
     ) -> Option<Uuid> {
         if let Some(edge_id) = way_of_opening_searcher.edge() {
             let edge = view.graph().model.edges.get_cloned_ref(&edge_id);
-            let edge_source = edge.map(|edge| edge.source()).flatten();
+            let edge_source = edge.and_then(|edge| edge.source());
             let source_node_id = edge_source.map(|source| source.node_id);
-            source_node_id.map(|id| graph_presenter.ast_node_of_view(id)).flatten()
+            source_node_id.and_then(|id| graph_presenter.ast_node_of_view(id))
         } else {
             let selected_views = view.graph().model.nodes.all_selected();
             selected_views.iter().find_map(|view| graph_presenter.ast_node_of_view(*view))

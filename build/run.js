@@ -192,8 +192,11 @@ async function checkWasmSize(path, limitMb) {
 
 /// Workaround fix by wdanilo, see: https://github.com/rustwasm/wasm-pack/issues/790
 function js_workaround_patcher(code) {
-    code = code.replace(/if \(\(typeof URL.*}\);/gs, 'return imports')
-    code = code.replace(/if \(typeof module.*let result/gs, 'let result')
+    code = code.replace(/if \(typeof input === 'string'.*return wasm;/gs, 'return imports')
+    code = code.replace(
+        /if \(typeof input === 'undefined'.*const imports = {};/gs,
+        'const imports = {};'
+    )
     code = code.replace(/export default init;/gs, 'export default init')
     code += '\nexport function after_load(w,m) { wasm = w; init.__wbindgen_wasm_module = m;}'
     return code

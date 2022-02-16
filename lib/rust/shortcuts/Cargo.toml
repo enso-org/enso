@@ -13,7 +13,7 @@ enso-frp = { path = "../frp" }
 enso-logger = { path = "../logger" }
 enso-prelude = { path = "../prelude" }
 enso-web = { path = "../web" }
-wasm-bindgen = { version = "=0.2.58", features = [
+wasm-bindgen = { version = "0.2.58", features = [
   "nightly",
   "serde-serialize"
 ] }

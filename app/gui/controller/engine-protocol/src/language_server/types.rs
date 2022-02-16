@@ -82,7 +82,7 @@ impl Path {
     /// Returns the stem of filename, i.e. part of last segment without extension if present.
     pub fn file_stem(&self) -> Option<&str> {
         let name = self.file_name()?;
-        let name_length = name.rfind('.').unwrap_or_else(|| name.len());
+        let name_length = name.rfind('.').unwrap_or(name.len());
         Some(&name[..name_length])
     }
 
