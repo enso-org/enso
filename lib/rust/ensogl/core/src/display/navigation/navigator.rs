@@ -95,11 +95,11 @@ impl NavigatorModel {
 
         let simulator = Self::create_simulator(camera);
         let panning_callback = f!([scene,camera,simulator,pan_speed] (pan: PanEvent) {
-            let distance                        = camera.position().z;
-            let distance_to_zoom_factor_of_1    = distance_to_zoom_factor_of_1(&scene, &camera);
-            let pan_speed                       = pan_speed.get().into_on().unwrap_or(0.0);
-            let movement_scale_for_distance     = distance / distance_to_zoom_factor_of_1;
-            let diff = pan_speed * Vector3::new(pan.movement.x,pan.movement.y,0.0) * movement_scale_for_distance;
+            let distance = camera.position().z;
+            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
+            let pan_speed = pan_speed.get().into_on().unwrap_or(0.0);
+            let movement_scale_for_distance = distance / distance_to_zoom_factor_of_1;
+            let diff = pan_speed * Vector3::new(pan.movement.x, pan.movement.y, 0.0) * movement_scale_for_distance;
             simulator.update_target_value(|p| p - diff);
         });
 
@@ -113,36 +113,36 @@ impl NavigatorModel {
         );
 
         let zoom_callback = f!([scene,camera,simulator,max_zoom] (zoom:ZoomEvent) {
-            let point       = zoom.focus;
-            let normalized  = normalize_point2(point,scene.shape().value().into());
-            let normalized  = normalized_to_range2(normalized, -1.0, 1.0);
+            let point = zoom.focus;
+            let normalized = normalize_point2(point,scene.shape().value().into());
+            let normalized = normalized_to_range2(normalized, -1.0, 1.0);
             let half_height = 1.0;
 
             // Scale X and Y to compensate aspect and fov.
-            let x              = -normalized.x * camera.screen().aspect();
-            let y              = -normalized.y;
-            let z              = half_height / camera.half_fovy_slope();
-            let direction      = Vector3(x,y,z).normalize();
-            let mut position   = simulator.target_value();
-            let zoom_amount    = zoom.amount * position.z;
-            let translation    = direction   * zoom_amount;
+            let x = -normalized.x * camera.screen().aspect();
+            let y = -normalized.y;
+            let z = half_height / camera.half_fovy_slope();
+            let direction = Vector3(x, y, z).normalize();
+            let mut position = simulator.target_value();
+            let zoom_amount = zoom.amount * position.z;
+            let translation = direction * zoom_amount;
 
             let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
-            let max_zoom                     = max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM);
+            let max_zoom = max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM);
             // Usage of min/max prefixes might be confusing here. Remember that the max zoom means
             // the maximum visible size, thus the minimal distance from the camera and vice versa.
-            let min_distance =  distance_to_zoom_factor_of_1 / max_zoom + camera.clipping().near;
+            let min_distance = distance_to_zoom_factor_of_1 / max_zoom + camera.clipping().near;
             let max_distance = (distance_to_zoom_factor_of_1 / MIN_ZOOM).min(camera.clipping().far);
 
             // Smothly limit camera movements along z-axis near min/max distance.
             let positive_z_translation_limit = max_distance - position.z;
             let negative_z_translation_limit = min_distance - position.z;
-            let too_far                      = translation.z > positive_z_translation_limit;
-            let too_close                    = translation.z < negative_z_translation_limit;
-            let limiting_factor = if      too_far   { positive_z_translation_limit / translation.z }
+            let too_far = translation.z > positive_z_translation_limit;
+            let too_close = translation.z < negative_z_translation_limit;
+            let limiting_factor = if too_far { positive_z_translation_limit / translation.z }
                                   else if too_close { negative_z_translation_limit / translation.z }
-                                  else              { 1.0 };
-            position                  += translation * limiting_factor;
+                                  else { 1.0 };
+            position += translation * limiting_factor;
             simulator.set_target_value(position);
         });
         (
