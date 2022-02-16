@@ -12,7 +12,8 @@ on:
 jobs:
   cancel:
     name: Cancel previous runs
-    runs-on: []
+    runs-on:
+      - X64
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.1
