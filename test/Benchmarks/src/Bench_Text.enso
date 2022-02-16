@@ -26,6 +26,10 @@ compare_all_adjacent text_vector =
 
 main =
     gen = Faker.make_generator
+    ## Warning: this relies on the fact that Faker will treat the accent
+       codepoint `\u{301}` as a separate code unit. We rely on this to add
+       accents randomly to neighboring characters. If the implementation of
+       Faker is changed, this must be modified accordingly.
     make_alpha_template length = Vector.new length _-> Faker.upper_case_letters + 'ę\u{301}\u{302}'.utf_16
     very_short_template = make_alpha_template 4
     very_short = Vector.new 100000 _-> '🤩' + Faker.make_string very_short_template gen
