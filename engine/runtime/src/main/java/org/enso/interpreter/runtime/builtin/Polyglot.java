@@ -31,6 +31,12 @@ public class Polyglot {
     scope.registerMethod(polyglot, "get_array_size", GetArraySizeMethodGen.makeFunction(language));
     scope.registerMethod(
         polyglot, "is_language_installed", IsLanguageInstalledMethodGen.makeFunction(language));
+    scope.registerMethod(
+        polyglot, "get_executable_name", GetExecutableNameMethodGen.makeFunction(language));
+    scope.registerMethod(
+        polyglot, "get_source_location", GetSourceLocationMethodGen.makeFunction(language));
+    scope.registerMethod(
+        polyglot, "has_source_location", HasSourceLocationMethodGen.makeFunction(language));
   }
 
   /** @return the atom constructor for polyglot */
