@@ -10,5 +10,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ensogl-core = { path = "../../core" }
-wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }
 nalgebra = { version = "0.26.1" }
