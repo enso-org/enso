@@ -31,7 +31,9 @@ compare text1 text2 =
     ascii_code_nine = 57
     is_digit=character -> character>=ascii_code_zero && character<=ascii_code_nine
 
-    ## Find the end of a number and then return the substring, value and new prev and next values
+    ## Find the end of a number and then return the substring, value and new
+       previous and next indices of the following character. Next will be -1 if
+       the end of text has been reached.
     get_number text prev next iter =
         ## Find end of number and return pair of index and flag if reached end
         loop text next iter =
@@ -55,7 +57,12 @@ compare text1 text2 =
         [substring, decimal, pair.first, next_index]
 
 
-    ## Ordering: Nothing < Number < Text
+    ## Loop to computer the ordering of text1 and text2.
+       Ordering: Nothing < Number < Text
+       prev1 - index to start of current character in text1.
+       next1 - index to end of current character (or -1 if finished) in text1.
+       prev2 - index to start of current character in text2.
+       next2 - index to end of current character (or -1 if finished) in text2.
     order prev1 next1 prev2 next2 =
         case (Pair (next1 == -1) (next2 == -1)) of
             Pair True True -> Ordering.Equal
