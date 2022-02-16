@@ -89,6 +89,10 @@ public class EnsoFile {
     truffleFile.delete();
   }
 
+  public boolean startsWith(EnsoFile parent) {
+    return truffleFile.startsWith(parent.truffleFile);
+  }
+
   @Override
   public String toString() {
     return "(File " + truffleFile.getPath() + ")";
