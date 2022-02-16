@@ -15,4 +15,4 @@ ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-list-view = { path = "../../component/list-view" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 enso-text = { path = "../../../text" }
-wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }

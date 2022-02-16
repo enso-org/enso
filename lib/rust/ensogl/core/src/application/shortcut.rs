@@ -98,7 +98,7 @@ impl Condition {
         cons: impl Fn(Self, Self) -> Self,
         f: impl Fn(&str) -> Self,
     ) -> Self {
-        input.split(separator).map(|t| t.trim()).map(f).fold1(cons).unwrap_or(Self::Never)
+        input.split(separator).map(|t| t.trim()).map(f).reduce(cons).unwrap_or(Self::Never)
     }
 
     /// Parses the provided input expression. The currently recognizable symbols are (sorted by

@@ -99,7 +99,7 @@ async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: 
     let wasm_loader = html_utils.log_group_collapsed(download_info, async () => {
         let wasm_glue_js = await wasm_glue_fetch.text()
         let wasm_glue = Function('let exports = {};' + wasm_glue_js + '; return exports')()
-        let imports = wasm_glue.wasm_imports()
+        let imports = await wasm_glue.wasm_imports()
         console.log('WASM dependencies loaded.')
         console.log('Starting online WASM compilation.')
         let wasm_loader = await wasm_instantiate_streaming(wasm_fetch, imports)

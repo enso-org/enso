@@ -18,7 +18,7 @@ failure = { version = "0.1.5" }
 gloo-timers = { version = "0.2.1", features = ["futures"] }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
-wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 async-std = { version = "1.5.0" }

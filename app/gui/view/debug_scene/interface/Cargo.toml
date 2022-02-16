@@ -17,4 +17,4 @@ ide-view = { path = "../.." }
 parser = { path = "../../../language/parser" }
 span-tree = { path = "../../../language/span-tree" }
 uuid = { version = "0.8", features = ["v4", "wasm-bindgen"] }
-wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.58", features = ["nightly"] }

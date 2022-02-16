@@ -2458,7 +2458,7 @@ where Logger: AnyLogger + LoggerOps<DebugLevel>
 
     /// Consume the most-recently added token from the line.
     pub fn consume_segment(&mut self) -> Option<Token> {
-        let result = self.current_mut().map(|t| t.consume_segment_from_line()).flatten();
+        let result = self.current_mut().and_then(|t| t.consume_segment_from_line());
         debug!(self.logger, "Consume Segment: {result:?}.");
         result
     }
