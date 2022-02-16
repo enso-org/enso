@@ -18,7 +18,11 @@ main =
     l = Faker.upper_case_letters
     n = Faker.numbers
     template = [l, l, l, n, n, n, n, n, l]
-    random_generator = Faker.make_generator 1644575867
+
+    ## No specific significance to this constant, just fixed to make generated set deterministic
+    fixed_random_seed = 1644575867
+    random_generator = Faker.make_generator fixed_random_seed
+
     unsorted = 0.up_to here.vector_size . map _->(Faker.make_string template random_generator)
 
     Bench.measure (unsorted.sort by=Natural_Order.compare) "Natural Order" here.iter_size here.num_iterations
