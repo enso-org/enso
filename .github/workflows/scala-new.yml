@@ -13,6 +13,7 @@ jobs:
   cancel:
     name: Cancel previous runs
     runs-on:
+      # We can run pretty much on any runner.
       - X64
     steps:
       - name: Cancel Previous Runs
