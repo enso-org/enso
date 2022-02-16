@@ -6,7 +6,6 @@
 #![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(option_result_contains)]
 #![feature(specialization)]

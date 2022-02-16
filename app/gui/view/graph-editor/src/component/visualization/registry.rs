@@ -48,7 +48,7 @@ impl Registry {
         for tp in sig.input_type.alternatives() {
             self.type_map.borrow_mut().entry(tp).or_default().push(class.clone_ref());
         }
-        self.path_map.borrow_mut().entry(sig.path.clone()).insert(class);
+        self.path_map.borrow_mut().entry(sig.path.clone()).insert_entry(class);
     }
 
     /// Register a new `visualization::java_script::Definition`. If creating the class fails, it

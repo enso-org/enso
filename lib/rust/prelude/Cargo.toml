@@ -42,12 +42,12 @@ shrinkwraprs = "0.3.0"
 serde = { version = "1.0.126", features = ["derive", "rc"], optional = true }
 serde_json = { version = "1.0", optional = true }
 smallvec = "1.0.0"
-wasm-bindgen = { version = "=0.2.58" , features = ["nightly"], optional = true }
+wasm-bindgen = { version = "0.2.58" , features = ["nightly"], optional = true }
 weak-table = "0.3.0"
 nalgebra = { version = "0.26.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "=0.2.58" , features = ["nightly"] }
+wasm-bindgen = { version = "0.2.58" , features = ["nightly"] }
 
 [dependencies.web-sys]
 version = "0.3.4"
