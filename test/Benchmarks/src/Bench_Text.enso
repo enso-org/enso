@@ -26,9 +26,9 @@ compare_all_adjacent text_vector =
 
 main =
     gen = Faker.make_generator
-    make_alpha_template length = Vector.new length _-> Faker.upper_case_letters
+    make_alpha_template length = Vector.new length _-> Faker.upper_case_letters + 'ę\u{301}\u{302}'.utf_16
     very_short_template = make_alpha_template 4
-    very_short = Vector.new 100000 _-> Faker.make_string very_short_template gen
+    very_short = Vector.new 100000 _-> '🤩' + Faker.make_string very_short_template gen
     medium_template = make_alpha_template 64
     medium = Vector.new 10000 _-> Faker.make_string medium_template gen
 
@@ -37,7 +37,7 @@ main =
     big_random = Vector.new 100 _-> Faker.make_string big_template gen
     big_early_difference = Vector.new 100 ix->
         "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (Faker.make_string big_template gen)
-    prefix = "A".repeat 100000
+    prefix = "ę\u{301}".repeat 50000
     big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
 
     Bench.measure (here.compare_all_adjacent very_short) "string compare very short" 10 10
