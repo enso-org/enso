@@ -139,9 +139,13 @@ impl NavigatorModel {
             let negative_z_translation_limit = min_distance - position.z;
             let too_far = translation.z > positive_z_translation_limit;
             let too_close = translation.z < negative_z_translation_limit;
-            let limiting_factor = if too_far { positive_z_translation_limit / translation.z }
-                                  else if too_close { negative_z_translation_limit / translation.z }
-                                  else { 1.0 };
+            let limiting_factor = if too_far {
+                positive_z_translation_limit / translation.z
+            } else if too_close {
+                negative_z_translation_limit / translation.z
+            } else {
+                1.0
+            };
             position += translation * limiting_factor;
             simulator.set_target_value(position);
         });
