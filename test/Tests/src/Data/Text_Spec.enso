@@ -38,10 +38,29 @@ spec =
             "abc"=="def" . should_be_false
             accent_1 . should_equal accent_2
 
+            complex_letter_1 = 'e\u{301}\u{321}\u{338}\u{360}'
+            complex_letter_2 = 'e\u{338}\u{321}\u{360}\u{301}'
+            complex_letter_3 = 'e\u{360}\u{321}\u{301}\u{338}'
+            common_prefix = 'a\u{360}\u{321}\u{301}\u{338}bcąęóf'
+
+            complex_letter_1 . should_equal complex_letter_2
+            complex_letter_1 . should_equal complex_letter_3
+            complex_letter_3 . should_equal complex_letter_2
+            common_prefix+complex_letter_1+complex_letter_2+complex_letter_3 . compare_to common_prefix+complex_letter_3+complex_letter_1+complex_letter_2 . should_equal Ordering.Equal
+
             accent_1+"a" . compare_to accent_2+"b" . should_equal Ordering.Less
             accent_2+"a" . compare_to accent_1+"b" . should_equal Ordering.Less
             accent_1+"b" . compare_to accent_2+"a" . should_equal Ordering.Greater
             accent_2+"b" . compare_to accent_1+"a" . should_equal Ordering.Greater
+
+            earlier_suffix = "aooooz"
+            later_suffix = "bo"
+            common_prefix+complex_letter_1+earlier_suffix . compare_to common_prefix+complex_letter_2+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_3+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_3+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_3+later_suffix . compare_to common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
+            common_prefix+complex_letter_1+later_suffix . compare_to common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
 
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
