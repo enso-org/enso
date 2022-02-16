@@ -4,7 +4,9 @@
 # Change log
 CHANGELOG.md
 
-# Rust Libraries
+# Rust Libraries and Related Files
+rust-toolchain.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
+rustfmt.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
 Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon
 Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
 /lib/rust/ @MichaelMauderer @4e6 @mwu-tow @farmaazon
