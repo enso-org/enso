@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -36,6 +37,9 @@ import java.util.UUID;
  * a running Enso program.
  */
 public class Context {
+
+  private static final TruffleLanguage.ContextReference<Context> REFERENCE =
+      TruffleLanguage.ContextReference.create(Language.class);
 
   private final Language language;
   private final Env environment;
@@ -136,6 +140,15 @@ public class Context {
 
     projectPackage.ifPresent(
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
+  }
+
+  /**
+   * @param node the location of context access. Pass {@code null} if not in a node.
+   * @return the proper context instance for the current {@link
+   *     com.oracle.truffle.api.TruffleContext}.
+   */
+  public static Context get(Node node) {
+    return REFERENCE.get(node);
   }
 
   /** Performs eventual cleanup before the context is disposed of. */

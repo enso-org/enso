@@ -9,7 +9,7 @@ import Standard.Builtins
 
          Enso_Project.root
 Builtins.Project_Description.root : File.File
-Builtins.Project_Description.root = File.File this.prim_root_file
+Builtins.Project_Description.root = File.new this.prim_root_file.getPath
 
 ## Returns the root data directory of the project.
 

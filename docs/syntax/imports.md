@@ -14,6 +14,7 @@ code from modules.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Qualified Names](#qualified-names)
 - [Import Syntax](#import-syntax)
   - [Qualified Imports](#qualified-imports)
   - [Unqualified Imports](#unqualified-imports)
@@ -23,6 +24,21 @@ code from modules.
   - [Visibility of Export Bindings](#visibility-of-export-bindings)
 
 <!-- /MarkdownTOC -->
+
+## Qualified Names
+
+Both imports and exports require the use of qualified module names. A qualified
+name consists of the library namespace (usually organization under which its
+published) and the library name, followed by module names mirroring the source
+tree of the library. For example the file `src/Stuff/Things/Util.enso` inside
+the library `My_Lib` published by the user `wdanilo` would have the following
+qualified name: `wdanilo.My_Lib.Stuff.Things.Util`. To facilitate library
+renaming (or deciding on the publishing organization later in the development
+cycle, or working on a project that won't be published) it is possible to use
+the keyword `project` instead of namespace and project name, to import a file in
+the same project. Therefore, the file `src/Varia/Tools/Manager.enso` in `My_Lib`
+published (or not) by `wdanilo` may use `project.Stuff.Things.Util` to refer to
+the previously mentioned file.
 
 ## Import Syntax
 
