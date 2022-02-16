@@ -36,6 +36,11 @@ spec =
 
         Test.specify "should compare strings using utf normalization" <|
             "abc"=="def" . should_be_false
+            'a'=='b' . should_be_false
+            'a'=='a' . should_be_true
+            'a'=='' . should_be_false
+            ''=='' . should_be_true
+
             accent_1 . should_equal accent_2
 
             complex_letter_1 = 'e\u{301}\u{321}\u{338}\u{360}'
@@ -164,6 +169,16 @@ spec =
             str = kshi + "A12" + accent_2
             str.at -6 . should_fail_with Index_Out_Of_Bounds_Error
             str.at 5 . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should allow to iterate over characters" <|
+            str = kshi + accent_1 + accent_2 + 'abc'
+            builder = Vector.new_builder
+            str.each builder.append
+            builder.to_vector . should_equal [kshi, accent_1, accent_2, 'a', 'b', 'c']
+
+            builder2 = Vector.new_builder
+            'a'.each builder2.append
+            builder2.to_vector . should_equal ['a']
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
