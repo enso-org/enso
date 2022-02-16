@@ -29,6 +29,8 @@ pub mod component;
 pub mod builtin;
 pub mod data;
 #[warn(missing_docs)]
+pub mod free_place_finder;
+#[warn(missing_docs)]
 pub mod profiling;
 #[warn(missing_docs)]
 pub mod view;
@@ -46,6 +48,8 @@ use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
+use crate::free_place_finder::FreePlaceFinder;
+use crate::free_place_finder::OccupiedArea;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
@@ -1328,7 +1332,7 @@ impl GraphEditorModelWithNetwork {
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_new_node_position(selection.unwrap()),
             StartCreationEvent => mouse_position,
-            ClickingButton => default(),
+            ClickingButton => self.find_free_place_for_node(default(), Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { .. } => mouse_position,
         };
         let node = self.new_node(ctx);
@@ -1645,6 +1649,25 @@ impl GraphEditorModel {
             }
         }
         Vector2(x, y)
+    }
+
+    pub fn find_free_place_for_node(
+        &self,
+        starting_from: Vector2,
+        direction: Vector2,
+    ) -> Option<Vector2> {
+        let x_gap = self.frp.default_x_gap_between_nodes.value();
+        let y_gap = self.frp.default_y_gap_between_nodes.value();
+        let nodes = self.nodes.all.raw.borrow();
+        let node_areas = nodes.values().map(|node| {
+            let position = node.position();
+            let left = position.x - x_gap;
+            let right = position.x + node.view.model.width() + x_gap;
+            let top = position.y + node.view.model.height() / 2.0 + y_gap;
+            let bottom = position.y - node.view.model.height() / 2.0 - y_gap;
+            OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
+        });
+        FreePlaceFinder::new(starting_from, direction, node_areas).map(|f| f.find())
     }
 
     pub fn start_editing_new_node(&self, node_id: NodeId) {
@@ -2518,7 +2541,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
-    // === Add Node ===
+    // === Nodes Utilities ===
 
     frp::extend! { network
 
@@ -2545,49 +2568,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
         eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
-    }
-
-
-    // === Node Editing ===
-
-    frp::extend! { network
-        // Clicking on background either drops dragged edge or aborts node editing.
-        let background_selected = &touch.background.selected;
-        was_edge_detached_when_background_selected  <- has_detached_edge.sample(background_selected);
-        clicked_to_drop_edge  <- was_edge_detached_when_background_selected.on_true();
-        clicked_to_abort_edit <- was_edge_detached_when_background_selected.on_false();
-
-        node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
-        edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
-        node_to_edit          <- touch.nodes.down.gate(&edit_mode);
-        edit_node             <- any(&node_to_edit,&inputs.edit_node);
-        stop_edit_on_bg_click <- clicked_to_abort_edit.gate(&node_in_edit_mode);
-        stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
-        edit_switch           <- edit_node.gate(&node_in_edit_mode);
-        node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
-
-        // The "finish" events must be emitted before "start", to properly cover the "switch" case.
-        out.source.node_editing_finished <+ node_being_edited.sample(&stop_edit);
-        out.source.node_editing_finished <+ node_being_edited.sample(&edit_switch);
-        out.source.node_editing_started  <+ edit_node;
-
-        out.source.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));;
-        out.source.node_being_edited <+ out.node_editing_finished.constant(None);
-        out.source.node_editing      <+ out.node_being_edited.map(|t|t.is_some());
-
-        out.source.node_edit_mode       <+ edit_mode;
-        out.source.nodes_labels_visible <+ out.node_edit_mode || node_in_edit_mode;
-
-        eval out.node_editing_started ([model] (id) {
-            if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model.input.frp.set_edit_mode(true);
-            }
-        });
-        eval out.node_editing_finished ([model](id) {
-            if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model.input.set_edit_mode(false);
-            }
-        });
     }
 
 
@@ -2695,47 +2675,52 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
 
-    out.source.on_edge_source_set <+ inputs.set_edge_source;
-    out.source.on_edge_target_set <+ inputs.set_edge_target;
+        // Clicking on background either drops dragged edge or aborts node editing.
+        let background_selected = &touch.background.selected;
+        was_edge_detached_when_background_selected  <- has_detached_edge.sample(background_selected);
+        clicked_to_drop_edge  <- was_edge_detached_when_background_selected.on_true();
+        clicked_to_abort_edit <- was_edge_detached_when_background_selected.on_false();
 
-    let endpoints            = inputs.connect_nodes.clone_ref();
-    edge                    <- endpoints . map(f_!(model.new_edge_from_output(&edge_mouse_down,&edge_over,&edge_out)));
-    new_edge_source         <- endpoints . _0() . map2(&edge, |t,id| (*id,t.clone()));
-    new_edge_target         <- endpoints . _1() . map2(&edge, |t,id| (*id,t.clone()));
-    out.source.on_edge_add      <+ edge;
-    out.source.on_edge_source_set <+ new_edge_source;
-    out.source.on_edge_target_set <+ new_edge_target;
+        out.source.on_edge_source_set <+ inputs.set_edge_source;
+        out.source.on_edge_target_set <+ inputs.set_edge_target;
 
-    detached_edges_without_targets <= attach_all_edge_inputs.map(f_!(model.take_edges_with_detached_targets()));
-    detached_edges_without_sources <= attach_all_edge_outputs.map(f_!(model.take_edges_with_detached_sources()));
+        let endpoints            = inputs.connect_nodes.clone_ref();
+        edge                    <- endpoints . map(f_!(model.new_edge_from_output(&edge_mouse_down,&edge_over,&edge_out)));
+        new_edge_source         <- endpoints . _0() . map2(&edge, |t,id| (*id,t.clone()));
+        new_edge_target         <- endpoints . _1() . map2(&edge, |t,id| (*id,t.clone()));
+        out.source.on_edge_add      <+ edge;
+        out.source.on_edge_source_set <+ new_edge_source;
+        out.source.on_edge_target_set <+ new_edge_target;
 
-    new_edge_target <- detached_edges_without_targets.map2(&attach_all_edge_inputs, |id,t| (*id,t.clone()));
-    out.source.on_edge_target_set <+ new_edge_target;
-    new_edge_source <- detached_edges_without_sources.map2(&attach_all_edge_outputs, |id,t| (*id,t.clone()));
-    out.source.on_edge_source_set <+ new_edge_source;
+        detached_edges_without_targets <= attach_all_edge_inputs.map(f_!(model.take_edges_with_detached_targets()));
+        detached_edges_without_sources <= attach_all_edge_outputs.map(f_!(model.take_edges_with_detached_sources()));
 
-    on_new_edge_source <- new_edge_source.constant(());
-    on_new_edge_target <- new_edge_target.constant(());
+        new_edge_target <- detached_edges_without_targets.map2(&attach_all_edge_inputs, |id,t| (*id,t.clone()));
+        out.source.on_edge_target_set <+ new_edge_target;
+        new_edge_source <- detached_edges_without_sources.map2(&attach_all_edge_outputs, |id,t| (*id,t.clone()));
+        out.source.on_edge_source_set <+ new_edge_source;
 
-    overlapping_edges       <= out.on_edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
-    out.source.on_edge_drop <+ overlapping_edges;
+        on_new_edge_source <- new_edge_source.constant(());
+        on_new_edge_target <- new_edge_target.constant(());
 
-    drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
-    drop_edges     <- any (drop_on_bg_up,clicked_to_drop_edge);
+        overlapping_edges       <= out.on_edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
+        out.source.on_edge_drop <+ overlapping_edges;
 
-    edge_dropped_to_create_node <= drop_edges.map(f_!(model.edges_with_detached_targets()));
-    out.source.on_edge_drop_to_create_node <+ edge_dropped_to_create_node;
+        drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
+        drop_edges     <- any (drop_on_bg_up,clicked_to_drop_edge);
 
-    remove_all_detached_edges <- any (drop_edges, inputs.drop_dragged_edge);
-    edge_to_remove_without_targets <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_targets()));
-    edge_to_remove_without_sources <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_sources()));
-    edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
-    eval edge_to_remove ((id) model.remove_edge(id));
+        edge_dropped_to_create_node <= drop_edges.map(f_!(model.edges_with_detached_targets()));
+        out.source.on_edge_drop_to_create_node <+ edge_dropped_to_create_node;
 
+        remove_all_detached_edges <- any (drop_edges, inputs.drop_dragged_edge);
+        edge_to_remove_without_targets <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_targets()));
+        edge_to_remove_without_sources <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_sources()));
+        edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
+        eval edge_to_remove ((id) model.remove_edge(id));
     }
 
+    // === Adding Node ===
 
-    // === Node Creation  ===
     frp::extend! { network
         let node_added_with_button = model.add_node_button.clicked.clone_ref();
 
@@ -2744,7 +2729,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
         add_node_way <- any (input_add_node_way, input_start_creation_way, add_with_button_way, add_with_edge_drop_way);
-        trace add_node_way;
 
         new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
             let ctx = NodeCreationContext {
@@ -2756,16 +2740,52 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             };
             model.create_node(&ctx, *way, *mouse_pos)
         }));
-        trace new_node;
         out.source.node_added <+ new_node.map(|&(id, src, _)| (id, src));
-        trace out.node_added;
-        out.source.node_editing_started <+ new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
-        trace out.node_editing_started;
+        node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
+    }
 
 
-        // === Event Propagation ===
-        // See the docs of `Node` to learn about how the graph - nodes event propagation works.
+    // === Node Editing ===
 
+    frp::extend! { network
+        node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
+        edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
+        node_to_edit          <- touch.nodes.down.gate(&edit_mode);
+        edit_node             <- any(node_to_edit, node_to_edit_after_adding, inputs.edit_node);
+        stop_edit_on_bg_click <- clicked_to_abort_edit.gate(&node_in_edit_mode);
+        stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
+        edit_switch           <- edit_node.gate(&node_in_edit_mode);
+        node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
+
+        // The "finish" events must be emitted before "start", to properly cover the "switch" case.
+        out.source.node_editing_finished <+ node_being_edited.sample(&stop_edit);
+        out.source.node_editing_finished <+ node_being_edited.sample(&edit_switch);
+        out.source.node_editing_started  <+ edit_node;
+
+        out.source.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));;
+        out.source.node_being_edited <+ out.node_editing_finished.constant(None);
+        out.source.node_editing      <+ out.node_being_edited.map(|t|t.is_some());
+
+        out.source.node_edit_mode       <+ edit_mode;
+        out.source.nodes_labels_visible <+ out.node_edit_mode || node_in_edit_mode;
+
+        eval out.node_editing_started ([model] (id) {
+            if let Some(node) = model.nodes.get_cloned_ref(id) {
+                node.model.input.frp.set_edit_mode(true);
+            }
+        });
+        eval out.node_editing_finished ([model](id) {
+            if let Some(node) = model.nodes.get_cloned_ref(id) {
+                node.model.input.set_edit_mode(false);
+            }
+        });
+    }
+
+
+    // === Event Propagation ===
+
+    // See the docs of `Node` to learn about how the graph - nodes event propagation works.
+    frp::extend! { network
         _eval <- all_with(&out.node_hovered,&edit_mode,f!([model](tgt,e)
             if let Some(tgt) = tgt {
                 model.with_node(tgt.value,|t| t.model.input.set_edit_ready_mode(*e && tgt.is_on()));
