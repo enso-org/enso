@@ -67,6 +67,18 @@ spec =
             common_prefix+complex_letter_3+later_suffix . compare_to common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
             common_prefix+complex_letter_1+later_suffix . compare_to common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
 
+        Test.specify "should correctly handle case-insensitive equality" <|
+            "aBc" . equals_ignore_case "Abc" . should_be_true
+            "abc" . equals_ignore_case "abd" . should_be_false
+            "" . equals_ignore_case "" . should_be_true
+            "aaaa" . equals_ignore_case "" . should_be_false
+
+            "I" . equals_ignore_case "i" . should_be_true
+            "İ" . equals_ignore_case "i" . should_be_true
+            "I" . equals_ignore_case "ı" . should_be_true
+            "i" . equals_ignore_case "ı" . should_be_true
+            "İ" . equals_ignore_case "ı" . should_be_true
+
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
