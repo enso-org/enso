@@ -211,7 +211,7 @@ object EditionsListDefinedComponentsHandler {
     localLibraryProvider: LocalLibraryProvider,
     publishedLibraryCache: PublishedLibraryCache
   ): Props = Props(
-    new EditionsListDefinedLibrariesHandler(
+    new EditionsListDefinedComponentsHandler(
       editionReferenceResolver,
       localLibraryProvider,
       publishedLibraryCache

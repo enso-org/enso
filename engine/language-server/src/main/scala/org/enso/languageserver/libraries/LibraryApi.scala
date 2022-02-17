@@ -101,7 +101,7 @@ object LibraryApi {
   case object EditionsListDefinedComponents
       extends Method("editions/listDefinedComponents") { self =>
 
-    case class Params(editions: EditionReference)
+    case class Params(edition: EditionReference)
 
     case class Result(availableComponents: Seq[LibraryComponentGroup])
 
