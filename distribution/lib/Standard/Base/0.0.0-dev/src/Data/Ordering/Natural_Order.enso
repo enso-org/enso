@@ -46,12 +46,8 @@ compare text1 text2 =
 
         pair = loop text next iter
         substring = Text_Utils.substring text prev pair.first
-        
-        ## TODO [RW] Currently there is no `Integer.parse` method, so we
-               parse a decimal and convert it to an integer. Once
-               https://www.pivotaltracker.com/story/show/181176522 is
-               implemented, this should be changed to use `Integer.parse`.
-        decimal = Decimal.parse substring . floor
+
+        decimal = Integer.parse substring
 
         next_index = if pair.second then -1 else iter.current
         [substring, decimal, pair.first, next_index]
