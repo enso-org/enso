@@ -101,7 +101,7 @@ class DependencyResolver(
     cachedManifest.getOrElse {
       version.repository
         .accessLibrary(libraryName, version.version)
-        .downloadManifest()
+        .fetchManifest()
         .force()
     }
   }

@@ -52,14 +52,14 @@ object RepositoryHelper {
     libraryRoot: URIBuilder
   ) {
 
-    /** Downloads and parses the manifest file.
+    /** Fetches the contents of manifest file and parses it.
       *
       * If the repository responds with 404 status code, it returns a special
       * [[LibraryNotFoundException]] indicating that the repository does not
       * provide that library. Any other failures are indicated with the more
       * generic [[LibraryDownloadFailure]].
       */
-    def downloadManifest(): TaskProgress[LibraryManifest] = {
+    def fetchManifest(): TaskProgress[LibraryManifest] = {
       val url = (libraryRoot / LibraryManifest.filename).build()
       HTTPDownload.fetchString(url).flatMap { response =>
         response.statusCode match {
@@ -80,7 +80,7 @@ object RepositoryHelper {
       }
     }
 
-    /** Downloads and parses the package config file.
+    /** Fetches the contents of package config file and parses it.
       *
       * If the repository responds with 404 status code, it returns a special
       * [[LibraryNotFoundException]] indicating that the repository does not

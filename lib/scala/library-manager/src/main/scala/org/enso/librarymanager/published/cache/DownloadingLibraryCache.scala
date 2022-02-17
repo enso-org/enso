@@ -151,7 +151,7 @@ class DownloadingLibraryCache(
     libraryName: LibraryName,
     access: LibraryAccess
   ): LibraryManifest = {
-    val manifestDownload = access.downloadManifest()
+    val manifestDownload = access.fetchManifest()
     progressReporter.trackProgress(
       s"Downloading library manifest of [$libraryName].",
       manifestDownload

@@ -147,7 +147,7 @@ class LibraryGetMetadataHandler(
   ): Future[LocalLibraryManagerProtocol.GetMetadataResponse] = for {
     manifest <- Repository(repositoryUrl)
       .accessLibrary(libraryName, version)
-      .downloadManifest()
+      .fetchManifest()
       .toFuture
   } yield LocalLibraryManagerProtocol.GetMetadataResponse(
     description = manifest.description,
