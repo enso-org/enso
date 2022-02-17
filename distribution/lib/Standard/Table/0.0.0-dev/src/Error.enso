@@ -21,11 +21,25 @@ Column_Indexes_Out_Of_Range.to_display_text = case this.indexes.length == 1 of
    Can occur when using By_Position.
 type Too_Many_Column_Names_Provided (column_names : [Text])
 
+Too_Many_Column_Names_Provided.to_display_text : Text
+Too_Many_Column_Names_Provided.to_display_text =
+    "Too many column names provided. " + (this.column_names.at 0).to_text + " unused."
+
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names (column_names : [Text])
 
+Invalid_Output_Column_Names.to_display_text : Text
+Invalid_Output_Column_Names.to_display_text = case this.column_names.length == 1 of
+    True -> "The name " + (this.column_names.at 0).to_text + " is invalid."
+    False -> "The names "+this.column_names.short_display_text+" are invalid."
+
 ## One or more column names clashed during a rename operation.
 type Duplicate_Output_Column_Names (column_names : [Text])
+
+Duplicate_Output_Column_Names.to_display_text : Text
+Duplicate_Output_Column_Names.to_display_text = case this.column_names.length == 1 of
+    True -> "The name " + (this.column_names.at 0).to_text + " was repeated in the output, so was renamed."
+    False -> "The names "+this.column_names.short_display_text+" were repeated in the output, and were renamed."
 
 ## No columns in the output result.
 type No_Output_Columns

@@ -448,6 +448,23 @@ type Vector
             i + vec.length
         Vector arr
 
+    ## Transforms a vector of vectors into a vector of inner elements - removes
+       one layer of nesting from a stack of nested vectors.
+
+       > Example
+         Flatten a vector of vectors of numbers.
+
+            [[1, 2, 3], [4, 10], [], [0], [0]] . flatten == [1, 2, 3, 4, 10, 0, 0]
+    flatten : Vector Any
+    flatten =
+        length = this.fold 0 acc-> elem-> acc + elem.length
+        arr = Array.new length
+        this.fold 0 i-> vec->
+            # TODO could use Array.copy here, if it was safe...
+            vec.map_with_index j-> elem-> arr.set_at i+j elem
+            i + vec.length
+        Vector arr
+
     ## Applies a function to each element of the vector, returning the vector
        of results.
 

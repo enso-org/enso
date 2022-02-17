@@ -120,11 +120,11 @@ exports.generateMinimalWhiteLogo = fastGenerate(AppLogo)
 
 const fss = require('fs')
 const fs = fss.promises
-const exec = require('child_process').exec
-const spawn = require('child_process').spawn
+const execSync = require('child_process').execSync
 const toIco = require('to-ico')
 const sharp = require('sharp')
 const path = require('path')
+const platform = require('os').platform
 
 const thisPath = path.resolve(__dirname)
 const root = path.resolve(thisPath, '..', '..', '..', '..', '..')
@@ -178,9 +178,11 @@ async function genIcons() {
             .toFile(`${distPath}/png/${outName}`)
     }
 
-    console.log('Generating ICNS.')
-    exec(`cp -R ${distPath}/png ${distPath}/png.iconset`)
-    exec(`iconutil --convert icns --output ${distPath}/icon.icns ${distPath}/png.iconset`)
+    if (platform() === 'darwin') {
+        console.log('Generating ICNS.')
+        execSync(`cp -R ${distPath}/png ${distPath}/png.iconset`)
+        execSync(`iconutil --convert icns --output ${distPath}/icon.icns ${distPath}/png.iconset`)
+    }
 
     console.log('Generating ICO.')
     let files = []

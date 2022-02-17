@@ -163,7 +163,8 @@ impl Searcher {
                 let view_data = view.graph().model.nodes.get_cloned_ref(&id);
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
-                let source_node = source_node.map(|id| graph_presenter.ast_node_of_view(id)).flatten();
+                let source_node =
+                    source_node.map(|id| graph_presenter.ast_node_of_view(id)).flatten();
                 controller::searcher::Mode::NewNode { position, source_node }
             }
         };

@@ -207,15 +207,16 @@ branches:
         dismissal_restrictions: {}
 
       required_status_checks:
-        # Require branches to be up to date before merging.
+        # Require branches to be up-to-date before merging.
         strict: true
         contexts:
-          - "Build and Test (macOS-latest)"
-          - "Build and Test (ubuntu-18.04)"
-          - "Build and Test (windows-latest)"
+          - "Engine (Linux)"
+          - "Engine (Windows)"
+          # The macOS job is intentionally omitted.
           - "Docs Check"
           - "Verify Notice Package"
           - "license/cla"
+
           # GUI jobs
           - "Build Info (macOS-latest)"
           - "Assertions (macOS-latest)"
@@ -237,7 +238,7 @@ branches:
         dismissal_restrictions: {}
 
       required_status_checks:
-        # Require branches to be up to date before merging.
+        # Require branches to be up-to-date before merging.
         strict: true
         contexts:
           - "Build and Test (macOS-latest)"

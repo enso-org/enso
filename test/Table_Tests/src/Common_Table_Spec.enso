@@ -5,6 +5,7 @@ import Standard.Test.Problems
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Error.Warnings
 import Standard.Table.Data.Matching
+import Standard.Table.Data.Column_Mapping
 from Standard.Table.Data.Matching import Case_Insensitive
 from Standard.Table.Error as Table_Errors import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
@@ -358,6 +359,7 @@ spec prefix table_builder supports_case_sensitive_columns =
             problems = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
             Problems.test_problem_handling action problems tester
+
     Test.group prefix+"Table.sort_columns" <|
         table =
             col1 = ["foo_21", Integer, [1,2,3]]
@@ -385,3 +387,107 @@ spec prefix table_builder supports_case_sensitive_columns =
 
         Test.specify "should correctly handle various combinations of options" <|
             expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive order=Sort_Order.Descending)
+
+    Test.group prefix+"Table.rename_columns" <|
+        table =
+            col1 = ["alpha", Integer, [1,2,3]]
+            col2 = ["beta", Integer, [4,5,6]]
+            col3 = ["gamma", Integer, [16,17,18]]
+            col4 = ["delta", Integer, [19,20,21]]
+            table_builder [col1, col2, col3, col4]
+
+        Test.specify "should work as shown in the doc examples" <|
+            expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Position ["FirstColumn"])
+
+        Test.specify "should work by index" <|
+            map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
+            expect_column_names ["FirstColumn", "beta", "Another", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Index map)
+
+        Test.specify "should work by position" <|
+            vec = ["one", "two", "three"]
+            expect_column_names ["one", "two", "three", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Position vec)
+
+        Test.specify "should work by name" <|
+            map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                table.rename_columns (Column_Mapping.By_Name map (Matching.Exact True))
+
+        Test.specify "should work by name case insensitively" <|
+            map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                table.rename_columns (Column_Mapping.By_Name map (Matching.Exact Matching.Case_Insensitive))
+
+        Test.specify "should work by name using regex" <|
+            map = Map.from_vector [["a.*", "FirstColumn"]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Name map (Matching.Regex.new))
+
+        Test.specify "should work by name using regex substitution" <|
+            map = Map.from_vector [["a(.*)", "$1"]]
+            expect_column_names ["lpha", "beta", "gamma", "delta"] <|
+                table.rename_columns (Column_Mapping.By_Name map (Matching.Regex.new))
+
+        Test.specify "should work by column" <|
+            vec = [[table.at "alpha", "FirstColumn"], [table.at "delta", "Another"]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                table.rename_columns (Column_Mapping.By_Column vec)
+
+        Test.specify "should correctly handle problems: duplicate columns" <|
+            map = Column_Mapping.By_Column [[table.at "alpha", "FirstColumn"], [table.at "alpha", "Another"]]
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
+            problems = [Duplicate_Column_Selectors ["alpha"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: unmatched names" <|
+            weird_name = '.*?-!@#!"'
+            map = Column_Mapping.By_Name.new (Map.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]])
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
+            problems = [Missing_Input_Columns [weird_name, "omicron"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: out of bounds indices" <|
+            map = Column_Mapping.By_Index (Map.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]])
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
+            problems = [Column_Indexes_Out_Of_Range [-200, 100, 300]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: aliased indices" <|
+            map = Column_Mapping.By_Index (Map.from_vector [[1, "FirstColumn"], [-3, "Another"]])
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["alpha", "Another", "gamma", "delta"]
+            problems = [Input_Indices_Already_Matched [1]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: invalid names ''" <|
+            map = Column_Mapping.By_Index (Map.from_vector [[1, ""]])
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["alpha", "Column", "gamma", "delta"]
+            problems = [Invalid_Output_Column_Names [""]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: invalid names Nothing" <|
+            map = Column_Mapping.By_Position ["alpha", Nothing]
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["alpha", "Column", "gamma", "delta"]
+            problems = [Invalid_Output_Column_Names [""]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate names" <|
+            map = Column_Mapping.By_Position ["Test", "Test", "Test", "Test"]
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["Test", "Test_1", "Test_2", "Test_3"]
+            problems = [Duplicate_Output_Column_Names ["Test", "Test", "Test"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: too many input names" <|
+            map = Column_Mapping.By_Position ["A", "B", "C", "D", "E", "F"]
+            action = table.rename_columns map warnings=_ on_problems=_
+            tester = expect_column_names ["A", "B", "C", "D"]
+            problems = [Too_Many_Column_Names_Provided ["E", "F"]]
+            Problems.test_problem_handling action problems tester

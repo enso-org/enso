@@ -15,6 +15,7 @@ from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
 import Standard.Base.Error.Warnings
 
@@ -278,6 +279,41 @@ type Table
     sort_columns (sort_method = Sort_Method.new) =
         new_columns = Table_Helpers.sort_columns internal_columns=this.internal_columns sort_method
         this.updated_columns new_columns
+
+    ## Returns a new table with the columns renamed based on either a mapping
+       from the old name to the new or a positional list of new names.
+
+       Arguments:
+       - column_map: Mapping from old column names to new.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices would refer to the same column, a
+           `Input_Indices_Already_Matched`, indicating that the additional
+           indices will not introduce additional columns.
+         - If any of the new names are invalid, an
+           `Invalid_Output_Column_Names`.
+         - If any of the new names clash either with existing names or each
+           other, a Duplicate_Output_Column_Names.
+       - warnings: A `Warning_System` instance specifying how to handle
+         warnings. This is a temporary workaround to allow for testing the
+         warning mechanism. Once the proper warning system is implemented, this
+         argument will become obsolete and will be removed. No user code should
+         use this argument, as it will be removed in the future.
+
+       > Example
+    rename_columns : Column_Mapping -> Problem_Behavior -> Warnings.Warning_System -> Table
+    rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) (warnings=Warnings.default) =
+        new_names = Table_Helpers.rename_columns internal_columns=this.internal_columns mapping=column_map on_problems=on_problems warnings=warnings
+        if new_names.is_error then new_names else
+            new_columns = this.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
+            this.updated_columns new_columns
 
     ## PRIVATE
 
@@ -590,9 +626,9 @@ type Table
             right_new_columns_names = new_names.second
 
             # Rename columns to the newly allocated names
-            new_index = here.rename_columns left_new_meta_index left_new_meta_index_names
-            left_renamed_columns = here.rename_columns left_new_columns left_new_columns_names
-            right_renamed_columns = here.rename_columns right_new_columns right_new_columns_names
+            new_index = here.internal_rename_columns left_new_meta_index left_new_meta_index_names
+            left_renamed_columns = here.internal_rename_columns left_new_columns left_new_columns_names
+            right_renamed_columns = here.internal_rename_columns right_new_columns right_new_columns_names
             new_columns = left_renamed_columns + right_renamed_columns
 
             on_exprs = left_new_join_index.zip right_new_join_index l-> r->
@@ -993,8 +1029,8 @@ fresh_names used_names preferred_names =
    Arguments:
    - columns: A vector of columns to rename.
    - new_names: The new names for the columns.
-rename_columns : Vector Internal_Column -> Vector Text -> Vector Internal_Column
-rename_columns columns new_names =
+internal_rename_columns : Vector Internal_Column -> Vector Text -> Vector Internal_Column
+internal_rename_columns columns new_names =
     columns.zip new_names col-> name->
         col.rename name
 
@@ -1012,5 +1048,5 @@ rename_columns columns new_names =
 freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Column
 freshen_columns used_names columns =
     fresh_names = here.fresh_names used_names (columns.map .name)
-    here.rename_columns columns fresh_names
+    here.internal_rename_columns columns fresh_names
 

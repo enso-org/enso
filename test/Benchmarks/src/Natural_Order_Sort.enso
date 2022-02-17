@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+
+import Standard.Test.Faker
+import Standard.Base.Data.Ordering.Natural_Order
+
+## Bench Utilities ============================================================
+
+vector_size = 10000
+iter_size = 100
+num_iterations = 10
+
+
+# The Benchmarks ==============================================================
+
+main =
+    l = Faker.upper_case_letters
+    n = Faker.numbers
+    template = [l, l, l, n, n, n, n, n, l]
+
+    ## No specific significance to this constant, just fixed to make generated set deterministic
+    fixed_random_seed = 1644575867
+    random_generator = Faker.make_generator fixed_random_seed
+
+    unsorted = 0.up_to here.vector_size . map _->(Faker.make_string template random_generator)
+
+    Bench.measure (unsorted.sort by=Natural_Order.compare) "Natural Order" here.iter_size here.num_iterations

@@ -98,5 +98,5 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   public abstract Stateful executeCall(
-      Object function, CallerInfo callerInfo, Object state, Object[] arguments);
+      Function function, CallerInfo callerInfo, Object state, Object[] arguments);
 }

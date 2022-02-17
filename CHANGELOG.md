@@ -2,6 +2,10 @@
 
 #### Visual Environment
 
+- [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
+- [Debug Mode for Graph Editor can be activated/deactivated using a
+  shortcut.][3264] It allows access to a set of restricted features. See
+  [debug-shortcuts].
 - [New nodes can be created by dragging and dropping a connection on the
   scene.][3231]
 - [Node connections can be dropped by pressing the Esc key while dragging
@@ -22,7 +26,7 @@
 - [Implemented `Vector.distinct` allowing to remove duplicate elements from a
   Vector][3224]
 - [Implemented `Duration.time_execution` allowing timing of the execution of an
-- expression within the UI][3229]
+  expression within the UI][3229]
 - [Improved performance of `Vector.filter` and `Vector.each`; implemented
   `Vector.filter_with_index`. Made `Vector.at` accept negative indices and
   ensured it fails with a dataflow error on out of bounds access instead of an
@@ -31,7 +35,18 @@
 - [Implemented the `Table.remove_columns` and `Table.reorder_columns`
   operations.][3240]
 - [Implemented the `Table.sort_columns` operation.][3250]
+- [Fixed `Vector.sort` to handle tail-recursive comparators][3256]
+- [Implemented `Range.find`, `Table.rename_columns` and
+  `Table.use_first_row_as_names` operations][3249]
+- [Implemented `Text.at` and `Text.is_digit` methods][3269]
+- [Implemented `Runtime.get_stack_trace` together with some utilities to process
+  stack traces and code locations][3271]
+- [Implemented `Vector.flatten`][3259]
+- [Significant performance improvement in `Natural_Order` and new `Faker`
+  methods added to `Standard.Test`][3276]
 
+[debug-shortcuts]:
+  https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
 [3153]: https://github.com/enso-org/enso/pull/3153
 [3166]: https://github.com/enso-org/enso/pull/3166
 [3181]: https://github.com/enso-org/enso/pull/3181
@@ -45,12 +60,22 @@
 [3230]: https://github.com/enso-org/enso/pull/3230
 [3240]: https://github.com/enso-org/enso/pull/3240
 [3250]: https://github.com/enso-org/enso/pull/3250
+[3256]: https://github.com/enso-org/enso/pull/3256
+[3249]: https://github.com/enso-org/enso/pull/3249
+[3264]: https://github.com/enso-org/enso/pull/3264
+[3269]: https://github.com/enso-org/enso/pull/3269
+[3271]: https://github.com/enso-org/enso/pull/3271
+[3259]: https://github.com/enso-org/enso/pull/3259
+[3273]: https://github.com/enso-org/enso/pull/3273
+[3276]: https://github.com/enso-org/enso/pull/3276
 
 #### Enso Compiler
 
 - [Added overloaded `from` conversions.][3227]
+- [Upgraded to Graal VM 21.3.0][3258]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
+[3258]: https://github.com/enso-org/enso/pull/3258
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

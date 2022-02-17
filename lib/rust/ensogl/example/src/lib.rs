@@ -5,7 +5,6 @@
 
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
@@ -33,5 +32,4 @@ pub use ensogl_example_shape_system as shape_system;
 pub use ensogl_example_slider as slider;
 pub use ensogl_example_sprite_system as sprite_system;
 pub use ensogl_example_sprite_system_benchmark as sprite_system_benchmark;
-pub use ensogl_example_stats as stats;
 pub use ensogl_example_text_area as text_area;

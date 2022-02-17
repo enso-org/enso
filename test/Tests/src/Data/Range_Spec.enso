@@ -40,5 +40,8 @@ spec = Test.group "Range" <|
     Test.specify "should check any" <|
         1.up_to 10 . any (> 5) . should_be_true
         1.up_to 10 . any (> 10) . should_be_false
+    Test.specify "should find elements" <|
+        1.up_to 10 . find (> 5) . should_equal 6
+        1.up_to 10 . find (> 10) . should_be_a Nothing
     Test.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]

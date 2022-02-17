@@ -622,7 +622,7 @@ impl Container {
 
         frp::extend! { network
             selected_definition  <- action_bar.visualisation_selection.map(f!([registry](path)
-                path.as_ref().map(|path| registry.definition_from_path(path) ).flatten()
+                path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
             eval selected_definition([scene,model,logger,preprocessor](definition)  {
                 let vis = definition.as_ref().map(|d| d.new_instance(&scene));

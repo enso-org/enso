@@ -650,6 +650,14 @@ where Def: InputBehaviors
     }
 }
 
+impl<Def: HasOutputStatic> HasLabel for WeakNode<Def>
+where Def: InputBehaviors
+{
+    fn label(&self) -> Label {
+        self.upgrade().map(|node| node.stream.data.label).unwrap_or("<FRP node deleted>")
+    }
+}
+
 // FIXME code quality below:
 impl<Def> HasOutputTypeLabel for Node<Def>
 where Def: HasOutputStatic + InputBehaviors

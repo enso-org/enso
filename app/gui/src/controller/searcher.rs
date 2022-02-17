@@ -821,7 +821,7 @@ impl Searcher {
     fn add_required_imports(&self) -> FallibleResult {
         let data_borrowed = self.data.borrow();
         let fragments = data_borrowed.fragments_added_by_picking.iter();
-        let imports = fragments.map(|frag| self.code_to_insert(frag).imports).flatten();
+        let imports = fragments.flat_map(|frag| self.code_to_insert(frag).imports);
         let mut module = self.module();
         let here = self.module_qualified_name();
         // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
@@ -1304,7 +1304,7 @@ pub mod test {
             let entry3 = model::suggestion_database::Entry {
                 name: "testMethod1".to_string(),
                 kind: Kind::Method,
-                self_type: Some(module_name.clone().into()),
+                self_type: Some(module_name.into()),
                 scope: Scope::Everywhere,
                 arguments: vec![
                     Argument {
@@ -1796,7 +1796,7 @@ pub mod test {
                     .use_suggestion(action::Suggestion::FromDatabase(f.entry1.clone()))
                     .unwrap();
                 let new_parsed_input =
-                    ParsedInput::new("var.testFunction1", &f.searcher.ide.parser());
+                    ParsedInput::new("var.testFunction1", f.searcher.ide.parser());
                 f.searcher.data.borrow_mut().input = new_parsed_input.unwrap();
             }),
             // Variable name already present, need to use it. And not break it.
