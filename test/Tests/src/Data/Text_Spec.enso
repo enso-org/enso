@@ -36,7 +36,60 @@ spec =
 
         Test.specify "should compare strings using utf normalization" <|
             "abc"=="def" . should_be_false
+            'a'=='b' . should_be_false
+            'a'=='a' . should_be_true
+            'a'=='' . should_be_false
+            ''=='' . should_be_true
+
             accent_1 . should_equal accent_2
+
+            complex_letter_1 = 'e\u{301}\u{321}\u{338}\u{360}'
+            complex_letter_2 = 'e\u{338}\u{321}\u{360}\u{301}'
+            complex_letter_3 = 'e\u{360}\u{321}\u{301}\u{338}'
+            common_prefix = 'a\u{360}\u{321}\u{301}\u{338}bcąęóf'
+
+            complex_letter_1 . should_equal complex_letter_2
+            complex_letter_1 . should_equal complex_letter_3
+            complex_letter_3 . should_equal complex_letter_2
+            common_prefix+complex_letter_1+complex_letter_2+complex_letter_3 . compare_to common_prefix+complex_letter_3+complex_letter_1+complex_letter_2 . should_equal Ordering.Equal
+
+            'e\u{301}'=='e\u{302}' . should_be_false
+
+            'a\u0321\u0302'=='a\u0302\u0321' . should_be_true
+            'a\u0321\u0302'=='A\u0302\u0321' . should_be_false
+
+            accent_1+"a" . compare_to accent_2+"b" . should_equal Ordering.Less
+            accent_2+"a" . compare_to accent_1+"b" . should_equal Ordering.Less
+            accent_1+"b" . compare_to accent_2+"a" . should_equal Ordering.Greater
+            accent_2+"b" . compare_to accent_1+"a" . should_equal Ordering.Greater
+
+            earlier_suffix = "aooooz"
+            later_suffix = "bo"
+            common_prefix+complex_letter_1+earlier_suffix . compare_to common_prefix+complex_letter_2+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_3+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_3+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            common_prefix+complex_letter_3+later_suffix . compare_to common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
+            common_prefix+complex_letter_1+later_suffix . compare_to common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
+
+        Test.specify "should correctly handle case-insensitive equality" <|
+            "aBc" . equals_ignore_case "Abc" . should_be_true
+            "abc" . equals_ignore_case "abd" . should_be_false
+            "" . equals_ignore_case "" . should_be_true
+            "aaaa" . equals_ignore_case "" . should_be_false
+            "I" . equals_ignore_case "i" . should_be_true
+            'e\u0301' . equals_ignore_case 'é' . should_be_true
+            'E\u0301' . equals_ignore_case 'É' . should_be_true
+            'e\u0301' . equals_ignore_case 'É' . should_be_true
+            'E\u0301' . equals_ignore_case 'é' . should_be_true
+            'a\u0321\u0302' . equals_ignore_case 'A\u0302\u0321' . should_be_true
+            'e\u0301' . equals_ignore_case 'e\u0303' . should_be_false
+
+            ## By default the special Turkish variants of the letter 'i' are not
+               treated as equal - treating them as equal would require not
+               treating `I` and `i` as equal.
+            "İ" . equals_ignore_case "i" . should_be_false
+            "I" . equals_ignore_case "ı" . should_be_false
 
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -140,6 +193,16 @@ spec =
             str = kshi + "A12" + accent_2
             str.at -6 . should_fail_with Index_Out_Of_Bounds_Error
             str.at 5 . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should allow to iterate over characters" <|
+            str = kshi + accent_1 + accent_2 + 'abc'
+            builder = Vector.new_builder
+            str.each builder.append
+            builder.to_vector . should_equal [kshi, accent_1, accent_2, 'a', 'b', 'c']
+
+            builder2 = Vector.new_builder
+            'a'.each builder2.append
+            builder2.to_vector . should_equal ['a']
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
