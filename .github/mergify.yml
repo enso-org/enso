@@ -1,0 +1,17 @@
+pull_request_rules:
+  - name: Automatic merge on approval
+    conditions:
+      - "label=CI: Ready to merge"
+    actions:
+      merge:
+        method: squash
+        commit_message_template: |
+          {{ title }} (#{{ number }})
+
+          {{ body | get_section("### Pull Request Description", "") }}
+
+  - name: Automatic PR update
+    conditions:
+      - "label=CI: Ready to merge"
+    actions:
+      update:
