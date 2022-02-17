@@ -15,8 +15,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
-use ide_view::graph_editor::NodeId;
-
+use ide_view::project::SearcherParams;
 
 
 // =============
@@ -153,18 +152,18 @@ impl Searcher {
         graph_controller: controller::ExecutedGraph,
         graph_presenter: &presenter::Graph,
         view: view::project::View,
-        id: NodeId,
-        source_node: Option<NodeId>,
+        parameters: SearcherParams,
     ) -> FallibleResult<Self> {
-        let ast_node = graph_presenter.ast_node_of_view(id);
+        let SearcherParams { input, source_node } = parameters;
+        let ast_node = graph_presenter.ast_node_of_view(input);
         let mode = match ast_node {
             Some(node_id) => controller::searcher::Mode::EditNode { node_id },
             None => {
-                let view_data = view.graph().model.nodes.get_cloned_ref(&id);
+                let view_data = view.graph().model.nodes.get_cloned_ref(&input);
                 let position = view_data.map(|node| node.position().xy());
                 let position = position.map(|vector| model::module::Position { vector });
                 let source_node =
-                    source_node.map(|id| graph_presenter.ast_node_of_view(id)).flatten();
+                    source_node.and_then(|id| graph_presenter.ast_node_of_view(id.node));
                 controller::searcher::Mode::NewNode { position, source_node }
             }
         };
@@ -175,7 +174,7 @@ impl Searcher {
             graph_controller,
             mode,
         )?;
-        Ok(Self::new(parent, searcher_controller, view, id))
+        Ok(Self::new(parent, searcher_controller, view, input))
     }
 
     /// Commit editing.

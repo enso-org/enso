@@ -74,8 +74,7 @@ impl Model {
             self.graph_controller.clone_ref(),
             &self.graph,
             self.view.clone_ref(),
-            params.input,
-            params.source_node.map(|src| src.node),
+            params,
         );
         match new_presenter {
             Ok(searcher) => {

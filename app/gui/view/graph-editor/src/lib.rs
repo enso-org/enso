@@ -371,7 +371,7 @@ impl<K, V, S> SharedHashMap<K, V, S> {
 // === FrpInputs ===
 // =================
 
-#[derive(Clone, CloneRef, Copy, Debug, Default)]
+#[derive(Clone, CloneRef, Copy, Debug, Default, Eq, PartialEq)]
 pub struct NodeSource {
     pub node: NodeId,
 }

@@ -22,7 +22,8 @@ async fn create_new_project_and_add_nodes() {
     assert_eq!(graph_editor.model.nodes.all.len(), 2);
     let expect_node_added = graph_editor.node_added.next_event();
     graph_editor.add_node();
-    let added_node_id = expect_node_added.expect();
+    let (added_node_id, source_node) = expect_node_added.expect();
+    assert_eq!(source_node, None);
     assert_eq!(graph_editor.model.nodes.all.len(), 3);
 
     let added_node =
