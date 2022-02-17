@@ -371,6 +371,11 @@ impl<K, V, S> SharedHashMap<K, V, S> {
 // === FrpInputs ===
 // =================
 
+/// The information about data source hinted by node creation process. For example, when creating
+/// node by dropping edge, the source port should be a source for newly created node.
+///
+/// This is information meant to be sent to searcher, which can, for example, auto- connect the
+/// source to "this" port of new node.
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, PartialEq)]
 pub struct NodeSource {
     pub node: NodeId,
@@ -446,7 +451,12 @@ ensogl::define_endpoints! {
 
         /// Add a new node and place it in the origin of the workspace.
         add_node(),
-
+        /// Start Node creation process.
+        ///
+        /// This event is the best to be emit in situations, when the user want to create node (in
+        /// opposition to e.g. loading graph from file). It will create node and put it into edit
+        /// mode. The node position may vary, depending on what is the best for the UX - for details
+        /// see [`GraphEditorModel::create_node`] implementation.
         start_node_creation(),
 
 
@@ -1303,9 +1313,13 @@ impl GraphEditorModelWithNetwork {
 
 #[derive(Clone, Copy, Debug)]
 enum WayOfCreatingNode {
+    /// "add_node" FRP event was emitted.
     AddNodeEvent,
+    /// "start_node_creation" FRP event was emitted.
     StartCreationEvent,
+    /// add_node_button was clicked.
     ClickingButton,
+    /// The edge was dropped on the stage.
     DroppingEdge { edge_id: EdgeId },
 }
 
@@ -1344,7 +1358,7 @@ impl GraphEditorModelWithNetwork {
         let position: Vector2 = match way {
             AddNodeEvent => default(),
             StartCreationEvent | ClickingButton if selection.is_some() =>
-                self.find_new_node_position(selection.unwrap()),
+                self.find_free_place_under(selection.unwrap()),
             StartCreationEvent => mouse_position,
             ClickingButton => self.find_free_place_for_node(default(), Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { .. } => mouse_position,
@@ -1617,7 +1631,7 @@ impl GraphEditorModel {
     }
 
     pub fn add_node_below(&self, above: NodeId) -> NodeId {
-        let pos = self.find_new_node_position(above);
+        let pos = self.find_free_place_under(above);
         self.add_node_at(pos)
     }
 
@@ -1627,7 +1641,7 @@ impl GraphEditorModel {
         node_id
     }
 
-    pub fn find_new_node_position(&self, node_above: NodeId) -> Vector2 {
+    pub fn find_free_place_under(&self, node_above: NodeId) -> Vector2 {
         let above_pos = self.node_position(node_above);
         let y_gap = self.frp.default_y_gap_between_nodes.value();
         let y_offset = y_gap + node::HEIGHT;
@@ -1646,6 +1660,13 @@ impl GraphEditorModel {
         // This is how much horizontal space we are looking for.
         let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
         let nodes = self.nodes.all.raw.borrow();
+        // The "occupied area" for given node consists of:
+        // - area taken by node view (obviously)
+        // - the minimum gap between nodes in all directions, so the new node won't be "glued" to
+        //   another
+        // - the new node size measured from origin point at each direction accordingly: because
+        //   `find_free_place` looks for free place for the origin point, and we want to fit not
+        //   only the point, but the whole node.
         let node_areas = nodes.values().map(|node| {
             let position = node.position();
             let left = position.x - x_gap - min_spacing;
@@ -2276,8 +2297,6 @@ impl Deref for GraphEditor {
         &self.frp
     }
 }
-
-impl GraphEditor {}
 
 impl application::View for GraphEditor {
     fn label() -> &'static str {

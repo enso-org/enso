@@ -338,6 +338,7 @@ pub fn expression_mock() -> Expression {
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
+// TODO[ao] This expression mocks results in panic. If you want to use it, please fix it first.
 pub fn expression_mock2() -> Expression {
     let pattern = Some("var1".to_string());
     let pattern_cr = vec![Seq { right: false }, Or, Or, Build];

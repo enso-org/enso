@@ -1,7 +1,6 @@
 //! The component with buttons in the top left corner. See [[View]].
 
 pub mod close;
-pub mod common;
 pub mod fullscreen;
 
 
@@ -14,6 +13,7 @@ use ensogl::define_shape_system;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::*;
+use ensogl_hardcoded_theme::application::window_control_buttons as theme;
 
 use enso_frp as frp;
 
@@ -80,7 +80,6 @@ impl<T> LayoutParams<T> {
 impl LayoutParams<frp::Sampler<f32>> {
     /// Get layout from theme. Each layout parameter will be an frp sampler.
     pub fn from_theme(style: &StyleWatchFrp) -> Self {
-        use ensogl_hardcoded_theme::application::window_control_buttons as theme;
         let default = LayoutParams::default();
         let spacing = style.get_number_or(theme::spacing, default.spacing);
         let padding_left = style.get_number_or(theme::padding::left, default.padding_left);
@@ -175,10 +174,13 @@ impl Model {
             layout;
         let close_size = self.close.size.value();
         let fullscreen_size = self.fullscreen.size.value();
+        let padding_offset = Vector2(padding_left, -padding_top);
+        let origin_offset = |size: Vector2| Vector2(size.x / 2.0, -size.y / 2.0);
 
-        self.close.set_position_xy(Vector2(padding_left, -padding_top));
+        self.close.set_position_xy(padding_offset + origin_offset(close_size));
         let fullscreen_x = padding_left + close_size.x + spacing;
-        self.fullscreen.set_position_xy(Vector2(fullscreen_x, -padding_top));
+        self.fullscreen
+            .set_position_xy(Vector2(fullscreen_x, -padding_top) + origin_offset(fullscreen_size));
 
         let width = fullscreen_x + fullscreen_size.x + padding_right;
         let height = padding_top + max(close_size.y, fullscreen_size.y) + padding_bottom;
@@ -234,13 +236,17 @@ impl View {
         let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
         let style_frp = LayoutParams::from_theme(&style);
         let layout_style = style_frp.flatten(network);
+        let radius = style.get_number(theme::radius);
 
         frp::extend! { network
             // Layout
-            button_resized          <- any_(&model.close.size,&model.fullscreen.size);
-            layout_on_button_change <- sample(&layout_style,&button_resized);
-            need_relayout           <- any(&layout_style,&layout_on_button_change);
-            frp.source.size         <+ need_relayout.map(f!((layout) model.set_layout(*layout)));
+            button_size               <- radius.map(|&r| Vector2(2.0 * r, 2.0 * r));
+            model.close.set_size      <+ button_size;
+            model.fullscreen.set_size <+ button_size;
+            button_resized            <- any_(&model.close.size,&model.fullscreen.size);
+            layout_on_button_change   <- sample(&layout_style,&button_resized);
+            need_relayout             <- any(&layout_style,&layout_on_button_change);
+            frp.source.size           <+ need_relayout.map(f!((layout) model.set_layout(*layout)));
 
             // Handle the panel-wide hover
             mouse_near_buttons            <- bool(&model.shape.events.mouse_out,&model.shape.events.mouse_over);

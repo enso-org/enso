@@ -250,11 +250,6 @@ impl Model {
         }
     }
 
-    // fn expression_of_node(&self, node_id: NodeId) -> Expression {
-    //     let node = self.graph_editor.model.nodes.get_cloned_ref(&node_id);
-    //     node.map(|n| n.view.model.input..).unwr
-    // }
-
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
         let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
         if let Some(node) = node {

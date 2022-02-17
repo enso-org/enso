@@ -32,10 +32,6 @@ impl ButtonShape for shape::DynamicShape {
         "FullscreenButton"
     }
 
-    fn size_path(_state: State) -> StaticPath {
-        ensogl_hardcoded_theme::application::window_control_buttons::radius
-    }
-
     fn background_color_path(state: State) -> StaticPath {
         match state {
             State::Unconcerned => theme::normal::background_color,

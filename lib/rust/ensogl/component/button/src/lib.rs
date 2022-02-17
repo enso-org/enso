@@ -149,9 +149,6 @@ pub trait ButtonShape:
     /// The human-readable name of the button, for debug purposes.
     fn debug_name() -> &'static str;
 
-    /// Path to the button's size
-    fn size_path(state: State) -> StaticPath;
-
     /// Path to the color of circular button background for a specific button's state.
     fn background_color_path(state: State) -> StaticPath;
 

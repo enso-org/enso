@@ -41,10 +41,6 @@ impl ButtonShape for shape::DynamicShape {
         "AddNodeButton"
     }
 
-    fn size_path(_state: State) -> StaticPath {
-        theme::size
-    }
-
     fn background_color_path(state: State) -> StaticPath {
         match state {
             State::Unconcerned => theme::background,
