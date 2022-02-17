@@ -11,12 +11,12 @@ import org.enso.librarymanager.resolved.{
   *
   * @param name the library name
   * @param version the library version
-  * @param location the library location on the filesystem
+  * @param root the library location on the filesystem
   */
 case class ResolvedLibrary(
   name: LibraryName,
   version: LibraryVersion,
-  location: LibraryRoot
+  root: LibraryRoot
 )
 object ResolvedLibrary {
 
@@ -25,7 +25,7 @@ object ResolvedLibrary {
 
     /** Provides read methods to access the library files. */
     def getReadAccess: LibraryReadAccess =
-      new FilesystemLibraryReadAccess(resolvedLibrary.location)
+      new FilesystemLibraryReadAccess(resolvedLibrary.root)
   }
 
 }

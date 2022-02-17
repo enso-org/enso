@@ -475,14 +475,16 @@ class LibrariesTest extends BaseServerTest {
           .value
 
         val pkg =
-          PackageManager.Default.loadPackage(cachedLibraryRoot.toFile).get
+          PackageManager.Default
+            .loadPackage(cachedLibraryRoot.location.toFile)
+            .get
         pkg.name shouldEqual "Bar"
         pkg.listSources.map(
           _.file.getName
         ) should contain theSameElementsAs Seq("Main.enso")
 
         assert(
-          Files.exists(cachedLibraryRoot.resolve(LibraryManifest.filename)),
+          Files.exists(cachedLibraryRoot / LibraryManifest.filename),
           "The manifest file of a downloaded library should be saved in the cache too."
         )
       }

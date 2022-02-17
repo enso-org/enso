@@ -3,7 +3,7 @@ package org.enso.librarymanager
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
-import org.enso.librarymanager.local.{LocalLibrary, LocalLibraryProvider}
+import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.testkit.EitherValue
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
