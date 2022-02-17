@@ -1,8 +1,5 @@
 package org.enso.languageserver.libraries
 
-import java.io.File
-import java.nio.file.{Files, Path}
-
 import akka.actor.Props
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.{DistributionManager, FileSystem}
@@ -16,6 +13,9 @@ import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.pkg.validation.NameValidation
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
+
+import java.io.File
+import java.nio.file.{Files, Path}
 
 import scala.util.{Success, Try}
 

@@ -21,7 +21,8 @@ case class ResolvedLibrary(
 object ResolvedLibrary {
 
   /** Extension methods of [[ResolvedLibrary]]. */
-  implicit class ResolvedLibraryMethods(resolvedLibrary: ResolvedLibrary) {
+  implicit class ResolvedLibraryMethods(val resolvedLibrary: ResolvedLibrary)
+      extends AnyVal {
 
     /** Provides read methods to access the library files. */
     def getReadAccess: LibraryReadAccess =

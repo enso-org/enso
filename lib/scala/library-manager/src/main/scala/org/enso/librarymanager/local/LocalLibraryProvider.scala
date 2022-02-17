@@ -1,10 +1,10 @@
 package org.enso.librarymanager.local
 
-import java.nio.file.Path
-
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.resolved.LibraryRoot
+
+import java.nio.file.Path
 
 /** A provider for local libraries. */
 trait LocalLibraryProvider {

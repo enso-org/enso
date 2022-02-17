@@ -4,13 +4,13 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.testkit.EitherValue
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import java.nio.file.Path
 
-import org.enso.librarymanager.resolved.LibraryRoot
+import java.nio.file.Path
 
 class LibraryResolverSpec
     extends AnyWordSpec

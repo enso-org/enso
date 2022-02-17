@@ -1,7 +1,5 @@
 package org.enso.librarymanager.published.cache
 
-import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
@@ -20,10 +18,12 @@ import org.enso.librarymanager.published.repository.RepositoryHelper.{
   LibraryAccess,
   RepositoryMethods
 }
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
 import org.enso.yaml.YamlHelper
-import org.enso.librarymanager.resolved.LibraryRoot
+
+import java.nio.file.{Files, Path}
 
 import scala.util.control.NonFatal
 import scala.util.{Success, Try}

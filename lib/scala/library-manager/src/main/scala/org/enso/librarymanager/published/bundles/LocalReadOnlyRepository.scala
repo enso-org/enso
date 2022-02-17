@@ -1,7 +1,5 @@
 package org.enso.librarymanager.published.bundles
 
-import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.LibraryName
@@ -11,6 +9,8 @@ import org.enso.librarymanager.published.cache.{
 }
 import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
+
+import java.nio.file.{Files, Path}
 
 /** Implements a read-only cache backed by a repository on the local filesystem.
   *

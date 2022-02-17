@@ -1,12 +1,12 @@
 package org.enso.librarymanager.published
 
-import java.nio.file.Path
-
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.resolved.LibraryRoot
+
+import java.nio.file.Path
 
 /** An interface that allows to check if a given published library version is
   * cached.

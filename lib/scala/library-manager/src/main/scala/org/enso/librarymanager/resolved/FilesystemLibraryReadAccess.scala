@@ -1,10 +1,10 @@
 package org.enso.librarymanager.resolved
 
-import java.nio.file.Files
-
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.pkg.{Config, Package}
 import org.enso.yaml.YamlHelper
+
+import java.nio.file.Files
 
 import scala.util.Try
 

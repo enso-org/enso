@@ -1,10 +1,10 @@
 package org.enso.librarymanager.published.cache
 
-import java.nio.file.Path
-
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.resolved.LibraryRoot
+
+import java.nio.file.Path
 
 import scala.util.Try
 

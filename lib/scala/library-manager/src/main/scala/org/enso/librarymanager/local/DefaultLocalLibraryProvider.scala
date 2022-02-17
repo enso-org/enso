@@ -1,12 +1,12 @@
 package org.enso.librarymanager.local
 
-import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
+
+import java.nio.file.{Files, Path}
 
 import scala.annotation.tailrec
 

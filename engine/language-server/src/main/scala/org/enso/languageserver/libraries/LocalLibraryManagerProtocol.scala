@@ -71,9 +71,10 @@ object LocalLibraryManagerProtocol {
   /** A base trait for failures. */
   sealed trait Failure
 
-  /** An error when the version is not a valid semver version.
+  /** An error indicating that the provided version is not a valid semver
+    * version.
     *
-    * @version invalid version
+    * @version invalid version string
     */
   case class InvalidSemverVersionError(version: String) extends Failure
 }
