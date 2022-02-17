@@ -1,5 +1,5 @@
 use enso_frp::future::EventOutputExt;
-use enso_integration_test::IntegrationTest;
+use enso_integration_test::IntegrationTestOnNewProject;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 
@@ -7,17 +7,8 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 async fn create_new_project_and_add_nodes() {
-    let test = IntegrationTest::setup().await;
-    let ide = &test.ide;
-    let project = ide.presenter.view().project();
-    let graph_editor = project.graph();
-    let controller = ide.presenter.controller();
-    let project_management =
-        controller.manage_projects().expect("Cannot access Managing Project API");
-
-    let expect_prompt = project.show_prompt.next_event();
-    project_management.create_new_project(None).await.expect("Failed to create new project");
-    expect_prompt.await;
+    let test = IntegrationTestOnNewProject::setup().await;
+    let graph_editor = test.graph_editor();
 
     assert_eq!(graph_editor.model.nodes.all.len(), 2);
     let expect_node_added = graph_editor.node_added.next_event();
@@ -28,4 +19,43 @@ async fn create_new_project_and_add_nodes() {
     let added_node =
         graph_editor.model.nodes.get_cloned_ref(&added_node_id).expect("Added node is not added");
     assert_eq!(added_node.view.expression.value().to_string(), "");
+}
+
+#[wasm_bindgen_test]
+async fn debug_mode() {
+    let test = IntegrationTestOnNewProject::setup().await;
+    let project = test.project_view();
+    let graph_editor = test.graph_editor();
+
+    assert!(graph_editor.debug_mode.value());
+
+    // Turning On
+    let expect_mode = project.debug_mode.next_event();
+    let expect_popup_message = project.debug_mode_popup().label().show.next_event();
+    project.enable_debug_mode.emit(());
+    assert!(expect_mode.expect());
+    let message = expect_popup_message.expect();
+    assert!(
+        message.contains("Debug mode enabled"),
+        "Message {} does not mention enabling Debug mode",
+        message
+    );
+    assert!(
+        message.contains("Ctrl + Shift + D"),
+        "Message {} does not inform about shortcut to turn mode off",
+        message
+    );
+    assert!(graph_editor.debug_mode.value());
+
+    // Turning Off
+    let expect_mode = project.debug_mode.next_event();
+    let expect_popup_message = project.debug_mode_popup().label().show.next_event();
+    project.disable_debug_mode.emit(());
+    assert!(expect_mode.expect());
+    let message = expect_popup_message.expect();
+    assert!(
+        message.contains("Debug mode disabled"),
+        "Message {} does not mention disabling of debug mode"
+    );
+    assert!(!graph_editor.debug_mode.value());
 }

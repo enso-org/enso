@@ -676,6 +676,11 @@ impl View {
     pub fn open_dialog(&self) -> &OpenDialog {
         &self.model.open_dialog
     }
+
+    /// Debug Mode Popup
+    pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
+        &self.model.debug_mode_popup
+    }
 }
 
 impl display::Object for View {
