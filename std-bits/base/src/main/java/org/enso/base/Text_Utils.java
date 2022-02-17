@@ -1,7 +1,6 @@
 package org.enso.base;
 
 import com.ibm.icu.text.Normalizer;
-import com.ibm.icu.text.Normalizer2;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
