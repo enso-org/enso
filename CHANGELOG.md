@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
 - [Debug Mode for Graph Editor can be activated/deactivated using a
   shortcut.][3264] It allows access to a set of restricted features. See
   [debug-shortcuts].
@@ -41,6 +42,9 @@
 - [Implemented `Runtime.get_stack_trace` together with some utilities to process
   stack traces and code locations][3271]
 - [Implemented `Vector.flatten`][3259]
+- [Significant performance improvement in `Natural_Order` and new `Faker`
+  methods added to `Standard.Test`][3276]
+- [Implemented `Integer.parse`][3283]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -63,6 +67,9 @@
 [3269]: https://github.com/enso-org/enso/pull/3269
 [3271]: https://github.com/enso-org/enso/pull/3271
 [3259]: https://github.com/enso-org/enso/pull/3259
+[3273]: https://github.com/enso-org/enso/pull/3273
+[3276]: https://github.com/enso-org/enso/pull/3276
+[3283]: https://github.com/enso-org/enso/pull/3283
 
 #### Enso Compiler
 
