@@ -1646,7 +1646,7 @@ impl GraphEditorModel {
         let y_gap = self.frp.default_y_gap_between_nodes.value();
         let y_offset = y_gap + node::HEIGHT;
         let starting_point = above_pos - Vector2(0.0, y_offset);
-        let direction = Vector2(1.0, 0.0);
+        let direction = Vector2(-1.0, 0.0);
         self.find_free_place_for_node(starting_point, direction).unwrap()
     }
 
@@ -1661,9 +1661,9 @@ impl GraphEditorModel {
         let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
         let nodes = self.nodes.all.raw.borrow();
         // The "occupied area" for given node consists of:
-        // - area taken by node view (obviously)
+        // - area taken by node view (obviously);
         // - the minimum gap between nodes in all directions, so the new node won't be "glued" to
-        //   another
+        //   another;
         // - the new node size measured from origin point at each direction accordingly: because
         //   `find_free_place` looks for free place for the origin point, and we want to fit not
         //   only the point, but the whole node.
@@ -2547,7 +2547,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
-    // === Nodes Utilities ===
+    // === Mouse Interactions ===
 
     frp::extend! { network
 

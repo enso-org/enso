@@ -11,11 +11,13 @@ use ordered_float::OrderedFloat;
 
 // ====================
 // === OccupiedArea ===
-// ===================
+// ====================
 
 /// The structure describing an occupied area.
 ///
-/// All such areas are rectangles described by x and y ranges.
+/// All such areas are rectangles described by x and y ranges. The (x1, x2) and (y1, y2) pairs are
+/// not sorted - if you want to get the lesser/greater one, use one of [`left`], [`right`], [`top`],
+/// or [`bottom`] methods.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct OccupiedArea {
@@ -55,7 +57,7 @@ impl OccupiedArea {
     }
 
     /// Return the x position of the left or right boundary, depending on whether the direction
-    /// points leftwards of rightwards respectively. Returns `None` if direction does not point
+    /// points leftwards of rightwards respectively. Returns [`None`] if direction does not point
     /// leftwards nor rightwards.
     pub fn x_bound_following_direction(&self, direction: Vector2) -> Option<f32> {
         if direction.x > f32::EPSILON {
@@ -68,7 +70,7 @@ impl OccupiedArea {
     }
 
     /// Return the y position of the top or bottom boundary, depending on whether the direction
-    /// points toward the top or bottom respectively. Returns `None` if direction does not point
+    /// points toward the top or bottom respectively. Returns [`None`] if direction does not point
     /// toward top nor bottom.
     pub fn y_bound_following_direction(&self, direction: Vector2) -> Option<f32> {
         if direction.y > f32::EPSILON {
@@ -107,7 +109,7 @@ impl OccupiedArea {
 /// With the list of occupied areas, return the first unoccupied point when going along the ray
 /// starting from `starting_point` and parallel to `direction` vector.
 ///
-/// Returns `None` if the `direction` does not go clearly at any direction (both `direction.x` and
+/// Returns [`None`] if the `direction` does not go clearly at any direction (both `direction.x` and
 /// `direction.y` are smaller than [`f32::EPSILON`]).
 pub fn find_free_place(
     starting_point: Vector2,
