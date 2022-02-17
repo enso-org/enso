@@ -47,6 +47,7 @@
 - [Implemented `Vector.flatten`][3259]
 - [Significant performance improvement in `Natural_Order` and new `Faker`
   methods added to `Standard.Test`][3276]
+- [Implemented `Integer.parse`][3283]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -72,6 +73,7 @@
 [3273]: https://github.com/enso-org/enso/pull/3273
 [3276]: https://github.com/enso-org/enso/pull/3276
 [3278]: https://github.com/enso-org/enso/pull/3278
+[3283]: https://github.com/enso-org/enso/pull/3283
 
 #### Enso Compiler
 
