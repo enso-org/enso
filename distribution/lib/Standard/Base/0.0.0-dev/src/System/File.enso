@@ -598,6 +598,16 @@ type File
                     matcher.matches (Path.of pathStr)
         filtered
 
+    ## UNSTABLE
+
+       Checks if `this` is a child path of `other`.
+    is_child_of other = this.prim_file.startsWith other.prim_file
+
+    ## UNSTABLE
+
+       Transforms `child` to a relative path with respect to `this`.
+    relativize child = File (this.prim_file.relativize child.prim_file)
+
 ## An output stream, allowing for interactive writing of contents into an
    open file.
 type Output_Stream

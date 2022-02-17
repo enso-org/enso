@@ -1012,7 +1012,7 @@ impl ShapeSystemRegistryData {
         let system = <T as ShapeSystemInstance>::new(scene);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
-        self.shape_system_map.entry(id).insert(entry);
+        self.shape_system_map.entry(id).insert_entry(entry);
         // The following line is safe, as the object was just registered.
         self.get_mut().unwrap()
     }

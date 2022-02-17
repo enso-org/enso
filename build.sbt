@@ -16,7 +16,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion         = "2.13.7"
-val graalVersion          = "21.1.0"
+val graalVersion          = "21.3.0"
 val javaVersion           = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -762,12 +762,13 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
         .writeBuildInfoFile(
-          file           = file,
-          log            = state.value.log,
-          ensoVersion    = ensoVersion,
-          scalacVersion  = scalacVersion,
-          graalVersion   = graalVersion,
-          currentEdition = currentEdition
+          file                  = file,
+          log                   = state.value.log,
+          defaultDevEnsoVersion = defaultDevEnsoVersion,
+          ensoVersion           = ensoVersion,
+          scalacVersion         = scalacVersion,
+          graalVersion          = graalVersion,
+          currentEdition        = currentEdition
         )
     }.taskValue
   )

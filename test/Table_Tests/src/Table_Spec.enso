@@ -3,9 +3,12 @@ from Standard.Table import all
 
 from Standard.Table.Data.Table as Table_Internal import Empty_Error
 
+import Standard.Base.Data.Time.Date
 import Standard.Table.Data.Storage
 import Standard.Test
+import Standard.Test.Problems
 import Standard.Visualization
+from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
 
 import project.Common_Table_Spec
 
@@ -636,5 +639,48 @@ spec =
         Table.new <| columns.map description-> [description.at 0, description.at 2]
 
     Common_Table_Spec.spec "" table_builder supports_case_sensitive_columns=True
+
+    Test.group "Use First Row As Names" <|
+        expect_column_names names table =
+            table.columns . map .name . should_equal names frames_to_skip=2
+
+        Test.specify "should work happily with mixed types" <|
+            c_0 = ['A', ["H", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
+            c_2 = ['x', [1, 2, 3]]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
+            expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] <| table.use_first_row_as_names
+
+        Test.specify "should correctly handle problems: invalid names ''" <|
+            c_0 = ['A', ["", "B", "C"]]
+            c_2 = ['x', [1, 2, 3]]
+            table = Table.new [c_0, c_2]
+            action = table.use_first_row_as_names warnings=_ on_problems=_
+            tester = expect_column_names ["Column", "1"]
+            problems = [Invalid_Output_Column_Names [""]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: invalid names Nothing" <|
+            c_0 = ['A', ["A", "B", "C"]]
+            c_2 = ['x', [Nothing, 2, 3]]
+            table = Table.new [c_0, c_2]
+            action = table.use_first_row_as_names warnings=_ on_problems=_
+            tester = expect_column_names ["A", "Column"]
+            problems = [Invalid_Output_Column_Names [""]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate names" <|
+            c_0 = ['A', ["A", "B", "C"]]
+            c_1 = ['B', ["A", "B", "C"]]
+            c_2 = ['x', ["A", "B", "C"]]
+            c_3 = ['C', ["A", "B", "C"]]
+            table = Table.new [c_0, c_1, c_2, c_3]
+            action = table.use_first_row_as_names warnings=_ on_problems=_
+            tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
+            problems = [Duplicate_Output_Column_Names ["A", "A", "A"]]
+            Problems.test_problem_handling action problems tester
+
 
 main = Test.Suite.run_main here.spec

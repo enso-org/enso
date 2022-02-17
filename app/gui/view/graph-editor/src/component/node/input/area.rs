@@ -465,6 +465,10 @@ impl Area {
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
+
+    pub fn label(&self) -> &text::Area {
+        &self.model.label
+    }
 }
 
 
@@ -813,7 +817,7 @@ impl Area {
                 frp::extend! { port_network
                     normal_viz_color <- all_with(&frp.tp,&frp.set_connected,
                         f!([styles](port_tp,(_,edge_tp)) {
-                            let tp = port_tp.as_ref().or_else(||edge_tp.as_ref());
+                            let tp = port_tp.as_ref().or(edge_tp.as_ref());
                             select_color(&styles,tp)
                         }));
                     init_color          <- source::<()>();

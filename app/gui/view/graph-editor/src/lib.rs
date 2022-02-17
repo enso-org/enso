@@ -6,7 +6,6 @@
 
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
@@ -93,6 +92,7 @@ const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
 const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
+const MAX_ZOOM: f32 = 1.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
@@ -339,6 +339,14 @@ where
 }
 
 impl<K, V, S> SharedHashMap<K, V, S> {
+    pub fn len(&self) -> usize {
+        self.raw.borrow().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.raw.borrow().is_empty()
+    }
+
     pub fn clear(&self) {
         self.raw.borrow_mut().clear()
     }
@@ -477,6 +485,9 @@ ensogl::define_endpoints! {
 
         // === Debug ===
 
+        /// Enable or disable debug-only features.
+        set_debug_mode(bool),
+
         /// Push a hardcoded breadcrumb without notifying the controller.
         debug_push_breadcrumb(),
         /// Pop a breadcrumb without notifying the controller.
@@ -534,6 +545,9 @@ ensogl::define_endpoints! {
     }
 
     Output {
+        // === Debug Mode ===
+
+        debug_mode                             (bool),
 
         // === Edge ===
 
@@ -3366,8 +3380,24 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp.source.default_y_gap_between_nodes.emit(default_y_gap.value());
     frp.source.min_x_spacing_for_new_nodes.emit(min_x_spacing.value());
 
+
+
+    // ==================
+    // === Debug Mode ===
+    // ==================
+
+    frp::extend! { network
+        out.source.debug_mode <+ frp.set_debug_mode;
+
+        limit_max_zoom <- frp.set_debug_mode.on_false();
+        unlimit_max_zoom <- frp.set_debug_mode.on_true();
+        eval_ limit_max_zoom (model.navigator.set_max_zoom(Some(MAX_ZOOM)));
+        eval_ unlimit_max_zoom (model.navigator.set_max_zoom(None));
+    }
+
     // Init defaults
     frp.edit_mode_off.emit(());
+    frp.set_debug_mode.emit(false);
 
     GraphEditor { model, frp }
 }

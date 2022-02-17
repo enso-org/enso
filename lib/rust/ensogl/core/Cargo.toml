@@ -21,7 +21,7 @@ enso-generics = { path = "../../generics"}
 enso-logger = { path = "../../logger"}
 enso-optics = { path = "../../optics"}
 enso-prelude = { path = "../../prelude"}
-enso-shapely = { path = "../../shapely/impl"}
+enso-shapely = { path = "../../shapely"}
 enso-shortcuts = { path = "../../shortcuts" }
 enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }
@@ -45,7 +45,7 @@ typenum = { version = "1.11.2" }
 
 # We require exact version of wasm-bindgen because we do patching final js in our build process,
 # and this is vulnerable to any wasm-bindgen version change.
-wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
 
 [dependencies.web-sys]
 version = "0.3.4"

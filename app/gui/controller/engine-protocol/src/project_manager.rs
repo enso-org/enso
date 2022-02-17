@@ -392,7 +392,7 @@ mod remote_client_tests {
         let project_id = Uuid::default();
         let missing_component_action = MissingComponentAction::Install;
         let engine_version = "1.0.0".to_owned();
-        let engine_version_opt = Some(engine_version.clone());
+        let engine_version_opt = Some(engine_version);
         let create_project_response = response::CreateProject { project_id };
         let project_id_json = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
         let project_id_and_mca = json!({

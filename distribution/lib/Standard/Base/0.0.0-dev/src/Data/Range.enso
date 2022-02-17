@@ -125,11 +125,7 @@ type Range
 
              1.up_to 100 . exists (> 10)
     exists : (Number -> Boolean) -> Boolean
-    exists predicate =
-        limit = this.end
-        go n found = if found || (n >= limit) then found else
-            @Tail_Call go n+1 (predicate n)
-        go this.start False
+    exists predicate = this.find predicate . is_nothing . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -145,6 +141,26 @@ type Range
     any : (Number -> Boolean) -> Boolean
     any predicate = this.exists predicate
 
+    ## Gets the first index when `predicate` is satisfied this range.
+       If no index satisfies the predicate, return Nothing
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+
+       > Example
+         Get the first number in the range divisible by 2, 3 and 5.
+
+             1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
+    find : (Integer -> Boolean) -> Integer | Nothing
+    find predicate =
+        limit = this.end
+        go n = if (n >= limit) then Nothing else
+          if (predicate n) then n else
+            @Tail_Call go n+1
+        go this.start
+
     ## Converts the range to a vector containing the numbers in the range.
 
        > Example
@@ -155,4 +171,3 @@ type Range
     to_vector =
         length = Math.max 0 (this.end - this.start)
         Vector.new length (i -> i + this.start)
-

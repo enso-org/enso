@@ -3,6 +3,7 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
@@ -33,5 +34,5 @@ public abstract class CallOptimiserNode extends Node {
    * @return the result of executing {@code callable} using {@code arguments}
    */
   public abstract Stateful executeDispatch(
-      Object callable, CallerInfo callerInfo, Object state, Object[] arguments);
+      Function callable, CallerInfo callerInfo, Object state, Object[] arguments);
 }
