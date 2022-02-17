@@ -204,6 +204,51 @@ spec =
             'a'.each builder2.append
             builder2.to_vector . should_equal ['a']
 
+        Test.specify "should check for contains using Unicode normalization" <|
+            "Hello".contains "ell" . should_be_true
+            "Cześć".contains 's\u{301}' . should_be_true
+            "Cześć".contains 'ść' . should_be_true
+            "Czes\u{301}c\u{301}".contains 'ść' . should_be_true
+            "Cześć".contains 'sc' . should_be_false
+            "Czes\u{301}c\u{301}".contains 'sc' . should_be_false
+
+            "ABC" . contains "a" . should_be_false
+            "" . contains "foo" . should_be_false
+            "abc" . contains "" . should_be_true
+            "" . contains "" . should_be_true
+            "foo foo foo" . contains "foo" . should_be_true
+
+            "Hello!".contains "lo" . should_be_true
+            "Hello!".contains "Lo" . should_be_false
+
+        Test.specify "should allow for case-insensitive contains checks" <|
+            "Hello!".contains 'LO' (Text_Matcher Case_Insensitive.new) . should_be_true
+            "FoObar" . contains "foo" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "aaaIAAA" . contains "i" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Foo" . contains "bar" (Text_Matcher Case_Insensitive.new) . should_be_false
+
+        Test.specify "should allow for Regex contains checks" <|
+            "Hello!".contains "[a-z]" Regex_Matcher.new . should_be_true
+            "foobar" . contains "b.." Regex_Matcher.new . should_be_true
+            "foob" . contains "b.." Regex_Matcher.new . should_be_false
+
+            "123 meters and 4 centimeters" . contains "[0-9]+" Regex_Matcher.new . should_be_true
+            "foo" . contains "[0-9]+" Regex_Matcher.new . should_be_false
+
+            "Cześć" . contains "ś" Regex_Matcher.new . should_be_true
+            "Cześć" . contains 's\u{301}' Regex_Matcher.new . should_be_true
+            'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher.new . should_be_true
+
+            # TODO maybe more checks for all the options
+            "fooBar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
+            "foar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+
+            long_text = """
+                Hello from a long text. EOL
+                SOL Hmm...
+            long_text . contains "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
+            long_text . contains "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
             match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First

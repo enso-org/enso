@@ -753,7 +753,13 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
    Checks whether `this` contains `sequence` as its substring.
 
    Arguments:
-   - sequence: The text to see if it is contained in `this`.
+   - term: The term to find.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher.
+     If a `Regex_Matcher`, the term is used as a regular expression and matched
+     using the associated options.
+
+   Returns: `True` if term is found within `this`. `False` otherwise.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -765,8 +771,21 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
      See if the text "Hello" contains the text "ell".
 
          "Hello".contains "ell"
-Text.contains : Text -> Boolean
-Text.contains sequence = Text_Utils.contains this sequence
+
+   > Example
+     See if the text "Cześć" contains the text 's\u{301}' (which folds to 'ś').
+
+         "Cześć".contains 's\u{301}'
+
+   > Example
+     See if the text "Hello!" contains the text 'LO', ignoring case sensitivity.
+
+         "Hello!".contains 'LO' (Text_Matcher Case_Insensitive.new)
+Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
+Text.contains term="" matcher=Text_Matcher.new =
+    # TODO
+    _ = matcher
+    Text_Utils.contains this term
 
 ## Text to JSON conversion.
 
