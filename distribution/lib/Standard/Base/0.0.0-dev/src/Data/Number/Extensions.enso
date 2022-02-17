@@ -1,5 +1,6 @@
 from Standard.Base import all hiding Parse_Error
 
+polyglot java import java.lang.Long
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
 polyglot java import java.lang.String
@@ -254,6 +255,24 @@ Number.to_json = Json.Number this
 
 ## ALIAS From Text
 
+   Parses a textual representation of an integer into an integer number, returning
+   a `Parse_Error` if the text does not represent a valid integer.
+
+   Arguments:
+   - text: The text to parse into a integer.
+   - radix: The number base to use for parsing (defaults to 10).
+
+   > Example
+     Parse the text "20220216" into an integer number.
+
+         Integer.parse "20220216"
+Integer.parse : Text -> Text -> Integer ! Parse_Error
+Integer.parse text (radix=10) =
+    Panic.recover (Long.parseLong text radix) . catch _->
+         Error.throw (Parse_Error text)
+
+## ALIAS From Text
+
    Parses a textual representation of a decimal into a decimal number, returning
    a `Parse_Error` if the text does not represent a valid decimal.
 
@@ -263,7 +282,7 @@ Number.to_json = Json.Number this
    > Example
      Parse the text "7.6" into a decimal number.
 
-         Decimal.parse 7.6
+         Decimal.parse "7.6"
 Decimal.parse : Text -> Decimal ! Parse_Error
 Decimal.parse text =
     Panic.recover (Double.parseDouble text) . catch _->
