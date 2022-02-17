@@ -3,21 +3,6 @@ from Standard.Base import all
 import Standard.Test.Bench
 import Standard.Test.Faker
 
-from Standard.Builtins import Prim_Text_Helper
-
-polyglot java import java.lang.StringBuilder
-
-build_long n =
-    res = 1.up_to n . fold "" acc-> n-> acc + n.to_text
-    Prim_Text_Helper.optimize res
-    res
-
-build_long_bldr n =
-    bldr = StringBuilder.new
-    1.up_to n . each n-> bldr.append n
-    res = bldr.toString
-    res
-
 compare_all_adjacent text_vector =
     res = 1.up_to text_vector.length . fold False acc-> ix->
         compare_result = (text_vector.at ix-1) < (text_vector.at ix)
@@ -64,8 +49,3 @@ main =
 
     bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.utf_16) 'ę\u{301}'
     bench_strcmp "strcmp ASCII " Faker.upper_case_letters 'A'
-
-    n = 1000000
-    Bench.measure (here.build_long_bldr n) "string append bldr" 1 1
-    Bench.measure (here.build_long n) "string append" 1 1
-    IO.println "Bye"
