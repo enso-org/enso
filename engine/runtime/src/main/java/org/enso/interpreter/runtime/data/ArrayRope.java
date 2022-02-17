@@ -3,12 +3,13 @@ package org.enso.interpreter.runtime.data;
 import java.util.Arrays;
 
 public final class ArrayRope<T> {
-  private ArrayRopeSegment<T> segment;
+  private final ArrayRopeSegment<T> segment;
 
   private ArrayRope(ArrayRopeSegment<T> segment) {
     this.segment = segment;
   }
 
+  @SafeVarargs
   public ArrayRope(T... elements) {
     segment = new ArraySegment<>(elements);
   }
@@ -17,16 +18,18 @@ public final class ArrayRope<T> {
     return new ArrayRope<>(new ConcatSegment<>(this.segment, that.segment));
   }
 
-  public ArrayRope<T> append(T... items) {
-    return new ArrayRope<T>(new ConcatSegment<>(this.segment, new ArraySegment<>(items)));
+  @SafeVarargs
+  public final ArrayRope<T> append(T... items) {
+    return new ArrayRope<>(new ConcatSegment<>(this.segment, new ArraySegment<>(items)));
   }
 
   public ArrayRope<T> prepend(ArrayRope<T> that) {
-    return new ArrayRope<T>(new ConcatSegment<>(that.segment, this.segment));
+    return new ArrayRope<>(new ConcatSegment<>(that.segment, this.segment));
   }
 
-  public ArrayRope<T> prepend(T... items) {
-    return new ArrayRope<T>(new ConcatSegment<>(new ArraySegment<>(items), this.segment));
+  @SafeVarargs
+  public final ArrayRope<T> prepend(T... items) {
+    return new ArrayRope<>(new ConcatSegment<>(new ArraySegment<>(items), this.segment));
   }
 
   public void writeArray(T[] arr) {
@@ -59,9 +62,7 @@ public final class ArrayRope<T> {
 
     @Override
     public void appendTo(T[] builder, int start) {
-      for (int i = 0; i < elements.length; i++) {
-        builder[start + i] = elements[i];
-      }
+      System.arraycopy(elements, 0, builder, start, elements.length);
     }
 
     @Override

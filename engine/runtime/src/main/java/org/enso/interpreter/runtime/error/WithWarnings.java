@@ -8,15 +8,15 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 @ExportLibrary(MethodDispatchLibrary.class)
 public class WithWarnings implements TruffleObject {
-  private final ArrayRope<Object> warnings;
+  private final ArrayRope<Warning> warnings;
   private final Object value;
 
-  public WithWarnings(Object value, Object... warnings) {
+  public WithWarnings(Object value, Warning... warnings) {
     this.warnings = new ArrayRope<>(warnings);
     this.value = value;
   }
 
-  private WithWarnings(Object value, ArrayRope<Object> warnings) {
+  private WithWarnings(Object value, ArrayRope<Warning> warnings) {
     this.warnings = warnings;
     this.value = value;
   }
@@ -25,29 +25,25 @@ public class WithWarnings implements TruffleObject {
     return value;
   }
 
-  public WithWarnings inherit(WithWarnings that) {
-    return new WithWarnings(value, warnings.append(that.warnings));
-  }
-
-  public WithWarnings append(Object... newWarnings) {
+  public WithWarnings append(Warning... newWarnings) {
     return new WithWarnings(value, warnings.append(newWarnings));
   }
 
-  public WithWarnings prepend(Object... newWarnings) {
+  public WithWarnings prepend(Warning... newWarnings) {
     return new WithWarnings(value, warnings.prepend(newWarnings));
   }
 
-  public Object[] getWarningsArray() {
-    Object[] result = new Object[warnings.size()];
+  public Warning[] getWarningsArray() {
+    Warning[] result = new Warning[warnings.size()];
     warnings.writeArray(result);
     return result;
   }
 
-  public ArrayRope<Object> getWarnings() {
+  public ArrayRope<Warning> getWarnings() {
     return warnings;
   }
 
-  public static WithWarnings appendTo(Object target, ArrayRope<Object> warnings) {
+  public static WithWarnings appendTo(Object target, ArrayRope<Warning> warnings) {
     if (target instanceof WithWarnings) {
       return new WithWarnings(((WithWarnings) target).warnings.append(warnings));
     } else {
@@ -55,7 +51,7 @@ public class WithWarnings implements TruffleObject {
     }
   }
 
-  public static WithWarnings prependTo(Object target, ArrayRope<Object> warnings) {
+  public static WithWarnings prependTo(Object target, ArrayRope<Warning> warnings) {
     if (target instanceof WithWarnings) {
       return new WithWarnings(((WithWarnings) target).warnings.prepend(warnings));
     } else {
