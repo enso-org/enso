@@ -493,11 +493,11 @@ define_themes! { [light:0, dark:1]
             color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
 
             hover {
-                background = Rgba(0.8, 0.8, 1.0, 1.0), Rgba(0.0, 0.0, 0.0, 1.0);
+                background = Rgba(0.9, 0.9, 1.0, 1.0), Rgba(0.9, 0.9, 1.0, 1.0);
                 color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
             }
             click {
-                background = Rgba(0.6, 0.6, 1.0, 1.0), Rgba(0.0, 0.0, 0.0, 1.0);
+                background = Rgba(0.62, 0.62, 1.0, 1.0), Rgba(0.62, 0.62, 1.0, 1.0);
                 color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
             }
         }
