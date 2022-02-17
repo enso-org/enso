@@ -171,3 +171,13 @@ type Range
     to_vector =
         length = Math.max 0 (this.end - this.start)
         Vector.new length (i -> i + this.start)
+
+    ## Does the range contains the specified value
+
+       > Example
+         Check if a index is in the range of a Vector
+
+              vec = [1,3,4,5,7]
+    contains : Integer -> Boolean
+    contains value:
+        (this.start <= value) && (this.end > value)

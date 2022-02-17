@@ -1,0 +1,44 @@
+## Type defining a substring of a Text
+type Text_Sub_Range:
+    ## Select the first `count` characters.
+       Select an empty string if `count` is less than or equal to 0.
+       Select the entire string if `count` is greater than the length of the input.
+    type First count : Integer = 1
+
+    ## Select the last `count` characters.
+       Select an empty string if `count` is less than or equal to 0.
+       Select the entire string if `count` is greater than the length of the input.
+    type Last count : Integer = 1
+
+    ## Select characters until the first instance of `delimiter`.
+       Select the entire string if the input does not contain `delimiter`.
+    type Before delimiter : Text
+
+    ## Select characters until the last instance of `delimiter`.
+       Select the entire string if the input does not contain `delimiter`.
+    type Before_Last delimiter : Text
+
+    ## Select characters after the first instance of `delimiter`.
+       Select the entire string if the input does not contain `delimiter`.
+    type After delimiter : Text
+
+    ## Select characters after the last instance of `delimiter`.
+       Select the entire string if the input does not contain `delimiter`.
+    type After_Last delimiter : Text
+
+    ## Select characters while the predicate returns `True`.
+    type While predicate : Text -> Boolean
+
+    ## Select characters while the predicate returns `False`.
+    type Until predicate : Text -> Boolean
+
+    ## PRIVATE
+       Evaluates the Text_Sub
+    get_indices : Text -> (Pair Integer Integer)
+    get_indices text =
+        case this of:
+            First n ->
+                len = text.length
+                m = if n < 0 then (m+n) else n
+                if (0.up_to len . contains m) then (Pair 0 m) else
+                    Error.throw
