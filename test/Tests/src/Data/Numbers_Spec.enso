@@ -175,6 +175,10 @@ spec =
 
         Test.specify "should be able to be parsed" <|
             Integer.parse "1245623" . should_equal 1245623
+            Integer.parse "012345" . should_equal 12345
+            Integer.parse "-1234567" . should_equal -1234567
+            Integer.parse "00000" . should_equal 0
+            Integer.parse "00000123" . should_equal 123
             Integer.parse "123.45" . should_fail_with Parse_Error
             Integer.parse "aaaa" . should_fail_with Parse_Error
 
@@ -188,6 +192,10 @@ spec =
 
         Test.specify "should be able to be parsed" <|
             Decimal.parse "32.5" . should_equal 32.5
+            Decimal.parse "0122.5" . should_equal 122.5
+            Decimal.parse "-98.5" . should_equal -98.5
+            Decimal.parse "000000" . should_equal 0
+            Decimal.parse "000000.0001" . should_equal 0.0001
             Decimal.parse "aaaa" . should_fail_with Parse_Error
 
     Test.group "Numbers" <|
@@ -234,3 +242,4 @@ spec =
             almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
 
+main = Test.Suite.run_main here.spec
