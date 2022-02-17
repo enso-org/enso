@@ -9,35 +9,35 @@ import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.{
   BlockingOperation,
+  ComponentGroupsResolver,
   EditionReferenceResolver,
   LibraryComponentGroup
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.pkg.{
-  ComponentGroup,
-  ComponentGroups,
-  ExtendedComponentGroup,
-  ModuleReference
-}
+import org.enso.pkg.Config
 
 /** A request handler for the `editions/listDefinedComponents` endpoint.
   *
   * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
   * @param localLibraryProvider     a provider of local libraries
   * @param publishedLibraryCache    a cache of published libraries
+  * @param componentGroupsResolver  a module resolving the dependencies between
+  *                                 component groups
   */
 class EditionsListDefinedComponentsHandler(
   editionReferenceResolver: EditionReferenceResolver,
   localLibraryProvider: LocalLibraryProvider,
-  publishedLibraryCache: PublishedLibraryCache
+  publishedLibraryCache: PublishedLibraryCache,
+  componentGroupsResolver: ComponentGroupsResolver
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
-  override def receive: Receive = requestStage
 
   import context.dispatcher
+
+  override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
     case Request(
@@ -48,15 +48,14 @@ class EditionsListDefinedComponentsHandler(
       BlockingOperation
         .run {
           val edition = editionReferenceResolver.resolveEdition(reference).get
-          val componentGroupsMap = edition.getAllDefinedLibraries.view
+          val definedLibraries = edition.getAllDefinedLibraries.view
             .map { case (name, version) =>
-              name -> readLocalPackage(name, version)
+              readLocalPackage(name, version)
             }
-            .collect { case (name, Some(componentGroups)) =>
-              name -> componentGroups
+            .collect { case Some(config) =>
+              config
             }
-            .toMap
-          resolveComponentGroups(componentGroupsMap)
+          componentGroupsResolver.run(definedLibraries)
         }
         .map(EditionsListDefinedComponentsHandler.Result) pipeTo self
 
@@ -83,116 +82,16 @@ class EditionsListDefinedComponentsHandler(
   private def readLocalPackage(
     libraryName: LibraryName,
     libraryVersion: LibraryVersion
-  ): Option[ComponentGroups] = {
+  ): Option[Config] = {
     val libraryPathOpt = libraryVersion match {
       case LibraryVersion.Local =>
         localLibraryProvider.findLibrary(libraryName)
       case LibraryVersion.Published(version, _) =>
         publishedLibraryCache.findCachedLibrary(libraryName, version)
     }
-    libraryPathOpt
-      .flatMap { libraryPath =>
-        libraryPath.getReadAccess.readPackage().toOption
-      }
-      .flatMap { config =>
-        config.componentGroups.toOption
-      }
-  }
-
-  private def resolveComponentGroups(
-    libraryComponents: Map[LibraryName, ComponentGroups]
-  ): Seq[LibraryComponentGroup] = {
-    val newLibraryComponentGroups =
-      libraryComponents.view
-        .flatMap { case (libraryName, componentGroups) =>
-          componentGroups.newGroups.map(toLibraryComponentGroup(libraryName, _))
-        }
-        .map { libraryComponentGroup =>
-          val moduleReference = ModuleReference(
-            libraryComponentGroup.library,
-            libraryComponentGroup.module
-          )
-          moduleReference -> libraryComponentGroup
-        }
-        .toMap
-    val extendedComponentGroups = {
-      libraryComponents.view
-        .flatMap { case (_, componentGroups) =>
-          componentGroups.extendedGroups
-        }
-        .map { extendedComponentGroup =>
-          extendedComponentGroup.module -> extendedComponentGroup
-        }
-        .toMap
+    libraryPathOpt.flatMap { libraryPath =>
+      libraryPath.getReadAccess.readPackage().toOption
     }
-    mergeExtendedComponentGroups(
-      newLibraryComponentGroups,
-      extendedComponentGroups
-    )
-  }
-
-  private def toLibraryComponentGroup(
-    libraryName: LibraryName,
-    componentGroup: ComponentGroup
-  ): LibraryComponentGroup = {
-    LibraryComponentGroup(
-      libraryName,
-      componentGroup.module,
-      componentGroup.color,
-      componentGroup.icon,
-      componentGroup.exports
-    )
-  }
-
-  private def toLibraryComponentGroup(
-    componentGroup: ExtendedComponentGroup
-  ): LibraryComponentGroup = {
-    LibraryComponentGroup(
-      componentGroup.module.libraryName,
-      componentGroup.module.moduleName,
-      componentGroup.color,
-      componentGroup.icon,
-      componentGroup.exports
-    )
-  }
-
-  private def mergeExtendedComponentGroups(
-    libraryComponentGroups: Map[ModuleReference, LibraryComponentGroup],
-    extendedComponentGroups: Map[ModuleReference, ExtendedComponentGroup]
-  ): Seq[LibraryComponentGroup] = {
-    val keySet =
-      libraryComponentGroups.keySet.union(extendedComponentGroups.keySet)
-    keySet
-      .foldLeft(Vector.newBuilder[LibraryComponentGroup]) { (builder, key) =>
-        (
-          libraryComponentGroups.get(key),
-          extendedComponentGroups.get(key)
-        ) match {
-          case (Some(libraryComponentGroup), Some(extendedComponentGroup)) =>
-            builder += applyExtendedComponentGroup(
-              libraryComponentGroup,
-              extendedComponentGroup
-            )
-          case (Some(libraryComponentGroup), None) =>
-            builder += libraryComponentGroup
-          case (None, Some(extendedComponentGroup)) =>
-            builder += toLibraryComponentGroup(extendedComponentGroup)
-          case (None, None) =>
-            builder
-        }
-      }
-      .result()
-  }
-
-  private def applyExtendedComponentGroup(
-    libraryComponentGroup: LibraryComponentGroup,
-    extendedComponentGroup: ExtendedComponentGroup
-  ): LibraryComponentGroup = {
-    libraryComponentGroup.copy(
-      color   = extendedComponentGroup.color.orElse(libraryComponentGroup.color),
-      icon    = extendedComponentGroup.icon.orElse(libraryComponentGroup.icon),
-      exports = libraryComponentGroup.exports :++ extendedComponentGroup.exports
-    )
   }
 }
 object EditionsListDefinedComponentsHandler {
@@ -205,16 +104,21 @@ object EditionsListDefinedComponentsHandler {
     * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
     * @param localLibraryProvider     a provider of local libraries
     * @param publishedLibraryCache    a cache of published libraries
+    * @param componentGroupsResolver  a module resolving the dependencies
+    *                                 between component groups
     */
   def props(
     editionReferenceResolver: EditionReferenceResolver,
     localLibraryProvider: LocalLibraryProvider,
-    publishedLibraryCache: PublishedLibraryCache
+    publishedLibraryCache: PublishedLibraryCache,
+    componentGroupsResolver: ComponentGroupsResolver =
+      new ComponentGroupsResolver
   ): Props = Props(
     new EditionsListDefinedComponentsHandler(
       editionReferenceResolver,
       localLibraryProvider,
-      publishedLibraryCache
+      publishedLibraryCache,
+      componentGroupsResolver
     )
   )
 }

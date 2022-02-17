@@ -73,6 +73,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
 import java.util.UUID
+
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
