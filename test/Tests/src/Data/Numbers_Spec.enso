@@ -173,6 +173,11 @@ spec =
             (negative_big_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error
             negative_big_bits.bit_shift_r positive_big_bits . should_equal -1
 
+        Test.specify "should be able to be parsed" <|
+            Integer.parse "1245623" . should_equal 1245623
+            Integer.parse "123.45" . should_fail_with Parse_Error
+            Integer.parse "aaaa" . should_fail_with Parse_Error
+
     Test.group "Decimals" <|
 
         Test.specify "should exist and expose basic arithmetic operations" <|

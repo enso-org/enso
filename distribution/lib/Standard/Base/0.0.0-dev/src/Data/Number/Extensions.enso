@@ -1,5 +1,6 @@
 from Standard.Base import all hiding Parse_Error
 
+polyglot java import java.lang.Long
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
 polyglot java import java.lang.String
