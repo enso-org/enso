@@ -68,6 +68,7 @@ impl Drop for IntegrationTest {
 /// A fixture for IDE integration tests on created project. It is derived from [`IntegrationTest`].
 /// During setup, the Ide initialization is performed, then new project is created, and we wait till
 /// the prompt for user will be displayed (thus informing us, that the project is ready to work).
+#[derive(Debug)]
 pub struct IntegrationTestOnNewProject {
     parent: IntegrationTest,
 }
@@ -81,6 +82,8 @@ impl Deref for IntegrationTestOnNewProject {
 }
 
 impl IntegrationTestOnNewProject {
+    /// Test initialization. After returning, the IDE is in state with new project opened and ready
+    /// to work (after libraries' compilation).
     pub async fn setup() -> Self {
         let parent = IntegrationTest::setup().await;
         let ide = &parent.ide;
@@ -95,10 +98,12 @@ impl IntegrationTestOnNewProject {
         Self { parent }
     }
 
+    /// Get the Project View.
     pub fn project_view(&self) -> enso_gui::view::project::View {
         self.ide.presenter.view().project()
     }
 
+    /// Get the Graph Editor.
     pub fn graph_editor(&self) -> enso_gui::view::graph_editor::GraphEditor {
         self.project_view().graph().clone_ref()
     }
