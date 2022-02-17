@@ -131,7 +131,7 @@ impl AddNodeButton {
     fn update_position(view: &View, camera: &Camera2d, size: f32, margin: f32) {
         let screen = camera.screen();
         let x = -screen.width / 2.0 + margin + size / 2.0;
-        let y = -screen.height / 2.0 + margin + size / 2.0 + 30.0;
+        let y = -screen.height / 2.0 + margin + size / 2.0;
         view.set_position_x(x.round());
         view.set_position_y(y.round());
     }

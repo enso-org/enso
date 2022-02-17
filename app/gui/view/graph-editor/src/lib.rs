@@ -69,7 +69,7 @@ use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
 use ensogl_hardcoded_theme as theme;
-use ordered_float::OrderedFloat;
+
 
 
 // ===============
@@ -1615,40 +1615,11 @@ impl GraphEditorModel {
 
     pub fn find_new_node_position(&self, node_above: NodeId) -> Vector2 {
         let above_pos = self.node_position(node_above);
-        let x_gap = self.frp.default_x_gap_between_nodes.value();
         let y_gap = self.frp.default_y_gap_between_nodes.value();
         let y_offset = y_gap + node::HEIGHT;
-        let mut x = above_pos.x;
-        let y = above_pos.y - y_offset;
-        // Push x to the right until we find a position where we have enough space for the new
-        // node, including a margin of size `x_gap`/`y_gap` on all sides.
-        {
-            let nodes = self.nodes.all.raw.borrow();
-            // `y_offset` is exactly the distance between `parent` and the new node. At this
-            // distance, `parent` should not count as overlapping with the new node. But we might
-            // get this wrong in the presence of rounding errors. To avoid this, we use
-            // `f32::EPSILON` as an error margin.
-            let maybe_overlapping = nodes
-                .values()
-                .filter(|node| (node.position().y - y).abs() < y_offset - f32::EPSILON);
-            let maybe_overlapping =
-                maybe_overlapping.sorted_by_key(|n| OrderedFloat(n.position().x));
-            // This is how much horizontal space we are looking for.
-            let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
-            for node in maybe_overlapping {
-                let node_left = node.position().x - x_gap;
-                let node_right = node.position().x + node.view.model.width() + x_gap;
-                if x + min_spacing > node_left {
-                    x = x.max(node_right);
-                } else {
-                    // Since `maybe_overlapping` is sorted, we know that the if-condition will
-                    // be false for all following `node`s as well. Therefore, we can skip the
-                    // remaining iterations.
-                    break;
-                }
-            }
-        }
-        Vector2(x, y)
+        let starting_point = above_pos - Vector2(0.0, y_offset);
+        let direction = Vector2(1.0, 0.0);
+        self.find_free_place_for_node(starting_point, direction).unwrap()
     }
 
     pub fn find_free_place_for_node(
@@ -1658,13 +1629,15 @@ impl GraphEditorModel {
     ) -> Option<Vector2> {
         let x_gap = self.frp.default_x_gap_between_nodes.value();
         let y_gap = self.frp.default_y_gap_between_nodes.value();
+        // This is how much horizontal space we are looking for.
+        let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
         let nodes = self.nodes.all.raw.borrow();
         let node_areas = nodes.values().map(|node| {
             let position = node.position();
-            let left = position.x - x_gap;
+            let left = position.x - x_gap - min_spacing;
             let right = position.x + node.view.model.width() + x_gap;
-            let top = position.y + node.view.model.height() / 2.0 + y_gap;
-            let bottom = position.y - node.view.model.height() / 2.0 - y_gap;
+            let top = position.y + node::HEIGHT + y_gap;
+            let bottom = position.y - node::HEIGHT - y_gap;
             OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
         });
         find_free_place(starting_from, direction, node_areas)
