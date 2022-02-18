@@ -7,6 +7,7 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Split_Kind
+import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
 
@@ -840,51 +841,60 @@ Text.drop_last count =
     boundary = iterator.next -count
     if boundary == -1 then '' else Text_Utils.substring this 0 boundary
 
-## Creates a new text by selecting the first `count` characters of `this`,
-   returning `this` if `count` is greater than or equal to the length of `this`.
+## ALIAS first, last, left, right, mid, substring
+   Creates a new Text by selecting the specified range of the input.
+
+   This can select a section of text from the beginning, end, or middle of the
+   input using various criteria defined by the range parameter.
 
    Arguments:
-   - count: The number of characters to take from the start of `this`.
+   - range: The section of the this text to return.
+     If a `Text_Sub_Range`, then the selection is interpreted following the rules of that type.
+     If a `Range`, the selection is specified by two indices, from and to.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   Returns:
+   The part of the input as specified by the range parameter.
 
-   > Example
-     Make a new text from the first two characters of "boo".
+   > Examples
+     Various different ways to take part of "Hello World!"
 
-         "boo".take_first 2
-Text.take_first : Integer -> Text
-Text.take_first count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.first
-    boundary = iterator.next count
-    if boundary == -1 then this else Text_Utils.substring this 0 boundary
+         "Hello World!".take First == "H"
+         "Hello World!".take (First 5) == "Hello"
+         "Hello World!".take (First 0) == ""
+         "Hello World!".take Last == "!"
+         "Hello World!".take (Last 6) == "World!"
+         "Hello World!".take (Before " ") == "Hello"
+         "Hello World!".take (Before_Last "o") == "Hello W"
+         "Hello World!".take (After " ") == "World!"
+         "Hello World!".take (After_Last "o") == "rld!"
+         "Hello World!".take (While c->c!=" ") == "Hello"
+         "Hello World!".take (Range 3 5) == "lo"
+         "Hello World!".take (Range -3) == "ld!"
+Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.take range =
+    case range of
+        Range start end ->
+            len = this.length
+            valid n = (Range -len len).contains n)
 
-## Creates a new text by selecting the last `count` characters of `this`,
-   returning `this` if `count` is greater than or equal to the length of `this`.
+            case (Pair (valid start) (valid end)) of
+                False False -> Error.throw Index_Out_Of_Bounds_Error start len
+                False True -> Error.throw Index_Out_Of_Bounds_Error start len
+                True False -> Error.throw Index_Out_Of_Bounds_Error end len
+                True True ->
+                    if start >= end then "" else
+                        iterator = BreakIterator.getCharacterInstance
+                        iterator.setText this
 
-   Arguments:
-   - count: The number of characters to take from the end of `this`.
+                        loop index start end start_index =
+                            if index == end then (Pair start_index end) else
+                                @Tail_Call loop (index + 1) end iterator.next (if index == start_index then start else start_index)
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
-
-   > Example
-     Make a new text from the last two characters of "boo".
-
-         "boo".take_last 2
-Text.take_last : Integer -> Text
-Text.take_last count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.last
-    boundary = iterator.next -count
-    if boundary == -1 then this else Text_Utils.drop_first this boundary
+                        indices = loop 0 0 iterator.next Nothing
+                        Text_Utils.substring this indices.first indices.second
+        _ ->
+            indices = range.get_indices this
+            Text_Utils.substring this indices.first indices.second
 
 ## ALIAS Lower Case
 

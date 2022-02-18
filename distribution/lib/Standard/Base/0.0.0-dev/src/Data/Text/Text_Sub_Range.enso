@@ -37,9 +37,6 @@ type Text_Sub_Range
     ## Select characters while the predicate returns `True`.
     type While (predicate : (Text -> Boolean))
 
-    ## Select characters while the predicate returns `False`.
-    type Until (predicate : (Text->Boolean))
-
     ## PRIVATE
        Evaluates the Text_Sub_Range returning the underlying char array indices
     get_indices : Text -> Pair
@@ -67,14 +64,14 @@ type Text_Sub_Range
             loop 0 0 iterator.next
 
         case this of
-            First n ->
-                if n <= 0 then (Pair 0 0) else
-                    indices = here.find_sub_range_end text (i->_->_-> i+1 == n)
+            First count ->
+                if count <= 0 then (Pair 0 0) else
+                    indices = find_sub_range_end text (index->_->_-> index+1 == count)
                     Pair 0 indices.second
-            Last n ->
-                if n <= 0 then (Pair 0 0) else
-                    m = len.value - n
-                    indices = here.find_sub_range_end text (i->_->_-> i+1 == m)
+            Last count ->
+                if count <= 0 then (Pair 0 0) else
+                    first_count = text.length - count
+                    indices = find_sub_range_end text (index->_->_-> index+1 == first_count)
                     if indices.first == -1 then (Pair 0 indices.second) else
                         (Pair indices.second (Text_Utils.char_length text))
             Before delimiter ->
@@ -97,4 +94,7 @@ type Text_Sub_Range
                     index = Text_Utils.last_index_of text delimiter
                     if index == -1 then (Pair 0 (Text_Utils.char_length text)) else
                         (Pair (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
-            _ -> Panic.throw "Not implemented yet"
+            While predicate ->
+                wrapped start end = predicate (Text_Utils.substring text start end) . not
+                indices = find_sub_range_end text (_->wrapped)
+                Pair 0 indices.second
