@@ -176,7 +176,7 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
    > Example
      Check if the provided name matches a regular expression.
 
-         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive) == True
+         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive.new) == True
 match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
 match_single_criterion name criterion matching_strategy = case matching_strategy of
     Exact case_sensitivity ->

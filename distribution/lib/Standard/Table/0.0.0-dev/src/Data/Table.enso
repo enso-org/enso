@@ -424,7 +424,7 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive)
+             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new)
 
        > Example
          Sort columns in descending order.
