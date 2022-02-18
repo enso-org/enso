@@ -77,7 +77,7 @@ spec =
             "abc" . equals_ignore_case "abd" . should_be_false
             "" . equals_ignore_case "" . should_be_true
             "aaaa" . equals_ignore_case "" . should_be_false
-            "I" . equals_ignore_case "i" . should_be_true
+
             'e\u0301' . equals_ignore_case 'é' . should_be_true
             'E\u0301' . equals_ignore_case 'É' . should_be_true
             'e\u0301' . equals_ignore_case 'É' . should_be_true
@@ -88,8 +88,10 @@ spec =
             ## By default the special Turkish variants of the letter 'i' are not
                treated as equal - treating them as equal would require not
                treating `I` and `i` as equal.
+            "I" . equals_ignore_case "i" . should_be_true
+            "I" . equals_ignore_case "ı" . should_be_true
             "İ" . equals_ignore_case "i" . should_be_false
-            "I" . equals_ignore_case "ı" . should_be_false
+            "İ" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_true
 
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
