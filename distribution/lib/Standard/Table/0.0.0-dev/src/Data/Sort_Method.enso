@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Ordering.Sort_Order
-from Standard.Table.Data.Matching import Case_Insensitive
 
 ## Specifies the sort methodology.
 
