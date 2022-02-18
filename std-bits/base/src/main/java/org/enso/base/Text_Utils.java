@@ -200,9 +200,7 @@ public class Text_Utils {
    */
   public static boolean contains(String string, String substring) {
     Normalizer2 normalizer = Normalizer2.getNFDInstance();
-    string = normalizer.normalize(string);
-    substring = normalizer.normalize(substring);
-    return string.contains(substring);
+    return normalizer.normalize(string).contains(normalizer.normalize(substring));
   }
 
   /**
