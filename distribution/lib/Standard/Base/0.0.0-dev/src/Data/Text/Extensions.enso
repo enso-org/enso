@@ -873,22 +873,24 @@ Text.drop_last count =
 Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.take range =
     case range of
-        Range start end ->
+        Range range_start range_end ->
             len = this.length
-            valid n = (Range -len len).contains n)
+            start = if range_start < 0 then range_start + len - 1 else range_start
+            end = if range_end == Nothing then len-1 else (if range_end < 0 then range_end + len - 1 else range_end)
+            valid = (Range 0 len).contains
 
             case (Pair (valid start) (valid end)) of
-                False False -> Error.throw Index_Out_Of_Bounds_Error start len
-                False True -> Error.throw Index_Out_Of_Bounds_Error start len
-                True False -> Error.throw Index_Out_Of_Bounds_Error end len
-                True True ->
-                    if start >= end then "" else
+                Pair False False -> Error.throw Index_Out_Of_Bounds_Error range_start len
+                Pair False True -> Error.throw Index_Out_Of_Bounds_Error range_start len
+                Pair True False -> Error.throw Index_Out_Of_Bounds_Error range_end len
+                Pair True True ->
+                    if start>=end then "" else
                         iterator = BreakIterator.getCharacterInstance
                         iterator.setText this
 
-                        loop index start end start_index =
-                            if index == end then (Pair start_index end) else
-                                @Tail_Call loop (index + 1) end iterator.next (if index == start_index then start else start_index)
+                        loop index start_char end_char start_index =
+                            if index == end then (Pair start_index end_char) else
+                                @Tail_Call loop (index + 1) end_char iterator.next (if index == start then start_char else start_index)
 
                         indices = loop 0 0 iterator.next Nothing
                         Text_Utils.substring this indices.first indices.second
@@ -953,4 +955,3 @@ Text.to_lower_case locale=Locale.default =
 Text.to_upper_case : Locale.Locale -> Text
 Text.to_upper_case locale=Locale.default =
     UCharacter.toUpperCase locale.java_locale this
-
