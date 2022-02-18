@@ -1,6 +1,6 @@
 package org.enso.languageserver.libraries
 
-import io.circe.Json
+import io.circe.{Json, JsonObject}
 import io.circe.literal.JsonStringContext
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
@@ -186,7 +186,13 @@ object LibraryApi {
       version: LibraryEntry.LibraryVersion
     )
 
-    case class Result(license: String, componentGroups: Option[ComponentGroups])
+    // TODO[DB]: raw package was added to response as a temporary field and
+    //  should be removed when the integration with IDE is finished
+    case class Result(
+      license: String,
+      componentGroups: Option[ComponentGroups],
+      raw: JsonObject
+    )
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = self.Params

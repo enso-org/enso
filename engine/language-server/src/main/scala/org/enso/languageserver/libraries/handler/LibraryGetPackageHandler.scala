@@ -84,12 +84,13 @@ class LibraryGetPackageHandler(
 
     case LocalLibraryManagerProtocol.GetPackageResponse(
           license,
-          componentGroups
+          componentGroups,
+          rawPackage
         ) =>
       replyTo ! ResponseResult(
         LibraryGetPackage,
         id,
-        LibraryGetPackage.Result(license, componentGroups)
+        LibraryGetPackage.Result(license, componentGroups, rawPackage)
       )
       cancellable.cancel()
       context.stop(self)
@@ -129,7 +130,8 @@ class LibraryGetPackageHandler(
           .map(config =>
             LocalLibraryManagerProtocol.GetPackageResponse(
               config.license,
-              config.componentGroups.toOption
+              config.componentGroups.toOption,
+              config.originalJson
             )
           )
       }
@@ -145,7 +147,8 @@ class LibraryGetPackageHandler(
       .toFuture
   } yield LocalLibraryManagerProtocol.GetPackageResponse(
     license         = config.license,
-    componentGroups = config.componentGroups.toOption
+    componentGroups = config.componentGroups.toOption,
+    rawPackage      = config.originalJson
   )
 }
 

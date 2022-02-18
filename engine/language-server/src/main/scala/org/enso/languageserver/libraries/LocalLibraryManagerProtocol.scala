@@ -1,5 +1,6 @@
 package org.enso.languageserver.libraries
 
+import io.circe.JsonObject
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.pkg.{ComponentGroups, Contact}
@@ -31,7 +32,8 @@ object LocalLibraryManagerProtocol {
   /** A response to the [[GetPackage]] request. */
   case class GetPackageResponse(
     license: String,
-    componentGroups: Option[ComponentGroups]
+    componentGroups: Option[ComponentGroups],
+    rawPackage: JsonObject
   )
 
   /** A request to list local libraries. */

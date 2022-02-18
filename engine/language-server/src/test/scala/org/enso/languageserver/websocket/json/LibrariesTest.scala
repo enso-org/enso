@@ -265,7 +265,7 @@ class LibrariesTest extends BaseServerTest {
               "name": "Get_Package_Test_Lib",
               "authors": [],
               "maintainers": [],
-              "license": "freemium"
+              "license": ""
             }
           }
           """)
@@ -304,37 +304,19 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 1,
-            "result": {
-              "license" : "freemium",
-              "componentGroups" : {
-                "new" : [
-                  {
-                    "module" : "Foo",
-                    "color" : "#32a852",
-                    "exports" : [
-                      {
-                        "name" : "foo",
-                        "shortcut" : "abc"
-                      },
-                      "bar"
-                    ]
-                  }
-                ],
-                "extends" : [
-                  {
-                    "module" : "Standard.Base.Data",
-                    "exports" : [
-                      "bar"
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-          """)
+      val response = client.expectSomeJson()
+
+      response.hcursor
+        .downField("result")
+        .downField("license")
+        .as[String]
+        .rightValue shouldEqual ""
+
+      response.hcursor
+        .downField("result")
+        .downField("componentGroups")
+        .as[ComponentGroups]
+        .rightValue shouldEqual testComponentGroups
     }
 
     "create, publish a library and fetch its manifest from the server" in {

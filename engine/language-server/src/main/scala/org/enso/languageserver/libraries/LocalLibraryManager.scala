@@ -203,7 +203,8 @@ class LocalLibraryManager(
       config <- loadPackageConfig(configPath)
     } yield GetPackageResponse(
       license         = config.license,
-      componentGroups = config.componentGroups.toOption
+      componentGroups = config.componentGroups.toOption,
+      rawPackage      = config.originalJson
     )
 
   /** Tries to load the manifest.
