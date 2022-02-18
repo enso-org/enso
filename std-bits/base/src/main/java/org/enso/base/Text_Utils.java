@@ -225,4 +225,36 @@ public class Text_Utils {
   public static String replace(String str, String oldSequence, String newSequence) {
     return str.replace(oldSequence, newSequence);
   }
+
+  /**
+   * Gets the length of char array of a string
+   *
+   * @param str the string to measure
+   * @return length of the string
+   */
+  public static long char_length(String str) {
+    return str.length();
+  }
+
+  /**
+   * Find the first index of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return index of the first needle or -1 if not found.
+   */
+  public static long index_of(String haystack, String needle) {
+    return haystack.indexOf(needle);
+  }
+
+  /**
+   * Find the last index of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return index of the last needle or -1 if not found.
+   */
+  public static long last_index_of(String haystack, String needle) {
+    return haystack.lastIndexOf(needle);
+  }
 }
