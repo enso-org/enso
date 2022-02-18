@@ -339,6 +339,14 @@ impl NavigatorEvents {
         });
         self.mouse_move = Some(listener);
     }
+
+    pub fn emit_zoom_event(&self, event: ZoomEvent) {
+        self.data.on_zoom(event);
+    }
+
+    pub fn emit_pan_event(&self, event: PanEvent) {
+        self.data.on_pan(event);
+    }
 }
 
 fn movement_to_zoom(v: Vector2<f32>) -> f32 {

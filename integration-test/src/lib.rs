@@ -15,9 +15,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-pub use enso_prelude as prelude;
-
-use enso_prelude::*;
+use crate::prelude::*;
 
 use enso_frp::future::EventOutputExt;
 use enso_gui::executor::web::EventLoopExecutor;
@@ -26,6 +24,15 @@ use enso_gui::Ide;
 use enso_web::HtmlDivElement;
 use enso_web::NodeInserter;
 use enso_web::StyleSetter;
+
+pub mod prelude {
+    pub use crate::IntegrationTest;
+    pub use crate::IntegrationTestOnNewProject;
+
+    pub use enso_frp::future::EventOutputExt;
+    pub use enso_gui::prelude::*;
+    pub use wasm_bindgen_test::wasm_bindgen_test;
+}
 
 
 

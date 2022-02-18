@@ -1,16 +1,16 @@
 mod events;
 
+pub use crate::display::navigation::navigator::events::PanEvent;
+pub use crate::display::navigation::navigator::events::ZoomEvent;
+
 use crate::prelude::*;
 
 use crate::animation::physics;
 use crate::control::callback;
 use crate::display::camera::Camera2d;
+use crate::display::navigation::navigator::events::NavigatorEvents;
 use crate::display::object::traits::*;
 use crate::display::Scene;
-
-use events::NavigatorEvents;
-use events::PanEvent;
-use events::ZoomEvent;
 
 
 
@@ -33,7 +33,7 @@ const MIN_ZOOM: f32 = 0.001;
 /// Navigator enables camera navigation with mouse interactions.
 #[derive(Debug)]
 pub struct NavigatorModel {
-    _events:         NavigatorEvents,
+    events:          NavigatorEvents,
     simulator:       physics::inertia::DynSimulator<Vector3>,
     resize_callback: callback::Handle,
     zoom_speed:      SharedSwitch<f32>,
@@ -59,7 +59,7 @@ impl NavigatorModel {
             max_zoom.clone_ref(),
         );
         Self {
-            _events,
+            events: _events,
             simulator,
             resize_callback,
             zoom_speed,
@@ -179,6 +179,14 @@ impl NavigatorModel {
     /// zoom immediately, but the restriction will be applied on the next zoom event.
     pub fn set_max_zoom(&self, value: Option<f32>) {
         self.max_zoom.set(value);
+    }
+
+    pub fn emit_zoom_event(&self, event: ZoomEvent) {
+        self.events.emit_zoom_event(event);
+    }
+
+    pub fn emit_pan_event(&self, event: PanEvent) {
+        self.events.emit_pan_event(event);
     }
 }
 

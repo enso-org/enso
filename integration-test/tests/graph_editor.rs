@@ -1,6 +1,6 @@
-use enso_frp::future::EventOutputExt;
-use enso_integration_test::IntegrationTestOnNewProject;
-use wasm_bindgen_test::wasm_bindgen_test;
+use enso_integration_test::prelude::*;
+
+use ensogl::display::navigation::navigator::ZoomEvent;
 
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -59,4 +59,16 @@ async fn debug_mode() {
         message
     );
     assert!(!graph_editor.debug_mode.value());
+}
+
+#[wasm_bindgen_test]
+async fn zooming() {
+    let test = IntegrationTestOnNewProject::setup().await;
+    let project = test.project_view();
+    let graph_editor = test.graph_editor();
+    let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
+
+    let zoom_on_center = |amount: f32| ZoomEvent { focus: Vector2(0.0, 0.0), amount };
+    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(1.0));
+    assert_eq!(camera.zoom(), 1.0);
 }
