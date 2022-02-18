@@ -85,13 +85,13 @@ spec =
             'a\u0321\u0302' . equals_ignore_case 'A\u0302\u0321' . should_be_true
             'e\u0301' . equals_ignore_case 'e\u0303' . should_be_false
 
-            ## By default the special Turkish variants of the letter 'i' are not
-               treated as equal - treating them as equal would require not
-               treating `I` and `i` as equal.
             "I" . equals_ignore_case "i" . should_be_true
             "I" . equals_ignore_case "ı" . should_be_true
             "İ" . equals_ignore_case "i" . should_be_false
             "İ" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_true
+
+            "Kongressstraße"=="Kongressstrasse" . should_be_false
+            "Kongressstraße" . equals_ignore_case "Kongressstrasse"
 
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -237,6 +237,11 @@ spec =
             "Foo" . contains "bar" (Text_Matcher Case_Insensitive.new) . should_be_false
             "Ściana" . contains "ś" (Text_Matcher Case_Insensitive.new) . should_be_true
             "Ściana" . contains "s" (Text_Matcher Case_Insensitive.new) . should_be_false
+
+            "Straße" . contains "ss" . should_be_false
+            "Strasse" . contains "ß" . should_be_false
+            "Straße" . contains "ss" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Strasse" . contains "ß" (Text_Matcher Case_Insensitive.new) . should_be_true
 
         Test.specify "should allow for Regex contains checks" <|
             "Hello!".contains "[a-z]" Regex_Matcher.new . should_be_true
