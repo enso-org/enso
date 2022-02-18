@@ -165,7 +165,8 @@ public class Text_Utils {
    * @return whether {@code prefix} is a prefix of {@code str}
    */
   public static boolean starts_with(String str, String prefix) {
-    return str.startsWith(prefix);
+    Normalizer2 normalizer = Normalizer2.getNFDInstance();
+    return normalizer.normalize(str).startsWith(normalizer.normalize(prefix));
   }
 
   /**
@@ -176,7 +177,8 @@ public class Text_Utils {
    * @return whether {@code suffix} is a suffix of {@code str}
    */
   public static boolean ends_with(String str, String suffix) {
-    return str.endsWith(suffix);
+    Normalizer2 normalizer = Normalizer2.getNFDInstance();
+    return normalizer.normalize(str).endsWith(normalizer.normalize(suffix));
   }
 
   /**

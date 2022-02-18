@@ -711,6 +711,10 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 
    Arguments:
    - prefix: The prefix to see if `this` starts with.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher.
+     If a `Regex_Matcher`, the term is used as a regular expression and matched
+     using the associated options.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -722,8 +726,17 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
      See if the text "Hello" starts with the prefix "hi".
 
          "Hello".starts_with "hi"
-Text.starts_with : Text -> Boolean
-Text.starts_with prefix = Text_Utils.starts_with this prefix
+Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
+Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
+    Text_Matcher case_sensitivity -> case case_sensitivity of
+        True -> Text_Utils.starts_with this prefix
+        Case_Insensitive locale ->
+            Text_Utils.starts_with (this.to_case_insensitive_key locale) (prefix.to_case_insensitive_key locale)
+    Regex_Matcher _ _ _ _ _ ->
+        preprocessed_pattern = "\A(?:" + prefix + ")"
+        compiled_pattern = here.prepare_regex preprocessed_pattern matcher
+        match = compiled_pattern.match this Mode.First
+        match.is_nothing.not
 
 ## ALIAS Check Suffix
 
@@ -731,6 +744,10 @@ Text.starts_with prefix = Text_Utils.starts_with this prefix
 
    Arguments:
    - suffix: The suffix to see if `this` ends with.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher.
+     If a `Regex_Matcher`, the term is used as a regular expression and matched
+     using the associated options.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -741,8 +758,17 @@ Text.starts_with prefix = Text_Utils.starts_with this prefix
    > Example
      See if the text "Hello" ends with the suffix "low".
          "Hello".ends_with "low"
-Text.ends_with : Text -> Boolean
-Text.ends_with suffix = Text_Utils.ends_with this suffix
+Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
+Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
+    Text_Matcher case_sensitivity -> case case_sensitivity of
+        True -> Text_Utils.ends_with this suffix
+        Case_Insensitive locale ->
+            Text_Utils.ends_with (this.to_case_insensitive_key locale) (suffix.to_case_insensitive_key locale)
+    Regex_Matcher _ _ _ _ _ ->
+        preprocessed_pattern = "(?:" + suffix + ")\z"
+        compiled_pattern = here.prepare_regex preprocessed_pattern matcher
+        match = compiled_pattern.match this Mode.First
+        match.is_nothing.not
 
 ## ALIAS Contains
 
@@ -801,14 +827,8 @@ Text.contains term="" matcher=Text_Matcher.new = case matcher of
         True -> Text_Utils.contains this term
         Case_Insensitive locale ->
             Text_Utils.contains (this.to_case_insensitive_key locale) (term.to_case_insensitive_key locale)
-    Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments ->
-        case_insensitive = case case_sensitive of
-            True -> False
-            ## TODO [RW] Currently locale is not supported in case-insensitive
-               Regex matching. There are plans to revisit it:
-               https://www.pivotaltracker.com/story/show/181313576
-            Case_Insensitive _ -> True
-        compiled_pattern = Regex.compile term case_insensitive=case_insensitive match_ascii=match_ascii dot_matches_newline=dot_matches_newline multiline=multiline comments=comments
+    Regex_Matcher _ _ _ _ _ ->
+        compiled_pattern = here.prepare_regex term matcher
         match = compiled_pattern.match this Mode.First
         match.is_nothing.not
 
@@ -997,3 +1017,16 @@ Text.to_lower_case locale=Locale.default =
 Text.to_upper_case : Locale.Locale -> Text
 Text.to_upper_case locale=Locale.default =
     UCharacter.toUpperCase locale.java_locale this
+
+## PRIVATE
+prepare_regex : Text -> Regex_Matcher -> Pattern
+prepare_regex pattern regex_matcher = case regex_matcher of
+    Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments ->
+        case_insensitive = case case_sensitive of
+            True -> False
+            ## TODO [RW] Currently locale is not supported in case-insensitive
+               Regex matching. There are plans to revisit it:
+               https://www.pivotaltracker.com/story/show/181313576
+            Case_Insensitive _ -> True
+        compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=match_ascii dot_matches_newline=dot_matches_newline multiline=multiline comments=comments
+        compiled_pattern
