@@ -218,6 +218,12 @@ spec =
             "Cześć".contains 'sc' . should_be_false
             'Czes\u{301}c\u{301}'.contains 'sc' . should_be_false
 
+            ## TODO what do we do with that?? Since the standard decomposition
+               splits 'ś' into 's+{accent}', 'ś'.contains 's', but I don't think
+               this is the expected behaviour...
+            "Cześć".contains 's' . should_be_true
+            'Czes\u{301}c\u{301}'.contains 's' . should_be_true
+
             "ABC" . contains "a" . should_be_false
             "" . contains "foo" . should_be_false
             "abc" . contains "" . should_be_true
