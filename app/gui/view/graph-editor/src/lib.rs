@@ -1355,12 +1355,15 @@ impl GraphEditorModelWithNetwork {
             DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
         };
         let source = source_node.map(|node| NodeSource { node });
+        let screen_center =
+            self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
         let position: Vector2 = match way {
             AddNodeEvent => default(),
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
             StartCreationEvent => mouse_position,
-            ClickingButton => self.find_free_place_for_node(default(), Vector2(0.0, -1.0)).unwrap(),
+            ClickingButton =>
+                self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { .. } => mouse_position,
         };
         let node = self.new_node(ctx);
