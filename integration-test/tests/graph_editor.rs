@@ -1,4 +1,5 @@
 use enso_integration_test::prelude::*;
+use enso_integration_test::wait_a_frame;
 
 use ensogl::display::navigation::navigator::ZoomEvent;
 
@@ -32,7 +33,7 @@ async fn debug_mode() {
     // Turning On
     let expect_mode = project.debug_mode.next_event();
     let expect_popup_message = project.debug_mode_popup().label().show.next_event();
-    project.enable_debug_mode.emit(());
+    project.enable_debug_mode();
     assert!(expect_mode.expect());
     let message = expect_popup_message.expect();
     assert!(
@@ -50,7 +51,7 @@ async fn debug_mode() {
     // Turning Off
     let expect_mode = project.debug_mode.next_event();
     let expect_popup_message = project.debug_mode_popup().label().show.next_event();
-    project.disable_debug_mode.emit(());
+    project.disable_debug_mode();
     assert!(!expect_mode.expect());
     let message = expect_popup_message.expect();
     assert!(
@@ -69,6 +70,21 @@ async fn zooming() {
     let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
 
     let zoom_on_center = |amount: f32| ZoomEvent { focus: Vector2(0.0, 0.0), amount };
-    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(1.0));
+
+    // Without debug mode
+    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(0.1));
+    wait_a_frame().await;
     assert_eq!(camera.zoom(), 1.0);
+    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(-0.1));
+    wait_a_frame().await;
+    assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
+    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(0.2));
+    wait_a_frame().await;
+    assert_eq!(camera.zoom(), 1.0);
+
+    // With debug mode
+    project.enable_debug_mode();
+    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(0.1));
+    wait_a_frame().await;
+    assert!(camera.zoom() > 1.0)
 }

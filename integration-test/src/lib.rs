@@ -24,6 +24,9 @@ use enso_gui::Ide;
 use enso_web::HtmlDivElement;
 use enso_web::NodeInserter;
 use enso_web::StyleSetter;
+use ensogl::application::Application;
+use std::pin::Pin;
+use wasm_bindgen::prelude::*;
 
 pub mod prelude {
     pub use crate::IntegrationTest;
@@ -51,6 +54,8 @@ pub struct IntegrationTest {
 }
 
 impl IntegrationTest {
+    const SCREEN_SIZE: (f32, f32) = (1920.0, 1000.0);
+
     /// Initializes the executor and `Ide` structure and returns new Fixture.
     pub async fn setup() -> Self {
         enso_web::forward_panic_hook_to_error();
@@ -62,7 +67,15 @@ impl IntegrationTest {
 
         let initializer = enso_gui::ide::Initializer::new(default());
         let ide = initializer.start().await.expect("Failed to initialize the application.");
+        Self::set_screen_size(&ide.ensogl_app);
         Self { executor, ide, root_div }
+    }
+
+    fn set_screen_size(app: &Application) {
+        let (screen_width, screen_height) = Self::SCREEN_SIZE;
+        app.display.scene().layers.iter_sublayers_and_masks_nested(|layer| {
+            layer.camera().set_screen(screen_width, screen_height)
+        });
     }
 }
 
@@ -114,4 +127,37 @@ impl IntegrationTestOnNewProject {
     pub fn graph_editor(&self) -> enso_gui::view::graph_editor::GraphEditor {
         self.project_view().graph().clone_ref()
     }
+}
+
+#[derive(Default)]
+pub struct WaitAFrame {
+    frame_passed: Rc<Cell<bool>>,
+    closure:      Option<Closure<dyn FnMut(f64)>>,
+}
+
+impl Future for WaitAFrame {
+    type Output = ();
+
+    fn poll(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.frame_passed.get() {
+            std::task::Poll::Ready(())
+        } else {
+            let waker = cx.waker().clone();
+            let frame_passed = self.frame_passed.clone_ref();
+            let closure = Closure::once(move |_| {
+                frame_passed.set(true);
+                waker.wake()
+            });
+            enso_web::request_animation_frame(&closure);
+            self.closure = Some(closure);
+            std::task::Poll::Pending
+        }
+    }
+}
+
+pub fn wait_a_frame() -> impl Future<Output = ()> {
+    WaitAFrame::default()
 }
