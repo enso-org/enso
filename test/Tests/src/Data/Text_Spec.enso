@@ -217,12 +217,9 @@ spec =
             'Czes\u{301}c\u{301}'.contains 'ść' . should_be_true
             "Cześć".contains 'sc' . should_be_false
             'Czes\u{301}c\u{301}'.contains 'sc' . should_be_false
-
-            ## TODO what do we do with that?? Since the standard decomposition
-               splits 'ś' into 's+{accent}', 'ś'.contains 's', but I don't think
-               this is the expected behaviour...
-            "Cześć".contains 's' . should_be_true
-            'Czes\u{301}c\u{301}'.contains 's' . should_be_true
+            "Cześć".contains 's' . should_be_false
+            "Cześć".contains 'c' . should_be_false
+            'Czes\u{301}c\u{301}'.contains 's' . should_be_false
 
             "ABC" . contains "a" . should_be_false
             "" . contains "foo" . should_be_false
@@ -238,6 +235,8 @@ spec =
             "FoObar" . contains "foo" (Text_Matcher Case_Insensitive.new) . should_be_true
             "aaaIAAA" . contains "i" (Text_Matcher Case_Insensitive.new) . should_be_true
             "Foo" . contains "bar" (Text_Matcher Case_Insensitive.new) . should_be_false
+            "Ściana" . contains "ś" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Ściana" . contains "s" (Text_Matcher Case_Insensitive.new) . should_be_false
 
         Test.specify "should allow for Regex contains checks" <|
             "Hello!".contains "[a-z]" Regex_Matcher.new . should_be_true

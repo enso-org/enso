@@ -1,7 +1,7 @@
 package org.enso.base;
 
 import com.ibm.icu.text.Normalizer;
-import com.ibm.icu.text.Normalizer2;
+import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
@@ -199,8 +199,11 @@ public class Text_Utils {
    * @return whether {@code substring} is a substring of {@code string}.
    */
   public static boolean contains(String string, String substring) {
-    Normalizer2 normalizer = Normalizer2.getNFDInstance();
-    return normalizer.normalize(string).contains(normalizer.normalize(substring));
+    // {@code StringSearch} does not handle empty strings as we would want, so we need these special cases.
+    if (substring.length() == 0) return true;
+    if (string.length() == 0) return false;
+    StringSearch searcher = new StringSearch(substring, string);
+    return searcher.first() != StringSearch.DONE;
   }
 
   /**
