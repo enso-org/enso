@@ -248,6 +248,7 @@ spec =
             "foo" . contains "[0-9]+" Regex_Matcher.new . should_be_false
 
             "Cześć" . contains "ś" Regex_Matcher.new . should_be_true
+            "Cześć" . contains "s" Regex_Matcher.new . should_be_false
             "Cześć" . contains 's\u{301}' Regex_Matcher.new . should_be_true
             'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher.new . should_be_true
             'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher.new . should_be_true
