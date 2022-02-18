@@ -17,6 +17,7 @@ use nalgebra::Vector2;
 pub trait FnZoomEvent = FnMut(ZoomEvent) + 'static;
 
 /// A struct holding zoom event information, such as the focus point and the amount of zoom.
+#[derive(Clone, Copy, Debug, Default)]
 pub struct ZoomEvent {
     pub focus:  Vector2<f32>,
     pub amount: f32,
@@ -38,6 +39,7 @@ impl ZoomEvent {
 pub trait FnPanEvent = FnMut(PanEvent) + 'static;
 
 /// A struct holding pan event information.
+#[derive(Clone, Copy, Debug, Default)]
 pub struct PanEvent {
     pub movement: Vector2<f32>,
 }

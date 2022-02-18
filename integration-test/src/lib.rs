@@ -25,9 +25,8 @@ use enso_web::HtmlDivElement;
 use enso_web::NodeInserter;
 use enso_web::StyleSetter;
 use ensogl::application::Application;
-use std::pin::Pin;
-use wasm_bindgen::prelude::*;
 
+/// Reexports of commonly-used structures, methods and traits.
 pub mod prelude {
     pub use crate::IntegrationTest;
     pub use crate::IntegrationTestOnNewProject;
@@ -85,6 +84,12 @@ impl Drop for IntegrationTest {
     }
 }
 
+
+
+// ===================================
+// === IntegrationTestOnNewProject ===
+// ===================================
+
 /// A fixture for IDE integration tests on created project. It is derived from [`IntegrationTest`].
 /// During setup, the Ide initialization is performed, then new project is created, and we wait till
 /// the prompt for user will be displayed (thus informing us, that the project is ready to work).
@@ -127,37 +132,4 @@ impl IntegrationTestOnNewProject {
     pub fn graph_editor(&self) -> enso_gui::view::graph_editor::GraphEditor {
         self.project_view().graph().clone_ref()
     }
-}
-
-#[derive(Default)]
-pub struct WaitAFrame {
-    frame_passed: Rc<Cell<bool>>,
-    closure:      Option<Closure<dyn FnMut(f64)>>,
-}
-
-impl Future for WaitAFrame {
-    type Output = ();
-
-    fn poll(
-        mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Self::Output> {
-        if self.frame_passed.get() {
-            std::task::Poll::Ready(())
-        } else {
-            let waker = cx.waker().clone();
-            let frame_passed = self.frame_passed.clone_ref();
-            let closure = Closure::once(move |_| {
-                frame_passed.set(true);
-                waker.wake()
-            });
-            enso_web::request_animation_frame(&closure);
-            self.closure = Some(closure);
-            std::task::Poll::Pending
-        }
-    }
-}
-
-pub fn wait_a_frame() -> impl Future<Output = ()> {
-    WaitAFrame::default()
 }

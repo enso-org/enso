@@ -1,7 +1,8 @@
 use enso_integration_test::prelude::*;
-use enso_integration_test::wait_a_frame;
 
+use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
+use std::time::Duration;
 
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -68,23 +69,46 @@ async fn zooming() {
     let project = test.project_view();
     let graph_editor = test.graph_editor();
     let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
+    let navigator = &graph_editor.model.navigator;
 
     let zoom_on_center = |amount: f32| ZoomEvent { focus: Vector2(0.0, 0.0), amount };
+    let acceptable_range = 0.999..1.001;
+    let zoom_duration_ms = Duration::from_millis(1000);
 
     // Without debug mode
-    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(0.1));
-    wait_a_frame().await;
-    assert_eq!(camera.zoom(), 1.0);
-    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(-0.1));
-    wait_a_frame().await;
+    navigator.emit_zoom_event(zoom_on_center(-1.0));
+    sleep(zoom_duration_ms).await;
+    DEBUG!(camera.zoom());
+    assert!(
+        acceptable_range.contains(&camera.zoom()),
+        "Camera zoom {} must be near 1.0",
+        camera.zoom()
+    );
+    navigator.emit_zoom_event(zoom_on_center(1.0));
+    sleep(zoom_duration_ms).await;
+    DEBUG!(camera.zoom());
     assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
-    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(0.2));
-    wait_a_frame().await;
-    assert_eq!(camera.zoom(), 1.0);
+    navigator.emit_zoom_event(zoom_on_center(-2.0));
+    sleep(zoom_duration_ms).await;
+    DEBUG!(camera.zoom());
+    assert!(
+        acceptable_range.contains(&camera.zoom()),
+        "Camera zoom {} must be near 1.0",
+        camera.zoom()
+    );
 
     // With debug mode
     project.enable_debug_mode();
-    graph_editor.model.navigator.emit_zoom_event(zoom_on_center(0.1));
-    wait_a_frame().await;
-    assert!(camera.zoom() > 1.0)
+    navigator.emit_zoom_event(zoom_on_center(-1.0));
+    sleep(zoom_duration_ms).await;
+    DEBUG!(camera.zoom());
+    assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
+    navigator.emit_zoom_event(zoom_on_center(5.0));
+    sleep(zoom_duration_ms).await;
+    DEBUG!(camera.zoom());
+    assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
+    navigator.emit_zoom_event(zoom_on_center(-5.0));
+    sleep(zoom_duration_ms).await;
+    DEBUG!(camera.zoom());
+    assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
 }
