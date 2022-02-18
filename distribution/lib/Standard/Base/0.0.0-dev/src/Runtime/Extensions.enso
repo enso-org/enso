@@ -2,6 +2,26 @@ from Standard.Base import all
 
 ## ADVANCED
    UNSTABLE
+   Wraps a function so that it will be evaluated once and once only
+   Calling the value method evaluates the function and caches the result
+Runtime.lazy : Any -> Any
+Runtime.lazy ~function =
+    wrapper = _ -> function
+    here.lazy_wrapper False Nothing wrapper
+
+## PRIVATE Lazy Class Wrapper
+type Lazy_Wrapper
+    type Lazy_Wrapper evaluated result function
+
+    value =
+        if this.evaluated then this.result else
+            temp = (this.function False)
+            Unsafe.set_atom_field this 1 temp
+            Unsafe.set_atom_field this 0 True
+            temp
+
+## ADVANCED
+   UNSTABLE
    Represents a source location in Enso code. Contains information about the
    source file and code position within it.
 type Source_Location

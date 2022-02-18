@@ -179,5 +179,5 @@ type Range
 
               vec = [1,3,4,5,7]
     contains : Integer -> Boolean
-    contains value:
+    contains value =
         (this.start <= value) && (this.end > value)
