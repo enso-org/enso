@@ -288,6 +288,10 @@ impl Model {
         self
     }
 
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.label.add_to_scene_layer(layer);
+    }
+
     fn scene(&self) -> &Scene {
         &self.app.display.default_scene
     }
@@ -477,6 +481,12 @@ impl Area {
     pub fn label(&self) -> &text::Area {
         &self.model.label
     }
+
+    /// Set a scene layer for text rendering.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.model.set_label_layer(layer);
+    }
+
 }
 
 

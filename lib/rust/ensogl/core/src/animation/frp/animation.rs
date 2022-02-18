@@ -24,12 +24,15 @@ use enso_frp as frp;
 //     }
 //     Output {
 //         value  (f32),
-//         on_end (inertia::EndStatus),
+//         on_end (),
 //     }
 // }
 
 /// Simulator used to run the animation.
 pub type AnimationSimulator<T> = inertia::DynSimulator<mix::Repr<T>>;
+
+/// Default animation precision.
+pub const DEFAULT_PRECISION: f32 = 0.001;
 
 /// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
 /// is computed, it is emitted via the endpoint.
@@ -38,9 +41,11 @@ pub type AnimationSimulator<T> = inertia::DynSimulator<mix::Repr<T>>;
 #[allow(missing_docs)]
 pub struct Animation<T: mix::Mixable + frp::Data> {
     pub target:    frp::Any<T>,
+    pub set_value: frp::Any<T>,
     pub precision: frp::Any<f32>,
     pub skip:      frp::Any,
     pub value:     frp::Stream<T>,
+    pub on_end:    frp::Stream<()>,
 }
 
 #[allow(missing_docs)]
@@ -51,25 +56,30 @@ where mix::Repr<T>: inertia::Value
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             value_src <- any_mut::<T>();
+            on_end_src <- any_mut();
         }
         let on_step = Box::new(f!((t) value_src.emit(mix::from_space::<T>(t))));
-        let simulator = AnimationSimulator::<T>::new(on_step, (), ());
-        // FIXME[WD]: The precision should become default and should be increased in all simulators
+        let on_end = Box::new(f!((_) on_end_src.emit(())));
+        let simulator = AnimationSimulator::<T>::new(on_step, (), on_end);
+        // FIXME[WD]: The precision should should be increased in all simulators
         //            that work with pixels. The reason is that by default the simulator should
         //            give nice results for animations in the range of 0 .. 1, while it should not
         //            make too many steps when animating bigger values (like pixels).
-        simulator.set_precision(0.001);
+        simulator.set_precision(DEFAULT_PRECISION);
         frp::extend! { network
             target    <- any_mut::<T>();
+            set_value <- any_mut::<T>();
             precision <- any_mut::<f32>();
             skip      <- any_mut::<()>();
             eval  target    ((t) simulator.set_target_value(mix::into_space(t.clone())));
+            eval  set_value ((t) simulator.set_value(mix::into_space(t.clone())));
             eval  precision ((t) simulator.set_precision(*t));
             eval_ skip      (simulator.skip());
         }
         let value = value_src.into();
+        let on_end = on_end_src.into();
         network.store(&simulator);
-        Self { target, precision, skip, value }
+        Self { target, set_value, precision, skip, value, on_end }
     }
 
     /// Constructor. The initial value is provided explicitly.
@@ -136,7 +146,8 @@ where mix::Repr<T>: inertia::Value
             def target = source::<T>();
         }
         let on_step = Box::new(f!((t) target.emit(mix::from_space::<T>(t))));
-        let simulator = inertia::DynSimulator::<T::Repr>::new(on_step, (), ());
+        let on_end = Box::new(|_| ());
+        let simulator = inertia::DynSimulator::<T::Repr>::new(on_step, (), on_end);
         let value = target.into();
         Self { simulator, value }
     }

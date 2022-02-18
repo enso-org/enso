@@ -449,10 +449,24 @@ impl View {
         }
 
         let shape = scene.shape().clone_ref();
+        let main_cam = app.display.scene().layers.main.camera();
+        let searcher_cam = app.display.scene().layers.node_searcher.camera();
+
         frp::extend! { network
             eval shape ((shape) model.on_dom_shape_changed(shape));
 
             // === Searcher Position and Size ===
+
+            let main_cam_frp = &main_cam.frp();
+            searcher_cam_pos <- all_with3(&main_cam_frp.position,
+                                          &main_cam_frp.zoom,
+                                          &searcher_left_top_position.value, 
+                                          |main_cam_pos, zoom, searcher_pos| {
+                let main_cam_space_to_searcher_cam_space = (*main_cam_pos * *zoom).xy();
+                let translate_in_searcher_cam_space = *searcher_pos * (1.0 - *zoom);
+                main_cam_space_to_searcher_cam_space + translate_in_searcher_cam_space
+            });
+            eval searcher_cam_pos ([searcher_cam] (pos) searcher_cam.set_position_xy(*pos));
 
             _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
                 let x = lt.x + size.x / 2.0;
