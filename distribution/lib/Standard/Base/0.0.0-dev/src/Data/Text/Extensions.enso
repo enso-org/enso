@@ -793,7 +793,12 @@ Text.contains term="" matcher=Text_Matcher.new = case matcher of
         Case_Insensitive locale ->
             Text_Utils.contains (this.to_lower_case locale) (term.to_lower_case locale)
     Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments ->
-        Error.throw "TODO"
+        case_insensitive = case case_sensitive of
+            True -> False
+            Case_Insensitive _ -> True
+        compiled_pattern = Regex.compile term match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments
+        match = compiled_pattern.match this Mode.First
+        match.is_nothing.not
 
 ## Text to JSON conversion.
 
