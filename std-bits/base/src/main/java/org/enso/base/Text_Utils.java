@@ -1,6 +1,7 @@
 package org.enso.base;
 
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.Normalizer2;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
@@ -210,6 +211,9 @@ public class Text_Utils {
    * @return whether {@code substring} is a substring of {@code string}.
    */
   public static boolean contains(String string, String substring) {
+    Normalizer2 normalizer = Normalizer2.getNFDInstance();
+    string = normalizer.normalize(string);
+    substring = normalizer.normalize(substring);
     return string.contains(substring);
   }
 

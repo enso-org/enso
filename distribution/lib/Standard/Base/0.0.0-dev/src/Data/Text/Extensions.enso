@@ -780,12 +780,20 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
    > Example
      See if the text "Hello!" contains the text 'LO', ignoring case sensitivity.
 
-         "Hello!".contains 'LO' (Text_Matcher Case_Insensitive.new)
+         "Hello!".contains "LO" (Text_Matcher Case_Insensitive.new)
+
+   > Example
+     See if the text "Hello!" contains any lowercase letters, using a regex.
+
+         "Hello!".contains "[a-z]" Regex_Matcher.new
 Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
-Text.contains term="" matcher=Text_Matcher.new =
-    # TODO
-    _ = matcher
-    Text_Utils.contains this term
+Text.contains term="" matcher=Text_Matcher.new = case matcher of
+    Text_Matcher case_sensitivity -> case case_sensitivity of
+        True -> Text_Utils.contains this term
+        Case_Insensitive locale ->
+            Text_Utils.contains (this.to_lower_case locale) (term.to_lower_case locale)
+    Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments ->
+        Error.throw "TODO"
 
 ## Text to JSON conversion.
 

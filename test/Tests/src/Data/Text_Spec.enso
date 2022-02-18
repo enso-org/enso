@@ -206,11 +206,15 @@ spec =
 
         Test.specify "should check for contains using Unicode normalization" <|
             "Hello".contains "ell" . should_be_true
+
             "Cześć".contains 's\u{301}' . should_be_true
+            "Cześć".contains 'c\u{301}' . should_be_true
             "Cześć".contains 'ść' . should_be_true
-            "Czes\u{301}c\u{301}".contains 'ść' . should_be_true
+            'Czes\u{301}c\u{301}'.contains 'ś' . should_be_true
+            'Czes\u{301}c\u{301}'.contains 'ć' . should_be_true
+            'Czes\u{301}c\u{301}'.contains 'ść' . should_be_true
             "Cześć".contains 'sc' . should_be_false
-            "Czes\u{301}c\u{301}".contains 'sc' . should_be_false
+            'Czes\u{301}c\u{301}'.contains 'sc' . should_be_false
 
             "ABC" . contains "a" . should_be_false
             "" . contains "foo" . should_be_false
