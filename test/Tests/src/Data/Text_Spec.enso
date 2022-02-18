@@ -244,7 +244,6 @@ spec =
             'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher.new . should_be_true
             'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher.new . should_be_true
 
-            # TODO maybe more checks for all the options
             "fooBar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
             "foar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
 

@@ -18,8 +18,8 @@ main =
            Faker is changed, this must be modified accordingly.
         make_alpha_template length = Vector.new length _-> character_template
 
-        big_template = make_alpha_template 100000
-        big_random = Vector.new 1000 _-> Faker.make_string big_template gen
+        big_template = make_alpha_template 10000
+        big_random = Vector.new 200 _-> Faker.make_string big_template gen
 
         Bench.measure (here.check_all big_random ["AAAAAA"] Text_Matcher.new) suite_prefix+" exact" 10 10
         Bench.measure (here.check_all big_random ["AAAAAA"] (Text_Matcher.new Case_Insensitive.new)) suite_prefix+" case-insensitive" 10 10
