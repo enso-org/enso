@@ -1,6 +1,6 @@
 package org.enso.base;
 
-import com.ibm.icu.text.Normalizer2;
+import com.ibm.icu.text.Normalizer;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
@@ -119,9 +119,7 @@ public class Text_Utils {
    */
   public static boolean equals(String str1, Object str2) {
     if (str2 instanceof String) {
-      return Normalizer2.getNFDInstance()
-          .normalize(str1)
-          .equals(Normalizer2.getNFDInstance().normalize((String) str2));
+      return compare_normalized(str1, (String) str2) == 0;
     } else {
       return false;
     }
@@ -136,9 +134,7 @@ public class Text_Utils {
    * @return the result of comparison
    */
   public static boolean equals_ignore_case(String str1, String str2) {
-    return Normalizer2.getNFDInstance()
-        .normalize(str1)
-        .equalsIgnoreCase(Normalizer2.getNFDInstance().normalize(str2));
+    return Normalizer.compare(str1, str2, Normalizer.COMPARE_IGNORE_CASE) == 0;
   }
 
   /**
@@ -194,14 +190,16 @@ public class Text_Utils {
   }
 
   /**
-   * Checks whether {@code a} is lexicographically before {@code b}.
+   * Compares {@code a} to {@code b} according to the lexicographical order, handling Unicode
+   * normalization.
    *
    * @param a the left operand
    * @param b the right operand
-   * @return whether {@code a} is before {@code b}.
+   * @return a negative value if {@code a} is before {@code b}, 0 if both values are equal and a
+   *     positive value if {@code a} is after {@code b}
    */
-  public static boolean lt(String a, String b) {
-    return a.compareTo(b) < 0;
+  public static int compare_normalized(String a, String b) {
+    return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
   }
 
   /**
