@@ -99,7 +99,7 @@ impl World {
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
                 scene.update(t);
-                scene.renderer.run();
+                scene.render();
 
                 on_after_frame.run_all(&t);
                 stats_monitor.end();
@@ -176,7 +176,7 @@ impl World {
         });
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
-        let logger = &self.scene.renderer.logger;
+        let logger = Logger::new("renderer");
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(
                 &logger,
@@ -186,7 +186,7 @@ impl World {
             ))
             .add(ScreenRenderPass::new(&self.scene))
             .add(pixel_read_pass);
-        self.scene.renderer.set_pipeline(pipeline);
+        self.scene.set_render_pipeline(pipeline);
     }
 
     /// Scene accessor.

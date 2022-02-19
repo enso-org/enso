@@ -556,13 +556,27 @@ impl Uniforms {
 // === Dirty ===
 // =============
 
+pub type ContextDirty = dirty::SharedBool<Box<dyn Fn()>>;
 pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
 pub type SymbolRegistryDirty = dirty::SharedBool<Box<dyn Fn()>>;
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Dirty {
+    context: ContextDirty,
     symbols: SymbolRegistryDirty,
     shape:   ShapeDirty,
+}
+
+impl Dirty {
+    pub fn new<OnMut: Fn() + Clone + 'static>(logger: &Logger, on_mut: OnMut) -> Self {
+        let sub_logger = Logger::new_sub(logger, "context_dirty");
+        let context = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut.clone()));
+        let sub_logger = Logger::new_sub(logger, "shape_dirty");
+        let shape = ShapeDirty::new(sub_logger, Box::new(on_mut.clone()));
+        let sub_logger = Logger::new_sub(logger, "symbols_dirty");
+        let symbols = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut));
+        Self { context, symbols, shape }
+    }
 }
 
 
@@ -575,7 +589,6 @@ pub struct Dirty {
 pub struct Renderer {
     pub logger: Logger,
     dom:        Dom,
-    context:    Context,
     variables:  UniformScope,
 
     pub pipeline: Rc<CloneCell<render::Pipeline>>,
@@ -608,12 +621,11 @@ impl Renderer {
             Context::ONE_MINUS_SRC_ALPHA,
         );
 
-        Self { logger, dom, context, variables, pipeline, composer }
+        Self { logger, dom, variables, pipeline, composer }
     }
 
     /// Set the pipeline of this renderer.
-    pub fn set_pipeline<P: Into<render::Pipeline>>(&self, pipeline: P) {
-        let pipeline = pipeline.into();
+    pub fn set_pipeline(&self, pipeline: render::Pipeline) {
         self.composer.borrow_mut().set_pipeline(&pipeline);
         self.pipeline.set(pipeline);
     }
@@ -803,7 +815,7 @@ impl Extensions {
 pub struct SceneData {
     pub display_object:   display::object::Instance,
     pub dom:              Dom,
-    pub context:          Context,
+    pub context:          Rc<RefCell<Option<Context>>>,
     pub symbols:          SymbolRegistry,
     pub variables:        UniformScope,
     pub current_js_event: CurrentJsEvent,
@@ -814,7 +826,8 @@ pub struct SceneData {
     pub stats:            Stats,
     pub dirty:            Dirty,
     pub logger:           Logger,
-    pub renderer:         Renderer,
+    pub renderer:         Rc<RefCell<Option<Renderer>>>,
+    pub render_pipeline:  Rc<RefCell<render::Pipeline>>,
     pub layers:           HardcodedLayers,
     pub style_sheet:      style::Sheet,
     pub bg_color_var:     style::Var,
@@ -841,25 +854,20 @@ impl SceneData {
         let display_object = display::object::Instance::new(&logger);
         display_object.force_set_visibility(true);
         let context = web::get_webgl2_context(&dom.layers.canvas);
-        let sub_logger = Logger::new_sub(&logger, "shape_dirty");
-        let shape_dirty = ShapeDirty::new(sub_logger, Box::new(on_mut.clone()));
-        let sub_logger = Logger::new_sub(&logger, "symbols_dirty");
-        let dirty_flag = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut));
-        let on_change = enclose!((dirty_flag) move || dirty_flag.set());
         let var_logger = Logger::new_sub(&logger, "global_variables");
         let variables = UniformScope::new(var_logger);
-        let symbols = SymbolRegistry::mk(&variables, stats, &logger, on_change);
+        let dirty = Dirty::new(&logger, on_mut);
+        let symbols_dirty = &dirty.symbols;
+        let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         // FIXME: This should be abstracted away and should also handle context loss when Symbol
         //        definition will be finally refactored in such way, that it would not require
         //        Scene instance to be created.
-        symbols.set_context(Some(&context));
-        let symbols_dirty = dirty_flag;
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
         let shapes = ShapeRegistry::default();
         let uniforms = Uniforms::new(&variables);
-        let dirty = Dirty { symbols: symbols_dirty, shape: shape_dirty };
-        let renderer = Renderer::new(&logger, &dom, &context, &variables);
+        let renderer = default();
+        let render_pipeline = default();
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
@@ -883,6 +891,8 @@ impl SceneData {
         }
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
+        let ctx = context;
+        let context = default();
         Self {
             display_object,
             dom,
@@ -898,6 +908,7 @@ impl SceneData {
             dirty,
             logger,
             renderer,
+            render_pipeline,
             layers,
             style_sheet,
             bg_color_var,
@@ -906,6 +917,24 @@ impl SceneData {
             extensions,
             disable_context_menu,
         }
+        .init(ctx)
+    }
+
+    pub fn init(self, context: Context) -> Self {
+        self.set_context(Some(&context));
+        self
+    }
+
+    pub fn set_context(&self, context: Option<&Context>) {
+        self.symbols.set_context(context);
+        *self.context.borrow_mut() = context.cloned();
+        self.dirty.context.set();
+        self.dirty.shape.set();
+        let renderer = match context {
+            Some(context) => Some(Renderer::new(&self.logger, &self.dom, context, &self.variables)),
+            None => None,
+        };
+        *self.renderer.borrow_mut() = renderer;
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {
@@ -935,6 +964,17 @@ impl SceneData {
         }
     }
 
+    pub fn set_render_pipeline(&self, pipeline: render::Pipeline) {
+        *self.render_pipeline.borrow_mut() = pipeline;
+        self.update_render_pipeline()
+    }
+
+    fn update_render_pipeline(&self) {
+        if let Some(renderer) = &*self.renderer.borrow() {
+            renderer.set_pipeline(self.render_pipeline.borrow().clone_ref())
+        }
+    }
+
     fn update_shape(&self) {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
@@ -942,7 +982,9 @@ impl SceneData {
             self.layers.iter_sublayers_and_masks_nested(|layer| {
                 layer.camera().set_screen(screen.width, screen.height)
             });
-            self.renderer.resize_composer();
+            if let Some(renderer) = &*self.renderer.borrow() {
+                renderer.resize_composer();
+            }
             self.dirty.shape.unset_all();
         }
     }
@@ -992,8 +1034,16 @@ impl SceneData {
         debug!(self.logger, "Resized to {screen.width}px x {screen.height}px.", || {
             self.dom.layers.canvas.set_attribute("width", &width.to_string()).unwrap();
             self.dom.layers.canvas.set_attribute("height", &height.to_string()).unwrap();
-            self.context.viewport(0, 0, width, height);
+            if let Some(context) = &*self.context.borrow() {
+                context.viewport(0, 0, width, height);
+            }
         });
+    }
+
+    pub fn render(&self) {
+        if let Some(renderer) = &*self.renderer.borrow() {
+            renderer.run()
+        }
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
