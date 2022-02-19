@@ -39,8 +39,8 @@ type Text_Sub_Range
 
     ## PRIVATE
        Evaluates the Text_Sub_Range returning the underlying char array indices
-    get_indices : Text -> Pair
-    get_indices text =
+    to_char_range : Text -> Range
+    to_char_range text =
 
         ## Utility function to find char indices for Text_Sub_Range.
            Arguments:
@@ -65,36 +65,36 @@ type Text_Sub_Range
 
         case this of
             First count ->
-                if count <= 0 then (Pair 0 0) else
+                if count <= 0 then (Range 0 0) else
                     indices = find_sub_range_end text (index->_->_-> index+1 == count)
-                    Pair 0 indices.second
+                    Range 0 indices.second
             Last count ->
-                if count <= 0 then (Pair 0 0) else
+                if count <= 0 then (Range 0 0) else
                     first_count = text.length - count
                     indices = find_sub_range_end text (index->_->_-> index+1 == first_count)
-                    if indices.first == -1 then (Pair 0 indices.second) else
-                        (Pair indices.second (Text_Utils.char_length text))
+                    if indices.first == -1 then (Range 0 indices.second) else
+                        (Range indices.second (Text_Utils.char_length text))
             Before delimiter ->
-                if delimiter.is_empty then (Pair 0 0) else
+                if delimiter.is_empty then (Range 0 0) else
                     index = Text_Utils.index_of text delimiter
-                    if index == -1 then (Pair 0 (Text_Utils.char_length text)) else
-                        (Pair 0 index)
+                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
+                        (Range 0 index)
             Before_Last delimiter ->
-                if delimiter.is_empty then (Pair 0 0) else
+                if delimiter.is_empty then (Range 0 0) else
                     index = Text_Utils.last_index_of text delimiter
-                    if index == -1 then (Pair 0 (Text_Utils.char_length text)) else
-                        (Pair 0 index)
+                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
+                        (Range 0 index)
             After delimiter ->
-                if delimiter.is_empty then (Pair 0 0) else
+                if delimiter.is_empty then (Range 0 0) else
                     index = Text_Utils.index_of text delimiter
-                    if index == -1 then (Pair 0 (Text_Utils.char_length text)) else
-                        (Pair (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
+                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
+                        (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
             After_Last delimiter ->
-                if delimiter.is_empty then (Pair 0 0) else
+                if delimiter.is_empty then (Range 0 0) else
                     index = Text_Utils.last_index_of text delimiter
-                    if index == -1 then (Pair 0 (Text_Utils.char_length text)) else
-                        (Pair (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
+                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
+                        (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
             While predicate ->
                 wrapped start end = predicate (Text_Utils.substring text start end) . not
                 indices = find_sub_range_end text (_->wrapped)
-                Pair 0 indices.second
+                Range 0 indices.second
