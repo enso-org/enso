@@ -1,0 +1,20 @@
+[package]
+name = "ensogl-example-profiling-run-graph"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+enso-profiler = { path = "../../../profiler" }
+ensogl-core = { path = "../../core" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-selector = { path = "../../component/selector" }
+ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }
+ensogl-text = { path = "../../component/text" }
+enso-frp = { path = "../../../frp" }
+

@@ -246,11 +246,11 @@ pub mod js {
 // ==================
 
 /// Uniquely identifies a runtime measurement.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ProfilerId(u32);
 
 impl ProfilerId {
-    fn new() -> Self {
+    pub fn new() -> Self {
         thread_local! {
             pub static NEXT_ID: cell::Cell<u32> = cell::Cell::new(1);
         }
@@ -260,10 +260,14 @@ impl ProfilerId {
             id
         }))
     }
+
+    pub const fn root() -> Self {
+        ProfilerId(0)
+    }
 }
 
 /// Pseudo-profiler serving as the root of the measurement hierarchy.
-pub const APP_LIFETIME: Objective = Objective(ProfilerId(0));
+pub const APP_LIFETIME: Objective = Objective(ProfilerId::root());
 
 
 

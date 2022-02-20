@@ -934,7 +934,9 @@ async function runEntryPoint(config: Config) {
     //initCrashHandling()
     style_root()
     printScamWarning()
-    hideLogs()
+    if (!Versions.isDevVersion()) {
+        hideLogs()
+    }
     disableContextMenu()
 
     let entryTarget = ok(config.entry) ? config.entry : main_entry_point

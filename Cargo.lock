@@ -1100,6 +1100,7 @@ version = "0.1.0"
 dependencies = [
  "enso-profiler-macros",
  "futures 0.3.21",
+ "serde",
  "wasm-bindgen",
 ]
 
@@ -1368,6 +1369,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-profiling-run-graph"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+ "ensogl-text",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-scroll-area"
 version = "0.1.0"
 dependencies = [
@@ -1437,6 +1452,7 @@ dependencies = [
  "ensogl-example-glyph-system",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
+ "ensogl-example-profiling-run-graph",
  "ensogl-example-scroll-area",
  "ensogl-example-shape-system",
  "ensogl-example-slider",
