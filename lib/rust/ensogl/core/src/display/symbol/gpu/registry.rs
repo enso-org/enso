@@ -11,7 +11,7 @@ use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::gpu::shader::Context;
+use crate::system::Context;
 
 use data::opt_vec::OptVec;
 

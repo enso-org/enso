@@ -310,11 +310,12 @@ pub fn create_canvas() -> HtmlCanvasElement {
     create_element("canvas").unchecked_into()
 }
 
-pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> WebGl2RenderingContext {
+/// Get WebGL 2.0 context. Returns [`None`] if WebGL 2.0 is not supported.
+pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
     let options = js_sys::Object::new();
     js_sys::Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
-    let context = canvas.get_context_with_context_options("webgl2", &options).unwrap().unwrap();
-    let context: WebGl2RenderingContext = context.dyn_into().unwrap();
+    let context = canvas.get_context_with_context_options("webgl2", &options).ok().flatten();
+    let context = context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok());
     context
 }
 

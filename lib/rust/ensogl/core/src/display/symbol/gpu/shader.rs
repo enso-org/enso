@@ -13,8 +13,8 @@ use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
 use crate::display::symbol::ScopeType;
-use crate::system::gpu::shader::Context;
 use crate::system::gpu::shader::*;
+use crate::system::Context;
 
 use web_sys::WebGlProgram;
 

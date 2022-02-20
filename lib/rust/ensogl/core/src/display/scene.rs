@@ -33,16 +33,19 @@ use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::gpu::shader::Context;
 use crate::system::web;
 use crate::system::web::IgnoreContextMenuHandle;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
+use crate::system::Context;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
+use wasm_bindgen::prelude::Closure;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 
 
@@ -816,6 +819,7 @@ pub struct SceneData {
     pub display_object:   display::object::Instance,
     pub dom:              Dom,
     pub context:          Rc<RefCell<Option<Context>>>,
+    pub context_handler:  Rc<RefCell<Option<ContextHandler>>>,
     pub symbols:          SymbolRegistry,
     pub variables:        UniformScope,
     pub current_js_event: CurrentJsEvent,
@@ -837,6 +841,12 @@ pub struct SceneData {
     disable_context_menu: Rc<IgnoreContextMenuHandle>,
 }
 
+#[derive(Debug)]
+pub struct ContextHandler {
+    on_context_lost:     Closure<dyn Fn(JsValue)>,
+    on_context_restored: Closure<dyn Fn(JsValue)>,
+}
+
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(
@@ -853,7 +863,6 @@ impl SceneData {
 
         let display_object = display::object::Instance::new(&logger);
         display_object.force_set_visibility(true);
-        let context = web::get_webgl2_context(&dom.layers.canvas);
         let var_logger = Logger::new_sub(&logger, "global_variables");
         let variables = UniformScope::new(var_logger);
         let dirty = Dirty::new(&logger, on_mut);
@@ -891,12 +900,13 @@ impl SceneData {
         }
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
-        let ctx = context;
         let context = default();
+        let context_handler = default();
         Self {
             display_object,
             dom,
             context,
+            context_handler,
             symbols,
             variables,
             current_js_event,
@@ -917,12 +927,48 @@ impl SceneData {
             extensions,
             disable_context_menu,
         }
-        .init(ctx)
+        .init()
     }
 
-    pub fn init(self, context: Context) -> Self {
-        self.set_context(Some(&context));
+    pub fn init(self) -> Self {
+        #[cfg(all(target_arch = "wasm32", not(test)))]
+        self.init_webgl_2_context();
         self
+    }
+
+    fn init_webgl_2_context(&self) {
+        let canvas = &self.dom.layers.canvas;
+        let context = web::get_webgl2_context(canvas);
+        match context {
+            None => error!(self.logger, "WebGL 2.0 context is not supported."),
+            Some(context_handler) => {
+                self.set_context(Some(&context_handler));
+                let scene = self;
+
+                let on_context_lost: Closure<dyn Fn(JsValue)> =
+                    Closure::wrap(Box::new(f_!(scene.set_context(None))));
+
+                let on_context_restored: Closure<dyn Fn(JsValue)> =
+                    Closure::wrap(Box::new(f_!(scene.set_context(Some(&context_handler)))));
+
+                canvas
+                    .add_event_listener_with_callback(
+                        "webglcontextlost",
+                        on_context_lost.as_ref().unchecked_ref(),
+                    )
+                    .unwrap();
+
+                canvas
+                    .add_event_listener_with_callback(
+                        "webglcontextrestored",
+                        on_context_restored.as_ref().unchecked_ref(),
+                    )
+                    .unwrap();
+
+                let handler = ContextHandler { on_context_lost, on_context_restored };
+                *self.context_handler.borrow_mut() = Some(handler);
+            }
+        }
     }
 
     pub fn set_context(&self, context: Option<&Context>) {

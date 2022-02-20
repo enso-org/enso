@@ -6,7 +6,7 @@ use crate::control::callback::CallbackFn;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
-use crate::system::gpu::shader::Context;
+use crate::system::Context;
 
 use num_enum::IntoPrimitive;
 

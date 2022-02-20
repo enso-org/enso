@@ -188,7 +188,7 @@ function printScamWarning() {
         'copy-paste something here, it is a scam and will give them access to your ' +
         'account and data.'
     let msg2 =
-        'See https://github.com/enso-org/enso/tree/develop/gui/docs/security/selfxss.md for more ' +
+        'See https://github.com/enso-org/enso/blob/develop/docs/security/selfxss.md for more ' +
         'information.'
     console.log('%cStop!', headerCSS1)
     console.log('%cYou may be victim of a scam!', headerCSS2)

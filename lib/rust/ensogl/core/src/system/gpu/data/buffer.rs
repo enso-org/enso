@@ -15,7 +15,7 @@ use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
 use crate::system::gpu::data::buffer::usage::BufferUsage;
-use crate::system::gpu::shader::Context;
+use crate::system::Context;
 
 use crate::data::dirty::traits::*;
 use crate::system::gpu::data::default::gpu_default;

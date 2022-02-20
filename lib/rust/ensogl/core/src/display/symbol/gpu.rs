@@ -345,18 +345,20 @@ impl Symbol {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self, global_variables: &UniformScope) {
-        debug!(self.logger, "Updating.", || {
-            if self.surface_dirty.check() {
-                self.surface.update();
-                self.surface_dirty.unset();
-            }
-            if self.shader_dirty.check() {
-                let var_bindings = self.discover_variable_bindings(global_variables);
-                self.shader.update(&var_bindings);
-                self.init_variable_bindings(&var_bindings, global_variables);
-                self.shader_dirty.unset();
-            }
-        })
+        if self.context.borrow().is_some() {
+            debug!(self.logger, "Updating.", || {
+                if self.surface_dirty.check() {
+                    self.surface.update();
+                    self.surface_dirty.unset();
+                }
+                if self.shader_dirty.check() {
+                    let var_bindings = self.discover_variable_bindings(global_variables);
+                    self.shader.update(&var_bindings);
+                    self.init_variable_bindings(&var_bindings, global_variables);
+                    self.shader_dirty.unset();
+                }
+            })
+        }
     }
 
     pub fn lookup_variable<S: Str>(

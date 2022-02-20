@@ -5,6 +5,7 @@ pub mod glsl;
 
 use enso_prelude::*;
 
+use crate::system::Context;
 use js_sys::Float32Array;
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlBuffer;
@@ -31,7 +32,6 @@ pub use types::*;
 // === Types ===
 // =============
 
-pub type Context = WebGl2RenderingContext;
 pub type Shader = WebGlShader;
 pub type Program = WebGlProgram;
 
