@@ -183,8 +183,27 @@ spec =
             "Hello World!".take (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "take should work on grapheme clusters" <|
-            'He\u{302}llo World!'.take (First 2) . should_equal 'He\u{302}'
-            'He\u{302}llo World!'.take (Before "e") . should_equal 'He\u{302}llo World!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 2) . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 5) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 6) . should_equal 'Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 5) . should_equal 'o\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o\u{308}') . should_equal 'rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal "lo\u{308}"
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal "ld"
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 Nothing) . should_equal "ld!"
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 Nothing) . should_equal " Wo\u{308}rld!"
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 12) . should_equal " Wo\u{308}rld!"
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 12 12) . should_equal ""
 
         Test.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'

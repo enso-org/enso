@@ -97,7 +97,8 @@ type Text_Sub_Range
             While predicate ->
                 wrapped start end = predicate (Text_Utils.substring text start end) . not
                 indices = find_sub_range_end text (_->wrapped)
-                Range 0 indices.first
+                if indices.first == -1 then (Range 0 indices.second) else
+                    Range 0 indices.first
 
 ## UNSTABLE
    A temporary workaround to allow the `First` constructor to work with default

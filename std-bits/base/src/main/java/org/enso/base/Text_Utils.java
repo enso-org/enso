@@ -1,6 +1,7 @@
 package org.enso.base;
 
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
@@ -244,7 +245,9 @@ public class Text_Utils {
    * @return index of the first needle or -1 if not found.
    */
   public static long index_of(String haystack, String needle) {
-    return haystack.indexOf(needle);
+    StringSearch search = new StringSearch(needle, haystack);
+    int pos = search.first();
+    return pos == StringSearch.DONE ? -1 : pos;
   }
 
   /**
@@ -255,6 +258,16 @@ public class Text_Utils {
    * @return index of the last needle or -1 if not found.
    */
   public static long last_index_of(String haystack, String needle) {
-    return haystack.lastIndexOf(needle);
+    StringSearch search = new StringSearch(needle, haystack);
+    int pos = search.first();
+    if (pos == StringSearch.DONE) {
+      return -1;
+    }
+
+    for (int next = search.next(); next != StringSearch.DONE; next = search.next()) {
+      pos = next;
+    }
+
+    return pos;
   }
 }
