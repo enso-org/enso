@@ -244,6 +244,29 @@ spec =
             "Hello World!".drop (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
             "Hello World!".drop (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
 
+        Test.specify "drop should work on grapheme clusters" <|
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 5) . should_equal ' Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o\u{308}') . should_equal 'rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{302}') . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 -1) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 Nothing) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 Nothing) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 12) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 12 12) . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+
         Test.specify "drop should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.drop First.new . should_equal '🚀🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
