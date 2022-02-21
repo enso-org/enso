@@ -40,10 +40,10 @@ type Generator
    range has an equal chance of occurring.
 type Deterministic_Random
 
-    ## A determinstic random noise generator that performs a peterbation of the
+    ## A deterministic random noise generator that performs a perturbation of the
        input
 
-       It produices what is commonly termed as "white" noise, where any value in
+       It produces what is commonly termed as "white" noise, where any value in
        the range has an equal chance of occurring.
     type Deterministic_Random
 
