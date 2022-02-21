@@ -92,7 +92,6 @@ const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
 const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
-const MAX_ZOOM: f32 = 1.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
@@ -3388,16 +3387,10 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
         out.source.debug_mode <+ frp.set_debug_mode;
-
-        limit_max_zoom <- frp.set_debug_mode.on_false();
-        unlimit_max_zoom <- frp.set_debug_mode.on_true();
-        eval_ limit_max_zoom (model.navigator.set_max_zoom(Some(MAX_ZOOM)));
-        eval_ unlimit_max_zoom (model.navigator.set_max_zoom(None));
     }
 
     // Init defaults
     frp.edit_mode_off.emit(());
-    frp.set_debug_mode.emit(false);
 
     GraphEditor { model, frp }
 }
