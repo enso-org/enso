@@ -841,7 +841,7 @@ pub struct SceneData {
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        parent_dom: &HtmlElement,
+        // parent_dom: &HtmlElement,
         logger: Logger,
         stats: &Stats,
         on_mut: OnMut,
@@ -849,8 +849,8 @@ impl SceneData {
         debug!(logger, "Initializing.");
 
         let dom = Dom::new(&logger);
-        parent_dom.append_child(&dom.root).unwrap();
-        dom.recompute_shape_with_reflow();
+        // parent_dom.append_child(&dom.root).unwrap();
+        // dom.recompute_shape_with_reflow();
 
         let display_object = display::object::Instance::new(&logger);
         display_object.force_set_visibility(true);
@@ -919,7 +919,7 @@ impl SceneData {
             disable_context_menu,
         }
     }
-
+    // wyglada na to ze nie odpalila sie inicjalizacja passow
     pub fn set_context(&self, context: Option<&Context>) {
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
@@ -927,6 +927,7 @@ impl SceneData {
         self.dirty.shape.set();
         let renderer = context.map(|c| Renderer::new(&self.logger, &self.dom, c, &self.variables));
         *self.renderer.borrow_mut() = renderer;
+        self.update_render_pipeline();
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {
@@ -1085,28 +1086,33 @@ pub struct Scene {
 
 impl Scene {
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        parent_dom: &HtmlElement,
         logger: impl AnyLogger,
         stats: &Stats,
         on_mut: OnMut,
     ) -> Self {
         let logger = Logger::new_sub(logger, "scene");
-        let no_mut_access = SceneData::new(parent_dom, logger, stats, on_mut);
+        let no_mut_access = SceneData::new(logger, stats, on_mut);
         let this = Self { no_mut_access };
 
         // FIXME MEMORY LEAK:
         this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
-
-        this.init()
+        this
     }
 
-    pub fn init(self) -> Self {
-        let context_loss_handler = crate::system::context::init_webgl_2_context(&self);
+    // FIXME: handle multiple calls of this fn
+    pub fn display_in(&self, parent_dom: &HtmlElement) {
+        parent_dom.append_child(&self.dom.root).unwrap();
+        self.dom.recompute_shape_with_reflow();
+        self.uniforms.pixel_ratio.set(self.dom.shape().pixel_ratio);
+        self.init();
+    }
+
+    fn init(&self) {
+        let context_loss_handler = crate::system::context::init_webgl_2_context(self);
         match context_loss_handler {
             Err(err) => error!(self.logger, "{err}"),
             Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
         }
-        self
     }
 
     pub fn extension<T: Extension>(&self) -> T {

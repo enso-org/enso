@@ -11,7 +11,6 @@ use crate::animation;
 use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
-use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
 use crate::display::render;
@@ -52,106 +51,171 @@ impl Uniforms {
 // === World ===
 // =============
 
-/// World is the top-level application structure. It used to manage several instances of
-/// `Scene`, and there is probability that we will get back to this design in the future.
-/// It is responsible for updating the system on every animation frame.
-#[derive(Clone, CloneRef, Debug)]
+/// The root object for EnsoGL scenes.
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct World {
-    logger:             Logger,
-    scene:              Scene,
-    scene_dirty:        dirty::SharedBool,
-    main_loop:          animation::DynamicLoop,
-    uniforms:           Uniforms,
-    stats:              Stats,
-    stats_monitor:      stats::Monitor,
-    main_loop_frame:    callback::Handle,
-    on_before_frame:    callback::SharedRegistryMut1<animation::TimeInfo>,
-    on_after_frame:     callback::SharedRegistryMut1<animation::TimeInfo>,
-    on_stats_available: callback::SharedRegistryMut1<StatsData>,
+    rc: Rc<WorldDataWithLoop>,
 }
 
 impl World {
-    /// Create and initialize new world instance.
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(dom: &web_sys::HtmlElement) -> World {
-        let logger = Logger::new("world");
-        let stats = default();
-        let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
-        let on_change = enclose!((scene_dirty) move || scene_dirty.set());
-        let scene = Scene::new(dom, &logger, &stats, on_change);
-        let uniforms = Uniforms::new(&scene.variables);
-        let main_loop = animation::DynamicLoop::new();
-        let stats_monitor = stats::Monitor::new(&stats);
-        let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
-        let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
-        let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();
-        let main_loop_frame = main_loop.on_frame(
-            f!([stats_monitor,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
-            (t:animation::TimeInfo) {
-                // Note [Main Loop Performance]
-
-                stats_monitor.begin();
-                on_before_frame.run_all(&t);
-                if let Some(stats) = stats_monitor.previous_frame_stats() {
-                    on_stats_available.run_all(&stats);
-                }
-
-                uniforms.time.set(t.local);
-                scene_dirty.unset_all();
-                scene.update(t);
-                scene.render();
-
-                on_after_frame.run_all(&t);
-                stats_monitor.end();
-            }),
-        );
-
-        Self {
-            logger,
-            scene,
-            scene_dirty,
-            main_loop,
-            uniforms,
-            stats,
-            stats_monitor,
-            main_loop_frame,
-            on_before_frame,
-            on_after_frame,
-            on_stats_available,
-        }
-        .init()
+    /// Constructor.
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    // Note [Main Loop Performance]
-    // ============================
-    // Any code repeated on each iteration of the Main Loop (each "frame") must be written with
-    // high care for performance. Any changes that has a chance of negatively impacting the
-    // constant overhead of the main loop needs *explicit* explanation, review, and acceptance *at
-    // design stage* of the proposed new implementation, from performance perspective, with an
-    // explicit note of the fact of Main Loop impact.
-    //
-    // Rationale: the "Main Loop" contains the code comprising a GUI rendering "frame" (term
-    // originating from a "still frame" term in filmmaking). The speed at which the Main Loop
-    // executes directly translates to the perceived performance of the GUI, and the FPS (frames
-    // per second) metric, impacting Users' experience with the application.
+    /// Keeps the world alive even when all references are dropped. Use only if you want to keep one
+    /// instance of the world forever.
+    pub fn keep_alive_forever(&self) {
+        mem::forget(self.clone_ref())
+    }
+}
+
+impl Deref for World {
+    type Target = WorldDataWithLoop;
+    fn deref(&self) -> &Self::Target {
+        &*self.rc
+    }
+}
+
+impl display::Object for World {
+    fn display_object(&self) -> &display::object::Instance {
+        self.default_scene.display_object()
+    }
+}
+
+impl<'t> From<&'t World> for &'t Scene {
+    fn from(world: &'t World) -> Self {
+        &world.default_scene
+    }
+}
+
+
+
+// =========================
+// === WorldDataWithLoop ===
+// =========================
+
+/// World data with a main loop implementation.
+///
+/// # Main Loop Performance
+/// Any code repeated on each iteration of the Main Loop (each "frame") must be written with a high
+/// care for performance. Any changes that has a chance of negatively impacting the constant
+/// overhead of the main loop needs *explicit* explanation, review, and acceptance *at the design
+/// stage* of the proposed new implementation, from performance perspective, with an
+/// explicit note of the fact of Main Loop impact.
+///
+/// Rationale: the "Main Loop" contains the code comprising a GUI rendering "frame" (term
+/// originating from a "still frame" term in filmmaking). The speed at which the Main Loop executes
+/// directly translates to the perceived performance of the GUI, and the FPS (frames per second)
+/// metric, impacting Users' experience with the application.
+#[derive(Debug)]
+pub struct WorldDataWithLoop {
+    main_loop:        animation::DynamicLoop,
+    main_loop_handle: callback::Handle,
+    data:             WorldData,
+}
+
+impl WorldDataWithLoop {
+    /// Constructor.
+    pub fn new() -> Self {
+        let data = WorldData::new();
+        let main_loop = animation::DynamicLoop::new();
+        let main_loop_handle = main_loop.on_frame(f!([data](t:animation::TimeInfo) {
+            data.stats.begin_frame();
+            if let Some(stats) = data.stats.previous_frame_stats() {
+                data.on.prev_frame_stats.run_all(&stats);
+            }
+            data.on.before_frame.run_all(t);
+            data.uniforms.time.set(t.local);
+            data.scene_dirty.unset_all();
+            data.default_scene.update(t);
+            data.default_scene.render();
+            data.on.after_frame.run_all(t);
+            data.stats.end_frame();
+        }));
+        Self { main_loop, main_loop_handle, data }
+    }
+}
+
+impl Default for WorldDataWithLoop {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Deref for WorldDataWithLoop {
+    type Target = WorldData;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+
+
+// =================
+// === Callbacks ===
+// =================
+
+/// Callbacks that are run during rendering of the frame.
+#[derive(Clone, CloneRef, Debug, Default)]
+#[allow(missing_docs)]
+pub struct Callbacks {
+    pub prev_frame_stats: callback::SharedRegistryMut1<StatsData>,
+    pub before_frame:     callback::XSharedRegistryMut<(animation::TimeInfo,)>,
+    pub after_frame:      callback::XSharedRegistryMut<(animation::TimeInfo,)>,
+}
+
+
+
+// =================
+// === WorldData ===
+// =================
+
+/// The data kept by the [`World`].
+#[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)]
+pub struct WorldData {
+    logger:               Logger,
+    pub default_scene:    Scene,
+    scene_dirty:          dirty::SharedBool,
+    uniforms:             Uniforms,
+    stats:                stats::Monitor,
+    pub on:               Callbacks,
+    debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
+}
+
+impl WorldData {
+    /// Create and initialize new world instance.
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> Self {
+        let logger = Logger::new("world");
+        let stats: stats::Monitor = default();
+        let on = default();
+        let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
+        let on_change = enclose!((scene_dirty) move || scene_dirty.set());
+        let default_scene = Scene::new(&logger, &stats.stats(), on_change);
+        let uniforms = Uniforms::new(&default_scene.variables);
+        let debug_hotkeys_handle = default();
+
+        Self { logger, default_scene, scene_dirty, uniforms, stats, on, debug_hotkeys_handle }
+            .init()
+    }
 
     fn init(self) -> Self {
         self.init_composer();
-        self.init_hotkeys();
+        self.init_debug_hotkeys();
         self
     }
 
-    fn init_hotkeys(&self) {
-        // -----------------------------------------------------------------------------------------
-        // FIXME[WD]: Hacky way of switching display_mode. To be fixed and refactored out.
-        let stats_monitor = self.stats_monitor.clone_ref();
+    fn init_debug_hotkeys(&self) {
+        let stats = self.stats.clone_ref();
         let display_mode = self.uniforms.display_mode.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::wrap(Box::new(move |val| {
             let event = val.unchecked_into::<web_sys::KeyboardEvent>();
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
                 if key == "Backquote" {
-                    stats_monitor.toggle()
+                    stats.toggle()
                 } else if key == "Digit0" {
                     display_mode.set(0)
                 } else if key == "Digit1" {
@@ -162,13 +226,12 @@ impl World {
             }
         }));
         let handle = web::add_event_listener_with_bool(&web::window(), "keydown", closure, true);
-        mem::forget(handle);
-        // -----------------------------------------------------------------------------------------
+        *self.debug_hotkeys_handle.borrow_mut() = Some(handle);
     }
 
     fn init_composer(&self) {
-        let mouse_hover_ids = self.scene.mouse.hover_ids.clone_ref();
-        let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.scene.mouse.position);
+        let mouse_hover_ids = self.default_scene.mouse.hover_ids.clone_ref();
+        let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
         pixel_read_pass.set_callback(move |v| {
             mouse_hover_ids.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)))
         });
@@ -178,68 +241,18 @@ impl World {
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(
                 &logger,
-                &self.scene,
-                self.scene.symbols(),
-                &self.scene.layers,
+                &self.default_scene,
+                self.default_scene.symbols(),
+                &self.default_scene.layers,
             ))
-            .add(ScreenRenderPass::new(&self.scene))
+            .add(ScreenRenderPass::new(&self.default_scene))
             .add(pixel_read_pass);
-        self.scene.set_render_pipeline(pipeline);
-    }
-
-    /// Scene accessor.
-    pub fn scene(&self) -> &Scene {
-        &self.scene
-    }
-
-    /// Register a callback which should be run before each animation frame.
-    pub fn on_before_frame<F: FnMut(animation::TimeInfo) + 'static>(
-        &self,
-        mut callback: F,
-    ) -> callback::Handle {
-        self.on_before_frame.add(move |time: &animation::TimeInfo| callback(*time))
-    }
-
-    /// Register a callback which should be run after each animation frame.
-    pub fn on_after_frame<F: FnMut(animation::TimeInfo) + 'static>(
-        &self,
-        mut callback: F,
-    ) -> callback::Handle {
-        self.on_before_frame.add(move |time: &animation::TimeInfo| callback(*time))
-    }
-
-    /// Register a callback which should be run after each animation frame.
-    pub fn on_frame<F: FnMut(animation::TimeInfo) + 'static>(
-        &self,
-        mut callback: F,
-    ) -> callback::Handle {
-        self.on_after_frame.add(move |time: &animation::TimeInfo| callback(*time))
-    }
-
-    /// Register a callback which should be run when runtime stats of the previous animation frame
-    /// are available.
-    pub fn on_stats_available<F: FnMut(StatsData) + 'static>(
-        &self,
-        mut callback: F,
-    ) -> callback::Handle {
-        self.on_stats_available.add(move |stats: &StatsData| callback(*stats))
-    }
-
-    /// Keeps the world alive even when all references are dropped. Use only if you want to keep one
-    /// instance of the world forever.
-    pub fn keep_alive_forever(&self) {
-        mem::forget(self.clone_ref())
+        self.default_scene.set_render_pipeline(pipeline);
     }
 }
 
-impl display::Object for World {
-    fn display_object(&self) -> &display::object::Instance {
-        self.scene.display_object()
-    }
-}
-
-impl<'t> From<&'t World> for &'t Scene {
-    fn from(world: &'t World) -> Self {
-        &world.scene
+impl Default for WorldData {
+    fn default() -> Self {
+        Self::new()
     }
 }

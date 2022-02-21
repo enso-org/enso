@@ -28,8 +28,8 @@ pub struct MonitorData {
 
 impl {
     /// Constructor.
-    pub fn new(stats:&Stats) -> Self {
-        let stats                     = stats.clone_ref();
+    pub fn new() -> Self {
+        let stats                     = default();
         let previous_frame_stats      = None;
         let current_frame_measurement = FrameMeasurementState::Skipped;
         let performance               = web::performance();
@@ -59,8 +59,12 @@ impl {
         }
     }
 
+    pub fn stats(&self) -> Stats {
+        self.stats.clone_ref()
+    }
+
     /// Start measuring data.
-    pub fn begin(&mut self) {
+    pub fn begin_frame(&mut self) {
         if self.visible() {
             let time = self.performance.now();
             if self.current_frame_measurement == FrameMeasurementState::Ended {
@@ -84,7 +88,7 @@ impl {
     }
 
     /// Finish measuring data.
-    pub fn end(&mut self) {
+    pub fn end_frame(&mut self) {
         if self.visible() && self.current_frame_measurement == FrameMeasurementState::InProgress {
             let time = self.performance.now();
             self.stats.end_frame(time);
@@ -129,6 +133,11 @@ impl {
     }
 }}
 
+impl Default for Monitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 // === FrameMeasurementState ===
 

@@ -18,6 +18,7 @@ use crate::gui::cursor::Cursor;
 use crate::system::web;
 use enso_web::StyleSetter;
 
+use crate::animation;
 
 
 // ===================
@@ -43,17 +44,21 @@ impl Application {
     /// Constructor.
     pub fn new(dom: &web_sys::HtmlElement) -> Self {
         let logger = Logger::new("Application");
-        let display = World::new(dom);
-        let scene = display.scene();
+        let display = World::new();
+        let scene = &display.default_scene;
+        scene.display_in(dom);
         let commands = command::Registry::create(&logger);
         let shortcuts =
             shortcut::Registry::new(&logger, &scene.mouse.frp, &scene.keyboard.frp, &commands);
         let views = view::Registry::create(&logger, &display, &commands, &shortcuts);
-        let themes = theme::Manager::from(&display.scene().style_sheet);
-        let cursor = Cursor::new(display.scene());
+        let themes = theme::Manager::from(&display.default_scene.style_sheet);
+        let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
         web::body().set_style_or_panic("cursor", "none");
-        let update_themes_handle = display.on_before_frame(f_!(themes.update()));
+        // let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
+        let t = themes.clone_ref();
+        let update_themes_handle =
+            display.on.before_frame.add(move |_: animation::TimeInfo| t.update());
         Self { logger, cursor, display, commands, shortcuts, views, themes, update_themes_handle }
     }
 
