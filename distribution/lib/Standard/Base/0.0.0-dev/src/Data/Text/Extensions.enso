@@ -851,8 +851,7 @@ range_to_char_indices text range =
     valid = (Range 0 len+1).contains
 
     case (Pair (valid start) (valid end)) of
-        Pair False False -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
-        Pair False True -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
+        Pair False _ -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
         Pair True False -> Error.throw (Index_Out_Of_Bounds_Error range.end len)
         Pair True True ->
             if start>=end then (Range 0 0) else
