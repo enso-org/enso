@@ -161,14 +161,21 @@ spec =
         Test.specify "take should work as in the examples" <|
             "Hello World!".take First.new . should_equal "H"
             "Hello World!".take (First 5) . should_equal "Hello"
+            "Hello World!".take (First 100) . should_equal "Hello World!"
             "Hello World!".take (First 0) . should_equal ""
             "Hello World!".take Last.new . should_equal "!"
             "Hello World!".take (Last 6) . should_equal "World!"
+            "Hello World!".take (Last 100) . should_equal "Hello World!"
             "Hello World!".take (Before " ") . should_equal "Hello"
+            "Hello World!".take (Before "z") . should_equal "Hello World!"
             "Hello World!".take (Before_Last "o") . should_equal "Hello W"
+            "Hello World!".take (Before_Last "z") . should_equal "Hello World!"
             "Hello World!".take (After " ") . should_equal "World!"
+            "Hello World!".take (After "z") . should_equal "Hello World!"
             "Hello World!".take (After_Last "o") . should_equal "rld!"
+            "Hello World!".take (After_Last "z") . should_equal "Hello World!"
             "Hello World!".take (While c->c!=" ") . should_equal "Hello"
+            "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
             "Hello World!".take (Range 3 5) . should_equal "lo"
             "Hello World!".take (Range -3 -1) . should_equal "ld"
             "Hello World!".take (Range -3 Nothing) . should_equal "ld!"
@@ -198,12 +205,12 @@ spec =
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e\u{302}') . should_equal 'H'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal "lo\u{308}"
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal "ld"
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 Nothing) . should_equal "ld!"
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 Nothing) . should_equal " Wo\u{308}rld!"
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 12) . should_equal " Wo\u{308}rld!"
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 12 12) . should_equal ""
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal 'lo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal 'ld'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 Nothing) . should_equal 'ld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 Nothing) . should_equal ' Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 12 12) . should_equal ''
 
         Test.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'
