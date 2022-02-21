@@ -434,9 +434,7 @@ impl View {
 
             committed_in_searcher <-
                 searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
-            trace committed_in_searcher;
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
-            trace aborted_in_searcher;
             frp.source.editing_committed <+ committed_in_searcher;
             frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
@@ -471,9 +469,6 @@ impl View {
             // === Editing ===
 
             existing_node_edited <- graph.node_editing_started.gate_not(&frp.adding_new_node);
-            // frp.source.old_expression_of_edited_node <+ existing_node_edited.map(f!((node_id)
-            //     model.graph_editor.model.nodes
-            // ));
             frp.source.searcher <+ existing_node_edited.map(
                 |&node| Some(SearcherParams::new_for_edited_node(node))
             );

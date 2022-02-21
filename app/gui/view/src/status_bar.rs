@@ -215,13 +215,14 @@ impl Model {
         self.label.set_position_x(-label_width / 2.0);
         self.label.set_position_y(-HEIGHT / 2.0 + TEXT_SIZE / 2.0);
 
-        let bg_width = if label_width > 0.0 { PADDING + label_width + PADDING } else { 0.0 };
-        let bg_height = HEIGHT;
-        self.background.size.set(Vector2(
-            bg_width + 2.0 * MAGIC_SHADOW_MARGIN,
-            bg_height + 2.0 * MAGIC_SHADOW_MARGIN,
-        ));
-        self.background.set_position_y(-bg_height / 2.0);
+        let bg_width = if label_width > 0.0 {
+            label_width + 2.0 * PADDING + 2.0 * MAGIC_SHADOW_MARGIN
+        } else {
+            0.0
+        };
+        let bg_height = HEIGHT + 2.0 * MAGIC_SHADOW_MARGIN;
+        self.background.size.set(Vector2(bg_width, bg_height));
+        self.background.set_position_y(-HEIGHT / 2.0);
     }
 
     fn add_event(&self, label: &event::Label) -> event::Id {
