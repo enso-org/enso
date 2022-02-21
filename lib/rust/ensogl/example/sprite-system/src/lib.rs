@@ -28,9 +28,8 @@ use ensogl_core::system::web::forward_panic_hook_to_console;
 pub fn entry_point_sprite_system() {
     forward_panic_hook_to_console();
 
-    let world = World::new();
+    let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
-    scene.display_in(&web::get_html_element_by_id("root").unwrap());
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
     let sprite_system = SpriteSystem::new(&world);

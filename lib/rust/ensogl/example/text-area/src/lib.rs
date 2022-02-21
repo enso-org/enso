@@ -49,13 +49,15 @@ fn init(app: &Application) {
     area.hover();
     area.set_cursor_at_end();
 
-    let scene = app.display.scene();
+    let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
 
-    app.display.scene().add_child(&area);
+    app.display.default_scene.add_child(&area);
     let keep = Some(area);
     app.display
-        .on_frame(move |_frame| {
+        .on
+        .before_frame
+        .add(move |_frame| {
             let _ = &keep;
         })
         .forget();

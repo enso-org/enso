@@ -37,7 +37,7 @@ impl OpenDialog {
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new("OpenDialog");
         let network = frp::Network::new("OpenDialog");
-        let style_watch = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let project_list = project_list::ProjectList::new(app);
         let file_browser = FileBrowser::new();
         // Once FileBrowser will be implemented as component, it should be instantiated this way:
@@ -47,7 +47,7 @@ impl OpenDialog {
 
         display_object.add_child(&project_list);
         display_object.add_child(&file_browser);
-        app.display.scene().layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add_exclusive(&display_object);
 
         use theme::application as theme_app;
         let project_list_width = style_watch.get_number(theme_app::project_list::width);

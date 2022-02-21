@@ -1100,11 +1100,18 @@ impl Scene {
     }
 
     // FIXME: handle multiple calls of this fn
-    pub fn display_in(&self, parent_dom: &HtmlElement) {
-        parent_dom.append_child(&self.dom.root).unwrap();
-        self.dom.recompute_shape_with_reflow();
-        self.uniforms.pixel_ratio.set(self.dom.shape().pixel_ratio);
-        self.init();
+    pub fn display_in(&self, parent_dom: impl DomPath) {
+        match parent_dom.into_dom_element() {
+            None => {
+                // TODO
+            }
+            Some(parent_dom) => {
+                parent_dom.append_child(&self.dom.root).unwrap();
+                self.dom.recompute_shape_with_reflow();
+                self.uniforms.pixel_ratio.set(self.dom.shape().pixel_ratio);
+                self.init();
+            }
+        }
     }
 
     fn init(&self) {
@@ -1176,5 +1183,40 @@ impl AsRef<Scene> for Scene {
 impl display::Object for Scene {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+
+pub trait DomPath {
+    fn into_dom_element(self) -> Option<HtmlElement>;
+}
+
+impl DomPath for HtmlElement {
+    fn into_dom_element(self) -> Option<HtmlElement> {
+        Some(self)
+    }
+}
+
+impl<'t> DomPath for &'t HtmlElement {
+    fn into_dom_element(self) -> Option<HtmlElement> {
+        Some(self.clone())
+    }
+}
+
+impl DomPath for String {
+    fn into_dom_element(self) -> Option<HtmlElement> {
+        web::get_html_element_by_id(&self).ok()
+    }
+}
+
+impl<'t> DomPath for &'t String {
+    fn into_dom_element(self) -> Option<HtmlElement> {
+        web::get_html_element_by_id(self).ok()
+    }
+}
+
+impl<'t> DomPath for &'t str {
+    fn into_dom_element(self) -> Option<HtmlElement> {
+        web::get_html_element_by_id(self).ok()
     }
 }

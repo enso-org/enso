@@ -85,7 +85,7 @@ impl Frp {
     pub fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
         let frp = &self;
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let thumb_position = Animation::new(network);
         let thumb_color = color::Animation::new(network);
@@ -304,7 +304,7 @@ impl Scrollbar {
         let app = app.clone_ref();
         let model = Rc::new(Model::new(&app));
         let frp = Frp::default();
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         frp.init(&app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model, app }

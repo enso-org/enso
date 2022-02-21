@@ -33,8 +33,8 @@ use wasm_bindgen::prelude::*;
 #[allow(clippy::many_single_char_names)]
 pub fn entry_point_dom_symbols() {
     web::forward_panic_hook_to_console();
-    let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let scene = world.scene();
+    let world = World::new().displayed_in("root");
+    let scene = &world.default_scene;
     let camera = scene.camera();
     let screen = camera.screen();
     let navigator = Navigator::new(scene, &camera);
@@ -89,7 +89,9 @@ pub fn entry_point_dom_symbols() {
     let mut i = 0;
     world.keep_alive_forever();
     world
-        .on_frame(move |_| {
+        .on
+        .before_frame
+        .add(move |_| {
             let _keep_alive = &navigator;
             let _keep_alive = &sprites;
             let _keep_alive = &sprite_system;

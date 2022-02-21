@@ -100,10 +100,10 @@ impl DummyTypeGenerator {
 // ========================
 
 fn init(app: &Application) {
-    let _bg = app.display.scene().style_sheet.var(theme::application::background);
+    let _bg = app.display.default_scene.style_sheet.var(theme::application::background);
 
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
 
@@ -252,7 +252,9 @@ fn init(app: &Application) {
     let mut to_theme_switch = 100;
 
     world
-        .on_frame(move |_| {
+        .on
+        .before_frame
+        .add(move |_| {
             let _keep_alive = &navigator;
             let _keep_alive = &root_view;
 

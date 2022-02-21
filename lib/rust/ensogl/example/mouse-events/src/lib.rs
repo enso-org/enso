@@ -166,7 +166,7 @@ pub fn entry_point_mouse_events() {
         shape.model.shape.size.set(Vector2::new(300.0, 300.0));
         app.display.add_child(&shape);
 
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
 

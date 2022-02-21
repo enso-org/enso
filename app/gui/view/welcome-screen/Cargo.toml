@@ -15,3 +15,4 @@ wasm-bindgen = { version = "0.2.58", features = [
   "serde-serialize"
 ] }
 web-sys = { version = "0.3.4", features = [] }
+js-sys = { version = "0.3.28" }

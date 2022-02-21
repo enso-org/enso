@@ -21,13 +21,15 @@ use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
 use ensogl::system::web::StyleSetter;
+use js_sys::Function;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
 use web_sys::Element;
+use web_sys::EventTarget;
 use web_sys::HtmlDivElement;
 use web_sys::MouseEvent;
 
-
+use wasm_bindgen::JsCast;
 
 // =================
 // === Constants ===
@@ -87,17 +89,17 @@ impl ClickableElement {
             click <- source_();
         }
         let closure: ClickClosure = Closure::wrap(Box::new(f_!(click.emit(()))));
-        let handler = web::add_event_listener(&element, "call", closure);
-        network.store(&Rc::new(handler));
+        let handle = web::add_event_listener(&element, "click", closure);
+        network.store(&handle);
         Self { element, network, click }
     }
 }
 
 
+
 // =============
 // === Model ===
 // =============
-
 
 // === CSS Styles ===
 
@@ -130,7 +132,7 @@ impl Model {
         display_object.add_child(&dom);
 
         // Use `welcome_screen` layer to lock position when panning.
-        app.display.scene().dom.layers.welcome_screen.manage(&dom);
+        app.display.default_scene.dom.layers.welcome_screen.manage(&dom);
 
         let style = web::create_element("style");
         style.set_inner_html(STYLESHEET);
@@ -216,7 +218,7 @@ impl View {
         frp::extend! { network
             // === Update DOM's size so CSS styles work correctly. ===
 
-            let scene_size = app.display.scene().shape().clone_ref();
+            let scene_size = app.display.default_scene.shape().clone_ref();
             eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
         }
         frp::extend! { network

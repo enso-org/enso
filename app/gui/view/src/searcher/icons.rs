@@ -1008,7 +1008,7 @@ pub fn entry_point_searcher_icons() {
     ensogl_hardcoded_theme::builtin::light::enable(&app);
     let world = app.display.clone();
     mem::forget(app);
-    let scene = world.scene();
+    let scene = &world.default_scene;
     mem::forget(Navigator::new(scene, &scene.camera()));
 
 

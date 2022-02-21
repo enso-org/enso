@@ -100,7 +100,7 @@ pub fn entry_point_visualization() {
 
 fn init(app: &Application) {
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
     let registry = Registry::new();
@@ -124,7 +124,9 @@ fn init(app: &Application) {
     let mut was_rendered = false;
     let mut loader_hidden = false;
     world
-        .on_frame(move |time_info| {
+        .on
+        .before_frame
+        .add(move |time_info| {
             let _keep_alive = &navigator;
 
             let data = generate_data((time_info.local / 1000.0).into());

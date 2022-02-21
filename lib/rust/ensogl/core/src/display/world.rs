@@ -16,6 +16,7 @@ use crate::display;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::render::*;
+use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::system::web;
 
@@ -61,6 +62,12 @@ impl World {
     /// Constructor.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Constructor modifier. Displays the default scene in the provided path.
+    pub fn displayed_in(self, dom: impl DomPath) -> Self {
+        self.default_scene.display_in(dom);
+        self
     }
 
     /// Keeps the world alive even when all references are dropped. Use only if you want to keep one

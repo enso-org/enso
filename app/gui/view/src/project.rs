@@ -166,7 +166,7 @@ struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("project::View");
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
         let searcher = app.new_view::<searcher::View>();
         let graph_editor = app.new_view::<GraphEditor>();
@@ -416,7 +416,7 @@ impl View {
 
         display::style::javascript::expose_to_window(&app.themes);
 
-        let scene = app.display.scene().clone_ref();
+        let scene = app.display.default_scene.clone_ref();
         let model = Model::new(app);
         let frp = Frp::new();
         let searcher = &model.searcher.frp;

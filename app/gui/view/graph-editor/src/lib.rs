@@ -1474,7 +1474,7 @@ pub struct GraphEditorModel {
 impl GraphEditorModel {
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("GraphEditor");
         let display_object = display::object::Instance::new(&logger);
         let nodes = Nodes::new(&logger);
@@ -1534,7 +1534,7 @@ impl GraphEditorModel {
     }
 
     fn scene(&self) -> &Scene {
-        self.app.display.scene()
+        &self.app.display.default_scene
     }
 }
 
@@ -2290,7 +2290,7 @@ pub fn enable_disable_toggle(
 #[allow(unused_parens)]
 fn new_graph_editor(app: &Application) -> GraphEditor {
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let cursor = &app.cursor;
     let frp = Frp::new();
     let model = GraphEditorModelWithNetwork::new(app, cursor.clone_ref(), &frp);

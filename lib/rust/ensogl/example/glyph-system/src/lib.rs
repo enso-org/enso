@@ -32,13 +32,13 @@ use wasm_bindgen::prelude::*;
 #[allow(dead_code)]
 pub fn entry_point_glyph_system() {
     web::forward_panic_hook_to_console();
-    run_once_initialized(|| init(&World::new(&web::get_html_element_by_id("root").unwrap())));
+    run_once_initialized(|| init(&World::new().displayed_in("root")));
 }
 
 fn init(world: &World) {
-    let fonts = world.scene().extension::<font::Registry>();
+    let fonts = world.default_scene.extension::<font::Registry>();
     let font = fonts.load("DejaVuSans");
-    let glyph_system = glyph::System::new(world.scene(), font);
+    let glyph_system = glyph::System::new(&world.default_scene, font);
     let height = 32.0;
     let color = color::Rgba::new(0.5, 0.0, 0.0, 1.0);
     let glyph = glyph_system.new_glyph();

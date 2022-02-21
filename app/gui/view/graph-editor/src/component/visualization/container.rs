@@ -259,7 +259,7 @@ pub struct ContainerModel {
 impl ContainerModel {
     /// Constructor.
     pub fn new(logger: &Logger, app: &Application, registry: visualization::Registry) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new_sub(logger, "visualization_container");
         let display_object = display::object::Instance::new(&logger);
         let drag_root = display::object::Instance::new(&logger);

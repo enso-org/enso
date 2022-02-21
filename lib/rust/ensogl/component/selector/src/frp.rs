@@ -89,10 +89,13 @@ impl Frp {
         let is_dragging_right_handle =
             shape_is_dragged(network, &model.track_handle_right.events, mouse);
 
-        let background_click =
-            relative_shape_down_position(network, model.app.display.scene(), &model.background);
+        let background_click = relative_shape_down_position(
+            network,
+            &model.app.display.default_scene,
+            &model.background,
+        );
         let track_click =
-            relative_shape_down_position(network, model.app.display.scene(), &model.track);
+            relative_shape_down_position(network, &model.app.display.default_scene, &model.track);
 
         // Initialisation of components. Required for correct layout on startup.
         model.label_right.set_position_y(text_size.value() / 2.0);

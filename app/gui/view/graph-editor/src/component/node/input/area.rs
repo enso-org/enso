@@ -243,8 +243,8 @@ impl Model {
         let label = app.new_view::<text::Area>();
         let id_crumbs_map = default();
         let expression = default();
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
-        let styles_frp = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
+        let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
@@ -266,7 +266,7 @@ impl Model {
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
-        let scene = self.app.display.scene();
+        let scene = &self.app.display.default_scene;
         self.label.remove_from_scene_layer(&scene.layers.main);
         self.label.add_to_scene_layer(&scene.layers.label);
 
@@ -287,7 +287,7 @@ impl Model {
     }
 
     fn scene(&self) -> &Scene {
-        self.app.display.scene()
+        &self.app.display.default_scene
     }
 
     /// Run the provided function on the target port if exists.
@@ -606,7 +606,7 @@ impl Area {
 
                 // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
                 // shape system (#795)
-                let style_sheet = &self.model.app.display.scene().style_sheet;
+                let style_sheet = &self.model.app.display.default_scene.style_sheet;
                 let styles = StyleWatch::new(style_sheet);
                 let styles_frp = &self.model.styles_frp;
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);

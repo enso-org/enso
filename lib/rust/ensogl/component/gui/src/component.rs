@@ -69,7 +69,7 @@ impl<M: Model, F: Frp<M>> Component<M, F> {
         let app = app.clone_ref();
         let model = Rc::new(M::new(&app));
         let frp = F::default();
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         frp.init(&app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model, app }
