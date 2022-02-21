@@ -176,8 +176,30 @@ spec =
             "Hello World!".take (Range 5 12) . should_equal " World!"
             "Hello World!".take (Range 12 12) . should_equal ""
 
+        Test.specify "take should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+            "Hello World!".take (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+
         Test.specify "take should work on grapheme clusters" <|
-            'Hello World!'.take First.new . should_equal "H"
+            'He\u{302}llo World!'.take (First 2) . should_equal 'He\u{302}'
+            'He\u{302}llo World!'.take (Before "e") . should_equal 'He\u{302}llo World!'
+
+        Test.specify "take should work on emojis" <|
+            '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'
+            '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
+            '✨🚀🚧😍😃😎😙😉☺'.take Last.new . should_equal '☺'
+            '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before '😍') . should_equal '✨🚀🚧'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before_Last '😍') . should_equal '✨🚀🚧😍😃'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (After '😍') . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (After_Last '😍') . should_equal '😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 6) . should_equal '😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 Nothing) . should_equal '😍😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 Nothing) . should_equal '😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 -1) . should_equal '😙😉'
 
         Test.specify "drop should work as in the examples" <|
              "Hello World!".drop First.new . should_equal "ello World!"
@@ -196,6 +218,27 @@ spec =
              "Hello World!".drop (Range 5 Nothing) . should_equal "Hello"
              "Hello World!".drop (Range 5 12) . should_equal "Hello"
              "Hello World!".drop (Range 12 12) . should_equal "Hello World!"
+
+        Test.specify "drop should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+            "Hello World!".drop (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "drop should work on emojis" <|
+            '✨🚀🚧😍😃😎😙😉☺'.drop First.new . should_equal '🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop Last.new . should_equal '✨🚀🚧😍😃😎😙😉'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (Last 3) . should_equal '✨🚀🚧😍😃😎'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before '😍') . should_equal '😍😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before_Last '😍') . should_equal '😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After '😍') . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 6) . should_equal '✨🚀🚧😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 Nothing) . should_equal '✨🚀🚧'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 Nothing) . should_equal '✨🚀🚧😍😃😍😎'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
 
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_lower_case.should_equal "foobar baz"
