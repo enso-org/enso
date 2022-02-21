@@ -97,22 +97,8 @@ pub fn js_to_string(s: impl AsRef<JsValue>) -> String {
 // === Utils ===
 // =============
 
-/// Handle returned from `ignore_context_menu`. It unignores when the handle is dropped.
-#[derive(Debug)]
-pub struct IgnoreContextMenuHandle {
-    target:  EventTarget,
-    closure: Closure<dyn FnMut(MouseEvent)>,
-}
-
-impl Drop for IgnoreContextMenuHandle {
-    fn drop(&mut self) {
-        let callback: &Function = self.closure.as_ref().unchecked_ref();
-        self.target.remove_event_listener_with_callback("contextmenu", callback).ok();
-    }
-}
-
 /// Ignores context menu when clicking with the right mouse button.
-pub fn ignore_context_menu(target: &EventTarget) -> Option<IgnoreContextMenuHandle> {
+pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
     let closure = move |event: MouseEvent| {
         const RIGHT_MOUSE_BUTTON: i16 = 2;
         if event.button() == RIGHT_MOUSE_BUTTON {
@@ -120,15 +106,63 @@ pub fn ignore_context_menu(target: &EventTarget) -> Option<IgnoreContextMenuHand
         }
     };
     let closure = Closure::wrap(Box::new(closure) as Box<dyn FnMut(MouseEvent)>);
-    let callback: &Function = closure.as_ref().unchecked_ref();
-    match target.add_event_listener_with_callback_and_bool("contextmenu", callback, true) {
-        Ok(_) => {
-            let target = target.clone();
-            let handle = IgnoreContextMenuHandle { target, closure };
-            Some(handle)
-        }
-        Err(_) => None,
+    add_event_listener_with_bool(target, "contextmenu", closure, true)
+}
+
+
+
+// =======================
+// === Event Listeners ===
+// =======================
+
+/// The type of closures used for 'add_event_listener_*' functions.
+pub type JsEventHandler<T = JsValue> = Closure<dyn FnMut(T)>;
+
+/// Handler for event listeners. Unregisters the listener when dropped.
+#[derive(Debug, Clone)]
+pub struct EventListenerHandle {
+    target:   EventTarget,
+    name:     ImString,
+    listener: Function,
+}
+
+impl Drop for EventListenerHandle {
+    fn drop(&mut self) {
+        self.target.remove_event_listener_with_callback(&self.name, &self.listener).ok();
     }
+}
+
+/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
+/// directly.
+pub fn add_event_listener<T>(
+    target: &web_sys::EventTarget,
+    name: &str,
+    listener: JsEventHandler<T>,
+) -> EventListenerHandle {
+    let listener = listener.as_ref().unchecked_ref::<Function>().clone();
+    // Please note that using [`ok`] is safe here, as according to MDN this function never
+    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener .
+    target.add_event_listener_with_callback(name, &listener).ok();
+    let target = target.clone();
+    let name = name.into();
+    EventListenerHandle { target, name, listener }
+}
+
+/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
+/// directly.
+pub fn add_event_listener_with_bool<T>(
+    target: &web_sys::EventTarget,
+    name: &str,
+    listener: JsEventHandler<T>,
+    options: bool,
+) -> EventListenerHandle {
+    let listener = listener.as_ref().unchecked_ref::<Function>().clone();
+    // Please note that using [`ok`] is safe here, as according to MDN this function never
+    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener .
+    target.add_event_listener_with_callback_and_bool(name, &listener, options).ok();
+    let target = target.clone();
+    let name = name.into();
+    EventListenerHandle { target, name, listener }
 }
 
 

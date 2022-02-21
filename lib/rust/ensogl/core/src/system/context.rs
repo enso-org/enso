@@ -4,20 +4,7 @@ use crate::prelude::*;
 use crate::system::web;
 
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
-
-
-type JsEventHandler = Closure<dyn Fn(JsValue)>;
-
-fn add_event_listener_with_callback(
-    target: &web_sys::EventTarget,
-    tp: &str,
-    listener: &JsEventHandler,
-) {
-    target.add_event_listener_with_callback(tp, listener.as_ref().unchecked_ref()).unwrap()
-}
 
 
 
@@ -66,8 +53,8 @@ pub type DeviceContextHandler = web_sys::HtmlCanvasElement;
 /// the context, the context will not be restored automaticaly.
 #[derive(Debug)]
 pub struct ContextLostHandler {
-    on_context_lost:     JsEventHandler,
-    on_context_restored: JsEventHandler,
+    on_context_lost:     web::EventListenerHandle,
+    on_context_restored: web::EventListenerHandle,
 }
 
 
@@ -119,13 +106,15 @@ pub fn init_webgl_2_context<D: Display + 'static>(
         Some(context) => {
             display.set_context(Some(&context));
 
-            let on_context_lost = f_!(display.set_context(None));
-            let on_context_lost: JsEventHandler = Closure::wrap(Box::new(on_context_lost));
-            let on_context_restored = f_!(display.set_context(Some(&context)));
-            let on_context_restored: JsEventHandler = Closure::wrap(Box::new(on_context_restored));
+            let ctx_lost = f_!(display.set_context(None));
+            let ctx_lost: web::JsEventHandler = Closure::wrap(Box::new(ctx_lost));
+            let ctx_restored = f_!(display.set_context(Some(&context)));
+            let ctx_restored: web::JsEventHandler = Closure::wrap(Box::new(ctx_restored));
 
-            add_event_listener_with_callback(hdc, "webglcontextlost", &on_context_lost);
-            add_event_listener_with_callback(hdc, "webglcontextrestored", &on_context_restored);
+            let ctx_lost_name = "webglcontextlost";
+            let ctx_restored_name = "webglcontextrestored";
+            let on_context_lost = web::add_event_listener(hdc, ctx_lost_name, ctx_lost);
+            let on_context_restored = web::add_event_listener(hdc, ctx_restored_name, ctx_restored);
 
             Ok(ContextLostHandler { on_context_lost, on_context_restored })
         }

@@ -35,7 +35,7 @@ use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::web;
-use crate::system::web::IgnoreContextMenuHandle;
+use crate::system::web::EventListenerHandle;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 use crate::system::Context;
@@ -837,7 +837,7 @@ pub struct SceneData {
     pub bg_color_change:      callback::Handle,
     pub frp:                  Frp,
     extensions:               Extensions,
-    disable_context_menu:     Rc<IgnoreContextMenuHandle>,
+    disable_context_menu:     Rc<EventListenerHandle>,
 }
 
 impl SceneData {
@@ -875,7 +875,7 @@ impl SceneData {
         let frp = Frp::new(&dom.root.shape);
         let mouse_logger = Logger::new_sub(&logger, "mouse");
         let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, mouse_logger);
-        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root).unwrap());
+        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&current_js_event);
         let network = &frp.network;
         let extensions = Extensions::default();
@@ -1096,7 +1096,7 @@ impl Scene {
         let no_mut_access = SceneData::new(parent_dom, logger, stats, on_mut);
         let this = Self { no_mut_access };
 
-        // FIXME MEMORY LEAK in all lines below:
+        // FIXME MEMORY LEAK:
         this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
 
         this.init()

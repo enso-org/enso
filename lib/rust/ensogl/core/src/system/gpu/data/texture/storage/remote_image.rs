@@ -9,7 +9,6 @@ use crate::system::gpu::Context;
 use crate::system::web;
 
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
 
 
@@ -84,7 +83,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
     fn reload(&self) {
         let url = &self.storage().url;
         let image = HtmlImageElement::new().unwrap();
-        let no_callback = <Option<Closure<dyn FnMut()>>>::None;
+        let no_callback = <Option<web::EventListenerHandle>>::None;
         let callback_ref = Rc::new(RefCell::new(no_callback));
         let image_ref = Rc::new(RefCell::new(image));
         let callback_ref2 = callback_ref.clone();
@@ -92,7 +91,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
         let context = self.context().clone();
         let gl_texture = self.gl_texture().clone();
         let parameters = *self.parameters();
-        let callback: Closure<dyn FnMut()> = Closure::once(move || {
+        let callback: web::JsEventHandler = Closure::once(move |_| {
             let _keep_alive = callback_ref2;
             let image = image_ref_opt.borrow();
             let target = Context::TEXTURE_2D;
@@ -114,12 +113,11 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
 
             parameters.apply_parameters(&context);
         });
-        let js_callback = callback.as_ref().unchecked_ref();
         let image = image_ref.borrow();
         request_cors_if_not_same_origin(&image, url);
         image.set_src(url);
-        image.add_event_listener_with_callback_and_bool("load", js_callback, true).unwrap();
-        *callback_ref.borrow_mut() = Some(callback);
+        let handler = web::add_event_listener_with_bool(&image, "load", callback, true);
+        *callback_ref.borrow_mut() = Some(handler);
     }
 }
 
