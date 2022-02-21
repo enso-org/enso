@@ -42,6 +42,12 @@ impl Screen {
     }
 }
 
+impl From<Screen> for Vector2<f32> {
+    fn from(screen: Screen) -> Vector2<f32> {
+        Vector2(screen.width, screen.height)
+    }
+}
+
 
 
 // ==================

@@ -88,15 +88,15 @@ impl NavigatorModel {
         disable_events: Rc<Cell<bool>>,
         max_zoom: Rc<Cell<Option<f32>>>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
-        let distance_to_zoom_factor_of_1 = |scene: &Scene, camera: &Camera2d| {
+        let distance_to_zoom_factor_of_1 = |camera: &Camera2d| {
             let fovy_slope = camera.half_fovy_slope();
-            scene.shape().value().height / 2.0 / fovy_slope
+            camera.screen().height / 2.0 / fovy_slope
         };
 
         let simulator = Self::create_simulator(camera);
-        let panning_callback = f!([scene,camera,simulator,pan_speed] (pan: PanEvent) {
+        let panning_callback = f!([camera,simulator,pan_speed] (pan: PanEvent) {
             let distance = camera.position().z;
-            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
+            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&camera);
             let pan_speed = pan_speed.get().into_on().unwrap_or(0.0);
             let movement_scale_for_distance = distance / distance_to_zoom_factor_of_1;
             let diff = pan_speed * Vector3::new(pan.movement.x, pan.movement.y, 0.0) * movement_scale_for_distance;
@@ -112,9 +112,9 @@ impl NavigatorModel {
             }),
         );
 
-        let zoom_callback = f!([scene,camera,simulator,max_zoom] (zoom:ZoomEvent) {
+        let zoom_callback = f!([camera,simulator,max_zoom] (zoom:ZoomEvent) {
             let point = zoom.focus;
-            let normalized = normalize_point2(point,scene.shape().value().into());
+            let normalized = normalize_point2(point,camera.screen().into());
             let normalized = normalized_to_range2(normalized, -1.0, 1.0);
             let half_height = 1.0;
 
@@ -127,7 +127,7 @@ impl NavigatorModel {
             let zoom_amount = zoom.amount * position.z;
             let translation = direction * zoom_amount;
 
-            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
+            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&camera);
             let max_zoom = max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM);
             // Usage of min/max prefixes might be confusing here. Remember that the max zoom means
             // the maximum visible size, thus the minimal distance from the camera and vice versa.
