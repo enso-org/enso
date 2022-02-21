@@ -315,8 +315,7 @@ pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingC
     let options = js_sys::Object::new();
     js_sys::Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
     let context = canvas.get_context_with_context_options("webgl2", &options).ok().flatten();
-    let context = context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok());
-    context
+    context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok())
 }
 
 pub fn try_request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> Result<i32> {

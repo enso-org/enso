@@ -13,3 +13,4 @@ pub mod web;
 // =================
 
 pub use context::Context;
+pub use context::ContextLostHandler;

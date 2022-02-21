@@ -30,6 +30,7 @@ use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
+use crate::system;
 use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
@@ -38,14 +39,12 @@ use crate::system::web::IgnoreContextMenuHandle;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 use crate::system::Context;
+use crate::system::ContextLostHandler;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 
 
@@ -816,35 +815,29 @@ impl Extensions {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
-    pub display_object:   display::object::Instance,
-    pub dom:              Dom,
-    pub context:          Rc<RefCell<Option<Context>>>,
-    pub context_handler:  Rc<RefCell<Option<ContextHandler>>>,
-    pub symbols:          SymbolRegistry,
-    pub variables:        UniformScope,
-    pub current_js_event: CurrentJsEvent,
-    pub mouse:            Mouse,
-    pub keyboard:         Keyboard,
-    pub uniforms:         Uniforms,
-    pub shapes:           ShapeRegistry,
-    pub stats:            Stats,
-    pub dirty:            Dirty,
-    pub logger:           Logger,
-    pub renderer:         Rc<RefCell<Option<Renderer>>>,
-    pub render_pipeline:  Rc<RefCell<render::Pipeline>>,
-    pub layers:           HardcodedLayers,
-    pub style_sheet:      style::Sheet,
-    pub bg_color_var:     style::Var,
-    pub bg_color_change:  callback::Handle,
-    pub frp:              Frp,
-    extensions:           Extensions,
-    disable_context_menu: Rc<IgnoreContextMenuHandle>,
-}
-
-#[derive(Debug)]
-pub struct ContextHandler {
-    on_context_lost:     Closure<dyn Fn(JsValue)>,
-    on_context_restored: Closure<dyn Fn(JsValue)>,
+    pub display_object:       display::object::Instance,
+    pub dom:                  Dom,
+    pub context:              Rc<RefCell<Option<Context>>>,
+    pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
+    pub symbols:              SymbolRegistry,
+    pub variables:            UniformScope,
+    pub current_js_event:     CurrentJsEvent,
+    pub mouse:                Mouse,
+    pub keyboard:             Keyboard,
+    pub uniforms:             Uniforms,
+    pub shapes:               ShapeRegistry,
+    pub stats:                Stats,
+    pub dirty:                Dirty,
+    pub logger:               Logger,
+    pub renderer:             Rc<RefCell<Option<Renderer>>>,
+    pub render_pipeline:      Rc<RefCell<render::Pipeline>>,
+    pub layers:               HardcodedLayers,
+    pub style_sheet:          style::Sheet,
+    pub bg_color_var:         style::Var,
+    pub bg_color_change:      callback::Handle,
+    pub frp:                  Frp,
+    extensions:               Extensions,
+    disable_context_menu:     Rc<IgnoreContextMenuHandle>,
 }
 
 impl SceneData {
@@ -901,12 +894,12 @@ impl SceneData {
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
-        let context_handler = default();
+        let context_lost_handler = default();
         Self {
             display_object,
             dom,
             context,
-            context_handler,
+            context_lost_handler,
             symbols,
             variables,
             current_js_event,
@@ -927,48 +920,6 @@ impl SceneData {
             extensions,
             disable_context_menu,
         }
-        .init()
-    }
-
-    pub fn init(self) -> Self {
-        #[cfg(all(target_arch = "wasm32", not(test)))]
-        self.init_webgl_2_context();
-        self
-    }
-
-    fn init_webgl_2_context(&self) {
-        let canvas = &self.dom.layers.canvas;
-        let context = web::get_webgl2_context(canvas);
-        match context {
-            None => error!(self.logger, "WebGL 2.0 context is not supported."),
-            Some(context_handler) => {
-                self.set_context(Some(&context_handler));
-                let scene = self;
-
-                let on_context_lost: Closure<dyn Fn(JsValue)> =
-                    Closure::wrap(Box::new(f_!(scene.set_context(None))));
-
-                let on_context_restored: Closure<dyn Fn(JsValue)> =
-                    Closure::wrap(Box::new(f_!(scene.set_context(Some(&context_handler)))));
-
-                canvas
-                    .add_event_listener_with_callback(
-                        "webglcontextlost",
-                        on_context_lost.as_ref().unchecked_ref(),
-                    )
-                    .unwrap();
-
-                canvas
-                    .add_event_listener_with_callback(
-                        "webglcontextrestored",
-                        on_context_restored.as_ref().unchecked_ref(),
-                    )
-                    .unwrap();
-
-                let handler = ContextHandler { on_context_lost, on_context_restored };
-                *self.context_handler.borrow_mut() = Some(handler);
-            }
-        }
     }
 
     pub fn set_context(&self, context: Option<&Context>) {
@@ -976,10 +927,7 @@ impl SceneData {
         *self.context.borrow_mut() = context.cloned();
         self.dirty.context.set();
         self.dirty.shape.set();
-        let renderer = match context {
-            Some(context) => Some(Renderer::new(&self.logger, &self.dom, context, &self.variables)),
-            None => None,
-        };
+        let renderer = context.map(|c| Renderer::new(&self.logger, &self.dom, c, &self.variables));
         *self.renderer.borrow_mut() = renderer;
     }
 
@@ -1151,11 +1099,30 @@ impl Scene {
         // FIXME MEMORY LEAK in all lines below:
         this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
 
-        this
+        this.init()
+    }
+
+    pub fn init(self) -> Self {
+        let context_loss_handler = crate::system::context::init_webgl_2_context(&self);
+        match context_loss_handler {
+            Err(err) => error!(self.logger, "{err}"),
+            Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
+        }
+        self
     }
 
     pub fn extension<T: Extension>(&self) -> T {
         self.extensions.get(self)
+    }
+}
+
+impl system::context::Display for Scene {
+    fn device_context_handler(&self) -> &system::context::DeviceContextHandler {
+        &self.dom.layers.canvas
+    }
+
+    fn set_context(&self, context: Option<&Context>) {
+        self.no_mut_access.set_context(context)
     }
 }
 
@@ -1180,17 +1147,19 @@ impl Deref for Scene {
 
 impl Scene {
     pub fn update(&self, t: animation::TimeInfo) {
-        debug!(self.logger, "Updating.", || {
-            self.frp.frame_time_source.emit(t.local);
-            // Please note that `update_camera` is called first as it may trigger FRP events which
-            // may change display objects layout.
-            self.update_camera(self);
-            self.display_object.update(self);
-            self.layers.update();
-            self.update_shape();
-            self.update_symbols();
-            self.handle_mouse_events();
-        })
+        if self.context.borrow().is_some() {
+            debug!(self.logger, "Updating.", || {
+                self.frp.frame_time_source.emit(t.local);
+                // Please note that `update_camera` is called first as it may trigger FRP events
+                // which may change display objects layout.
+                self.update_camera(self);
+                self.display_object.update(self);
+                self.layers.update();
+                self.update_shape();
+                self.update_symbols();
+                self.handle_mouse_events();
+            })
+        }
     }
 }
 

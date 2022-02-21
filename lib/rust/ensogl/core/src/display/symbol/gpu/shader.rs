@@ -134,22 +134,17 @@ impl {
                         shader_cfg.add_output(name,&decl.tp);
                     });
 
-                    let vertex_code   = self.geometry_material.code().clone();
+                    let vertex_code = self.geometry_material.code().clone();
                     let fragment_code = self.surface_material.code().clone();
                     shader_builder.compute(&shader_cfg,vertex_code,fragment_code);
-                    let shader      = shader_builder.build();
-                    let vert_shader = compile_vertex_shader  (context,&shader.vertex);
-                    let frag_shader = compile_fragment_shader(context,&shader.fragment);
-                    if let Err(ref err) = frag_shader {
-                        error!(self.logger,"{err}")
+                    let shader = shader_builder.build();
+                    let program = compile_program(context,&shader.vertex,&shader.fragment);
+                    match program {
+                        Ok(program) => { self.program = Some(program);}
+                        Err(Some(err)) => error!(self.logger, "{err}"),
+                        Err(None) => {}
                     }
 
-                    let vert_shader = vert_shader.unwrap();
-                    let frag_shader = frag_shader.unwrap();
-                    let program     = link_program(context,&vert_shader,&frag_shader);
-
-                    let program     = program.unwrap();
-                    self.program    = Some(program);
                     self.dirty.unset_all();
                 }
             }
