@@ -416,10 +416,8 @@ pub struct Keyboard {
 
 impl Keyboard {
     pub fn new(current_event: &CurrentJsEvent) -> Self {
-        let logger = Logger::new("keyboard");
         let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings =
-            Rc::new(enso_frp::io::keyboard::DomBindings::new(&logger, &frp, current_event));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp, current_event));
         Self { frp, bindings }
     }
 }

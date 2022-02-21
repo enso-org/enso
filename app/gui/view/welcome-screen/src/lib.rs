@@ -23,7 +23,6 @@ use ensogl::system::web::NodeInserter;
 use ensogl::system::web::StyleSetter;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
 use web_sys::Element;
 use web_sys::HtmlDivElement;
 use web_sys::MouseEvent;
@@ -83,16 +82,13 @@ impl Deref for ClickableElement {
 }
 
 impl ClickableElement {
-    pub fn new(element: Element, logger: &Logger) -> Self {
+    pub fn new(element: Element) -> Self {
         frp::new_network! { network
             click <- source_();
         }
         let closure: ClickClosure = Closure::wrap(Box::new(f_!(click.emit(()))));
-        let callback = closure.as_ref().unchecked_ref();
-        if element.add_event_listener_with_callback("click", callback).is_err() {
-            error!(logger, "Could not add event listener for ClickableElement.");
-        }
-        network.store(&Rc::new(closure));
+        let handler = web::add_event_listener(&element, "call", closure);
+        network.store(&Rc::new(handler));
         Self { element, network, click }
     }
 }

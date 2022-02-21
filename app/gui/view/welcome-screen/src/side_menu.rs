@@ -56,7 +56,7 @@ impl Model {
     }
 
     fn add_projects_list_entry(&self, name: &str, open_project: &frp::Any<String>) {
-        let entry = Self::create_project_list_entry(name, &self.logger);
+        let entry = Self::create_project_list_entry(name);
         let network = &entry.network;
         frp::extend! { network
             open_project <+ entry.click.constant(name.to_owned());
@@ -71,7 +71,7 @@ impl Model {
         element.set_id(crate::css_id::NEW_PROJECT);
         element.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
         projects_list.append_or_warn(&element, logger);
-        ClickableElement::new(element, logger)
+        ClickableElement::new(element)
     }
 
     fn create_header(text: &str) -> Element {
@@ -84,10 +84,10 @@ impl Model {
         web::create_element("ul")
     }
 
-    fn create_project_list_entry(project_name: &str, logger: &Logger) -> ClickableElement {
+    fn create_project_list_entry(project_name: &str) -> ClickableElement {
         let element = web::create_element("li");
         element.set_inner_html(&format!(r#"<img src="assets/project.svg"/> {}"#, project_name));
-        ClickableElement::new(element, logger)
+        ClickableElement::new(element)
     }
 }
 

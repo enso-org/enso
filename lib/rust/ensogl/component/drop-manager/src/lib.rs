@@ -21,6 +21,7 @@ pub mod prelude {
 use crate::prelude::*;
 
 use enso_frp as frp;
+use enso_web as web;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
 use enso_web::Error;
@@ -105,19 +106,19 @@ type DragOverClosure = Closure<dyn Fn(web_sys::DragEvent) -> bool>;
 #[derive(Clone, CloneRef, Debug)]
 pub struct Manager {
     #[allow(dead_code)]
-    network:            frp::Network,
-    files_received:     frp::Source<Vec<File>>,
+    network:          frp::Network,
+    files_received:   frp::Source<Vec<File>>,
     #[allow(dead_code)]
-    drop_callback:      Rc<DropClosure>,
+    drop_handle:      web::EventListenerHandle,
     #[allow(dead_code)]
-    drag_over_callback: Rc<DragOverClosure>,
+    drag_over_handle: web::EventListenerHandle,
 }
 
 impl Manager {
     /// Constructor, adding listener to the given target.
     pub fn new(target: &web_sys::EventTarget) -> Self {
         let logger = Logger::new("DropFileManager");
-        debug!(logger, "Creating DropFileManager");
+        debug!(logger, "Creating");
         let network = frp::Network::new("DropFileManager");
         frp::extend! { network
             files_received <- source();
@@ -136,13 +137,9 @@ impl Manager {
             event.prevent_default();
             false
         }));
-        let drop_js = drop.as_ref().unchecked_ref();
-        let drag_over_js = drag_over.as_ref().unchecked_ref();
-        target.add_event_listener_with_callback("drop", drop_js).unwrap();
-        target.add_event_listener_with_callback("dragover", drag_over_js).unwrap();
-        let drop_callback = Rc::new(drop);
-        let drag_over_callback = Rc::new(drag_over);
-        Self { network, files_received, drop_callback, drag_over_callback }
+        let drop_handle = web::add_event_listener(target, "drop", drop);
+        let drag_over_handle = web::add_event_listener(target, "dragover", drag_over);
+        Self { network, files_received, drop_handle, drag_over_handle }
     }
 
     /// The frp endpoint emitting signal when a file is dropped.
@@ -161,7 +158,7 @@ impl Manager {
             let files_iter = js_files_iter.filter_map(|f| match File::from_js_file(&f) {
                 Ok(file) => Some(file),
                 Err(err) => {
-                    error!(logger, "Error when processing dropped file: {err:?}");
+                    error!(logger, "Error when processing dropped file: {err:?}.");
                     None
                 }
             });

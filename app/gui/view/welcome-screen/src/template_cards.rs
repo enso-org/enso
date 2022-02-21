@@ -167,7 +167,7 @@ impl Model {
         text_content.set_text_content(Some(definition.content));
         card.append_or_warn(&text_content, logger);
 
-        let clickable_element = ClickableElement::new(card.unchecked_into(), logger);
+        let clickable_element = ClickableElement::new(card.unchecked_into());
         Card { clickable_element, template_name: definition.template }
     }
 }

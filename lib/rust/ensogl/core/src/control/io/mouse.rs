@@ -56,34 +56,20 @@ impl<T> EventDispatcher<T> {
 pub struct MouseManager {
     #[shrinkwrap(main_field)]
     dispatchers: MouseManagerDispatchers,
-    closures:    Rc<MouseManagerClosures>,
+    handles:     Rc<MouseManagerEventListenerHandles>,
     dom:         web::dom::WithKnownShape<web::EventTarget>,
 }
 
 /// A JavaScript callback closure for any mouse event.
-pub type MouseEventJsClosure = Closure<dyn Fn(JsValue)>;
+pub type MouseEventJsClosure = Closure<dyn FnMut(JsValue)>;
 
 macro_rules! define_bindings {
     ( $( $js_event:ident :: $js_name:ident => $name:ident ($target:ident) ),* $(,)? ) => {
 
         /// Keeps references to JavaScript closures in order to keep them alive.
         #[derive(Debug)]
-        pub struct MouseManagerClosures {
-            target  : web::EventTarget,
-            $($name : MouseEventJsClosure),*
-        }
-
-        impl Drop for MouseManagerClosures {
-            fn drop(&mut self) {
-            $(
-                let target     = &self.target;
-                let js_closure = self.$name.as_ref().unchecked_ref();
-                let js_name    = stringify!($js_name);
-                let result     = target.remove_event_listener_with_callback(js_name,js_closure);
-                if let Err(e)  = result { panic!("Cannot add event listener. {:?}",e) }
-            )*
-
-            }
+        pub struct MouseManagerEventListenerHandles {
+            $($name : web::EventListenerHandle),*
         }
 
         /// Set of dispatchers for various mouse events.
@@ -107,26 +93,21 @@ macro_rules! define_bindings {
             pub fn new_separated
             (dom:&web::dom::WithKnownShape<web::EventTarget>,target:&web::EventTarget) -> Self {
                 let dispatchers = MouseManagerDispatchers::default();
-                let dom         = dom.clone();
-                let target      = target.clone();
+                let dom = dom.clone();
                 $(
-                    let shape      = dom.shape.clone_ref();
+                    let shape = dom.shape.clone_ref();
                     let dispatcher = dispatchers.$name.clone_ref();
-                    let $name : MouseEventJsClosure = Closure::wrap(Box::new(move |event:JsValue| {
+                    let closure : MouseEventJsClosure = Closure::wrap(Box::new(move |event:JsValue| {
                         let shape = shape.value();
                         let event = event.unchecked_into::<web_sys::$js_event>();
                         dispatcher.dispatch(&event::$target::new(event,shape))
                     }));
-                    let js_closure = $name.as_ref().unchecked_ref();
-                    let js_name    = stringify!($js_name);
-                    let options    = event_listener_options();
-                    let result     =
-                        target.add_event_listener_with_callback_and_add_event_listener_options
-                        (js_name,js_closure,&options);
-                    if let Err(e)  = result { panic!("Cannot add event listener. {:?}",e) }
+                    let js_name = stringify!($js_name);
+                    let opt = event_listener_options();
+                    let $name = web::add_event_listener_with_options(&target,js_name,closure,&opt);
                 )*
-                let closures = Rc::new(MouseManagerClosures {target,$($name),*});
-                Self {dispatchers,closures,dom}
+                let handles = Rc::new(MouseManagerEventListenerHandles {$($name),*});
+                Self {dispatchers,handles,dom}
             }
         }
     };

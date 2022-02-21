@@ -3,10 +3,8 @@ use crate::prelude::*;
 
 use crate as frp;
 
-use enso_logger::WarningLogger as Logger;
 use enso_web as web;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 
 
@@ -23,68 +21,45 @@ pub trait EventCallback = FnMut(&web_sys::Event) + 'static;
 /// Keyboard event listener which calls the callback function as long it lives.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct Listener<Callback: ?Sized> {
-    logger:     Logger,
-    callback:   Closure<Callback>,
-    element:    web::Window,
-    event_type: String,
+pub struct Listener {
+    handle:  web::EventListenerHandle,
+    element: web::Window,
 }
 
-impl<Callback: ?Sized> Listener<Callback> {
+impl Listener {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger, event_type: impl Str, callback: Closure<Callback>) -> Self {
+    pub fn new<T>(event_type: impl Str, callback: Closure<dyn FnMut(T)>) -> Self {
         let element = web::window();
-        let js_function = callback.as_ref().unchecked_ref();
-        let logger = Logger::new_sub(logger, "Listener");
         let event_type = event_type.as_ref();
         let options = event_listener_options();
-        let result = element.add_event_listener_with_callback_and_add_event_listener_options(
-            event_type,
-            js_function,
-            &options,
-        );
-        if let Err(err) = result {
-            warning!(logger, "Couldn't add {event_type} event listener: {err:?}.");
-        }
-        let event_type = event_type.into();
-        Self { logger, callback, element, event_type }
+        let handle = web::add_event_listener_with_options(&element, event_type, callback, &options);
+        Self { handle, element }
     }
 }
 
-impl Listener<dyn KeyboardEventCallback> {
+impl Listener {
     /// Creates a new key down event listener.
-    pub fn new_key_down<F>(logger: impl AnyLogger, f: F) -> Self
+    pub fn new_key_down<F>(f: F) -> Self
     where F: KeyboardEventCallback {
         let boxed = Box::new(f);
         let closure = Closure::<dyn KeyboardEventCallback>::wrap(boxed);
-        Self::new(logger, "keydown", closure)
+        Self::new("keydown", closure)
     }
 
     /// Creates a new key up event listener.
-    pub fn new_key_up<F>(logger: impl AnyLogger, f: F) -> Self
+    pub fn new_key_up<F>(f: F) -> Self
     where F: KeyboardEventCallback {
         let boxed = Box::new(f);
         let closure = Closure::<dyn KeyboardEventCallback>::wrap(boxed);
-        Self::new(logger, "keyup", closure)
+        Self::new("keyup", closure)
     }
-}
 
-impl Listener<dyn EventCallback> {
     /// Creates a blur event listener.
-    pub fn new_blur<F>(logger: impl AnyLogger, f: F) -> Self
+    pub fn new_blur<F>(f: F) -> Self
     where F: EventCallback {
         let boxed = Box::new(f);
         let closure = Closure::<dyn EventCallback>::wrap(boxed);
-        Self::new(logger, "blur", closure)
-    }
-}
-
-impl<Callback: ?Sized> Drop for Listener<Callback> {
-    fn drop(&mut self) {
-        let callback = self.callback.as_ref().unchecked_ref();
-        if self.element.remove_event_listener_with_callback(&self.event_type, callback).is_err() {
-            warning!(self.logger, "Couldn't remove event listener.");
-        }
+        Self::new("blur", closure)
     }
 }
 
@@ -166,7 +141,6 @@ impl CurrentJsEvent {
         let event_source = self.event_source.clone_ref();
         move |event| {
             let js_event = event.as_ref().clone();
-
             event_source.emit(Some(js_event));
             processing_fn(event);
             event_source.emit(None);

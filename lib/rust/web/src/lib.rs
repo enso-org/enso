@@ -126,6 +126,12 @@ pub struct EventListenerHandle {
     listener: Function,
 }
 
+impl CloneRef for EventListenerHandle {
+    fn clone_ref(&self) -> Self {
+        self.clone()
+    }
+}
+
 impl Drop for EventListenerHandle {
     fn drop(&mut self) {
         self.target.remove_event_listener_with_callback(&self.name, &self.listener).ok();
@@ -134,10 +140,10 @@ impl Drop for EventListenerHandle {
 
 /// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
 /// directly.
-pub fn add_event_listener<T>(
+pub fn add_event_listener<T: ?Sized>(
     target: &web_sys::EventTarget,
     name: &str,
-    listener: JsEventHandler<T>,
+    listener: Closure<T>,
 ) -> EventListenerHandle {
     let listener = listener.as_ref().unchecked_ref::<Function>().clone();
     // Please note that using [`ok`] is safe here, as according to MDN this function never
@@ -150,16 +156,35 @@ pub fn add_event_listener<T>(
 
 /// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
 /// directly.
-pub fn add_event_listener_with_bool<T>(
+pub fn add_event_listener_with_bool<T: ?Sized>(
     target: &web_sys::EventTarget,
     name: &str,
-    listener: JsEventHandler<T>,
+    listener: Closure<T>,
     options: bool,
 ) -> EventListenerHandle {
     let listener = listener.as_ref().unchecked_ref::<Function>().clone();
     // Please note that using [`ok`] is safe here, as according to MDN this function never
     // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener .
     target.add_event_listener_with_callback_and_bool(name, &listener, options).ok();
+    let target = target.clone();
+    let name = name.into();
+    EventListenerHandle { target, name, listener }
+}
+
+/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
+/// directly.
+pub fn add_event_listener_with_options<T: ?Sized>(
+    target: &web_sys::EventTarget,
+    name: &str,
+    listener: Closure<T>,
+    options: &web_sys::AddEventListenerOptions,
+) -> EventListenerHandle {
+    let listener = listener.as_ref().unchecked_ref::<Function>().clone();
+    // Please note that using [`ok`] is safe here, as according to MDN this function never
+    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener .
+    target
+        .add_event_listener_with_callback_and_add_event_listener_options(name, &listener, options)
+        .ok();
     let target = target.clone();
     let name = name.into();
     EventListenerHandle { target, name, listener }

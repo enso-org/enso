@@ -146,7 +146,7 @@ impl World {
         // FIXME[WD]: Hacky way of switching display_mode. To be fixed and refactored out.
         let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.uniforms.display_mode.clone_ref();
-        let c: Closure<dyn Fn(JsValue)> = Closure::wrap(Box::new(move |val| {
+        let closure: Closure<dyn Fn(JsValue)> = Closure::wrap(Box::new(move |val| {
             let event = val.unchecked_into::<web_sys::KeyboardEvent>();
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
@@ -161,10 +161,8 @@ impl World {
                 }
             }
         }));
-        web::window()
-            .add_event_listener_with_callback_and_bool("keydown", c.as_ref().unchecked_ref(), true)
-            .unwrap();
-        c.forget();
+        let handle = web::add_event_listener_with_bool(&web::window(), "keydown", closure, true);
+        mem::forget(handle);
         // -----------------------------------------------------------------------------------------
     }
 
