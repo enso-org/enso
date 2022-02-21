@@ -28,7 +28,7 @@ pub struct Listener {
 
 impl Listener {
     /// Constructor.
-    pub fn new<T>(event_type: impl Str, callback: Closure<dyn FnMut(T)>) -> Self {
+    pub fn new<T: 'static>(event_type: impl Str, callback: Closure<dyn FnMut(T)>) -> Self {
         let element = web::window();
         let event_type = event_type.as_ref();
         let options = event_listener_options();

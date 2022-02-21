@@ -118,7 +118,7 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 /// The type of closures used for 'add_event_listener_*' functions.
 pub type JsEventHandler<T = JsValue> = Closure<dyn FnMut(T)>;
 
-/// Handler for event listeners. Unregisters the listener when dropped.
+/// Handler for event listeners. Unregisters the listener when the last clone is dropped.
 #[derive(Debug, Clone, CloneRef)]
 pub struct EventListenerHandle {
     rc: Rc<EventListenerHandleData>,
@@ -126,18 +126,30 @@ pub struct EventListenerHandle {
 
 impl EventListenerHandle {
     /// Constructor.
-    pub fn new(target: EventTarget, name: ImString, listener: Function) -> Self {
-        let data = EventListenerHandleData { target, name, listener };
+    pub fn new<T: ?Sized + 'static>(
+        target: EventTarget,
+        name: ImString,
+        listener: Function,
+        closure: Closure<T>,
+    ) -> Self {
+        let _closure = Box::new(closure);
+        let data = EventListenerHandleData { target, name, listener, _closure };
         let rc = Rc::new(data);
         Self { rc }
     }
 }
 
+/// Internal structure for [`EventListenerHandle`].
+///
+/// # Implementation Notes
+/// The [`_closure`] field contains a wasm_bindgen's [`Closure<T>`]. Dropping it causes the
+/// associated function to be pruned from memory.
 #[derive(Debug)]
 struct EventListenerHandleData {
     target:   EventTarget,
     name:     ImString,
     listener: Function,
+    _closure: Box<dyn Any>,
 }
 
 impl Drop for EventListenerHandleData {
@@ -146,57 +158,38 @@ impl Drop for EventListenerHandleData {
     }
 }
 
-/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
-/// directly.
-pub fn add_event_listener<T: ?Sized>(
-    target: &web_sys::EventTarget,
-    name: &str,
-    listener: Closure<T>,
-) -> EventListenerHandle {
-    let listener = listener.as_ref().unchecked_ref::<Function>().clone();
-    // Please note that using [`ok`] is safe here, as according to MDN this function never
-    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener .
-    target.add_event_listener_with_callback(name, &listener).ok();
-    let target = target.clone();
-    let name = name.into();
-    EventListenerHandle::new(target, name, listener)
+macro_rules! gen_add_event_listener {
+    ($name:ident, $wbindgen_name:ident $(,$arg:ident : $tp:ty)*) => {
+        /// Wrapper for the function defined in web_sys which allows passing wasm_bindgen
+        /// [`Closure`] directly.
+        pub fn $name<T: ?Sized + 'static>(
+            target: &web_sys::EventTarget,
+            name: &str,
+            closure: Closure<T>
+            $(,$arg : $tp)*
+        ) -> EventListenerHandle {
+            let listener = closure.as_ref().unchecked_ref::<Function>().clone();
+            // Please note that using [`ok`] is safe here, as according to MDN this function never
+            // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener.
+            target.$wbindgen_name(name, &listener $(,$arg)*).ok();
+            let target = target.clone();
+            let name = name.into();
+            EventListenerHandle::new(target, name, listener, closure)
+        }
+    };
 }
 
-/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
-/// directly.
-pub fn add_event_listener_with_bool<T: ?Sized>(
-    target: &web_sys::EventTarget,
-    name: &str,
-    listener: Closure<T>,
-    options: bool,
-) -> EventListenerHandle {
-    let listener = listener.as_ref().unchecked_ref::<Function>().clone();
-    // Please note that using [`ok`] is safe here, as according to MDN this function never
-    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener .
-    target.add_event_listener_with_callback_and_bool(name, &listener, options).ok();
-    let target = target.clone();
-    let name = name.into();
-    EventListenerHandle::new(target, name, listener)
-}
-
-/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
-/// directly.
-pub fn add_event_listener_with_options<T: ?Sized>(
-    target: &web_sys::EventTarget,
-    name: &str,
-    listener: Closure<T>,
-    options: &web_sys::AddEventListenerOptions,
-) -> EventListenerHandle {
-    let listener = listener.as_ref().unchecked_ref::<Function>().clone();
-    // Please note that using [`ok`] is safe here, as according to MDN this function never
-    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener .
-    target
-        .add_event_listener_with_callback_and_add_event_listener_options(name, &listener, options)
-        .ok();
-    let target = target.clone();
-    let name = name.into();
-    EventListenerHandle::new(target, name, listener)
-}
+gen_add_event_listener!(add_event_listener, add_event_listener_with_callback);
+gen_add_event_listener!(
+    add_event_listener_with_bool,
+    add_event_listener_with_callback_and_bool,
+    options: bool
+);
+gen_add_event_listener!(
+    add_event_listener_with_options,
+    add_event_listener_with_callback_and_add_event_listener_options,
+    options: &web_sys::AddEventListenerOptions
+);
 
 
 
