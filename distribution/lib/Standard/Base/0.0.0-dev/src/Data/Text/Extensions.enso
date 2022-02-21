@@ -777,6 +777,19 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
      ensures that different ways of expressing the same character in the
      underlying binary representation are considered equal.
 
+     This however is not always well handled by the regex engine. The behaviour
+     is as follows:
+
+         'ś' . contains 's' == False
+         's\u{301}' . contains 's' == False
+         's\u{301}' . contains 'ś' == True
+         'ś' . contains 's\u{301}' == True
+
+         'ś' . contains 's' (Regex_Matcher.new) == True
+         's\u{301}' . contains 's' (Regex_Matcher.new) == True
+         's\u{301}' . contains 'ś' (Regex_Matcher.new) == True
+         'ś' . contains 's\u{301}' (Regex_Matcher.new) == True
+
    > Example
      See if the text "Hello" contains the text "ell".
 

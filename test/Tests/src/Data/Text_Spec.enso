@@ -251,12 +251,31 @@ spec =
             "123 meters and 4 centimeters" . contains "[0-9]+" Regex_Matcher.new . should_be_true
             "foo" . contains "[0-9]+" Regex_Matcher.new . should_be_false
 
+            'ś' . contains 's' . should_be_false
+            's\u{301}' . contains 's' . should_be_false
+            's\u{301}' . contains 'ś' . should_be_true
+            'ś' . contains 's\u{301}' . should_be_true
+
+            ## These first two cases are not really desirable, but we are
+               documenting here what is the current behaviour.
+            ## This shows what regex is doing by default and we cannot easily fix
+               that.
+            's\u{301}' . contains 's' (Regex_Matcher.new) . should_be_true
+            ## This would normally be false, but we perform input normalization
+               to get results that are consistent regardless of if the input was
+               normalized or not.
+            'ś' . contains 's' (Regex_Matcher.new) . should_be_true
+            's\u{301}' . contains 'ś' (Regex_Matcher.new) . should_be_true
+            'ś' . contains 's\u{301}' (Regex_Matcher.new) . should_be_true
+
             "Cześć" . contains "ś" Regex_Matcher.new . should_be_true
-            "Cześć" . contains "s" Regex_Matcher.new . should_be_false
             "Cześć" . contains 's\u{301}' Regex_Matcher.new . should_be_true
             'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher.new . should_be_true
             'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher.new . should_be_true
-            'Czes\u{301}c\u{301}' . contains 's' Regex_Matcher.new . should_be_false
+            ## These two tests below are disabled due to how regex is handling
+               letters with accents. See the tests above for explanation.
+            #"Cześć" . contains "s" Regex_Matcher.new . should_be_false
+            #'Czes\u{301}c\u{301}' . contains 's' Regex_Matcher.new . should_be_false
 
             "fooBar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
             "foar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
