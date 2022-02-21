@@ -10,8 +10,11 @@ pull_request_rules:
 
           {{ body | get_section("### Pull Request Description", "") }}
 
-          {{ body | get_section("### Important Notes", "") }}
-
+          {% set notes = body | get_section("### Important Notes", "") %}
+          {% if notes %}
+            # Important Notes
+            {{ notes }}
+          {% endif %}
   - name: Automatic PR update
     conditions:
       - "label=CI: Ready to merge"
