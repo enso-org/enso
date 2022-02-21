@@ -119,20 +119,28 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 pub type JsEventHandler<T = JsValue> = Closure<dyn FnMut(T)>;
 
 /// Handler for event listeners. Unregisters the listener when dropped.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct EventListenerHandle {
+    rc: Rc<EventListenerHandleData>,
+}
+
+impl EventListenerHandle {
+    /// Constructor.
+    pub fn new(target: EventTarget, name: ImString, listener: Function) -> Self {
+        let data = EventListenerHandleData { target, name, listener };
+        let rc = Rc::new(data);
+        Self { rc }
+    }
+}
+
+#[derive(Debug)]
+struct EventListenerHandleData {
     target:   EventTarget,
     name:     ImString,
     listener: Function,
 }
 
-impl CloneRef for EventListenerHandle {
-    fn clone_ref(&self) -> Self {
-        self.clone()
-    }
-}
-
-impl Drop for EventListenerHandle {
+impl Drop for EventListenerHandleData {
     fn drop(&mut self) {
         self.target.remove_event_listener_with_callback(&self.name, &self.listener).ok();
     }
@@ -151,7 +159,7 @@ pub fn add_event_listener<T: ?Sized>(
     target.add_event_listener_with_callback(name, &listener).ok();
     let target = target.clone();
     let name = name.into();
-    EventListenerHandle { target, name, listener }
+    EventListenerHandle::new(target, name, listener)
 }
 
 /// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
@@ -168,7 +176,7 @@ pub fn add_event_listener_with_bool<T: ?Sized>(
     target.add_event_listener_with_callback_and_bool(name, &listener, options).ok();
     let target = target.clone();
     let name = name.into();
-    EventListenerHandle { target, name, listener }
+    EventListenerHandle::new(target, name, listener)
 }
 
 /// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
@@ -187,7 +195,7 @@ pub fn add_event_listener_with_options<T: ?Sized>(
         .ok();
     let target = target.clone();
     let name = name.into();
-    EventListenerHandle { target, name, listener }
+    EventListenerHandle::new(target, name, listener)
 }
 
 
