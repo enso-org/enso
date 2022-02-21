@@ -7,9 +7,13 @@ pull_request_rules:
         method: squash
         commit_message_template: |
           {{ title }} (#{{ number }})
-
           {{ body | get_section("### Pull Request Description", "") }}
-
+          
+          {% set notes = body | get_section("### Important Notes", "") -%}
+          {%- if notes -%}
+          # Important Notes
+          {{ notes }}
+          {%- endif -%}
   - name: Automatic PR update
     conditions:
       - "label=CI: Ready to merge"
