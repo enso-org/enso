@@ -183,7 +183,8 @@ type Pattern
          on the encoding, we normalize all input.
     build_matcher : Text -> Integer -> Integer -> Java_Matcher
     build_matcher input start end =
-        normalized_input = Text_Utils.normalize input
+        normalized_input = if this.options.contains Global_Option.Ascii_Matching then input else
+            Text_Utils.normalize input
         internal_matcher = this.internal_pattern.matcher normalized_input . region start end
 
         if this.options.contains No_Anchoring_Bounds then
