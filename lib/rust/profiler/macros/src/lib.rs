@@ -31,11 +31,10 @@ use syn::visit_mut::VisitMut;
 // === define_hierarchy! ===
 // =========================
 
-#[allow(non_snake_case)]
 /// Define a profiler type.
 fn define_profiler(
     level: &syn::Ident,
-    ObjIdent: &syn::Ident,
+    obj_ident: &syn::Ident,
     enabled: bool,
 ) -> proc_macro::TokenStream {
     let start = quote::format_ident!("start_{}", level);
@@ -55,14 +54,14 @@ fn define_profiler(
 
             #[doc = #doc_obj]
             #[derive(Copy, Clone, Debug)]
-            pub struct #ObjIdent(pub EventId);
+            pub struct #obj_ident(pub EventId);
 
 
             // === Trait Implementations ===
 
-            impl Profiler for #ObjIdent {
+            impl Profiler for #obj_ident {
                 fn start(parent: EventId, label: Label, time: Option<Timestamp>) -> Self {
-                    #ObjIdent(EventLog.start(parent, label, time))
+                    #obj_ident(EventLog.start(parent, label, time))
                 }
                 fn finish(self) {
                     EventLog.end(self.0, Timestamp::now())
@@ -84,7 +83,7 @@ fn define_profiler(
                 ($parent: expr, $label: expr) => {{
                     use profiler::Parent;
                     let label = concat!($label, " (", file!(), ":", line!(), ")");
-                    let profiler: profiler::Started<profiler::#ObjIdent> = $parent.new_child(label);
+                    let profiler: profiler::Started<profiler::#obj_ident> = $parent.new_child(label);
                     profiler
                 }}
             }
@@ -95,7 +94,7 @@ fn define_profiler(
                 ($parent: expr, $label: expr) => {{
                     use profiler::Parent;
                     let label = concat!($label, " (", file!(), ":", line!(), ")");
-                    let profiler: profiler::Started<profiler::#ObjIdent> =
+                    let profiler: profiler::Started<profiler::#obj_ident> =
                         $parent.new_child_same_start(label);
                     profiler
                 }}
@@ -109,12 +108,12 @@ fn define_profiler(
 
             #[doc = #doc_obj]
             #[derive(Copy, Clone, Debug)]
-            pub struct #ObjIdent(pub ());
+            pub struct #obj_ident(pub ());
 
 
             // === Trait Implementations ===
 
-            impl Profiler for #ObjIdent {
+            impl Profiler for #obj_ident {
                 fn start(_: EventId, _: Label, _: Option<Timestamp>) -> Self { Self(()) }
                 fn finish(self) {}
                 fn pause(&self) {}
@@ -128,14 +127,14 @@ fn define_profiler(
             #[macro_export]
             macro_rules! #start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started(profiler::#ObjIdent(()))
+                    profiler::Started(profiler::#obj_ident(()))
                 }
             }
             #[macro_export]
             #[doc = #doc_with_same_start]
             macro_rules! #with_same_start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started(profiler::#ObjIdent(()))
+                    profiler::Started(profiler::#obj_ident(()))
                 }
             }
         }
@@ -145,19 +144,18 @@ fn define_profiler(
 
 /// Generates an implementation of the [`Parent`] trait relating the given parent and child, when
 /// both are enabled.
-#[allow(non_snake_case)]
 fn enabled_impl_parent(
-    ParentIdent: &syn::Ident,
-    ChildIdent: &syn::Ident,
+    parent_ident: &syn::Ident,
+    child_ident: &syn::Ident,
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
-        impl Parent<#ChildIdent> for #ParentIdent {
-            fn new_child(&self, label:Label) -> Started<#ChildIdent> {
+        impl Parent<#child_ident> for #parent_ident {
+            fn new_child(&self, label:Label) -> Started<#child_ident> {
                 let start = Some(Timestamp::now());
-                Started(#ChildIdent::start(self.0, label, start))
+                Started(#child_ident::start(self.0, label, start))
             }
-            fn new_child_same_start(&self, label:Label) -> Started<#ChildIdent> {
-                Started(#ChildIdent::start(self.0, label, None))
+            fn new_child_same_start(&self, label:Label) -> Started<#child_ident> {
+                Started(#child_ident::start(self.0, label, None))
             }
         }
     };
@@ -166,18 +164,17 @@ fn enabled_impl_parent(
 
 /// Generates an implementation of the [`Parent`] trait relating the given parent and child, when
 /// the child is disabled.
-#[allow(non_snake_case)]
 fn disabled_impl_parent(
-    ParentIdent: &syn::Ident,
-    ChildIdent: &syn::Ident,
+    parent_ident: &syn::Ident,
+    child_ident: &syn::Ident,
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
-        impl Parent<#ChildIdent> for #ParentIdent {
-            fn new_child(&self, label: Label) -> Started<#ChildIdent> {
+        impl Parent<#child_ident> for #parent_ident {
+            fn new_child(&self, label: Label) -> Started<#child_ident> {
                 self.new_child_same_start(label)
             }
-            fn new_child_same_start(&self, _label: Label) -> Started<#ChildIdent> {
-                Started(#ChildIdent(()))
+            fn new_child_same_start(&self, _label: Label) -> Started<#child_ident> {
+                Started(#child_ident(()))
             }
         }
     };
@@ -212,20 +209,19 @@ fn get_enabled_level(levels: &[impl AsRef<str>]) -> usize {
 ///
 /// Profiler-level names should be given in CamelCase.
 #[proc_macro]
-#[allow(non_snake_case)]
 pub fn define_hierarchy(ts: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let parser = punctuated::Punctuated::<syn::Ident, syn::Token![,]>::parse_terminated;
     let idents: Vec<_> = parser.parse(ts).unwrap().into_iter().collect();
     let level_names: Vec<_> = idents.iter().map(|id| id.to_string().to_snake_case()).collect();
     let enabled_level = get_enabled_level(&level_names);
     let mut out = proc_macro::TokenStream::new();
-    for ((i, ObjIdent), level_name) in idents.iter().enumerate().zip(level_names.iter()) {
+    for ((i, obj_ident), level_name) in idents.iter().enumerate().zip(level_names.iter()) {
         let snake_ident = syn::Ident::new(level_name, proc_macro2::Span::call_site());
-        out.extend(define_profiler(&snake_ident, ObjIdent, enabled_level >= i));
-        for (j, ChildIdent) in idents[i..].iter().enumerate() {
+        out.extend(define_profiler(&snake_ident, obj_ident, enabled_level >= i));
+        for (j, child_ident) in idents[i..].iter().enumerate() {
             let parent_impl = match enabled_level >= i + j {
-                true => enabled_impl_parent(ObjIdent, ChildIdent),
-                false => disabled_impl_parent(ObjIdent, ChildIdent),
+                true => enabled_impl_parent(obj_ident, child_ident),
+                false => disabled_impl_parent(obj_ident, child_ident),
             };
             out.extend(parent_impl);
         }
@@ -247,20 +243,18 @@ pub fn profile(
     ts: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let mut func = syn::parse_macro_input!(ts as syn::ItemFn);
-    #[allow(non_snake_case)]
-    let ObjIdent: syn::Ident = syn::parse(args)
+    let obj_ident: syn::Ident = syn::parse(args)
         .expect("The `profile` macro requires a profiling-level argument, e.g. #[profile(Task)]");
     let label = make_label(&func.sig.ident);
     match func.sig.asyncness {
-        Some(_) => profile_async(ObjIdent, label, &mut func),
-        None => profile_sync(ObjIdent, label, &mut func),
+        Some(_) => profile_async(obj_ident, label, &mut func),
+        None => profile_sync(obj_ident, label, &mut func),
     };
     func.into_token_stream().into()
 }
 
-#[allow(non_snake_case)]
-fn profile_async(ObjIdent: syn::Ident, label: String, func: &mut syn::ItemFn) {
-    let start_profiler = start_profiler(ObjIdent, label, func.sig.asyncness.is_some());
+fn profile_async(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
+    let start_profiler = start_profiler(obj_ident, label, func.sig.asyncness.is_some());
     for s in &mut func.block.stmts {
         WrapAwait.visit_stmt_mut(s);
     }
@@ -286,9 +280,8 @@ fn profile_async(ObjIdent: syn::Ident, label: String, func: &mut syn::ItemFn) {
     func.block = syn::parse2(body).unwrap();
 }
 
-#[allow(non_snake_case)]
-fn profile_sync(ObjIdent: syn::Ident, label: String, func: &mut syn::ItemFn) {
-    let start_profiler = start_profiler(ObjIdent, label, func.sig.asyncness.is_some());
+fn profile_sync(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
+    let start_profiler = start_profiler(obj_ident, label, func.sig.asyncness.is_some());
     let block = &func.block;
     let body = quote::quote! {{
         #start_profiler
@@ -297,13 +290,12 @@ fn profile_sync(ObjIdent: syn::Ident, label: String, func: &mut syn::ItemFn) {
     func.block = syn::parse2(body).unwrap();
 }
 
-#[allow(non_snake_case)]
 fn start_profiler(
-    ObjIdent: syn::Ident,
+    obj_ident: syn::Ident,
     label: String,
     asyncness: bool,
 ) -> proc_macro2::TokenStream {
-    // TODO Optimization: pause_at(now)
+    // TODO[kw] Optimization: pause_at(now)
     let start_await = match asyncness {
         true => quote::quote! { profiler.pause(); },
         false => quote::quote! {},
@@ -313,7 +305,7 @@ fn start_profiler(
             use profiler::Profiler;
             let parent = profiler::IMPLICIT_ID;
             let now = Some(profiler::Timestamp::now());
-            let profiler = profiler::#ObjIdent::start(parent, #label, now);
+            let profiler = profiler::#obj_ident::start(parent, #label, now);
             #start_await
             profiler::Started(profiler)
         };
