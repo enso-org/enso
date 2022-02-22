@@ -295,7 +295,6 @@ fn start_profiler(
     label: String,
     asyncness: bool,
 ) -> proc_macro2::TokenStream {
-    // TODO[kw] Optimization: pause_at(now)
     let start_await = match asyncness {
         true => quote::quote! { profiler.pause(); },
         false => quote::quote! {},

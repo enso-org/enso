@@ -382,8 +382,6 @@ pub mod internal {
     // === EVENTS ===
     // ==============
 
-    // TODO: A vec of enums has a huge space overhead; as events occur, we should write log
-    // entries into a buffer in an internal binary format.
     thread_local! {
         /// Global log of [`Events`]s.
         pub static EVENTS: LocalVecBuilder<Event> = LocalVecBuilder::new();
@@ -570,8 +568,8 @@ macro_rules! await_ {
 /// # use enso_profiler as profiler;
 /// # use enso_profiler::profile;
 /// #[profile(Detail)]
-/// fn example(input: i16) -> u32 {
-///     todo!()
+/// fn example(input: u32) -> u32 {
+///     input
 /// }
 /// ```
 ///
@@ -580,7 +578,7 @@ macro_rules! await_ {
 /// ```
 /// # use enso_profiler as profiler;
 /// # use enso_profiler::profile;
-/// fn example(_input: i16) -> u32 {
+/// fn example(input: u32) -> u32 {
 ///     let __profiler_scope = {
 ///         use profiler::Profiler;
 ///         let parent = profiler::IMPLICIT_ID;
@@ -589,7 +587,7 @@ macro_rules! await_ {
 ///         profiler::Started(profiler)
 ///     };
 ///     {
-///         todo!()
+///         input
 ///     }
 /// }
 /// ```
@@ -600,8 +598,8 @@ macro_rules! await_ {
 /// # use enso_profiler as profiler;
 /// # use enso_profiler::profile;
 /// #[profile(Detail)]
-/// async fn example(input: i16) -> u32 {
-///     todo!()
+/// async fn example(input: u32) -> u32 {
+///     input
 /// }
 /// ```
 ///
@@ -610,7 +608,7 @@ macro_rules! await_ {
 /// ```
 /// # use enso_profiler as profiler;
 /// # use enso_profiler::profile;
-/// fn async_example(_input: i16) -> impl std::future::Future<Output = u32> {
+/// fn async_example(input: u32) -> impl std::future::Future<Output = u32> {
 ///     let __profiler_scope = {
 ///         use profiler::Profiler;
 ///         let parent = profiler::IMPLICIT_ID;
@@ -621,7 +619,7 @@ macro_rules! await_ {
 ///     };
 ///     async move {
 ///         profiler::Profiler::resume(&__profiler_scope.0);
-///         let result = { todo!() };
+///         let result = { input };
 ///         std::mem::drop(__profiler_scope);
 ///         result
 ///     }
