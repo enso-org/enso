@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+approx = "0.5.1"
 ensogl = { path = "../lib/rust/ensogl" }
 enso-frp = { path = "../lib/rust/frp" }
 enso-prelude = { path = "../lib/rust/prelude" }

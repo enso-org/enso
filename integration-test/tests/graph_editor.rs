@@ -1,5 +1,6 @@
 use enso_integration_test::prelude::*;
 
+use approx::assert_abs_diff_eq;
 use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
 use std::time::Duration;
@@ -72,43 +73,28 @@ async fn zooming() {
     let navigator = &graph_editor.model.navigator;
 
     let zoom_on_center = |amount: f32| ZoomEvent { focus: Vector2(0.0, 0.0), amount };
-    let acceptable_range = 0.999..1.001;
     let zoom_duration_ms = Duration::from_millis(1000);
 
     // Without debug mode
     navigator.emit_zoom_event(zoom_on_center(-1.0));
     sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(
-        acceptable_range.contains(&camera.zoom()),
-        "Camera zoom {} must be near 1.0",
-        camera.zoom()
-    );
+    assert_abs_diff_eq!(camera.zoom(), 1.0, epsilon = 0.001);
     navigator.emit_zoom_event(zoom_on_center(1.0));
     sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
     assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
     navigator.emit_zoom_event(zoom_on_center(-2.0));
     sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(
-        acceptable_range.contains(&camera.zoom()),
-        "Camera zoom {} must be near 1.0",
-        camera.zoom()
-    );
+    assert_abs_diff_eq!(camera.zoom(), 1.0, epsilon = 0.001);
 
     // With debug mode
     project.enable_debug_mode();
     navigator.emit_zoom_event(zoom_on_center(-1.0));
     sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
     assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
     navigator.emit_zoom_event(zoom_on_center(5.0));
     sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
     assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
     navigator.emit_zoom_event(zoom_on_center(-5.0));
     sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
     assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
 }
