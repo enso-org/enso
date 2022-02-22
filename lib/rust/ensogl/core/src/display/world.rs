@@ -1,8 +1,6 @@
 //! This module implements `World`, the main object responsible for handling what you see on the
 //! screen.
 
-pub mod stats;
-
 pub use crate::display::symbol::types::*;
 
 use crate::prelude::*;
@@ -11,6 +9,7 @@ use crate::animation;
 use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
+use crate::debug;
 use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
@@ -63,7 +62,8 @@ pub struct World {
     main_loop:          animation::DynamicLoop,
     uniforms:           Uniforms,
     stats:              Stats,
-    stats_monitor:      stats::Monitor,
+    stats_monitor:      debug::monitor::Monitor,
+    stats_draw_handle:  callback::Handle,
     main_loop_frame:    callback::Handle,
     on_before_frame:    callback::SharedRegistryMut1<animation::TimeInfo>,
     on_after_frame:     callback::SharedRegistryMut1<animation::TimeInfo>,
@@ -75,24 +75,27 @@ impl World {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(dom: &web_sys::HtmlElement) -> World {
         let logger = Logger::new("world");
-        let stats = default();
+        let stats = debug::stats::Stats::new(web::performance());
         let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
         let scene = Scene::new(dom, &logger, &stats, on_change);
         let uniforms = Uniforms::new(&scene.variables);
         let main_loop = animation::DynamicLoop::new();
-        let stats_monitor = stats::Monitor::new(&stats);
+        let stats_monitor = debug::monitor::Monitor::new();
         let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();
+        let stats_draw_handle = on_stats_available.add(f!([stats_monitor] (stats: &StatsData) {
+            stats_monitor.sample_and_draw(stats);
+        }));
         let main_loop_frame = main_loop.on_frame(
-            f!([stats_monitor,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
+            f!([stats,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
-                stats_monitor.begin();
+                let previous_frame_stats = stats.begin_frame();
                 on_before_frame.run_all(&t);
-                if let Some(stats) = stats_monitor.previous_frame_stats() {
+                if let Some(stats) = previous_frame_stats {
                     on_stats_available.run_all(&stats);
                 }
 
@@ -102,7 +105,7 @@ impl World {
                 scene.renderer.run();
 
                 on_after_frame.run_all(&t);
-                stats_monitor.end();
+                stats.end_frame();
             }),
         );
 
@@ -114,6 +117,7 @@ impl World {
             uniforms,
             stats,
             stats_monitor,
+            stats_draw_handle,
             main_loop_frame,
             on_before_frame,
             on_after_frame,
