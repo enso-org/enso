@@ -1357,6 +1357,8 @@ impl GraphEditorModelWithNetwork {
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
             self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
+        // FIXME: only calculate when needed
+        let nearest_node = self.find_nearest_node(&mouse_position);
         let position: Vector2 = match way {
             AddNodeEvent => default(),
             StartCreationEvent | ClickingButton if selection.is_some() =>
@@ -1372,6 +1374,26 @@ impl GraphEditorModelWithNetwork {
             node.view.set_expression(node::Expression::default());
         }
         (node.id(), source, should_edit)
+    }
+
+    fn find_nearest_node(&self, mouse_position: Vector2) -> Option<NodeId> {
+        let mut min_distance_squared = f64::MAX;
+        let mut node_id = None;
+        for node in nodes.values() {
+            // TODO: should we use some better reference point on a node for the "nearest node"
+            // calculation? alternatives, in order of complexity:
+            //  a) node.position(),
+            //  b) the geometrical center of the node's area,
+            //  c) a point on the bounding box of the node that is closest to the mouse pointer,
+            //  d) a point on the rounded rectangle forming the node's edge that is closest to the
+            //     mouse pointer.
+            let mouse_to_node_vector = node.position() - mouse_position;
+            let distance_squared = mouse_to_node_vector.norm_squared();
+            if distance_squared < min_distance_squared {
+                min_distance_squared = distance_squared;
+                node_id = Some(node.id);
+            }
+        }
     }
 
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
