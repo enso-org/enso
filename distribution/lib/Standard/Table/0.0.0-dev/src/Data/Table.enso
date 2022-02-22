@@ -258,7 +258,8 @@ type Table
            `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
          - If there are no columns in the output table, a `No_Output_Columns`.
        - warnings: A `Warning_System` instance specifying how to handle
          warnings. This is a temporary workaround to allow for testing the
@@ -311,7 +312,8 @@ type Table
            `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
          - If there are no columns in the output table, a `No_Output_Columns`.
        - warnings: A `Warning_System` instance specifying how to handle
          warnings. This is a temporary workaround to allow for testing the
@@ -365,7 +367,8 @@ type Table
            `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
        - warnings: A `Warning_System` instance specifying how to handle
          warnings. This is a temporary workaround to allow for testing the
          warning mechanism. Once the proper warning system is implemented, this
