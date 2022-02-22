@@ -162,13 +162,12 @@ pub type Label = &'static str;
 
 
 #[cfg(target_arch = "wasm32")]
-#[cfg(not(target_arch = "wasm32"))]
-pub fn now() -> f64 {
+fn now() -> f64 {
     use enso_web as web;
     web::performance().now()
 }
 #[cfg(not(target_arch = "wasm32"))]
-pub fn now() -> f64 {
+fn now() -> f64 {
     0.0
 }
 
@@ -208,45 +207,6 @@ impl Timestamp {
     /// Convert to an offset from the time origin, in ms.
     pub fn into_ms(self) -> f64 {
         (self.0.get() - TS_OFFSET) as f64 / 10.0
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        use wasm_bindgen::prelude::*;
-
-        #[wasm_bindgen]
-        extern "C" {
-            /// The
-            /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-            /// method returns a double-precision float, measured in milliseconds.
-            ///
-            /// The returned value represents the time elapsed since the time origin, which is when
-            /// the page began to load.
-            #[wasm_bindgen(js_namespace = performance)]
-            pub fn now() -> f64;
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        /// The
-        /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-        /// method returns a double-precision float, measured in milliseconds.
-        ///
-        /// The returned value represents the time elapsed since the time origin, which is when
-        /// the page began to load.
-        // This mock implementation returns a dummy value.
-        pub fn now() -> f64 {
-            0.0
-        }
     }
 }
 
