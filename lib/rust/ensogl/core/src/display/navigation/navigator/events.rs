@@ -257,8 +257,8 @@ impl NavigatorEvents {
                     let zoom_speed = data.zoom_speed();
                     let movement = Vector2::new(event.delta_x() as f32, -event.delta_y() as f32);
                     let amount = movement_to_zoom(movement);
-                    if let Some(zoom_event) = ZoomEvent::new(position, amount, zoom_speed) {
-                        data.on_zoom(zoom_event);
+                    if let Some(event) = ZoomEvent::new(position, amount, zoom_speed) {
+                        data.on_zoom(event);
                     }
                 } else {
                     let x = -event.delta_x() as f32;
@@ -334,9 +334,8 @@ impl NavigatorEvents {
                         MovementType::Zoom { focus } => {
                             let zoom_speed = data.zoom_speed();
                             let zoom_amount = movement_to_zoom(movement);
-                            if let Some(zoom_event) = ZoomEvent::new(focus, zoom_amount, zoom_speed)
-                            {
-                                data.on_zoom(zoom_event);
+                            if let Some(event) = ZoomEvent::new(focus, zoom_amount, zoom_speed) {
+                                data.on_zoom(event);
                             }
                         }
                         MovementType::Pan => {
