@@ -4,6 +4,7 @@ from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
+from Standard.Base.Data.Text.Text_Sub_Range import all
 import Standard.Test
 
 type Auto a
@@ -154,10 +155,148 @@ spec =
 
         Test.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
-            txt.take_first 2 . should_equal (kshi + facepalm)
-            txt.drop_first 2 . should_equal (accent_1 + accent_2)
-            txt.take_last  2 . should_equal (accent_1 + accent_2)
-            txt.drop_last  2 . should_equal (kshi + facepalm)
+            txt.take (First 2) . should_equal (kshi + facepalm)
+            txt.drop (First 2) . should_equal (accent_1 + accent_2)
+            txt.take (Last 2) . should_equal (accent_1 + accent_2)
+            txt.drop (Last 2) . should_equal (kshi + facepalm)
+
+        Test.specify "take should work as in the examples" <|
+            "Hello World!".take First.new . should_equal "H"
+            "Hello World!".take (First 5) . should_equal "Hello"
+            "Hello World!".take (First 100) . should_equal "Hello World!"
+            "Hello World!".take (First 0) . should_equal ""
+            "Hello World!".take Last.new . should_equal "!"
+            "Hello World!".take (Last 6) . should_equal "World!"
+            "Hello World!".take (Last 100) . should_equal "Hello World!"
+            "Hello World!".take (Before " ") . should_equal "Hello"
+            "Hello World!".take (Before "z") . should_equal "Hello World!"
+            "Hello World!".take (Before_Last "o") . should_equal "Hello W"
+            "Hello World!".take (Before_Last "z") . should_equal "Hello World!"
+            "Hello World!".take (After " ") . should_equal "World!"
+            "Hello World!".take (After "z") . should_equal ""
+            "Hello World!".take (After_Last "o") . should_equal "rld!"
+            "Hello World!".take (After_Last "z") . should_equal ""
+            "Hello World!".take (While c->c!=" ") . should_equal "Hello"
+            "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
+            "Hello World!".take (Range 3 5) . should_equal "lo"
+            "Hello World!".take (Range -3 -1) . should_equal "ld"
+            "Hello World!".take (Range -3 Nothing) . should_equal "ld!"
+            "Hello World!".take (Range 5 Nothing) . should_equal " World!"
+            "Hello World!".take (Range 5 12) . should_equal " World!"
+            "Hello World!".take (Range 12 12) . should_equal ""
+
+        Test.specify "take should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+            "Hello World!".take (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "take should work on grapheme clusters" <|
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 2) . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 5) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 6) . should_equal 'Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 5) . should_equal 'o\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{308}') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o\u{308}') . should_equal 'rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal 'lo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal 'ld'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 Nothing) . should_equal 'ld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 Nothing) . should_equal ' Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 12 12) . should_equal ''
+
+        Test.specify "take should work on emojis" <|
+            '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'
+            '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
+            '✨🚀🚧😍😃😎😙😉☺'.take Last.new . should_equal '☺'
+            '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before '😍') . should_equal '✨🚀🚧'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before_Last '😍') . should_equal '✨🚀🚧😍😃'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (After '😍') . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (After_Last '😍') . should_equal '😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 6) . should_equal '😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 Nothing) . should_equal '😍😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 Nothing) . should_equal '😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 -1) . should_equal '😙😉'
+
+        Test.specify "drop should work as in the examples" <|
+            "Hello World!".drop First.new . should_equal "ello World!"
+            "Hello World!".drop (First 5) . should_equal " World!"
+            "Hello World!".drop (First 100) . should_equal ""
+            "Hello World!".drop (First 0) . should_equal "Hello World!"
+            "Hello World!".drop Last.new . should_equal "Hello World"
+            "Hello World!".drop (Last 6) . should_equal "Hello "
+            "Hello World!".drop (Last 100) . should_equal ""
+            "Hello World!".drop (Before " ") . should_equal " World!"
+            "Hello World!".drop (Before "z") . should_equal ""
+            "Hello World!".drop (Before_Last "o") . should_equal "orld!"
+            "Hello World!".drop (Before_Last "z") . should_equal ""
+            "Hello World!".drop (After " ") . should_equal "Hello "
+            "Hello World!".drop (After "z") . should_equal "Hello World!"
+            "Hello World!".drop (After_Last "o") . should_equal "Hello Wo"
+            "Hello World!".drop (After_Last "z") . should_equal "Hello World!"
+            "Hello World!".drop (While c->c!=" ") . should_equal " World!"
+            "Hello World!".drop (While c->c!="z") . should_equal ""
+            "Hello World!".drop (Range 3 5) . should_equal "Hel World!"
+            "Hello World!".drop (Range -3 -1) . should_equal "Hello Wor!"
+            "Hello World!".drop (Range -3 Nothing) . should_equal "Hello Wor"
+            "Hello World!".drop (Range 5 Nothing) . should_equal "Hello"
+            "Hello World!".drop (Range 5 12) . should_equal "Hello"
+            "Hello World!".drop (Range 12 12) . should_equal "Hello World!"
+
+        Test.specify "drop should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+            "Hello World!".drop (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "drop should work on grapheme clusters" <|
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 5) . should_equal ' Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{302}') . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 -1) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 Nothing) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 Nothing) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 12) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 12 12) . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+
+        Test.specify "drop should work on emojis" <|
+            '✨🚀🚧😍😃😎😙😉☺'.drop First.new . should_equal '🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop Last.new . should_equal '✨🚀🚧😍😃😎😙😉'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (Last 3) . should_equal '✨🚀🚧😍😃😎'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before '😍') . should_equal '😍😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before_Last '😍') . should_equal '😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After '😍') . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 6) . should_equal '✨🚀🚧😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 Nothing) . should_equal '✨🚀🚧'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 Nothing) . should_equal '✨🚀🚧😍😃😍😎'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
 
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_lower_case.should_equal "foobar baz"
