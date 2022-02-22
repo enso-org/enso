@@ -222,6 +222,50 @@ public class Text_Utils {
   }
 
   /**
+   * Gets the length of char array of a string
+   *
+   * @param str the string to measure
+   * @return length of the string
+   */
+  public static long char_length(String str) {
+    return str.length();
+  }
+
+  /**
+   * Find the first index of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return index of the first needle or -1 if not found.
+   */
+  public static long index_of(String haystack, String needle) {
+    StringSearch search = new StringSearch(needle, haystack);
+    int pos = search.first();
+    return pos == StringSearch.DONE ? -1 : pos;
+  }
+
+  /**
+   * Find the last index of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return index of the last needle or -1 if not found.
+   */
+  public static long last_index_of(String haystack, String needle) {
+    StringSearch search = new StringSearch(needle, haystack);
+    int pos = search.first();
+    if (pos == StringSearch.DONE) {
+      return -1;
+    }
+
+    for (int next = search.next(); next != StringSearch.DONE; next = search.next()) {
+      pos = next;
+    }
+
+    return pos;
+  }
+
+  /**
    * Normalizes the string to its canonical Unicode form using NFD decomposition.
    *
    * <p>This is to ensure that things like accents are in a common format, i.e. `ś` gets decomposed

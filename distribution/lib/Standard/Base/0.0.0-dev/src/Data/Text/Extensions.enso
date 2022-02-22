@@ -7,6 +7,7 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Split_Kind
+import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
 
@@ -45,13 +46,10 @@ Text.length : Integer
 Text.length =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText this
-    nxt = iterator.next
 
     count accum iter = if iter == -1 then accum else
-        counter = accum + 1
-        next_nxt = iterator.next
-        @Tail_Call count counter next_nxt
-    count 0 nxt
+        @Tail_Call count (accum + 1) iterator.next
+    count 0 iterator.next
 
 ## Applies the provided `function` to each character in `this`.
 
@@ -72,15 +70,10 @@ Text.each function =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText this
 
-    fst = iterator.first
-    nxt = iterator.next
-
     iterate prev nxt = if nxt == -1 then Nothing else
         function (Text_Utils.substring this prev nxt)
-        next_nxt = iterator.next
-        @Tail_Call iterate nxt next_nxt
-    iterate fst nxt
-    Nothing
+        @Tail_Call iterate nxt iterator.next
+    iterate iterator.first iterator.next
 
 ## ALIAS Get Character
 
@@ -112,17 +105,10 @@ Text.at index =
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText this
-
-            loop prev next count = if count == index then (Text_Utils.substring this prev next) else
-                next_next = iterator.next
-                if next_next == -1 then count else
-                    @Tail_Call loop next next_next (count + 1)
-
-            first = iterator.next
-            result = if (first == -1) then 0 else (loop 0 first 0)
-            case result of
-                Integer -> Error.throw (Index_Out_Of_Bounds_Error index result)
-                _ -> result
+            first = iterator.next index
+            next = if first == -1 then -1 else iterator.next
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error index this.length)) else
+                Text_Utils.substring this first next
 
 ## ALIAS Get Characters
 
@@ -850,106 +836,116 @@ Text.repeat : Integer -> Text
 Text.repeat count =
     0.up_to count . fold "" acc-> _-> acc + this
 
-## Creates a new text by removing the first `count` characters of `this`,
-   returning an empty text if `count` is greater than or equal to the length of
-   `this`.
+## PRIVATE
+   Utility function taking a range pointing at grapheme clusters and converting to a range on the underlying code points
+range_to_char_indices : Text -> Range -> Range ! Index_Out_Of_Bounds_Error
+range_to_char_indices text range =
+    len = text.length
+    start = if range.start < 0 then range.start + len else range.start
+    end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
+    is_valid = (Range 0 len+1).contains
+
+    case (Pair (is_valid start) (is_valid end)) of
+        Pair False _ -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
+        Pair True False -> Error.throw (Index_Out_Of_Bounds_Error range.end len)
+        Pair True True ->
+            if start>=end then (Range 0 0) else
+                iterator = BreakIterator.getCharacterInstance
+                iterator.setText text
+
+                start_index = iterator.next start
+                end_index = iterator.next (end - start)
+                Range start_index end_index
+
+## ALIAS first, last, left, right, mid, substring
+   Creates a new Text by selecting the specified range of the input.
+
+   This can select a section of text from the beginning, end, or middle of the
+   input using various criteria defined by the range parameter.
 
    Arguments:
-   - count: The number of characters to remove from the start of `this`.
+   - range: The section of the this text to return.
+     If a `Text_Sub_Range`, then the selection is interpreted following the rules of that type.
+     If a `Range`, the selection is specified by two indices, from and to.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   Returns:
+   The part of the input as specified by the range parameter.
 
-   > Example
-     Removing the first three characters from the text "ABBA".
+   > Examples
+     Various different ways to take part of "Hello World!"
 
-         "ABBA".drop_first 3
-Text.drop_first : Integer -> Text
-Text.drop_first count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.first
-    boundary = iterator.next count
-    if boundary == -1 then '' else Text_Utils.drop_first this boundary
+         "Hello World!".take First.new == "H"
+         "Hello World!".take (First 5) == "Hello"
+         "Hello World!".take (First 0) == ""
+         "Hello World!".take Last.new == "!"
+         "Hello World!".take (Last 6) == "World!"
+         "Hello World!".take (Before " ") == "Hello"
+         "Hello World!".take (Before_Last "o") == "Hello W"
+         "Hello World!".take (After " ") == "World!"
+         "Hello World!".take (After_Last "o") == "rld!"
+         "Hello World!".take (While c->c!=" ") == "Hello"
+         "Hello World!".take (Range 3 5) == "lo"
+         "Hello World!".take (Range -3 -1) == "ld"
+         "Hello World!".take (Range -3 Nothing) == "ld!"
+         "Hello World!".take (Range 5 Nothing) == " World!"
+         "Hello World!".take (Range 5 12) == " World!"
+         "Hello World!".take (Range 12 12) == ""
+Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.take range =
+    char_range = case range of
+        Range _ _ -> here.range_to_char_indices this range
+        _ -> range.to_char_range this
+    if char_range.is_error then char_range else
+        Text_Utils.substring this char_range.start char_range.end
 
-## Creates a new text by removing the last `count` characters of `this`,
-   returning an empty text if `count` is greater than or equal to the length of
-   `this`.
+## Creates a new Text by removing the specified range of the input.
 
-   Arguments:
-   - count: The number of characters to remove from the end of `this`.
-
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
-
-   > Example
-     Removing the last three characters from the text "ABBA".
-
-         "ABBA".drop_last 3
-Text.drop_last : Integer -> Text
-Text.drop_last count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.last
-    boundary = iterator.next -count
-    if boundary == -1 then '' else Text_Utils.substring this 0 boundary
-
-## Creates a new text by selecting the first `count` characters of `this`,
-   returning `this` if `count` is greater than or equal to the length of `this`.
+   This can select a section of text from the beginning, end, or middle of the
+   input using various criteria defined by the range parameter.
 
    Arguments:
-   - count: The number of characters to take from the start of `this`.
+   - range: The section of the this text to return.
+     If a `Text_Sub_Range`, then the selection is interpreted following the rules of that type.
+     If a `Range`, the selection is specified by two indices, from and to.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   Returns:
+   The part of the input as specified by the range parameter.
 
-   > Example
-     Make a new text from the first two characters of "boo".
+   > Examples
+     Various different ways to take part of "Hello World!"
 
-         "boo".take_first 2
-Text.take_first : Integer -> Text
-Text.take_first count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.first
-    boundary = iterator.next count
-    if boundary == -1 then this else Text_Utils.substring this 0 boundary
-
-## Creates a new text by selecting the last `count` characters of `this`,
-   returning `this` if `count` is greater than or equal to the length of `this`.
-
-   Arguments:
-   - count: The number of characters to take from the end of `this`.
-
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
-
-   > Example
-     Make a new text from the last two characters of "boo".
-
-         "boo".take_last 2
-Text.take_last : Integer -> Text
-Text.take_last count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.last
-    boundary = iterator.next -count
-    if boundary == -1 then this else Text_Utils.drop_first this boundary
+         "Hello World!".drop First.new == "ello World!"
+         "Hello World!".drop (First 5) == " World!"
+         "Hello World!".drop (First 0) == "Hello World!"
+         "Hello World!".drop Last.new == "Hello World"
+         "Hello World!".drop (Last 6) == "Hello "
+         "Hello World!".drop (Before " ") == " World!"
+         "Hello World!".drop (Before_Last "o") == "orld!"
+         "Hello World!".drop (After " ") == "Hello "
+         "Hello World!".drop (After_Last "o") == "Hello Wo"
+         "Hello World!".drop (While c->c!=" ") == " World!"
+         "Hello World!".drop (Range 3 5) == "Hel World!"
+         "Hello World!".drop (Range -3 -1) == "Hello Wor!"
+         "Hello World!".drop (Range -3 Nothing) == "Hello Wor"
+         "Hello World!".drop (Range 5 Nothing) == "Hello"
+         "Hello World!".drop (Range 5 12) == "Hello"
+         "Hello World!".drop (Range 12 12) == "Hello World!"
+Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.drop range =
+    char_range = case range of
+        Range _ _ -> here.range_to_char_indices this range
+        _ -> range.to_char_range this
+    if char_range.start == 0 then Text_Utils.drop_first this char_range.end else
+        prefix = Text_Utils.substring this 0 char_range.start
+        if char_range.end == (Text_Utils.char_length this) then prefix else
+            prefix + Text_Utils.drop_first this char_range.end
 
 ## ALIAS Lower Case
 
    Converts each character in `this` to lower case.
 
    Arguments:
-   - locale: specifies the locale for charater case mapping. Defaults to the
+   - locale: specifies the locale for character case mapping. Defaults to the
      `Locale.default` locale.
 
    ! What is a Character?
@@ -978,7 +974,7 @@ Text.to_lower_case locale=Locale.default =
    Converts each character in `this` to upper case.
 
    Arguments:
-   - locale: specifies the locale for charater case mapping. Defaults to
+   - locale: specifies the locale for character case mapping. Defaults to
      `Locale.default`.
 
    ! What is a Character?
@@ -1001,4 +997,3 @@ Text.to_lower_case locale=Locale.default =
 Text.to_upper_case : Locale.Locale -> Text
 Text.to_upper_case locale=Locale.default =
     UCharacter.toUpperCase locale.java_locale this
-

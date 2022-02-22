@@ -1,0 +1,126 @@
+from Standard.Base import all
+from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
+
+polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import org.enso.base.Text_Utils
+
+## Type defining a substring of a Text
+type Text_Sub_Range
+    ## Select the first `count` characters.
+       Select an empty string if `count` is less than or equal to 0.
+       Select the entire string if `count` is greater than the length of the input.
+    type First (count : Integer = 1)
+
+    ## Select the last `count` characters.
+       Select an empty string if `count` is less than or equal to 0.
+       Select the entire string if `count` is greater than the length of the input.
+    type Last (count : Integer = 1)
+
+    ## Select characters until the first instance of `delimiter`.
+       Select an empty string if `delimiter` is empty.
+       Select the entire string if the input does not contain `delimiter`.
+    type Before (delimiter : Text)
+
+    ## Select characters until the last instance of `delimiter`.
+       Select an empty string if `delimiter` is empty.
+       Select the entire string if the input does not contain `delimiter`.
+    type Before_Last (delimiter : Text)
+
+    ## Select characters after the first instance of `delimiter`.
+       Select an empty string if the input does not contain `delimiter`.
+    type After (delimiter : Text)
+
+    ## Select characters after the last instance of `delimiter`.
+       Select an empty string if the input does not contain `delimiter`.
+    type After_Last (delimiter : Text)
+
+    ## Select characters while the predicate returns `True`.
+    type While (predicate : (Text -> Boolean))
+
+    ## PRIVATE
+       Finds code-point indices corresponding to the part of the input matching the `Text_Sub_Range`.
+    to_char_range : Text -> Range
+    to_char_range text =
+
+        ## Utility function to find char indices for Text_Sub_Range.
+           Arguments:
+           - text: Text to search
+           - predicate: Function to test each character, receives:
+             - index: current index
+             - start: index the char array to start of grapheme cluster
+             - end: index the char array to start of next grapheme cluster
+             If the predicate returns True for a given character, the loop will exit.
+           Returns: either a Pair of char indices for current grapheme cluster or
+             Pair -1 (char array length) if not found.
+        find_sub_range_end = text->predicate->
+            iterator = BreakIterator.getCharacterInstance
+            iterator.setText text
+
+            loop index start end =
+                if end == -1 then (Pair -1 start) else
+                    if predicate index start end then (Pair start end) else
+                        @Tail_Call loop (index + 1) end iterator.next
+
+            loop 0 0 iterator.next
+
+        case this of
+            First count ->
+                if count <= 0 then (Range 0 0) else
+                    iterator = BreakIterator.getCharacterInstance
+                    iterator.setText text
+                    start_index = iterator.next count
+                    Range 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
+            Last count ->
+                if count <= 0 then (Range 0 0) else
+                    first_count = text.length - count
+                    iterator = BreakIterator.getCharacterInstance
+                    iterator.setText text
+                    start_index = iterator.next first_count
+                    Range (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
+            Before delimiter ->
+                if delimiter.is_empty then (Range 0 0) else
+                    index = Text_Utils.index_of text delimiter
+                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
+                        (Range 0 index)
+            Before_Last delimiter ->
+                if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
+                    index = Text_Utils.last_index_of text delimiter
+                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
+                        (Range 0 index)
+            After delimiter ->
+                if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
+                    index = Text_Utils.index_of text delimiter
+                    if index == -1 then (Range 0 0) else
+                        (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
+            After_Last delimiter ->
+                if delimiter.is_empty then (Range 0 0) else
+                    index = Text_Utils.last_index_of text delimiter
+                    if index == -1 then (Range 0 0) else
+                        (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
+            While predicate ->
+                indices = find_sub_range_end text _-> start-> end->
+                    predicate (Text_Utils.substring text start end) . not
+                if indices.first == -1 then (Range 0 indices.second) else
+                    Range 0 indices.first
+
+## UNSTABLE
+   A temporary workaround to allow the `First` constructor to work with default
+   arguments.
+
+   It is needed, because there are issues with relying on default arguments of
+   Atom constructors, as described in the following issue:
+   https://github.com/enso-org/enso/issues/1600
+   Once that issue is fixed, it can be removed.
+First.new : Integer -> First
+First.new (count = 1) = First count
+
+## UNSTABLE
+   A temporary workaround to allow the `Last` constructor to work with default
+   arguments.
+
+   It is needed, because there are issues with relying on default arguments of
+   Atom constructors, as described in the following issue:
+   https://github.com/enso-org/enso/issues/1600
+   Once that issue is fixed, it can be removed.
+Last.new : Integer -> Last
+Last.new (count = 1) = Last count

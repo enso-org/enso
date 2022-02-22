@@ -56,13 +56,12 @@ Duplicate_Column_Selectors.to_display_text : Text
 Duplicate_Column_Selectors.to_display_text =
     "The provided Column_Selector has duplicate entries: "+this.duplicate_selectors.short_display_text+"."
 
-## Indicates that the provided indices matched columns which were already
-   matched by other indices, so they do not introduce any new columns to the
-   input.
+## Indicates that the provided indices matched columns already matched by
+   others, so they do not introduce any new columns to the input.
 
-   For example, if the table has only one column, then selecting
-   `By_Index [0, -1]` will only yield this single column and
-   `Input_Indices_Already_Matched [-1]` will be raised.
+  For example, if the table has only one column, then selecting
+  `By_Index [0, -1]` will only yield this single column and
+  `Input_Indices_Already_Matched [-1]` will be raised.
 type Input_Indices_Already_Matched (indices : [Integer])
 
 Input_Indices_Already_Matched.to_display_text : Text
