@@ -124,3 +124,36 @@ impl FlameGraph {
         measurements.into()
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod compile_tests {
+    use super::*;
+    use crate as profiler;
+    use profiler::profile;
+
+    #[profile]
+    pub fn profiled_a(_profiler: profiler::Objective) {
+        profiled_b(_profiler)
+    }
+    #[profile]
+    pub fn profiled_b(_profiler: profiler::Objective) {}
+
+    #[test]
+    fn check_flame_graph_creation() {
+        profiled_a(profiler::APP_LIFETIME);
+
+        let flame_graph = FlameGraph::take_from_log();
+        assert_eq!(flame_graph.blocks.len(), 2);
+
+        assert_eq!(flame_graph.blocks[1].row, 0);
+        assert!(flame_graph.blocks[1].label.contains("profiled_a"));
+        assert_eq!(flame_graph.blocks[0].row, 1);
+        assert!(flame_graph.blocks[0].label.contains("profiled_b"));
+    }
+}
