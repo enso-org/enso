@@ -351,10 +351,12 @@ impl NavigatorEvents {
         self.mouse_move = Some(listener);
     }
 
+    /// Emit zoom event. This function could be used in the tests to simulate user interactions.
     pub fn emit_zoom_event(&self, event: ZoomEvent) {
         self.data.on_zoom(event);
     }
 
+    /// Emit pan event. This function could be used in the tests to simulate user interactions.
     pub fn emit_pan_event(&self, event: PanEvent) {
         self.data.on_pan(event);
     }

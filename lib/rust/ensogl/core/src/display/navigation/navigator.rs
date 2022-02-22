@@ -50,7 +50,7 @@ impl NavigatorModel {
         let pan_speed = Rc::new(Cell::new(Switch::On(1.0)));
         let disable_events = Rc::new(Cell::new(true));
         let max_zoom: Rc<Cell<_>> = default();
-        let (simulator, resize_callback, _events) = Self::start_navigator_events(
+        let (simulator, resize_callback, events) = Self::start_navigator_events(
             scene,
             camera,
             zoom_speed.clone_ref(),
@@ -58,15 +58,7 @@ impl NavigatorModel {
             disable_events.clone_ref(),
             max_zoom.clone_ref(),
         );
-        Self {
-            events: _events,
-            simulator,
-            resize_callback,
-            zoom_speed,
-            pan_speed,
-            disable_events,
-            max_zoom,
-        }
+        Self { events, simulator, resize_callback, zoom_speed, pan_speed, disable_events, max_zoom }
     }
 
     fn create_simulator(camera: &Camera2d) -> physics::inertia::DynSimulator<Vector3> {
@@ -181,10 +173,12 @@ impl NavigatorModel {
         self.max_zoom.set(value);
     }
 
+    /// Emit zoom event. This function could be used in the tests to simulate user interactions.
     pub fn emit_zoom_event(&self, event: ZoomEvent) {
         self.events.emit_zoom_event(event);
     }
 
+    /// Emit pan event. This function could be used in the tests to simulate user interactions.
     pub fn emit_pan_event(&self, event: PanEvent) {
         self.events.emit_pan_event(event);
     }
