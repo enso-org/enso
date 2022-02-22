@@ -5,7 +5,7 @@ object model {
   /** A representation of a position in a text file.
     *
     * @param line a line position in a document (zero-based)
-    * @param character a character offset
+    * @param character a character offset (zero-based)
     */
   case class Position(line: Int, character: Int) extends Ordered[Position] {
 
