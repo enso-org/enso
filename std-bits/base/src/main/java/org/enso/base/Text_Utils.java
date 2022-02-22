@@ -1,6 +1,8 @@
 package org.enso.base;
 
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.Normalizer2;
+import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
@@ -126,18 +128,6 @@ public class Text_Utils {
   }
 
   /**
-   * Checks whether two strings are equal up to Unicode canonicalization ignoring case
-   * considerations.
-   *
-   * @param str1 the first string
-   * @param str2 the second string
-   * @return the result of comparison
-   */
-  public static boolean equals_ignore_case(String str1, String str2) {
-    return Normalizer.compare(str1, str2, Normalizer.COMPARE_IGNORE_CASE) == 0;
-  }
-
-  /**
    * Converts an array of codepoints into a string.
    *
    * @param codepoints the codepoints to convert
@@ -210,7 +200,12 @@ public class Text_Utils {
    * @return whether {@code substring} is a substring of {@code string}.
    */
   public static boolean contains(String string, String substring) {
-    return string.contains(substring);
+    // {@code StringSearch} does not handle empty strings as we would want, so we need these special
+    // cases.
+    if (substring.length() == 0) return true;
+    if (string.length() == 0) return false;
+    StringSearch searcher = new StringSearch(substring, string);
+    return searcher.first() != StringSearch.DONE;
   }
 
   /**
@@ -224,5 +219,15 @@ public class Text_Utils {
    */
   public static String replace(String str, String oldSequence, String newSequence) {
     return str.replace(oldSequence, newSequence);
+  }
+
+  /**
+   * Normalizes the string to its canonical Unicode form using NFD decomposition.
+   *
+   * <p>This is to ensure that things like accents are in a common format, i.e. `ś` gets decomposed
+   * into `s` and a separate codepoint for the accent etc.
+   */
+  public static String normalize(String str) {
+    return Normalizer2.getNFDInstance().normalize(str);
   }
 }

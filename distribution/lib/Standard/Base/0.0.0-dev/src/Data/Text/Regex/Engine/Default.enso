@@ -55,6 +55,7 @@ polyglot java import java.util.regex.PatternSyntaxException
 
 polyglot java import com.ibm.icu.impl.UnicodeRegex
 polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.Text_Utils
 
 ## Construct an instance of the default engine.
 
@@ -173,9 +174,18 @@ type Pattern
        - input: The text on which it will be matching.
        - start: The start of the matcher's region.
        - end: The end of the matcher's region.
+
+       ! Unicode Normalization
+         The Regex engine used here handles string modifiers, like accents in a
+         weird way. The string "s\u{301}" will be treated as containing "s"
+         within it, but "ś" (which is canonically equivalent to the former one)
+         will not contain "s". To get consistent behavior that does not depend
+         on the encoding, we normalize all input.
     build_matcher : Text -> Integer -> Integer -> Java_Matcher
     build_matcher input start end =
-        internal_matcher = this.internal_pattern.matcher input . region start end
+        normalized_input = if this.options.contains Global_Option.Ascii_Matching then input else
+            Text_Utils.normalize input
+        internal_matcher = this.internal_pattern.matcher normalized_input . region start end
 
         if this.options.contains No_Anchoring_Bounds then
             internal_matcher.useAnchoringBounds False
