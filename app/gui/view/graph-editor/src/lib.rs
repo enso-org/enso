@@ -1359,6 +1359,9 @@ impl GraphEditorModelWithNetwork {
             self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
         // FIXME: only calculate when needed
         let nearest_node = self.find_nearest_node(mouse_position);
+        if nearest_node.is_some() {
+            DEBUG!("MCDBG nearest_node = " nearest_node.as_ref().unwrap().id());
+        }
         let node_is_approached = nearest_node.filter(|node| node.approach_area_contains(mouse_position));
         if let Some(node) = node_is_approached {
             DEBUG!("MCDBG node_is_approached = " node.id());
