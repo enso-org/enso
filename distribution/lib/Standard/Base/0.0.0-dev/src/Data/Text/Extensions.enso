@@ -554,8 +554,18 @@ Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Te
      ACCENT). Therefore:
 
          (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
-Text.equals_ignore_case : Text -> Boolean
-Text.equals_ignore_case that = Text_Utils.equals_ignore_case this that
+Text.equals_ignore_case : Text -> Locale -> Boolean
+Text.equals_ignore_case that locale=Locale.default =
+    (this.to_case_insensitive_key locale) == (that.to_case_insensitive_key locale)
+
+## ADVANCED
+   PRIVATE
+   UNSTABLE
+   Unifies the case of all letters in the text, generating a key which can be
+   used to perform case-insensitive comparisons.
+Text.to_case_insensitive_key : Locale -> Text
+Text.to_case_insensitive_key locale=Locale.default =
+    this.to_lower_case locale . to_upper_case locale
 
 ## Compare two texts to discover their ordering.
 
@@ -753,7 +763,13 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
    Checks whether `this` contains `sequence` as its substring.
 
    Arguments:
-   - sequence: The text to see if it is contained in `this`.
+   - term: The term to find.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher.
+     If a `Regex_Matcher`, the term is used as a regular expression and matched
+     using the associated options.
+
+   Returns: `True` if term is found within `this`. `False` otherwise.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -761,12 +777,54 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
      ensures that different ways of expressing the same character in the
      underlying binary representation are considered equal.
 
+     This however is not always well handled by the regex engine. The behaviour
+     is as follows:
+
+         'ś' . contains 's' == False
+         's\u{301}' . contains 's' == False
+         's\u{301}' . contains 'ś' == True
+         'ś' . contains 's\u{301}' == True
+
+         'ś' . contains 's' (Regex_Matcher.new) == True
+         's\u{301}' . contains 's' (Regex_Matcher.new) == True
+         's\u{301}' . contains 'ś' (Regex_Matcher.new) == True
+         'ś' . contains 's\u{301}' (Regex_Matcher.new) == True
+
    > Example
      See if the text "Hello" contains the text "ell".
 
          "Hello".contains "ell"
-Text.contains : Text -> Boolean
-Text.contains sequence = Text_Utils.contains this sequence
+
+   > Example
+     See if the text "Cześć" contains the text 's\u{301}' (which folds to 'ś').
+
+         "Cześć".contains 's\u{301}'
+
+   > Example
+     See if the text "Hello!" contains the text 'LO', ignoring case.
+
+         "Hello!".contains "LO" (Text_Matcher Case_Insensitive.new)
+
+   > Example
+     See if the text "Hello!" contains any lowercase letters, using a regex.
+
+         "Hello!".contains "[a-z]" Regex_Matcher.new
+Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
+Text.contains term="" matcher=Text_Matcher.new = case matcher of
+    Text_Matcher case_sensitivity -> case case_sensitivity of
+        True -> Text_Utils.contains this term
+        Case_Insensitive locale ->
+            Text_Utils.contains (this.to_case_insensitive_key locale) (term.to_case_insensitive_key locale)
+    Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments ->
+        case_insensitive = case case_sensitive of
+            True -> False
+            ## TODO [RW] Currently locale is not supported in case-insensitive
+               Regex matching. There are plans to revisit it:
+               https://www.pivotaltracker.com/story/show/181313576
+            Case_Insensitive _ -> True
+        compiled_pattern = Regex.compile term case_insensitive=case_insensitive match_ascii=match_ascii dot_matches_newline=dot_matches_newline multiline=multiline comments=comments
+        match = compiled_pattern.match this Mode.First
+        match.is_nothing.not
 
 ## Text to JSON conversion.
 
