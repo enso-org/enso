@@ -175,9 +175,10 @@ type Range
     ## Does the range contains the specified value
 
        > Example
-         Check if a index is in the range of a Vector
+         Check if an index is in the range of a Vector
 
-              vec = [1,3,4,5,7]
+              vec = ["A", "B", "C", "D", "E"]
+              0.up_to vec.length . contains 3
     contains : Integer -> Boolean
     contains value =
         (this.start <= value) && (this.end > value)
