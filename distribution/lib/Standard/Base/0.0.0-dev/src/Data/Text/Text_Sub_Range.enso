@@ -80,7 +80,7 @@ type Text_Sub_Range
                     if index == -1 then (Range 0 (Text_Utils.char_length text)) else
                         (Range 0 index)
             Before_Last delimiter ->
-                if delimiter.is_empty then (Range 0 0) else
+                if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
                     index = Text_Utils.last_index_of text delimiter
                     if index == -1 then (Range 0 (Text_Utils.char_length text)) else
                         (Range 0 index)
@@ -90,7 +90,7 @@ type Text_Sub_Range
                     if index == -1 then (Range 0 0) else
                         (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
             After_Last delimiter ->
-                if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
+                if delimiter.is_empty then (Range 0 0) else
                     index = Text_Utils.last_index_of text delimiter
                     if index == -1 then (Range 0 0) else
                         (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
