@@ -91,7 +91,7 @@ spec =
             "İ" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_true
 
             "Kongressstraße"=="Kongressstrasse" . should_be_false
-            "Kongressstraße" . equals_ignore_case "Kongressstrasse"
+            "Kongressstraße" . equals_ignore_case "Kongressstrasse" . should_be_true
 
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
