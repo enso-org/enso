@@ -39,9 +39,55 @@ pub use web_sys::HtmlDivElement;
 pub use web_sys::HtmlElement;
 pub use web_sys::MouseEvent;
 pub use web_sys::Node;
-pub use web_sys::Performance;
 pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::Window;
+
+
+// ===================
+// === Performance ===
+// ===================
+
+#[cfg(target_arch = "wasm32")]
+pub use web_sys::Performance;
+
+#[cfg(target_arch = "wasm32")]
+/// Access the `window.performance` or panics if it does not exist.
+pub fn performance() -> Performance {
+    window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Performance {}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Performance {
+    pub fn now(&self) -> f64 {
+        0.0
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn performance() -> Performance {
+    default()
+}
+
+
+
+// ==========================
+// === device_pixel_ratio ===
+// ==========================
+
+#[cfg(target_arch = "wasm32")]
+/// Access the `window.devicePixelRatio` or panic if the window does not exist.
+pub fn device_pixel_ratio() -> f64 {
+    window().device_pixel_ratio()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn device_pixel_ratio() -> f64 {
+    1.0
+}
 
 
 
@@ -304,15 +350,7 @@ pub fn try_device_pixel_ratio() -> Result<f64> {
     try_window().map(|window| window.device_pixel_ratio())
 }
 
-/// Access the `window.devicePixelRatio` or panic if the window does not exist.
-pub fn device_pixel_ratio() -> f64 {
-    window().device_pixel_ratio()
-}
 
-/// Access the `window.performance` or panics if it does not exist.
-pub fn performance() -> Performance {
-    window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
-}
 
 /// Gets `Element` by ID.
 pub fn get_element_by_id(id: &str) -> Result<Element> {

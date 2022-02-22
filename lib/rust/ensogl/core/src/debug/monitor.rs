@@ -14,6 +14,45 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 
+#[cfg(target_arch = "wasm32")]
+mod reexports {
+    use super::*;
+    pub type Monitor = WebMonitor;
+    pub type Panel = WebPanel;
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+mod reexports {
+    use super::*;
+    pub type Monitor = MockMonitor;
+    pub type Panel = MockPanel;
+}
+
+pub use reexports::*;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MockMonitor {}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MockPanel {}
+
+impl MockMonitor {
+    pub fn add<T>(&self) -> MockPanel {
+        default()
+    }
+
+    pub fn draw(&self) {}
+    pub fn visible(&self) -> bool {
+        true
+    }
+    pub fn show(&self) {}
+    pub fn hide(&self) {}
+    pub fn toggle(&self) {}
+}
+
+impl MockPanel {
+    pub fn sample_and_postprocess(&self, _stats: &StatsData) {}
+}
 
 // ==============
 // === Config ===
@@ -105,7 +144,7 @@ impl Default for Config {
 impl Config {
     /// Translates the configuration to JS values.
     pub fn to_js_config(&self) -> SamplerConfig {
-        let ratio = web::window().device_pixel_ratio();
+        let ratio = web::device_pixel_ratio();
         SamplerConfig {
             background_color:      (&self.background_color).into(),
             label_color_ok:        (&self.label_color_ok).into(),
@@ -195,25 +234,25 @@ impl Drop for DomData {
 
 
 // ===============
-// === Monitor ===
+// === WebMonitor ===
 // ===============
 
 /// Implementation of the monitoring panel.
 #[derive(Debug)]
-pub struct Monitor {
+pub struct WebMonitor {
     user_config: Config,
     config:      SamplerConfig,
     width:       f64,
     height:      f64,
     dom:         Option<Dom>,
-    panels:      Vec<Panel>,
+    panels:      Vec<WebPanel>,
     first_draw:  bool,
 }
 
 
 // === Public API ===
 
-impl Default for Monitor {
+impl Default for WebMonitor {
     fn default() -> Self {
         let user_config = Config::default();
         let panels = default();
@@ -228,21 +267,21 @@ impl Default for Monitor {
     }
 }
 
-impl Monitor {
+impl WebMonitor {
     /// Cnstructor.
     pub fn new() -> Self {
         default()
     }
 
-    /// Modify the Monitor's config and update the view.
+    /// Modify the WebMonitor's config and update the view.
     pub fn mod_config<F: FnOnce(&mut Config)>(&mut self, f: F) {
         f(&mut self.user_config);
         self.update_config();
     }
 
     /// Add new display element.
-    pub fn add<S: Sampler + Default + 'static>(&mut self) -> Panel {
-        let panel = Panel::new(self.config.clone(), S::default());
+    pub fn add<S: Sampler + Default + 'static>(&mut self) -> WebPanel {
+        let panel = WebPanel::new(self.config.clone(), S::default());
         self.panels.push(panel.clone());
         self.resize();
         panel
@@ -276,7 +315,7 @@ impl Monitor {
         }
     }
 
-    /// Draw the Monitor and update all of it's values.
+    /// Draw the WebMonitor and update all of it's values.
     pub fn draw(&mut self) {
         if let Some(dom) = self.dom.clone() {
             if self.first_draw {
@@ -293,14 +332,14 @@ impl Monitor {
 
 // === Private API ===
 
-impl Monitor {
+impl WebMonitor {
     fn update_config(&mut self) {
         self.config = self.user_config.to_js_config()
     }
 
     fn resize(&mut self) {
         if let Some(dom) = &self.dom {
-            let ratio = web::window().device_pixel_ratio();
+            let ratio = web::device_pixel_ratio();
             let width = self.config.labels_width
                 + self.config.results_width
                 + self.config.plots_width
@@ -360,7 +399,7 @@ impl Monitor {
         self.with_all_panels(dom, |panel| panel.first_draw(dom));
     }
 
-    fn with_all_panels<F: Fn(&Panel)>(&self, dom: &Dom, f: F) {
+    fn with_all_panels<F: Fn(&WebPanel)>(&self, dom: &Dom, f: F) {
         let mut total_off = self.config.outer_margin;
         dom.context.translate(0.0, total_off).unwrap();
         for panel in &self.panels {
@@ -379,18 +418,18 @@ impl Monitor {
 
 
 // =============
-// === Panel ===
+// === WebPanel ===
 // =============
 
-/// A single element in the `Monitor`. It can display labels, values and plots. Each `Panel` uses
-/// a `Sampler` under the hood, which defines both its behavior and its look and feel.
+/// A single element in the `WebMonitor`. It can display labels, values and plots. Each `WebPanel`
+/// uses a `Sampler` under the hood, which defines both its behavior and its look and feel.
 #[derive(Clone, Debug)]
-pub struct Panel {
+pub struct WebPanel {
     rc: Rc<RefCell<PanelData>>,
 }
 
-impl Panel {
-    /// Creates a new, empty Panel with a given sampler.
+impl WebPanel {
+    /// Creates a new, empty WebPanel with a given sampler.
     pub fn new<S: Sampler + 'static>(config: SamplerConfig, sampler: S) -> Self {
         let rc = Rc::new(RefCell::new(PanelData::new(config, sampler)));
         Self { rc }
@@ -516,7 +555,7 @@ pub trait Sampler: Debug {
 // === PanelData ===
 // =================
 
-/// A `Panel` is a single row in the monitor view.
+/// A `WebPanel` is a single row in the monitor view.
 #[derive(Debug)]
 pub struct PanelData {
     label:       String,

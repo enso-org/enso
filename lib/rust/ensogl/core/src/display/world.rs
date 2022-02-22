@@ -263,3 +263,21 @@ impl Default for WorldData {
         Self::new()
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_compilation_in_test_mode() {
+        let world = World::new().displayed_in("root");
+        let scene = &world.default_scene;
+        let camera = scene.camera().clone_ref();
+    }
+}

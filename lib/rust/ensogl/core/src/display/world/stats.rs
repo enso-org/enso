@@ -33,7 +33,7 @@ impl {
         let previous_frame_stats      = None;
         let current_frame_measurement = FrameMeasurementState::Skipped;
         let performance               = web::performance();
-        let mut monitor               = debug::Monitor::new();
+        let mut monitor               = debug::Monitor::default();
         let panels = vec![
             monitor.add::<debug::monitor::FrameTime>(),
             monitor.add::<debug::monitor::Fps>(),
