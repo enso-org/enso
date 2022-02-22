@@ -1,6 +1,8 @@
 use crate::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
 use crate::closure::storage::ClosureFn;
+#[cfg(target_arch = "wasm32")]
 use crate::closure::storage::OptionalFmMutClosure;
 
 
@@ -23,6 +25,7 @@ use crate::closure::storage::OptionalFmMutClosure;
 /// so it must not be leaked.
 #[derive(Derivative)]
 #[derivative(Debug(bound = "EventType::Interface: Debug"))]
+#[cfg(target_arch = "wasm32")]
 pub struct Slot<EventType: crate::event::Type> {
     logger:     Logger,
     #[derivative(Debug = "ignore")]
@@ -30,6 +33,7 @@ pub struct Slot<EventType: crate::event::Type> {
     js_closure: OptionalFmMutClosure<EventType::Interface>,
 }
 
+#[cfg(target_arch = "wasm32")]
 impl<EventType: crate::event::Type> Slot<EventType> {
     /// Create a new `Slot`. As the initial target is provided, the listener will register once it
     /// gets a callback (see [[set_callback]]).
@@ -110,6 +114,7 @@ impl<EventType: crate::event::Type> Slot<EventType> {
 }
 
 /// Unregister listener on drop.
+#[cfg(target_arch = "wasm32")]
 impl<EventType: crate::event::Type> Drop for Slot<EventType> {
     fn drop(&mut self) {
         self.remove_if_active();

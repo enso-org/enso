@@ -14,7 +14,7 @@ use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 
 use wasm_bindgen::prelude::wasm_bindgen;
-use web_sys::HtmlDivElement;
+use web::HtmlDivElement;
 
 
 
@@ -22,6 +22,7 @@ use web_sys::HtmlDivElement;
 // === Js Bindings ===
 // ===================
 
+#[cfg(target_arch = "wasm32")]
 mod js {
     use super::*;
     #[wasm_bindgen(inline_js = "
@@ -64,6 +65,8 @@ mod js {
     }
 }
 
+
+#[cfg(target_arch = "wasm32")]
 #[allow(unsafe_code)]
 fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
@@ -75,6 +78,7 @@ fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[allow(unsafe_code)]
 fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
@@ -85,6 +89,12 @@ fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {
         js::setup_camera_orthographic(dom, &matrix_array)
     }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>) {}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {}
 
 
 
@@ -222,6 +232,8 @@ impl DomScene {
 
         match camera.projection() {
             Projection::Perspective { .. } => {
+                // FIXME: ugly
+                #[cfg(target_arch = "wasm32")]
                 js::setup_perspective(&self.data.dom, &near.into());
                 setup_camera_perspective(&self.data.view_projection_dom, near, &trans_cam);
             }

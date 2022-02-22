@@ -42,7 +42,7 @@ pub struct Application {
 
 impl Application {
     /// Constructor.
-    pub fn new(dom: &web_sys::HtmlElement) -> Self {
+    pub fn new(dom: &web::HtmlElement) -> Self {
         let logger = Logger::new("Application");
         let display = World::new();
         let scene = &display.default_scene;

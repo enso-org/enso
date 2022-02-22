@@ -35,19 +35,19 @@ impl {
         let performance               = web::performance();
         let mut monitor               = debug::Monitor::default();
         let panels = vec![
-            monitor.add::<debug::monitor::FrameTime>(),
-            monitor.add::<debug::monitor::Fps>(),
-            monitor.add::<debug::monitor::WasmMemory>(),
-            monitor.add::<debug::monitor::GpuMemoryUsage>(),
-            monitor.add::<debug::monitor::DrawCallCount>(),
-            monitor.add::<debug::monitor::DataUploadCount>(),
-            monitor.add::<debug::monitor::DataUploadSize>(),
-            monitor.add::<debug::monitor::BufferCount>(),
-            monitor.add::<debug::monitor::SymbolCount>(),
-            monitor.add::<debug::monitor::ShaderCount>(),
-            monitor.add::<debug::monitor::ShaderCompileCount>(),
-            monitor.add::<debug::monitor::SpriteSystemCount>(),
-            monitor.add::<debug::monitor::SpriteCount>(),
+            // monitor.add::<debug::monitor::FrameTime>(),
+            // monitor.add::<debug::monitor::Fps>(),
+            // monitor.add::<debug::monitor::WasmMemory>(),
+            // monitor.add::<debug::monitor::GpuMemoryUsage>(),
+            // monitor.add::<debug::monitor::DrawCallCount>(),
+            // monitor.add::<debug::monitor::DataUploadCount>(),
+            // monitor.add::<debug::monitor::DataUploadSize>(),
+            // monitor.add::<debug::monitor::BufferCount>(),
+            // monitor.add::<debug::monitor::SymbolCount>(),
+            // monitor.add::<debug::monitor::ShaderCount>(),
+            // monitor.add::<debug::monitor::ShaderCompileCount>(),
+            // monitor.add::<debug::monitor::SpriteSystemCount>(),
+            // monitor.add::<debug::monitor::SpriteCount>(),
         ];
         Self {
             stats,

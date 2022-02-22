@@ -45,7 +45,8 @@ use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
-use web_sys::HtmlElement;
+use web::AttributeSetter;
+use web::HtmlElement;
 
 
 pub trait MouseTarget: Debug + 'static {
@@ -488,12 +489,12 @@ pub struct DomLayers {
     /// Front DOM scene layer.
     pub front:          DomScene,
     /// The WebGL scene layer.
-    pub canvas:         web_sys::HtmlCanvasElement,
+    pub canvas:         web::HtmlCanvasElement,
 }
 
 impl DomLayers {
     /// Constructor.
-    pub fn new(logger: &Logger, dom: &web_sys::HtmlDivElement) -> Self {
+    pub fn new(logger: &Logger, dom: &web::HtmlDivElement) -> Self {
         let welcome_screen = DomScene::new(logger);
         welcome_screen.dom.set_class_name("welcome_screen");
         welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
@@ -1025,8 +1026,8 @@ impl SceneData {
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
         debug!(self.logger, "Resized to {screen.width}px x {screen.height}px.", || {
-            self.dom.layers.canvas.set_attribute("width", &width.to_string()).unwrap();
-            self.dom.layers.canvas.set_attribute("height", &height.to_string()).unwrap();
+            self.dom.layers.canvas.set_attribute_or_panic("width", &width.to_string());
+            self.dom.layers.canvas.set_attribute_or_panic("height", &height.to_string());
             if let Some(context) = &*self.context.borrow() {
                 context.viewport(0, 0, width, height);
             }
@@ -1106,7 +1107,7 @@ impl Scene {
                 // TODO
             }
             Some(parent_dom) => {
-                parent_dom.append_child(&self.dom.root).unwrap();
+                parent_dom.append_or_panic(&self.dom.root);
                 self.dom.recompute_shape_with_reflow();
                 self.uniforms.pixel_ratio.set(self.dom.shape().pixel_ratio);
                 self.init();

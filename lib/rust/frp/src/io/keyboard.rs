@@ -6,9 +6,9 @@ use crate as frp;
 use crate::io::js::CurrentJsEvent;
 use crate::io::js::Listener;
 
+use enso_web::KeyboardEvent;
 use inflector::Inflector;
 use unicode_segmentation::UnicodeSegmentation;
-use web_sys::KeyboardEvent;
 
 
 

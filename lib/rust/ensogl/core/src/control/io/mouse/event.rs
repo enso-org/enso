@@ -5,7 +5,7 @@ use crate::prelude::*;
 use crate::system::web::dom::Shape;
 use enso_frp::io::mouse;
 
-use wasm_bindgen::JsCast;
+use enso_web::JsCast;
 
 
 
@@ -19,13 +19,13 @@ macro_rules! define_events {
         #[derive(Debug,Clone,From,Shrinkwrap)]
         pub struct $name {
             #[shrinkwrap(main_field)]
-            raw   : web_sys::$js_event,
+            raw   : enso_web::$js_event,
             shape : Shape,
         }
         impl $name {
 
             /// Constructor.
-            pub fn new(raw:web_sys::$js_event,shape:Shape) -> Self {
+            pub fn new(raw:enso_web::$js_event,shape:Shape) -> Self {
                 Self {raw,shape}
             }
 
@@ -66,15 +66,15 @@ macro_rules! define_events {
 
             /// Return the event handler that caught this event if it exists and if it is an
             /// html element. Returns `None` if the event was caught, for example, byt the window.
-            fn try_get_current_target_element(&self) -> Option<web_sys::Element> {
+            fn try_get_current_target_element(&self) -> Option<enso_web::Element> {
                 let target  = self.current_target()?;
-                target.value_of().dyn_into::<web_sys::Element>().ok()
+                target.value_of().dyn_into::<enso_web::Element>().ok()
             }
 
             /// Return the position relative to the given element.
             ///
             /// Note: causes reflow of the JS layout.
-            pub fn relative_position_with_reflow(&self, element:&web_sys::Element) -> Vector2<f32> {
+            pub fn relative_position_with_reflow(&self, element:&enso_web::Element) -> Vector2<f32> {
                 let rect = element.get_bounding_client_rect();
                 let x    = self.client_x() as f64 - rect.left();
                 let y    = self.client_y() as f64 - rect.top();
@@ -83,9 +83,9 @@ macro_rules! define_events {
 
         }
 
-        impl AsRef<web_sys::Event> for $name {
-            fn as_ref(&self) -> &web_sys::Event {
-                let js_event = AsRef::<web_sys::$js_event>::as_ref(self);
+        impl AsRef<enso_web::Event> for $name {
+            fn as_ref(&self) -> &enso_web::Event {
+                let js_event = AsRef::<enso_web::$js_event>::as_ref(self);
                 js_event.as_ref()
             }
         }

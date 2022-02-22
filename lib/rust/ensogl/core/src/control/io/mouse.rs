@@ -9,9 +9,9 @@ use crate::system::web;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
+use web::Closure;
+use web::JsCast;
+use web::JsValue;
 
 pub use crate::frp::io::mouse::*;
 pub use event::*;
@@ -99,7 +99,7 @@ macro_rules! define_bindings {
                     let dispatcher = dispatchers.$name.clone_ref();
                     let closure : MouseEventJsClosure = Closure::wrap(Box::new(move |event:JsValue| {
                         let shape = shape.value();
-                        let event = event.unchecked_into::<web_sys::$js_event>();
+                        let event = event.unchecked_into::<web::$js_event>();
                         dispatcher.dispatch(&event::$target::new(event,shape))
                     }));
                     let js_name = stringify!($js_name);
@@ -115,8 +115,8 @@ macro_rules! define_bindings {
 
 /// Retrun options for addEventListener function. See also
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-fn event_listener_options() -> web_sys::AddEventListenerOptions {
-    let mut options = web_sys::AddEventListenerOptions::new();
+fn event_listener_options() -> web::AddEventListenerOptions {
+    let mut options = web::AddEventListenerOptions::new();
     // We listen for events in capture phase, so we can decide ourself if it should be passed
     // further.
     options.capture(true);

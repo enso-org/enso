@@ -4,7 +4,7 @@ use crate::prelude::*;
 use crate as frp;
 
 use enso_web as web;
-use wasm_bindgen::prelude::*;
+use enso_web::prelude::*;
 
 
 
@@ -13,10 +13,10 @@ use wasm_bindgen::prelude::*;
 // ================
 
 /// Callback for keyboard events.
-pub trait KeyboardEventCallback = FnMut(&web_sys::KeyboardEvent) + 'static;
+pub trait KeyboardEventCallback = FnMut(&enso_web::KeyboardEvent) + 'static;
 
 /// Callback for js events.
-pub trait EventCallback = FnMut(&web_sys::Event) + 'static;
+pub trait EventCallback = FnMut(&enso_web::Event) + 'static;
 
 /// Keyboard event listener which calls the callback function as long it lives.
 #[derive(Derivative)]
@@ -68,8 +68,8 @@ impl Listener {
 
 /// Retrun options for addEventListener function. See also
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-fn event_listener_options() -> web_sys::AddEventListenerOptions {
-    let mut options = web_sys::AddEventListenerOptions::new();
+fn event_listener_options() -> enso_web::AddEventListenerOptions {
+    let mut options = enso_web::AddEventListenerOptions::new();
     // We listen for events in capture phase, so we can decide ourself if it should be passed
     // further.
     options.capture(true);
@@ -94,11 +94,11 @@ fn event_listener_options() -> web_sys::AddEventListenerOptions {
 #[derive(Clone, CloneRef, Debug)]
 pub struct CurrentJsEvent {
     /// Currently handled js event.
-    pub event:       frp::Stream<Option<web_sys::Event>>,
+    pub event:       frp::Stream<Option<enso_web::Event>>,
     /// Emitting this signal while handling js event (`current_js_event` is Some) makes this event
     /// pass to the DOM elements. Otherwise the js event propagation will be stopped.
     pub pass_to_dom: frp::Source,
-    event_source:    frp::Source<Option<web_sys::Event>>,
+    event_source:    frp::Source<Option<enso_web::Event>>,
     network:         frp::Network,
 }
 
@@ -136,7 +136,7 @@ impl CurrentJsEvent {
         mut processing_fn: impl FnMut(&Event),
     ) -> impl FnMut(&Event)
     where
-        Event: AsRef<web_sys::Event>,
+        Event: AsRef<enso_web::Event>,
     {
         let event_source = self.event_source.clone_ref();
         move |event| {
@@ -151,10 +151,10 @@ impl CurrentJsEvent {
     // The bool is passed by reference to match the signatures expected by FRP eval.
     #[allow(clippy::trivially_copy_pass_by_ref)]
     fn on_event_change(
-        new: &Option<web_sys::Event>,
-        current: &Option<web_sys::Event>,
+        new: &Option<enso_web::Event>,
+        current: &Option<enso_web::Event>,
         is_passed: &bool,
-    ) -> Option<web_sys::Event> {
+    ) -> Option<enso_web::Event> {
         // Whenever the current js event change, we pass the processed one to the dom if someone
         // asked to.
         if let Some(e) = current {

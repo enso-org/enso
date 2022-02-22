@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use crate::system::web;
 
-use wasm_bindgen::prelude::Closure;
+use web::Closure;
 use web_sys::WebGl2RenderingContext;
 
 
@@ -47,7 +47,7 @@ pub type Context = WebGl2RenderingContext;
 /// For the web target, this is simply the canvas. As we currently support WebGL 2.0 only, this is
 /// simply an alias to a canvas type. See the docs of [`Context`] to learn more about future
 /// extension plans.
-pub type DeviceContextHandler = web_sys::HtmlCanvasElement;
+pub type DeviceContextHandler = web::HtmlCanvasElement;
 
 /// Handler for closures taking care of context restoration. After dropping this handler and losing
 /// the context, the context will not be restored automaticaly.

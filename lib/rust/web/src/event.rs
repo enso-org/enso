@@ -4,9 +4,6 @@ pub mod listener;
 
 use crate::prelude::*;
 
-use js_sys::Function;
-use web_sys::EventTarget;
-
 
 
 // =============
@@ -23,6 +20,7 @@ use web_sys::EventTarget;
 ///
 /// Typically this trait is to be implemented for uncreatable types, created for the sole
 /// purpose of denoting a particular event type within a context of an event target.
+#[cfg(target_arch = "wasm32")]
 pub trait Type {
     /// The event value -- i.e. the Rust type of a value that will be passed as an argument
     /// to the listener.

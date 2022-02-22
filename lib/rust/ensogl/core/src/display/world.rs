@@ -20,9 +20,9 @@ use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::system::web;
 
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
+use web::prelude::Closure;
+use web::JsCast;
+use web::JsValue;
 
 
 
@@ -218,7 +218,7 @@ impl WorldData {
         let stats = self.stats.clone_ref();
         let display_mode = self.uniforms.display_mode.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::wrap(Box::new(move |val| {
-            let event = val.unchecked_into::<web_sys::KeyboardEvent>();
+            let event = val.unchecked_into::<web::KeyboardEvent>();
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
                 if key == "Backquote" {

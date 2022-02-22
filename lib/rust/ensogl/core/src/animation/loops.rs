@@ -6,7 +6,7 @@ use crate::prelude::*;
 use crate::control::callback;
 use crate::system::web;
 
-use wasm_bindgen::prelude::Closure;
+use web::Closure;
 
 
 

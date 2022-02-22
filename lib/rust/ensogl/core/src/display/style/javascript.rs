@@ -176,5 +176,7 @@ pub fn expose_to_window(manager: &Manager) {
     mem::forget(diff);
     mem::forget(get);
 
+    // FIXME
+    #[cfg(target_arch = "wasm32")]
     js_sys::Reflect::set(&window, &"theme".into(), &theme_manger_ref).ok();
 }

@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use crate::Closure;
+use crate::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsValue;
 
 
 
@@ -18,6 +18,7 @@ pub type Listener = Closure<dyn FnMut(f32, f32)>;
 // === JS Bindings ===
 // ===================
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "/js/resize_observer.js")]
 extern "C" {
     #[allow(unsafe_code)]
@@ -27,6 +28,12 @@ extern "C" {
     fn resize_unobserve(id: usize);
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn resize_observe(target: &JsValue, closure: &Listener) -> usize {
+    0
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn resize_unobserve(id: usize) {}
 
 
 // ======================

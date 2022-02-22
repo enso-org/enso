@@ -8,7 +8,7 @@ use crate::system::gpu::data::texture::types::*;
 use crate::system::gpu::Context;
 use crate::system::web;
 
-use wasm_bindgen::prelude::Closure;
+use web::Closure;
 use web_sys::HtmlImageElement;
 
 
@@ -80,6 +80,7 @@ impl<I: InternalFormat, T: ItemType> Texture<RemoteImage, I, T> {
 impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T> {
     /// Loads or re-loads the texture data from the provided url.
     /// This action will be performed asynchronously.
+    #[cfg(target_arch = "wasm32")]
     fn reload(&self) {
         let url = &self.storage().url;
         let image = HtmlImageElement::new().unwrap();
@@ -112,13 +113,16 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
                 .unwrap();
 
             parameters.apply_parameters(&context);
-        });
+        }) as web::JsEventHandler;
         let image = image_ref.borrow();
         request_cors_if_not_same_origin(&image, url);
         image.set_src(url);
         let handler = web::add_event_listener_with_bool(&image, "load", callback, true);
         *callback_ref.borrow_mut() = Some(handler);
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload(&self) {}
 }
 
 // === Utils ===
@@ -135,6 +139,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
 /// requests, so it's slower than not asking. If we know we're on the same domain or we know we
 /// won't use the image for anything except img tags and or canvas2d then we don't want to set
 /// crossDomain because it will make things slower.
+#[cfg(target_arch = "wasm32")]
 fn request_cors_if_not_same_origin(img: &HtmlImageElement, url_str: &str) {
     let url = web_sys::Url::new(url_str).unwrap();
     let origin = web::window().location().origin().unwrap();
