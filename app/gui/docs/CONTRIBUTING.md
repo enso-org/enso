@@ -281,18 +281,16 @@ have prepared several scripts which maximally automate the process:
     is in your `PATH`.
 
 - **Integration Tests** The integration tests are gathered in `integration-test`
-  crate. One test suite can be run with
-  `node ./run integration-test -- --test <suite-name>`. This will spawn required
-  Engine process and then set up a server on localhost:8000 - open the page in
-  Chrome browser to see the tests running. The `<suite-name>` is a name of the
-  file in `integration-test/tests` directory without extension, for example
-  `graph_editor`.
+  crate. You can run them with `node ./run integration-test` command. The script
+  will spawn required Engine process.
+  - To run une test suite add `-- --test <suite-name>` at end of command
+    options. The `<suite-name>` is a name of the file in
+    `integration-test/tests` directory without extension, for example
+    `graph_editor`.
   - The integration test can create and leave new Enso projects. **Keep it in
     mind when running the script with your own backend (the `--no-backend`
     option)**. The Engine spawned by the script will use a dedicated workspace
     created in temporary directory, so the user workspace will not be affected.
-  - Note: in the future there will be possibility to run all tests suite
-    headlessly.
 - **Linting** Please be sure to fix all errors reported by `node ./run lint`
   before creating a pull request to this repository.
 
