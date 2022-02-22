@@ -942,11 +942,10 @@ Text.drop range =
     char_range = case range of
         Range _ _ -> here.range_to_char_indices this range
         _ -> range.to_char_range this
-    if char_range.is_error then char_range else
-        if char_range.start == 0 then Text_Utils.drop_first this char_range.end else
-            prefix = Text_Utils.substring this 0 char_range.start
-            if char_range.end == (Text_Utils.char_length this) then prefix else
-                prefix + Text_Utils.drop_first this char_range.end
+    if char_range.start == 0 then Text_Utils.drop_first this char_range.end else
+        prefix = Text_Utils.substring this 0 char_range.start
+        if char_range.end == (Text_Utils.char_length this) then prefix else
+            prefix + Text_Utils.drop_first this char_range.end
 
 ## ALIAS Lower Case
 
