@@ -4,6 +4,7 @@ polyglot java import java.util.Random
 polyglot java import org.enso.base.Text_Utils
 
 upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".utf_16
+lower_case_letters = "abcdefghijklmnopqrstuvwxyz".utf_16
 numbers = "0123456789".utf_16
 
 ## Creates a random number generator which can be used for creating test values.
