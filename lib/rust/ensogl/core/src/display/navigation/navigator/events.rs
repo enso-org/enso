@@ -17,6 +17,7 @@ use nalgebra::Vector2;
 pub trait FnZoomEvent = FnMut(ZoomEvent) + 'static;
 
 /// A struct holding zoom event information, such as the focus point and the amount of zoom.
+#[derive(Clone, Copy, Debug, Default)]
 pub struct ZoomEvent {
     pub focus:  Vector2<f32>,
     pub amount: f32,
@@ -45,6 +46,7 @@ impl ZoomEvent {
 pub trait FnPanEvent = FnMut(PanEvent) + 'static;
 
 /// A struct holding pan event information.
+#[derive(Clone, Copy, Debug, Default)]
 pub struct PanEvent {
     pub movement: Vector2<f32>,
 }
@@ -347,6 +349,16 @@ impl NavigatorEvents {
             }
         });
         self.mouse_move = Some(listener);
+    }
+
+    /// Emit zoom event. This function could be used in the tests to simulate user interactions.
+    pub fn emit_zoom_event(&self, event: ZoomEvent) {
+        self.data.on_zoom(event);
+    }
+
+    /// Emit pan event. This function could be used in the tests to simulate user interactions.
+    pub fn emit_pan_event(&self, event: PanEvent) {
+        self.data.on_pan(event);
     }
 }
 
