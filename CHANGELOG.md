@@ -45,7 +45,8 @@
   methods added to `Standard.Test`][3276]
 - [Implemented `Integer.parse`][3283]
 - [Made `Text.compare_to` correctly handle Unicode normalization][3282]
-- [Implemented new `Text.take` and `Text.drop` functions, replacing existing functions][3287]
+- [Implemented new `Text.take` and `Text.drop` functions, replacing existing
+  functions][3287]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
