@@ -983,17 +983,44 @@ struct Position {
 
 A representation of a range of text in a text file.
 
+For example, given the function.
+
+```
+0|inc x =
+1|    x + 1
+  ^^^^^^^^^
+  012345678
+```
+
+The range of `inc` is
+
+```typescript
+{
+    start: { line: 0, character: 0},
+    end: { line: 0, character: 3}
+}
+```
+
+The range of `1` is
+
+```typescript
+{
+    start: { line: 1, character: 8},
+    end: { line: 1, character: 9}
+}
+```
+
 #### Format
 
 ```typescript
 interface Range {
   /**
-   * The range's start position.
+   * The range's start position (inclusive).
    */
   start: Position;
 
   /**
-   * The range's end position.
+   * The range's end position (exclusive).
    */
   end: Position;
 }

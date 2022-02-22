@@ -18,6 +18,6 @@ build_long_bldr n =
     res
 
 main =
-    Bench.measure (here.build_long_bldr 1000000) "string append bldr" 1 1
-    Bench.measure (here.build_long 1000000) "string append" 1 1
-    IO.println "Bye"
+    n = 1000000
+    Bench.measure (here.build_long_bldr n) "string append bldr" 1 1
+    Bench.measure (here.build_long n) "string append" 1 1
