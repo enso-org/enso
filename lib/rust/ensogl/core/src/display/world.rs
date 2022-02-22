@@ -279,5 +279,6 @@ mod tests {
         let world = World::new().displayed_in("root");
         let scene = &world.default_scene;
         let camera = scene.camera().clone_ref();
+        assert_eq!(1, 1);
     }
 }

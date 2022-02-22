@@ -295,7 +295,7 @@ mod arch_dependent_impls {
 
     impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
         fn as_ref(&self) -> &JsValue {
-            self.as_ref()
+            unsafe { mem::transmute(self) }
         }
     }
 
