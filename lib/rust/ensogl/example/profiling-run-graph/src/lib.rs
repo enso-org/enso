@@ -1,11 +1,19 @@
-//! Example scene showing simple usage of a shape system.
+//! Demo scene showing a sample flame graph.
 
-pub mod flame_graph;
-pub mod measurements;
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use enso_profiler as profiler;
+use enso_profiler::profile;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -13,8 +21,8 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
 use ensogl_core::system::web;
-use measurements::Measurements;
-use wasm_bindgen::prelude::*;
+use ensogl_flame_graph as flame_graph;
+
 
 
 // ===================
@@ -36,13 +44,16 @@ pub fn entry_point_profiling_run_graph() {
 
     init_theme(scene);
 
-    let measurements = dummy_measurements();
-    let blocks: flame_graph::data::FlameGraph = measurements.into();
-    let flamegraph = flame_graph::FlameGraph::from_data(blocks, app);
+    // Generate Test data
+    start_project(profiler::APP_LIFETIME);
 
-    world.add_child(&flamegraph);
-    scene.add_child(&flamegraph);
-    scene.layers.main.add_exclusive(&flamegraph);
+    let measurements = profiler::flame_graph::FlameGraph::take_from_log();
+
+    let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
+
+    world.add_child(&flame_graph);
+    scene.add_child(&flame_graph);
+    scene.layers.main.add_exclusive(&flame_graph);
 
     world.keep_alive_forever();
     let scene = world.scene().clone_ref();
@@ -51,7 +62,7 @@ pub fn entry_point_profiling_run_graph() {
         .on_frame(move |_time| {
             let _keep_alive = &navigator;
             let _keep_alive = &scene;
-            let _keep_alive = &flamegraph;
+            let _keep_alive = &flame_graph;
         })
         .forget();
 }
@@ -59,106 +70,96 @@ pub fn entry_point_profiling_run_graph() {
 fn init_theme(scene: &Scene) {
     let theme_manager = theme::Manager::from(&scene.style_sheet);
 
-    let theme1 = theme::Theme::new();
-    theme1.set("base_color", color::Rgb::new(1.0, 45.0 / 255.0, 0.0));
+    let theme = theme::Theme::new();
+    theme.set("flame_graph_color", color::Rgb::new(1.0, 45.0 / 255.0, 0.0));
 
-    theme_manager.register("theme1", theme1);
+    theme_manager.register("theme", theme);
 
-    theme_manager.set_enabled(&["theme1".to_string()]);
+    theme_manager.set_enabled(&["theme".to_string()]);
 
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);
-    style_watch.get("base_color");
-
-    // mem::forget(theme_manager);
-    // mem::forget(style_watch);
+    style_watch.get("flame_graph_color");
 }
 
 
+// ==========================
+// === Dummy Computations ===
+// ==========================
 
-fn dummy_measurements() -> Measurements {
-    use enso_profiler::*;
+fn work(n: u32) {
+    let mut m = n;
+    for x in 0..n {
+        for y in 0..n {
+            for z in 0..n {
+                m = m.wrapping_add(x * y * z)
+            }
+        }
+    }
+    println!("{}", m % 7)
+}
 
-    let app_loading = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   ProfilerId::root(),
-        start:    Some(Timestamp::from_ms(0.0)),
-        end:      Timestamp::from_ms(500.0),
-        label:    "App Loading",
-    };
-
-    let app_loading_foo = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   app_loading.profiler,
-        start:    None,
-        end:      Timestamp::from_ms(200.0),
-        label:    "App Loading Foo",
-    };
-    let app_loading_bar = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   app_loading.profiler,
-        start:    Some(Timestamp::from_ms(200.0)),
-        end:      Timestamp::from_ms(250.0),
-        label:    "App Loading Bar",
-    };
-    let app_loading_baz = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   app_loading.profiler,
-        start:    Some(Timestamp::from_ms(250.0)),
-        end:      Timestamp::from_ms(500.0),
-        label:    "App Loading Baz",
-    };
-
-    let project_opening = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   ProfilerId::root(),
-        start:    Some(Timestamp::from_ms(505.0)),
-        end:      Timestamp::from_ms(1000.0),
-        label:    "Opening Project",
-    };
-
-    let project_opening_a = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   project_opening.profiler,
-        start:    None,
-        end:      Timestamp::from_ms(600.0),
-        label:    "Cooking Eggs",
-    };
-
-    let project_opening_a_a = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   project_opening_a.profiler,
-        start:    None,
-        end:      Timestamp::from_ms(567.0),
-        label:    "Breaking Eggs",
-    };
-
-    let project_opening_a_b = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   project_opening_a.profiler,
-        start:    Some(Timestamp::from_ms(567.0)),
-        end:      Timestamp::from_ms(580.0),
-        label:    "Scrambling Eggs",
-    };
-
-    let project_opening_a_c = profiler::Measurement {
-        profiler: ProfilerId::new(),
-        parent:   project_opening_a.profiler,
-        start:    Some(Timestamp::from_ms(588.0)),
-        end:      Timestamp::from_ms(590.0),
-        label:    "Frying Eggs",
-    };
-
-
-    vec![
-        app_loading,
-        app_loading_foo,
-        app_loading_bar,
-        app_loading_baz,
-        project_opening,
-        project_opening_a,
-        project_opening_a_a,
-        project_opening_a_b,
-        project_opening_a_c,
-    ]
-    .into()
+#[profile]
+fn start_project(_profiler: profiler::Objective) {
+    wake_dragon(_profiler);
+    feed_troll(_profiler);
+    ride_rainbow(_profiler);
+}
+#[profile]
+fn ride_rainbow(_profiler: profiler::Objective) {
+    work(777)
+}
+#[profile]
+fn feed_troll(_profiler: profiler::Objective) {
+    gather_herbs_and_spices(_profiler);
+    cook_troll_food(_profiler);
+    run_away(_profiler);
+}
+#[profile]
+fn run_away(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn cook_troll_food(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn gather_herbs_and_spices(_profiler: profiler::Objective) {
+    walk_to_woods(_profiler);
+    search_stuff(_profiler);
+    find_stuff(_profiler);
+    gather_stuff(_profiler);
+}
+#[profile]
+fn gather_stuff(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn find_stuff(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn search_stuff(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn walk_to_woods(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn wake_dragon(_profiler: profiler::Objective) {
+    gather_gold(_profiler);
+    bake_gold_cake(_profiler);
+    start_tea_party(_profiler);
+}
+#[profile]
+fn start_tea_party(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn bake_gold_cake(_profiler: profiler::Objective) {
+    work(100)
+}
+#[profile]
+fn gather_gold(_profiler: profiler::Objective) {
+    work(100)
 }

@@ -1,8 +1,11 @@
-//! Label component. Appears as text with background.
+//! An EnsoGL implementation of a basic flame graph.
 
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
+use enso_profiler as profiler;
+use ensogl_core::application;
+use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
@@ -24,22 +27,23 @@ mod background {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let zoom                 = Var::<f32>::from("1.0/zoom()");
-            let base_color           = style.get_color("base_color");
+            let base_color           = style.get_color("flame_graph_color");
 
             let shape = Rect((&width,&height));
-            let shape = shape.fill(base_color);
 
             let border_width: Var<Pixels> = (zoom * 2.0).into();
 
             let right = Rect((&border_width,&height));
-            let right = right.fill(color::Rgb(1.0,1.0,1.0));
             let right = right.translate_x(&width/2.0);
 
             let left = Rect((&border_width,&height));
-            let left = left.fill(color::Rgb(1.0,1.0,1.0));
             let left = left.translate_x(-&width/2.0);
 
-            (shape + right + left).into()
+            let shape = shape - left;
+            let shape = shape - right;
+            let shape = shape.fill(base_color);
+
+            (shape).into()
         }
     }
 }
@@ -56,9 +60,7 @@ ensogl_core::define_endpoints! {
         set_position(Vector2),
         set_size(Vector2)
     }
-    Output {
-        size (Vector2)
-    }
+    Output {}
 }
 
 
@@ -69,6 +71,7 @@ ensogl_core::define_endpoints! {
 
 #[derive(Clone, Debug)]
 struct Model {
+    app:            Application,
     background:     background::View,
     label:          text::Area,
     display_object: display::object::Instance,
@@ -76,9 +79,8 @@ struct Model {
 
 impl Model {
     fn new(app: Application) -> Self {
-        let app = app.clone_ref();
         let scene = app.display.scene();
-        let logger = Logger::new("TextLabel");
+        let logger = Logger::new("FlameGraphBlock");
         let display_object = display::object::Instance::new(&logger);
 
         let label = app.new_view::<text::Area>();
@@ -88,7 +90,8 @@ impl Model {
         display_object.add_child(&background);
         display_object.add_child(&label);
 
-        let model = Model { background, label, display_object };
+        let app = app.clone_ref();
+        let model = Model { app, background, label, display_object };
         model.set_layers(&scene.layers.tooltip, &scene.layers.tooltip_text);
         model
     }
@@ -128,7 +131,7 @@ impl Model {
 
 
 // =======================
-// === Label Component ===
+// === Block Component ===
 // =======================
 
 #[allow(missing_docs)]
@@ -181,5 +184,93 @@ impl Deref for Block {
 impl display::Object for Block {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
+    }
+}
+
+impl application::command::FrpNetworkProvider for Block {
+    fn network(&self) -> &frp::Network {
+        &self.frp.network
+    }
+}
+
+impl application::View for Block {
+    fn label() -> &'static str {
+        "FlameGraphBlock"
+    }
+
+    fn new(app: &Application) -> Self {
+        Block::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
+
+    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+        default()
+    }
+}
+
+// ===================
+// === Flame Graph ===
+// ===================
+
+
+// === Layout Constants ===
+
+const ROW_HEIGHT: f64 = 20.0;
+const ROW_PADDING: f64 = 5.0;
+
+
+// === Implementation ===
+
+
+pub struct FlameGraph {
+    display_object: display::object::Instance,
+    blocks:         Vec<Block>,
+}
+
+fn shape_from_block(block: profiler::flame_graph::Block, app: &Application) -> Block {
+    let component = app.new_view::<Block>();
+
+    let size = Vector2::new(block.width() as f32, ROW_HEIGHT as f32);
+    let x = block.start + block.width() / 2.0;
+    let y = block.row as f64 * (ROW_HEIGHT + ROW_PADDING);
+    let pos = Vector2::new(x as f32, y as f32);
+
+    component.set_content.emit(block.label);
+    component.set_size.emit(size);
+    component.set_position_xy(pos);
+
+    component
+}
+
+impl FlameGraph {
+    pub fn from_data(data: profiler::flame_graph::FlameGraph, app: &Application) -> Self {
+        let logger = Logger::new("FlameGraph");
+        let display_object = display::object::Instance::new(&logger);
+
+        let min_time =
+            data.blocks.iter().map(|block| block.start.floor() as u32).min().unwrap_or_default();
+
+        let blocks_zero_aligned = data.blocks.into_iter().map(|mut block| {
+            block.start -= min_time as f64;
+            block.end -= min_time as f64;
+            block
+        });
+
+        let blocks = blocks_zero_aligned.map(|block| shape_from_block(block, app)).collect_vec();
+        blocks.iter().for_each(|item| display_object.add_child(item));
+        Self { display_object, blocks }
+    }
+
+    pub fn blocks(&self) -> &[Block] {
+        &self.blocks
+    }
+}
+
+impl display::Object for FlameGraph {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }

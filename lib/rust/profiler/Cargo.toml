@@ -8,6 +8,7 @@ authors = ["Enso Team <contact@enso.org>"]
 wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
 enso-profiler-macros = { path = "macros" }
 serde = "1"
+enso-web = { path = "../web" }
 
 [dev-dependencies]
 futures = "0.3"

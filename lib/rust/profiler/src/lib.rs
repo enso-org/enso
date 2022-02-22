@@ -143,12 +143,14 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+pub mod flame_graph;
+
 extern crate test;
 
+use enso_web as web;
 use std::cell;
 use std::num;
 use std::str;
-
 
 
 // =============
@@ -180,7 +182,7 @@ const TS_OFFSET: u64 = 1;
 impl Timestamp {
     /// Return the current time, relative to the time origin.
     pub fn now() -> Self {
-        Self::from_ms(js::performance::now())
+        Self::from_ms(web::performance().now())
     }
 
     /// Return the timestamp corresponding to an offset from the time origin, in ms.
@@ -198,48 +200,6 @@ impl Timestamp {
     }
 }
 
-// === FFI ===
-
-#[cfg(target_arch = "wasm32")]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        use wasm_bindgen::prelude::*;
-
-        #[wasm_bindgen]
-        extern "C" {
-            /// The
-            /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-            /// method returns a double-precision float, measured in milliseconds.
-            ///
-            /// The returned value represents the time elapsed since the time origin, which is when
-            /// the page began to load.
-            #[wasm_bindgen(js_namespace = performance)]
-            pub fn now() -> f64;
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        /// The
-        /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-        /// method returns a double-precision float, measured in milliseconds.
-        ///
-        /// The returned value represents the time elapsed since the time origin, which is when
-        /// the page began to load.
-        // This mock implementation returns a dummy value.
-        pub fn now() -> f64 {
-            0.0
-        }
-    }
-}
-
-
 
 // ==================
 // === ProfilerId ===
@@ -250,7 +210,7 @@ pub mod js {
 pub struct ProfilerId(u32);
 
 impl ProfilerId {
-    pub fn new() -> Self {
+    fn new() -> Self {
         thread_local! {
             pub static NEXT_ID: cell::Cell<u32> = cell::Cell::new(1);
         }
@@ -261,6 +221,7 @@ impl ProfilerId {
         }))
     }
 
+    /// Return the root profiler.
     pub const fn root() -> Self {
         ProfilerId(0)
     }

@@ -1099,6 +1099,7 @@ name = "enso-profiler"
 version = "0.1.0"
 dependencies = [
  "enso-profiler-macros",
+ "enso-web",
  "futures 0.3.21",
  "serde",
  "wasm-bindgen",
@@ -1210,6 +1211,7 @@ dependencies = [
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
+ "ensogl-flame-graph",
  "ensogl-label",
  "ensogl-list-view",
  "ensogl-scroll-area",
@@ -1374,9 +1376,10 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-profiler",
+ "enso-web",
  "ensogl-core",
+ "ensogl-flame-graph",
  "ensogl-hardcoded-theme",
- "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
@@ -1467,6 +1470,18 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
+]
+
+[[package]]
+name = "ensogl-flame-graph"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
 ]
 
 [[package]]
