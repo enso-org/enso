@@ -779,7 +779,7 @@ Text.repeat count =
     0.up_to count . fold "" acc-> _-> acc + this
 
 ## PRIVATE
-   Utility function taking a range and getting char indices
+   Utility function taking a range pointing at grapheme clusters and converting to a range on the underlying code points
 range_to_char_indices : Text -> Range -> Range ! Index_Out_Of_Bounds_Error
 range_to_char_indices text range =
     len = text.length
