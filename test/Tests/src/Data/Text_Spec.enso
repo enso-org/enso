@@ -90,6 +90,7 @@ spec =
             "I" . equals_ignore_case "ı" . should_be_true
             "İ" . equals_ignore_case "i" . should_be_false
             "İ" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_true
+            "I" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_false
 
             "Kongressstraße"=="Kongressstrasse" . should_be_false
             "Kongressstraße" . equals_ignore_case "Kongressstrasse" . should_be_true
