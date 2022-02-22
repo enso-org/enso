@@ -23,7 +23,8 @@ pub struct ZoomEvent {
 }
 
 impl ZoomEvent {
-    /// Constructor. Returns `None` if `amount` or `zoom_speed` are equal to zero.
+    /// Constructor. Returns `None` if `amount` or `zoom_speed` are almost equal (less than
+    /// [`f32::EPSILON`]) to zero.
     fn new(focus: Vector2<f32>, amount: f32, zoom_speed: f32) -> Option<Self> {
         let amount = amount * zoom_speed;
         if amount.abs() < f32::EPSILON {
