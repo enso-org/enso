@@ -23,9 +23,16 @@ pub struct ZoomEvent {
 }
 
 impl ZoomEvent {
-    fn new(focus: Vector2<f32>, amount: f32, zoom_speed: f32) -> Self {
+    /// Constructor. Returns `None` if `amount` or `zoom_speed` are almost equal (less than
+    /// [`f32::EPSILON`]) to zero.
+    fn new(focus: Vector2<f32>, amount: f32, zoom_speed: f32) -> Option<Self> {
         let amount = amount * zoom_speed;
-        Self { focus, amount }
+        if amount.abs() < f32::EPSILON {
+            // Zoom events with zero amount doesn't make sense.
+            None
+        } else {
+            Some(Self { focus, amount })
+        }
     }
 }
 
@@ -250,8 +257,9 @@ impl NavigatorEvents {
                     let zoom_speed = data.zoom_speed();
                     let movement = Vector2::new(event.delta_x() as f32, -event.delta_y() as f32);
                     let amount = movement_to_zoom(movement);
-                    let zoom_event = ZoomEvent::new(position, amount, zoom_speed);
-                    data.on_zoom(zoom_event);
+                    if let Some(event) = ZoomEvent::new(position, amount, zoom_speed) {
+                        data.on_zoom(event);
+                    }
                 } else {
                     let x = -event.delta_x() as f32;
                     let y = event.delta_y() as f32;
@@ -326,8 +334,9 @@ impl NavigatorEvents {
                         MovementType::Zoom { focus } => {
                             let zoom_speed = data.zoom_speed();
                             let zoom_amount = movement_to_zoom(movement);
-                            let zoom_event = ZoomEvent::new(focus, zoom_amount, zoom_speed);
-                            data.on_zoom(zoom_event);
+                            if let Some(event) = ZoomEvent::new(focus, zoom_amount, zoom_speed) {
+                                data.on_zoom(event);
+                            }
                         }
                         MovementType::Pan => {
                             let pan_event = PanEvent::new(movement);
