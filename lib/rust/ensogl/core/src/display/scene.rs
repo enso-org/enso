@@ -820,6 +820,7 @@ pub struct SceneData {
     pub bg_color_var:     style::Var,
     pub bg_color_change:  callback::Handle,
     pub frp:              Frp,
+    pub delayed_death:    RefCell<Vec<Box<dyn Any>>>,
     extensions:           Extensions,
     disable_context_menu: Rc<IgnoreContextMenuHandle>,
 }
@@ -1094,6 +1095,7 @@ impl Scene {
             self.update_shape();
             self.update_symbols();
             self.handle_mouse_events();
+            self.delayed_death.clear();
         })
     }
 }

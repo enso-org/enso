@@ -1840,7 +1840,9 @@ impl GraphEditorModel {
     /// implementation.
     fn remove_node(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
-        self.nodes.remove(&node_id);
+        if let Some(node) = self.nodes.remove(&node_id) {
+            node.unset_parent();
+        }
         self.nodes.selected.remove_item(&node_id);
         self.frp.source.on_visualization_select.emit(Switch::Off(node_id));
     }
