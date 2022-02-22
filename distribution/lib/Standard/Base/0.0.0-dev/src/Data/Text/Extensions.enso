@@ -46,13 +46,10 @@ Text.length : Integer
 Text.length =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText this
-    nxt = iterator.next
 
     count accum iter = if iter == -1 then accum else
-        counter = accum + 1
-        next_nxt = iterator.next
-        @Tail_Call count counter next_nxt
-    count 0 nxt
+        @Tail_Call count (accum + 1) iterator.next
+    count 0 iterator.next
 
 ## Applies the provided `function` to each character in `this`.
 
@@ -73,15 +70,10 @@ Text.each function =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText this
 
-    fst = iterator.first
-    nxt = iterator.next
-
     iterate prev nxt = if nxt == -1 then Nothing else
         function (Text_Utils.substring this prev nxt)
-        next_nxt = iterator.next
-        @Tail_Call iterate nxt next_nxt
-    iterate fst nxt
-    Nothing
+        @Tail_Call iterate nxt iterator.next
+    iterate iterator.first iterator.next
 
 ## ALIAS Get Character
 
@@ -113,17 +105,10 @@ Text.at index =
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText this
-
-            loop prev next count = if count == index then (Text_Utils.substring this prev next) else
-                next_next = iterator.next
-                if next_next == -1 then count else
-                    @Tail_Call loop next next_next (count + 1)
-
-            first = iterator.next
-            result = if (first == -1) then 0 else (loop 0 first 0)
-            case result of
-                Integer -> Error.throw (Index_Out_Of_Bounds_Error index result)
-                _ -> result
+            first = iterator.next index
+            next = if first == -1 then -1 else iterator.next
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error index this.length)) else
+                Text_Utils.substring this first next
 
 ## ALIAS Get Characters
 
@@ -793,54 +778,6 @@ Text.repeat : Integer -> Text
 Text.repeat count =
     0.up_to count . fold "" acc-> _-> acc + this
 
-## Creates a new text by removing the first `count` characters of `this`,
-   returning an empty text if `count` is greater than or equal to the length of
-   `this`.
-
-   Arguments:
-   - count: The number of characters to remove from the start of `this`.
-
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
-
-   > Example
-     Removing the first three characters from the text "ABBA".
-
-         "ABBA".drop_first 3
-Text.drop_first : Integer -> Text
-Text.drop_first count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.first
-    boundary = iterator.next count
-    if boundary == -1 then '' else Text_Utils.drop_first this boundary
-
-## Creates a new text by removing the last `count` characters of `this`,
-   returning an empty text if `count` is greater than or equal to the length of
-   `this`.
-
-   Arguments:
-   - count: The number of characters to remove from the end of `this`.
-
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
-
-   > Example
-     Removing the last three characters from the text "ABBA".
-
-         "ABBA".drop_last 3
-Text.drop_last : Integer -> Text
-Text.drop_last count =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
-    iterator.last
-    boundary = iterator.next -count
-    if boundary == -1 then '' else Text_Utils.substring this 0 boundary
-
 ## PRIVATE
    Utility function taking a range and getting char indices
 range_to_char_indices : Text -> Range -> Range ! Index_Out_Of_Bounds_Error
@@ -858,11 +795,9 @@ range_to_char_indices text range =
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text
 
-                loop index start_char end_char start_index =
-                    if index == end then (Range start_index (start_char)) else
-                        @Tail_Call loop (index + 1) end_char iterator.next (if index == start then start_char else start_index)
-
-                loop 0 0 iterator.next Nothing
+                start_index = iterator.next start
+                end_index = iterator.next (end - start)
+                Range start_index end_index
 
 ## ALIAS first, last, left, right, mid, substring
    Creates a new Text by selecting the specified range of the input.
@@ -981,7 +916,7 @@ Text.to_lower_case locale=Locale.default =
    Converts each character in `this` to upper case.
 
    Arguments:
-   - locale: specifies the locale for charater case mapping. Defaults to
+   - locale: specifies the locale for character case mapping. Defaults to
      `Locale.default`.
 
    ! What is a Character?
