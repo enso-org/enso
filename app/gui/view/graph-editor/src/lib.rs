@@ -1359,6 +1359,12 @@ impl GraphEditorModelWithNetwork {
             self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
         // FIXME: only calculate when needed
         let nearest_node = self.find_nearest_node(mouse_position);
+        let node_is_approached = nearest_node.filter(|node| node.approach_area_contains(mouse_position));
+        if let Some(node) = node_is_approached {
+            DEBUG!("MCDBG node_is_approached = " node.id());
+        } else {
+            DEBUG!("MCDBG nope");
+        }
         let position: Vector2 = match way {
             AddNodeEvent => default(),
             StartCreationEvent | ClickingButton if selection.is_some() =>
@@ -1376,9 +1382,9 @@ impl GraphEditorModelWithNetwork {
         (node.id(), source, should_edit)
     }
 
-    fn find_nearest_node(&self, mouse_position: Vector2) -> Option<NodeId> {
+    fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
         let mut min_distance_squared = f32::MAX;
-        let mut node_id = None;
+        let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
         for node in nodes.values() {
             // TODO: should we use some better reference point on a node for the "nearest node"
@@ -1392,10 +1398,10 @@ impl GraphEditorModelWithNetwork {
             let distance_squared = mouse_to_node_vector.norm_squared();
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
-                node_id = Some(node.id());
+                nearest_node = Some(node.clone_ref());
             }
         }
-        node_id
+        nearest_node
     }
 
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
