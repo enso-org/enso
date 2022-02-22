@@ -66,14 +66,17 @@ type Text_Sub_Range
         case this of
             First count ->
                 if count <= 0 then (Range 0 0) else
-                    indices = find_sub_range_end text (index->_->_-> index+1 == count)
-                    Range 0 indices.second
+                    iterator = BreakIterator.getCharacterInstance
+                    iterator.setText text
+                    start_index = iterator.next count
+                    Range 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
             Last count ->
                 if count <= 0 then (Range 0 0) else
                     first_count = text.length - count
-                    indices = find_sub_range_end text (index->_->_-> index+1 == first_count)
-                    if indices.first == -1 then (Range 0 indices.second) else
-                        (Range indices.second (Text_Utils.char_length text))
+                    iterator = BreakIterator.getCharacterInstance
+                    iterator.setText text
+                    start_index = iterator.next first_count
+                    Range (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
             Before delimiter ->
                 if delimiter.is_empty then (Range 0 0) else
                     index = Text_Utils.index_of text delimiter
