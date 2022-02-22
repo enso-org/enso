@@ -848,9 +848,9 @@ range_to_char_indices text range =
     len = text.length
     start = if range.start < 0 then range.start + len else range.start
     end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
-    valid = (Range 0 len+1).contains
+    is_valid = (Range 0 len+1).contains
 
-    case (Pair (valid start) (valid end)) of
+    case (Pair (is_valid start) (is_valid end)) of
         Pair False _ -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
         Pair True False -> Error.throw (Index_Out_Of_Bounds_Error range.end len)
         Pair True True ->

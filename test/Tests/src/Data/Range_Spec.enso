@@ -54,5 +54,6 @@ spec = Test.group "Range" <|
         0.up_to 0 . contains 10 . should_be_false
         0.up_to 0 . contains 0 . should_be_false
         3.up_to 5 . contains 2 . should_be_false
+        0.up_to 10 . contains -3 . should_be_false
 
 main = Test.Suite.run_main here.spec
