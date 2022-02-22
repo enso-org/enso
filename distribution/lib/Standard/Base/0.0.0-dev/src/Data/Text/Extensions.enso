@@ -553,7 +553,7 @@ Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Te
      string 'e\u0301' (i.e. the letter `e` followed by U+0301, COMBINING ACUTE
      ACCENT). Therefore:
 
-         (('É' . equals_ignore_case 'é') && ('é' == 'e\u0301')) == True
+         (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
 Text.equals_ignore_case : Text -> Boolean
 Text.equals_ignore_case that = Text_Utils.equals_ignore_case this that
 
@@ -567,8 +567,11 @@ Text.equals_ignore_case that = Text_Utils.equals_ignore_case this that
 
          "a".compare_to "b"
 Text.compare_to : Text -> Ordering
-Text.compare_to that = if this == that then Ordering.Equal else
-    if Text_Utils.lt this that then Ordering.Less else Ordering.Greater
+Text.compare_to that =
+    comparison_result = Text_Utils.compare_normalized this that
+    if comparison_result == 0 then Ordering.Equal else
+        if comparison_result < 0 then Ordering.Less else
+            Ordering.Greater
 
 ## ALIAS Check Emptiness
 
