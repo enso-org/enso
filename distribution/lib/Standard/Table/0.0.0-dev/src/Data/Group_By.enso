@@ -28,8 +28,6 @@ type Group_By_Key
 
 ## Prototype Group By function
 Table.group_by selector columns on_problems warnings=
-
-
     key_columns = if selector.is_nothing then [] else
         select_columns internal_columns=this.columns selector=selector reorder=True on_problems=on_problems warnings=warnings
 
