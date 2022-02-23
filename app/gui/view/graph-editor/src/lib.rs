@@ -1357,19 +1357,17 @@ impl GraphEditorModelWithNetwork {
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
             self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
-        // FIXME: only calculate when needed
-        let nearest_node = self.find_nearest_node(mouse_position);
-        if nearest_node.is_some() {
-            DEBUG!("MCDBG nearest_node = " nearest_node.as_ref().unwrap().id());
-        }
-        let node_is_approached = nearest_node.filter(|node| node.approach_area_contains(mouse_position));
-        if let Some(node) = node_is_approached {
-            DEBUG!("MCDBG node_is_approached = " node.id());
-        } else {
-            DEBUG!("MCDBG nope");
-        }
+        let approached_node = match way {
+            StartCreationEvent if selection.is_none() => {
+                let nearest_node = self.find_nearest_node(mouse_position);
+                nearest_node.filter(|node| node.approach_area_contains(mouse_position))
+            }
+            _ => None,
+        };
         let position: Vector2 = match way {
             AddNodeEvent => default(),
+            StartCreationEvent if approached_node.is_some() =>
+                self.find_free_place_under(approached_node.unwrap().id()),
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
             StartCreationEvent => mouse_position,
