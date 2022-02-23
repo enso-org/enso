@@ -61,8 +61,8 @@ pub const RADIUS: f32 = 14.0;
 /// Space between the documentation comment and the node.
 pub const COMMENT_MARGIN: f32 = 10.0;
 
-const APPROACH_TOP: f32 = 7.0;
-const APPROACH_BOTTOM: f32 = 50.0;
+const APPROACH_TOP: f32 = 21.0;
+const APPROACH_BOTTOM: f32 = 70.0;
 const APPROACH_SIDE: f32 = 5.0;
 
 const INFINITE: f32 = 99999.0;
