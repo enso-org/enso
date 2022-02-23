@@ -1031,6 +1031,7 @@ dependencies = [
  "enso-prelude",
  "enso-web",
  "ensogl",
+ "ordered-float 2.10.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
