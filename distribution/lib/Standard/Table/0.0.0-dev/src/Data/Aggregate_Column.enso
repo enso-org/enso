@@ -1,0 +1,98 @@
+from Standard.Base import all
+
+## Defines an Aggregate Column
+type Aggregate_Column
+    ## Creates a new column with the row count of each group
+    type Count (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the count of unique items of specified column
+       within each group.
+    type Count_Distinct (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the count of not null (Nothing) values of
+       specified column within each group.
+    type Count_Not_Null (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the count of null (Nothing) values of
+       specified column within each group.
+    type Count_Null (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the count of not null (Nothing) and non-empty
+       ("") values of specified column within each group.
+    type Count_Not_Empty (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the count of null (Nothing) or empty ("") text
+       values of specified column within each group.
+    type Count_Empty (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the sum of values (ignoring NULLs) of
+       specified column within each group.
+    type Sum (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the mean of values (ignoring NULLs) of
+       specified column within each group.
+    type Average (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the median of values (ignoring NULLs) of
+       specified column within each group.
+    type Median (name:Text|Nothing=Nothing) (column:Column|Text|Integer)
+
+    ## Creates a new column with the standard deviation of values (ignoring
+       NULLs) of specified column within each group.
+
+       Arguments:
+       - population argument specifies if group is a sample or the population
+    type Standard_Deviation (name:Text|Nothing=Nothing) (column:Column|Text|Integer) (population:Boolean=False)
+
+    column_name : Table->Text
+    column_name table =
+        if this.name.is_nothing.not then this.name else
+            prefix = case this of
+                Count _ -> "Count"
+                Count_Distinct _ c -> "Count Distinct "
+                Count_Not_Null _ c -> "Count NotNull "
+                Count_Null _ c -> "Count Null "
+                Count_Not_Empty _ c -> "Count NotEmpty "
+                Count_Empty _ c -> "Count Empty "
+                Sum _ c -> "Sum "
+                Average _ c -> "Average "
+                Median _ c -> "Median "
+                Standard_Deviation _ c _ -> "Standard Deviation "
+                Concatenate _ c _ _ _ -> "Concatenate "
+                First _ c -> "First "
+                Last _ c -> "Last "
+            prefix + (resolve_column table c).name
+
+    ## PRIVATE
+       Given a column reference resolve to the underlying column
+    resolve_column : Table->(Column|Text|Integer)->Column
+    resolve_column table column =
+        case column of
+            Column c -> c
+            Text c -> table.at c
+            Integer c -> table.columns.at c
+
+    initial_value : Any
+    initial_value =
+        case this of
+            Count_Distinct _ _ -> Map.empty
+            Median _ _ -> Map.empty
+            Average _ _ -> [0, 0]
+            Standard_Deviation _ _ _ -> [0, 0, 0]
+            _ -> 0
+
+    make_aggregator : Table->(Any->Integer->Any)
+    make_aggregator table =
+            case this of
+                Count _ -> c->_->(c+1)
+                Count_Not_Null _ c ->
+                    col = resolve_column table c
+                    c->i->(c + if (col.at i).is_nothing then 0 else 1)
+                Count_Null _ c ->
+                    col = resolve_column table c
+                    c->i->(c + if (col.at i).is_nothing then 1 else 0)
+                Sum _ c ->
+                    col = resolve_column table c
+                    c->i->(c + if (col.at i).is_nothing then 0 else (col.at i))
+                _ -> _->->(Error.throw "Not in prototype")
+
