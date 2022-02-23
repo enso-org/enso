@@ -61,10 +61,6 @@ pub const RADIUS: f32 = 14.0;
 /// Space between the documentation comment and the node.
 pub const COMMENT_MARGIN: f32 = 10.0;
 
-const APPROACH_TOP: f32 = 21.0;
-const APPROACH_BOTTOM: f32 = 70.0;
-const APPROACH_SIDE: f32 = 5.0;
-
 const INFINITE: f32 = 99999.0;
 const ERROR_VISUALIZATION_SIZE: (f32, f32) = visualization::container::DEFAULT_SIZE;
 
@@ -903,18 +899,6 @@ impl Node {
         } else {
             color::Lcha::transparent()
         }
-    }
-
-    pub fn approach_area_contains(&self, point: Vector2) -> bool {
-        // TODO: or should use some Rect type or something?
-        use crate::free_place_finder::OccupiedArea;
-        let position = self.position();
-        let left = position.x - APPROACH_SIDE;
-        let right = position.x + self.model.width() + APPROACH_SIDE;
-        let top = position.y + APPROACH_TOP;
-        let bottom = position.y - APPROACH_BOTTOM;
-        let approach_area = OccupiedArea { x1: left, x2: right, y1: top, y2: bottom };
-        approach_area.contains(point)
     }
 }
 
