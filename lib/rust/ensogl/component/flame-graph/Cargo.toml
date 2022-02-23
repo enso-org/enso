@@ -11,3 +11,4 @@ enso-profiler = { path = "../../../profiler" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text = { path = "../text" }
 ensogl = { version = "0.1.0", path = "../../../ensogl" }
+ensogl-gui-component = { version = "0.1.0", path = "../../component/gui" }

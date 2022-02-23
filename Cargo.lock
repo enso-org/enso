@@ -1480,6 +1480,7 @@ dependencies = [
  "enso-profiler",
  "ensogl",
  "ensogl-core",
+ "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
 ]

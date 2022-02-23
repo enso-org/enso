@@ -14,8 +14,6 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use enso_profiler as profiler;
-use ensogl_core::application;
-use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
@@ -33,6 +31,8 @@ use ensogl_text as text;
 /// A single block that makes up a flame graph.
 mod block {
     use super::*;
+    use ensogl_gui_component::component;
+    use ensogl_gui_component::component::Component;
 
 
     // === Layout Constants ===
@@ -85,18 +85,21 @@ mod block {
 
     // === Model ===
 
-    #[derive(Clone, Debug)]
-    struct Model {
+    #[derive(Clone, CloneRef, Debug)]
+    pub struct Model {
         app:            Application,
         background:     background::View,
         label:          text::Area,
         display_object: display::object::Instance,
     }
 
-    impl Model {
-        fn new(app: Application) -> Self {
+    impl component::Model for Model {
+        fn label() -> &'static str {
+            "FlameGraphBlock"
+        }
+
+        fn new(app: &Application, logger: &Logger) -> Self {
             let scene = app.display.scene();
-            let logger = Logger::new("FlameGraphBlock");
             let display_object = display::object::Instance::new(&logger);
 
             let label = app.new_view::<text::Area>();
@@ -111,8 +114,9 @@ mod block {
             model.set_layers(&scene.layers.tooltip, &scene.layers.tooltip_text);
             model
         }
+    }
 
-
+    impl Model {
         /// Set scene layers for background and text respectively.
         pub fn set_layers(&self, background_layer: &Layer, text_layer: &Layer) {
             // FIXME[MM/WD]: Depth sorting of labels to in front of everything else in the scene.
@@ -147,79 +151,31 @@ mod block {
     // === Main Component ===
 
     #[allow(missing_docs)]
-    #[derive(Clone, CloneRef, Debug)]
-    pub struct Block {
-        model:   Rc<Model>,
-        pub frp: Rc<Frp>,
-    }
+    pub type Block = Component<Model, Frp>;
 
-    impl Block {
-        /// Constructor.
-        pub fn new(app: &Application) -> Self {
-            let frp = Rc::new(Frp::new());
-            let model = Rc::new(Model::new(app.clone_ref()));
-            Block { model, frp }.init()
-        }
-
-        fn init(self) -> Self {
-            let frp = &self.frp;
-            let network = &frp.network;
-            let model = &self.model;
+    impl component::Frp<Model> for Frp {
+        fn init(&self, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+            let network = &self.network;
 
             let label_opacity = Animation::<f32>::new(network);
 
             frp::extend! { network
-               eval frp.set_content((t) model.set_content(t));
-               eval frp.set_size((size) model.set_size(*size));
+               eval self.set_content((t) model.set_content(t));
+               eval self.set_size((size) model.set_size(*size));
 
                 label_opacity.target <+ model.background.events.mouse_over.constant(1.0);
                 label_opacity.target <+ model.background.events.mouse_out.constant(0.0);
                 eval label_opacity.value ((t) model.set_label_opacity(*t));
-
             }
 
             label_opacity.target.emit(0.0);
             model.set_label_opacity(0.0);
-
-            self
         }
     }
 
-    impl Deref for Block {
-        type Target = Frp;
-
-        fn deref(&self) -> &Self::Target {
-            &self.frp
-        }
-    }
-
-    impl display::Object for Block {
+    impl display::Object for Model {
         fn display_object(&self) -> &display::object::Instance {
-            &self.model.display_object
-        }
-    }
-
-    impl application::command::FrpNetworkProvider for Block {
-        fn network(&self) -> &frp::Network {
-            &self.frp.network
-        }
-    }
-
-    impl application::View for Block {
-        fn label() -> &'static str {
-            "FlameGraphBlock"
-        }
-
-        fn new(app: &Application) -> Self {
-            Block::new(app)
-        }
-
-        fn app(&self) -> &Application {
-            &self.model.app
-        }
-
-        fn default_shortcuts() -> Vec<shortcut::Shortcut> {
-            default()
+            &self.display_object
         }
     }
 }
