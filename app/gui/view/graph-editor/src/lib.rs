@@ -1364,6 +1364,11 @@ impl GraphEditorModelWithNetwork {
             }
             _ => None,
         };
+        if let Some(ref node) = approached_node {
+            DEBUG!("MCDBG approached_node = " node.id());
+        } else {
+            DEBUG!("MCDBG nope");
+        }
         let position: Vector2 = match way {
             AddNodeEvent => default(),
             StartCreationEvent if approached_node.is_some() =>
