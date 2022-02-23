@@ -47,7 +47,8 @@ from project.Data.Number.Extensions export all hiding Math, String, Double
 from project.Data.Noise export all hiding Noise
 from project.Data.Pair export Pair
 from project.Data.Range export Range
-from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style
+# TODO [RW] do we want to export case? I don't want to pollute too much, but without autoscoping to_case is unusable as you'd need to import it.
+from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style, Case
 from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
 from project.Error.Common export all
 from project.Error.Extensions export all
