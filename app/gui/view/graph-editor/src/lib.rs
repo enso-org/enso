@@ -1365,12 +1365,10 @@ impl GraphEditorModelWithNetwork {
             AddNodeEvent => default(),
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
-            StartCreationEvent =>
-                self.find_place_by_nearest_node(mouse_position),
+            StartCreationEvent => self.find_place_by_nearest_node(mouse_position),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
-            DroppingEdge { edge_id } =>
-                self.find_place_by_dropping_edge(edge_id, mouse_position),
+            DroppingEdge { edge_id } => self.find_place_by_dropping_edge(edge_id, mouse_position),
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
@@ -1661,25 +1659,29 @@ impl GraphEditorModel {
 
     pub fn find_place_by_nearest_node(&self, mouse_position: Vector2) -> Vector2 {
         let nearest_node = self.find_nearest_node(mouse_position);
-        let place_dictated_by_node = nearest_node.and_then(|node|
-            self.find_place_dictated_by_node(node, mouse_position));
+        let place_dictated_by_node =
+            nearest_node.and_then(|node| self.find_place_dictated_by_node(node, mouse_position));
         place_dictated_by_node.unwrap_or(mouse_position)
     }
 
     pub fn find_place_by_dropping_edge(&self, edge_id: EdgeId, mouse_position: Vector2) -> Vector2 {
         let edge_source_node_id = self.edge_source_node_id(edge_id);
         let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-        let place_dictated_by_node = edge_source_node.and_then(|node|
-            self.find_place_dictated_by_node(node, mouse_position));
+        let place_dictated_by_node = edge_source_node
+            .and_then(|node| self.find_place_dictated_by_node(node, mouse_position));
         place_dictated_by_node.unwrap_or(mouse_position)
     }
 
-    pub fn find_place_dictated_by_node(&self, node: Node, mouse_position: Vector2) -> Option<Vector2> {
+    pub fn find_place_dictated_by_node(
+        &self,
+        node: Node,
+        mouse_position: Vector2,
+    ) -> Option<Vector2> {
         let node_position = node.position();
         let node_left = node_position.x;
         let node_right = node_position.x + node.model.width();
-        let node_top = node_position.y + node.model.height()/2.0;
-        let node_bottom = node_position.y - node.model.height()/2.0;
+        let node_top = node_position.y + node.model.height() / 2.0;
+        let node_bottom = node_position.y - node.model.height() / 2.0;
         // TODO: use some kind of Rect type instead of OccupiedArea?
         let placement_area = OccupiedArea {
             x1: node_left - NODE_PLACEMENT_SIDEWAYS,
