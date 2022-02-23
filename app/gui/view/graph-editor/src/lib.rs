@@ -1682,14 +1682,22 @@ impl GraphEditorModel {
             //  b) the geometrical center of the node's area,
             //  c) a point closest to the mouse pointer on the line segment connecting node's
             //     leftmost & rightmost points,
-            //  c) a point closest to the mouse pointer on the bounding box of the node
+            //  d) a point closest to the mouse pointer on the bounding box of the node
             //     (with extra handling for when the mouse is inside the bounding box),
-            //  d) a point closest to the mouse pointer on the rounded rectangle forming the node's
+            //  e) a point closest to the mouse pointer on the rounded rectangle forming the node's
             //     shape (with extra handling for when the mouse is inside the rounded rectangle).
+            //  The following code implements variant (c).
             let node_position = node.position().xy();
-            let node_midpoint_x = (node_position.x + node.model.width()) / 2.0;
-            let node_midpoint = Vector2(node_midpoint_x, node_position.y);
-            let distance_squared = (node_midpoint - mouse_position).norm_squared();
+            let node_rightmost_x = node_position.x + node.model.width();
+            let mouse_x = mouse_position.x;
+            let node_point_near_mouse = if mouse_x <= node_position.x {
+                node_position
+            } else if mouse_x < node_rightmost_x {
+                Vector2(mouse_x, node_position.y)
+            } else {
+                Vector2(node_rightmost_x, node_position.y)
+            };
+            let distance_squared = (node_point_near_mouse - mouse_position).norm_squared();
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
                 nearest_node = Some(node.clone_ref());
