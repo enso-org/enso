@@ -35,9 +35,8 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_single_criterion "foo" "fF.*" (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
         Matching.match_single_criterion "foo" "Foos" (Text_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
 
-        ## TODO this may not be how we want this to work, but this test is
-           included to explicitly illustrate how the current implementation
-           behaves in such corner cases
+        # Small beta is equal to capital 'beta' which looks the same as capital 'b' but is a different symbol.
+        Matching.match_single_criterion "β" "Β" (Text_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
         Matching.match_single_criterion "β" "B" (Text_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
 
     Test.specify 'should match a list of names with a list of criteria, correctly handling reordering' <|

@@ -12,7 +12,6 @@ No_Matches_Found.to_display_text : Text
 No_Matches_Found.to_display_text =
     "The criteria "+this.criteria.to_text+" did not match any names in the input."
 
-
 ## UNSTABLE
    Selects objects from an input list that match any of the provided criteria.
 
