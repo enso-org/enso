@@ -1359,12 +1359,18 @@ impl GraphEditorModelWithNetwork {
             self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
         let position: Vector2 = match way {
             AddNodeEvent => default(),
+            // StartCreationEvent if mouse_dictated_placement_source.is_some() =>
+            //     self.find_free_place_under(mouse_dictated_placement_source.unwrap().id()),
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
+            // StartCreationEvent => mouse_position,
             StartCreationEvent =>
                 self.find_mouse_dictated_place(mouse_position, None),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
+            // DroppingEdge { .. } if mouse_dictated_placement_source.is_some() =>
+            //     self.find_free_place_under(mouse_dictated_placement_source.unwrap().id()),
+            // DroppingEdge { .. } => mouse_position,
             DroppingEdge { edge_id } =>
                 self.find_mouse_dictated_place(mouse_position, Some(edge_id)),
         };
@@ -1671,6 +1677,10 @@ impl GraphEditorModel {
     }
 
     fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
+        fn xy(v: Vector2) -> String {
+            iformat!("(" v.x ", " v.y ")")
+        }
+        DEBUG!("MCDBG mouse = " xy(mouse_position));
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
@@ -1684,10 +1694,14 @@ impl GraphEditorModel {
             //     mouse pointer.
             let mouse_to_node_vector = node.position().xy() - mouse_position;
             let distance_squared = mouse_to_node_vector.norm_squared();
+            DEBUG!(" - " distance_squared;? " id=" node.id() " v=" xy(mouse_to_node_vector) " @ " xy(node.position().xy()));
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
                 nearest_node = Some(node.clone_ref());
             }
+        }
+        if nearest_node.is_some() {
+            DEBUG!(" -> min " min_distance_squared;? " id=" nearest_node.as_ref().unwrap().id());
         }
         nearest_node
     }
