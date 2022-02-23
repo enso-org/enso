@@ -1,3 +1,4 @@
+#![allow(incomplete_features)]
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -62,34 +63,8 @@ mod arch_dependent_impls {
         T::mock_default()
     }
 
-    impl MockDefault for i16 {
-        fn mock_default() -> Self {
-            0
-        }
-    }
-
-    impl MockDefault for i32 {
-        fn mock_default() -> Self {
-            0
-        }
-    }
-
-    impl MockDefault for u32 {
-        fn mock_default() -> Self {
-            0
-        }
-    }
-
-    impl MockDefault for String {
-        fn mock_default() -> Self {
-            "mock default".into()
-        }
-    }
-
-    impl<T> MockDefault for Option<T> {
-        fn mock_default() -> Self {
-            None
-        }
+    impl MockDefault for () {
+        fn mock_default() -> Self {}
     }
 
     impl<T: MockDefault, E> MockDefault for std::result::Result<T, E> {
@@ -97,6 +72,20 @@ mod arch_dependent_impls {
             Ok(mock_default())
         }
     }
+
+    macro_rules! auto_impl_mock_default {
+        ( $($tp:ident $(< $($arg:ident),* >)? ),* ) => {
+            $(
+                impl $(<$($arg),*>)? MockDefault for $tp $(<$($arg),*>)? {
+                    fn mock_default() -> Self {
+                        default()
+                    }
+                }
+            )*
+        };
+    }
+
+    auto_impl_mock_default!(bool, i16, i32, u32, f64, String, Option<T>);
 
 
 
@@ -106,16 +95,23 @@ mod arch_dependent_impls {
 
     pub trait MockData {}
 
-
     macro_rules! new_mock_data {
         ($name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)?
             $(=> $deref:ident)?
         ) => {
-            #[derive(Debug)]
+            #[allow(missing_copy_implementations)]
             pub struct $name $(<$($param $(:?$param_tp)?),*>)? {
                 $($( $param : PhantomData<$param> ),*)?
             }
 
+            impl$(<$($param $(:?$param_tp)?),*>)?
+            Debug for $name $(<$($param),*>)? {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, stringify!($name))
+                }
+            }
+
+            #[allow(unsafe_code)]
             impl $(<$($param $(:?$param_tp)?),*>)?
             Default for $name $(<$($param),*>)? {
                 fn default() -> Self {
@@ -145,11 +141,9 @@ mod arch_dependent_impls {
             }
 
             impl $(<$($param $(:?$param_tp)?),*>)?
-            Copy for $name $(<$($param),*>)? {}
-
-            impl $(<$($param $(:?$param_tp)?),*>)?
             MockData for $name $(<$($param),*>)? {}
 
+            #[allow(unsafe_code)]
             impl<__T__: MockData, $($($param $(:?$param_tp)? ),*)?>
             AsRef<__T__> for $name $(<$($param),*>)? {
                 fn as_ref(&self) -> &__T__ {
@@ -176,7 +170,7 @@ mod arch_dependent_impls {
                 fn instanceof(_val: &JsValue) -> bool {
                     true
                 }
-                fn unchecked_from_js(val: JsValue) -> Self {
+                fn unchecked_from_js(_val: JsValue) -> Self {
                     default()
                 }
                 fn unchecked_from_js_ref(val: &JsValue) -> &Self {
@@ -185,6 +179,28 @@ mod arch_dependent_impls {
             }
         };
     }
+
+
+
+    // ===============
+    // === mock_fn ===
+    // ===============
+
+    macro_rules! mock_fn {
+        ($name:ident (&self $(,$arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
+            pub fn $name(&self $(,$arg : $arg_tp)*) $(-> $out)? {
+                mock_default()
+            }
+        };
+
+        ($name:ident ($($arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
+            pub fn $name($($arg : $arg_tp)*) $(-> $out)? {
+                mock_default()
+            }
+        };
+    }
+
+
 
     // ===============
     // === JsValue ===
@@ -206,11 +222,8 @@ mod arch_dependent_impls {
     // ==============
 
     new_mock_data!(Object => JsValue);
-
     impl Object {
-        pub fn value_of(&self) -> Object {
-            default()
-        }
+        mock_fn!(value_of(&self) -> Object);
     }
 
 
@@ -250,13 +263,8 @@ mod arch_dependent_impls {
     }
 
     impl Window {
-        pub fn open_with_url_and_target(
-            &self,
-            _url: &str,
-            _target: &str,
-        ) -> std::result::Result<Option<Window>, JsValue> {
-            mock_default()
-        }
+        mock_fn!(open_with_url_and_target(&self,_url: &str,_target: &str)
+            -> std::result::Result<Option<Window>, JsValue>);
     }
 
 
@@ -293,6 +301,7 @@ mod arch_dependent_impls {
 
     impl<T: ?Sized> Copy for Closure<T> {}
 
+    #[allow(unsafe_code)]
     impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
         fn as_ref(&self) -> &JsValue {
             unsafe { mem::transmute(self) }
@@ -300,15 +309,16 @@ mod arch_dependent_impls {
     }
 
     impl<T: ?Sized> Closure<T> {
-        pub fn new<F>(t: F) -> Closure<T> {
+        pub fn new<F>(_t: F) -> Closure<T> {
             default()
         }
 
+        #[allow(clippy::boxed_local)]
         pub fn wrap(_data: Box<T>) -> Closure<T> {
             default()
         }
 
-        pub fn once<F>(fn_once: F) -> Closure<F> {
+        pub fn once<F>(_fn_once: F) -> Closure<F> {
             default()
         }
     }
@@ -351,11 +361,9 @@ mod arch_dependent_impls {
     new_mock_data!(Event => Object);
 
     impl Event {
-        pub fn prevent_default(&self) {}
-        pub fn stop_propagation(&self) {}
-        pub fn current_target(&self) -> Option<EventTarget> {
-            mock_default()
-        }
+        mock_fn!(prevent_default(&self));
+        mock_fn!(stop_propagation(&self));
+        mock_fn!(current_target(&self) -> Option<EventTarget>);
     }
 
 
@@ -364,30 +372,11 @@ mod arch_dependent_impls {
     // =====================
 
     new_mock_data!(KeyboardEvent => Event);
-
-    macro_rules! mock_fn {
-        ($name:ident ()) => {
-            pub fn $name() {}
-        };
-    }
-
     impl KeyboardEvent {
-        mock_fn!(key2());
-        pub fn key(&self) -> String {
-            mock_default()
-        }
-
-        pub fn code(&self) -> String {
-            mock_default()
-        }
-
-        pub fn alt_key(&self) -> bool {
-            false
-        }
-
-        pub fn ctrl_key(&self) -> bool {
-            false
-        }
+        mock_fn!(key(&self) -> String);
+        mock_fn!(code(&self) -> String);
+        mock_fn!(alt_key(&self) -> bool);
+        mock_fn!(ctrl_key(&self) -> bool);
     }
 
 
@@ -396,43 +385,16 @@ mod arch_dependent_impls {
     // =====================
 
     new_mock_data!(MouseEvent => Event);
-
     impl MouseEvent {
-        pub fn button(&self) -> i16 {
-            mock_default()
-        }
-
-        pub fn alt_key(&self) -> bool {
-            false
-        }
-
-        pub fn ctrl_key(&self) -> bool {
-            false
-        }
-
-        pub fn client_x(&self) -> i32 {
-            0
-        }
-
-        pub fn client_y(&self) -> i32 {
-            0
-        }
-
-        pub fn offset_x(&self) -> i32 {
-            0
-        }
-
-        pub fn offset_y(&self) -> i32 {
-            0
-        }
-
-        pub fn screen_x(&self) -> i32 {
-            0
-        }
-
-        pub fn screen_y(&self) -> i32 {
-            0
-        }
+        mock_fn!(button(&self) -> i16);
+        mock_fn!(alt_key(&self) -> bool);
+        mock_fn!(ctrl_key(&self) -> bool);
+        mock_fn!(client_x(&self) -> i32);
+        mock_fn!(client_y(&self) -> i32);
+        mock_fn!(offset_x(&self) -> i32);
+        mock_fn!(offset_y(&self) -> i32);
+        mock_fn!(screen_x(&self) -> i32);
+        mock_fn!(screen_y(&self) -> i32);
     }
 
 
@@ -441,15 +403,9 @@ mod arch_dependent_impls {
     // =====================
 
     new_mock_data!(WheelEvent => MouseEvent);
-
     impl WheelEvent {
-        pub fn delta_x(&self) -> f64 {
-            0.0
-        }
-
-        pub fn delta_y(&self) -> f64 {
-            0.0
-        }
+        mock_fn!(delta_x(&self) -> f64);
+        mock_fn!(delta_y(&self) -> f64);
     }
 
 
@@ -515,9 +471,7 @@ mod arch_dependent_impls {
     new_mock_data!(HtmlCollection);
 
     impl HtmlCollection {
-        pub fn length(&self) -> u32 {
-            mock_default()
-        }
+        mock_fn!(length(&self) -> u32);
     }
 
     // ===============
@@ -527,29 +481,12 @@ mod arch_dependent_impls {
     new_mock_data!(DomRect);
 
     impl DomRect {
-        pub fn width(&self) -> f64 {
-            default()
-        }
-
-        pub fn height(&self) -> f64 {
-            default()
-        }
-
-        pub fn left(&self) -> f64 {
-            default()
-        }
-
-        pub fn right(&self) -> f64 {
-            default()
-        }
-
-        pub fn top(&self) -> f64 {
-            default()
-        }
-
-        pub fn bottom(&self) -> f64 {
-            default()
-        }
+        mock_fn!(width(&self) -> f64);
+        mock_fn!(height(&self) -> f64);
+        mock_fn!(left(&self) -> f64);
+        mock_fn!(right(&self) -> f64);
+        mock_fn!(top(&self) -> f64);
+        mock_fn!(bottom(&self) -> f64);
     }
 
 
@@ -561,15 +498,9 @@ mod arch_dependent_impls {
 
 
     impl Element {
-        pub fn children(&self) -> HtmlCollection {
-            mock_default()
-        }
-
-        pub fn remove(&self) {}
-
-        pub fn get_bounding_client_rect(&self) -> DomRect {
-            default()
-        }
+        mock_fn!(remove(&self));
+        mock_fn!(children(&self) -> HtmlCollection);
+        mock_fn!(get_bounding_client_rect(&self) -> DomRect);
     }
 
     // ===================
@@ -581,7 +512,7 @@ mod arch_dependent_impls {
 
     impl HtmlElement {
         // FIXME: move to trait
-        pub fn set_class_name(&self, n: &str) {}
+        mock_fn!(set_class_name(&self, _n: &str));
     }
 
     impl From<HtmlElement> for EventTarget {
@@ -653,13 +584,15 @@ mod arch_dependent_impls {
         mock_default()
     }
 
-    pub fn get_html_element_by_id(id: &str) -> Result<HtmlElement> {
+    pub fn get_html_element_by_id(_id: &str) -> Result<HtmlElement> {
         mock_default()
     }
 
-    pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
+    pub fn get_webgl2_context(_canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
         None
     }
+
+    pub fn forward_panic_hook_to_console() {}
 }
 
 
@@ -695,8 +628,8 @@ impl StyleSetter for web_sys::HtmlElement {
 }
 
 impl StyleSetter for HtmlElement {
-    fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {}
-    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {}
+    fn set_style_or_panic<T: Str, U: Str>(&self, _name: T, _value: U) {}
+    fn set_style_or_warn<T: Str, U: Str>(&self, _name: T, _value: U, _logger: &Logger) {}
 }
 
 
@@ -712,9 +645,9 @@ pub trait AttributeSetter {
 }
 
 impl AttributeSetter for Element {
-    fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U) {}
+    fn set_attribute_or_panic<T: Str, U: Str>(&self, _name: T, _value: U) {}
 
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &WarningLogger) {}
+    fn set_attribute_or_warn<T: Str, U: Str>(&self, _name: T, _value: U, _logger: &WarningLogger) {}
 }
 
 
@@ -754,17 +687,18 @@ pub trait NodeInserter {
 }
 
 impl NodeInserter for Node {
-    fn append_or_panic(&self, node: &Self) {}
+    fn append_or_panic(&self, _node: &Self) {}
 
-    fn append_or_warn(&self, node: &Self, logger: &WarningLogger) {}
+    fn append_or_warn(&self, _node: &Self, _logger: &WarningLogger) {}
 
-    fn prepend_or_panic(&self, node: &Self) {}
+    fn prepend_or_panic(&self, _node: &Self) {}
 
-    fn prepend_or_warn(&self, node: &Self, logger: &WarningLogger) {}
+    fn prepend_or_warn(&self, _node: &Self, _logger: &WarningLogger) {}
 
-    fn insert_before_or_panic(&self, node: &Self, reference_node: &Self) {}
+    fn insert_before_or_panic(&self, _node: &Self, _reference_node: &Self) {}
 
-    fn insert_before_or_warn(&self, node: &Self, reference_node: &Self, logger: &WarningLogger) {}
+    fn insert_before_or_warn(&self, _node: &Self, _reference_node: &Self, _logger: &WarningLogger) {
+    }
 }
 
 impl NodeInserter for web_sys::Node {
@@ -823,11 +757,11 @@ pub trait NodeRemover {
 impl NodeRemover for Node {
     fn remove_from_parent_or_panic(&self) {}
 
-    fn remove_from_parent_or_warn(&self, logger: &WarningLogger) {}
+    fn remove_from_parent_or_warn(&self, _logger: &WarningLogger) {}
 
-    fn remove_child_or_panic(&self, node: &Self) {}
+    fn remove_child_or_panic(&self, _node: &Self) {}
 
-    fn remove_child_or_warn(&self, node: &Self, logger: &WarningLogger) {}
+    fn remove_child_or_warn(&self, _node: &Self, _logger: &WarningLogger) {}
 }
 
 impl NodeRemover for web_sys::Node {
@@ -864,11 +798,11 @@ pub use request_animation_frame_impl::*;
 
 mod request_animation_frame_impl {
     use super::*;
-    pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> i32 {
+    pub fn request_animation_frame(_f: &Closure<dyn FnMut(f64)>) -> i32 {
         mock_default()
     }
 
-    pub fn cancel_animation_frame(id: i32) {}
+    pub fn cancel_animation_frame(_id: i32) {}
 }
 
 #[cfg(target_arch = "wasm32")]

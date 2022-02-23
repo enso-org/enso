@@ -6,9 +6,11 @@ use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
 use crate::system::gpu::Context;
+#[cfg(target_arch = "wasm32")]
 use crate::system::web;
-
+#[cfg(target_arch = "wasm32")]
 use web::Closure;
+#[cfg(target_arch = "wasm32")]
 use web_sys::HtmlImageElement;
 
 

@@ -1,17 +1,20 @@
+#![allow(missing_docs)]
+// FIXME allow missing docs
+
 //! This module implements performance monitoring utils.
 
 use crate::prelude::*;
 
 use crate::debug::stats::StatsData;
-use crate::system::web;
-use crate::system::web::StyleSetter;
-
-use num_traits::cast::AsPrimitive;
-use std::collections::VecDeque;
-use std::f64;
+// use crate::system::web;
+// use crate::system::web::StyleSetter;
+//
+// use num_traits::cast::AsPrimitive;
+// use std::collections::VecDeque;
+// use std::f64;
+// use wasm_bindgen::JsCast;
 use wasm_bindgen;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 
 #[cfg(target_arch = "wasm32")]

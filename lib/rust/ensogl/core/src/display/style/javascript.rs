@@ -7,10 +7,13 @@ use wasm_bindgen::prelude::*;
 use super::sheet::Data;
 use super::sheet::Value;
 use super::theme::Manager;
-
-use crate::system::web;
-use js_sys;
 use wasm_bindgen::prelude::Closure;
+
+#[cfg(target_arch = "wasm32")]
+use crate::system::web;
+
+#[cfg(target_arch = "wasm32")]
+use js_sys;
 
 
 
@@ -128,8 +131,6 @@ mod js {
 /// Expose the `window.theme` variable which can be used to inspect and change the theme directly
 /// from the JavaScript console.
 pub fn expose_to_window(manager: &Manager) {
-    let window = web::window();
-
     let list: js::List = Closure::new(f!([manager]() format!("{:?}",manager.keys())));
     let choose: js::Choose = Closure::new(f!((name) manager.set_enabled(&[name])));
     let snapshot: js::Snapshot = Closure::new(f!((name) manager.snapshot(name)));
@@ -168,7 +169,6 @@ pub fn expose_to_window(manager: &Manager) {
         theme_ref
     });
 
-    let theme_manger_ref = js::create_theme_manager_ref(&list, &choose, &get, &snapshot, &diff);
 
     mem::forget(list);
     mem::forget(choose);
@@ -177,6 +177,10 @@ pub fn expose_to_window(manager: &Manager) {
     mem::forget(get);
 
     // FIXME
+    #[cfg(target_arch = "wasm32")]
+    let window = web::window();
+    #[cfg(target_arch = "wasm32")]
+    let theme_manger_ref = js::create_theme_manager_ref(&list, &choose, &get, &snapshot, &diff);
     #[cfg(target_arch = "wasm32")]
     js_sys::Reflect::set(&window, &"theme".into(), &theme_manger_ref).ok();
 }

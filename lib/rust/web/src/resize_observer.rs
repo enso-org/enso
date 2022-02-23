@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::Closure;
 use crate::JsValue;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -29,11 +30,11 @@ extern "C" {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn resize_observe(target: &JsValue, closure: &Listener) -> usize {
+fn resize_observe(_target: &JsValue, _closure: &Listener) -> usize {
     0
 }
 #[cfg(not(target_arch = "wasm32"))]
-fn resize_unobserve(id: usize) {}
+fn resize_unobserve(_id: usize) {}
 
 
 // ======================

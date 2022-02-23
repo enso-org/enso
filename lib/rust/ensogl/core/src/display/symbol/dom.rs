@@ -5,11 +5,13 @@ use crate::prelude::*;
 
 use crate::display;
 use crate::display::object::traits::*;
+#[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
 use web::HtmlDivElement;
 
@@ -42,7 +44,7 @@ mod js {
 #[cfg(not(target_arch = "wasm32"))]
 mod js {
     use super::*;
-    pub fn set_object_transform(dom: &web::JsValue, matrix_array: &web::Object) {}
+    pub fn set_object_transform(_dom: &web::JsValue, _matrix_array: &web::Object) {}
 }
 
 /// Sets the object transform as the CSS style property.
@@ -59,7 +61,8 @@ pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {}
+#[allow(missing_docs)]
+pub fn set_object_transform(_dom: &web::JsValue, _matrix: &Matrix4<f32>) {}
 
 
 

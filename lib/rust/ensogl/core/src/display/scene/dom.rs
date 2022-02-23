@@ -8,13 +8,15 @@ use crate::display::object::traits::*;
 use crate::display::symbol::dom::eps;
 use crate::display::symbol::dom::inverse_y_translation;
 use crate::display::symbol::DomSymbol;
-use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
-
-use wasm_bindgen::prelude::wasm_bindgen;
 use web::HtmlDivElement;
+
+#[cfg(target_arch = "wasm32")]
+use crate::system::gpu::data::JsBufferView;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 
 
@@ -91,10 +93,10 @@ fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>) {}
+fn setup_camera_perspective(_dom: &web::JsValue, _near: f32, _matrix: &Matrix4<f32>) {}
 
 #[cfg(not(target_arch = "wasm32"))]
-fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {}
+fn setup_camera_orthographic(_dom: &web::JsValue, _matrix: &Matrix4<f32>) {}
 
 
 

@@ -2,6 +2,7 @@
 
 pub mod listener;
 
+#[cfg(target_arch = "wasm32")]
 use crate::prelude::*;
 
 

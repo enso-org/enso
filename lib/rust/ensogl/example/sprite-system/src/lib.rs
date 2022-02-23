@@ -19,7 +19,6 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::world::*;
-use ensogl_core::system::web;
 use ensogl_core::system::web::forward_panic_hook_to_console;
 
 

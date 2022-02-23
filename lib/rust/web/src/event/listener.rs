@@ -1,9 +1,9 @@
-use crate::prelude::*;
-
 #[cfg(target_arch = "wasm32")]
 use crate::closure::storage::ClosureFn;
 #[cfg(target_arch = "wasm32")]
 use crate::closure::storage::OptionalFmMutClosure;
+#[cfg(target_arch = "wasm32")]
+use crate::prelude::*;
 
 
 

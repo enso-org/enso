@@ -33,7 +33,7 @@ impl {
         let previous_frame_stats      = None;
         let current_frame_measurement = FrameMeasurementState::Skipped;
         let performance               = web::performance();
-        let mut monitor               = debug::Monitor::default();
+        let monitor               = debug::Monitor::default();
         let panels = vec![
             // monitor.add::<debug::monitor::FrameTime>(),
             // monitor.add::<debug::monitor::Fps>(),
@@ -59,6 +59,8 @@ impl {
         }
     }
 
+    // FIXME: this design is still too coupled. Monitor draws and processes data.
+    /// Stats accessor.
     pub fn stats(&self) -> Stats {
         self.stats.clone_ref()
     }
