@@ -1682,7 +1682,6 @@ impl GraphEditorModel {
         let node_right = node_position.x + node.model.width();
         let node_top = node_position.y + node.model.height() / 2.0;
         let node_bottom = node_position.y - node.model.height() / 2.0;
-        // TODO: use some kind of Rect type instead of OccupiedArea?
         let placement_area = OccupiedArea {
             x1: node_left - NODE_PLACEMENT_SIDEWAYS,
             x2: node_right + NODE_PLACEMENT_SIDEWAYS,
