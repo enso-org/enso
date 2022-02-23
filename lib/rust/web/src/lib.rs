@@ -120,6 +120,8 @@ mod arch_dependent_impls {
                 }
             }
 
+            /// # Safety
+            /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
             #[allow(unsafe_code)]
             impl $(<$($param $(:?$param_tp)?),*>)?
             Default for $name $(<$($param),*>)? {
@@ -162,6 +164,8 @@ mod arch_dependent_impls {
         ([] $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)?
             $(=> $deref:ident)?
         ) => {
+            /// # Safety
+            /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
             #[allow(unsafe_code)]
             impl<__T__: MockData, $($($param $(:?$param_tp)? ),*)?>
             AsRef<__T__> for $name $(<$($param),*>)? {
@@ -255,6 +259,7 @@ mod arch_dependent_impls {
     // === JsCast ===
     // ==============
 
+    /// Mock of [`JsCast`] is implemented for all mocked types.
     impl<T: MockData + MockDefault + AsRef<JsValue> + Into<JsValue>> JsCast for T {}
 
     /// Mock of [`wasm_bindgen::JsCast`].
@@ -325,6 +330,9 @@ mod arch_dependent_impls {
     // === Closure ===
     // ===============
 
+    /// The generated structure does not implement a generic [`AsRef`] impl, as the usages base on
+    /// the fact that there exist exactly one such an impl (provided below), so the type inferencer
+    /// can monomoprhise more free variables.
     mock_data! { [NO_AS_REF] Closure<T: ?Sized>
         fn new<F>(_t: F) -> Closure<T>;
         fn wrap(_data: Box<T>) -> Closure<T>;

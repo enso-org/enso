@@ -4344,7 +4344,6 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl",
- "js-sys",
  "wasm-bindgen",
  "web-sys",
 ]
