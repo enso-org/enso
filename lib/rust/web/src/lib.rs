@@ -6,7 +6,9 @@
 #![feature(negative_impls)]
 #![feature(specialization)]
 #![feature(auto_traits)]
-
+//
+#![allow(unused_doc_comments)]
+#![allow(clippy::boxed_local)]
 
 pub mod clipboard;
 pub mod closure;
@@ -55,10 +57,12 @@ mod arch_dependent_impls {
     // === MockDefault ===
     // ===================
 
+    /// Default value provider. Similar to [`Default`] but with additional implementations.
     pub trait MockDefault {
         fn mock_default() -> Self;
     }
 
+    /// [`MockDefault::mock_default`] accessor.
     pub fn mock_default<T: MockDefault>() -> T {
         T::mock_default()
     }
@@ -73,6 +77,7 @@ mod arch_dependent_impls {
         }
     }
 
+    /// Macro which generates [`MockDefault`] impls which redirect the call to [`Default::default`].
     macro_rules! auto_impl_mock_default {
         ( $($tp:ident $(< $($arg:ident),* >)? ),* ) => {
             $(
@@ -93,13 +98,17 @@ mod arch_dependent_impls {
     // === MockData ===
     // ================
 
+    /// Every mock structure implements this trait.
     pub trait MockData {}
 
-    macro_rules! new_mock_data {
-        ($name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)?
-            $(=> $deref:ident)?
+    /// Macro used to generate mock structures. See the expansion of generated structures to learn
+    /// more.
+    macro_rules! mock_struct {
+        ( $([$opt:ident])?
+            $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
         ) => {
             #[allow(missing_copy_implementations)]
+            #[allow(non_snake_case)]
             pub struct $name $(<$($param $(:?$param_tp)?),*>)? {
                 $($( $param : PhantomData<$param> ),*)?
             }
@@ -143,6 +152,16 @@ mod arch_dependent_impls {
             impl $(<$($param $(:?$param_tp)?),*>)?
             MockData for $name $(<$($param),*>)? {}
 
+            mock_struct_deref! {[$($deref)?] $name $(<$( $param $(:?$param_tp)?),*>)?}
+            mock_struct_as_ref! {[$($opt)?] $name $(<$( $param $(:?$param_tp)?),*>)? $(=> $deref)?}
+        };
+    }
+
+    macro_rules! mock_struct_as_ref {
+        ([NO_AS_REF] $($ts:tt)*) => {};
+        ([] $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)?
+            $(=> $deref:ident)?
+        ) => {
             #[allow(unsafe_code)]
             impl<__T__: MockData, $($($param $(:?$param_tp)? ),*)?>
             AsRef<__T__> for $name $(<$($param),*>)? {
@@ -150,31 +169,24 @@ mod arch_dependent_impls {
                     unsafe { mem::transmute(self) }
                 }
             }
+        };
+    }
 
-            $(
-                impl Deref for $name {
-                    type Target = $deref;
-                    fn deref(&self) -> &Self::Target {
-                        self.as_ref()
-                    }
+    macro_rules! mock_struct_deref {
+        ([] $($ts:tt)*) => {};
+        ([$deref:ident] $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)?) => {
+            impl $(<$($param $(:?$param_tp)?),*>)?
+            Deref for $name $(<$($param),*>)? {
+                type Target = $deref;
+                fn deref(&self) -> &Self::Target {
+                    self.as_ref()
                 }
+            }
 
-                impl From<$name> for $deref {
-                    fn from(_:$name) -> Self {
-                        default()
-                    }
-                }
-            )?
-
-            impl JsCast for $name {
-                fn instanceof(_val: &JsValue) -> bool {
-                    true
-                }
-                fn unchecked_from_js(_val: JsValue) -> Self {
+            impl $(<$($param $(:?$param_tp)?),*>)?
+            From<$name $(<$($param),*>)?> for $deref {
+                fn from(_: $name) -> Self {
                     default()
-                }
-                fn unchecked_from_js_ref(val: &JsValue) -> &Self {
-                    val.as_ref()
                 }
             }
         };
@@ -186,226 +198,55 @@ mod arch_dependent_impls {
     // === mock_fn ===
     // ===============
 
+    /// Macro used to generate mock methods. Methods look just like their provided signature with
+    /// a body returning `mock_default()`. There are two special cases: for functions returning
+    /// `&Self`, and `&mut Self`, which just pass `&self` and `&mut self` to the output,
+    /// respectively.
     macro_rules! mock_fn {
-        ($name:ident (&self $(,$arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
-            pub fn $name(&self $(,$arg : $arg_tp)*) $(-> $out)? {
+        ($name:ident $(<$($fn_tp:ident),*>)?
+        (&self $(,$arg:ident : $arg_tp:ty)* $(,)? ) -> &Self ) => {
+            pub fn $name $(<$($fn_tp),*>)? (&self $(,$arg : $arg_tp)*) -> &Self {
+                self
+            }
+        };
+
+        ($name:ident $(<$($fn_tp:ident),*>)?
+        (&mut self $(,$arg:ident : $arg_tp:ty)* $(,)? ) -> &mut Self ) => {
+            pub fn $name $(<$($fn_tp),*>)? (&mut self $(,$arg : $arg_tp)*) -> &mut Self {
+                self
+            }
+        };
+
+        ($name:ident $(<$($fn_tp:ident),*>)?
+        (&self $(,$arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
+            pub fn $name $(<$($fn_tp),*>)? (&self $(,$arg : $arg_tp)*) $(-> $out)? {
                 mock_default()
             }
         };
 
-        ($name:ident ($($arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
-            pub fn $name($($arg : $arg_tp)*) $(-> $out)? {
+        ($name:ident $(<$($fn_tp:ident),*>)?
+        ($($arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
+            pub fn $name $(<$($fn_tp),*>)? ($($arg : $arg_tp)*) $(-> $out)? {
                 mock_default()
             }
         };
     }
 
-
-
-    // ===============
-    // === JsValue ===
-    // ===============
-
-    new_mock_data!(JsValue);
-
-    auto trait IsNotJsValue {}
-    impl !IsNotJsValue for JsValue {}
-    impl<A: IsNotJsValue> From<A> for JsValue {
-        default fn from(_: A) -> Self {
-            default()
-        }
-    }
-
-
-    // ==============
-    // === Object ===
-    // ==============
-
-    new_mock_data!(Object => JsValue);
-    impl Object {
-        mock_fn!(value_of(&self) -> Object);
-    }
-
-
-    // ===================
-    // === EventTarget ===
-    // ===================
-
-    new_mock_data!(EventTarget => Object);
-
-    macro_rules! new_event_listener_fn {
-        ($name:ident ( $($opt:ident : $tp:ty),* )) => {
-            pub fn $name(&self, _tp: &str, _listener: &Function, $($opt:$tp),*)
-            -> std::result::Result<(), JsValue> {
-                Ok(())
+    /// Combination of [`mock_struct`] and [`mock_fn`].
+    macro_rules! mock_data {
+        ( $([$opt:ident])?
+            $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
+            $(
+                fn $fn_name:ident $(<$($fn_tp:ident),*>)? ($($args:tt)*) $(-> $out:ty)?;
+            )*
+        ) => {
+            mock_struct!{$([$opt])? $name $(<$($param $(:?$param_tp)?),*>)? $(=> $deref)?}
+            impl $(<$($param $(:?$param_tp)?),*>)? $name $(<$($param),*>)? {
+                $(
+                    mock_fn!{$fn_name $(<$($fn_tp),*>)? ($($args)*) $(-> $out)?}
+                )*
             }
         };
-    }
-
-    impl EventTarget {
-        new_event_listener_fn!(remove_event_listener_with_callback());
-        new_event_listener_fn!(add_event_listener_with_callback());
-        new_event_listener_fn!(add_event_listener_with_callback_and_bool(_options: bool));
-        new_event_listener_fn!(add_event_listener_with_callback_and_add_event_listener_options(
-            _options: &AddEventListenerOptions
-        ));
-    }
-
-
-    // ==============
-    // === Window ===
-    // ==============
-
-    new_mock_data!(Window => EventTarget);
-
-    pub fn window() -> Window {
-        mock_default()
-    }
-
-    impl Window {
-        mock_fn!(open_with_url_and_target(&self,_url: &str,_target: &str)
-            -> std::result::Result<Option<Window>, JsValue>);
-    }
-
-
-
-    // ===============
-    // === Closure ===
-    // ===============
-
-
-
-    // new_mock_data!(Closurex<T: ?Sized>);
-
-    pub struct Closure<T: ?Sized> {
-        _t: PhantomData<T>,
-    }
-
-    impl<T: ?Sized> Debug for Closure<T> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "Closure")
-        }
-    }
-
-    impl<T: ?Sized> Default for Closure<T> {
-        fn default() -> Self {
-            Self { _t: default() }
-        }
-    }
-
-    impl<T: ?Sized> Clone for Closure<T> {
-        fn clone(&self) -> Self {
-            default()
-        }
-    }
-
-    impl<T: ?Sized> Copy for Closure<T> {}
-
-    #[allow(unsafe_code)]
-    impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
-        fn as_ref(&self) -> &JsValue {
-            unsafe { mem::transmute(self) }
-        }
-    }
-
-    impl<T: ?Sized> Closure<T> {
-        pub fn new<F>(_t: F) -> Closure<T> {
-            default()
-        }
-
-        #[allow(clippy::boxed_local)]
-        pub fn wrap(_data: Box<T>) -> Closure<T> {
-            default()
-        }
-
-        pub fn once<F>(_fn_once: F) -> Closure<F> {
-            default()
-        }
-    }
-
-
-
-    // ================
-    // === Function ===
-    // ================
-
-    new_mock_data!(Function);
-
-
-
-    // ===============================
-    // === AddEventListenerOptions ===
-    // ===============================
-
-    new_mock_data!(AddEventListenerOptions);
-
-    impl AddEventListenerOptions {
-        pub fn new() -> Self {
-            mock_default()
-        }
-
-        pub fn capture(&mut self, _val: bool) -> &mut Self {
-            self
-        }
-
-        pub fn passive(&mut self, _val: bool) -> &mut Self {
-            self
-        }
-    }
-
-
-    // =============
-    // === Event ===
-    // =============
-
-    new_mock_data!(Event => Object);
-
-    impl Event {
-        mock_fn!(prevent_default(&self));
-        mock_fn!(stop_propagation(&self));
-        mock_fn!(current_target(&self) -> Option<EventTarget>);
-    }
-
-
-    // =====================
-    // === KeyboardEvent ===
-    // =====================
-
-    new_mock_data!(KeyboardEvent => Event);
-    impl KeyboardEvent {
-        mock_fn!(key(&self) -> String);
-        mock_fn!(code(&self) -> String);
-        mock_fn!(alt_key(&self) -> bool);
-        mock_fn!(ctrl_key(&self) -> bool);
-    }
-
-
-    // =====================
-    // === KeyboardEvent ===
-    // =====================
-
-    new_mock_data!(MouseEvent => Event);
-    impl MouseEvent {
-        mock_fn!(button(&self) -> i16);
-        mock_fn!(alt_key(&self) -> bool);
-        mock_fn!(ctrl_key(&self) -> bool);
-        mock_fn!(client_x(&self) -> i32);
-        mock_fn!(client_y(&self) -> i32);
-        mock_fn!(offset_x(&self) -> i32);
-        mock_fn!(offset_y(&self) -> i32);
-        mock_fn!(screen_x(&self) -> i32);
-        mock_fn!(screen_y(&self) -> i32);
-    }
-
-
-    // =====================
-    // === KeyboardEvent ===
-    // =====================
-
-    new_mock_data!(WheelEvent => MouseEvent);
-    impl WheelEvent {
-        mock_fn!(delta_x(&self) -> f64);
-        mock_fn!(delta_y(&self) -> f64);
     }
 
 
@@ -414,29 +255,23 @@ mod arch_dependent_impls {
     // === JsCast ===
     // ==============
 
+    impl<T: MockData + MockDefault + AsRef<JsValue> + Into<JsValue>> JsCast for T {}
+
+    /// Mock of [`wasm_bindgen::JsCast`].
     pub trait JsCast
-    where Self: AsRef<JsValue> + Into<JsValue> {
-        fn has_type<T>(&self) -> bool
-        where T: JsCast {
-            T::is_type_of(self.as_ref())
+    where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
+        fn has_type<T>(&self) -> bool {
+            true
         }
 
         fn dyn_into<T>(self) -> std::result::Result<T, Self>
         where T: JsCast {
-            if self.has_type::<T>() {
-                Ok(self.unchecked_into())
-            } else {
-                Err(self)
-            }
+            Ok(self.unchecked_into())
         }
 
         fn dyn_ref<T>(&self) -> Option<&T>
         where T: JsCast {
-            if self.has_type::<T>() {
-                Some(self.unchecked_ref())
-            } else {
-                None
-            }
+            Some(self.unchecked_ref())
         }
 
         fn unchecked_into<T>(self) -> T
@@ -449,72 +284,182 @@ mod arch_dependent_impls {
             T::unchecked_from_js_ref(self.as_ref())
         }
 
-        fn is_instance_of<T>(&self) -> bool
-        where T: JsCast {
-            T::instanceof(self.as_ref())
+        fn is_instance_of<T>(&self) -> bool {
+            true
         }
-        fn instanceof(val: &JsValue) -> bool;
-        fn is_type_of(val: &JsValue) -> bool {
-            Self::instanceof(val)
+        fn instanceof(_val: &JsValue) -> bool {
+            true
         }
-        fn unchecked_from_js(val: JsValue) -> Self;
+        fn is_type_of(_val: &JsValue) -> bool {
+            true
+        }
+        fn unchecked_from_js(_val: JsValue) -> Self {
+            mock_default()
+        }
 
-        fn unchecked_from_js_ref(val: &JsValue) -> &Self;
+        fn unchecked_from_js_ref(val: &JsValue) -> &Self {
+            val.as_ref()
+        }
+    }
+
+
+    // ===============
+    // === JsValue ===
+    // ===============
+
+    /// Mock of [`wasm_bindgen::JsValue`]. All JS types can be converted to `JsValue` and thus it
+    /// implements a generic conversion trait.
+    mock_data! { JsValue }
+
+    auto trait IsNotJsValue {}
+    impl !IsNotJsValue for JsValue {}
+    impl<A: IsNotJsValue> From<A> for JsValue {
+        default fn from(_: A) -> Self {
+            default()
+        }
     }
 
 
 
-    // =====================
+    // ===============
+    // === Closure ===
+    // ===============
+
+    mock_data! { [NO_AS_REF] Closure<T: ?Sized>
+        fn new<F>(_t: F) -> Closure<T>;
+        fn wrap(_data: Box<T>) -> Closure<T>;
+        fn once<F>(_fn_once: F) -> Closure<F>;
+    }
+
+    #[allow(unsafe_code)]
+    impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
+        fn as_ref(&self) -> &JsValue {
+            unsafe { mem::transmute(self) }
+        }
+    }
+
+
+
+    // ====================
+    // === DOM Elements ===
+    // ====================
+
+    // === WebGl2RenderingContext ===
+    /// The [`WebGl2RenderingContext`] is not a mocked structure because it defines tons of
+    /// constants that we use heavily. Instead, the rendering engine runs context-less when
+    /// compiled to native tests.
+    pub use web_sys::WebGl2RenderingContext;
+
+    // === Object ===
+    mock_data! { Object => JsValue
+        fn value_of(&self) -> Object;
+    }
+
+
+    // === EventTarget ===
+    mock_data! { EventTarget => Object
+        fn remove_event_listener_with_callback
+            (&self, _tp:&str, _f:&Function) -> std::result::Result<(), JsValue>;
+        fn add_event_listener_with_callback
+            (&self, _tp:&str, _f:&Function) -> std::result::Result<(), JsValue>;
+        fn add_event_listener_with_callback_and_bool
+            (&self, _tp:&str, _f:&Function, _opt:bool) -> std::result::Result<(), JsValue>;
+        fn add_event_listener_with_callback_and_add_event_listener_options
+            (&self, _tp:&str, _f:&Function, _opt:&AddEventListenerOptions)
+            -> std::result::Result<(), JsValue>;
+    }
+
+
+    // === Window ===
+    mock_data! { Window => EventTarget
+        fn open_with_url_and_target(&self,_url: &str,_target: &str)
+            -> std::result::Result<Option<Window>, JsValue>;
+    }
+    pub fn window() -> Window {
+        mock_default()
+    }
+
+
+    // === Function ===
+    mock_data! { Function }
+
+
+    // === AddEventListenerOptions ===
+    mock_data! { AddEventListenerOptions
+        fn new() -> Self;
+    }
+    impl AddEventListenerOptions {
+        mock_fn!(capture(&mut self, _val:bool) -> &mut Self);
+        mock_fn!(passive(&mut self, _val:bool) -> &mut Self);
+    }
+
+
+    // === Event ===
+    mock_data! { Event => Object
+        fn prevent_default(&self);
+        fn stop_propagation(&self);
+        fn current_target(&self) -> Option<EventTarget>;
+    }
+
+
+    // === KeyboardEvent ===
+    mock_data! { KeyboardEvent => Event
+        fn key(&self) -> String;
+        fn code(&self) -> String;
+        fn alt_key(&self) -> bool;
+        fn ctrl_key(&self) -> bool;
+    }
+
+
+    // === MouseEvent ===
+    mock_data! { MouseEvent => Event
+        fn button(&self) -> i16;
+        fn alt_key(&self) -> bool;
+        fn ctrl_key(&self) -> bool;
+        fn client_x(&self) -> i32;
+        fn client_y(&self) -> i32;
+        fn offset_x(&self) -> i32;
+        fn offset_y(&self) -> i32;
+        fn screen_x(&self) -> i32;
+        fn screen_y(&self) -> i32;
+    }
+
+
+    // === WheelEvent ===
+    mock_data! { WheelEvent => MouseEvent
+        fn delta_x(&self) -> f64;
+        fn delta_y(&self) -> f64;
+    }
+
+
     // === HtmlCollection ===
-    // ======================
-
-    new_mock_data!(HtmlCollection);
-
-    impl HtmlCollection {
-        mock_fn!(length(&self) -> u32);
+    mock_data! { HtmlCollection
+        fn length(&self) -> u32;
     }
 
-    // ===============
+
     // === DomRect ===
-    // ===============
-
-    new_mock_data!(DomRect);
-
-    impl DomRect {
-        mock_fn!(width(&self) -> f64);
-        mock_fn!(height(&self) -> f64);
-        mock_fn!(left(&self) -> f64);
-        mock_fn!(right(&self) -> f64);
-        mock_fn!(top(&self) -> f64);
-        mock_fn!(bottom(&self) -> f64);
+    mock_data! { DomRect
+        fn width(&self) -> f64;
+        fn height(&self) -> f64;
+        fn left(&self) -> f64;
+        fn right(&self) -> f64;
+        fn top(&self) -> f64;
+        fn bottom(&self) -> f64;
     }
 
 
-    // ===============
     // === Element ===
-    // ===============
-
-    new_mock_data!(Element => Node);
-
-
-    impl Element {
-        mock_fn!(remove(&self));
-        mock_fn!(children(&self) -> HtmlCollection);
-        mock_fn!(get_bounding_client_rect(&self) -> DomRect);
+    mock_data! { Element => Node
+        fn remove(&self);
+        fn children(&self) -> HtmlCollection;
+        fn get_bounding_client_rect(&self) -> DomRect;
     }
 
-    // ===================
     // === HtmlElement ===
-    // ===================
-
-    new_mock_data!(HtmlElement => Element);
-
-
-    impl HtmlElement {
-        // FIXME: move to trait
-        mock_fn!(set_class_name(&self, _n: &str));
+    mock_data! { HtmlElement => Element
+        fn set_class_name(&self, _n: &str);
     }
-
     impl From<HtmlElement> for EventTarget {
         fn from(_: HtmlElement) -> Self {
             default()
@@ -522,48 +467,25 @@ mod arch_dependent_impls {
     }
 
 
-    // ======================
     // === HtmlDivElement ===
-    // ======================
-
-    new_mock_data!(HtmlDivElement => HtmlElement);
-
+    mock_data! { HtmlDivElement => HtmlElement }
     impl From<HtmlDivElement> for EventTarget {
         fn from(_: HtmlDivElement) -> Self {
             default()
         }
     }
 
-    // =========================
+
     // === HtmlCanvasElement ===
-    // =========================
-
-    new_mock_data!(HtmlCanvasElement => HtmlElement);
+    mock_data! { HtmlCanvasElement => HtmlElement }
 
 
-
-    // ================================
     // === CanvasRenderingContext2d ===
-    // ================================
-
-    new_mock_data!(CanvasRenderingContext2d);
+    mock_data! { CanvasRenderingContext2d }
 
 
-
-    // ==============================
-    // === WebGl2RenderingContext ===
-    // ==============================
-
-    // new_mock_data!(WebGl2RenderingContext);
-    pub use web_sys::WebGl2RenderingContext;
-
-
-
-    // ============
     // === Node ===
-    // ============
-
-    new_mock_data!(Node => EventTarget);
+    mock_data! { Node => EventTarget }
 
 
 
@@ -571,28 +493,12 @@ mod arch_dependent_impls {
     // === Utils ===
     // =============
 
-    /// Access the `window.document.body` object or panic if it does not exist.
-    pub fn body() -> HtmlElement {
-        mock_default()
-    }
-
-    pub fn create_div() -> HtmlDivElement {
-        mock_default()
-    }
-
-    pub fn create_canvas() -> HtmlCanvasElement {
-        mock_default()
-    }
-
-    pub fn get_html_element_by_id(_id: &str) -> Result<HtmlElement> {
-        mock_default()
-    }
-
-    pub fn get_webgl2_context(_canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
-        None
-    }
-
-    pub fn forward_panic_hook_to_console() {}
+    mock_fn! { body() -> HtmlElement }
+    mock_fn! { create_div() -> HtmlDivElement }
+    mock_fn! { create_canvas() -> HtmlCanvasElement }
+    mock_fn! { get_html_element_by_id(_id: &str) -> Result<HtmlElement> }
+    mock_fn! { get_webgl2_context(_canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> }
+    mock_fn! { forward_panic_hook_to_console() }
 }
 
 
