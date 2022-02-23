@@ -86,6 +86,8 @@ fn init_theme(scene: &Scene) {
 // === Dummy Computations ===
 // ==========================
 
+/// A dummy computation that is intended to take some time based on input (where a higher number
+///takes longer).
 fn work(n: u32) {
     let mut m = n;
     for x in 0..n {
@@ -95,6 +97,7 @@ fn work(n: u32) {
             }
         }
     }
+    // Create a side effect to avoid optimising away the computation.
     println!("{}", m % 7)
 }
 

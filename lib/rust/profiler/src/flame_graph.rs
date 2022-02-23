@@ -1,4 +1,4 @@
-//! The `flame_graph` module contains functionality that allows the profiling framework to
+//! This module contains functionality that allows the profiling framework to
 //! generate the data required to render a flame graph. This means creating data for each block
 //! that is supposed to be rendered, with start time, end time and labels.
 use crate::Measurement;
