@@ -1536,6 +1536,7 @@ pub struct GraphEditorModel {
     pub edges:            Edges,
     pub vis_registry:     visualization::Registry,
     pub drop_manager:     ensogl_drop_manager::Manager,
+    pub navigator:        Navigator,
     // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
     //  currently work, however, because the `Application` lives in enso-core, and the tooltip
     //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
@@ -1543,7 +1544,6 @@ pub struct GraphEditorModel {
     touch_state:          TouchState,
     visualisations:       Visualisations,
     frp:                  FrpEndpoints,
-    navigator:            Navigator,
     profiling_statuses:   profiling::Statuses,
     profiling_button:     component::profiling::Button,
     add_node_button:      Rc<component::add_node_button::AddNodeButton>,

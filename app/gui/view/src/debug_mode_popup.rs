@@ -41,11 +41,12 @@ const LABEL_PADDING_TOP: f32 = 50.0;
 
 /// Text label that disappears after a predefined delay.
 #[derive(Debug, Clone, CloneRef)]
-struct PopupLabel {
+pub struct PopupLabel {
     label:           Label,
     network:         frp::Network,
     delay_animation: DelayedAnimation,
-    show:            frp::Source<String>,
+    /// Show the Popup with the given message.
+    pub show:        frp::Source<String>,
 }
 
 impl display::Object for PopupLabel {
@@ -188,6 +189,11 @@ impl View {
         init.emit(());
 
         Self { frp, model }
+    }
+
+    /// Get the label of the popup.
+    pub fn label(&self) -> &PopupLabel {
+        &self.model.label
     }
 }
 

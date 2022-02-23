@@ -27,7 +27,11 @@ type Matching_Strategy
             Regex _ ->
                 insensitive = case this.case_sensitivity of
                     True -> False
-                    Case_Insensitive -> True
+                    ## TODO [RW] Currently locale is not supported in
+                       case-insensitive Regex matching. There are plans to
+                       revisit it:
+                       https://www.pivotaltracker.com/story/show/181313576
+                    Case_Insensitive _ -> True
                 re = Regex_Module.compile criterion case_insensitive=insensitive
                 re
             Exact _ -> Error.throw "Invalid Matching_Strategy to compile"
@@ -55,14 +59,6 @@ Exact.new (case_sensitivity = True) = Exact case_sensitivity
    Once that issue is fixed, it can be removed.
 Regex.new : (True | Case_Insensitive) -> Regex
 Regex.new (case_sensitivity = True) = Regex case_sensitivity
-
-
-## UNSTABLE
-   Specifies that the operation should ignore case.
-
-   TODO: Since case-sensitive can be locale dependent, in the future this may
-         be extended with a `locale` setting.
-type Case_Insensitive
 
 
 ## UNSTABLE
@@ -180,12 +176,12 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
    > Example
      Check if the provided name matches a regular expression.
 
-         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive) == True
+         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive.new) == True
 match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
 match_single_criterion name criterion matching_strategy = case matching_strategy of
     Exact case_sensitivity ->
         case case_sensitivity of
             True -> name == criterion
-            Case_Insensitive -> name.equals_ignore_case criterion
+            Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
     Regex _ ->
         matching_strategy.compile criterion . matches name
