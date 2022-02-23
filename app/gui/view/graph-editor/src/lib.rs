@@ -1357,40 +1357,16 @@ impl GraphEditorModelWithNetwork {
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
             self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
-        let approached_node = match way {
-            StartCreationEvent if selection.is_none() => {
-                let nearest_node = self.find_nearest_node(mouse_position);
-                nearest_node.filter(|node| node.approach_area_contains(mouse_position))
-            }
-            DroppingEdge { edge_id } => {
-                // self.with_edge_map_source_node(edge_id,
-                //     |node, _| node.approach_area_contains(mouse_position).then(|| node)),
-                DEBUG!("MCDBG * edge_id=" edge_id);
-                let edge_source_node_id = self.edge_source_node_id(edge_id);
-                DEBUG!("MCDBG * edge_source_node_id=" edge_source_node_id;?);
-                let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-                DEBUG!("MCDBG * edge_source_node");
-                edge_source_node.filter(|node| node.approach_area_contains(mouse_position))
-            }
-            _ => None,
-        };
-        if let Some(ref node) = approached_node {
-            DEBUG!("MCDBG approached_node = " node.id());
-        } else {
-            DEBUG!("MCDBG nope");
-        }
         let position: Vector2 = match way {
             AddNodeEvent => default(),
-            StartCreationEvent if approached_node.is_some() =>
-                self.find_free_place_under(approached_node.unwrap().id()),
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
-            StartCreationEvent => mouse_position,
+            StartCreationEvent =>
+                self.find_mouse_dictated_place(mouse_position, None),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
-            DroppingEdge { .. } if approached_node.is_some() =>
-                self.find_free_place_under(approached_node.unwrap().id()),
-            DroppingEdge { .. } => mouse_position,
+            DroppingEdge { edge_id } =>
+                self.find_mouse_dictated_place(mouse_position, Some(edge_id)),
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
@@ -1398,36 +1374,6 @@ impl GraphEditorModelWithNetwork {
             node.view.set_expression(node::Expression::default());
         }
         (node.id(), source, should_edit)
-    }
-
-    fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
-        fn xy(v: Vector2) -> String {
-            iformat!("(" v.x ", " v.y ")")
-        }
-        DEBUG!("MCDBG mouse = " xy(mouse_position));
-        let mut min_distance_squared = f32::MAX;
-        let mut nearest_node = None;
-        let nodes = self.nodes.all.raw.borrow();
-        for node in nodes.values() {
-            // TODO: should we use some better reference point on a node for the "nearest node"
-            // calculation? alternatives, in order of complexity:
-            //  a) node.position(),
-            //  b) the geometrical center of the node's area,
-            //  c) a point on the bounding box of the node that is closest to the mouse pointer,
-            //  d) a point on the rounded rectangle forming the node's edge that is closest to the
-            //     mouse pointer.
-            let mouse_to_node_vector = node.position().xy() - mouse_position;
-            let distance_squared = mouse_to_node_vector.norm_squared();
-            DEBUG!(" - " distance_squared;? " id=" node.id() " v=" xy(mouse_to_node_vector) " @ " xy(node.position().xy()));
-            if distance_squared < min_distance_squared {
-                min_distance_squared = distance_squared;
-                nearest_node = Some(node.clone_ref());
-            }
-        }
-        if nearest_node.is_some() {
-            DEBUG!(" -> min " min_distance_squared;? " id=" nearest_node.as_ref().unwrap().id());
-        }
-        nearest_node
     }
 
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
@@ -1707,6 +1653,43 @@ impl GraphEditorModel {
         let starting_point = above_pos - Vector2(0.0, y_offset);
         let direction = Vector2(-1.0, 0.0);
         self.find_free_place_for_node(starting_point, direction).unwrap()
+    }
+
+    pub fn find_mouse_dictated_place(&self, mouse_position: Vector2, edge: Option<EdgeId>) -> Vector2 {
+        let placement_source_candidate = match edge {
+            Some(edge_id) =>
+                self.edge_source_node_id(edge_id).and_then(|id| self.nodes.get_cloned_ref(&id)),
+            None =>
+                self.find_nearest_node(mouse_position),
+        };
+        let placement_source = placement_source_candidate.filter(
+            |node| node.approach_area_contains(mouse_position));
+        match placement_source {
+            Some(node) => self.find_free_place_under(node.id()),
+            None => mouse_position,
+        }
+    }
+
+    fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
+        let mut min_distance_squared = f32::MAX;
+        let mut nearest_node = None;
+        let nodes = self.nodes.all.raw.borrow();
+        for node in nodes.values() {
+            // TODO: should we use some better reference point on a node for the "nearest node"
+            // calculation? alternatives, in order of complexity:
+            //  a) node.position(),
+            //  b) the geometrical center of the node's area,
+            //  c) a point on the bounding box of the node that is closest to the mouse pointer,
+            //  d) a point on the rounded rectangle forming the node's edge that is closest to the
+            //     mouse pointer.
+            let mouse_to_node_vector = node.position().xy() - mouse_position;
+            let distance_squared = mouse_to_node_vector.norm_squared();
+            if distance_squared < min_distance_squared {
+                min_distance_squared = distance_squared;
+                nearest_node = Some(node.clone_ref());
+            }
+        }
+        nearest_node
     }
 
     pub fn find_free_place_for_node(
