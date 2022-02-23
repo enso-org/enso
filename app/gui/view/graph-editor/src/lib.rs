@@ -1362,6 +1362,11 @@ impl GraphEditorModelWithNetwork {
                 let nearest_node = self.find_nearest_node(mouse_position);
                 nearest_node.filter(|node| node.approach_area_contains(mouse_position))
             }
+            DroppingEdge { edge_id } => {
+                let edge_source_node_id = self.edge_source_node_id(edge_id);
+                let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
+                edge_source_node.filter(|node| node.approach_area_contains(mouse_position))
+            }
             _ => None,
         };
         if let Some(ref node) = approached_node {
@@ -1378,6 +1383,8 @@ impl GraphEditorModelWithNetwork {
             StartCreationEvent => mouse_position,
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
+            DroppingEdge { .. } if approached_node.is_some() =>
+                self.find_free_place_under(approached_node.unwrap().id()),
             DroppingEdge { .. } => mouse_position,
         };
         let node = self.new_node(ctx);
