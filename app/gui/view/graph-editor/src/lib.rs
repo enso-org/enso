@@ -1386,6 +1386,10 @@ impl GraphEditorModelWithNetwork {
     }
 
     fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
+        fn xy(v: Vector2) -> String {
+            iformat!("(" v.x ", " v.y ")")
+        }
+        DEBUG!("MCDBG mouse = " xy(mouse_position));
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
@@ -1399,10 +1403,14 @@ impl GraphEditorModelWithNetwork {
             //     mouse pointer.
             let mouse_to_node_vector = node.position().xy() - mouse_position;
             let distance_squared = mouse_to_node_vector.norm_squared();
+            DEBUG!(" - " distance_squared;? " id=" node.id() " v=" xy(mouse_to_node_vector) " @ " xy(node.position().xy()));
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
                 nearest_node = Some(node.clone_ref());
             }
+        }
+        if nearest_node.is_some() {
+            DEBUG!(" -> min " min_distance_squared;? " id=" nearest_node.as_ref().unwrap().id());
         }
         nearest_node
     }
