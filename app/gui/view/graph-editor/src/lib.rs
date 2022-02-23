@@ -1363,8 +1363,13 @@ impl GraphEditorModelWithNetwork {
                 nearest_node.filter(|node| node.approach_area_contains(mouse_position))
             }
             DroppingEdge { edge_id } => {
+                // self.with_edge_map_source_node(edge_id,
+                //     |node, _| node.approach_area_contains(mouse_position).then(|| node)),
+                DEBUG!("MCDBG * edge_id=" edge_id);
                 let edge_source_node_id = self.edge_source_node_id(edge_id);
+                DEBUG!("MCDBG * edge_source_node_id=" edge_source_node_id;?);
                 let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
+                DEBUG!("MCDBG * edge_source_node");
                 edge_source_node.filter(|node| node.approach_area_contains(mouse_position))
             }
             _ => None,
