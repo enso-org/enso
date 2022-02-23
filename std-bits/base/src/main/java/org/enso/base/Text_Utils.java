@@ -158,40 +158,6 @@ public class Text_Utils {
   }
 
   /**
-   * Checks whether {@code prefix} is a prefix of {@code str}.
-   *
-   * @param str the string to check
-   * @param prefix the potential prefix
-   * @return whether {@code prefix} is a prefix of {@code str}
-   */
-  public static boolean starts_with(String str, String prefix) {
-    // {@code StringSearch} does not handle empty strings as we would want, so we need these special
-    // cases.
-    if (prefix.length() == 0) return true;
-    if (str.length() == 0) return false;
-    StringSearch searcher = new StringSearch(prefix, str);
-    return searcher.first() == 0;
-  }
-
-  /**
-   * Checks whether {@code suffix} is a suffix of {@code str}.
-   *
-   * @param str the string to check
-   * @param suffix the potential suffix
-   * @return whether {@code suffix} is a suffix of {@code str}
-   */
-  public static boolean ends_with(String str, String suffix) {
-    // {@code StringSearch} does not handle empty strings as we would want, so we need these special
-    // cases.
-    if (suffix.length() == 0) return true;
-    if (str.length() == 0) return false;
-    StringSearch searcher = new StringSearch(suffix, str);
-    int pos = searcher.last();
-    int endPos = pos + searcher.getMatchLength();
-    return endPos == str.length();
-  }
-
-  /**
    * Compares {@code a} to {@code b} according to the lexicographical order, handling Unicode
    * normalization.
    *

@@ -722,6 +722,19 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
      ensures that different ways of expressing the same character in the
      underlying binary representation are considered equal.
 
+     This however is not always well handled by the regex engine. The behaviour
+     is as follows:
+
+         'ś' . starts_with 's' == False
+         's\u{301}' . starts_with 's' == False
+         's\u{301}' . starts_with 'ś' == True
+         'ś' . starts_with 's\u{301}' == True
+
+         'ś' . starts_with 's' (Regex_Matcher.new) == True
+         's\u{301}' . starts_with 's' (Regex_Matcher.new) == True
+         's\u{301}' . starts_with 'ś' (Regex_Matcher.new) == True
+         'ś' . starts_with 's\u{301}' (Regex_Matcher.new) == True
+
    > Example
      See if the text "Hello" starts with the prefix "hi".
 
@@ -729,9 +742,10 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
-        True -> Text_Utils.starts_with this prefix
+        True ->
+            this.take (Text_Sub_Range.First prefix.length) == prefix
         Case_Insensitive locale ->
-            Text_Utils.starts_with (this.to_case_insensitive_key locale) (prefix.to_case_insensitive_key locale)
+            this.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
     Regex_Matcher _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = here.prepare_regex preprocessed_pattern matcher
@@ -761,9 +775,10 @@ Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
 Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
-        True -> Text_Utils.ends_with this suffix
+        True ->
+            this.take (Text_Sub_Range.Last suffix.length) == suffix
         Case_Insensitive locale ->
-            Text_Utils.ends_with (this.to_case_insensitive_key locale) (suffix.to_case_insensitive_key locale)
+            this.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
     Regex_Matcher _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = here.prepare_regex preprocessed_pattern matcher
