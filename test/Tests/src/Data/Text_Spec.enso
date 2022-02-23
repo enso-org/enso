@@ -300,12 +300,12 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
 
         Test.specify "should correctly convert character case" <|
-            "FooBar Baz".to_lower_case.should_equal "foobar baz"
-            "FooBar Baz".to_upper_case.should_equal "FOOBAR BAZ"
-            "i".to_upper_case . should_equal "I"
-            "I".to_lower_case . should_equal "i"
-            "i".to_upper_case (Locale.new "tr") . should_equal "İ"
-            "I".to_lower_case (Locale.new "tr") . should_equal "ı"
+            "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
+            "FooBar Baz".to_case Case.Upper . should_equal "FOOBAR BAZ"
+            "i".to_case Case.Upper . should_equal "I"
+            "I".to_case Case.Lower . should_equal "i"
+            "i".to_case Case.Upper (Locale.new "tr") . should_equal "İ"
+            "I".to_case Case.Lower (Locale.new "tr") . should_equal "ı"
 
         Test.specify "should dump utf-16 characters to a vector" <|
             kshi_chars = kshi.utf_16
