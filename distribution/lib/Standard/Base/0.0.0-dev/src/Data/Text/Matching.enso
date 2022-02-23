@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Text.Regex
+
 ## Represents case-insensitive comparison mode.
 
    Arguments:
@@ -39,6 +41,20 @@ type Text_Matcher (case_sensitive : (True | Case_Insensitive) = True)
        `#` to the end of the line are ignored. That is to say; they act as
        'comments' in the regex.
 type Regex_Matcher (case_sensitive : (True | Case_Insensitive) = True) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
+
+## UNSTABLE
+   Compiles a provided pattern according to the rules defined in this
+   `Regex_Matcher`.
+Regex_Matcher.compile : Text -> Pattern
+Regex_Matcher.compile pattern =
+    case_insensitive = case this.case_sensitive of
+        True -> False
+        ## TODO [RW] Currently locale is not supported in case-insensitive
+           Regex matching. There are plans to revisit it:
+           https://www.pivotaltracker.com/story/show/181313576
+        Case_Insensitive _ -> True
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=this.match_ascii dot_matches_newline=this.dot_matches_newline multiline=this.multiline comments=this.comments
+    compiled_pattern
 
 ## UNSTABLE
    Represents case-insensitive comparison mode.
@@ -110,3 +126,8 @@ Text_Matcher.new case_sensitive=True = Text_Matcher case_sensitive
 Regex_Matcher.new : (True | Case_Insensitive) -> Boolean -> Boolean -> Boolean -> Boolean -> Regex_Matcher
 Regex_Matcher.new case_sensitive=True multiline=False match_ascii=False dot_matches_newline=False comments=False =
     Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments
+
+## A common supertype representing a matching strategy.
+type Matcher
+    Text_Matcher
+    Regex_Matcher

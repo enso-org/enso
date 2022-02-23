@@ -1,65 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Data.Locale
-import Standard.Base.Data.Text.Regex as Regex_Module
 
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Base.Error.Warnings import Warning_System
-
-## Strategy for matching names.
-type Matching_Strategy
-    ## UNSTABLE
-       Exact name matching.
-
-       A name is matched if its exact name is provided.
-    type Exact (case_sensitivity : (True | Case_Insensitive) = True)
-
-    ## UNSTABLE
-       Regex-based name matching.
-
-       A name is matched if its name matches the provided regular expression.
-    type Regex (case_sensitivity : (True | Case_Insensitive) = True)
-
-    ## ADVANCED
-       Compiles the regular expression following the Matching_Strategy rules.
-    compile : Text -> Regex_Module.Pattern
-    compile criterion =
-        case this of
-            Regex _ ->
-                insensitive = case this.case_sensitivity of
-                    True -> False
-                    ## TODO [RW] Currently locale is not supported in
-                       case-insensitive Regex matching. There are plans to
-                       revisit it:
-                       https://www.pivotaltracker.com/story/show/181313576
-                    Case_Insensitive _ -> True
-                re = Regex_Module.compile criterion case_insensitive=insensitive
-                re
-            Exact _ -> Error.throw "Invalid Matching_Strategy to compile"
-
-
-## UNSTABLE
-   A temporary workaround to allow the `Exact` constructor to work with default
-   arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Exact.new : (True | Case_Insensitive) -> Exact
-Exact.new (case_sensitivity = True) = Exact case_sensitivity
-
-
-## UNSTABLE
-   A temporary workaround to allow the `Regex` constructor to work with default
-   arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Regex.new : (True | Case_Insensitive) -> Regex
-Regex.new (case_sensitivity = True) = Regex case_sensitivity
-
 
 ## UNSTABLE
    An error indicating that some criteria did not match any names in the input.
@@ -91,8 +34,7 @@ No_Matches_Found.to_display_text =
      then be matched with the criteria. It is set to the identity function by
      default, thus allowing the input to be a list of names to match. But it can
      be overridden to enable matching more complex objects.
-   - matching_strategy: A `Matching_Strategy` instance specifying how to
-     interpret the criterion.
+   - matcher: A `Matcher` instance specifying how to interpret the criterion.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -107,22 +49,22 @@ No_Matches_Found.to_display_text =
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
 
-         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] matching_strategy=(Regex case_sensitivity=True) == ["foo", "foobar", "baz"]
+         Matching.match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] matcher=(Regex_Matcher.new case_sensitive=True) == ["foo", "foobar", "baz"]
 
    > Example
      Selects pairs matching their first element with the provided criteria and
      ordering the result according to the order of criteria that matched them.
 
          Matching.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
-match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matching_Strategy -> Problem_Behavior -> Warning_System -> Vector Any ! No_Matches_Found
-match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strategy=(Exact case_sensitivity=True) on_problems=Report_Warning warnings=Warnings.default = Panic.recover <|
-    [objects, criteria, reorder, name_mapper, matching_strategy, on_problems, warnings] . each Panic.rethrow
+match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Matcher -> Problem_Behavior -> Warning_System -> Vector Any ! No_Matches_Found
+match_criteria objects criteria reorder=False name_mapper=(x->x) matcher=(Text_Matcher.new case_sensitive=True) on_problems=Report_Warning warnings=Warnings.default = Panic.recover <|
+    [objects, criteria, reorder, name_mapper, matcher, on_problems, warnings] . each Panic.rethrow
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
     match_matrix = objects.map obj->
         criteria.map criterion->
             name = name_mapper obj
-            here.match_single_criterion name criterion matching_strategy
+            here.match_single_criterion name criterion matcher
 
     # Checks if the ith object is matched by any criterion.
     is_object_matched_by_anything : Integer -> Boolean
@@ -169,19 +111,19 @@ match_criteria objects criteria reorder=False name_mapper=(x->x) matching_strate
    - name: A `Text` representing the name being matched.
    - criterion: A `Text` representing the matching criterion. It can be a simple
      name or a regular expression; its meaning depends on the value of
-     `matching_strategy`.
-   - matching_strategy: A `Matching_Strategy` instance specifying how the
-     criterion should be interpreted.
+     `matcher`.
+   - matcher: A `Matcher` instance specifying how the criterion should be
+     interpreted.
 
    > Example
      Check if the provided name matches a regular expression.
 
-         Matching.match_single_criterion "Foobar" "f.*" (Regex case_sensitivity=Case_Insensitive.new) == True
-match_single_criterion : Text -> Text -> Matching_Strategy -> Boolean
-match_single_criterion name criterion matching_strategy = case matching_strategy of
-    Exact case_sensitivity ->
+         Matching.match_single_criterion "Foobar" "f.*" (Regex_Matcher.new case_sensitive=Case_Insensitive.new) == True
+match_single_criterion : Text -> Text -> Matcher -> Boolean
+match_single_criterion name criterion matcher = case matcher of
+    Text_Matcher case_sensitivity ->
         case case_sensitivity of
             True -> name == criterion
             Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
-    Regex _ ->
-        matching_strategy.compile criterion . matches name
+    Regex_Matcher _ _ _ _ _ ->
+        matcher.compile criterion . matches name

@@ -10,53 +10,47 @@ import Standard.Test.Problems
 type Foo_Error
 
 spec = Test.group 'Matching Helper' <|
-    ## These are workarounds to #1600 - default arguments do not work properly
-       on Atom constructors.
+    Test.specify 'should match a single name with a single Text_Matcher criterion' <|
+        Matching.match_single_criterion "foo" "foo" Text_Matcher.new . should_be_true
+        Matching.match_single_criterion "foobar" "foo" Text_Matcher.new . should_be_false
+        Matching.match_single_criterion "foo" "f.*" Text_Matcher.new . should_be_false
+        Matching.match_single_criterion "foo" "Foo" Text_Matcher.new . should_be_false
 
-       Once this is fixed, the tests should be updated accordingly.
-    exact = Exact case_sensitivity=True
-    regex = Regex case_sensitivity=True
-    Test.specify 'should match a single name with a single exact criterion' <|
-        Matching.match_single_criterion "foo" "foo" exact . should_be_true
-        Matching.match_single_criterion "foobar" "foo" exact . should_be_false
-        Matching.match_single_criterion "foo" "f.*" exact . should_be_false
-        Matching.match_single_criterion "foo" "Foo" exact . should_be_false
-
-    Test.specify 'should correctly handle Unicode folding with exact matching' <|
-        Matching.match_single_criterion '\u00E9' '\u0065\u{301}' exact . should_be_true
-        Matching.match_single_criterion 'é' '\u00E9' exact . should_be_true
-        Matching.match_single_criterion 'é' 'ę' exact . should_be_false
+    Test.specify 'should correctly handle Unicode folding with Text_Matcher matching' <|
+        Matching.match_single_criterion '\u00E9' '\u0065\u{301}' Text_Matcher.new . should_be_true
+        Matching.match_single_criterion 'é' '\u00E9' Text_Matcher.new . should_be_true
+        Matching.match_single_criterion 'é' 'ę' Text_Matcher.new . should_be_false
 
     Test.specify 'should match a single name with a single regex criterion' <|
-        Matching.match_single_criterion "foo" "foo" regex . should_be_true
-        Matching.match_single_criterion "foobar" "foo" regex . should_be_false
-        Matching.match_single_criterion "foo" "f.*" regex . should_be_true
-        Matching.match_single_criterion "foo" "foo.*" regex . should_be_true
-        Matching.match_single_criterion "foo" "F.*" regex . should_be_false
+        Matching.match_single_criterion "foo" "foo" Regex_Matcher.new . should_be_true
+        Matching.match_single_criterion "foobar" "foo" Regex_Matcher.new . should_be_false
+        Matching.match_single_criterion "foo" "f.*" Regex_Matcher.new . should_be_true
+        Matching.match_single_criterion "foo" "foo.*" Regex_Matcher.new . should_be_true
+        Matching.match_single_criterion "foo" "F.*" Regex_Matcher.new . should_be_false
 
     Test.specify 'should support case-insensitive matching' <|
-        Matching.match_single_criterion "foo" "F.*" (Regex case_sensitivity=Case_Insensitive.new) . should_be_true
-        Matching.match_single_criterion "foO" "FOo" (Exact case_sensitivity=Case_Insensitive.new) . should_be_true
+        Matching.match_single_criterion "foo" "F.*" (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
+        Matching.match_single_criterion "foO" "FOo" (Text_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
 
-        Matching.match_single_criterion "foo" "fF.*" (Regex case_sensitivity=Case_Insensitive.new) . should_be_false
-        Matching.match_single_criterion "foo" "Foos" (Exact case_sensitivity=Case_Insensitive.new) . should_be_false
+        Matching.match_single_criterion "foo" "fF.*" (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+        Matching.match_single_criterion "foo" "Foos" (Text_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
 
         ## TODO this may not be how we want this to work, but this test is
            included to explicitly illustrate how the current implementation
            behaves in such corner cases
-        Matching.match_single_criterion "β" "B" (Exact case_sensitivity=Case_Insensitive.new) . should_be_false
+        Matching.match_single_criterion "β" "B" (Text_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
 
     Test.specify 'should match a list of names with a list of criteria, correctly handling reordering' <|
         Matching.match_criteria ["foo", "bar", "baz"] ["baz", "foo"] reorder=True . should_equal ["baz", "foo"]
         Matching.match_criteria ["foo", "bar", "baz"] ["baz", "foo"] reorder=False . should_equal ["foo", "baz"]
 
     Test.specify 'should allow multiple matches to a single criterion (Regex)' <|
-        Matching.match_criteria ["foo", "bar", "baz", "quux"] ["b.*"] reorder=True matching_strategy=regex . should_equal ["bar", "baz"]
-        Matching.match_criteria ["foo", "bar", "baz", "quux"] ["b.*", "foo"] reorder=False matching_strategy=regex . should_equal ["foo", "bar", "baz"]
+        Matching.match_criteria ["foo", "bar", "baz", "quux"] ["b.*"] reorder=True matcher=Regex_Matcher.new . should_equal ["bar", "baz"]
+        Matching.match_criteria ["foo", "bar", "baz", "quux"] ["b.*", "foo"] reorder=False matcher=Regex_Matcher.new . should_equal ["foo", "bar", "baz"]
 
     Test.specify 'should include the object only with the first criterion that matched it, avoiding duplication' <|
-        Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=True matching_strategy=regex . should_equal ["baz", "zap", "bar"]
-        Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False matching_strategy=regex . should_equal ["bar", "baz", "zap"]
+        Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=True matcher=Regex_Matcher.new . should_equal ["baz", "zap", "bar"]
+        Matching.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False matcher=Regex_Matcher.new . should_equal ["bar", "baz", "zap"]
 
     Test.specify 'should correctly handle criteria which did not match anything' <|
         action = Matching.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True warnings=_ on_problems=_
