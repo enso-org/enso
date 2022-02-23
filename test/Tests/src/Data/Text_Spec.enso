@@ -513,6 +513,18 @@ spec =
             long_text . starts_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
             long_text . starts_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
 
+            "aaazzz" . starts_with "a|b" Regex_Matcher.new . should_be_true
+            "bbbzzz" . starts_with "a|b" Regex_Matcher.new . should_be_true
+            "zzzaaa" . starts_with "a|b" Regex_Matcher.new . should_be_false
+            "zzzbbb" . starts_with "a|b" Regex_Matcher.new . should_be_false
+            "aaazzz" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "bbbzzz" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "zzzaaa" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_false
+            "ABC" . starts_with "\AA" Regex_Matcher.new . should_be_true
+            "ABC" . starts_with "\AA\z" Regex_Matcher.new . should_be_false
+            "foobar" . starts_with "" Regex_Matcher.new . should_be_true
+            "" . starts_with "" Regex_Matcher.new . should_be_true
+
         Test.specify "should check for ends_with using Unicode normalization" <|
             "Hello".ends_with "lo" . should_be_true
             "Hello".ends_with "LO" . should_be_false
@@ -580,6 +592,18 @@ spec =
                 SOL
             long_text . ends_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
             long_text . ends_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+
+            "zzzaaa" . ends_with "a|b" Regex_Matcher.new . should_be_true
+            "zzzbbb" . ends_with "a|b" Regex_Matcher.new . should_be_true
+            "aaazzz" . ends_with "a|b" Regex_Matcher.new . should_be_false
+            "bbbzzz" . ends_with "a|b" Regex_Matcher.new . should_be_false
+            "zzzaaa" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "zzzbbb" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "aaazzz" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_false
+            "ABC" . ends_with "C\z" Regex_Matcher.new . should_be_true
+            "ABC" . ends_with "\AC\z" Regex_Matcher.new . should_be_false
+            "foobar" . ends_with "" Regex_Matcher.new . should_be_true
+            "" . ends_with "" Regex_Matcher.new . should_be_true
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
