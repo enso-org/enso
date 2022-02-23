@@ -125,7 +125,7 @@ async fn adding_node_with_add_node_button() {
         graph_editor.model.get_node_position(first_node_id).expect("Node was not added");
     assert!(
         node_position.y < bottom_most_pos.y,
-        "Expected that {node_position} < {bottom_most_pos}"
+        "Expected that {node_position}.y < {bottom_most_pos}.y"
     );
 
     // Selected node is used as a `source` node.
@@ -135,7 +135,7 @@ async fn adding_node_with_add_node_button() {
     assert_eq!(node_source, Some(NodeSource { node: first_node_id }));
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 2);
 
-    // If there is a free space, the node new node is created in the center of screen.
+    // If there is a free space, the new node is created in the center of screen.
     let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
     camera.mod_position_xy(|pos| pos + Vector2(1000.0, 1000.0));
     let wait_for_update = Duration::from_millis(500);
