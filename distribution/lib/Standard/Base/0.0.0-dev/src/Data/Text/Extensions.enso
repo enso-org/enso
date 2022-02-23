@@ -736,9 +736,13 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          'ś' . starts_with 's\u{301}' (Regex_Matcher.new) == True
 
    > Example
-     See if the text "Hello" starts with the prefix "hi".
+     See if the text "Hello!" starts with the specified prefix.
 
-         "Hello".starts_with "hi"
+         "Hello!".starts_with "Hello" == True
+         "Hello!".starts_with "hello" == False
+         "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive.new) == True
+         "Hello!".starts_with "[a-z]" Regex_Matcher.new == False
+         "Hello!".starts_with "[A-Z]" Regex_Matcher.new == True
 Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
@@ -770,8 +774,12 @@ Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
      underlying binary representation are considered equal.
 
    > Example
-     See if the text "Hello" ends with the suffix "low".
-         "Hello".ends_with "low"
+     See if the text "Hello World" ends with the specified suffix.
+
+         "Hello World".ends_with "World" == True
+         "Hello World".ends_with "world" == False
+         "Hello World".ends_with "world" (Text_Matcher Case_Insensitive.new) == True
+         "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher.new == True
 Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of

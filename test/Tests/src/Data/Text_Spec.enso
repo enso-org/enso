@@ -445,6 +445,13 @@ spec =
 
             "Hello!".starts_with "he" . should_be_false
 
+        Test.specify "starts_with should work as shown in the examples" <|
+            "Hello!".starts_with "Hello" . should_be_true
+            "Hello!".starts_with "hello" . should_be_false
+            "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Hello!".starts_with "[a-z]" Regex_Matcher.new . should_be_false
+            "Hello!".starts_with "[A-Z]" Regex_Matcher.new . should_be_true
+
         Test.specify "should allow for case-insensitive starts_with checks" <|
             "Hello".starts_with "he" (Text_Matcher Case_Insensitive.new) . should_be_true
 
@@ -523,6 +530,12 @@ spec =
             "abc" . ends_with "" . should_be_true
             "" . ends_with "" . should_be_true
             "foo foo foo" . ends_with "foo" . should_be_true
+
+        Test.specify "ends_with should work as shown in the examples" <|
+            "Hello World".ends_with "World" . should_be_true
+            "Hello World".ends_with "world" . should_be_false
+            "Hello World".ends_with "world" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher.new . should_be_true
 
         Test.specify "should allow for case-insensitive ends_with checks" <|
             "Hello".ends_with "LO" (Text_Matcher Case_Insensitive.new) . should_be_true
