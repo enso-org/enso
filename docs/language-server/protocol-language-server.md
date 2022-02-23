@@ -1408,10 +1408,10 @@ be omitted if the corresponding list is empty.
 ```typescript
 interface ComponentGroups {
   /** The list of component groups provided by the package. */
-  newGroups: ComponentGroup[];
+  newGroups?: ComponentGroup[];
 
   /** The list of component groups that this package extends.*/
-  extendedGroups: ExtendedComponentGroup[];
+  extendedGroups?: ExtendedComponentGroup[];
 }
 ```
 
@@ -1438,13 +1438,9 @@ interface ComponentGroup {
 The definition of a component group that extends an existing one.
 
 ```typescript
-interface ComponentGroup {
+interface ExtendedComponentGroup {
   /** The reference to the component group module being extended. */
   module: ModuleReference;
-
-  color?: string;
-
-  icon?: string;
 
   /** The list of components provided by this component group. */
   exports: Component[];
@@ -1463,7 +1459,10 @@ interface ModuleReference {
    */
   libraryName: string;
 
-  /** The module name. */
+  /** The module name without the library name prefix.
+   *  E.g. given the `Standard.Base.Data.Vector` module reference,
+   * the `moduleName` field contains `Data.Vector`.
+   */
   moduleName: string;
 }
 ```
@@ -1487,14 +1486,17 @@ interface Component {
 The component group provided by a library.
 
 ```typescript
-interface ComponentGroup {
+interface LibraryComponentGroup {
   /**
    * A string consisting of a namespace and a lirary name separated by the dot
    * <namespace>.<library name>, i.e. `Standard.Base`.
    */
   library: string;
 
-  /** The module name containing the declared componennts. */
+  /** The module name without the library name prefix.
+   *  E.g. given the `Standard.Base.Data.Vector` module reference,
+   * the `module` field contains `Data.Vector`.
+   */
   module: string;
 
   color?: string;
@@ -4590,7 +4592,7 @@ All returned fields are optional, as they may be missing.
 
 ```typescript
 {
-  license: String;
+  license?: String;
   componentGroups?: ComponentGroups;
 }
 ```

@@ -236,8 +236,6 @@ object ComponentGroupsResolverSpec {
         LibraryName(extendedLibraryNamespace, extendedLibraryName),
         ModuleName(extendedModule)
       ),
-      color   = None,
-      icon    = None,
       exports = exports.map(Component(_, None))
     )
 

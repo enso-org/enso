@@ -90,7 +90,11 @@ class LibraryGetPackageHandler(
       replyTo ! ResponseResult(
         LibraryGetPackage,
         id,
-        LibraryGetPackage.Result(license, componentGroups, rawPackage)
+        LibraryGetPackage.Result(
+          Option.unless(license.isEmpty)(license),
+          componentGroups,
+          rawPackage
+        )
       )
       cancellable.cancel()
       context.stop(self)

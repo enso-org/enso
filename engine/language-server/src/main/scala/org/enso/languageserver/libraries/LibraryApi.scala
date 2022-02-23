@@ -189,7 +189,7 @@ object LibraryApi {
     // TODO[DB]: raw package was added to response as a temporary field and
     //  should be removed when the integration with IDE is finished
     case class Result(
-      license: String,
+      license: Option[String],
       componentGroups: Option[ComponentGroups],
       raw: JsonObject
     )

@@ -113,8 +113,6 @@ final class ComponentGroupsResolver {
     extendedComponentGroup: ExtendedComponentGroup
   ): LibraryComponentGroup = {
     libraryComponentGroup.copy(
-      color   = extendedComponentGroup.color.orElse(libraryComponentGroup.color),
-      icon    = extendedComponentGroup.icon.orElse(libraryComponentGroup.icon),
       exports = libraryComponentGroup.exports :++ extendedComponentGroup.exports
     )
   }

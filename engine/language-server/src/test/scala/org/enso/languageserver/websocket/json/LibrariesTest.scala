@@ -247,8 +247,6 @@ class LibrariesTest extends BaseServerTest {
               LibraryName("Standard", "Base"),
               ModuleName("Data")
             ),
-            color = None,
-            icon  = None,
             exports = List(
               Component("bar", None)
             )
@@ -309,8 +307,8 @@ class LibrariesTest extends BaseServerTest {
       response.hcursor
         .downField("result")
         .downField("license")
-        .as[String]
-        .rightValue shouldEqual ""
+        .as[Option[String]]
+        .rightValue shouldEqual None
 
       response.hcursor
         .downField("result")
