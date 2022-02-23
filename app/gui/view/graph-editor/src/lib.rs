@@ -1675,15 +1675,21 @@ impl GraphEditorModel {
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
         for node in nodes.values() {
-            // TODO: should we use some better reference point on a node for the "nearest node"
-            // calculation? alternatives, in order of complexity:
+            // There are various possible reference points on a node that can be chosen for
+            // calculating "distance between a node and the mouse pointer". In order of increasing
+            // complexity:
             //  a) node.position(),
             //  b) the geometrical center of the node's area,
-            //  c) a point on the bounding box of the node that is closest to the mouse pointer,
-            //  d) a point on the rounded rectangle forming the node's edge that is closest to the
-            //     mouse pointer.
-            let mouse_to_node_vector = node.position().xy() - mouse_position;
-            let distance_squared = mouse_to_node_vector.norm_squared();
+            //  c) a point closest to the mouse pointer on the line segment connecting node's
+            //     leftmost & rightmost points,
+            //  c) a point closest to the mouse pointer on the bounding box of the node
+            //     (with extra handling for when the mouse is inside the bounding box),
+            //  d) a point closest to the mouse pointer on the rounded rectangle forming the node's
+            //     shape (with extra handling for when the mouse is inside the rounded rectangle).
+            let node_position = node.position().xy();
+            let node_midpoint_x = (node_position.x + node.model.width()) / 2.0;
+            let node_midpoint = Vector2(node_midpoint_x, node_position.y);
+            let distance_squared = (node_midpoint - mouse_position).norm_squared();
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
                 nearest_node = Some(node.clone_ref());
