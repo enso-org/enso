@@ -941,7 +941,8 @@ Text.take range =
     if char_range.is_error then char_range else
         Text_Utils.substring this char_range.start char_range.end
 
-## Creates a new Text by removing the specified range of the input.
+## ALIAS skip, remove
+   Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
    input using various criteria defined by the range parameter.
