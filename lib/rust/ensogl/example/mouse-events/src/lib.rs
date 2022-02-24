@@ -160,7 +160,7 @@ impl application::View for View {
 pub fn entry_point_mouse_events() {
     web::forward_panic_hook_to_console();
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let app = Application::new(&web::document.get_element_by_id("root").unwrap());
 
         let shape: View = app.new_view();
         shape.model.shape.size.set(Vector2::new(300.0, 300.0));

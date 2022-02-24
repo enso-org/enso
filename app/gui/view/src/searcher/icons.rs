@@ -1002,7 +1002,7 @@ pub fn entry_point_searcher_icons() {
     web::set_stack_trace_limit();
 
     let logger = Logger::new("Icons example");
-    let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+    let app = Application::new(&web::document.get_element_by_id("root").unwrap());
     ensogl_hardcoded_theme::builtin::dark::register(&app);
     ensogl_hardcoded_theme::builtin::light::register(&app);
     ensogl_hardcoded_theme::builtin::light::enable(&app);
@@ -1014,7 +1014,7 @@ pub fn entry_point_searcher_icons() {
 
     // === Grid ===
 
-    let grid_div = web::create_div();
+    let grid_div = web::document.create_div();
     grid_div.set_style_or_panic("width", "1000px");
     grid_div.set_style_or_panic("height", "16px");
     grid_div.set_style_or_panic("background-size", "1.0px 1.0px");

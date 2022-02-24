@@ -146,7 +146,7 @@ impl Model {
         side_menu: &SideMenu,
         template_cards: &TemplateCards,
     ) -> DomSymbol {
-        let root = web::create_div();
+        let root = web::document.create_div();
         root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
         // We explicitly enable pointer events for Welcome Screen elements. Pointer events are
         // disabled for all DOM layers by default. See [`DomLayers`] documentation.
@@ -161,7 +161,7 @@ impl Model {
     }
 
     fn create_content_container() -> HtmlDivElement {
-        let container = web::create_div();
+        let container = web::document.create_div();
         container.set_class_name(css_class::CONTAINER);
 
         container

@@ -207,7 +207,7 @@ impl MockPanel {
 //     /// Constructor.
 //     #[allow(clippy::new_without_default)]
 //     pub fn new() -> Self {
-//         let root = web::create_div();
+//         let root = web::document.create_div();
 //         root.set_class_name("performance-monitor");
 //         root.set_style_or_panic("position", "absolute");
 //         root.set_style_or_panic("z-index", "100");
@@ -218,7 +218,7 @@ impl MockPanel {
 //         root.set_style_or_panic("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
 //         web::body().prepend_with_node_1(&root).unwrap();
 //
-//         let canvas = web::create_canvas();
+//         let canvas = web::document.create_canvas();
 //         canvas.set_style_or_panic("display", "block");
 //
 //         let context = canvas.get_context("2d").unwrap().unwrap();

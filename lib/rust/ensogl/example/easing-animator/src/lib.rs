@@ -101,7 +101,7 @@ pub struct Canvas {
 impl Canvas {
     /// Constructor.
     pub fn new(container_id: &str) -> Self {
-        let canvas = web::create_canvas();
+        let canvas = web::document.create_canvas();
         canvas.set_style_or_panic("border", "1px solid black");
         canvas.set_width(256);
         canvas.set_height(256);
@@ -249,7 +249,7 @@ impl Example {
         ease_out: impl CloneableFnEasing,
         ease_in_out: impl CloneableFnEasing,
     ) -> Self {
-        let example = web::create_div();
+        let example = web::document.create_div();
         example.set_attribute_or_panic("id", name);
         example.set_style_or_panic("margin", "10px");
         let container: HtmlElement = get_element_by_id("examples").unwrap().dyn_into().unwrap();
@@ -293,7 +293,7 @@ macro_rules! examples {
 pub fn entry_point_easing_animator() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
-    let container = web::create_div();
+    let container = web::document.create_div();
     container.set_attribute_or_panic("id", "examples");
     container.set_style_or_panic("display", "flex");
     container.set_style_or_panic("flex-wrap", "wrap");

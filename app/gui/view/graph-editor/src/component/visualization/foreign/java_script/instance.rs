@@ -105,7 +105,7 @@ impl InstanceModel {
     }
 
     fn create_root(scene: &Scene, logger: &Logger) -> result::Result<DomSymbol, Error> {
-        let div = web::create_div();
+        let div = web::document.create_div();
         let root_node = DomSymbol::new(&div);
         root_node
             .dom()

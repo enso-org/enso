@@ -75,7 +75,7 @@ impl Initializer {
     pub async fn start(self) -> Result<Ide, FailedIde> {
         info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
-        let root_element = web::get_html_element_by_id("root").unwrap();
+        let root_element = web::document.get_element_by_id("root").unwrap();
         let ensogl_app = ensogl::application::Application::new(&root_element);
         Initializer::register_views(&ensogl_app);
         let view = ensogl_app.new_view::<ide_view::root::View>();

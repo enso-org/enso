@@ -178,7 +178,7 @@ pub fn expose_to_window(manager: &Manager) {
 
     // FIXME
     #[cfg(target_arch = "wasm32")]
-    let window = web::window();
+    let window = web::window;
     #[cfg(target_arch = "wasm32")]
     let theme_manger_ref = js::create_theme_manager_ref(&list, &choose, &get, &snapshot, &diff);
     #[cfg(target_arch = "wasm32")]

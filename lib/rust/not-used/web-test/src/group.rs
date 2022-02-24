@@ -22,7 +22,7 @@ impl Group {
             Ok(div) => div.dyn_into().expect("div should be a HtmlElement"),
             // If it doesn't exist, we create a new element.
             Err(_) => {
-                let div = web::create_div();
+                let div = web::document.create_div();
                 div.set_attribute_or_panic("id", name);
                 div.set_style_or_panic("display", "flex");
                 div.set_style_or_panic("flex-wrap", "wrap");

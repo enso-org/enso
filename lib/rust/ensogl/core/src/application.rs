@@ -16,7 +16,7 @@ use crate::display::style::theme;
 use crate::display::world::World;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
-use enso_web::StyleSetter;
+use enso_web::traits::*;
 
 use crate::animation;
 
@@ -54,7 +54,7 @@ impl Application {
         let themes = theme::Manager::from(&display.default_scene.style_sheet);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
-        web::body().set_style_or_panic("cursor", "none");
+        web::document.body().set_style_or_panic("cursor", "none");
         // let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
         let t = themes.clone_ref();
         let update_themes_handle =

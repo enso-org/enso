@@ -1,6 +1,7 @@
 //! This module defines a DOM management utilities.
 
 use crate::prelude::*;
+use web::traits::*;
 
 use crate::display::camera::camera2d::Projection;
 use crate::display::camera::Camera2d;
@@ -161,8 +162,8 @@ impl DomScene {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "DomScene");
-        let dom = web::create_div();
-        let view_projection_dom = web::create_div();
+        let dom = web::document.create_div();
+        let view_projection_dom = web::document.create_div();
 
         dom.set_class_name("dom-scene-layer");
         // z-index works on positioned elements only.

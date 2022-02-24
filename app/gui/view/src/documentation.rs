@@ -70,9 +70,9 @@ impl Model {
     fn new(scene: &Scene) -> Self {
         let logger = Logger::new("DocumentationView");
         let display_object = display::object::Instance::new(&logger);
-        let outer_div = web::create_div();
+        let outer_div = web::document.create_div();
         let outer_dom = DomSymbol::new(&outer_div);
-        let inner_div = web::create_div();
+        let inner_div = web::document.create_div();
         let inner_dom = DomSymbol::new(&inner_div);
         let size =
             Rc::new(Cell::new(Vector2(VIEW_WIDTH - PADDING, VIEW_HEIGHT - PADDING - PADDING_TOP)));

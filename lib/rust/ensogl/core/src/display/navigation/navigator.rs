@@ -99,7 +99,8 @@ impl NavigatorModel {
             let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
             let pan_speed = pan_speed.get().into_on().unwrap_or(0.0);
             let movement_scale_for_distance = distance / distance_to_zoom_factor_of_1;
-            let diff = pan_speed * Vector3::new(pan.movement.x, pan.movement.y, 0.0) * movement_scale_for_distance;
+            let movement = Vector3::new(pan.movement.x, pan.movement.y, 0.0);
+            let diff = pan_speed * movement * movement_scale_for_distance;
             simulator.update_target_value(|p| p - diff);
         });
 

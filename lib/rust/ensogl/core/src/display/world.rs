@@ -6,6 +6,7 @@ pub mod stats;
 pub use crate::display::symbol::types::*;
 
 use crate::prelude::*;
+use web::traits::*;
 
 use crate::animation;
 use crate::control::callback;
@@ -193,8 +194,8 @@ pub struct WorldData {
 
 impl WorldData {
     /// Create and initialize new world instance.
-    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> Self {
+        web::window.forward_panic_hook_to_console();
         let logger = Logger::new("world");
         let stats: stats::Monitor = default();
         let on = default();
@@ -232,7 +233,7 @@ impl WorldData {
                 }
             }
         }));
-        let handle = web::add_event_listener_with_bool(&web::window(), "keydown", closure, true);
+        let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
         *self.debug_hotkeys_handle.borrow_mut() = Some(handle);
     }
 

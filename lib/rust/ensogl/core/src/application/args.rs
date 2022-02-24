@@ -140,7 +140,7 @@ macro_rules! read_args {
             /// Constructor.
             fn new() -> Self {
                 let logger = Logger::new(stringify!{Args});
-                let window = web::window();
+                let window = web::window;
                 let path   = vec![$($($path)*),*];
                 match web::reflect_get_nested_object(&window,&path).ok() {
                     None => {

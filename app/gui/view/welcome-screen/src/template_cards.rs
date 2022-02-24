@@ -90,7 +90,7 @@ impl Model {
     pub fn new(logger: Logger, open_template: &frp::Any<String>) -> Self {
         let root_dom = web::create_element("main");
         root_dom.set_class_name(crate::css_class::CONTENT);
-        let templates = web::create_div();
+        let templates = web::document.create_div();
 
         let header = Self::create_header("Templates");
         templates.append_or_warn(&header, &logger);
@@ -124,7 +124,7 @@ impl Model {
     /// Create main content, a set of cards.
     fn create_cards(logger: &Logger) -> (HtmlDivElement, Vec<Card>) {
         let mut cards = Vec::new();
-        let dom = web::create_div();
+        let dom = web::document.create_div();
         dom.set_class_name(crate::css_class::CARDS);
 
         let row1 = Self::create_row(&[CARD_SPREADSHEETS, CARD_GEO], &mut cards, logger);
@@ -141,7 +141,7 @@ impl Model {
         cards: &mut Vec<Card>,
         logger: &Logger,
     ) -> HtmlDivElement {
-        let row = web::create_div();
+        let row = web::document.create_div();
         row.set_class_name(crate::css_class::ROW);
         for definition in definitions {
             let card = Self::create_card(definition, logger);
@@ -153,7 +153,7 @@ impl Model {
 
     /// Helper to create a single card DOM from provided definition.
     fn create_card(definition: &CardDefinition, logger: &Logger) -> Card {
-        let card = web::create_div();
+        let card = web::document.create_div();
         card.set_class_name(&format!("{} {}", crate::css_class::CARD, definition.class));
         if let Some(src) = definition.background_image_url {
             let img = web::create_element("img");

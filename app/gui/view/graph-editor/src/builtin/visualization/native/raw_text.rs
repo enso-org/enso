@@ -85,7 +85,7 @@ impl RawTextModel {
     /// Constructor.
     fn new(scene: Scene) -> Self {
         let logger = Logger::new("RawText");
-        let div = web::create_div();
+        let div = web::document.create_div();
         let dom = DomSymbol::new(&div);
         let size = Rc::new(Cell::new(Vector2(200.0, 200.0)));
 

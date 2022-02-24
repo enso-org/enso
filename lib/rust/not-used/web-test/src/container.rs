@@ -22,7 +22,7 @@ pub struct Container {
 impl Container {
     /// Creates an identificable container with provided dimensions.
     pub fn new(group: &str, name: &str, width: f32, height: f32) -> Self {
-        let div = web::create_div();
+        let div = web::document.create_div();
         let width = format!("{}px", width);
         let header = web::create_element("center");
         let header: web::HtmlElement = header.dyn_into().expect("HtmlElement");
@@ -39,7 +39,7 @@ impl Container {
         header.set_style_or_panic("position", "relative");
         div.append_or_panic(&header);
 
-        let container = web::create_div();
+        let container = web::document.create_div();
         let container: web::HtmlElement = container.dyn_into().expect("HtmlElement");
 
         container.set_style_or_panic("width", width);
