@@ -53,6 +53,8 @@
   search.][3285]
 - [Implemented new `Text.take` and `Text.drop` functions, replacing existing
   functions][3287]
+- [Implemented new `Text.starts_with` and `Text.ends_with` functions, replacing
+  existing functions][3292]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -82,6 +84,7 @@
 [3282]: https://github.com/enso-org/enso/pull/3282
 [3285]: https://github.com/enso-org/enso/pull/3285
 [3287]: https://github.com/enso-org/enso/pull/3287
+[3292]: https://github.com/enso-org/enso/pull/3292
 
 #### Enso Compiler
 
