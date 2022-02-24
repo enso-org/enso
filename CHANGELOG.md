@@ -2,6 +2,10 @@
 
 #### Visual Environment
 
+- [Nodes created near existing nodes using the TAB key or by dropping a
+  connection are aligned to existing nodes.][3301] The new nodes are placed
+  below, or below and to the left of existing nodes, depending on where some
+  space unoccupied by nodes is found.
 - [Nodes can be added to the graph by clicking (+) button on the screen][3278].
   The button is in the bottom-left corner. Node is added at the center or pushed
   down if the center is already occupied by nodes.
