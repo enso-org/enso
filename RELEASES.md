@@ -12,6 +12,9 @@
 - Updated to
   [GraalVM 21.3.0](https://github.com/graalvm/graalvm-ce-builds/releases/tag/vm-21.3.0)
   ([#3258](https://github.com/enso-org/enso/pull/3258)).
+- Extended language server API to allow accessing the package definition, and to
+  get the available component groups
+  [#3286](https://github.com/enso-org/enso/pull/3286).
 
 ## Interpreter/Runtime
 

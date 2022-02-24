@@ -2,7 +2,6 @@ package org.enso.languageserver.libraries
 
 import akka.actor.Props
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
@@ -12,11 +11,12 @@ import org.enso.librarymanager.local.{
 }
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.pkg.validation.NameValidation
-import org.enso.pkg.{Contact, PackageManager}
+import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.io.File
 import java.nio.file.{Files, Path}
+
 import scala.util.{Success, Try}
 
 /** An Actor that manages local libraries. */
@@ -41,6 +41,8 @@ class LocalLibraryManager(
             tagLine     = request.tagLine
           )
         )
+      case GetPackage(libraryName) =>
+        startRequest(getPackage(libraryName))
       case ListLocalLibraries =>
         startRequest(listLocalLibraries())
       case Create(libraryName, authors, maintainers, license) =>
@@ -190,6 +192,28 @@ class LocalLibraryManager(
     _ = saveManifest(manifestPath, updatedManifest)
   } yield EmptyResponse()
 
+  /** Loads the package config for a local library. */
+  private def getPackage(libraryName: LibraryName): Try[GetPackageResponse] =
+    for {
+      libraryRootPath <- localLibraryProvider
+        .findLibrary(libraryName)
+        .toRight(LocalLibraryNotFoundError(libraryName))
+        .toTry
+      configPath = libraryRootPath / Package.configFileName
+      config <- loadPackageConfig(configPath)
+    } yield {
+      if (config.componentGroups.isLeft) {
+        logger.error(
+          s"Failed to parse library [$libraryName] component groups."
+        )
+      }
+      GetPackageResponse(
+        license         = config.license,
+        componentGroups = config.componentGroups.toOption,
+        rawPackage      = config.originalJson
+      )
+    }
+
   /** Tries to load the manifest.
     *
     * If the file does not exist, an empty manifest is returned. Any other
@@ -205,6 +229,10 @@ class LocalLibraryManager(
     manifestPath: Path,
     manifest: LibraryManifest
   ): Unit = FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(manifest))
+
+  /** Load the package config. */
+  private def loadPackageConfig(packagePath: Path): Try[Config] =
+    YamlHelper.load[Config](packagePath)
 
   /** Finds the edition associated with the current project, if specified in its
     * config.
