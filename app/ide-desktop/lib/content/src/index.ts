@@ -949,6 +949,8 @@ async function runEntryPoint(config: Config) {
         let fn_name = wasm_entry_point_pfx + entryTarget
         let fn = wasm[fn_name]
         if (fn) {
+            // Loader will be removed by IDE after its initialization.
+            // All other code paths need to call `loader.destroy()`.
             fn()
         } else {
             loader.destroy()
