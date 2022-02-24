@@ -955,6 +955,7 @@ async function runEntryPoint(config: Config) {
             show_debug_screen(wasm, "Unknown entry point '" + entryTarget + "'. ")
         }
     } else {
+        loader.destroy()
         show_debug_screen(wasm, '')
     }
 }
