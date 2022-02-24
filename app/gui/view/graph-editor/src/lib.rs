@@ -1685,6 +1685,14 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
+    pub fn find_place_by_dropping_edge(&self, edge_id: EdgeId, mouse_position: Vector2) -> Vector2 {
+        let edge_source_node_id = self.edge_source_node_id(edge_id);
+        let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
+        let place_dictated_by_node = edge_source_node
+            .and_then(|node| self.find_place_dictated_by_node(node, mouse_position));
+        place_dictated_by_node.unwrap_or(mouse_position)
+    }
+
     pub fn find_place_by_nearest_node(&self, mouse_position: Vector2) -> Vector2 {
         let nearest_node = self.find_nearest_node(mouse_position);
         let place_dictated_by_node =
@@ -1727,14 +1735,6 @@ impl GraphEditorModel {
             }
         }
         nearest_node
-    }
-
-    pub fn find_place_by_dropping_edge(&self, edge_id: EdgeId, mouse_position: Vector2) -> Vector2 {
-        let edge_source_node_id = self.edge_source_node_id(edge_id);
-        let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-        let place_dictated_by_node = edge_source_node
-            .and_then(|node| self.find_place_dictated_by_node(node, mouse_position));
-        place_dictated_by_node.unwrap_or(mouse_position)
     }
 
     pub fn find_place_dictated_by_node(
