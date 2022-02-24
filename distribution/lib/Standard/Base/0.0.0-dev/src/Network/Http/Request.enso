@@ -8,8 +8,6 @@ import Standard.Base.Network.Internal
 import Standard.Base.Network.Uri
 import Standard.Base.System.File
 
-polyglot java import org.enso.base.Text_Utils
-
 ## Create new HTTP request.
 
    Arguments:
@@ -159,7 +157,7 @@ type Request
        update_header p h = case p of
            Pair acc True -> Pair (acc + [h]) True
            Pair acc False ->
-               if Text_Utils.equals_ignore_case h.name key then Pair (acc + [new_header]) True else Pair (acc + [h]) False
+               if h.name . equals_ignore_case key then Pair (acc + [new_header]) True else Pair (acc + [h]) False
        new_headers = case this.headers.fold (Pair [] False) update_header of
            Pair acc True -> acc
            Pair acc False -> acc + [new_header]

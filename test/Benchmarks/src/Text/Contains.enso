@@ -1,0 +1,31 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+import Standard.Test.Faker
+
+check_all text_vector pattern_vector mode =
+    text_vector.fold 0 acc-> text->
+        pattern_vector.fold acc acc-> pattern->
+            result = text.contains pattern mode
+            acc + if result then 1 else 0
+
+main =
+    bench_contains suite_prefix character_template =
+        gen = Faker.make_generator
+        ## Warning: this relies on the fact that Faker will treat the accent
+           codepoint `\u{301}` as a separate code unit. We rely on this to add
+           accents randomly to neighboring characters. If the implementation of
+           Faker is changed, this must be modified accordingly.
+        make_alpha_template length = Vector.new length _-> character_template
+
+        big_template = make_alpha_template 10000
+        big_random = Vector.new 200 _-> Faker.make_string big_template gen
+
+        Bench.measure (here.check_all big_random ["AAAAAA"] Text_Matcher.new) suite_prefix+" exact" 10 10
+        Bench.measure (here.check_all big_random ["AAAAAA"] (Text_Matcher.new Case_Insensitive.new)) suite_prefix+" case-insensitive" 10 10
+        Bench.measure (here.check_all big_random ["AAAAAA"] Regex_Matcher.new) suite_prefix+" exact regex" 10 10
+        Bench.measure (here.check_all big_random ["AAAAAA"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new)) suite_prefix+" case-insensitive regex" 10 10
+        Bench.measure (here.check_all big_random ["A.{5000}A"] Regex_Matcher.new) suite_prefix+" const-width regex" 10 10
+        Bench.measure (here.check_all big_random ["AAAAA.*AAAAA"] Regex_Matcher.new) suite_prefix+" wildcard regex" 10 10
+
+    bench_contains "Text.contains " (Faker.upper_case_letters + Faker.lower_case_letters + 'ąę\u{301}\u{302}\u{303}\u{321}'.utf_16)
