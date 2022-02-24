@@ -1698,9 +1698,9 @@ impl GraphEditorModel {
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
         for node in nodes.values() {
-            // For calculating the approximate distance between a node and the mouse pointer,
-            // one of a number of possible reference points on a node that can be chosen. In order
-            // of increasing complexity and precision:
+            // For calculating the approximate distance between a node and the mouse pointer, one
+            // of several possible reference points on a node can be chosen. In order of increasing
+            // complexity and precision:
             //  a) node.position(),
             //  b) the geometrical center of the node's area,
             //  c) a point closest to the mouse pointer on the line segment connecting node's
