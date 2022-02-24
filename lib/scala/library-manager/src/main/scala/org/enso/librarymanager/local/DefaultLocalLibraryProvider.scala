@@ -3,9 +3,11 @@ package org.enso.librarymanager.local
 import com.typesafe.scalalogging.Logger
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
 
 import java.nio.file.{Files, Path}
+
 import scala.annotation.tailrec
 
 /** A default implementation of [[LocalLibraryProvider]]. */
@@ -15,13 +17,13 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
   private val logger = Logger[DefaultLocalLibraryProvider]
 
   /** @inheritdoc */
-  override def findLibrary(libraryName: LibraryName): Option[Path] =
-    findLibraryHelper(
-      libraryName,
-      searchPaths
-    )
+  override def findLibrary(libraryName: LibraryName): Option[LibraryRoot] = {
+    findLibraryHelper(libraryName, searchPaths)
+      .map(LibraryRoot(_))
+  }
 
-  /** Searches through the available library paths, checking if any one of them contains the requested library.
+  /** Searches through the available library paths, checking if any one of them
+    * contains the requested library.
     *
     * The first path on the list takes precedence.
     */

@@ -4,6 +4,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.testkit.EitherValue
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
@@ -57,8 +58,14 @@ class LibraryResolverSpec
 
     case class FakeLocalLibraryProvider(fixtures: Map[LibraryName, Path])
         extends LocalLibraryProvider {
-      override def findLibrary(libraryName: LibraryName): Option[Path] =
-        fixtures.get(libraryName)
+
+      /** @inheritdoc */
+      override def findLibrary(
+        libraryName: LibraryName
+      ): Option[LibraryRoot] =
+        fixtures
+          .get(libraryName)
+          .map(LibraryRoot(_))
     }
 
     val localLibraries = Map(
