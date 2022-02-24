@@ -89,6 +89,7 @@
 [3285]: https://github.com/enso-org/enso/pull/3285
 [3287]: https://github.com/enso-org/enso/pull/3287
 [3292]: https://github.com/enso-org/enso/pull/3292
+[3301]: https://github.com/enso-org/enso/pull/3301
 
 #### Enso Compiler
 
