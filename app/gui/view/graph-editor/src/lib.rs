@@ -1682,12 +1682,14 @@ impl GraphEditorModel {
         let node_right = node_position.x + node.model.width();
         let node_top = node_position.y + node.model.height() / 2.0;
         let node_bottom = node_position.y - node.model.height() / 2.0;
-        let placement_area = OccupiedArea {
-            x1: node_left - NODE_PLACEMENT_AREA_SIDE,
-            x2: node_right + NODE_PLACEMENT_AREA_SIDE,
-            y1: node_top + NODE_PLACEMENT_AREA_ABOVE,
-            y2: node_bottom - NODE_PLACEMENT_AREA_BELOW,
-        };
+        let area_left = node_left - NODE_PLACEMENT_AREA_SIDE;
+        let area_right = node_right + NODE_PLACEMENT_AREA_SIDE;
+        let area_top = node_top + NODE_PLACEMENT_AREA_ABOVE;
+        let area_bottom = node_bottom - NODE_PLACEMENT_AREA_BELOW;
+        let placement_area = selection::BoundingBox::from_corners(
+            Vector2(area_left, area_top),
+            Vector2(area_right, area_bottom),
+        );
         placement_area.contains(mouse_position).then(|| self.find_free_place_under(node.id()))
     }
 
