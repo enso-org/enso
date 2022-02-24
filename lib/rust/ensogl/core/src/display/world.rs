@@ -233,7 +233,7 @@ impl WorldData {
                 }
             }
         }));
-        let handle = web::add_event_listener_with_bool(&web::window(), "keydown", closure, true);
+        let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
         *self.debug_hotkeys_handle.borrow_mut() = Some(handle);
     }
 

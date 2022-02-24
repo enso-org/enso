@@ -10,4 +10,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ensogl-core = { path = "../../core" }
+enso-web = { path = "../../../web" }
 wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }

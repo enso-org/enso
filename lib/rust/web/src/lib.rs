@@ -36,7 +36,7 @@ pub mod prelude {
 }
 
 pub mod traits {
-    pub use super::DocumentApi;
+    pub use super::DocumentOps;
     pub use super::NodeInserter;
     pub use super::NodeRemover;
     pub use super::StyleSetter;
@@ -55,8 +55,6 @@ pub use std::time::Instant;
 
 #[cfg(target_arch = "wasm32")]
 pub use binding::wasm::*;
-#[cfg(target_arch = "wasm32")]
-pub use wasm_apis::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use binding::mock::*;
@@ -64,40 +62,46 @@ pub use binding::mock::*;
 pub use mock_apis::*;
 
 
-pub mod wasm_apis {
-    use crate::binding::wasm::*;
 
-    pub trait WindowApi {
-        fn forward_panic_hook_to_console(&self);
-    }
-
-    pub trait DocumentApi {
-        fn body(&self) -> &HtmlElement;
-        fn create_div(&self) -> HtmlDivElement;
-        fn create_canvas(&self) -> HtmlCanvasElement;
-        fn get_element_by_id(&self, id: &str) -> Result<HtmlElement>;
-        fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement)
-            -> Option<WebGl2RenderingContext>;
-    }
+pub trait WindowApi {
+    fn forward_panic_hook_to_console(&self);
 }
 
-pub mod mock_apis {
-    use crate::binding::mock::*;
-
-    pub trait WindowApi {
-        fn forward_panic_hook_to_console(&self);
-    }
-
-    pub trait DocumentApi {
-        fn body(&self) -> &HtmlElement;
-        fn create_div(&self) -> HtmlDivElement;
-        fn create_canvas(&self) -> HtmlCanvasElement;
-        fn get_element_by_id(&self, id: &str) -> Result<HtmlElement>;
-        fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement)
-            -> Option<WebGl2RenderingContext>;
-    }
+pub trait DocumentOps {
+    fn body_or_panic(&self) -> HtmlElement;
+    fn create_element_or_panic(&self, local_name: &str) -> Element;
+    fn create_div_or_panic(&self) -> HtmlDivElement;
+    fn create_canvas_or_panic(&self) -> HtmlCanvasElement;
+    fn get_element_by_id(&self, id: &str) -> Result<HtmlElement>;
+    fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext>;
 }
 
+impl DocumentOps for Document {
+    fn body_or_panic(&self) -> HtmlElement {
+        self.body().unwrap()
+    }
+
+    fn create_element_or_panic(&self, local_name: &str) -> Element {
+        self.create_element(local_name).unwrap()
+    }
+
+
+    fn create_div_or_panic(&self) -> HtmlDivElement {
+        self.create_element_or_panic("div").unchecked_into()
+    }
+
+    fn create_canvas_or_panic(&self) -> HtmlCanvasElement {
+        self.create_element_or_panic("canvas").unchecked_into()
+    }
+
+    fn get_element_by_id(&self, id: &str) -> Result<HtmlElement> {
+        todo!()
+    }
+
+    fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
+        todo!()
+    }
+}
 
 
 // ===================
@@ -313,11 +317,11 @@ mod request_animation_frame_impl {
 mod request_animation_frame_impl {
     use super::*;
     pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> i32 {
-        window().request_animation_frame(f.as_ref().unchecked_ref()).unwrap()
+        window.request_animation_frame(f.as_ref().unchecked_ref()).unwrap()
     }
 
     pub fn cancel_animation_frame(id: i32) {
-        window().cancel_animation_frame(id).unwrap();
+        window.cancel_animation_frame(id).unwrap();
     }
 }
 
@@ -440,7 +444,7 @@ pub use web_sys::Performance;
 #[cfg(target_arch = "wasm32")]
 /// Access the `window.performance` or panics if it does not exist.
 pub fn performance() -> Performance {
-    window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
+    window.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -468,7 +472,7 @@ pub fn performance() -> Performance {
 #[cfg(target_arch = "wasm32")]
 /// Access the `window.devicePixelRatio` or panic if the window does not exist.
 pub fn device_pixel_ratio() -> f64 {
-    window().device_pixel_ratio()
+    window.device_pixel_ratio()
 }
 
 #[cfg(not(target_arch = "wasm32"))]

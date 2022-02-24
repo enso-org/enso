@@ -1,4 +1,3 @@
-use crate::mock_apis::*;
 use enso_prelude::*;
 
 
@@ -508,18 +507,18 @@ mock_data! { Node => EventTarget }
 pub static document: Document = Document::const_new();
 pub static window: Window = Window {};
 
-impl WindowApi for Window {
-    mock_fn! { forward_panic_hook_to_console(&self) }
-}
-
-impl DocumentApi for Document {
-    mock_fn! { body(&self) -> &HtmlElement }
-    mock_fn! { create_div(&self) -> HtmlDivElement }
-    mock_fn! { create_canvas(&self) -> HtmlCanvasElement }
-    mock_fn! { get_element_by_id(&self, _id: &str) -> Result<HtmlElement> }
-    mock_fn! { get_webgl2_context(&self, _canvas: &HtmlCanvasElement)
-    -> Option<WebGl2RenderingContext> }
-}
+// impl WindowApi for Window {
+//     mock_fn! { forward_panic_hook_to_console(&self) }
+// }
+//
+// impl DocumentApi for Document {
+//     mock_fn! { body(&self) -> &HtmlElement }
+//     mock_fn! { create_div(&self) -> HtmlDivElement }
+//     mock_fn! { create_canvas(&self) -> HtmlCanvasElement }
+//     mock_fn! { get_element_by_id(&self, _id: &str) -> Result<HtmlElement> }
+//     mock_fn! { get_webgl2_context(&self, _canvas: &HtmlCanvasElement)
+//     -> Option<WebGl2RenderingContext> }
+// }
 
 // mock_pub_fn! { body() -> HtmlElement }
 // mock_pub_fn! { create_div() -> HtmlDivElement }

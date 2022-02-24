@@ -162,8 +162,8 @@ impl DomScene {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "DomScene");
-        let dom = web::create_div();
-        let view_projection_dom = web::create_div();
+        let dom = web::document.create_div_or_panic();
+        let view_projection_dom = web::document.create_div_or_panic();
 
         dom.set_class_name("dom-scene-layer");
         // z-index works on positioned elements only.

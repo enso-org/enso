@@ -1,4 +1,3 @@
-use crate::wasm_apis::*;
 use enso_prelude::*;
 
 pub use js_sys::Function;
@@ -89,47 +88,40 @@ pub fn js_to_string(s: impl AsRef<JsValue>) -> String {
 // === DOM Helpers ===
 // ===================
 
-/// Access the `window` object if exists.
-pub fn try_window() -> Result<Window> {
-    web_sys::window().ok_or_else(|| Error("Cannot access 'window'."))
+
+macro_rules! wasm_lazy_global {
+    ($name:ident : $tp:ty = $expr:expr) => {
+        pub mod $name {
+            use super::*;
+            pub static mut STORE: Option<$tp> = None;
+            pub struct Ref {}
+        }
+
+        impl Deref for $name::Ref {
+            type Target = $tp;
+            fn deref(&self) -> &Self::Target {
+                unsafe {
+                    $name::STORE.as_ref().unwrap_or_else(|| {
+                        let val = $expr;
+                        $name::STORE = Some(val);
+                        $name::STORE.as_ref().unwrap()
+                    })
+                }
+            }
+        }
+
+        pub const $name: $name::Ref = $name::Ref {};
+    };
 }
 
-/// Access the `window` object or panic if it does not exist.
-pub fn window() -> Window {
-    try_window().unwrap()
-}
-
-/// Access the `window.document` object if exists.
-pub fn try_document() -> Result<Document> {
-    try_window().and_then(|w| w.document().ok_or_else(|| Error("Cannot access 'window.document'.")))
-}
-
-/// Access the `window.document` object or panic if it does not exist.
-pub fn document() -> Document {
-    try_document().unwrap()
-}
-
-/// Access the `window.document.body` object if exists.
-pub fn try_body() -> Result<HtmlElement> {
-    try_document()
-        .and_then(|d| d.body().ok_or_else(|| Error("Cannot access 'window.document.body'.")))
-}
-
-/// Access the `window.document.body` object or panic if it does not exist.
-pub fn body() -> HtmlElement {
-    try_body().unwrap()
-}
-
-/// Access the `window.devicePixelRatio` value if the window exists.
-pub fn try_device_pixel_ratio() -> Result<f64> {
-    try_window().map(|win| win.device_pixel_ratio())
-}
+wasm_lazy_global! { window : Window = web_sys::window().unwrap() }
+wasm_lazy_global! { document : Document = window.document().unwrap() }
 
 
 
 /// Gets `Element` by ID.
-pub fn get_element_by_id(id: &str) -> Result<Element> {
-    try_document()?
+pub fn get_element_by_id2(id: &str) -> Result<Element> {
+    document
         .get_element_by_id(id)
         .ok_or_else(|| Error(format!("Element with id '{}' not found.", id)))
 }
@@ -137,7 +129,7 @@ pub fn get_element_by_id(id: &str) -> Result<Element> {
 /// Tries to get `Element` by ID, and runs function on it.
 pub fn with_element_by_id_or_warn<F>(logger: &Logger, id: &str, f: F)
 where F: FnOnce(Element) {
-    let root_elem = get_element_by_id(id);
+    let root_elem = get_element_by_id2(id);
     match root_elem {
         Ok(v) => f(v),
         Err(_) => warning!(logger, "Failed to get element by ID."),
@@ -146,42 +138,40 @@ where F: FnOnce(Element) {
 
 /// Gets `Element`s by class name.
 pub fn get_elements_by_class_name(name: &str) -> Result<Vec<Element>> {
-    let collection = try_document()?.get_elements_by_class_name(name);
+    let collection = document.get_elements_by_class_name(name);
     let indices = 0..collection.length();
     let elements = indices.flat_map(|index| collection.get_with_index(index)).collect();
     Ok(elements)
 }
 
 pub fn get_html_element_by_id(id: &str) -> Result<HtmlElement> {
-    let elem = get_element_by_id(id)?;
+    let elem = get_element_by_id2(id)?;
     elem.dyn_into().map_err(|_| Error("Type cast error."))
 }
 
-pub fn try_create_element(name: &str) -> Result<Element> {
-    try_document()?
-        .create_element(name)
-        .map_err(|_| Error(format!("Cannot create element '{}'", name)))
-}
+// pub fn try_create_element(name: &str) -> Result<Element> {
+//     document.create_element(name).map_err(|_| Error(format!("Cannot create element '{}'", name)))
+// }
+//
+// pub fn create_element(name: &str) -> Element {
+//     try_create_element(name).unwrap()
+// }
 
-pub fn create_element(name: &str) -> Element {
-    try_create_element(name).unwrap()
-}
-
-pub fn try_create_div() -> Result<HtmlDivElement> {
-    try_create_element("div").map(|t| t.unchecked_into())
-}
-
-pub fn create_div() -> HtmlDivElement {
-    create_element("div").unchecked_into()
-}
-
-pub fn try_create_canvas() -> Result<HtmlCanvasElement> {
-    try_create_element("canvas").map(|t| t.unchecked_into())
-}
-
-pub fn create_canvas() -> HtmlCanvasElement {
-    create_element("canvas").unchecked_into()
-}
+// pub fn try_create_div() -> Result<HtmlDivElement> {
+//     try_create_element("div").map(|t| t.unchecked_into())
+// }
+//
+// pub fn create_div() -> HtmlDivElement {
+//     create_element("div").unchecked_into()
+// }
+//
+// pub fn try_create_canvas() -> Result<HtmlCanvasElement> {
+//     try_create_element("canvas").map(|t| t.unchecked_into())
+// }
+//
+// pub fn create_canvas() -> HtmlCanvasElement {
+//     create_element("canvas").unchecked_into()
+// }
 
 /// Get WebGL 2.0 context. Returns [`None`] if WebGL 2.0 is not supported.
 pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
@@ -192,7 +182,7 @@ pub fn get_webgl2_context(canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingC
 }
 
 pub fn try_request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> Result<i32> {
-    try_window()?
+    window
         .request_animation_frame(f.as_ref().unchecked_ref())
         .map_err(|_| Error("Cannot access 'requestAnimationFrame'."))
 }

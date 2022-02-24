@@ -1401,6 +1401,7 @@ dependencies = [
 name = "ensogl-example-sprite-system"
 version = "0.1.0"
 dependencies = [
+ "enso-web",
  "ensogl-core",
  "wasm-bindgen",
 ]

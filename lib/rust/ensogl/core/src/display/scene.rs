@@ -330,7 +330,7 @@ impl Mouse {
         let position = variables.add_or_panic("mouse_position", Vector2::new(0, 0));
         let hover_ids = variables.add_or_panic("mouse_hover_ids", target.to_internal(&logger));
         let target = Rc::new(Cell::new(target));
-        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window());
+        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
             f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
@@ -442,7 +442,7 @@ pub struct Dom {
 impl Dom {
     /// Constructor.
     pub fn new(logger: &Logger) -> Self {
-        let root = web::create_div();
+        let root = web::document.create_div_or_panic();
         let layers = DomLayers::new(logger, &root);
         root.set_class_name("scene");
         root.set_style_or_panic("height", "100vh");
@@ -511,7 +511,7 @@ impl DomLayers {
         fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
         dom.append_or_panic(&fullscreen_vis.dom);
 
-        let canvas = web::create_canvas();
+        let canvas = web::document.create_canvas_or_panic();
         canvas.set_style_or_warn("display", "block", logger);
         canvas.set_style_or_warn("z-index", "3", logger);
         // These properties are set by `DomScene::new` constuctor for other layers.

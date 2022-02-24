@@ -177,7 +177,7 @@ pub fn expose_to_window(manager: &Manager) {
     #[cfg(target_arch = "wasm32")]
     let theme_manger_ref = js::create_theme_manager_ref(&list, &choose, &get, &snapshot, &diff);
     #[cfg(target_arch = "wasm32")]
-    js_sys::Reflect::set(&window(), &"theme".into(), &theme_manger_ref).ok();
+    js_sys::Reflect::set(&window, &"theme".into(), &theme_manger_ref).ok();
 
     mem::forget(list);
     mem::forget(choose);
