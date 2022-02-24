@@ -62,6 +62,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`LibraryVersion`](#libraryversion)
   - [`Contact`](#contact)
   - [`EditionReference`](#editionreference)
+  - [`ComponentGroups`](#componentgroups)
+  - [`ComponentGroup`](#componentgroup)
+  - [`ExtendedComponentGroup`](#extendedcomponentgroup)
+  - [`ModuleReference`](#modulereference)
+  - [`Component`](#component)
+  - [`LibraryComponentGroup`](#librarycomponentgroup)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -156,10 +162,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`editions/setProjectParentEdition`](#editionssetprojectparentedition)
   - [`editions/setProjectLocalLibrariesPreference`](#editionssetprojectlocallibrariespreference)
   - [`editions/listDefinedLibraries`](#editionslistdefinedlibraries)
+  - [`editions/listDefinedComponents`](#editionslistdefinedcomponents)
   - [`library/listLocal`](#librarylistlocal)
   - [`library/create`](#librarycreate)
   - [`library/getMetadata`](#librarygetmetadata)
   - [`library/setMetadata`](#librarysetmetadata)
+  - [`library/getPackage`](#librarygetpackage)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
 - [Errors](#errors-75)
@@ -204,6 +212,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`LibraryNotResolved`](#librarynotresolved)
   - [`InvalidLibraryName`](#invalidlibraryname)
   - [`DependencyDiscoveryError`](#dependencydiscoveryerror)
+  - [`InvalidSemverVersion`](#invalidsemverversion)
 
 <!-- /MarkdownTOC -->
 
@@ -1415,6 +1424,114 @@ interface CurrentProjectEdition {}
 // An edition stored under a given name.
 interface NamedEdition {
   editionName: String;
+}
+```
+
+### `ComponentGroups`
+
+The description of component groups provided by the package. Object fields can
+be omitted if the corresponding list is empty.
+
+```typescript
+interface ComponentGroups {
+  /** The list of component groups provided by the package. */
+  newGroups?: ComponentGroup[];
+
+  /** The list of component groups that this package extends.*/
+  extendedGroups?: ExtendedComponentGroup[];
+}
+```
+
+### `ComponentGroup`
+
+The definition of a single component group.
+
+```typescript
+interface ComponentGroup {
+  /** The module name containing the declared componennts. */
+  module: string;
+
+  color?: string;
+
+  icon?: string;
+
+  /** The list of components provided by this component group. */
+  exports: Component[];
+}
+```
+
+### `ExtendedComponentGroup`
+
+The definition of a component group that extends an existing one.
+
+```typescript
+interface ExtendedComponentGroup {
+  /** The reference to the component group module being extended. */
+  module: ModuleReference;
+
+  /** The list of components provided by this component group. */
+  exports: Component[];
+}
+```
+
+### `ModuleReference`
+
+The reference to a module.
+
+```typescript
+interface ModuleReference {
+  /**
+   * A string consisting of a namespace and a lirary name separated by the dot
+   * <namespace>.<library name>, i.e. `Standard.Base`.
+   */
+  libraryName: string;
+
+  /** The module name without the library name prefix.
+   *  E.g. given the `Standard.Base.Data.Vector` module reference,
+   * the `moduleName` field contains `Data.Vector`.
+   */
+  moduleName: string;
+}
+```
+
+### `Component`
+
+A single component of a component group.
+
+```typescript
+interface Component {
+  /** The component name. */
+  name: string;
+
+  /** The component shortcut. */
+  shortcut?: string;
+}
+```
+
+### `LibraryComponentGroup`
+
+The component group provided by a library.
+
+```typescript
+interface LibraryComponentGroup {
+  /**
+   * A string consisting of a namespace and a lirary name separated by the dot
+   * <namespace>.<library name>, i.e. `Standard.Base`.
+   */
+  library: string;
+
+  /** The module name without the library name prefix.
+   *  E.g. given the `Standard.Base.Data.Vector` module reference,
+   * the `module` field contains `Data.Vector`.
+   */
+  module: string;
+
+  color?: string;
+
+  icon?: string;
+
+  /** The list of components provided by this component group. */
+  exports: Component[];
 }
 ```
 
@@ -4310,6 +4427,33 @@ To get local libraries that are not directly referenced in the edition, use
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
+### `editions/listDefinedComponents`
+
+Lists all the component groups defined in an edition.
+
+#### Parameters
+
+```typescript
+{
+  edition: EditionReference;
+}
+```
+
+#### Result
+
+```typescript
+{
+  availableComponents: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+- [`EditionNotFoundError`](#editionnotfounderror) indicates that the requested
+  edition, or an edition referenced in one of its parents, could not be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
 ### `library/listLocal`
 
 Lists all local libraries available in the system.
@@ -4412,6 +4556,8 @@ All returned fields are optional, as they may be missing.
 
 - [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
   with the given name does not exist on the local libraries path.
+- [`InvalidSemverVersion`](#invalidsemverversion) to signal that the provided
+  version string is not a valid semver version.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
@@ -4443,6 +4589,47 @@ null;
 
 - [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
   with the given name does not exist on the local libraries path.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
+### `library/getPackage`
+
+Gets the package config associated with a specific library version.
+
+If the version is `LocalLibraryVersion`, it will try to read the package file of
+the local library and return an empty result if the manifest does not exist.
+
+If the version is `PublishedLibraryVersion`, it will fetch the package config
+from the library repository. A cached package config may also be used, if it is
+available.
+
+All returned fields are optional, as they may be missing.
+
+#### Parameters
+
+```typescript
+{
+  namespace: String;
+  name: String;
+  version: LibraryVersion;
+}
+```
+
+#### Results
+
+```typescript
+{
+  license?: String;
+  componentGroups?: ComponentGroups;
+}
+```
+
+#### Errors
+
+- [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
+  with the given name does not exist on the local libraries path.
+- [`InvalidSemverVersion`](#invalidsemverversion) to signal that the provided
+  version string is not a valid semver version.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
@@ -5081,5 +5268,20 @@ dependencies of the requested library.
 "error" : {
   "code" : 8010,
   "message" : "Error occurred while discovering dependencies: <reason>."
+}
+```
+
+### `InvalidSemverVersion`
+
+Signals that the provided version string is not a valid semver version. The
+message contains the invalid version in the payload.
+
+```typescript
+"error" : {
+  "code" : 8011,
+  "message" : "[<invalid-version>] is not a valid semver version.",
+  "payload" : {
+    "version" : "<invalid-version>"
+  }
 }
 ```
