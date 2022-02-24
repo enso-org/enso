@@ -1,7 +1,34 @@
-use crate::traits::*;
+use crate::mock_apis::*;
 use enso_prelude::*;
 
-use crate::Result;
+
+
+// =============
+// === Error ===
+// =============
+
+/// Generic error representation. We may want to support errors in form of structs and enums,
+/// but it requires significant work, so a simpler solution was chosen for now.
+#[derive(Debug, Fail)]
+#[fail(display = "{}", message)]
+pub struct Error {
+    message: String,
+}
+
+#[allow(non_snake_case)]
+pub fn Error<S: Into<String>>(message: S) -> Error {
+    let message = message.into();
+    Error { message }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<JsValue> for Error {
+    fn from(t: JsValue) -> Self {
+        let message = format!("{:?}", t);
+        Self { message }
+    }
+}
 
 
 

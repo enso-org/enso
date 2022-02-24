@@ -195,7 +195,7 @@ pub struct WorldData {
 impl WorldData {
     /// Create and initialize new world instance.
     pub fn new() -> Self {
-        web::window.forward_panic_hook_to_console();
+        web::forward_panic_hook_to_console();
         let logger = Logger::new("world");
         let stats: stats::Monitor = default();
         let on = default();
@@ -233,7 +233,7 @@ impl WorldData {
                 }
             }
         }));
-        let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
+        let handle = web::add_event_listener_with_bool(&web::window(), "keydown", closure, true);
         *self.debug_hotkeys_handle.borrow_mut() = Some(handle);
     }
 

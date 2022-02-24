@@ -17,14 +17,14 @@ use wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
 
-#[cfg(target_arch = "wasm32")]
-mod reexports {
-    use super::*;
-    pub type Monitor = Monitor;
-    pub type Panel = Panel;
-}
+// #[cfg(target_arch = "wasm32")]
+// mod reexports {
+//     use super::*;
+//     pub type Monitor = Monitor;
+//     pub type Panel = Panel;
+// }
 
-#[cfg(not(target_arch = "wasm32"))]
+// #[cfg(not(target_arch = "wasm32"))]
 mod reexports {
     use super::*;
     pub type Monitor = MockMonitor;

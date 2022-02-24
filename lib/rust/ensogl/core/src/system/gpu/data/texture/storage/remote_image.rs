@@ -144,7 +144,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
 #[cfg(target_arch = "wasm32")]
 fn request_cors_if_not_same_origin(img: &HtmlImageElement, url_str: &str) {
     let url = web_sys::Url::new(url_str).unwrap();
-    let origin = web::window.location().origin().unwrap();
+    let origin = web::window().location().origin().unwrap();
     if url.origin() != origin {
         img.set_cross_origin(Some(""));
     }

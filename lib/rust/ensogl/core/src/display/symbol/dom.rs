@@ -115,7 +115,7 @@ impl DomSymbol {
     pub fn new(content: &web::Node) -> Self {
         let logger = Logger::new("DomSymbol");
         let size = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
-        let dom = web::document.create_div();
+        let dom = web::create_div();
         dom.set_style_or_warn("position", "absolute", &logger);
         dom.set_style_or_warn("width", "0px", &logger);
         dom.set_style_or_warn("height", "0px", &logger);
