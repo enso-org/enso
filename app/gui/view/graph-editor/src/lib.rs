@@ -1336,8 +1336,8 @@ impl Default for WayOfCreatingNode {
 /// Context data required to create a new node.
 #[derive(Debug)]
 struct NodeCreationContext<'a> {
-    pointer_style:  &'a frp::Source<cursor::Style>,
-    tooltip_update: &'a frp::Source<tooltip::Style>,
+    pointer_style:  &'a frp::Any<(NodeId, cursor::Style)>,
+    tooltip_update: &'a frp::Any<(NodeId, tooltip::Style)>,
     output_press:   &'a frp::Source<EdgeEndpoint>,
     input_press:    &'a frp::Source<EdgeEndpoint>,
     output:         &'a FrpEndpoints,
@@ -1406,8 +1406,8 @@ impl GraphEditorModelWithNetwork {
 
             node.set_output_expression_visibility <+ self.frp.nodes_labels_visible;
 
-            eval node.frp.tooltip ((tooltip) tooltip_update.emit(tooltip));
-            eval node.model.input.frp.pointer_style ((style) pointer_style.emit(style));
+            tooltip_update <+ node.frp.tooltip.map(move |tooltip| (node_id, tooltip.clone()));
+            pointer_style <+ node.model.input.frp.pointer_style.map(move |s| (node_id, s.clone()));
             eval node.model.output.frp.on_port_press ([output_press](crumbs){
                 let target = EdgeEndpoint::new(node_id,crumbs.clone());
                 output_press.emit(target);
@@ -2628,8 +2628,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
 
-        node_pointer_style <- source::<cursor::Style>();
-        node_tooltip       <- source::<tooltip::Style>();
+        node_pointer_style <- any_mut::<(NodeId, cursor::Style)>();
+        node_tooltip       <- any_mut::<(NodeId, tooltip::Style)>();
 
         let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
         let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
@@ -2917,6 +2917,16 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval nodes_to_remove ((node_id) inputs.remove_all_node_edges.emit(node_id));
 
     out.source.node_removed <+ nodes_to_remove;
+
+    // Removed nodes lost their right to set cursor and tooltip styles.
+    pointer_style_setter_removed <- out.node_removed.map2(&node_pointer_style,
+        |removed,(setter, _)| removed == setter
+    );
+    tooltip_setter_removed <- out.node_removed.map2(&node_tooltip, |removed, (setter, _)|
+        removed == setter
+    );
+    node_pointer_style <+ out.node_removed.gate(&pointer_style_setter_removed).constant(default());
+    node_tooltip <+ out.node_removed.gate(&tooltip_setter_removed).constant(default());
     }
 
 
@@ -3445,6 +3455,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let breadcrumb_style = model.breadcrumbs.pointer_style.clone_ref();
     let selection_style  = selection_controller.cursor_style.clone_ref();
 
+    node_pointer_style <- node_pointer_style._1();
     pointer_style <- all
         [ pointer_on_drag
         , selection_style
@@ -3485,7 +3496,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
         eval cursor.frp.scene_position ((pos)  model.tooltip.frp.set_location(pos.xy()) );
-        eval node_tooltip ((tooltip_update) model.tooltip.frp.set_style(tooltip_update) );
+        eval node_tooltip (((_,tooltip_update)) model.tooltip.frp.set_style(tooltip_update) );
 
         quick_visualization_preview <- bool(&frp.disable_quick_visualization_preview,
                                             &frp.enable_quick_visualization_preview);
