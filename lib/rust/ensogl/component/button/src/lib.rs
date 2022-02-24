@@ -236,6 +236,7 @@ ensogl_core::define_endpoints! {
     Input {
         set_size (Vector2),
         mouse_nearby (bool),
+        click (),
     }
     Output {
         clicked (),
@@ -318,6 +319,7 @@ impl<Shape: ButtonShape> View<Shape> {
             mouse_released_on_me  <- mouse.up_primary.gate(&frp.is_hovered);
             was_clicked           <- tracking_for_release.previous();
             frp.source.clicked    <+ mouse_released_on_me.gate(&was_clicked);
+            frp.source.clicked    <+ frp.click;
             state <- all_with3(&frp.is_hovered,&frp.mouse_nearby,&tracking_for_release,
                 |strict_hover,nearby_hover,clicked| {
                     match (strict_hover,nearby_hover,clicked)  {

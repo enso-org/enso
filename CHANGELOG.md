@@ -49,6 +49,10 @@
   methods added to `Standard.Test`][3276]
 - [Implemented `Integer.parse`][3283]
 - [Made `Text.compare_to` correctly handle Unicode normalization][3282]
+- [Extend `Text.contains` API to support regex and case insensitive
+  search.][3285]
+- [Implemented new `Text.take` and `Text.drop` functions, replacing existing
+  functions][3287]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -76,6 +80,8 @@
 [3278]: https://github.com/enso-org/enso/pull/3278
 [3283]: https://github.com/enso-org/enso/pull/3283
 [3282]: https://github.com/enso-org/enso/pull/3282
+[3285]: https://github.com/enso-org/enso/pull/3285
+[3287]: https://github.com/enso-org/enso/pull/3287
 
 #### Enso Compiler
 

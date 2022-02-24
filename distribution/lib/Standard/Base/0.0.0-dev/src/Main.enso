@@ -13,6 +13,7 @@ import project.Data.Ordering.Sort_Order
 import project.Data.Pair
 import project.Data.Range
 import project.Data.Text.Extensions
+import project.Data.Text.Matching
 import project.Data.Vector
 import project.Error.Common
 import project.Error.Extensions
@@ -47,6 +48,7 @@ from project.Data.Noise export all hiding Noise
 from project.Data.Pair export Pair
 from project.Data.Range export Range
 from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style
+from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
 from project.Error.Common export all
 from project.Error.Extensions export all
 from project.Meta.Enso_Project export all

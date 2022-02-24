@@ -35,16 +35,16 @@ spec = Test.group 'Matching Helper' <|
         Matching.match_single_criterion "foo" "F.*" regex . should_be_false
 
     Test.specify 'should support case-insensitive matching' <|
-        Matching.match_single_criterion "foo" "F.*" (Regex case_sensitivity=Case_Insensitive) . should_be_true
-        Matching.match_single_criterion "foO" "FOo" (Exact case_sensitivity=Case_Insensitive) . should_be_true
+        Matching.match_single_criterion "foo" "F.*" (Regex case_sensitivity=Case_Insensitive.new) . should_be_true
+        Matching.match_single_criterion "foO" "FOo" (Exact case_sensitivity=Case_Insensitive.new) . should_be_true
 
-        Matching.match_single_criterion "foo" "fF.*" (Regex case_sensitivity=Case_Insensitive) . should_be_false
-        Matching.match_single_criterion "foo" "Foos" (Exact case_sensitivity=Case_Insensitive) . should_be_false
+        Matching.match_single_criterion "foo" "fF.*" (Regex case_sensitivity=Case_Insensitive.new) . should_be_false
+        Matching.match_single_criterion "foo" "Foos" (Exact case_sensitivity=Case_Insensitive.new) . should_be_false
 
         ## TODO this may not be how we want this to work, but this test is
            included to explicitly illustrate how the current implementation
            behaves in such corner cases
-        Matching.match_single_criterion "β" "B" (Exact case_sensitivity=Case_Insensitive) . should_be_false
+        Matching.match_single_criterion "β" "B" (Exact case_sensitivity=Case_Insensitive.new) . should_be_false
 
     Test.specify 'should match a list of names with a list of criteria, correctly handling reordering' <|
         Matching.match_criteria ["foo", "bar", "baz"] ["baz", "foo"] reorder=True . should_equal ["baz", "foo"]

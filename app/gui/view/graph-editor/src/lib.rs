@@ -1045,7 +1045,7 @@ impl Nodes {
 
 impl Nodes {
     /// Mark node as selected and send FRP event to node about its selection status.
-    fn select(&self, node_id: impl Into<NodeId>) {
+    pub fn select(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.get_cloned_ref(&node_id) {
             // Remove previous instances and add new selection at end of the list, indicating that
@@ -1059,7 +1059,7 @@ impl Nodes {
     }
 
     /// Mark node as deselected and send FRP event to node about its selection status.
-    fn deselect(&self, node_id: impl Into<NodeId>) {
+    pub fn deselect(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.get_cloned_ref(&node_id) {
             self.selected.remove_item(&node_id);
@@ -1540,6 +1540,8 @@ pub struct GraphEditorModel {
     pub edges:            Edges,
     pub vis_registry:     visualization::Registry,
     pub drop_manager:     ensogl_drop_manager::Manager,
+    pub navigator:        Navigator,
+    pub add_node_button:  Rc<component::add_node_button::AddNodeButton>,
     // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
     //  currently work, however, because the `Application` lives in enso-core, and the tooltip
     //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
@@ -1547,10 +1549,8 @@ pub struct GraphEditorModel {
     touch_state:          TouchState,
     visualisations:       Visualisations,
     frp:                  FrpEndpoints,
-    navigator:            Navigator,
     profiling_statuses:   profiling::Statuses,
     profiling_button:     component::profiling::Button,
-    add_node_button:      Rc<component::add_node_button::AddNodeButton>,
     styles_frp:           StyleWatchFrp,
     selection_controller: selection::Controller,
 }
