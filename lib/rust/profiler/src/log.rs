@@ -1,4 +1,14 @@
 //! Data structure supporting limited interior mutability, to build up a collection.
+//!
+//! # Implementation
+//!
+//! Note [Log Safety]
+//! =============================
+//! When obtaining a reference from the UnsafeCell, all accessors follow these rules:
+//! - There must be a scope that the reference doesn't escape.
+//! - There must be no other references obtained in the same scope.
+//! Consistently following these rules ensures the no-alias rule of mutable references is
+//! satisfied.
 
 use std::cell;
 use std::mem;
@@ -56,15 +66,6 @@ impl<T: Clone> Log<T> {
         unsafe { &*self.0.get() }.to_vec()
     }
 }
-
-// Note [Log Safety]
-
-// =============================
-// When obtaining a reference from the UnsafeCell, all accessors follow these rules:
-// - There must be a scope that the reference doesn't escape.
-// - There must be no other references obtained in the same scope.
-// Consistently following these rules ensures the no-alias rule of mutable references is
-// satisfied.
 
 // This can't be derived without requiring T: Default, which is not otherwise needed.
 // See: https://github.com/rust-lang/rust/issues/26925

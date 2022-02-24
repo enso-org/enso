@@ -1,11 +1,14 @@
+#![allow(rustdoc::private_intra_doc_links)] // check_no_async_tasks_active
 //! Interface to profile data.
 //!
 //! # Overview
 //!
-//! Usage of this API starts with [`interpret`], which converts a raw log of [`profiler::Event`]s
-//! into a hierarchy of [`Measurement`] values. Each [`Measurement`] contains all information
-//! relating to a particular profiler. This conversion checks low-level invariants of the event log
-//! format, and produces an output that is easier to use than the raw events.
+//! Usage of this API starts with applying [`str::parse`] to JSON profiling data, returning a
+//! [`Measurement`] which is the root of the hierarchy of profiler outputs.
+//!
+//! Parsing is robust to changes in the definitions of metadata types; if deserialization of some
+//! metadata entries fails, the resulting error type provides access to the result of deserializing
+//! all the data that succeeded (see [`Error::RecoverableFormatError`]).
 //!
 //! # Usage example: storing and retrieving metadata
 //!
@@ -14,25 +17,30 @@
 //! use enso_profiler_data as profiler_data;
 //! use profiler::profile;
 //!
-//! // A metadata type.
+//! // Some metadata types.
 //! #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
-//! struct MyData(u32);
+//! struct MyDataA(u32);
+//!
+//! #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+//! struct MyDataB(String);
 //!
 //! // An activity that produces metadata.
 //! struct ActivityWithMetadata {
-//!     meta_logger: profiler::MetadataLogger<MyData>,
+//!     meta_logger_a: profiler::MetadataLogger<MyDataA>,
+//!     meta_logger_b: profiler::MetadataLogger<MyDataB>,
 //!     // ...fields for doing stuff
 //! }
 //! impl ActivityWithMetadata {
 //!     fn new() -> Self {
-//!         let meta_logger = profiler::MetadataLogger::register("MyData");
-//!         Self { meta_logger /* ... */ }
+//!         let meta_logger_a = profiler::MetadataLogger::new("MyDataA");
+//!         let meta_logger_b = profiler::MetadataLogger::new("MyDataB");
+//!         Self { meta_logger_a, meta_logger_b /* ... */ }
 //!     }
 //!
 //!     #[profile(Objective)]
 //!     fn action_producing_metadata(&self) {
-//!         let x = MyData(23);
-//!         self.meta_logger.log(x);
+//!         self.meta_logger_a.log(MyDataA(23));
+//!         self.meta_logger_b.log(MyDataB("5".into()));
 //!     }
 //! }
 //!
@@ -46,23 +54,34 @@
 //! fn store_and_retrieve_metadata() {
 //!     demo();
 //!
+//!     // To deserialize, we define a metadata type as an enum.
+//!     //
+//!     // Each variant has a name and type that match the string-argument and type-parameter of a
+//!     // call to `MetadataLogger::new`.
 //!     #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 //!     enum MyMetadata {
-//!         MyData(MyData),
+//!         MyDataA(MyDataA),
+//!         MyDataB(MyDataB),
+//!         // In this case we've handled everything.
+//!         // If we intended to handle some metadata and silently ignore anything else, we could
+//!         // include a catch-all variant like:
+//!         // `#[serde(other)] Other`
+//!         // On the other hand, if we intend to handle every type of metadata, we can omit the
+//!         // catch-all variant; unknown metadata will produce an
+//!         // [`Error::RecoverableFormatError`], which we can use to emit a warning and continue.
 //!     }
 //!
 //!     // Obtain log data directly; it could also be deserialized from a file.
-//!     let log = profiler::take_log::<MyMetadata>();
-//!     // Interpret the log, converting its event-series data into a normalized format. Data
-//!     // consumers will likely convert the output of this into their own formats, but this
-//!     // conversion inherently checks most invariants (valid parent/child relationships,
-//!     // interval starts/ends compatible, etc.) so that future steps know the input is valid.
-//!     let roots = profiler_data::interpret(log).unwrap();
+//!     let log = profiler::take_log();
+//!     // Parse the log. Interpret metadata according to the enum defined above.
+//!     let root: profiler_data::Measurement<MyMetadata> = log.parse().unwrap();
 //!     // Verify the MyData object is present and attached to the right profiler.
-//!     let profiler = &roots[0].children[0];
+//!     let profiler = &root.children[0].children[0];
 //!     assert_eq!(&profiler.label.name, "action_producing_metadata");
-//!     // The other field of profiler.metadata[0], mark, contains timing information for the event.
-//!     assert_eq!(profiler.metadata[0].data, MyMetadata::MyData(MyData(23)));
+//!     assert_eq!(profiler.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
+//!     assert_eq!(profiler.metadata[1].data, MyMetadata::MyDataB(MyDataB("5".into())));
+//!     // Marks can be used to compare the order of events.
+//!     assert!(profiler.metadata[0].mark < profiler.metadata[1].mark);
 //! }
 //!
 //! store_and_retrieve_metadata();
@@ -94,66 +113,77 @@ use std::fmt;
 use std::mem;
 use std::str;
 
-
-
-// =================
-// === interpret ===
-// =================
-
-/// Process a log of events, producing a hierarchy of measurements.
-///
-/// Returns an error if the log cannot be interpreted.
-pub fn interpret<M>(
-    events: impl IntoIterator<Item = profiler::Event<M, OwnedLabel>>,
-) -> Result<Vec<Measurement<M>>, Error> {
-    // Process log into data about each measurement, and data about relationships.
-    let LogVisitor { builders, order, .. } = LogVisitor::visit(events)?;
-    // Build measurements from accumulated measurement data.
-    let mut measurements: collections::HashMap<_, _> =
-        builders.into_iter().map(|(k, v)| (k, v.build())).collect();
-    // Organize measurements into trees.
-    let mut roots = Vec::new();
-    for (id, parent) in order.into_iter().rev() {
-        let child = measurements.remove(&id).unwrap();
-        let parent = match parent {
-            id::Explicit::AppLifetime => &mut roots,
-            id::Explicit::Runtime(pos) =>
-                &mut measurements
-                    .get_mut(&pos)
-                    .ok_or(DataError::IdNotFound)
-                    .map_err(|e| Error { log_pos: id, error: e })?
-                    .children,
-        };
-        parent.push(child);
-    }
-    Ok(roots)
-}
-
-
-
 // =============
 // === Error ===
 // =============
 
 /// Describes an error and where it occurred.
-#[derive(Debug)]
-pub struct Error {
-    #[allow(unused)] // used by Debug::fmt
-    /// Index in the event log indicating where the event occurred.
-    log_pos: id::Runtime,
-    /// The error.
-    error:   DataError,
+pub enum Error<M> {
+    /// Failed to deserialize the event log at all. The file is corrupt, or in a completely
+    /// incompatible format.
+    FormatError(serde_json::Error),
+    /// Failed to deserialize some events; if this is caused by a change to a metadata type, the
+    /// core data and metadata of unaffected types will still be available.
+    ///
+    /// For an example of handling a recoverable failure, see `tests::skip_failed_metadata`.
+    RecoverableFormatError {
+        /// Deserialization errors for each metadata that failed to parse.
+        errors:            Vec<EventError<serde_json::Error>>,
+        /// The core data. One metadata object will be missing for each error above.
+        with_missing_data: Result<Measurement<M>, EventError<DataError>>,
+    },
+    /// Failed to interpret the event log data.
+    DataError(EventError<DataError>),
 }
 
-impl fmt::Display for Error {
+impl<M> fmt::Display for Error<M> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
-impl error::Error for Error {
+// This cannot be derived because: https://github.com/rust-lang/rust/issues/26925
+// Also, the debug output doesn't need to include the entire with_missing_data.
+impl<M> fmt::Debug for Error<M> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::FormatError(e) => e.fmt(f),
+            Error::RecoverableFormatError { errors, .. } => errors.fmt(f),
+            Error::DataError(e) => e.fmt(f),
+        }
+    }
+}
+
+impl<M> error::Error for Error<M> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        Some(&self.error)
+        Some(match self {
+            Error::FormatError(e) => e,
+            Error::RecoverableFormatError { errors, .. } => &errors[0],
+            Error::DataError(e) => e,
+        })
+    }
+}
+
+/// An error associated with a particular event in the log.
+#[derive(Debug)]
+pub struct EventError<E> {
+    #[allow(unused)] // displayed by Debug
+    /// The event's index in the log.
+    log_pos: usize,
+    #[allow(unused)] // displayed by Debug
+    /// The error.
+    error:   E,
+}
+
+impl<E: fmt::Debug> fmt::Display for EventError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl<E: error::Error> error::Error for EventError<E> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        self.error.source()
     }
 }
 
@@ -164,6 +194,11 @@ impl error::Error for Error {
 // ===================
 
 /// All the information produced by a profiler.
+///
+/// This is parameterized by a type that determines how metadata is interpreted. The type must be
+/// an enum, with a variant for each type of metadata that is handled. Each variant's name and type
+/// should correspond to the parameters supplied to [`profiler::MetadataLogger::new`]. For an
+/// example, see the docs for the [`crate`].
 #[derive(Clone, Debug)]
 pub struct Measurement<M> {
     /// The interval from the profiler's start to its end.
@@ -176,6 +211,59 @@ pub struct Measurement<M> {
     pub children:         Vec<Self>,
     /// Metadata attached to this profiler.
     pub metadata:         Vec<Metadata<M>>,
+}
+
+impl<M: serde::de::DeserializeOwned> str::FromStr for Measurement<M> {
+    type Err = Error<M>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // First just decode the array structure, so we can skip any metadata events that fail.
+        let log: Vec<&serde_json::value::RawValue> =
+            serde_json::from_str(s).map_err(Error::FormatError)?;
+        let mut errors = Vec::new();
+        let mut events = Vec::with_capacity(log.len());
+        for (i, entry) in log.into_iter().enumerate() {
+            match serde_json::from_str::<profiler::Event<M, String>>(entry.get()) {
+                Ok(event) => events.push(event),
+                Err(error) => errors.push(EventError { log_pos: i, error }),
+            }
+        }
+        let result = interpret(events);
+        if errors.is_empty() {
+            result.map_err(|e| Error::DataError(e))
+        } else {
+            Err(Error::RecoverableFormatError { errors, with_missing_data: result })
+        }
+    }
+}
+
+/// Process a log of events, producing a hierarchy of measurements.
+///
+/// Returns an error if the log cannot be interpreted.
+fn interpret<M>(
+    events: impl IntoIterator<Item = profiler::Event<M, OwnedLabel>>,
+) -> Result<Measurement<M>, EventError<DataError>> {
+    // Process log into data about each measurement, and data about relationships.
+    let LogVisitor { builders, order, root_builder, .. } = LogVisitor::visit(events)?;
+    // Build measurements from accumulated measurement data.
+    let mut measurements: collections::HashMap<_, _> =
+        builders.into_iter().map(|(k, v)| (k, v.build())).collect();
+    // Organize measurements into trees.
+    let mut root = root_builder.build();
+    for (id, parent) in order.into_iter().rev() {
+        let child = measurements.remove(&id).unwrap();
+        let parent = match parent {
+            id::Explicit::AppLifetime => &mut root.children,
+            id::Explicit::Runtime(pos) =>
+                &mut measurements
+                    .get_mut(&pos)
+                    .ok_or(DataError::IdNotFound)
+                    .map_err(|e| EventError { log_pos: id.0 as usize, error: e })?
+                    .children,
+        };
+        parent.push(child);
+    }
+    Ok(root)
 }
 
 
@@ -329,10 +417,13 @@ impl<M> MeasurementBuilder<M> {
 // === State ===
 
 /// Used to validate state transitions.
-#[derive(Debug)]
-enum State {
+#[derive(Debug, Copy, Clone)]
+pub enum State {
+    /// Started and not paused or ended; id of most recent Start or Resume event is included.
     Active(id::Runtime),
+    /// Paused. Id of Pause or StartPaused event is included.
     Paused(id::Runtime),
+    /// Ended. Id of End event is included.
     Ended(id::Runtime),
 }
 
@@ -344,17 +435,27 @@ enum State {
 
 /// A problem with the input data.
 #[derive(Debug)]
-enum DataError {
+pub enum DataError {
+    /// A profiler was in the wrong state for a certain event to occur.
     UnexpectedState(State),
+    /// A reference was not able to be resolved.
     IdNotFound,
+    /// An EventId that should have been a runtime event was IMPLICIT or APP_LIFETIME.
     RuntimeIdExpected(profiler::id::Event),
+    /// A parse error.
     UnexpectedToken(Expected),
+    /// An event that should only occur during the lifetime of a profiler didn't find any profiler.
     ActiveProfilerRequired,
-    #[allow(dead_code)] // fields displayed by Debug
+    /// An event expected to refer to a certain profiler referred to a different profiler.
+    /// This can occur for events that include a profiler ID as a consistency check, but only
+    /// have one valid referent (e.g. [`profiler::Event::End`] must end the current profiler.)
     WrongProfiler {
+        /// The profiler that was referred to.
         found:    id::Runtime,
+        /// The only valid profiler for the event to refer to.
         expected: id::Runtime,
     },
+    /// Profiler(s) were active at a time none were expected.
     ExpectedEmptyStack(Vec<id::Runtime>),
 }
 
@@ -396,21 +497,30 @@ impl error::Error for Expected {}
 /// Gathers data while visiting a series of [`profiler::Event`]s.
 struct LogVisitor<M> {
     /// Stack of active profilers, for keeping track of the current profiler.
-    active:   Vec<id::Runtime>,
+    active:       Vec<id::Runtime>,
     /// Accumulated data pertaining to each profiler.
-    builders: collections::HashMap<id::Runtime, MeasurementBuilder<M>>,
+    builders:     collections::HashMap<id::Runtime, MeasurementBuilder<M>>,
+    /// Accumulated data pertaining to the root event.
+    root_builder: MeasurementBuilder<M>,
     /// Ids and parents, in same order as event log.
-    order:    Vec<(id::Runtime, id::Explicit)>,
+    order:        Vec<(id::Runtime, id::Explicit)>,
 }
 
-// This can't be derived without requiring M: Default, which is not otherwise needed.
-// See: https://github.com/rust-lang/rust/issues/26925
 impl<M> Default for LogVisitor<M> {
     fn default() -> Self {
+        let root_builder = MeasurementBuilder {
+            label:    "APP_LIFETIME (?:?)".parse().unwrap(),
+            lifetime: Interval { start: Mark::time_origin(), end: None },
+            state:    State::Active(id::Runtime(0)), // value doesn't matter
+            starts:   vec![Mark::time_origin()],
+            ends:     Default::default(),
+            metadata: Default::default(),
+        };
         Self {
-            active:   Default::default(),
+            active: Default::default(),
             builders: Default::default(),
-            order:    Default::default(),
+            root_builder,
+            order: Default::default(),
         }
     }
 }
@@ -419,10 +529,10 @@ impl<M> LogVisitor<M> {
     /// Convert the log into data about each measurement.
     fn visit(
         events: impl IntoIterator<Item = profiler::Event<M, OwnedLabel>>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, EventError<DataError>> {
         let mut visitor = Self::default();
-        for (id, event) in events.into_iter().enumerate() {
-            let log_pos = id::Runtime(id as u32);
+        for (i, event) in events.into_iter().enumerate() {
+            let log_pos = id::Runtime(i as u32);
             let result = match event {
                 profiler::Event::Start(event) =>
                     visitor.visit_start(log_pos, event, profiler::StartState::Active),
@@ -435,7 +545,7 @@ impl<M> LogVisitor<M> {
                     visitor.visit_resume(log_pos, id, timestamp),
                 profiler::Event::Metadata(metadata) => visitor.visit_metadata(log_pos, metadata),
             };
-            result.map_err(|error| Error { log_pos, error })?;
+            result.map_err(|error| EventError { log_pos: i, error })?;
         }
         Ok(visitor)
     }
@@ -546,8 +656,10 @@ impl<M> LogVisitor<M> {
         pos: id::Runtime,
         metadata: profiler::Metadata<M>,
     ) -> Result<(), DataError> {
-        let current_profiler = self.active.last().ok_or(DataError::ActiveProfilerRequired)?;
-        let builder = self.builders.get_mut(current_profiler).unwrap();
+        let builder = match self.active.last() {
+            Some(profiler) => self.builders.get_mut(profiler).unwrap(),
+            None => &mut self.root_builder,
+        };
         let profiler::Metadata { timestamp, data } = metadata;
         let mark = Mark { seq: pos.into(), time: timestamp };
         builder.metadata.push(Metadata { mark, data });
@@ -613,6 +725,7 @@ impl<M> LogVisitor<M> {
 
 #[cfg(test)]
 mod tests {
+    use crate as profiler_data;
     use enso_profiler as profiler;
     use profiler::profile;
 
@@ -627,8 +740,9 @@ mod tests {
             4
         }
         parent();
-        let log = profiler::take_log::<profiler::OpaqueMetadata>();
-        let roots = super::interpret(log).unwrap();
+        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
+            profiler::take_log().parse().unwrap();
+        let roots = &root.children;
         assert_eq!(roots.len(), 1);
         assert!(roots[0].lifetime.closed());
         assert_eq!(roots[0].intervals_active.len(), 1);
@@ -662,8 +776,9 @@ mod tests {
         }
         let future = parent();
         futures::executor::block_on(future);
-        let log = profiler::take_log::<profiler::OpaqueMetadata>();
-        let roots = super::interpret(log).unwrap();
+        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
+            profiler::take_log().parse().unwrap();
+        let roots = &root.children;
         assert_eq!(roots.len(), 1);
         assert!(roots[0].lifetime.closed());
         assert_eq!(roots[0].intervals_active.len(), 2);
@@ -682,5 +797,40 @@ mod tests {
         assert!(child.lifetime.closed());
         assert_eq!(child.label.name, "child");
         assert_eq!(child.children.len(), 0);
+    }
+
+    /// Simulate a change to the format of a type of metadata; ensure the error is reported
+    /// correctly, and all other data is still readable.
+    #[test]
+    fn skip_failed_metadata() {
+        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        struct MyDataA(u32);
+        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        struct MyDataBExpected(u32);
+        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        struct MyDataBActual(String);
+
+        let meta_logger_a = profiler::MetadataLogger::new("MyDataA");
+        let meta_logger_b = profiler::MetadataLogger::new("MyDataB");
+        meta_logger_a.log(MyDataA(23));
+        meta_logger_b.log(MyDataBActual("bad".into()));
+
+        #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
+        enum MyMetadata {
+            MyDataA(MyDataA),
+            MyDataB(MyDataBExpected),
+        }
+        let log = profiler::take_log();
+        let root: Result<profiler_data::Measurement<MyMetadata>, _> = log.parse();
+        let root = match root {
+            Err(profiler_data::Error::RecoverableFormatError { errors, with_missing_data }) => {
+                assert_eq!(errors.len(), 1);
+                assert_eq!(errors[0].log_pos, 1);
+                with_missing_data.unwrap()
+            }
+            other => panic!("Expected RecoverableFormatError, found: {:?}", other),
+        };
+        assert_eq!(root.metadata.len(), 1);
+        assert_eq!(root.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
     }
 }
