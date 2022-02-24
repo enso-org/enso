@@ -10,6 +10,7 @@ import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.{
   BlockingOperation,
   ComponentGroupsResolver,
+  ComponentGroupsValidator,
   EditionReferenceResolver,
   LibraryComponentGroup
 }
@@ -30,7 +31,8 @@ class EditionsListDefinedComponentsHandler(
   editionReferenceResolver: EditionReferenceResolver,
   localLibraryProvider: LocalLibraryProvider,
   publishedLibraryCache: PublishedLibraryCache,
-  componentGroupsResolver: ComponentGroupsResolver
+  componentGroupsResolver: ComponentGroupsResolver,
+  componentGroupsValidator: ComponentGroupsValidator
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
@@ -55,12 +57,45 @@ class EditionsListDefinedComponentsHandler(
             .collect { case Some(config) =>
               config
             }
-          componentGroupsResolver.run(definedLibraries)
+          val validationResults = componentGroupsValidator
+            .validate(definedLibraries)
+
+          validationResults
+            .collect { case Left(error) => error }
+            .foreach(logValidationError)
+
+          val validatedLibraries = validationResults
+            .collect { case Right(config) => config }
+          componentGroupsResolver.run(validatedLibraries)
         }
         .map(EditionsListDefinedComponentsHandler.Result) pipeTo self
 
       context.become(responseStage(id, sender()))
   }
+
+  private def logValidationError(
+    error: ComponentGroupsValidator.ValidationError
+  ): Unit =
+    error match {
+      case ComponentGroupsValidator.ValidationError
+            .InvalidComponentGroups(libraryName, message) =>
+        logger.warn(
+          s"Validation error. Failed to read library [$libraryName] " +
+          s"component groups (reason: $message)."
+        )
+      case ComponentGroupsValidator.ValidationError
+            .DuplicatedComponentGroup(libraryName, moduleReference) =>
+        logger.warn(
+          s"Validation error. Library [$libraryName] defines duplicate " +
+          s"component group [$moduleReference]."
+        )
+      case ComponentGroupsValidator.ValidationError
+            .ComponentGroupExtendsNothing(libraryName, moduleReference) =>
+        logger.warn(
+          s"Validation error. Library [$libraryName] component group " +
+          s"[$moduleReference] extends nothing."
+        )
+    }
 
   private def responseStage(id: Id, replyTo: ActorRef): Receive = {
     case EditionsListDefinedComponentsHandler.Result(components) =>
@@ -94,6 +129,7 @@ class EditionsListDefinedComponentsHandler(
     }
   }
 }
+
 object EditionsListDefinedComponentsHandler {
 
   private case class Result(components: Seq[LibraryComponentGroup])
@@ -106,19 +142,24 @@ object EditionsListDefinedComponentsHandler {
     * @param publishedLibraryCache    a cache of published libraries
     * @param componentGroupsResolver  a module resolving the dependencies
     *                                 between component groups
+    * @param componentGroupsValidator a module that checks component groups for
+    *                                 consistency
     */
   def props(
     editionReferenceResolver: EditionReferenceResolver,
     localLibraryProvider: LocalLibraryProvider,
     publishedLibraryCache: PublishedLibraryCache,
     componentGroupsResolver: ComponentGroupsResolver =
-      new ComponentGroupsResolver
+      new ComponentGroupsResolver,
+    componentGroupsValidator: ComponentGroupsValidator =
+      new ComponentGroupsValidator
   ): Props = Props(
     new EditionsListDefinedComponentsHandler(
       editionReferenceResolver,
       localLibraryProvider,
       publishedLibraryCache,
-      componentGroupsResolver
+      componentGroupsResolver,
+      componentGroupsValidator
     )
   )
 }

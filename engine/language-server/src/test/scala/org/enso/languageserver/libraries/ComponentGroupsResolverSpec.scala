@@ -146,6 +146,66 @@ class ComponentGroupsResolverSpec extends AnyWordSpec with Matchers {
       )
     }
 
+    "apply mutually extended component groups" in {
+      val resolver = new ComponentGroupsResolver
+      val testPackages = Vector(
+        config(
+          "Standard",
+          "Table",
+          ComponentGroups(
+            List(newComponentGroup("Data.Table", "first")),
+            List(
+              extendedComponentGroup("Standard", "Base", "Data.Vector", "quux")
+            )
+          )
+        ),
+        config(
+          "Standard",
+          "Base",
+          ComponentGroups(
+            List(newComponentGroup("Data.Vector", "one", "two")),
+            List(
+              extendedComponentGroup(
+                "Standard",
+                "Table",
+                "Data.Table",
+                "second"
+              )
+            )
+          )
+        ),
+        config(
+          "user",
+          "Vector_Utils",
+          ComponentGroups(
+            List(),
+            List(
+              extendedComponentGroup("Standard", "Base", "Data.Vector", "three")
+            )
+          )
+        )
+      )
+
+      resolver.run(testPackages) shouldEqual Vector(
+        libraryComponentGroup(
+          "Standard",
+          "Table",
+          "Data.Table",
+          "first",
+          "second"
+        ),
+        libraryComponentGroup(
+          "Standard",
+          "Base",
+          "Data.Vector",
+          "one",
+          "two",
+          "quux",
+          "three"
+        )
+      )
+    }
+
     "skip component groups extending nothing" in {
       val resolver = new ComponentGroupsResolver
       val testPackages = Vector(
@@ -195,7 +255,7 @@ class ComponentGroupsResolverSpec extends AnyWordSpec with Matchers {
 object ComponentGroupsResolverSpec {
 
   /** Create a new config. */
-  private def config(
+  def config(
     namespace: String,
     name: String,
     componentGroups: ComponentGroups = ComponentGroups.empty
@@ -213,7 +273,7 @@ object ComponentGroupsResolverSpec {
     )
 
   /** Create a new component group. */
-  private def newComponentGroup(
+  def newComponentGroup(
     module: String,
     exports: String*
   ): ComponentGroup =
@@ -225,7 +285,7 @@ object ComponentGroupsResolverSpec {
     )
 
   /** Create a new extended component group. */
-  private def extendedComponentGroup(
+  def extendedComponentGroup(
     extendedLibraryNamespace: String,
     extendedLibraryName: String,
     extendedModule: String,
@@ -240,7 +300,7 @@ object ComponentGroupsResolverSpec {
     )
 
   /** Create a new library component group. */
-  private def libraryComponentGroup(
+  def libraryComponentGroup(
     namespace: String,
     name: String,
     module: String,

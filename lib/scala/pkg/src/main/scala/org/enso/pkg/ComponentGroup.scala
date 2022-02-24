@@ -208,7 +208,18 @@ object Shortcut {
 case class ModuleReference(
   libraryName: LibraryName,
   moduleName: ModuleName
-)
+) {
+
+  /** The qualified name of the library consists of its prefix and name
+    * separated with a dot.
+    */
+  def qualifiedName: String =
+    s"$libraryName${LibraryName.separator}${moduleName.name}"
+
+  /** @inheritdoc */
+  override def toString: String = qualifiedName
+
+}
 object ModuleReference {
 
   private def toModuleString(moduleReference: ModuleReference): String = {
