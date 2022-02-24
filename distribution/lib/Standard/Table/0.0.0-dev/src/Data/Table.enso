@@ -17,6 +17,9 @@ import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
 import Standard.Base.Error.Warnings
 
+from Standard.Table.Data.Group_By import Group_By_Key
+import Standard.Table.Data.Aggregate_Column
+
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
@@ -506,6 +509,26 @@ type Table
                 _ -> val.to_text
         new_names = this.columns.map mapper
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems warnings=warnings
+
+    ## Prototype Group By function
+    group_by : Column_Selector -> [Aggregate_Column] -> Problem_Behavior -> Warnings.Warning_System -> Table
+    group_by selector columns (on_problems=Report_Warning) (warnings=Warnings.default) =
+        key_columns = if selector.is_nothing then [] else
+            select_columns internal_columns=this.columns selector=selector reorder=True on_problems=on_problems warnings=warnings
+
+        make_key i = Group_By_Key <| key_columns.map v->(v.at i)
+
+        aggregators = columns.map (c->c.make_aggregator table)
+
+        aggregate map i =
+            key = make_key i
+            current = map.get_or_else key (columns.map .initial_value)
+            new_value = current.map_with_index j->value->((aggregators.at j) value i)
+            map.append key new_value
+
+        map = 0.up_to this.row_count . fold Map.empty aggregate
+        map
+
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns

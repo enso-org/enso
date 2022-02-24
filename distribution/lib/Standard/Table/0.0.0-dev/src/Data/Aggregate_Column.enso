@@ -1,50 +1,51 @@
 from Standard.Base import all
+from Standard.Table.Data.Group_By import Group_By_Key
 
 ## Defines an Aggregate Column
 type Aggregate_Column
     ## Creates a new column with the row count of each group
     type Count (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the count of unique items of specified column
-       within each group.
-    type Count_Distinct (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+    ## Creates a new column with the count of unique items in the selected
+       column(s) within each group.
+    type Count_Distinct (columns:Column|Text|Integer|[Column|Text|Integer]) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the count of not null (Nothing) values of
+    ## Creates a new column with the count of not null (Nothing) values of the
        specified column within each group.
     type Count_Not_Null (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the count of null (Nothing) values of
+    ## Creates a new column with the count of null (Nothing) values of the
        specified column within each group.
     type Count_Null (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of not null (Nothing) and non-empty
-       ("") values of specified column within each group.
+       ("") values of the column within each group.
     type Count_Not_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of null (Nothing) or empty ("") text
-       values of specified column within each group.
+       values of the column within each group.
     type Count_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the sum of values (ignoring NULLs) of
+    ## Creates a new column with the sum of values (ignoring NULLs) of the
        specified column within each group.
     type Sum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the mean of values (ignoring NULLs) of
+    ## Creates a new column with the mean of values (ignoring NULLs) of the
        specified column within each group.
     type Average (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the median of values (ignoring NULLs) of
+    ## Creates a new column with the median of values (ignoring NULLs) of the
        specified column within each group.
     type Median (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the standard deviation of values (ignoring
-       NULLs) of specified column within each group.
+       NULLs) of the column within each group.
 
        Arguments:
        - population argument specifies if group is a sample or the population
     type Standard_Deviation (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (population:Boolean=False)
 
-    ## Creates a new column with the values concatenated together. NULL values will become "".
+    ## Creates a new column with the values concatenated together. NULL values will become an empty string.
 
        Arguments:
        - separator: added between each value.
@@ -55,7 +56,7 @@ type Aggregate_Column
     ## Creates a new column with the first value in each group.
     type First (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the final value in each group.
+    ## Creates a new column with the last value in each group.
     type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Gets a column name to use for the aggregate column
@@ -64,7 +65,7 @@ type Aggregate_Column
         if this.name.is_nothing.not then this.name else
             case this of
                 Count _ -> "Count"
-                Count_Distinct c _ -> "Count Distinct " + (resolve_column table c).name
+                Count_Distinct columns _ -> "Count Distinct " + ((columns.map c->(resolve_column table c).name).join " ")
                 Count_Not_Null c _ -> "Count NotNull " + (resolve_column table c).name
                 Count_Null c _ -> "Count Null " + (resolve_column table c).name
                 Count_Not_Empty c _ -> "Count NotEmpty " + (resolve_column table c).name
@@ -93,7 +94,7 @@ type Aggregate_Column
             Median _ _ -> Map.empty
             Average _ _ -> [0, 0]
             Standard_Deviation _ _ _ -> [0, 0, 0]
-            Concatenate _ _ _ s _ -> s
+            Concatenate _ _ _ _ _ -> Nothing
             First _ _ -> Nothing
             Last _ _ -> Nothing
             _ -> 0
@@ -131,13 +132,31 @@ type Aggregate_Column
                         (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v, (a.at 2) + v*v])
                 Concatenate c _ j _ _ ->
                     col = resolve_column table c
-                    text->i->(text + (if i==0 then "" else j) + if (col.at i).is_nothing then "" else (col.at i).to_text)
+                    text->i->
+                        val=if (col.at i).is_nothing then "" else (col.at i).to_text
+                        if i==0 then val else (text + j + val)
                 First c _ ->
                     col = resolve_column table c
                     current->i->(if i==0 then (col.at i) else current)
                 Last c _ ->
                     col = resolve_column table c
                     _->i->(col.at i)
-                _ -> _->->(Error.throw "Not in prototype") # Median, Count_Distinct
+                Count_Distinct columns ->
+                    resolved = columns.map c->(resolve_column table c)
+                    key_maker i = Group_By_Key (resolved.map c->(c.at i))
+                    map->i->(map.insert (key_maker i) 1)
+                Median c ->
+                    col = resolve_column table c
+                    map->i->
+                        val = col.at i
+                        if val.is_nothing then map else
+                            map.insert val (1 + (map.get_or_else val 0))
 
-
+    evaluate : Any->Any
+    evaluate value = case this of
+        Count_Distinct _ _ -> value.size
+        Median _ _ -> (Error.throw "Not in prototype")
+        Average _ _ -> if (value.at 0) == 0 then Nothing else (value.at 1 / value.at 0)
+        Standard_Deviation _ _ p -> [0, 0, 0]
+        Concatenate _ _ _ s p -> if value.is_nothing then value else (s + value + p)
+        _ -> value
