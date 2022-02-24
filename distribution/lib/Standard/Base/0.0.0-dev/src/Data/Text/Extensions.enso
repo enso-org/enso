@@ -1015,4 +1015,4 @@ Text.to_case : Case -> Locale -> Text
 Text.to_case case_option=Case.Lower locale=Locale.Default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale this
     Case.Upper -> UCharacter.toUpperCase locale.java_locale this
-    Case.Title -> Error.throw "TODO"
+    Case.Title -> UCharacter.toTitleCase locale.java_locale this Nothing
