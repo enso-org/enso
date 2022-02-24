@@ -253,6 +253,7 @@ commands.test.rust = async function (argv) {
             '--headless',
             '--chrome',
         ]
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 60
         await run_cargo('cargo', args)
     }
 }
