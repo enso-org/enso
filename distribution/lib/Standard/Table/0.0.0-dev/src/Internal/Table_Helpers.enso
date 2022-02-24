@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Error.Warnings
-import Standard.Table.Data.Matching
+import Standard.Base.Data.Text.Matching
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
@@ -150,7 +150,7 @@ rename_columns internal_columns mapping on_problems warnings =
         matched = HashSet.new
 
         mapper = name->
-            index = 0.up_to good_names.length . find i->(Matching.match_single_criterion name ((good_names.at i).at 0) ms)
+            index = 0.up_to good_names.length . find i->(ms.match_single_criterion name ((good_names.at i).at 0))
             case index of
                 Nothing -> Nothing
                 _ ->
@@ -255,7 +255,7 @@ select_columns_helper internal_columns selector reorder on_problems warnings = c
         validation = here.validate_unique names v->[Duplicate_Column_Selectors v]
         on_problems.attach_problems_before validation.problems warnings <|
             Warnings.map_warnings_and_errors here.promote_no_matches_to_missing_columns warnings warnings->
-                Matching.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) matcher=matcher on_problems=on_problems warnings=warnings
+                matcher.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) on_problems=on_problems warnings=warnings
     By_Index indices ->
         validation  = here.validate_indices internal_columns.length indices
         good_indices = validation.valid.map p->(p.at 0)
