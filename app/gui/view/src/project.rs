@@ -8,7 +8,6 @@ use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
-use crate::graph_editor::EdgeId;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::open_dialog::OpenDialog;
@@ -26,45 +25,7 @@ use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
-
-
-
-// ==================================
-// === ComponentBrowserOpenReason ===
-// ==================================
-
-/// An enum describing how the component browser was opened.
-#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
-pub enum ComponentBrowserOpenReason {
-    /// New node was created by opening the component browser or the node is being edited.
-    NodeEditing(NodeId),
-    /// New node was created by dropping a dragged connection on the scene.
-    EdgeDropped(NodeId, EdgeId),
-}
-
-impl ComponentBrowserOpenReason {
-    /// [`NodeId`] of the created/edited node.
-    pub fn node(&self) -> NodeId {
-        match self {
-            Self::NodeEditing(id) => *id,
-            Self::EdgeDropped(id, _) => *id,
-        }
-    }
-
-    /// [`EdgeId`] of the edge that was dropped to create a node.
-    pub fn edge(&self) -> Option<EdgeId> {
-        match self {
-            Self::NodeEditing(_) => None,
-            Self::EdgeDropped(_, id) => Some(*id),
-        }
-    }
-}
-
-impl Default for ComponentBrowserOpenReason {
-    fn default() -> Self {
-        Self::NodeEditing(default())
-    }
-}
+use ide_view_graph_editor::NodeSource;
 
 
 
@@ -72,10 +33,28 @@ impl Default for ComponentBrowserOpenReason {
 // === FRP ===
 // ===========
 
+/// The parameters of the displayed searcher.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SearcherParams {
+    /// The node being an Expression Input.
+    pub input:       NodeId,
+    /// The node being a source for the edited node data - usually it's output shall be a this port
+    /// for inserted expression.
+    pub source_node: Option<NodeSource>,
+}
+
+impl SearcherParams {
+    fn new_for_new_node(node_id: NodeId, source_node: Option<NodeSource>) -> Self {
+        Self { input: node_id, source_node }
+    }
+
+    fn new_for_edited_node(node_id: NodeId) -> Self {
+        Self { input: node_id, source_node: None }
+    }
+}
+
 ensogl::define_endpoints! {
     Input {
-        /// Open the searcher.
-        open_searcher(),
         /// Open the Open File or Project Dialog.
         show_open_dialog(),
         /// Close the searcher without taking any actions
@@ -101,18 +80,18 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        searcher_opened                     (ComponentBrowserOpenReason),
-        adding_new_node                     (bool),
-        is_searcher_opened                  (bool),
-        old_expression_of_edited_node       (Expression),
-        editing_aborted                     (NodeId),
-        editing_committed                   (NodeId, Option<searcher::entry::Id>),
-        open_dialog_shown                   (bool),
-        code_editor_shown                   (bool),
-        style                               (Theme),
-        fullscreen_visualization_shown      (bool),
-        drop_files_enabled                  (bool),
-        debug_mode                          (bool),
+        searcher                       (Option<SearcherParams>),
+        is_searcher_opened             (bool),
+        adding_new_node                (bool),
+        old_expression_of_edited_node  (Expression),
+        editing_aborted                (NodeId),
+        editing_committed              (NodeId, Option<searcher::entry::Id>),
+        open_dialog_shown              (bool),
+        code_editor_shown              (bool),
+        style                          (Theme),
+        fullscreen_visualization_shown (bool),
+        drop_files_enabled             (bool),
+        debug_mode                     (bool),
     }
 }
 
@@ -255,46 +234,20 @@ impl Model {
     /// Update Searcher View - its visibility and position - when edited node changed.
     fn update_searcher_view(
         &self,
-        edited_node: Option<NodeId>,
+        searcher_parameters: Option<SearcherParams>,
         is_searcher_empty: bool,
         searcher_left_top_position: &DEPRECATED_Animation<Vector2<f32>>,
     ) {
-        match edited_node {
-            Some(id) if !is_searcher_empty => {
+        match searcher_parameters {
+            Some(SearcherParams { input, .. }) if !is_searcher_empty => {
                 self.searcher.show();
-                let new_position = self.searcher_left_top_position_when_under_node(id);
+                let new_position = self.searcher_left_top_position_when_under_node(input);
                 searcher_left_top_position.set_target_value(new_position);
             }
             _ => {
                 self.searcher.hide();
             }
         }
-    }
-
-    /// Add a new node and start editing it. Place it below `node_above` if provided, otherwise
-    /// place it under the cursor.
-    fn add_node_and_edit(&self, node_above: Option<NodeId>) -> NodeId {
-        let graph_editor_inputs = &self.graph_editor.frp.input;
-        let node_id = if let Some(node_above) = node_above {
-            self.graph_editor.add_node_below(node_above)
-        } else {
-            graph_editor_inputs.add_node_at_cursor.emit(());
-            self.graph_editor.frp.output.node_added.value()
-        };
-        graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
-        graph_editor_inputs.edit_node.emit(&node_id);
-        node_id
-    }
-
-    fn add_node_by_opening_searcher(&self) -> ComponentBrowserOpenReason {
-        let node_above = self.graph_editor.model.nodes.selected.first_cloned();
-        let node_id = self.add_node_and_edit(node_above);
-        ComponentBrowserOpenReason::NodeEditing(node_id)
-    }
-
-    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> ComponentBrowserOpenReason {
-        let node_id = self.add_node_and_edit(None);
-        ComponentBrowserOpenReason::EdgeDropped(node_id, edge)
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
@@ -469,29 +422,64 @@ impl View {
             });
 
 
+            // === Closing Searcher
+
+            frp.source.is_searcher_opened <+ frp.searcher.map(|s| s.is_some());
+            last_searcher <- frp.searcher.filter_map(|&s| s);
+
+            finished_with_searcher <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
+            frp.source.searcher <+ frp.close_searcher.constant(None);
+            frp.source.searcher <+ searcher.editing_committed.constant(None);
+            frp.source.searcher <+ finished_with_searcher.constant(None);
+
+            committed_in_searcher <-
+                searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
+            aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
+            frp.source.editing_committed <+ committed_in_searcher;
+            frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
+            frp.source.editing_aborted <+ aborted_in_searcher;
+
+            committed_in_searcher_event <- committed_in_searcher.constant(());
+            aborted_in_searcher_event <- aborted_in_searcher.constant(());
+            graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
+
+
+            // === Adding Node ===
+
+            searcher_for_adding <- graph.node_added.map(
+                |&(node, src)| SearcherParams::new_for_new_node(node, src)
+            );
+            frp.source.adding_new_node <+ searcher_for_adding.to_true();
+            new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
+            frp.source.searcher <+ searcher_for_adding.sample(&new_node_edited).map(|&s| Some(s));
+
+            adding_committed <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
+            adding_aborted <- frp.editing_aborted.gate(&frp.adding_new_node);
+            adding_finished <- any(adding_committed,adding_aborted);
+            frp.source.adding_new_node <+ adding_finished.constant(false);
+            frp.source.searcher <+ adding_finished.constant(None);
+
+            eval adding_committed ([graph](node) {
+                graph.deselect_all_nodes();
+                graph.select_node(node);
+            });
+            eval adding_aborted  ((node) graph.remove_node(node));
+
+
             // === Editing ===
 
-            // The order of instructions below is important to properly distinguish between
-            // committing and aborting node editing.
+            existing_node_edited <- graph.node_editing_started.gate_not(&frp.adding_new_node);
+            frp.source.searcher <+ existing_node_edited.map(
+                |&node| Some(SearcherParams::new_for_edited_node(node))
+            );
 
-            frp.source.editing_committed <+ searcher.editing_committed
-                .map2(&graph.output.node_being_edited, |entry,id| (*id,*entry))
-                .filter_map(|(id,entry)| Some(((*id)?, *entry)));
 
-            // This node is true when received "abort_node_editing" signal, and should get false
-            // once processing of "node_being_edited" event from graph is performed.
-            editing_aborted              <- any(...);
-            editing_aborted              <+ frp.close_searcher.constant(true);
-            editing_commited_in_searcher <- searcher.editing_committed.constant(());
-            should_finish_editing_if_any <- any(frp.close_searcher,editing_commited_in_searcher
-                ,frp.open_searcher,frp.show_open_dialog);
-            should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
-            eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
+            // === Searcher Position and Visibility ===
 
-            visibility_conditions <- all(&graph.output.node_being_edited,&searcher.is_empty);
+            visibility_conditions <- all(&frp.searcher,&searcher.is_empty);
             _eval                 <- visibility_conditions.map2(&searcher.is_visible,
-                f!([model,searcher_left_top_position]((node_id,is_searcher_empty),is_visible) {
-                    model.update_searcher_view(*node_id,*is_searcher_empty,&searcher_left_top_position);
+                f!([model,searcher_left_top_position]((searcher,is_searcher_empty),is_visible) {
+                    model.update_searcher_view(*searcher,*is_searcher_empty,&searcher_left_top_position);
                     if !is_visible {
                         // Do not animate
                         searcher_left_top_position.skip();
@@ -499,46 +487,14 @@ impl View {
                 })
             );
 
-            _eval <- graph.output.node_position_set.map2(&graph.output.node_being_edited,
-                f!([searcher_left_top_position]((node_id,position),edited_node_id) {
-                    if edited_node_id.contains(node_id) {
-                        let new = Model::searcher_left_top_position_when_under_node_at(*position);
+            _eval <- graph.output.node_position_set.map2(&frp.searcher,
+                f!([searcher_left_top_position](&(node_id, position), &searcher) {
+                    if searcher.map_or(false, |s| s.input == node_id) {
+                        let new = Model::searcher_left_top_position_when_under_node_at(position);
                         searcher_left_top_position.set_target_value(new);
                     }
                 })
             );
-            let editing_finished         =  graph.output.node_editing_finished.clone_ref();
-            editing_finished_no_entry    <- editing_finished.gate_not(&editing_aborted);
-            frp.source.editing_committed <+ editing_finished_no_entry.map(|id| (*id,None));
-            frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
-            editing_aborted              <+ graph.output.node_editing_finished.constant(false);
-
-            frp.source.is_searcher_opened <+ graph.output.node_being_edited.map(|n| n.is_some());
-
-
-            // === Adding Node ===
-
-            let adding_by_dropping_edge = graph.output.on_edge_drop_to_create_node.clone_ref();
-            let adding_by_opening_searcher = frp.open_searcher.clone_ref();
-            adding_by_dropping_edge_bool <- adding_by_dropping_edge.constant(true);
-            adding_by_opening_searcher_bool <- adding_by_opening_searcher.constant(true);
-            frp.source.adding_new_node <+ any(adding_by_dropping_edge_bool, adding_by_opening_searcher_bool);
-
-            node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
-
-            frp.source.searcher_opened <+ node_being_edited.map(|id| ComponentBrowserOpenReason::NodeEditing(*id));
-            frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
-            frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
-
-            adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
-            adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
-            frp.source.adding_new_node <+ any(&adding_committed,&adding_aborted).constant(false);
-
-            eval adding_committed ([graph](node) {
-                graph.deselect_all_nodes();
-                graph.select_node(node);
-            });
-            eval adding_aborted  ((node) graph.remove_node(node));
 
 
             // === Opening Open File or Project Dialog ===
@@ -602,7 +558,7 @@ impl View {
             let prompt_size            = styles.get_number(prompt_size_path);
             prompt_size                <- all(&prompt_size,&init)._0();
 
-            disable_after_opening_searcher <- frp.is_searcher_opened.filter(|v| *v).constant(());
+            disable_after_opening_searcher <- frp.searcher.filter_map(|s| s.map(|_| ()));
             disable                        <- any(frp.disable_prompt,disable_after_opening_searcher);
             disabled                       <- disable.constant(true);
             show_prompt                    <- frp.show_prompt.gate_not(&disabled);
@@ -662,11 +618,6 @@ impl View {
         &self.model.searcher
     }
 
-    /// Searcher 2.0 FRP.
-    pub fn new_searcher_frp(&self) -> &searcher::new::Frp<usize> {
-        self.model.searcher.new_frp()
-    }
-
     /// Code Editor View.
     pub fn code_editor(&self) -> &code_editor::View {
         &self.model.code_editor
@@ -711,7 +662,6 @@ impl application::View for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
-            (Press, "!is_searcher_opened", "tab", "open_searcher"),
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
