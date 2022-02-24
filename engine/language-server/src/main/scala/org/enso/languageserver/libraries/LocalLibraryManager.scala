@@ -201,11 +201,18 @@ class LocalLibraryManager(
         .toTry
       configPath = libraryRootPath / Package.configFileName
       config <- loadPackageConfig(configPath)
-    } yield GetPackageResponse(
-      license         = config.license,
-      componentGroups = config.componentGroups.toOption,
-      rawPackage      = config.originalJson
-    )
+    } yield {
+      if (config.componentGroups.isLeft) {
+        logger.error(
+          s"Failed to parse library [$libraryName] component groups."
+        )
+      }
+      GetPackageResponse(
+        license         = config.license,
+        componentGroups = config.componentGroups.toOption,
+        rawPackage      = config.originalJson
+      )
+    }
 
   /** Tries to load the manifest.
     *
