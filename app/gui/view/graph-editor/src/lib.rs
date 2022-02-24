@@ -1657,40 +1657,39 @@ impl GraphEditorModel {
         self.find_free_place_for_node(starting_point, direction).unwrap()
     }
 
+    pub fn find_free_place_for_node(
+        &self,
+        starting_from: Vector2,
+        direction: Vector2,
+    ) -> Option<Vector2> {
+        let x_gap = self.frp.default_x_gap_between_nodes.value();
+        let y_gap = self.frp.default_y_gap_between_nodes.value();
+        // This is how much horizontal space we are looking for.
+        let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
+        let nodes = self.nodes.all.raw.borrow();
+        // The "occupied area" for given node consists of:
+        // - area taken by node view (obviously);
+        // - the minimum gap between nodes in all directions, so the new node won't be "glued" to
+        //   another;
+        // - the new node size measured from origin point at each direction accordingly: because
+        //   `find_free_place` looks for free place for the origin point, and we want to fit not
+        //   only the point, but the whole node.
+        let node_areas = nodes.values().map(|node| {
+            let position = node.position();
+            let left = position.x - x_gap - min_spacing;
+            let right = position.x + node.view.model.width() + x_gap;
+            let top = position.y + node::HEIGHT + y_gap;
+            let bottom = position.y - node::HEIGHT - y_gap;
+            OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
+        });
+        find_free_place(starting_from, direction, node_areas)
+    }
+
     pub fn find_place_by_nearest_node(&self, mouse_position: Vector2) -> Vector2 {
         let nearest_node = self.find_nearest_node(mouse_position);
         let place_dictated_by_node =
             nearest_node.and_then(|node| self.find_place_dictated_by_node(node, mouse_position));
         place_dictated_by_node.unwrap_or(mouse_position)
-    }
-
-    pub fn find_place_by_dropping_edge(&self, edge_id: EdgeId, mouse_position: Vector2) -> Vector2 {
-        let edge_source_node_id = self.edge_source_node_id(edge_id);
-        let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-        let place_dictated_by_node = edge_source_node
-            .and_then(|node| self.find_place_dictated_by_node(node, mouse_position));
-        place_dictated_by_node.unwrap_or(mouse_position)
-    }
-
-    pub fn find_place_dictated_by_node(
-        &self,
-        node: Node,
-        mouse_position: Vector2,
-    ) -> Option<Vector2> {
-        let node_position = node.position();
-        let node_left = node_position.x;
-        let node_right = node_position.x + node.model.width();
-        let node_top = node_position.y + node.model.height() / 2.0;
-        let node_bottom = node_position.y - node.model.height() / 2.0;
-        let area_left = node_left - NODE_PLACEMENT_AREA_SIDE;
-        let area_right = node_right + NODE_PLACEMENT_AREA_SIDE;
-        let area_top = node_top + NODE_PLACEMENT_AREA_ABOVE;
-        let area_bottom = node_bottom - NODE_PLACEMENT_AREA_BELOW;
-        let placement_area = selection::BoundingBox::from_corners(
-            Vector2(area_left, area_top),
-            Vector2(area_right, area_bottom),
-        );
-        placement_area.contains(mouse_position).then(|| self.find_free_place_under(node.id()))
     }
 
     fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
@@ -1730,32 +1729,33 @@ impl GraphEditorModel {
         nearest_node
     }
 
-    pub fn find_free_place_for_node(
+    pub fn find_place_by_dropping_edge(&self, edge_id: EdgeId, mouse_position: Vector2) -> Vector2 {
+        let edge_source_node_id = self.edge_source_node_id(edge_id);
+        let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
+        let place_dictated_by_node = edge_source_node
+            .and_then(|node| self.find_place_dictated_by_node(node, mouse_position));
+        place_dictated_by_node.unwrap_or(mouse_position)
+    }
+
+    pub fn find_place_dictated_by_node(
         &self,
-        starting_from: Vector2,
-        direction: Vector2,
+        node: Node,
+        mouse_position: Vector2,
     ) -> Option<Vector2> {
-        let x_gap = self.frp.default_x_gap_between_nodes.value();
-        let y_gap = self.frp.default_y_gap_between_nodes.value();
-        // This is how much horizontal space we are looking for.
-        let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
-        let nodes = self.nodes.all.raw.borrow();
-        // The "occupied area" for given node consists of:
-        // - area taken by node view (obviously);
-        // - the minimum gap between nodes in all directions, so the new node won't be "glued" to
-        //   another;
-        // - the new node size measured from origin point at each direction accordingly: because
-        //   `find_free_place` looks for free place for the origin point, and we want to fit not
-        //   only the point, but the whole node.
-        let node_areas = nodes.values().map(|node| {
-            let position = node.position();
-            let left = position.x - x_gap - min_spacing;
-            let right = position.x + node.view.model.width() + x_gap;
-            let top = position.y + node::HEIGHT + y_gap;
-            let bottom = position.y - node::HEIGHT - y_gap;
-            OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
-        });
-        find_free_place(starting_from, direction, node_areas)
+        let node_position = node.position();
+        let node_left = node_position.x;
+        let node_right = node_position.x + node.model.width();
+        let node_top = node_position.y + node.model.height() / 2.0;
+        let node_bottom = node_position.y - node.model.height() / 2.0;
+        let area_left = node_left - NODE_PLACEMENT_AREA_SIDE;
+        let area_right = node_right + NODE_PLACEMENT_AREA_SIDE;
+        let area_top = node_top + NODE_PLACEMENT_AREA_ABOVE;
+        let area_bottom = node_bottom - NODE_PLACEMENT_AREA_BELOW;
+        let placement_area = selection::BoundingBox::from_corners(
+            Vector2(area_left, area_top),
+            Vector2(area_right, area_bottom),
+        );
+        placement_area.contains(mouse_position).then(|| self.find_free_place_under(node.id()))
     }
 
     pub fn start_editing_new_node(&self, node_id: NodeId) {
