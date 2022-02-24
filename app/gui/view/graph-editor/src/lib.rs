@@ -97,9 +97,9 @@ const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 
-const NODE_PLACEMENT_ABOVE: f32 = 7.0;
-const NODE_PLACEMENT_BELOW: f32 = 50.0;
-const NODE_PLACEMENT_SIDEWAYS: f32 = 5.0;
+const NODE_PLACEMENT_AREA_ABOVE: f32 = 7.0;
+const NODE_PLACEMENT_AREA_BELOW: f32 = 50.0;
+const NODE_PLACEMENT_AREA_SIDE: f32 = 5.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
@@ -1683,10 +1683,10 @@ impl GraphEditorModel {
         let node_top = node_position.y + node.model.height() / 2.0;
         let node_bottom = node_position.y - node.model.height() / 2.0;
         let placement_area = OccupiedArea {
-            x1: node_left - NODE_PLACEMENT_SIDEWAYS,
-            x2: node_right + NODE_PLACEMENT_SIDEWAYS,
-            y1: node_top + NODE_PLACEMENT_ABOVE,
-            y2: node_bottom - NODE_PLACEMENT_BELOW,
+            x1: node_left - NODE_PLACEMENT_AREA_SIDE,
+            x2: node_right + NODE_PLACEMENT_AREA_SIDE,
+            y1: node_top + NODE_PLACEMENT_AREA_ABOVE,
+            y2: node_bottom - NODE_PLACEMENT_AREA_BELOW,
         };
         placement_area.contains(mouse_position).then(|| self.find_free_place_under(node.id()))
     }
