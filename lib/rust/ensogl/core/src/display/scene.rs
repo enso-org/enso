@@ -820,7 +820,6 @@ pub struct SceneData {
     pub bg_color_var:     style::Var,
     pub bg_color_change:  callback::Handle,
     pub frp:              Frp,
-    pub delayed_death:    RefCell<Vec<Box<dyn Any>>>,
     extensions:           Extensions,
     disable_context_menu: Rc<IgnoreContextMenuHandle>,
 }
@@ -929,6 +928,7 @@ impl SceneData {
         let new_target = PointerTarget::from_internal(self.mouse.hover_ids.get());
         let current_target = self.mouse.target.get();
         if new_target != current_target {
+            DEBUG!("Target changed");
             self.mouse.target.set(new_target);
             self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out().emit(()));
             self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over().emit(()));
@@ -1095,7 +1095,6 @@ impl Scene {
             self.update_shape();
             self.update_symbols();
             self.handle_mouse_events();
-            self.delayed_death.clear();
         })
     }
 }

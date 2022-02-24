@@ -25,6 +25,7 @@ use crate::tooltip;
 use crate::view;
 use crate::Type;
 
+use crate::display::object::component::Component;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;
@@ -380,25 +381,22 @@ ensogl::define_endpoints! {
 ///    emitted back to the right node).
 ///
 /// Currently, the solution "C" (most optimal) is implemented here.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 #[allow(missing_docs)]
-pub struct Node {
-    pub model: Rc<NodeModel>,
-    pub frp:   Frp,
-}
+pub struct Node(Rc<display::object::component::Component<Frp, Rc<NodeModel>>>);
 
-impl AsRef<Node> for Node {
-    fn as_ref(&self) -> &Self {
-        self
-    }
-}
-
-impl Deref for Node {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
+// impl AsRef<Node> for Node {
+//     fn as_ref(&self) -> &Self {
+//         self
+//     }
+// }
+//
+// impl Deref for Node {
+//     type Target = Frp;
+//     fn deref(&self) -> &Self::Target {
+//         &self.frp
+//     }
+// }
 
 /// Internal data of `Node`
 #[derive(Clone, CloneRef, Debug)]
@@ -900,7 +898,8 @@ impl Node {
         frp.set_disabled.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
-        Self { model, frp }
+        let display_object = model.display_object.clone_ref();
+        Node(Rc::new(display::object::component::Component::new(app, frp, model, display_object)))
     }
 
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
@@ -920,6 +919,6 @@ impl Node {
 
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        self.deref().display_object()
     }
 }

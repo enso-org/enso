@@ -41,8 +41,6 @@ pub mod frp {
             let network = frp::Network::new(label);
             Self { instance, network }
         }
-
-        fn new_from_network(network: frp::Neto)
     }
 
     impl<Host> Drop for ObjectWithFrp<Host> {
@@ -53,26 +51,71 @@ pub mod frp {
 }
 
 pub mod component {
+    use crate::application::Application;
     use crate::prelude::*;
 
-    use crate::display::{object, Scene};
+    use crate::display::object;
+    use crate::display::object::Instance;
+    use crate::display::object::WeakInstance;
+    use crate::display::Object;
+    use crate::display::Scene;
 
-    struct Essence<Frp, Model> {
-        scene:          Scene,
-        frp:            Option<Box<Frp>>,
-        model:          Option<Box<Model>>,
+    #[derive(Debug)]
+    pub struct Component<Frp: 'static, Model: 'static> {
+        app:            Application,
         display_object: object::Instance,
+        frp:            std::mem::ManuallyDrop<Frp>,
+        model:          std::mem::ManuallyDrop<Model>,
     }
 
-    impl<Frp, Model, Host> Drop for Essence<Frp, Model> {
-        fn drop(&mut self) {
-            self.display_object.unset_parent();
-            self.scene.delayed_death.borrow_mut().push(self.frp.take().unwrap());
-            self.scene.delayed_death.borrow_mut().push(self.model.take().unwrap());
+    impl<Frp: 'static, Model: 'static> Deref for Component<Frp, Model> {
+        type Target = Frp;
+
+        fn deref(&self) -> &Self::Target {
+            &self.frp
         }
     }
 
-    pub struct Component<Frp, Model, Host = Scene> {
+    impl<Frp: 'static, Model: 'static> Component<Frp, Model> {
+        pub fn new(
+            app: &Application,
+            frp: Frp,
+            model: Model,
+            display_object: object::Instance,
+        ) -> Self {
+            Self {
+                app: app.clone_ref(),
+                display_object,
+                frp: std::mem::ManuallyDrop::new(frp),
+                model: std::mem::ManuallyDrop::new(model),
+            }
+        }
 
+        pub fn frp(&self) -> &Frp {
+            &self.frp
+        }
+
+        pub fn model(&self) -> &Model {
+            &self.model
+        }
+    }
+
+    impl<Frp: 'static, Model: 'static> Drop for Component<Frp, Model> {
+        fn drop(&mut self) {
+            DEBUG!("DROPPING");
+            self.display_object.unset_parent();
+            unsafe {
+                let frp = std::mem::ManuallyDrop::take(&mut self.frp);
+                let model = std::mem::ManuallyDrop::take(&mut self.model);
+                self.app.display.collect_garbage(frp);
+                self.app.display.collect_garbage(model);
+            }
+        }
+    }
+
+    impl<Frp: 'static, Model: 'static> Object for Component<Frp, Model> {
+        fn display_object(&self) -> &Instance<Scene> {
+            &self.display_object
+        }
     }
 }

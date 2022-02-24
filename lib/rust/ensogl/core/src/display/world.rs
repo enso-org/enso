@@ -13,6 +13,7 @@ use crate::debug;
 use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
+use crate::display::garbage;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::render::*;
@@ -63,6 +64,7 @@ pub struct World {
     uniforms:           Uniforms,
     stats:              Stats,
     stats_monitor:      debug::monitor::Monitor,
+    garbage_collector:  garbage::Collector,
     stats_draw_handle:  callback::Handle,
     main_loop_frame:    callback::Handle,
     on_before_frame:    callback::SharedRegistryMut1<animation::TimeInfo>,
@@ -82,6 +84,7 @@ impl World {
         let uniforms = Uniforms::new(&scene.variables);
         let main_loop = animation::DynamicLoop::new();
         let stats_monitor = debug::monitor::Monitor::new();
+        let garbage_collector = garbage::Collector::new();
         let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_after_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
         let on_stats_available = <callback::SharedRegistryMut1<StatsData>>::new();
@@ -89,7 +92,7 @@ impl World {
             stats_monitor.sample_and_draw(stats);
         }));
         let main_loop_frame = main_loop.on_frame(
-            f!([stats,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene]
+            f!([stats,on_before_frame,on_after_frame,on_stats_available,uniforms,scene_dirty,scene,garbage_collector]
             (t:animation::TimeInfo) {
                 // Note [Main Loop Performance]
 
@@ -102,6 +105,7 @@ impl World {
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
                 scene.update(t);
+                garbage_collector.mouse_events_handled();
                 scene.renderer.run();
 
                 on_after_frame.run_all(&t);
@@ -118,6 +122,7 @@ impl World {
             stats,
             stats_monitor,
             stats_draw_handle,
+            garbage_collector,
             main_loop_frame,
             on_before_frame,
             on_after_frame,
@@ -174,9 +179,11 @@ impl World {
 
     fn init_composer(&self) {
         let mouse_hover_ids = self.scene.mouse.hover_ids.clone_ref();
+        let garbage_collector = self.garbage_collector.clone_ref();
         let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.scene.mouse.position);
         pixel_read_pass.set_callback(move |v| {
-            mouse_hover_ids.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)))
+            mouse_hover_ids.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
+            garbage_collector.pixel_updated();
         });
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
@@ -235,6 +242,10 @@ impl World {
     /// instance of the world forever.
     pub fn keep_alive_forever(&self) {
         mem::forget(self.clone_ref())
+    }
+
+    pub fn collect_garbage<T: 'static>(&self, object: T) {
+        self.garbage_collector.collect(object);
     }
 }
 

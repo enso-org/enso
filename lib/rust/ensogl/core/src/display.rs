@@ -2,6 +2,7 @@
 //! rendering utilities, etc.
 
 pub mod camera;
+pub mod garbage;
 pub mod layout;
 pub mod navigation;
 pub mod object;
