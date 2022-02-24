@@ -82,7 +82,7 @@ type Aggregate_Column
     resolve_column : Table->(Column|Text|Integer)->Column
     resolve_column table column =
         case column of
-            Column c -> c
+            Column c -> table.at (c.name)
             Text c -> table.at c
             Integer c -> table.columns.at c
 
@@ -94,33 +94,50 @@ type Aggregate_Column
             Average _ _ -> [0, 0]
             Standard_Deviation _ _ _ -> [0, 0, 0]
             Concatenate _ _ _ s _ -> s
+            First _ _ -> Nothing
+            Last _ _ -> Nothing
             _ -> 0
 
     make_aggregator : Table->(Any->Integer->Any)
     make_aggregator table =
             case this of
-                Count _ -> c->_->(c+1)
+                Count _ -> count->_->(count+1)
                 Count_Not_Null c _ ->
                     col = resolve_column table c
-                    c->i->(c + if (col.at i).is_nothing then 0 else 1)
+                    count->i->(count + if (col.at i).is_nothing then 0 else 1)
                 Count_Null c _ ->
                     col = resolve_column table c
-                    c->i->(c + if (col.at i).is_nothing then 1 else 0)
+                    count->i->(count + if (col.at i).is_nothing then 1 else 0)
                 Count_Not_Empty c _ ->
                     col = resolve_column table c
-                    c->i->(c + if (col.at i).is_nothing then 0 else 1)
+                    count->i->(count + if (col.at i).is_nothing then 0 else 1)
                 Count_Empty c _ ->
                     col = resolve_column table c
-                    c->i->(c + if (col.at i).is_nothing then 1 else 0)
+                    count->i->(count + if (col.at i).is_nothing then 1 else 0)
                 Sum c _ ->
                     col = resolve_column table c
-                    c->i->(c + if (col.at i).is_nothing then 0 else (col.at i))
+                    total->i->
+                        v = col.at i
+                        (total + if v.is_nothing then 0 else v)
                 Average c _ ->
                     col = resolve_column table c
-                    a->i->(c + if (col.at i).is_nothing then a else [(col.at i)])
-                Count_Distinct c _ ->
+                    a->i->
+                        v = col.at i
+                        (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v])
+                Standard_Deviation c _ _ ->
                     col = resolve_column table c
-                    c->i->
+                    a->i->
+                        v = col.at i
+                        (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v, (a.at 2) + v*v])
+                Concatenate c _ j _ _ ->
+                    col = resolve_column table c
+                    text->i->(text + (if i==0 then "" else j) + if (col.at i).is_nothing then "" else (col.at i).to_text)
+                First c _ ->
+                    col = resolve_column table c
+                    current->i->(if i==0 then (col.at i) else current)
+                Last c _ ->
+                    col = resolve_column table c
+                    _->i->(col.at i)
+                _ -> _->->(Error.throw "Not in prototype") # Median, Count_Distinct
 
-                _ -> _->->(Error.throw "Not in prototype")
 
