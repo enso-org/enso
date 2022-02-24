@@ -275,7 +275,10 @@ impl AsyncLifetime {
     pub fn create_to_finish(&self) -> Option<Interval> {
         self.active.first().map(|first| {
             let start = self.created.unwrap_or(first.start);
-            let end = self.active.last().unwrap().end;
+            let end = match self.finished {
+                true => self.active.last().unwrap().end,
+                false => None,
+            };
             Interval { start, end }
         })
     }
@@ -476,25 +479,18 @@ struct MeasurementBuilder<M> {
 
 impl<M> MeasurementBuilder<M> {
     fn build(self) -> Measurement<M> {
-        let MeasurementBuilder {
-            label,
-            starts,
-            ends,
-            metadata,
-            created_paused,
-            finished,
-            state: _,
-        } = self;
+        let MeasurementBuilder { label, starts, ends, metadata, created_paused, finished, state } =
+            self;
         let mut ends = ends.into_iter().fuse();
         let active: Vec<_> =
             starts.into_iter().map(|start| Interval { start, end: ends.next() }).collect();
         let children = Vec::new();
+        let is_paused = matches!(state, State::Paused(_));
         // A profiler is considered async if:
         // - It was created in a non-running state (so, `#[profile] async fn` is always async).
         // - It ever awaited (i.e. it has more than one active interval).
-        // Thus asyncness of low-level profilers is duck-typed: a low-level profiler is considered
-        // async if and only if it ever awaits.
-        let lifetime = if created_paused.is_none() && active.len() == 1 {
+        // - It suspended, and never awaited.
+        let lifetime = if created_paused.is_none() && active.len() == 1 && !is_paused {
             Lifetime::NonAsync { active: *active.first().unwrap() }
         } else {
             Lifetime::Async(AsyncLifetime { created: created_paused, active, finished })
@@ -894,6 +890,44 @@ mod tests {
         assert!(child.lifetime.finished());
         assert_eq!(child.label.name, "child");
         assert_eq!(child.children.len(), 0);
+    }
+
+    #[test]
+    fn unfinished_never_started() {
+        #[profile(Objective)]
+        async fn func() {}
+        // Create a Future, but don't await it.
+        let _future = func();
+        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
+            profiler::take_log().parse().unwrap();
+        assert!(!root.children[0].lifetime.finished());
+    }
+
+    #[test]
+    fn unfinished_still_running() {
+        profiler::EventLog.start(
+            profiler::EventId::implicit(),
+            profiler::Label("unfinished (?:?)"),
+            None,
+            profiler::StartState::Active,
+        );
+        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
+            profiler::take_log().parse().unwrap();
+        assert!(!root.children[0].lifetime.finished());
+    }
+
+    #[test]
+    fn unfinished_paused_never_resumed() {
+        let id = profiler::EventLog.start(
+            profiler::EventId::implicit(),
+            profiler::Label("unfinished (?:?)"),
+            None,
+            profiler::StartState::Active,
+        );
+        profiler::EventLog.pause(id, profiler::Timestamp::now());
+        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
+            profiler::take_log().parse().unwrap();
+        assert!(!root.children[0].lifetime.finished(), "{:?}", &root);
     }
 
     /// Simulate a change to the format of a type of metadata; ensure the error is reported
