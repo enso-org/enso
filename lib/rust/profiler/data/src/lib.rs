@@ -201,17 +201,88 @@ impl<E: error::Error> error::Error for EventError<E> {
 /// example, see the docs for the [`crate`].
 #[derive(Clone, Debug)]
 pub struct Measurement<M> {
-    /// The interval from the profiler's start to its end.
-    pub lifetime:         Interval,
-    /// Intervals in which the profiler was not paused.
-    pub intervals_active: Vec<Interval>,
+    /// When the profiler was running.
+    pub lifetime: Lifetime,
     /// Identifies the profiler's source and scope to the user.
-    pub label:            Label,
+    pub label:    Label,
     /// Profilers started by this profiler.
-    pub children:         Vec<Self>,
+    pub children: Vec<Self>,
     /// Metadata attached to this profiler.
-    pub metadata:         Vec<Metadata<M>>,
+    pub metadata: Vec<Metadata<M>>,
 }
+
+
+// === Lifetime ===
+
+/// Information about when a profiler was running.
+#[derive(Clone, Debug)]
+pub enum Lifetime {
+    /// Information applicable to async profilers.
+    Async(AsyncLifetime),
+    /// Information applicable to non-async profilers.
+    NonAsync {
+        /// The interval that the profiler was running.
+        active: Interval,
+    },
+}
+
+impl Lifetime {
+    /// Whether the task this profiler measures was completed.
+    pub fn finished(&self) -> bool {
+        match self {
+            Lifetime::Async(lifetime) => lifetime.finished,
+            Lifetime::NonAsync { active } => active.end.is_some(),
+        }
+    }
+
+    /// Get a AsyncLifetime, if this Lifetime was async.
+    pub fn as_async(&self) -> Option<&AsyncLifetime> {
+        match self {
+            Lifetime::Async(lifetime) => Some(lifetime),
+            Lifetime::NonAsync { .. } => None,
+        }
+    }
+
+    /// Whether this profiler recorded an async task.
+    pub fn is_async(&self) -> bool {
+        self.as_async().is_some()
+    }
+}
+
+/// Information about when an async profiler was running.
+#[derive(Clone, Debug)]
+pub struct AsyncLifetime {
+    /// The time a profiled `async fn` was called, if known.
+    ///
+    /// This will always be before the first interval in `active`, as the function must be
+    /// called before it can be awaited and begin running.
+    pub created:  Option<Mark>,
+    /// Intervals that the profiler was running.
+    pub active:   Vec<Interval>,
+    /// If true: the last interval in `active` ended when the task was completed.
+    /// If false: the task was awaiting or running (indicated by whether the last interval in
+    /// `active` has an end) at the time the log was created.
+    pub finished: bool,
+}
+
+impl AsyncLifetime {
+    /// The interval from when the async profiler was created, to when it finished.
+    ///
+    /// If creation time is not known, it will be approximated by first start-time.
+    ///
+    /// If the profiler is associated with a Future that was created but never awaited,
+    /// this will return None.
+    pub fn create_to_finish(&self) -> Option<Interval> {
+        self.active.first().map(|first| {
+            let start = self.created.unwrap_or(first.start);
+            let end = self.active.last().unwrap().end;
+            Interval { start, end }
+        })
+    }
+}
+
+
+// === Parsing ===
 
 impl<M: serde::de::DeserializeOwned> str::FromStr for Measurement<M> {
     type Err = Error<M>;
@@ -394,22 +465,41 @@ impl CodePos {
 
 /// Used while gathering information about a profiler.
 struct MeasurementBuilder<M> {
-    label:    Label,
-    lifetime: Interval,
-    starts:   Vec<Mark>,
-    ends:     Vec<Mark>,
-    state:    State,
-    metadata: Vec<Metadata<M>>,
+    label:          Label,
+    created_paused: Option<Mark>,
+    finished:       bool,
+    starts:         Vec<Mark>,
+    ends:           Vec<Mark>,
+    state:          State,
+    metadata:       Vec<Metadata<M>>,
 }
 
 impl<M> MeasurementBuilder<M> {
     fn build(self) -> Measurement<M> {
-        let MeasurementBuilder { label, lifetime, starts, ends, metadata, state: _ } = self;
+        let MeasurementBuilder {
+            label,
+            starts,
+            ends,
+            metadata,
+            created_paused,
+            finished,
+            state: _,
+        } = self;
         let mut ends = ends.into_iter().fuse();
-        let intervals_active =
+        let active: Vec<_> =
             starts.into_iter().map(|start| Interval { start, end: ends.next() }).collect();
         let children = Vec::new();
-        Measurement { lifetime, intervals_active, label, children, metadata }
+        // A profiler is considered async if:
+        // - It was created in a non-running state (so, `#[profile] async fn` is always async).
+        // - It ever awaited (i.e. it has more than one active interval).
+        // Thus asyncness of low-level profilers is duck-typed: a low-level profiler is considered
+        // async if and only if it ever awaits.
+        let lifetime = if created_paused.is_none() && active.len() == 1 {
+            Lifetime::NonAsync { active: *active.first().unwrap() }
+        } else {
+            Lifetime::Async(AsyncLifetime { created: created_paused, active, finished })
+        };
+        Measurement { lifetime, label, children, metadata }
     }
 }
 
@@ -457,6 +547,8 @@ pub enum DataError {
     },
     /// Profiler(s) were active at a time none were expected.
     ExpectedEmptyStack(Vec<id::Runtime>),
+    /// A profiler was expected to have started before a related event occurred.
+    ExpectedStarted,
 }
 
 impl fmt::Display for DataError {
@@ -509,12 +601,13 @@ struct LogVisitor<M> {
 impl<M> Default for LogVisitor<M> {
     fn default() -> Self {
         let root_builder = MeasurementBuilder {
-            label:    "APP_LIFETIME (?:?)".parse().unwrap(),
-            lifetime: Interval { start: Mark::time_origin(), end: None },
-            state:    State::Active(id::Runtime(0)), // value doesn't matter
-            starts:   vec![Mark::time_origin()],
-            ends:     Default::default(),
-            metadata: Default::default(),
+            label:          "APP_LIFETIME (?:?)".parse().unwrap(),
+            created_paused: Default::default(),
+            finished:       Default::default(),
+            state:          State::Active(id::Runtime(0)), // value doesn't matter
+            starts:         vec![Mark::time_origin()],
+            ends:           Default::default(),
+            metadata:       Default::default(),
         };
         Self {
             active: Default::default(),
@@ -573,9 +666,14 @@ impl<M> LogVisitor<M> {
             profiler::StartState::Active => State::Active(pos),
             profiler::StartState::Paused => State::Paused(pos),
         };
+        let created_paused = match start_state {
+            profiler::StartState::Paused => Some(start),
+            profiler::StartState::Active => None,
+        };
         let mut builder = MeasurementBuilder {
             label: event.label.to_string().parse()?,
-            lifetime: Interval { start, end: None },
+            created_paused,
+            finished: Default::default(),
             state,
             starts: Default::default(),
             ends: Default::default(),
@@ -601,7 +699,7 @@ impl<M> LogVisitor<M> {
         check_profiler(id, current_profiler)?;
         let measurement = &mut self.builders.get_mut(&current_profiler).unwrap();
         let mark = Mark { seq: pos.into(), time };
-        measurement.lifetime.end = Some(mark);
+        measurement.finished = true;
         measurement.ends.push(mark);
         match mem::replace(&mut measurement.state, State::Ended(pos)) {
             State::Active(_) => (),
@@ -695,7 +793,10 @@ impl<M> LogVisitor<M> {
         Ok(match parent {
             id::Explicit::AppLifetime => Mark::time_origin(),
             id::Explicit::Runtime(pos) =>
-                self.builders.get(&pos).ok_or(DataError::IdNotFound)?.lifetime.start,
+                match self.builders.get(&pos).ok_or(DataError::IdNotFound)?.starts.first() {
+                    Some(start) => *start,
+                    None => return Err(DataError::ExpectedStarted),
+                },
         })
     }
 
@@ -744,21 +845,15 @@ mod tests {
             profiler::take_log().parse().unwrap();
         let roots = &root.children;
         assert_eq!(roots.len(), 1);
-        assert!(roots[0].lifetime.closed());
-        assert_eq!(roots[0].intervals_active.len(), 1);
-        for interval in roots[0].intervals_active.iter() {
-            assert!(interval.closed());
-        }
-        assert!(roots[0].lifetime.closed());
+        assert!(roots[0].lifetime.finished());
+        assert!(!roots[0].lifetime.is_async(), "{:?}", &roots[0].lifetime);
+        assert!(roots[0].lifetime.finished());
         assert_eq!(roots[0].label.name, "parent");
         assert_eq!(roots[0].children.len(), 1);
         let child = &roots[0].children[0];
-        assert!(child.lifetime.closed());
-        assert_eq!(child.intervals_active.len(), 1);
-        for interval in child.intervals_active.iter() {
-            assert!(interval.closed());
-        }
-        assert!(child.lifetime.closed());
+        assert!(child.lifetime.finished());
+        assert!(!child.lifetime.is_async());
+        assert!(child.lifetime.finished());
         assert_eq!(child.label.name, "child");
         assert_eq!(child.children.len(), 0);
     }
@@ -780,21 +875,23 @@ mod tests {
             profiler::take_log().parse().unwrap();
         let roots = &root.children;
         assert_eq!(roots.len(), 1);
-        assert!(roots[0].lifetime.closed());
-        assert_eq!(roots[0].intervals_active.len(), 2);
-        for interval in roots[0].intervals_active.iter() {
+        assert!(roots[0].lifetime.finished());
+        let root_intervals = &roots[0].lifetime.as_async().unwrap().active;
+        assert_eq!(root_intervals.len(), 2);
+        for interval in root_intervals {
             assert!(interval.closed());
         }
-        assert!(roots[0].lifetime.closed());
+        assert!(roots[0].lifetime.finished());
         assert_eq!(roots[0].label.name, "parent");
         assert_eq!(roots[0].children.len(), 1);
         let child = &roots[0].children[0];
-        assert!(child.lifetime.closed());
-        assert_eq!(child.intervals_active.len(), 2);
-        for interval in child.intervals_active.iter() {
+        assert!(child.lifetime.finished());
+        let child_intervals = &child.lifetime.as_async().unwrap().active;
+        assert_eq!(child_intervals.len(), 2);
+        for interval in child_intervals {
             assert!(interval.closed());
         }
-        assert!(child.lifetime.closed());
+        assert!(child.lifetime.finished());
         assert_eq!(child.label.name, "child");
         assert_eq!(child.children.len(), 0);
     }
