@@ -7,7 +7,7 @@ import org.enso.librarymanager.resolved.LibraryRoot
 
 import scala.annotation.tailrec
 
-/** A [[PublishedLibraryProvider]] that just provides libraries which are
+/** A [[PublishedLibraryCache]] that just provides libraries which are
   * already available in the cache.
   */
 class CachedLibraryProvider(caches: List[ReadOnlyLibraryCache])
