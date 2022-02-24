@@ -1,8 +1,6 @@
 package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
-
-import scala.util.{Success, Try}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import nl.gn0s1s.bump.SemVer
@@ -23,14 +21,15 @@ import org.enso.librarymanager.published.repository.RepositoryHelper.RepositoryM
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Try
 
-/** A request handler for the `library/getMetadata` endpoint.
+/** A request handler for the `library/getPackage` endpoint.
   *
   * @param timeout request timeout
   * @param localLibraryManager reference to the local library manager actor
   * @param publishedLibraryCache the cache of published libraries
   */
-class LibraryGetMetadataHandler(
+class LibraryGetPackageHandler(
   timeout: FiniteDuration,
   localLibraryManager: ActorRef,
   publishedLibraryCache: PublishedLibraryCache
@@ -43,20 +42,20 @@ class LibraryGetMetadataHandler(
 
   private def requestStage: Receive = {
     case Request(
-          LibraryGetMetadata,
+          LibraryGetPackage,
           id,
-          LibraryGetMetadata.Params(namespace, name, version)
+          LibraryGetPackage.Params(namespace, name, version)
         ) =>
       val libraryName = LibraryName(namespace, name)
       version match {
         case LibraryEntry.LocalLibraryVersion =>
-          localLibraryManager ! LocalLibraryManagerProtocol.GetMetadata(
+          localLibraryManager ! LocalLibraryManagerProtocol.GetPackage(
             libraryName
           )
         case LibraryEntry.PublishedLibraryVersion(version, repositoryUrl) =>
           SemVer(version) match {
             case Some(semVerVersion) =>
-              getOrFetchPublishedMetadata(
+              getOrFetchPublishedPackage(
                 libraryName,
                 semVerVersion,
                 repositoryUrl
@@ -83,14 +82,19 @@ class LibraryGetMetadataHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case LocalLibraryManagerProtocol.GetMetadataResponse(
-          description,
-          tagLine
+    case LocalLibraryManagerProtocol.GetPackageResponse(
+          license,
+          componentGroups,
+          rawPackage
         ) =>
       replyTo ! ResponseResult(
-        LibraryGetMetadata,
+        LibraryGetPackage,
         id,
-        LibraryGetMetadata.Result(description, tagLine)
+        LibraryGetPackage.Result(
+          Option.unless(license.isEmpty)(license),
+          componentGroups,
+          rawPackage
+        )
       )
       cancellable.cancel()
       context.stop(self)
@@ -106,58 +110,55 @@ class LibraryGetMetadataHandler(
       context.stop(self)
   }
 
-  private def getOrFetchPublishedMetadata(
+  private def getOrFetchPublishedPackage(
     libraryName: LibraryName,
     version: SemVer,
     repositoryUrl: String
-  ): Future[LocalLibraryManagerProtocol.GetMetadataResponse] =
-    getCachedMetadata(libraryName, version) match {
+  ): Future[LocalLibraryManagerProtocol.GetPackageResponse] =
+    getCachedPackage(libraryName, version) match {
       case Some(response) =>
         response.fold(Future.failed, Future.successful)
       case None =>
-        fetchPublishedMetadata(libraryName, version, repositoryUrl)
+        fetchPublishedPackage(libraryName, version, repositoryUrl)
     }
 
-  private def getCachedMetadata(
+  private def getCachedPackage(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[Try[LocalLibraryManagerProtocol.GetMetadataResponse]] =
+  ): Option[Try[LocalLibraryManagerProtocol.GetPackageResponse]] =
     publishedLibraryCache
       .findCachedLibrary(libraryName, version)
       .map { libraryPath =>
         libraryPath.getReadAccess
-          .readManifest()
-          .map { manifestAttempt =>
-            manifestAttempt.map(manifest =>
-              LocalLibraryManagerProtocol.GetMetadataResponse(
-                manifest.description,
-                manifest.tagLine
-              )
+          .readPackage()
+          .map(config =>
+            LocalLibraryManagerProtocol.GetPackageResponse(
+              config.license,
+              config.componentGroups.toOption,
+              config.originalJson
             )
-          }
-          .getOrElse(
-            Success(LocalLibraryManagerProtocol.GetMetadataResponse(None, None))
           )
       }
 
-  private def fetchPublishedMetadata(
+  private def fetchPublishedPackage(
     libraryName: LibraryName,
     version: SemVer,
     repositoryUrl: String
-  ): Future[LocalLibraryManagerProtocol.GetMetadataResponse] = for {
-    manifest <- Repository(repositoryUrl)
+  ): Future[LocalLibraryManagerProtocol.GetPackageResponse] = for {
+    config <- Repository(repositoryUrl)
       .accessLibrary(libraryName, version)
-      .fetchManifest()
+      .fetchPackageConfig()
       .toFuture
-  } yield LocalLibraryManagerProtocol.GetMetadataResponse(
-    description = manifest.description,
-    tagLine     = manifest.tagLine
+  } yield LocalLibraryManagerProtocol.GetPackageResponse(
+    license         = config.license,
+    componentGroups = config.componentGroups.toOption,
+    rawPackage      = config.originalJson
   )
 }
 
-object LibraryGetMetadataHandler {
+object LibraryGetPackageHandler {
 
-  /** Creates a configuration object to create [[LibraryGetMetadataHandler]].
+  /** Creates a configuration object to create [[LibraryGetPackageHandler]].
     *
     * @param timeout request timeout
     * @param localLibraryManager reference to the local library manager actor
@@ -169,7 +170,7 @@ object LibraryGetMetadataHandler {
     publishedLibraryCache: PublishedLibraryCache
   ): Props =
     Props(
-      new LibraryGetMetadataHandler(
+      new LibraryGetPackageHandler(
         timeout,
         localLibraryManager,
         publishedLibraryCache

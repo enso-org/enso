@@ -102,14 +102,10 @@ object ComponentGroup {
 /** The definition of a component group that extends an existing one.
   *
   * @param module the reference to the extended component group
-  * @param color the component group color
-  * @param icon the component group icon
   * @param exports the list of components provided by this component group
   */
 case class ExtendedComponentGroup(
   module: ModuleReference,
-  color: Option[String],
-  icon: Option[String],
   exports: Seq[Component]
 )
 object ExtendedComponentGroup {
@@ -117,22 +113,17 @@ object ExtendedComponentGroup {
   /** Fields for use when serializing the [[ExtendedComponentGroup]]. */
   private object Fields {
     val Module  = "module"
-    val Color   = "color"
-    val Icon    = "icon"
     val Exports = "exports"
   }
 
   /** [[Encoder]] instance for the [[ExtendedComponentGroup]]. */
   implicit val encoder: Encoder[ExtendedComponentGroup] = {
     extendedComponentGroup =>
-      val color = extendedComponentGroup.color.map(Fields.Color -> _.asJson)
-      val icon  = extendedComponentGroup.icon.map(Fields.Icon -> _.asJson)
       val exports = Option.unless(extendedComponentGroup.exports.isEmpty)(
         Fields.Exports -> extendedComponentGroup.exports.asJson
       )
       Json.obj(
-        (Fields.Module -> extendedComponentGroup.module.asJson) +:
-        (color.toSeq ++ icon.toSeq ++ exports.toSeq): _*
+        (Fields.Module -> extendedComponentGroup.module.asJson) +: exports.toSeq: _*
       )
   }
 
@@ -145,10 +136,8 @@ object ExtendedComponentGroup {
           Fields.Module,
           json
         )
-      color   <- json.get[Option[String]](Fields.Color)
-      icon    <- json.get[Option[String]](Fields.Icon)
       exports <- json.getOrElse[List[Component]](Fields.Exports)(List())
-    } yield ExtendedComponentGroup(reference, color, icon, exports)
+    } yield ExtendedComponentGroup(reference, exports)
   }
 }
 
@@ -219,7 +208,18 @@ object Shortcut {
 case class ModuleReference(
   libraryName: LibraryName,
   moduleName: ModuleName
-)
+) {
+
+  /** The qualified name of the library consists of its prefix and name
+    * separated with a dot.
+    */
+  def qualifiedName: String =
+    s"$libraryName${LibraryName.separator}${moduleName.name}"
+
+  /** @inheritdoc */
+  override def toString: String = qualifiedName
+
+}
 object ModuleReference {
 
   private def toModuleString(moduleReference: ModuleReference): String = {
