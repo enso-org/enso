@@ -97,10 +97,6 @@ const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 
-const NODE_PLACEMENT_AREA_ABOVE: f32 = 7.0;
-const NODE_PLACEMENT_AREA_BELOW: f32 = 50.0;
-const NODE_PLACEMENT_AREA_SIDE: f32 = 5.0;
-
 fn traffic_lights_gap_width() -> f32 {
     let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
     let is_frameless = ARGS.frame == Some(false);
@@ -1753,15 +1749,25 @@ impl GraphEditorModel {
             let node_right = node_position.x + node.model.width();
             let node_top = node_position.y + node.model.height() / 2.0;
             let node_bottom = node_position.y - node.model.height() / 2.0;
-            let area_left = node_left - NODE_PLACEMENT_AREA_SIDE;
-            let area_right = node_right + NODE_PLACEMENT_AREA_SIDE;
-            let area_top = node_top + NODE_PLACEMENT_AREA_ABOVE;
-            let area_bottom = node_bottom - NODE_PLACEMENT_AREA_BELOW;
-            let placement_area = selection::BoundingBox::from_corners(
-                Vector2(area_left, area_top),
-                Vector2(area_right, area_bottom),
+            use theme::graph_editor::new_node_restricted_placement_area as restricted_area_theme;
+            let restricted_space_left_style = restricted_area_theme::to_the_left_of_reference_node;
+            let restricted_space_right_style = restricted_area_theme::to_the_right_of_reference_node;
+            let restricted_space_above_style = restricted_area_theme::above_reference_node;
+            let restricted_space_below_style = restricted_area_theme::below_reference_node;
+            let styles = &self.styles_frp;
+            let restricted_space_left = styles.get_number_or(restricted_space_left_style, 0.0);
+            let restricted_space_right = styles.get_number_or(restricted_space_right_style, 0.0);
+            let restricted_space_above = styles.get_number_or(restricted_space_above_style, 0.0);
+            let restricted_space_below = styles.get_number_or(restricted_space_below_style, 0.0);
+            let restricted_x_min = node_left - restricted_space_left.value();
+            let restricted_x_max = node_right + restricted_space_right.value();
+            let restricted_y_max = node_top + restricted_space_above.value();
+            let restricted_y_min = node_bottom - restricted_space_below.value();
+            let restricted_area = selection::BoundingBox::from_corners(
+                Vector2(restricted_x_min, restricted_y_min),
+                Vector2(restricted_x_max, restricted_y_max),
             );
-            placement_area.contains(mouse_position)
+            restricted_area.contains(mouse_position)
         });
         match position_guiding_node {
             Some(node) => self.find_free_place_under(node.id()),
