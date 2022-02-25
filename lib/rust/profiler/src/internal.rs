@@ -97,8 +97,8 @@ impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
     }
     fn take_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>> {
         let entries = self.entries.take_all();
-        let entries = entries.into_iter().map(|data|
-            serde_json::value::to_raw_value(&data).unwrap());
+        let entries =
+            entries.into_iter().map(|data| serde_json::value::to_raw_value(&data).unwrap());
         Box::new(entries)
     }
 }

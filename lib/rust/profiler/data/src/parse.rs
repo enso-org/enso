@@ -155,42 +155,57 @@ impl error::Error for Expected {}
 // === MeasurementBuilder ===
 // ==========================
 
-// NOTE[kw]: Some of the logic around starts/ends is more complicated than if we accumulated rawer
-// info on pauses/resumes. It works, but if related changes need to be made let's refactor it.
-
 /// Used while gathering information about a profiler.
 struct MeasurementBuilder<M> {
     label:          crate::Label,
-    created_paused: Option<crate::Mark>,
-    finished:       bool,
-    starts:         Vec<crate::Mark>,
-    ends:           Vec<crate::Mark>,
+    created:        crate::Mark,
+    created_paused: bool,
+    pauses:         Vec<crate::Mark>,
+    resumes:        Vec<crate::Mark>,
+    end:            Option<crate::Mark>,
     state:          State,
     metadata:       Vec<crate::Metadata<M>>,
 }
 
 impl<M> MeasurementBuilder<M> {
     fn build(self) -> crate::Measurement<M> {
-        let MeasurementBuilder { label, starts, ends, metadata, created_paused, finished, state } =
-            self;
-        let mut ends = ends.into_iter().fuse();
-        let active: Vec<_> =
-            starts.into_iter().map(|start| crate::Interval { start, end: ends.next() }).collect();
-        let children = Vec::new();
-        let is_paused = matches!(state, State::Paused(_));
+        let MeasurementBuilder {
+            label,
+            pauses,
+            resumes,
+            metadata,
+            created,
+            created_paused,
+            end,
+            state: _,
+        } = self;
         // A profiler is considered async if:
-        // - It was created in a non-running state (so, `#[profile] async fn` is always async).
-        // - It ever awaited (i.e. it has more than one active interval).
-        // - It suspended, and never awaited.
-        let lifetime = if created_paused.is_none() && active.len() == 1 && !is_paused {
-            crate::Lifetime::NonAsync { active: *active.first().unwrap() }
-        } else {
+        // - It was created in a non-running state (occurs when a `#[profile] async fn` is called).
+        // - It ever awaited.
+        let lifetime = if created_paused || !pauses.is_empty() {
+            let mut starts = resumes;
+            if !created_paused {
+                starts.insert(0, created);
+            }
+            let mut ends = pauses;
+            if let Some(end) = end {
+                ends.push(end);
+            }
+            let mut ends = ends.into_iter().fuse();
+            let active: Vec<_> = starts
+                .into_iter()
+                .map(|start| crate::Interval { start, end: ends.next() })
+                .collect();
             crate::Lifetime::Async(crate::AsyncLifetime {
-                created: created_paused,
+                created: if created_paused { Some(created) } else { None },
                 active,
-                finished,
+                finished: end.is_some(),
             })
+        } else {
+            let active = crate::Interval { start: created, end };
+            crate::Lifetime::NonAsync { active }
         };
+        let children = Vec::new();
         crate::Measurement { lifetime, label, children, metadata }
     }
 }
@@ -207,6 +222,15 @@ pub enum State {
     Paused(id::Runtime),
     /// Ended. Id of End event is included.
     Ended(id::Runtime),
+}
+
+impl State {
+    fn start(start_state: profiler::internal::StartState, pos: id::Runtime) -> Self {
+        match start_state {
+            profiler::internal::StartState::Active => Self::Active(pos),
+            profiler::internal::StartState::Paused => Self::Paused(pos),
+        }
+    }
 }
 
 
@@ -231,12 +255,13 @@ impl<M> Default for LogVisitor<M> {
     fn default() -> Self {
         let root_builder = MeasurementBuilder {
             label:          "APP_LIFETIME (?:?)".parse().unwrap(),
-            created_paused: Default::default(),
-            finished:       Default::default(),
             state:          State::Active(id::Runtime(0)), // value doesn't matter
-            starts:         vec![crate::Mark::time_origin()],
-            ends:           Default::default(),
+            created:        crate::Mark::time_origin(),
+            created_paused: Default::default(),
             metadata:       Default::default(),
+            pauses:         Default::default(),
+            resumes:        Default::default(),
+            end:            Default::default(),
         };
         Self {
             active: Default::default(),
@@ -293,25 +318,17 @@ impl<M> LogVisitor<M> {
             Some(time) => crate::Mark { seq: pos.into(), time },
             None => self.inherit_start(parent)?,
         };
-        let state = match start_state {
-            profiler::internal::StartState::Active => State::Active(pos),
-            profiler::internal::StartState::Paused => State::Paused(pos),
-        };
-        let created_paused = match start_state {
-            profiler::internal::StartState::Paused => Some(start),
-            profiler::internal::StartState::Active => None,
-        };
-        let mut builder = MeasurementBuilder {
-            label: event.label.to_string().parse()?,
-            created_paused,
-            finished: Default::default(),
-            state,
-            starts: Default::default(),
-            ends: Default::default(),
-            metadata: Default::default(),
+        let builder = MeasurementBuilder {
+            label:          event.label.to_string().parse()?,
+            created:        start,
+            created_paused: matches!(start_state, profiler::internal::StartState::Paused),
+            state:          State::start(start_state, pos),
+            pauses:         Default::default(),
+            resumes:        Default::default(),
+            end:            Default::default(),
+            metadata:       Default::default(),
         };
         if start_state == profiler::internal::StartState::Active {
-            builder.starts.push(start);
             self.active.push(pos);
         }
         self.order.push((pos, parent));
@@ -329,9 +346,7 @@ impl<M> LogVisitor<M> {
         let current_profiler = self.active.pop().ok_or(DataError::ActiveProfilerRequired)?;
         check_profiler(id, current_profiler)?;
         let measurement = &mut self.builders.get_mut(&current_profiler).unwrap();
-        let mark = crate::Mark { seq: pos.into(), time };
-        measurement.finished = true;
-        measurement.ends.push(mark);
+        measurement.end = Some(crate::Mark { seq: pos.into(), time });
         match mem::replace(&mut measurement.state, State::Ended(pos)) {
             State::Active(_) => (),
             state => return Err(DataError::UnexpectedState(state)),
@@ -350,7 +365,7 @@ impl<M> LogVisitor<M> {
         self.check_no_async_task_active()?;
         let mark = crate::Mark { seq: pos.into(), time };
         let measurement = &mut self.builders.get_mut(&current_profiler).unwrap();
-        measurement.ends.push(mark);
+        measurement.pauses.push(mark);
         match mem::replace(&mut measurement.state, State::Paused(pos)) {
             State::Active(_) => (),
             state => return Err(DataError::UnexpectedState(state)),
@@ -372,7 +387,7 @@ impl<M> LogVisitor<M> {
         self.active.push(start_id);
         let mark = crate::Mark { seq: pos.into(), time };
         let measurement = &mut self.builders.get_mut(&start_id).ok_or(DataError::IdNotFound)?;
-        measurement.starts.push(mark);
+        measurement.resumes.push(mark);
         match mem::replace(&mut measurement.state, State::Active(pos)) {
             State::Paused(_) => (),
             state => return Err(DataError::UnexpectedState(state)),
@@ -426,11 +441,14 @@ impl<M> LogVisitor<M> {
     fn inherit_start(&self, parent: id::Explicit) -> Result<crate::Mark, DataError> {
         Ok(match parent {
             id::Explicit::AppLifetime => crate::Mark::time_origin(),
-            id::Explicit::Runtime(pos) =>
-                match self.builders.get(&pos).ok_or(DataError::IdNotFound)?.starts.first() {
-                    Some(start) => *start,
-                    None => return Err(DataError::ExpectedStarted),
-                },
+            id::Explicit::Runtime(pos) => {
+                let measurement = self.builders.get(&pos).ok_or(DataError::IdNotFound)?;
+                if measurement.created_paused {
+                    *measurement.resumes.first().ok_or(DataError::ExpectedStarted)?
+                } else {
+                    measurement.created
+                }
+            }
         })
     }
 
