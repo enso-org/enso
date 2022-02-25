@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
+from Standard.Table.Data.Column as Column_Module import Column
 from Standard.Table.Data.Group_By import Group_By_Key
 
 ## Defines an Aggregate Column
@@ -86,7 +86,7 @@ type Aggregate_Column
        Given a column reference resolve to the underlying column
     resolve_column : Table->(Column|Text|Integer)->Column
     resolve_column table column = case column of
-        Column -> table.at (column.name)
+        Column _ -> table.at (column.name)
         Text -> table.at column
         Integer -> table.columns.at column
 
@@ -102,56 +102,42 @@ type Aggregate_Column
         _ -> 0
 
     make_aggregator : Table->(Any->Integer->Any)
-    make_aggregator table = case this of
-        Count _ -> count->_->(count+1)
-        Count_Not_Null c _ ->
+    make_aggregator table =
+        create_closure c function =
             col = this.resolve_column table c
-            count->i->(count + if (col.at i).is_nothing then 0 else 1)
-        Count_Null c _ ->
-            col = this.resolve_column table c
-            count->i->(count + if (col.at i).is_nothing then 1 else 0)
-        Count_Not_Empty c _ ->
-            col = this.resolve_column table c
-            count->i->(count + if (col.at i).is_nothing then 0 else 1)
-        Count_Empty c _ ->
-            col = this.resolve_column table c
-            count->i->(count + if (col.at i).is_nothing then 1 else 0)
-        Sum c _ ->
-            col = this.resolve_column table c
-            total->i->
+            function col
+
+        is_empty s = if s.is_nothing then True else case s of
+            Text -> s.is_empty
+            _ -> Error.throw (Invalid_Aggregation_Method this.col "Empty is only valid for Text")
+
+        case this of
+            Count _ -> count->_->(count+1)
+            Count_Not_Null c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 0 else 1)
+            Count_Null c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
+            Count_Not_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 0 else 1)
+            Count_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 1 else 0)
+            First c _ -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
+            Last c _ -> create_closure c col->_->i->(col.at i)
+            Sum c _ -> create_closure c col->total->i->
                 v = col.at i
                 (total + if v.is_nothing then 0 else v)
-        Average c _ ->
-            col = this.resolve_column table c
-            a->i->
+            Average c _ -> create_closure c col->a->i->
                 v = col.at i
                 (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v])
-        Standard_Deviation c _ _ ->
-            col = this.resolve_column table c
-            a->i->
+            Standard_Deviation c _ _ -> create_closure c col->a->i->
                 v = col.at i
                 (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v, (a.at 2) + v*v])
-        Concatenate c _ j _ _ ->
-            col = this.resolve_column table c
-            text->i->
+            Concatenate c _ j _ _ -> create_closure c col->text->i->
                 val=if (col.at i).is_nothing then "" else (col.at i).to_text
                 if i==0 then val else (text + j + val)
-        First c _ ->
-            col = this.resolve_column table c
-            current->i->(if i==0 then (col.at i) else current)
-        Last c _ ->
-            col = this.resolve_column table c
-            _->i->(col.at i)
-        Count_Distinct columns _ ->
-            resolved = columns.map c->(this.resolve_column table c)
-            key_maker i = Group_By_Key (resolved.map c->(c.at i))
-            map->i->(map.insert (key_maker i) 1)
-        Median c _ ->
-            col = this.resolve_column table c
-            map->i->
+            Median c _ -> create_closure c col->map->i->
                 val = col.at i
-                if val.is_nothing then map else
-                    map.insert val (1 + (map.get_or_else val 0))
+                if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
+            Count_Distinct columns _ ->
+                resolved = columns.map c->(this.resolve_column table c)
+                key_maker i = Group_By_Key (resolved.map c->(c.at i))
+                map->i->(map.insert (key_maker i) 1)
 
     evaluate : Any->Any
     evaluate value = case this of
@@ -159,6 +145,14 @@ type Aggregate_Column
         Median _ _ -> (Error.throw "Not in prototype")
         Average _ _ -> if (value.at 0) == 0 then Nothing else (value.at 1 / value.at 0)
         Standard_Deviation _ _ p -> if (value.at 0) == 0 then Nothing else
-            (value.at 2/value.at 0 - (value.at 1/value.at 0)^2).sqrt
+            (value.at 2/value.at 0 - (value.at 1/value.at 0)^2).sqrt * (if p then 1 else 1)
         Concatenate _ _ _ s p -> if value.is_nothing then value else (s + value + p)
         _ -> value
+
+
+## Occurs when cannot aggregate a column
+type Invalid_Aggregation_Method (column : Text) (message : Text)
+
+Invalid_Aggregation_Method.to_display_text : Text
+Invalid_Aggregation_Method.to_display_text =
+    "The aggregate column "+this.column+" resulted in an error: "+this.message

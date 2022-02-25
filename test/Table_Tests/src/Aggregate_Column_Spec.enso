@@ -1,0 +1,55 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Table
+from Standard.Table.Data.Aggregate_Column import all
+
+import Standard.Test
+
+spec = Test.group "Aggregate Columns" <|
+    simple_table = Table.new [["count", [1, 2, Nothing, 3]], ["is_valid", [True, False, True, False]], ["text", ["A", "", Nothing, "B"]]]
+    text_col = simple_table.at "text"
+    empty_table  = Table.new [["count", []], ["is_valid", []], ["text", []]]
+
+    test_name = "Test Column"
+
+    test_aggregator table col expected_name expected_result =
+        col.column_name table . should_equal expected_name
+
+        acc = col.make_aggregator table
+        folded_value = 0.up_to table.row_count . fold col.initial_value acc
+        col.evaluate folded_value . should_equal expected_result
+
+    Test.specify "should be able to count a set" <|
+        test_aggregator simple_table (Count Nothing) "Count" simple_table.row_count
+        test_aggregator simple_table (Count test_name) test_name simple_table.row_count
+        test_aggregator empty_table (Count test_name) test_name empty_table.row_count
+
+    Test.specify "should be able to count NULLs in a set" <|
+        test_aggregator simple_table (Count_Null 0) "Count Null count" 1
+        test_aggregator simple_table (Count_Null 0 test_name) test_name 1
+        test_aggregator simple_table (Count_Null "text" test_name) test_name 1
+        test_aggregator simple_table (Count_Null text_col test_name) test_name 1
+        test_aggregator empty_table (Count_Null 0 test_name) test_name empty_table.row_count
+
+    Test.specify "should be able to count not NULLs in a set" <|
+        test_aggregator simple_table (Count_Not_Null 0) "Count NotNull count" 3
+        test_aggregator simple_table (Count_Not_Null 0 test_name) test_name 3
+        test_aggregator simple_table (Count_Not_Null "text" test_name) test_name 3
+        test_aggregator simple_table (Count_Not_Null text_col test_name) test_name 3
+        test_aggregator empty_table (Count_Not_Null 0 test_name) test_name empty_table.row_count
+
+    Test.specify "should be able to count empties in a set of Texts" <|
+        test_aggregator simple_table (Count_Empty -1) "Count Empty text" 2
+        test_aggregator simple_table (Count_Empty -1 test_name) test_name 2
+        test_aggregator simple_table (Count_Empty "text" test_name) test_name 2
+        test_aggregator simple_table (Count_Empty text_col test_name) test_name 2
+        test_aggregator empty_table (Count_Empty 0 test_name) test_name empty_table.row_count
+
+    Test.specify "should be able to count non empties in a set of Texts" <|
+        test_aggregator simple_table (Count_Not_Empty -1) "Count Not Empty text" 2
+        test_aggregator simple_table (Count_Not_Empty -1 test_name) test_name 2
+        test_aggregator simple_table (Count_Not_Empty "text" test_name) test_name 2
+        test_aggregator simple_table (Count_Not_Empty text_col test_name) test_name 2
+        test_aggregator empty_table (Count_Not_Empty 0 test_name) test_name empty_table.row_count
+
+main = Test.Suite.run_main here.spec
