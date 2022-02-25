@@ -1751,7 +1751,8 @@ impl GraphEditorModel {
             let node_bottom = node_position.y - node.model.height() / 2.0;
             use theme::graph_editor::new_node_restricted_placement_area as restricted_area_theme;
             let restricted_space_left_style = restricted_area_theme::to_the_left_of_reference_node;
-            let restricted_space_right_style = restricted_area_theme::to_the_right_of_reference_node;
+            let restricted_space_right_style =
+                restricted_area_theme::to_the_right_of_reference_node;
             let restricted_space_above_style = restricted_area_theme::above_reference_node;
             let restricted_space_below_style = restricted_area_theme::below_reference_node;
             let styles = &self.styles_frp;
