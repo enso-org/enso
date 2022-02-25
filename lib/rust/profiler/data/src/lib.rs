@@ -72,7 +72,7 @@
 //!     }
 //!
 //!     // Obtain log data directly; it could also be deserialized from a file.
-//!     let log = profiler::take_log();
+//!     let log = profiler::internal::take_log();
 //!     // Parse the log. Interpret metadata according to the enum defined above.
 //!     let root: profiler_data::Measurement<MyMetadata> = log.parse().unwrap();
 //!     // Verify the MyData object is present and attached to the right profiler.
@@ -89,10 +89,10 @@
 //!
 //! # Limitations
 //!
-//! [`LogVisitor::check_no_async_task_active`] checks for a type of API misuse error, but currently
-//! also disallows running an async profiler during the lifetime of a non-async parent. The only way
-//! that could occur is with the use of `block_on`, which is never used in the Enso codebase except
-//! in tests.
+//! [`parse::LogVisitor::check_no_async_task_active`] checks for a type of API misuse error, but
+//! currently also disallows running an async profiler during the lifetime of a non-async parent.
+//! The only way that could occur is with the use of `block_on`, which is never used in the Enso
+//! codebase except in tests.
 
 #![feature(test)]
 #![deny(unconditional_recursion)]
@@ -105,13 +105,13 @@
 #![warn(unused_import_braces)]
 
 use enso_profiler as profiler;
-use profiler::id;
 
-use std::collections;
 use std::error;
 use std::fmt;
-use std::mem;
-use std::str;
+
+pub mod parse;
+
+
 
 // =============
 // === Error ===
@@ -127,13 +127,19 @@ pub enum Error<M> {
     ///
     /// For an example of handling a recoverable failure, see `tests::skip_failed_metadata`.
     RecoverableFormatError {
-        /// Deserialization errors for each metadata that failed to parse.
+        /// Deserialization errors for each Event that failed to parse.
         errors:            Vec<EventError<serde_json::Error>>,
-        /// The core data. One metadata object will be missing for each error above.
-        with_missing_data: Result<Measurement<M>, EventError<DataError>>,
+        /// The core data.
+        ///
+        /// If the `errors` all relate to metadata events, the remaining data will be
+        /// available here, with one metadata object missing for each error.
+        ///
+        /// If some errors are not metadata errors, the readable subset of events might not form a
+        /// valid log, and this will contain an error too.
+        with_missing_data: Result<Measurement<M>, EventError<parse::DataError>>,
     },
     /// Failed to interpret the event log data.
-    DataError(EventError<DataError>),
+    DataError(EventError<parse::DataError>),
 }
 
 impl<M> fmt::Display for Error<M> {
@@ -285,62 +291,6 @@ impl AsyncLifetime {
 }
 
 
-// === Parsing ===
-
-impl<M: serde::de::DeserializeOwned> str::FromStr for Measurement<M> {
-    type Err = Error<M>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // First just decode the array structure, so we can skip any metadata events that fail.
-        let log: Vec<&serde_json::value::RawValue> =
-            serde_json::from_str(s).map_err(Error::FormatError)?;
-        let mut errors = Vec::new();
-        let mut events = Vec::with_capacity(log.len());
-        for (i, entry) in log.into_iter().enumerate() {
-            match serde_json::from_str::<profiler::Event<M, String>>(entry.get()) {
-                Ok(event) => events.push(event),
-                Err(error) => errors.push(EventError { log_pos: i, error }),
-            }
-        }
-        let result = interpret(events);
-        if errors.is_empty() {
-            result.map_err(|e| Error::DataError(e))
-        } else {
-            Err(Error::RecoverableFormatError { errors, with_missing_data: result })
-        }
-    }
-}
-
-/// Process a log of events, producing a hierarchy of measurements.
-///
-/// Returns an error if the log cannot be interpreted.
-fn interpret<M>(
-    events: impl IntoIterator<Item = profiler::Event<M, OwnedLabel>>,
-) -> Result<Measurement<M>, EventError<DataError>> {
-    // Process log into data about each measurement, and data about relationships.
-    let LogVisitor { builders, order, root_builder, .. } = LogVisitor::visit(events)?;
-    // Build measurements from accumulated measurement data.
-    let mut measurements: collections::HashMap<_, _> =
-        builders.into_iter().map(|(k, v)| (k, v.build())).collect();
-    // Organize measurements into trees.
-    let mut root = root_builder.build();
-    for (id, parent) in order.into_iter().rev() {
-        let child = measurements.remove(&id).unwrap();
-        let parent = match parent {
-            id::Explicit::AppLifetime => &mut root.children,
-            id::Explicit::Runtime(pos) =>
-                &mut measurements
-                    .get_mut(&pos)
-                    .ok_or(DataError::IdNotFound)
-                    .map_err(|e| EventError { log_pos: id.0 as usize, error: e })?
-                    .children,
-        };
-        parent.push(child);
-    }
-    Ok(root)
-}
-
-
 
 // ================
 // === Metadata ===
@@ -365,7 +315,7 @@ pub struct Metadata<M> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Mark {
     seq:  Seq,
-    time: profiler::Timestamp,
+    time: profiler::internal::Timestamp,
 }
 
 impl Mark {
@@ -425,14 +375,6 @@ pub struct Label {
     pub pos:  Option<CodePos>,
 }
 
-impl str::FromStr for Label {
-    type Err = Expected;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (name, pos) = s.rsplit_once(' ').ok_or(Expected(" "))?;
-        Ok(Self { name: name.to_owned(), pos: CodePos::parse(pos)? })
-    }
-}
-
 
 // === CodePos ===
 
@@ -444,373 +386,62 @@ pub struct CodePos {
     /// A line number within the file.
     pub line: u32,
 }
-impl CodePos {
-    fn parse(s: &str) -> Result<Option<Self>, Expected> {
-        let (file, line) = s.rsplit_once(':').ok_or(Expected(":"))?;
-        let file = file.strip_prefix('(').ok_or(Expected("("))?;
-        let line = line.strip_suffix(')').ok_or(Expected(")"))?;
-        Ok(if file == "?" {
-            None
-        } else {
-            Some(Self {
-                file: file.to_owned(),
-                line: line.parse().map_err(|_| Expected("line number"))?,
-            })
-        })
-    }
-}
 
 
 
-// ==========================
-// === MeasurementBuilder ===
-// ==========================
+// ==========
+// === id ===
+// ==========
 
-/// Used while gathering information about a profiler.
-struct MeasurementBuilder<M> {
-    label:          Label,
-    created_paused: Option<Mark>,
-    finished:       bool,
-    starts:         Vec<Mark>,
-    ends:           Vec<Mark>,
-    state:          State,
-    metadata:       Vec<Metadata<M>>,
-}
+/// Facilities for classifying an event ID into subtypes.
+///
+/// The [`profiler::EventId`] type can be logically broken down into different subtypes, but in the
+/// event log subtypes are not differentiated so that all EventIDs can be easily packed into a
+/// small scalar. This module supports unpacking an EventID.
+pub mod id {
+    use enso_profiler as profiler;
 
-impl<M> MeasurementBuilder<M> {
-    fn build(self) -> Measurement<M> {
-        let MeasurementBuilder { label, starts, ends, metadata, created_paused, finished, state } =
-            self;
-        let mut ends = ends.into_iter().fuse();
-        let active: Vec<_> =
-            starts.into_iter().map(|start| Interval { start, end: ends.next() }).collect();
-        let children = Vec::new();
-        let is_paused = matches!(state, State::Paused(_));
-        // A profiler is considered async if:
-        // - It was created in a non-running state (so, `#[profile] async fn` is always async).
-        // - It ever awaited (i.e. it has more than one active interval).
-        // - It suspended, and never awaited.
-        let lifetime = if created_paused.is_none() && active.len() == 1 && !is_paused {
-            Lifetime::NonAsync { active: *active.first().unwrap() }
-        } else {
-            Lifetime::Async(AsyncLifetime { created: created_paused, active, finished })
-        };
-        Measurement { lifetime, label, children, metadata }
-    }
-}
-
-
-// === State ===
-
-/// Used to validate state transitions.
-#[derive(Debug, Copy, Clone)]
-pub enum State {
-    /// Started and not paused or ended; id of most recent Start or Resume event is included.
-    Active(id::Runtime),
-    /// Paused. Id of Pause or StartPaused event is included.
-    Paused(id::Runtime),
-    /// Ended. Id of End event is included.
-    Ended(id::Runtime),
-}
-
-
-
-// =================
-// === DataError ===
-// =================
-
-/// A problem with the input data.
-#[derive(Debug)]
-pub enum DataError {
-    /// A profiler was in the wrong state for a certain event to occur.
-    UnexpectedState(State),
-    /// A reference was not able to be resolved.
-    IdNotFound,
-    /// An EventId that should have been a runtime event was IMPLICIT or APP_LIFETIME.
-    RuntimeIdExpected(profiler::id::Event),
-    /// A parse error.
-    UnexpectedToken(Expected),
-    /// An event that should only occur during the lifetime of a profiler didn't find any profiler.
-    ActiveProfilerRequired,
-    /// An event expected to refer to a certain profiler referred to a different profiler.
-    /// This can occur for events that include a profiler ID as a consistency check, but only
-    /// have one valid referent (e.g. [`profiler::Event::End`] must end the current profiler.)
-    WrongProfiler {
-        /// The profiler that was referred to.
-        found:    id::Runtime,
-        /// The only valid profiler for the event to refer to.
-        expected: id::Runtime,
-    },
-    /// Profiler(s) were active at a time none were expected.
-    ExpectedEmptyStack(Vec<id::Runtime>),
-    /// A profiler was expected to have started before a related event occurred.
-    ExpectedStarted,
-}
-
-impl fmt::Display for DataError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl error::Error for DataError {}
-
-impl From<Expected> for DataError {
-    fn from(inner: Expected) -> Self {
-        DataError::UnexpectedToken(inner)
-    }
-}
-
-
-// === Expected ===
-
-/// Parsing error: expected a different token.
-#[derive(Debug, Copy, Clone)]
-pub struct Expected(&'static str);
-
-impl fmt::Display for Expected {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
-
-impl error::Error for Expected {}
-
-
-
-// ==================
-// === LogVisitor ===
-// ==================
-
-/// Gathers data while visiting a series of [`profiler::Event`]s.
-struct LogVisitor<M> {
-    /// Stack of active profilers, for keeping track of the current profiler.
-    active:       Vec<id::Runtime>,
-    /// Accumulated data pertaining to each profiler.
-    builders:     collections::HashMap<id::Runtime, MeasurementBuilder<M>>,
-    /// Accumulated data pertaining to the root event.
-    root_builder: MeasurementBuilder<M>,
-    /// Ids and parents, in same order as event log.
-    order:        Vec<(id::Runtime, id::Explicit)>,
-}
-
-impl<M> Default for LogVisitor<M> {
-    fn default() -> Self {
-        let root_builder = MeasurementBuilder {
-            label:          "APP_LIFETIME (?:?)".parse().unwrap(),
-            created_paused: Default::default(),
-            finished:       Default::default(),
-            state:          State::Active(id::Runtime(0)), // value doesn't matter
-            starts:         vec![Mark::time_origin()],
-            ends:           Default::default(),
-            metadata:       Default::default(),
-        };
-        Self {
-            active: Default::default(),
-            builders: Default::default(),
-            root_builder,
-            order: Default::default(),
-        }
-    }
-}
-
-impl<M> LogVisitor<M> {
-    /// Convert the log into data about each measurement.
-    fn visit(
-        events: impl IntoIterator<Item = profiler::Event<M, OwnedLabel>>,
-    ) -> Result<Self, EventError<DataError>> {
-        let mut visitor = Self::default();
-        for (i, event) in events.into_iter().enumerate() {
-            let log_pos = id::Runtime(i as u32);
-            let result = match event {
-                profiler::Event::Start(event) =>
-                    visitor.visit_start(log_pos, event, profiler::StartState::Active),
-                profiler::Event::StartPaused(event) =>
-                    visitor.visit_start(log_pos, event, profiler::StartState::Paused),
-                profiler::Event::End { id, timestamp } => visitor.visit_end(log_pos, id, timestamp),
-                profiler::Event::Pause { id, timestamp } =>
-                    visitor.visit_pause(log_pos, id, timestamp),
-                profiler::Event::Resume { id, timestamp } =>
-                    visitor.visit_resume(log_pos, id, timestamp),
-                profiler::Event::Metadata(metadata) => visitor.visit_metadata(log_pos, metadata),
-            };
-            result.map_err(|error| EventError { log_pos: i, error })?;
-        }
-        Ok(visitor)
-    }
-}
-
-
-// === Handlers for each event ===
-
-impl<M> LogVisitor<M> {
-    fn visit_start(
-        &mut self,
-        pos: id::Runtime,
-        event: profiler::Start<OwnedLabel>,
-        start_state: profiler::StartState,
-    ) -> Result<(), DataError> {
-        let parent = match event.parent.into() {
-            id::Event::Explicit(parent) => parent,
-            id::Event::Implicit => self.current_profiler(),
-        };
-        let start = match event.start {
-            Some(time) => Mark { seq: pos.into(), time },
-            None => self.inherit_start(parent)?,
-        };
-        let state = match start_state {
-            profiler::StartState::Active => State::Active(pos),
-            profiler::StartState::Paused => State::Paused(pos),
-        };
-        let created_paused = match start_state {
-            profiler::StartState::Paused => Some(start),
-            profiler::StartState::Active => None,
-        };
-        let mut builder = MeasurementBuilder {
-            label: event.label.to_string().parse()?,
-            created_paused,
-            finished: Default::default(),
-            state,
-            starts: Default::default(),
-            ends: Default::default(),
-            metadata: Default::default(),
-        };
-        if start_state == profiler::StartState::Active {
-            builder.starts.push(start);
-            self.active.push(pos);
-        }
-        self.order.push((pos, parent));
-        let old = self.builders.insert(pos, builder);
-        assert!(old.is_none());
-        Ok(())
+    /// An reference to an event. This type classifies [`profiler::EventId`]; they have a 1:1
+    /// correspondence.
+    #[derive(Copy, Clone, Debug)]
+    pub enum Event {
+        /// An unspecified ID that must be inferred from context.
+        Implicit,
+        /// A specific ID.
+        Explicit(Explicit),
     }
 
-    fn visit_end(
-        &mut self,
-        pos: id::Runtime,
-        id: profiler::EventId,
-        time: profiler::Timestamp,
-    ) -> Result<(), DataError> {
-        let current_profiler = self.active.pop().ok_or(DataError::ActiveProfilerRequired)?;
-        check_profiler(id, current_profiler)?;
-        let measurement = &mut self.builders.get_mut(&current_profiler).unwrap();
-        let mark = Mark { seq: pos.into(), time };
-        measurement.finished = true;
-        measurement.ends.push(mark);
-        match mem::replace(&mut measurement.state, State::Ended(pos)) {
-            State::Active(_) => (),
-            state => return Err(DataError::UnexpectedState(state)),
-        }
-        Ok(())
-    }
-
-    fn visit_pause(
-        &mut self,
-        pos: id::Runtime,
-        id: profiler::EventId,
-        time: profiler::Timestamp,
-    ) -> Result<(), DataError> {
-        let current_profiler = self.active.pop().ok_or(DataError::ActiveProfilerRequired)?;
-        check_profiler(id, current_profiler)?;
-        self.check_no_async_task_active()?;
-        let mark = Mark { seq: pos.into(), time };
-        let measurement = &mut self.builders.get_mut(&current_profiler).unwrap();
-        measurement.ends.push(mark);
-        match mem::replace(&mut measurement.state, State::Paused(pos)) {
-            State::Active(_) => (),
-            state => return Err(DataError::UnexpectedState(state)),
-        }
-        Ok(())
-    }
-
-    fn visit_resume(
-        &mut self,
-        pos: id::Runtime,
-        id: profiler::EventId,
-        time: profiler::Timestamp,
-    ) -> Result<(), DataError> {
-        let start_id = match id.into() {
-            id::Event::Explicit(id::Explicit::Runtime(id)) => id,
-            id => return Err(DataError::RuntimeIdExpected(id)),
-        };
-        self.check_no_async_task_active()?;
-        self.active.push(start_id);
-        let mark = Mark { seq: pos.into(), time };
-        let measurement = &mut self.builders.get_mut(&start_id).ok_or(DataError::IdNotFound)?;
-        measurement.starts.push(mark);
-        match mem::replace(&mut measurement.state, State::Active(pos)) {
-            State::Paused(_) => (),
-            state => return Err(DataError::UnexpectedState(state)),
-        }
-        Ok(())
-    }
-
-    fn visit_metadata(
-        &mut self,
-        pos: id::Runtime,
-        metadata: profiler::Metadata<M>,
-    ) -> Result<(), DataError> {
-        let builder = match self.active.last() {
-            Some(profiler) => self.builders.get_mut(profiler).unwrap(),
-            None => &mut self.root_builder,
-        };
-        let profiler::Metadata { timestamp, data } = metadata;
-        let mark = Mark { seq: pos.into(), time: timestamp };
-        builder.metadata.push(Metadata { mark, data });
-        Ok(())
-    }
-}
-
-
-// === Helper types, functions, and methods ===
-
-type OwnedLabel = String;
-
-fn check_profiler(found: profiler::EventId, expected: id::Runtime) -> Result<(), DataError> {
-    let found = match found.into() {
-        id::Event::Explicit(id::Explicit::Runtime(id)) => id,
-        id => return Err(DataError::RuntimeIdExpected(id)),
-    };
-    if found != expected {
-        return Err(DataError::WrongProfiler { found, expected });
-    }
-    Ok(())
-}
-
-impl<M> LogVisitor<M> {
-    fn current_profiler(&self) -> id::Explicit {
-        match self.active.last() {
-            Some(&pos) => pos.into(),
-            None => id::Explicit::AppLifetime,
+    impl From<profiler::internal::EventId> for Event {
+        fn from(id: profiler::internal::EventId) -> Self {
+            if id == profiler::internal::EventId::IMPLICIT {
+                Event::Implicit
+            } else {
+                Event::Explicit(if id == profiler::internal::EventId::APP_LIFETIME {
+                    Explicit::AppLifetime
+                } else {
+                    Explicit::Runtime(Runtime(id.0))
+                })
+            }
         }
     }
 
-    fn inherit_start(&self, parent: id::Explicit) -> Result<Mark, DataError> {
-        Ok(match parent {
-            id::Explicit::AppLifetime => Mark::time_origin(),
-            id::Explicit::Runtime(pos) =>
-                match self.builders.get(&pos).ok_or(DataError::IdNotFound)?.starts.first() {
-                    Some(start) => *start,
-                    None => return Err(DataError::ExpectedStarted),
-                },
-        })
+    /// An explicit reference to an event.
+    #[derive(Copy, Clone, Debug)]
+    pub enum Explicit {
+        /// The parent of the real roots.
+        AppLifetime,
+        /// An event logged at runtime.
+        Runtime(Runtime),
     }
 
-    fn check_empty_stack(&self) -> Result<(), DataError> {
-        match self.active.is_empty() {
-            true => Ok(()),
-            false => Err(DataError::ExpectedEmptyStack(self.active.clone())),
+    /// An explicit reference to an event in the log.
+    #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+    pub struct Runtime(pub u32);
+
+    impl From<Runtime> for Explicit {
+        fn from(id: Runtime) -> Self {
+            Explicit::Runtime(id)
         }
-    }
-
-    /// Used to validate there is never more than one async task active simultaneously, which
-    /// would indicate that a low-level-profiled section has used an uninstrumented `.await`
-    /// expression.
-    fn check_no_async_task_active(&self) -> Result<(), DataError> {
-        // This simple check is conservative; it doesn't allow certain legal behavior, like an
-        // instrumented non-async function using block-on to run an instrumented async function,
-        // because support for that is unlikely to be needed.
-        self.check_empty_stack()
     }
 }
 
@@ -826,6 +457,14 @@ mod tests {
     use enso_profiler as profiler;
     use profiler::profile;
 
+    /// Black-box metadata object, for ignoring metadata contents.
+    #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+    pub(crate) enum OpaqueMetadata {
+        /// Anything.
+        #[serde(other)]
+        Unknown,
+    }
+
     #[test]
     fn profile_sync() {
         #[profile(Objective)]
@@ -837,8 +476,8 @@ mod tests {
             4
         }
         parent();
-        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
-            profiler::take_log().parse().unwrap();
+        let root: profiler_data::Measurement<OpaqueMetadata> =
+            profiler::internal::take_log().parse().unwrap();
         let roots = &root.children;
         assert_eq!(roots.len(), 1);
         assert!(roots[0].lifetime.finished());
@@ -867,8 +506,8 @@ mod tests {
         }
         let future = parent();
         futures::executor::block_on(future);
-        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
-            profiler::take_log().parse().unwrap();
+        let root: profiler_data::Measurement<OpaqueMetadata> =
+            profiler::internal::take_log().parse().unwrap();
         let roots = &root.children;
         assert_eq!(roots.len(), 1);
         assert!(roots[0].lifetime.finished());
@@ -898,35 +537,35 @@ mod tests {
         async fn func() {}
         // Create a Future, but don't await it.
         let _future = func();
-        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
-            profiler::take_log().parse().unwrap();
+        let root: profiler_data::Measurement<OpaqueMetadata> =
+            profiler::internal::take_log().parse().unwrap();
         assert!(!root.children[0].lifetime.finished());
     }
 
     #[test]
     fn unfinished_still_running() {
-        profiler::EventLog.start(
-            profiler::EventId::implicit(),
-            profiler::Label("unfinished (?:?)"),
+        profiler::internal::EventLog.start(
+            profiler::internal::EventId::implicit(),
+            profiler::internal::Label("unfinished (?:?)"),
             None,
-            profiler::StartState::Active,
+            profiler::internal::StartState::Active,
         );
-        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
-            profiler::take_log().parse().unwrap();
+        let root: profiler_data::Measurement<OpaqueMetadata> =
+            profiler::internal::take_log().parse().unwrap();
         assert!(!root.children[0].lifetime.finished());
     }
 
     #[test]
     fn unfinished_paused_never_resumed() {
-        let id = profiler::EventLog.start(
-            profiler::EventId::implicit(),
-            profiler::Label("unfinished (?:?)"),
+        let id = profiler::internal::EventLog.start(
+            profiler::internal::EventId::implicit(),
+            profiler::internal::Label("unfinished (?:?)"),
             None,
-            profiler::StartState::Active,
+            profiler::internal::StartState::Active,
         );
-        profiler::EventLog.pause(id, profiler::Timestamp::now());
-        let root: profiler_data::Measurement<profiler::OpaqueMetadata> =
-            profiler::take_log().parse().unwrap();
+        profiler::internal::EventLog.pause(id, profiler::internal::Timestamp::now());
+        let root: profiler_data::Measurement<OpaqueMetadata> =
+            profiler::internal::take_log().parse().unwrap();
         assert!(!root.children[0].lifetime.finished(), "{:?}", &root);
     }
 
@@ -951,7 +590,7 @@ mod tests {
             MyDataA(MyDataA),
             MyDataB(MyDataBExpected),
         }
-        let log = profiler::take_log();
+        let log = profiler::internal::take_log();
         let root: Result<profiler_data::Measurement<MyMetadata>, _> = log.parse();
         let root = match root {
             Err(profiler_data::Error::RecoverableFormatError { errors, with_missing_data }) => {

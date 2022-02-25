@@ -144,458 +144,15 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+pub mod internal;
 pub mod log;
 
 extern crate test;
 
-use std::fmt;
-use std::num;
 use std::rc;
 use std::str;
 
-
-
-// =============
-// === Label ===
-// =============
-
-/// The label of a profiler; this includes the name given at its creation, along with file and
-/// line-number information.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Label<Storage>(pub Storage);
-
-impl<Storage: fmt::Display> fmt::Display for Label<Storage> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-/// Static-str label, suitable for writing.
-type StaticLabel = Label<&'static str>;
-
-
-
-// =================
-// === Timestamp ===
-// =================
-
-/// Time elapsed since the [time origin](https://www.w3.org/TR/hr-time-2/#sec-time-origin).
-///
-/// Stored in units of 100us, because that is maximum resolution of performance.now():
-/// - [in the specification](https://www.w3.org/TR/hr-time-3), 100us is the limit
-/// - in practice, as observed in debug consoles: Chromium 97 (100us) and Firefox 95 (1ms)
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
-pub struct Timestamp(num::NonZeroU64);
-
-/// Offset used to encode a timestamp, which may be 0, in a [`NonZeroU64`].
-/// To maximize the supported range, this is the smallest positive integer.
-const TS_OFFSET: u64 = 1;
-
-impl Timestamp {
-    /// Return the current time, relative to the time origin.
-    pub fn now() -> Self {
-        Self::from_ms(js::performance::now())
-    }
-
-    /// Return the timestamp corresponding to an offset from the time origin, in ms.
-    #[allow(unsafe_code)]
-    pub fn from_ms(ms: f64) -> Self {
-        let ticks = (ms * 10.0).round() as u64;
-        // Safety: ticks + 1 will not be 0 unless a Timestamp wraps.
-        // It takes (2 ** 64) * 100us = 58_455_453 years for a Timestamp to wrap.
-        unsafe { Self(num::NonZeroU64::new_unchecked(ticks + TS_OFFSET)) }
-    }
-
-    /// Return the timestamp of the time origin.
-    pub fn time_origin() -> Self {
-        Self::from_ms(0.0)
-    }
-
-    /// Convert to an offset from the time origin, in ms.
-    pub fn into_ms(self) -> f64 {
-        (self.0.get() - TS_OFFSET) as f64 / 10.0
-    }
-}
-
-impl Default for Timestamp {
-    fn default() -> Self {
-        Self::time_origin()
-    }
-}
-
-// === FFI ===
-
-#[cfg(target_arch = "wasm32")]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        use wasm_bindgen::prelude::*;
-
-        #[wasm_bindgen]
-        extern "C" {
-            /// The
-            /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-            /// method returns a double-precision float, measured in milliseconds.
-            ///
-            /// The returned value represents the time elapsed since the time origin, which is when
-            /// the page began to load.
-            #[wasm_bindgen(js_namespace = performance)]
-            pub fn now() -> f64;
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        /// The
-        /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-        /// method returns a double-precision float, measured in milliseconds.
-        ///
-        /// The returned value represents the time elapsed since the time origin, which is when
-        /// the page began to load.
-        // This mock implementation returns a dummy value.
-        pub fn now() -> f64 {
-            0.0
-        }
-    }
-}
-
-
-
-// ===============
-// === EventId ===
-// ===============
-
-/// Identifies an event in the profiling log.
-///
-/// This is a packed representation of [`id::Event`], whose structure better represents the types of
-/// event reference.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub struct EventId(u32);
-
-impl EventId {
-    /// Special value indicating that no explicit prior event is associated.
-    ///
-    /// When used to identify a parent, this indicates that the parent can be inferred to be the
-    /// current profiler.
-    pub const fn implicit() -> Self {
-        IMPLICIT_ID
-    }
-
-    /// Interpret this value.
-    pub fn into_event(self) -> id::Event {
-        if self == IMPLICIT_ID {
-            id::Event::Implicit
-        } else {
-            id::Event::Explicit(if self == APP_LIFETIME_ID {
-                id::Explicit::AppLifetime
-            } else {
-                id::Explicit::Runtime(id::Runtime(self.0))
-            })
-        }
-    }
-}
-
-
-// === mod id ===
-
-/// Facilities for interpreting an event ID.
-pub mod id {
-    /// An reference to an event. This type exists to interpret [`crate::EventId`], and they have a
-    /// 1:1 correspondence.
-    #[derive(Copy, Clone, Debug)]
-    pub enum Event {
-        /// An unspecified ID that must be inferred from context.
-        Implicit,
-        /// A specific ID.
-        Explicit(Explicit),
-    }
-
-    impl From<crate::EventId> for Event {
-        fn from(id: crate::EventId) -> Self {
-            id.into_event()
-        }
-    }
-
-    /// An explicit reference to an event.
-    #[derive(Copy, Clone, Debug)]
-    pub enum Explicit {
-        /// The parent of the real roots.
-        AppLifetime,
-        /// An event logged at runtime.
-        Runtime(Runtime),
-    }
-
-    /// An explicit reference to an event in the log.
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-    pub struct Runtime(pub u32);
-
-    impl From<Runtime> for Explicit {
-        fn from(id: Runtime) -> Self {
-            Explicit::Runtime(id)
-        }
-    }
-}
-
-
-// === Special Profilers / IDs ===
-
-const IMPLICIT_ID: EventId = EventId(u32::MAX);
-const APP_LIFETIME_ID: EventId = EventId(u32::MAX - 1);
-
-/// Pseudo-profiler serving as the root of the measurement hierarchy.
-pub const APP_LIFETIME: Objective = Objective(APP_LIFETIME_ID);
-
-
-
-// =======================
-// === StartedProfiler ===
-// =======================
-
-/// The interface supported by profiler-data objects.
-pub trait StartedProfiler {
-    /// Log the end of a measurement, with end-time set to now.
-    fn finish(self);
-}
-
-
-// === Implementation for enabled profilers ===
-
-impl StartedProfiler for EventId {
-    fn finish(self) {
-        let timestamp = Timestamp::now();
-        EventLog.end(self, timestamp);
-    }
-}
-
-
-// === Implementation for disabled profilers ===
-
-impl StartedProfiler for () {
-    fn finish(self) {}
-}
-
-
-
-// ================
-// === EventLog ===
-// ================
-
-/// The log of profiling events. Data is actually stored globally.
-#[derive(Copy, Clone, Debug)]
-pub struct EventLog;
-
-impl EventLog {
-    /// Log the beginning of a measurement.
-    pub fn start(
-        self,
-        parent: EventId,
-        label: StaticLabel,
-        start: Option<Timestamp>,
-        state: StartState,
-    ) -> EventId {
-        let m = Start { parent, label, start };
-        let event = match state {
-            StartState::Active => Event::Start(m),
-            StartState::Paused => Event::StartPaused(m),
-        };
-        let id = EVENTS.len() as u32;
-        EVENTS.append(event);
-        EventId(id)
-    }
-
-    /// Log the end of a measurement.
-    pub fn end(self, id: EventId, timestamp: Timestamp) {
-        let event = Event::End { id, timestamp };
-        EVENTS.append(event);
-    }
-
-    /// Log the beginning of an interval in which the measurement is not active.
-    pub fn pause(self, id: EventId, timestamp: Timestamp) {
-        let event = Event::Pause { id, timestamp };
-        EVENTS.append(event);
-    }
-
-    /// Log the end of an interval in which the measurement is not active.
-    pub fn resume(self, id: EventId, timestamp: Timestamp) {
-        let event = Event::Resume { id, timestamp };
-        EVENTS.append(event);
-    }
-
-    /// Log metadata.
-    pub fn metadata(self, type_id: u32) -> EventId {
-        let id = EVENTS.len() as u32;
-        let timestamp = Timestamp::now();
-        let data = ExternalMetadata { type_id };
-        let event = Event::Metadata(Metadata { timestamp, data });
-        EVENTS.append(event);
-        EventId(id)
-    }
-}
-
-
-
-// ======================================================
-// === The global logs (EVENTS and the METADATA_LOGS) ===
-// ======================================================
-
-thread_local! {
-    static EVENT_LOG: log::Log<Event<ExternalMetadata, &'static str>> = log::Log::new();
-}
-/// Global log of [`Events`]s.
-pub(crate) static EVENTS: log::ThreadLocalLog<Event<ExternalMetadata, &'static str>> =
-    log::ThreadLocalLog::new(EVENT_LOG);
-
-thread_local! {
-    static METADATA_LOG_LOG: log::Log<rc::Rc<dyn MetadataSource>> = log::Log::new();
-}
-/// Global registry of metadata logs.
-pub(crate) static METADATA_LOGS: log::ThreadLocalLog<rc::Rc<dyn MetadataSource>> =
-    log::ThreadLocalLog::new(METADATA_LOG_LOG);
-
-/// Produce a JSON-formatted event log from the internal event logs.
-///
-/// Consumes all events that have happened up to this point; except in testing, this should only be
-/// done once.
-pub fn take_log() -> String {
-    let events = EVENTS.take_all();
-    let metadatas = METADATA_LOGS.clone_all();
-    let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
-    let mut metadata_entries: Vec<_> =
-        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
-    let events: Vec<_> = events
-        .into_iter()
-        .map(|event| {
-            event.map_metadata(|external| {
-                let id = external.type_id as usize;
-                let name = metadata_names[id];
-                let data = metadata_entries[id].next().unwrap();
-                let data = serde_json::value::to_raw_value(&data).unwrap();
-                Variant { name, t: data }
-            })
-        })
-        .collect();
-    serde_json::to_string(&events).unwrap()
-}
-
-
-
-// ==================
-// === StartState ===
-// ==================
-
-/// Specifies the initial state of a profiler.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum StartState {
-    /// The profiler starts in the running state.
-    Active,
-    /// The profiler starts in the paused state.
-    Paused,
-}
-
-
-
-// =============
-// === Event ===
-// =============
-
-/// An entry in the profiling log.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Event<M, LabelStorage> {
-    /// The beginning of a measurement.
-    Start(Start<LabelStorage>),
-    /// The beginning of a measurement that starts in the paused state.
-    StartPaused(Start<LabelStorage>),
-    /// The end of a measurement.
-    End {
-        /// Identifies the measurement by the ID of its Start event.
-        id:        EventId,
-        /// When the event occurred.
-        timestamp: Timestamp,
-    },
-    /// The beginning of an interruption to a measurement, e.g. an await point.
-    Pause {
-        /// Identifies the measurement by the ID of its Start event.
-        id:        EventId,
-        /// When the event occurred.
-        timestamp: Timestamp,
-    },
-    /// The end of an interruption to an a measurement, e.g. an await point.
-    Resume {
-        /// Identifies the measurement by the ID of its Start event.
-        id:        EventId,
-        /// When the event occurred.
-        timestamp: Timestamp,
-    },
-    /// Metadata: wrapper with dependency-injected contents.
-    Metadata(Metadata<M>),
-}
-
-impl<M, L> Event<M, L> {
-    /// Produce a new event that may have a different metadata type, with metadata values
-    /// converted by the given function.
-    fn map_metadata<F, M1>(self, mut f: F) -> Event<M1, L>
-    where F: FnMut(M) -> M1 {
-        match self {
-            Event::Start(start) => Event::Start(start),
-            Event::StartPaused(start) => Event::StartPaused(start),
-            Event::End { id, timestamp } => Event::End { id, timestamp },
-            Event::Pause { id, timestamp } => Event::Pause { id, timestamp },
-            Event::Resume { id, timestamp } => Event::Resume { id, timestamp },
-            Event::Metadata(Metadata { timestamp, data }) =>
-                Event::Metadata(Metadata { timestamp, data: f(data) }),
-        }
-    }
-}
-
-
-
-// ================
-// === Metadata ===
-// ================
-
-/// Wrapper adding a timestamp to dependency-injected contents.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Metadata<M> {
-    /// When the event occurred.
-    pub timestamp: Timestamp,
-    /// The data.
-    pub data:      M,
-}
-
-impl<M> From<Metadata<M>> for Event<M, &'static str> {
-    fn from(metadata: Metadata<M>) -> Self {
-        Event::Metadata(metadata)
-    }
-}
-
-
-// === OpaqueMetadata ===
-
-/// Black-box metadata object, for use when metadata doesn't need to be created/interpreted.
-#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-pub enum OpaqueMetadata {
-    /// Anything.
-    #[serde(other)]
-    Unknown,
-}
-
-/// Event type with opaque metadata.
-pub type CoreEvent = Event<OpaqueMetadata, &'static str>;
-
-
-// === ExternalMetadata ===
-
-/// Metadata stored separately.
-#[derive(Debug, Copy, Clone)]
-struct ExternalMetadata {
-    type_id: u32,
-}
-
+use internal::*;
 
 
 // ======================
@@ -630,94 +187,6 @@ impl<T: 'static + serde::Serialize> MetadataLogger<T> {
 }
 
 
-// === MetadataLog ===
-
-struct MetadataLog<T> {
-    name:    &'static str,
-    entries: rc::Rc<log::Log<T>>,
-}
-
-trait MetadataSource {
-    fn name(&self) -> &'static str;
-    fn take_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>;
-}
-
-impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
-    fn name(&self) -> &'static str {
-        self.name
-    }
-    fn take_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>> {
-        let iter = self
-            .entries
-            .take_all()
-            .into_iter()
-            .map(|data| serde_json::value::to_raw_value(&data).unwrap());
-        Box::new(iter)
-    }
-}
-
-
-// === Variant ===
-
-/// Wrapper for serializing an object as if it were a particular variant of some unspecified enum.
-///
-/// This allows serializing instances of one variant of an enum without knowledge of the other
-/// variants.
-struct Variant<T> {
-    name: &'static str,
-    t:    T,
-}
-
-impl<T: serde::Serialize> serde::Serialize for Variant<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        serializer.serialize_newtype_variant("", 0, self.name, &self.t)
-    }
-}
-
-
-
-// =============
-// === Start ===
-// =============
-
-/// A measurement-start entry in the profiling log.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Start<LabelStorage> {
-    /// Specifies parent measurement by its [`Start`].
-    pub parent: EventId,
-    /// Start time, or None to indicate it is the same as `parent`.
-    pub start:  Option<Timestamp>,
-    /// Identifies where in the code this measurement originates.
-    pub label:  Label<LabelStorage>,
-}
-
-
-
-// ================
-// === Profiler ===
-// ================
-
-/// The interface supported by profilers of all profiling levels.
-pub trait Profiler {
-    /// Log the beginning of a measurement.
-    ///
-    /// Return an object that can be used to manage the measurement's lifetime.
-    fn start(
-        parent: EventId,
-        label: StaticLabel,
-        time: Option<Timestamp>,
-        start: StartState,
-    ) -> Self;
-    /// Log the end of a measurement.
-    fn finish(self);
-    /// Log the beginning of an interval in which the profiler is not active.
-    fn pause(&self);
-    /// Log the end of an interval in which the profiler is not active.
-    fn resume(&self);
-}
-
-
 
 // ==============
 // === Parent ===
@@ -734,60 +203,6 @@ pub trait Parent<T: Profiler + Copy> {
 
 
 // ===============
-// === Started ===
-// ===============
-
-/// A profiler that can be used as a parent for async profilers, has a start time set, and will
-/// complete its measurement when dropped.
-#[derive(Debug)]
-pub struct Started<T: Profiler + Copy>(pub T);
-
-
-// === Trait Implementations ===
-
-impl<T: Profiler + Copy> Profiler for Started<T> {
-    fn start(
-        parent: EventId,
-        label: StaticLabel,
-        time: Option<Timestamp>,
-        start: StartState,
-    ) -> Self {
-        Self(T::start(parent, label, time, start))
-    }
-    fn finish(self) {
-        self.0.finish()
-    }
-    fn pause(&self) {
-        self.0.pause()
-    }
-    fn resume(&self) {
-        self.0.resume()
-    }
-}
-
-impl<T: Profiler + Copy> Drop for Started<T> {
-    fn drop(&mut self) {
-        self.0.finish();
-    }
-}
-
-impl<T, U> Parent<T> for Started<U>
-where
-    U: Parent<T> + Profiler + Copy,
-    T: Profiler + Copy,
-{
-    fn new_child(&self, label: StaticLabel) -> Started<T> {
-        self.0.new_child(label)
-    }
-
-    fn new_child_same_start(&self, label: StaticLabel) -> Started<T> {
-        self.0.new_child_same_start(label)
-    }
-}
-
-
-
-// ===============
 // === await_! ===
 // ===============
 
@@ -796,9 +211,9 @@ where
 macro_rules! await_ {
     ($evaluates_to_future:expr, $profiler:ident) => {{
         let future = $evaluates_to_future;
-        profiler::Profiler::pause(&$profiler);
+        profiler::internal::Profiler::pause(&$profiler);
         let result = future.await;
-        profiler::Profiler::resume(&$profiler);
+        profiler::internal::Profiler::resume(&$profiler);
         result
     }};
 }
@@ -836,13 +251,13 @@ macro_rules! await_ {
 /// # use enso_profiler::profile;
 /// fn example(input: u32) -> u32 {
 ///     let __profiler_scope = {
-///         use profiler::Profiler;
-///         let parent = profiler::EventId::implicit();
-///         let now = Some(profiler::Timestamp::now());
-///         let label = profiler::Label("example (profiler/src/lib.rs:78)");
+///         use profiler::internal::Profiler;
+///         let parent = profiler::internal::EventId::implicit();
+///         let now = Some(profiler::internal::Timestamp::now());
+///         let label = profiler::internal::Label("example (profiler/src/lib.rs:78)");
 ///         let profiler =
-///             profiler::Detail::start(parent, label, now, profiler::StartState::Active);
-///         profiler::Started(profiler)
+///             profiler::Detail::start(parent, label, now, profiler::internal::StartState::Active);
+///         profiler::internal::Started(profiler)
 ///     };
 ///     {
 ///         input
@@ -868,15 +283,16 @@ macro_rules! await_ {
 /// # use enso_profiler::profile;
 /// fn async_example(input: u32) -> impl std::future::Future<Output = u32> {
 ///     let __profiler_scope = {
-///         use profiler::Profiler;
-///         let parent = profiler::EventId::implicit();
-///         let now = Some(profiler::Timestamp::now());
-///         let label = profiler::Label("async_example (lib.rs:571)");
-///         let profiler = profiler::Task::start(parent, label, now, profiler::StartState::Paused);
-///         profiler::Started(profiler)
+///         use profiler::internal::Profiler;
+///         let parent = profiler::internal::EventId::implicit();
+///         let now = Some(profiler::internal::Timestamp::now());
+///         let label = profiler::internal::Label("async_example (lib.rs:571)");
+///         let profiler =
+///             profiler::Task::start(parent, label, now, profiler::internal::StartState::Paused);
+///         profiler::internal::Started(profiler)
 ///     };
 ///     async move {
-///         profiler::Profiler::resume(&__profiler_scope.0);
+///         profiler::internal::Profiler::resume(&__profiler_scope.0);
 ///         let result = { input };
 ///         std::mem::drop(__profiler_scope);
 ///         result
@@ -904,6 +320,12 @@ pub use enso_profiler_macros::profile;
 enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
 
 
+// === APP_LIFETIME ===
+
+/// Pseudo-profiler serving as the root of the measurement hierarchy.
+pub const APP_LIFETIME: Objective = Objective(EventId::APP_LIFETIME);
+
+
 
 // =============
 // === Tests ===
@@ -913,6 +335,14 @@ enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
 mod tests {
     use crate as profiler;
     use profiler::profile;
+
+    /// Black-box metadata object, for ignoring metadata contents.
+    #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+    pub(crate) enum OpaqueMetadata {
+        /// Anything.
+        #[serde(other)]
+        Unknown,
+    }
 
     /// Take and parse the log (convenience function for tests).
     fn get_log<M: serde::de::DeserializeOwned>() -> Vec<profiler::Event<M, String>> {
@@ -927,7 +357,7 @@ mod tests {
             // by absolute paths" (<https://github.com/rust-lang/rust/issues/52234>).
             let _profiler = start_objective!(profiler::APP_LIFETIME, "test");
         }
-        let log = get_log::<profiler::OpaqueMetadata>();
+        let log = get_log::<OpaqueMetadata>();
         match &log[..] {
             [profiler::Event::Start(m0), profiler::Event::End { id, timestamp: end_time }] => {
                 assert_eq!(m0.parent, profiler::APP_LIFETIME.0);
@@ -945,7 +375,7 @@ mod tests {
             let _profiler0 = start_objective!(profiler::APP_LIFETIME, "test0");
             let _profiler1 = objective_with_same_start!(_profiler0, "test1");
         }
-        let log = get_log::<profiler::OpaqueMetadata>();
+        let log = get_log::<OpaqueMetadata>();
         use profiler::Event::*;
         match &log[..] {
             [Start(m0), Start(m1), End { id: id1, .. }, End { id: id0, .. }] => {
@@ -965,11 +395,11 @@ mod tests {
         #[profile(Objective)]
         fn profiled() {}
         profiled();
-        let log = get_log::<profiler::OpaqueMetadata>();
+        let log = get_log::<OpaqueMetadata>();
         match &log[..] {
             [profiler::Event::Start(m0), profiler::Event::End { id: id0, .. }] => {
                 assert!(m0.start.is_some());
-                assert_eq!(m0.parent, profiler::IMPLICIT_ID);
+                assert_eq!(m0.parent, profiler::EventId::IMPLICIT);
                 assert_eq!(id0.0, 0);
             }
             _ => panic!("log: {:?}", log),
@@ -985,17 +415,17 @@ mod tests {
         }
         let future = profiled();
         futures::executor::block_on(future);
-        let log = get_log::<profiler::OpaqueMetadata>();
+        let log = get_log::<OpaqueMetadata>();
         #[rustfmt::skip]
         match &log[..] {
             [
-                // async fn starts paused
-                profiler::Event::StartPaused(_),
-                profiler::Event::Resume { id: resume0, .. },
-                // block.await
-                profiler::Event::Pause { id: pause1, .. },
-                profiler::Event::Resume { id: resume1, .. },
-                profiler::Event::End { id: end_id, .. },
+            // async fn starts paused
+            profiler::Event::StartPaused(_),
+            profiler::Event::Resume { id: resume0, .. },
+            // block.await
+            profiler::Event::Pause { id: pause1, .. },
+            profiler::Event::Resume { id: resume1, .. },
+            profiler::Event::End { id: end_id, .. },
             ] => {
                 assert_eq!(resume0.0, 0);
                 assert_eq!(pause1.0, 0);
@@ -1036,10 +466,10 @@ mod tests {
         match &log[..] {
             #[rustfmt::skip]
             &[
-                profiler::Event::Start(_),
-                profiler::Event::Metadata(
-                    profiler::Metadata{ timestamp: _, data: MyMetadata::MyData (MyData(23)) }),
-                profiler::Event::End { .. },
+            profiler::Event::Start(_),
+            profiler::Event::Metadata(
+                profiler::Metadata{ timestamp: _, data: MyMetadata::MyData (MyData(23)) }),
+            profiler::Event::End { .. },
             ] => (),
             _ => panic!(),
         }
@@ -1069,7 +499,7 @@ mod tests {
             {\"Resume\":{\"id\":1,\"timestamp\":1}},\
             {\"Metadata\":{\"timestamp\":1,\"data\":\"Unknown\"}}\
             ]";
-        let events: Vec<profiler::Event<profiler::OpaqueMetadata, String>> =
+        let events: Vec<profiler::Event<OpaqueMetadata, String>> =
             serde_json::from_str(TEST_LOG).unwrap();
         let reserialized = serde_json::to_string(&events).unwrap();
         assert_eq!(TEST_LOG, &reserialized[..]);
@@ -1115,11 +545,11 @@ mod bench {
     /// For comparison with time taken by [`log_measurements`].
     fn push_vec(
         count: usize,
-        log: &mut Vec<profiler::Event<profiler::OpaqueMetadata, &'static str>>,
+        log: &mut Vec<profiler::Event<crate::tests::OpaqueMetadata, &'static str>>,
     ) {
         for _ in 0..count {
             log.push(profiler::Event::Start(profiler::Start {
-                parent: profiler::APP_LIFETIME_ID,
+                parent: profiler::EventId::APP_LIFETIME,
                 start:  None,
                 label:  profiler::Label(""),
             }));

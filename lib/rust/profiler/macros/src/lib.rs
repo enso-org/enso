@@ -87,8 +87,10 @@ fn define_profiler(
             macro_rules! #start {
                 ($parent: expr, $label: expr) => {{
                     use profiler::Parent;
-                    let label = profiler::Label(concat!($label, " (", file!(), ":", line!(), ")"));
-                    let profiler: profiler::Started<profiler::#obj_ident> = $parent.new_child(label);
+                    let label = profiler::internal::Label(
+                        concat!($label, " (", file!(), ":", line!(), ")"));
+                    let profiler: profiler::internal::Started<profiler::#obj_ident> =
+                        $parent.new_child(label);
                     profiler
                 }}
             }
@@ -98,8 +100,9 @@ fn define_profiler(
             macro_rules! #with_same_start {
                 ($parent: expr, $label: expr) => {{
                     use profiler::Parent;
-                    let label = profiler::Label(concat!($label, " (", file!(), ":", line!(), ")"));
-                    let profiler: profiler::Started<profiler::#obj_ident> =
+                    let label = profiler::internal::Label(
+                        concat!($label, " (", file!(), ":", line!(), ")"));
+                    let profiler: profiler::internal::Started<profiler::#obj_ident> =
                         $parent.new_child_same_start(label);
                     profiler
                 }}
@@ -139,14 +142,14 @@ fn define_profiler(
             #[macro_export]
             macro_rules! #start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started(profiler::#obj_ident(()))
+                    profiler::internal::Started(profiler::#obj_ident(()))
                 }
             }
             #[macro_export]
             #[doc = #doc_with_same_start]
             macro_rules! #with_same_start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started(profiler::#obj_ident(()))
+                    profiler::internal::Started(profiler::#obj_ident(()))
                 }
             }
         }
@@ -274,7 +277,7 @@ fn profile_async(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
     let body = quote::quote! {{
         #start_profiler
         async move {
-            profiler::Profiler::resume(&__profiler_scope.0);
+            profiler::internal::Profiler::resume(&__profiler_scope.0);
             let result = #block;
             std::mem::drop(__profiler_scope);
             result
@@ -308,17 +311,17 @@ fn start_profiler(
     asyncness: bool,
 ) -> proc_macro2::TokenStream {
     let state = match asyncness {
-        true => quote::quote! { profiler::StartState::Paused },
-        false => quote::quote! { profiler::StartState::Active },
+        true => quote::quote! { profiler::internal::StartState::Paused },
+        false => quote::quote! { profiler::internal::StartState::Active },
     };
     quote::quote! {
         let __profiler_scope = {
-            use profiler::Profiler;
-            let parent = profiler::EventId::implicit();
-            let now = Some(profiler::Timestamp::now());
-            let label = profiler::Label(#label);
+            use profiler::internal::Profiler;
+            let parent = profiler::internal::EventId::implicit();
+            let now = Some(profiler::internal::Timestamp::now());
+            let label = profiler::internal::Label(#label);
             let profiler = profiler::#obj_ident::start(parent, label, now, #state);
-            profiler::Started(profiler)
+            profiler::internal::Started(profiler)
         };
     }
 }
@@ -359,9 +362,9 @@ fn wrap_await(await_: &syn::ExprAwait) -> syn::Expr {
     let wrapped = quote::quote! {
         {
             let future = #expr;
-            profiler::Profiler::pause(&__profiler_scope.0);
+            profiler::internal::Profiler::pause(&__profiler_scope.0);
             let result = future.await;
-            profiler::Profiler::resume(&__profiler_scope.0);
+            profiler::internal::Profiler::resume(&__profiler_scope.0);
             result
         }
     };
