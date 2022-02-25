@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-from  Standard.Table.Internal.Table_Helpers import select_columns
-
 ## Group By Key
 type Group_By_Key
     type Group_By_Key values
@@ -18,7 +16,7 @@ type Group_By_Key
 
     ## Compares two keys
     compare_to : Group_By_Key->Ordering
-    compare_to that :
+    compare_to that =
         loop i =
             comparison = this.values.unsafe_at i . compare_to (that.values.unsafe_at i)
             if comparison != Ordering.Equal then comparison else

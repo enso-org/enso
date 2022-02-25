@@ -1,4 +1,6 @@
 from Standard.Base import all
+
+import Standard.Table.Data.Column
 from Standard.Table.Data.Group_By import Group_By_Key
 
 ## Defines an Aggregate Column
@@ -8,7 +10,8 @@ type Aggregate_Column
 
     ## Creates a new column with the count of unique items in the selected
        column(s) within each group.
-    type Count_Distinct (columns:Column|Text|Integer|[Column|Text|Integer]) (name:Text|Nothing=Nothing)
+    # type Count_Distinct (columns:Column|Text|Integer|[Column|Text|Integer]) (name:Text|Nothing=Nothing)
+    type Count_Distinct (columns:Column|Text|Integer|Vector) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of not null (Nothing) values of the
        specified column within each group.
@@ -63,100 +66,99 @@ type Aggregate_Column
     column_name : Table->Text
     column_name table =
         if this.name.is_nothing.not then this.name else
+            col_name = c->(this.resolve_column table c).name
             case this of
                 Count _ -> "Count"
-                Count_Distinct columns _ -> "Count Distinct " + ((columns.map c->(resolve_column table c).name).join " ")
-                Count_Not_Null c _ -> "Count NotNull " + (resolve_column table c).name
-                Count_Null c _ -> "Count Null " + (resolve_column table c).name
-                Count_Not_Empty c _ -> "Count NotEmpty " + (resolve_column table c).name
-                Count_Empty c _ -> "Count Empty " + (resolve_column table c).name
-                Sum c _ -> "Sum " + (resolve_column table c).name
-                Average c _ -> "Average " + (resolve_column table c).name
-                Median c _ -> "Median " + (resolve_column table c).name
-                Standard_Deviation c _ _ -> "Standard Deviation " + (resolve_column table c).name
-                Concatenate c _ _ _ _ -> "Concatenate " + (resolve_column table c).name
-                First c _ -> "First " + (resolve_column table c).name
-                Last c _ -> "Last " + (resolve_column table c).name
+                Count_Distinct columns _ -> "Count Distinct " + (columns.map col_name . join " ")
+                Count_Not_Null c _ -> "Count NotNull " + col_name c
+                Count_Null c _ -> "Count Null " + col_name c
+                Count_Not_Empty c _ -> "Count NotEmpty " + col_name c
+                Count_Empty c _ -> "Count Empty " + col_name c
+                Sum c _ -> "Sum " + col_name c
+                Average c _ -> "Average " + col_name c
+                Median c _ -> "Median " + col_name c
+                Standard_Deviation c _ _ -> "Standard Deviation " + col_name c
+                Concatenate c _ _ _ _ -> "Concatenate " + col_name c
+                First c _ -> "First " + col_name c
+                Last c _ -> "Last " + col_name c
 
     ## PRIVATE
        Given a column reference resolve to the underlying column
     resolve_column : Table->(Column|Text|Integer)->Column
-    resolve_column table column =
-        case column of
-            Column c -> table.at (c.name)
-            Text c -> table.at c
-            Integer c -> table.columns.at c
+    resolve_column table column = case column of
+        Column -> table.at (column.name)
+        Text -> table.at column
+        Integer -> table.columns.at column
 
     initial_value : Any
-    initial_value =
-        case this of
-            Count_Distinct _ _ -> Map.empty
-            Median _ _ -> Map.empty
-            Average _ _ -> [0, 0]
-            Standard_Deviation _ _ _ -> [0, 0, 0]
-            Concatenate _ _ _ _ _ -> Nothing
-            First _ _ -> Nothing
-            Last _ _ -> Nothing
-            _ -> 0
+    initial_value = case this of
+        Count_Distinct _ _ -> Map.empty
+        Median _ _ -> Map.empty
+        Average _ _ -> [0, 0]
+        Standard_Deviation _ _ _ -> [0, 0, 0]
+        Concatenate _ _ _ _ _ -> Nothing
+        First _ _ -> Nothing
+        Last _ _ -> Nothing
+        _ -> 0
 
     make_aggregator : Table->(Any->Integer->Any)
-    make_aggregator table =
-            case this of
-                Count _ -> count->_->(count+1)
-                Count_Not_Null c _ ->
-                    col = resolve_column table c
-                    count->i->(count + if (col.at i).is_nothing then 0 else 1)
-                Count_Null c _ ->
-                    col = resolve_column table c
-                    count->i->(count + if (col.at i).is_nothing then 1 else 0)
-                Count_Not_Empty c _ ->
-                    col = resolve_column table c
-                    count->i->(count + if (col.at i).is_nothing then 0 else 1)
-                Count_Empty c _ ->
-                    col = resolve_column table c
-                    count->i->(count + if (col.at i).is_nothing then 1 else 0)
-                Sum c _ ->
-                    col = resolve_column table c
-                    total->i->
-                        v = col.at i
-                        (total + if v.is_nothing then 0 else v)
-                Average c _ ->
-                    col = resolve_column table c
-                    a->i->
-                        v = col.at i
-                        (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v])
-                Standard_Deviation c _ _ ->
-                    col = resolve_column table c
-                    a->i->
-                        v = col.at i
-                        (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v, (a.at 2) + v*v])
-                Concatenate c _ j _ _ ->
-                    col = resolve_column table c
-                    text->i->
-                        val=if (col.at i).is_nothing then "" else (col.at i).to_text
-                        if i==0 then val else (text + j + val)
-                First c _ ->
-                    col = resolve_column table c
-                    current->i->(if i==0 then (col.at i) else current)
-                Last c _ ->
-                    col = resolve_column table c
-                    _->i->(col.at i)
-                Count_Distinct columns ->
-                    resolved = columns.map c->(resolve_column table c)
-                    key_maker i = Group_By_Key (resolved.map c->(c.at i))
-                    map->i->(map.insert (key_maker i) 1)
-                Median c ->
-                    col = resolve_column table c
-                    map->i->
-                        val = col.at i
-                        if val.is_nothing then map else
-                            map.insert val (1 + (map.get_or_else val 0))
+    make_aggregator table = case this of
+        Count _ -> count->_->(count+1)
+        Count_Not_Null c _ ->
+            col = this.resolve_column table c
+            count->i->(count + if (col.at i).is_nothing then 0 else 1)
+        Count_Null c _ ->
+            col = this.resolve_column table c
+            count->i->(count + if (col.at i).is_nothing then 1 else 0)
+        Count_Not_Empty c _ ->
+            col = this.resolve_column table c
+            count->i->(count + if (col.at i).is_nothing then 0 else 1)
+        Count_Empty c _ ->
+            col = this.resolve_column table c
+            count->i->(count + if (col.at i).is_nothing then 1 else 0)
+        Sum c _ ->
+            col = this.resolve_column table c
+            total->i->
+                v = col.at i
+                (total + if v.is_nothing then 0 else v)
+        Average c _ ->
+            col = this.resolve_column table c
+            a->i->
+                v = col.at i
+                (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v])
+        Standard_Deviation c _ _ ->
+            col = this.resolve_column table c
+            a->i->
+                v = col.at i
+                (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v, (a.at 2) + v*v])
+        Concatenate c _ j _ _ ->
+            col = this.resolve_column table c
+            text->i->
+                val=if (col.at i).is_nothing then "" else (col.at i).to_text
+                if i==0 then val else (text + j + val)
+        First c _ ->
+            col = this.resolve_column table c
+            current->i->(if i==0 then (col.at i) else current)
+        Last c _ ->
+            col = this.resolve_column table c
+            _->i->(col.at i)
+        Count_Distinct columns _ ->
+            resolved = columns.map c->(this.resolve_column table c)
+            key_maker i = Group_By_Key (resolved.map c->(c.at i))
+            map->i->(map.insert (key_maker i) 1)
+        Median c _ ->
+            col = this.resolve_column table c
+            map->i->
+                val = col.at i
+                if val.is_nothing then map else
+                    map.insert val (1 + (map.get_or_else val 0))
 
     evaluate : Any->Any
     evaluate value = case this of
         Count_Distinct _ _ -> value.size
         Median _ _ -> (Error.throw "Not in prototype")
         Average _ _ -> if (value.at 0) == 0 then Nothing else (value.at 1 / value.at 0)
-        Standard_Deviation _ _ p -> [0, 0, 0]
+        Standard_Deviation _ _ p -> if (value.at 0) == 0 then Nothing else
+            (value.at 2/value.at 0 - (value.at 1/value.at 0)^2).sqrt
         Concatenate _ _ _ s p -> if value.is_nothing then value else (s + value + p)
         _ -> value
