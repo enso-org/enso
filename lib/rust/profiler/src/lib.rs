@@ -468,7 +468,7 @@ mod tests {
             &[
             profiler::Event::Start(_),
             profiler::Event::Metadata(
-                profiler::Metadata{ timestamp: _, data: MyMetadata::MyData (MyData(23)) }),
+                profiler::Timestamped{ timestamp: _, data: MyMetadata::MyData (MyData(23)) }),
             profiler::Event::End { .. },
             ] => (),
             _ => panic!(),

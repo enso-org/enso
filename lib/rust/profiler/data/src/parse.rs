@@ -384,13 +384,13 @@ impl<M> LogVisitor<M> {
     fn visit_metadata(
         &mut self,
         pos: id::Runtime,
-        metadata: profiler::internal::Metadata<M>,
+        metadata: profiler::internal::Timestamped<M>,
     ) -> Result<(), DataError> {
         let builder = match self.active.last() {
             Some(profiler) => self.builders.get_mut(profiler).unwrap(),
             None => &mut self.root_builder,
         };
-        let profiler::internal::Metadata { timestamp, data } = metadata;
+        let profiler::internal::Timestamped { timestamp, data } = metadata;
         let mark = crate::Mark { seq: pos.into(), time: timestamp };
         builder.metadata.push(crate::Metadata { mark, data });
         Ok(())

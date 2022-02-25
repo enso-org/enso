@@ -157,7 +157,7 @@ impl EventLog {
         let id = EVENTS.len() as u32;
         let timestamp = Timestamp::now();
         let data = ExternalMetadata { type_id };
-        let event = Event::Metadata(Metadata { timestamp, data });
+        let event = Event::Metadata(Timestamped { timestamp, data });
         EVENTS.append(event);
         EventId(id)
     }
@@ -186,7 +186,7 @@ pub enum StartState {
 
 /// An entry in the profiling log.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Event<M, LabelStorage> {
+pub enum Event<Metadata, LabelStorage> {
     /// The beginning of a measurement.
     Start(Start<LabelStorage>),
     /// The beginning of a measurement that starts in the paused state.
@@ -213,49 +213,33 @@ pub enum Event<M, LabelStorage> {
         timestamp: Timestamp,
     },
     /// Metadata: wrapper with dependency-injected contents.
-    Metadata(Metadata<M>),
+    Metadata(Timestamped<Metadata>),
 }
 
-impl<M, L> Event<M, L> {
+impl<Metadata, LabelStorage> Event<Metadata, LabelStorage> {
     /// Produce a new event that may have a different metadata type, with metadata values
     /// converted by the given function.
-    fn map_metadata<F, M1>(self, mut f: F) -> Event<M1, L>
-    where F: FnMut(M) -> M1 {
+    fn map_metadata<F, Metadata1>(self, mut f: F) -> Event<Metadata1, LabelStorage>
+    where F: FnMut(Metadata) -> Metadata1 {
         match self {
+            // metadata => f(metadata)
+            Event::Metadata(Timestamped { timestamp, data }) =>
+                Event::Metadata(Timestamped { timestamp, data: f(data) }),
+            // event => event
             Event::Start(start) => Event::Start(start),
             Event::StartPaused(start) => Event::StartPaused(start),
             Event::End { id, timestamp } => Event::End { id, timestamp },
             Event::Pause { id, timestamp } => Event::Pause { id, timestamp },
             Event::Resume { id, timestamp } => Event::Resume { id, timestamp },
-            Event::Metadata(Metadata { timestamp, data }) =>
-                Event::Metadata(Metadata { timestamp, data: f(data) }),
         }
     }
 }
 
 
 
-// ================
-// === Metadata ===
-// ================
-
-/// Wrapper adding a timestamp to dependency-injected contents.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Metadata<M> {
-    /// When the event occurred.
-    pub timestamp: Timestamp,
-    /// The data.
-    pub data:      M,
-}
-
-impl<M> From<Metadata<M>> for Event<M, &'static str> {
-    fn from(metadata: Metadata<M>) -> Self {
-        Event::Metadata(metadata)
-    }
-}
-
-
+// ========================
 // === ExternalMetadata ===
+// ========================
 
 /// Metadata stored separately.
 #[derive(Debug, Copy, Clone)]
@@ -372,6 +356,18 @@ mod js {
             0.0
         }
     }
+}
+
+
+// === Timestamped ===
+
+/// Wrapper adding a timestamp to an object.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Timestamped<T> {
+    /// When the event occurred.
+    pub timestamp: Timestamp,
+    /// The data.
+    pub data:      T,
 }
 
 
