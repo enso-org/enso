@@ -20,6 +20,6 @@ type Group_By_Key
         loop i =
             comparison = this.values.unsafe_at i . compare_to (that.values.unsafe_at i)
             if comparison != Ordering.Equal then comparison else
-                if i == this.length then Ordering.Equal else
+                if i == this.values.length then Ordering.Equal else
                     @Tail_Call loop (i+1)
         loop 0
