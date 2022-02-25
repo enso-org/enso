@@ -1,9 +1,9 @@
 package org.enso.languageserver.libraries
 
+import io.circe.JsonObject
 import org.enso.editions.LibraryName
-import org.enso.pkg.Contact
-
-import java.nio.file.Path
+import org.enso.librarymanager.resolved.LibraryRoot
+import org.enso.pkg.{ComponentGroups, Contact}
 
 object LocalLibraryManagerProtocol {
 
@@ -26,6 +26,16 @@ object LocalLibraryManagerProtocol {
     tagLine: Option[String]
   ) extends Request
 
+  /** A request to get the library package. */
+  case class GetPackage(libraryName: LibraryName) extends Request
+
+  /** A response to the [[GetPackage]] request. */
+  case class GetPackageResponse(
+    license: String,
+    componentGroups: Option[ComponentGroups],
+    rawPackage: JsonObject
+  )
+
   /** A request to list local libraries. */
   case object ListLocalLibraries extends Request
 
@@ -44,7 +54,7 @@ object LocalLibraryManagerProtocol {
   case class FindLibrary(libraryName: LibraryName) extends Request
 
   /** A response to [[FindLibrary]]. */
-  case class FindLibraryResponse(libraryRoot: Option[Path])
+  case class FindLibraryResponse(libraryRoot: Option[LibraryRoot])
 
   /** Indicates that a library with the given name was not found among local
     * libraries.
@@ -59,4 +69,14 @@ object LocalLibraryManagerProtocol {
     * Sent as a reply to [[Create]] and [[SetMetadata]].
     */
   case class EmptyResponse()
+
+  /** A base trait for failures. */
+  sealed trait Failure
+
+  /** An error indicating that the provided version is not a valid semver
+    * version.
+    *
+    * @version invalid version string
+    */
+  case class InvalidSemverVersionError(version: String) extends Failure
 }
