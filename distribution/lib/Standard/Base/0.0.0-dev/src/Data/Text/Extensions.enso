@@ -743,7 +743,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive.new) == True
          "Hello!".starts_with "[a-z]" Regex_Matcher.new == False
          "Hello!".starts_with "[A-Z]" Regex_Matcher.new == True
-Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
+Text.starts_with : Text -> Matcher -> Boolean
 Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
@@ -752,7 +752,7 @@ Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
             this.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
     Regex_Matcher _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
-        compiled_pattern = here.prepare_regex preprocessed_pattern matcher
+        compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match this Mode.First
         match.is_nothing.not
 
@@ -780,7 +780,7 @@ Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
          "Hello World".ends_with "world" == False
          "Hello World".ends_with "world" (Text_Matcher Case_Insensitive.new) == True
          "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher.new == True
-Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
+Text.ends_with : Text -> Matcher -> Boolean
 Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
@@ -789,7 +789,7 @@ Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
             this.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
     Regex_Matcher _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
-        compiled_pattern = here.prepare_regex preprocessed_pattern matcher
+        compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match this Mode.First
         match.is_nothing.not
 
@@ -844,14 +844,14 @@ Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
      See if the text "Hello!" contains any lowercase letters, using a regex.
 
          "Hello!".contains "[a-z]" Regex_Matcher.new
-Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
+Text.contains : Text -> Matcher -> Boolean
 Text.contains term="" matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True -> Text_Utils.contains this term
         Case_Insensitive locale ->
             Text_Utils.contains (this.to_case_insensitive_key locale) (term.to_case_insensitive_key locale)
     Regex_Matcher _ _ _ _ _ ->
-        compiled_pattern = here.prepare_regex term matcher
+        compiled_pattern = matcher.compile term
         match = compiled_pattern.match this Mode.First
         match.is_nothing.not
 
@@ -941,7 +941,8 @@ Text.take range =
     if char_range.is_error then char_range else
         Text_Utils.substring this char_range.start char_range.end
 
-## Creates a new Text by removing the specified range of the input.
+## ALIAS skip, remove
+   Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
    input using various criteria defined by the range parameter.
@@ -1040,16 +1041,3 @@ Text.to_lower_case locale=Locale.default =
 Text.to_upper_case : Locale.Locale -> Text
 Text.to_upper_case locale=Locale.default =
     UCharacter.toUpperCase locale.java_locale this
-
-## PRIVATE
-prepare_regex : Text -> Regex_Matcher -> Pattern
-prepare_regex pattern regex_matcher = case regex_matcher of
-    Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments ->
-        case_insensitive = case case_sensitive of
-            True -> False
-            ## TODO [RW] Currently locale is not supported in case-insensitive
-               Regex matching. There are plans to revisit it:
-               https://www.pivotaltracker.com/story/show/181313576
-            Case_Insensitive _ -> True
-        compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=match_ascii dot_matches_newline=dot_matches_newline multiline=multiline comments=comments
-        compiled_pattern
