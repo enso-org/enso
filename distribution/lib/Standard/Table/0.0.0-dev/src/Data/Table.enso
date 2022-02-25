@@ -550,8 +550,9 @@ type Table
 
         # Now Finalise and make a table
         finalise builder index =
-            column = columns.at index
-            Vector.new builder.length i->(column.evaluate (builder.to_array.at i))
+            if index < key_length then builder.to_vector else
+                column = columns.at (index - key_length)
+                Vector.new builder.length i->(column.evaluate (builder.to_array.at i))
         here.new (new_table.map_with_index i->c->[c.at 0,finalise (c.at 1) i])
 
 
