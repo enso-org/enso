@@ -1365,7 +1365,8 @@ impl GraphEditorModelWithNetwork {
             AddNodeEvent => default(),
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
-            StartCreationEvent => self.find_place_by_nearest_node(mouse_position),
+            StartCreationEvent =>
+                self.new_node_position_based_on_mouse_without_source(mouse_position),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { edge_id } =>
@@ -1696,7 +1697,10 @@ impl GraphEditorModel {
         self.new_node_position_based_on_mouse(mouse_position, edge_source_node)
     }
 
-    pub fn find_place_by_nearest_node(&self, mouse_position: Vector2) -> Vector2 {
+    pub fn new_node_position_based_on_mouse_without_source(
+        &self,
+        mouse_position: Vector2,
+    ) -> Vector2 {
         let nearest_node = self.find_nearest_node(mouse_position);
         self.new_node_position_based_on_mouse(mouse_position, nearest_node)
     }
