@@ -14,11 +14,11 @@ import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.{Inside, OptionValues}
+import org.scalatest.{BeforeAndAfterEach, Inside, OptionValues}
 
 import java.io.File
-import java.nio.file.{Path => JPath}
-import java.util.UUID
+import java.nio.file.{Files, Path => JPath}
+import java.util.{Comparator, UUID}
 import scala.concurrent.duration.DurationInt
 
 class ContentRootManagerSpec
@@ -28,12 +28,19 @@ class ContentRootManagerSpec
     with Futures
     with Inside
     with EitherValue
-    with OptionValues {
+    with OptionValues
+    with BeforeAndAfterEach {
 
-  def makeContentRootManager(): (ContentRootManagerWrapper, ActorRef) = {
+  var rootManager: ContentRootManagerWrapper = _
+  var rootActor: ActorRef                    = _
+  var rootProjectDirectory: JPath            = _
+
+  override def beforeEach(): Unit = {
+    rootProjectDirectory = Files.createTempDirectory("root-manager-spec")
+
     val root = ContentRootWithFile(
       ContentRoot.Project(UUID.randomUUID()),
-      new File("foobar").getCanonicalFile
+      rootProjectDirectory.toFile.getCanonicalFile
     )
     val config = Config(
       root,
@@ -42,18 +49,22 @@ class ContentRootManagerSpec
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file)
     )
-    val contentRootManagerActor =
-      system.actorOf(ContentRootManagerActor.props(config))
-    val contentRootManagerWrapper =
-      new ContentRootManagerWrapper(config, contentRootManagerActor)
-    (contentRootManagerWrapper, contentRootManagerActor)
+    rootActor   = system.actorOf(ContentRootManagerActor.props(config))
+    rootManager = new ContentRootManagerWrapper(config, rootActor)
+  }
+
+  override def afterEach(): Unit = {
+    Files
+      .walk(rootProjectDirectory)
+      .sorted(Comparator.reverseOrder())
+      .map(_.toFile)
+      .forEach(_.delete())
   }
 
   "ContentRootManager" should {
     "provide filesystem roots" in {
-      val (contentRootManager, _) = makeContentRootManager()
       val roots =
-        contentRootManager.getContentRoots(system.dispatcher).futureValue
+        rootManager.getContentRoots(system.dispatcher).futureValue
       val fsRoots =
         roots.collect {
           case ContentRootWithFile(ContentRoot.FileSystemRoot(_, path), _) =>
@@ -69,10 +80,8 @@ class ContentRootManagerSpec
     }
 
     "allow to register new library roots and notify subscribers about them" in {
-      val (wrapper, contentRootActor) = makeContentRootManager()
-
       val subscriberProbe = TestProbe("test-subscriber")
-      subscriberProbe.send(contentRootActor, SubscribeToNotifications)
+      subscriberProbe.send(rootActor, SubscribeToNotifications)
 
       inside(subscriberProbe.receiveOne(2.seconds.dilated)) {
         case ContentRootsAddedNotification(roots) =>
@@ -108,7 +117,7 @@ class ContentRootManagerSpec
           }
       }
 
-      val roots = wrapper.getContentRoots(system.dispatcher).futureValue
+      val roots = rootManager.getContentRoots(system.dispatcher).futureValue
       roots.exists {
         case ContentRootWithFile(
               ContentRoot.Library(_, "Foo", "Bar", "local"),
@@ -120,7 +129,6 @@ class ContentRootManagerSpec
     }
 
     "return the root based on the id" in {
-      val (rootManager, _) = makeContentRootManager()
       import system.dispatcher
       val roots         = rootManager.getContentRoots.futureValue
       val arbitraryRoot = roots.head
@@ -133,7 +141,6 @@ class ContentRootManagerSpec
     }
 
     "relativize paths relative to the correct content root" in {
-      val (rootManager, _) = makeContentRootManager()
       import system.dispatcher
       val roots = rootManager.getContentRoots.futureValue
 

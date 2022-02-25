@@ -2,6 +2,7 @@ package org.enso.polyglot
 
 import java.io.File
 import java.nio.file.{Files, Paths}
+import java.util.Comparator
 import org.enso.pkg.{Package, PackageManager}
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -35,13 +36,27 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     def writeMain(contents: String): Unit = {
       Files.write(pkg.mainFile.toPath, contents.getBytes): Unit
     }
+
+    def teardown(): Unit = {
+      Files
+        .walk(tmpDir.toPath())
+        .sorted(Comparator.reverseOrder())
+        .map(_.toFile)
+        .forEach(_.delete())
+    }
   }
 
-  val subject = "Modules Polyglot API"
+  object TestContext {
+    def apply(packageName: String)(testCase: TestContext => Unit): Unit = {
+      val ctx = new TestContext(packageName)
+      try     { testCase(ctx)  }
+      finally { ctx.teardown() }
+    }
+  }
 
-  subject should "allow to trigger reparsing of on-disk sources" in {
-    val ctx = new TestContext("Test")
-
+  "Modules Polyglot API" should "allow to trigger reparsing of on-disk sources" in TestContext(
+    "Test"
+  ) { ctx =>
     ctx.writeMain("""
                     |main =
                     |    12345
@@ -63,9 +78,9 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     mainFun2.execute(assocCons).asLong() shouldEqual 4567L
   }
 
-  subject should "allow to switch back and forth between literal and on-disk sources" in {
-    val ctx = new TestContext("Test")
-
+  it should "allow to switch back and forth between literal and on-disk sources" in TestContext(
+    "test"
+  ) { ctx =>
     ctx.writeMain("""
                     |main = 123
                     |""".stripMargin)
@@ -98,66 +113,64 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     mainFun4.execute(assocCons).asLong() shouldEqual 987L
   }
 
-  subject should "allow to create new, importable modules" in {
-    val ctx = new TestContext("Test")
-    ctx.writeMain("""
-                    |import Enso_Test.Test.Foo
-                    |
-                    |main = Foo.foo + 1
-                    |""".stripMargin)
+  it should "allow to create new, importable modules" in TestContext("test") {
+    ctx =>
+      ctx.writeMain("""
+                      |import Enso_Test.Test.Foo
+                      |
+                      |main = Foo.foo + 1
+                      |""".stripMargin)
 
-    ctx.writeFile(
-      "Foo.enso",
-      """
-        |foo = 10
-        |""".stripMargin
-    )
+      ctx.writeFile(
+        "Foo.enso",
+        """
+          |foo = 10
+          |""".stripMargin
+      )
 
-    val topScope = ctx.executionContext.getTopScope
-    topScope.registerModule(
-      "Enso_Test.Test.Foo",
-      ctx.mkFile("Foo.enso").getAbsolutePath
-    )
+      val topScope = ctx.executionContext.getTopScope
+      topScope.registerModule(
+        "Enso_Test.Test.Foo",
+        ctx.mkFile("Foo.enso").getAbsolutePath
+      )
 
-    val mainModule = topScope.getModule("Enso_Test.Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun    = mainModule.getMethod(assocCons, "main").get
-    mainFun.execute(assocCons).asLong shouldEqual 11L
+      val mainModule = topScope.getModule("Enso_Test.Test.Main")
+      val assocCons  = mainModule.getAssociatedConstructor
+      val mainFun    = mainModule.getMethod(assocCons, "main").get
+      mainFun.execute(assocCons).asLong shouldEqual 11L
   }
 
-  subject should "allow importing literal-source modules" in {
-    val ctx = new TestContext("Test")
-    ctx.writeMain("""
-                    |import Enso_Test.Test.Foo
-                    |
-                    |main = Foo.foo + 1
-                    |""".stripMargin)
+  it should "allow importing literal-source modules" in TestContext("test") {
+    ctx =>
+      ctx.writeMain("""
+                      |import Enso_Test.Test.Foo
+                      |
+                      |main = Foo.foo + 1
+                      |""".stripMargin)
 
-    ctx.writeFile(
-      "Foo.enso",
-      """
-        |foo = 10
-        |""".stripMargin
-    )
+      ctx.writeFile(
+        "Foo.enso",
+        """
+          |foo = 10
+          |""".stripMargin
+      )
 
-    val topScope = ctx.executionContext.getTopScope
-    val fooModule = topScope.registerModule(
-      "Enso_Test.Test.Foo",
-      ctx.mkFile("Foo.enso").getAbsolutePath
-    )
-    fooModule.setSource("""
-                          |foo = 20
-                          |""".stripMargin)
+      val topScope = ctx.executionContext.getTopScope
+      val fooModule = topScope.registerModule(
+        "Enso_Test.Test.Foo",
+        ctx.mkFile("Foo.enso").getAbsolutePath
+      )
+      fooModule.setSource("""
+                            |foo = 20
+                            |""".stripMargin)
 
-    val mainModule = topScope.getModule("Enso_Test.Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun    = mainModule.getMethod(assocCons, "main").get
-    mainFun.execute(assocCons).asLong shouldEqual 21L
+      val mainModule = topScope.getModule("Enso_Test.Test.Main")
+      val assocCons  = mainModule.getAssociatedConstructor
+      val mainFun    = mainModule.getMethod(assocCons, "main").get
+      mainFun.execute(assocCons).asLong shouldEqual 21L
   }
 
-  subject should "allow for module deletions" in {
-    val ctx = new TestContext("Test")
-
+  it should "allow for module deletions" in TestContext("test") { ctx =>
     ctx.writeMain("""
                     |foo = 123
                     |""".stripMargin)
@@ -189,8 +202,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     exception.getMessage shouldEqual "Compilation aborted due to errors."
   }
 
-  subject should "allow gathering imported libraries" in {
-    val ctx = new TestContext("Test")
+  it should "allow gathering imported libraries" in TestContext("test") { ctx =>
     ctx.writeMain("""
                     |import Foo.Bar.Baz
                     |
