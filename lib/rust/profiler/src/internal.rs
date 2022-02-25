@@ -96,12 +96,10 @@ impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
         self.name
     }
     fn take_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>> {
-        let iter = self
-            .entries
-            .take_all()
-            .into_iter()
-            .map(|data| serde_json::value::to_raw_value(&data).unwrap());
-        Box::new(iter)
+        let entries = self.entries.take_all();
+        let entries = entries.into_iter().map(|data|
+            serde_json::value::to_raw_value(&data).unwrap());
+        Box::new(entries)
     }
 }
 
@@ -164,10 +162,7 @@ impl EventLog {
 }
 
 
-
-// ==================
 // === StartState ===
-// ==================
 
 /// Specifies the initial state of a profiler.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -237,21 +232,23 @@ impl<Metadata, LabelStorage> Event<Metadata, LabelStorage> {
 
 
 
-// ========================
-// === ExternalMetadata ===
-// ========================
+// =============
+// === Start ===
+// =============
 
-/// Metadata stored separately.
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct ExternalMetadata {
-    type_id: u32,
+/// A measurement-start entry in the profiling log.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Start<LabelStorage> {
+    /// Specifies parent measurement by its [`Start`].
+    pub parent: EventId,
+    /// Start time, or None to indicate it is the same as `parent`.
+    pub start:  Option<Timestamp>,
+    /// Identifies where in the code this measurement originates.
+    pub label:  Label<LabelStorage>,
 }
 
 
-
-// =============
 // === Label ===
-// =============
 
 /// The label of a profiler; this includes the name given at its creation, along with file and
 /// line-number information.
@@ -398,19 +395,14 @@ impl EventId {
 
 
 
-// =============
-// === Start ===
-// =============
+// ========================
+// === ExternalMetadata ===
+// ========================
 
-/// A measurement-start entry in the profiling log.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Start<LabelStorage> {
-    /// Specifies parent measurement by its [`Start`].
-    pub parent: EventId,
-    /// Start time, or None to indicate it is the same as `parent`.
-    pub start:  Option<Timestamp>,
-    /// Identifies where in the code this measurement originates.
-    pub label:  Label<LabelStorage>,
+/// Indicates where in the event log metadata from a particular external source should be inserted.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct ExternalMetadata {
+    type_id: u32,
 }
 
 

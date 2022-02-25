@@ -1,6 +1,5 @@
 //! Parsing implementation. `pub` contents are low-level error details.
 
-use crate::id;
 use enso_profiler as profiler;
 
 use std::collections;
@@ -480,5 +479,69 @@ impl crate::CodePos {
                 line: line.parse().map_err(|_| Expected("line number"))?,
             })
         })
+    }
+}
+
+
+
+// ==========
+// === id ===
+// ==========
+
+/// Facilities for classifying an event ID into subtypes.
+///
+/// The [`profiler::internal::EventId`] type can be logically broken down into different subtypes,
+/// but in the event log subtypes are not differentiated so that all EventIDs can be easily packed
+/// into a small scalar. This module supports unpacking an EventID.
+pub mod id {
+    use enso_profiler as profiler;
+
+    /// An reference to an event. This type classifies [`profiler::EventId`]; they have a 1:1
+    /// correspondence.
+    #[derive(Copy, Clone, Debug)]
+    pub enum Event {
+        /// An unspecified ID that must be inferred from context.
+        Implicit,
+        /// A specific, context-independent ID.
+        Explicit(Explicit),
+    }
+
+    impl From<profiler::internal::EventId> for Event {
+        fn from(id: profiler::internal::EventId) -> Self {
+            if id == profiler::internal::EventId::IMPLICIT {
+                Event::Implicit
+            } else {
+                Event::Explicit(if id == profiler::internal::EventId::APP_LIFETIME {
+                    Explicit::AppLifetime
+                } else {
+                    Explicit::Runtime(Runtime(id.0))
+                })
+            }
+        }
+    }
+
+    /// An explicit reference to an event.
+    #[derive(Copy, Clone, Debug)]
+    pub enum Explicit {
+        /// The parent of the real roots.
+        AppLifetime,
+        /// An event logged at runtime.
+        Runtime(Runtime),
+    }
+
+    /// An explicit reference to an event in the log.
+    #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+    pub struct Runtime(pub u32);
+
+    impl From<Runtime> for Explicit {
+        fn from(id: Runtime) -> Self {
+            Explicit::Runtime(id)
+        }
+    }
+
+    impl From<Runtime> for crate::Seq {
+        fn from(pos: Runtime) -> Self {
+            Self::runtime_event(pos.0)
+        }
     }
 }

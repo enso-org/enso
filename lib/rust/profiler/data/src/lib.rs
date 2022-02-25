@@ -134,8 +134,8 @@ pub enum Error<M> {
         /// If the `errors` all relate to metadata events, the remaining data will be
         /// available here, with one metadata object missing for each error.
         ///
-        /// If some errors are not metadata errors, the readable subset of events might not form a
-        /// valid log, and this will contain an error too.
+        /// If some errors are not metadata errors (i.e. the core format has changed), the readable
+        /// subset of events might not form a valid log, and this will contain an error too.
         with_missing_data: Result<Measurement<M>, EventError<parse::DataError>>,
     },
     /// Failed to interpret the event log data.
@@ -328,13 +328,13 @@ impl Mark {
 // === Seq ===
 
 /// A value that can be used to compare the order of events.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-struct Seq(u32);
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub(crate) struct Seq(u32);
 
-impl From<id::Runtime> for Seq {
-    fn from(pos: id::Runtime) -> Self {
+impl Seq {
+    fn runtime_event(event_index: u32) -> Self {
         // Seq(0) is the time origin.
-        Seq(pos.0 + 1)
+        Seq(event_index.checked_add(1).unwrap())
     }
 }
 
@@ -385,64 +385,6 @@ pub struct CodePos {
     pub file: String,
     /// A line number within the file.
     pub line: u32,
-}
-
-
-
-// ==========
-// === id ===
-// ==========
-
-/// Facilities for classifying an event ID into subtypes.
-///
-/// The [`profiler::EventId`] type can be logically broken down into different subtypes, but in the
-/// event log subtypes are not differentiated so that all EventIDs can be easily packed into a
-/// small scalar. This module supports unpacking an EventID.
-pub mod id {
-    use enso_profiler as profiler;
-
-    /// An reference to an event. This type classifies [`profiler::EventId`]; they have a 1:1
-    /// correspondence.
-    #[derive(Copy, Clone, Debug)]
-    pub enum Event {
-        /// An unspecified ID that must be inferred from context.
-        Implicit,
-        /// A specific ID.
-        Explicit(Explicit),
-    }
-
-    impl From<profiler::internal::EventId> for Event {
-        fn from(id: profiler::internal::EventId) -> Self {
-            if id == profiler::internal::EventId::IMPLICIT {
-                Event::Implicit
-            } else {
-                Event::Explicit(if id == profiler::internal::EventId::APP_LIFETIME {
-                    Explicit::AppLifetime
-                } else {
-                    Explicit::Runtime(Runtime(id.0))
-                })
-            }
-        }
-    }
-
-    /// An explicit reference to an event.
-    #[derive(Copy, Clone, Debug)]
-    pub enum Explicit {
-        /// The parent of the real roots.
-        AppLifetime,
-        /// An event logged at runtime.
-        Runtime(Runtime),
-    }
-
-    /// An explicit reference to an event in the log.
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-    pub struct Runtime(pub u32);
-
-    impl From<Runtime> for Explicit {
-        fn from(id: Runtime) -> Self {
-            Explicit::Runtime(id)
-        }
-    }
 }
 
 
