@@ -1738,7 +1738,7 @@ impl GraphEditorModel {
         mouse_position: Vector2,
         reference_node: Option<Node>,
     ) -> Vector2 {
-        let node_placement_area_contains_mouse = reference_node.map_or(false, |node| {
+        let position_guiding_node = reference_node.filter(|node| {
             let node_position = node.position();
             let node_left = node_position.x;
             let node_right = node_position.x + node.model.width();
@@ -1754,10 +1754,9 @@ impl GraphEditorModel {
             );
             placement_area.contains(mouse_position)
         });
-        if node_placement_area_contains_mouse {
-            self.find_free_place_under(reference_node.id())
-        } else {
-            mouse_position
+        match position_guiding_node {
+            Some(node) => self.find_free_place_under(node.id()),
+            None => mouse_position,
         }
     }
 
