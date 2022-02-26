@@ -530,6 +530,10 @@ mock_data! { Element => Node
     fn set_class_name(&self, value: &str);
     fn set_id(&self, value: &str);
     fn set_attribute(&self, name: &str, value: &str) -> Result<(), JsValue>;
+    fn prepend_with_node_0(&self) -> Result<(), JsValue>;
+    fn prepend_with_node_1(&self, n1: &Node) -> Result<(), JsValue>;
+    fn prepend_with_node_2(&self, n1: &Node, n2:&Node) -> Result<(), JsValue>;
+    fn prepend_with_node_3(&self, n1: &Node, n2:&Node, n3:&Node) -> Result<(), JsValue>;
 }
 
 // === HtmlElement ===
@@ -585,7 +589,13 @@ mock_data! { CanvasRenderingContext2d
     fn set_line_width(&self, value: f64);
     fn translate(&self, x: f64, y: f64) -> std::result::Result<(), JsValue>;
     fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64);
-
+    fn set_font(&self, font: &str);
+    fn set_text_align(&self, text_align: &str);
+    fn fill_text(&self, text: &str, x: f64, y: f64) -> Result<(), JsValue>;
+    fn draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+        &self, image: &HtmlCanvasElement,
+        sx: f64, sy: f64, sw: f64, sh: f64, dx: f64, dy: f64, dw: f64, dh: f64
+        ) -> Result<(), JsValue>;
 }
 
 
@@ -594,6 +604,7 @@ mock_data! { Node => EventTarget
     fn parent_node(&self) -> Option<Node>;
     fn remove_child(&self, child: &Node) -> std::result::Result<Node, JsValue>;
     fn set_text_content(&self, value: Option<&str>);
+    fn append_child(&self, node: &Node) -> Result<Node, JsValue>;
 }
 
 

@@ -62,8 +62,6 @@ class RuntimeComponentsTest
                 LibraryName("Standard", "Base"),
                 ModuleName("Group2")
               ),
-              color   = None,
-              icon    = None,
               exports = List(Component("foo", None))
             )
           )

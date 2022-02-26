@@ -829,3 +829,21 @@ where F: FnOnce(Element) {
         None => warning!(logger, "Failed to get element by ID."),
     }
 }
+
+
+
+// ====================
+// === TimeProvider ===
+// ====================
+
+/// Trait for an entity that can retrieve current time.
+pub trait TimeProvider {
+    /// Returns current time, measured in milliseconds.
+    fn now(&self) -> f64;
+}
+
+impl TimeProvider for Performance {
+    fn now(&self) -> f64 {
+        self.now()
+    }
+}

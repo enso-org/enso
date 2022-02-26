@@ -7,8 +7,8 @@ import org.enso.librarymanager.published.cache.{
   LibraryCache,
   ReadOnlyLibraryCache
 }
+import org.enso.librarymanager.resolved.LibraryRoot
 
-import java.nio.file.Path
 import scala.util.{Success, Try}
 
 /** A default implementation of [[PublishedLibraryProvider]] which uses one
@@ -18,7 +18,8 @@ import scala.util.{Success, Try}
 class DefaultPublishedLibraryProvider(
   primaryCache: LibraryCache,
   auxiliaryCaches: List[ReadOnlyLibraryCache]
-) extends CachedLibraryProvider(caches = primaryCache :: auxiliaryCaches) {
+) extends CachedLibraryProvider(caches = primaryCache :: auxiliaryCaches)
+    with PublishedLibraryProvider {
   private val logger = Logger[DefaultPublishedLibraryProvider]
 
   /** @inheritdoc */
@@ -26,9 +27,9 @@ class DefaultPublishedLibraryProvider(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[Path] = {
-    val cached = findCachedLibrary(libraryName, version)
-    cached.map(Success(_)).getOrElse {
+  ): Try[LibraryRoot] = {
+    val cachedLibrary = findCachedLibrary(libraryName, version)
+    cachedLibrary.map(Success(_)).getOrElse {
       logger.trace(
         s"$libraryName was not found in any caches, it will need to be " +
         s"downloaded."

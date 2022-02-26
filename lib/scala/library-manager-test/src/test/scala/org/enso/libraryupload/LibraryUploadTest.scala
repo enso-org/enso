@@ -80,7 +80,9 @@ class LibraryUploadTest
           )
           val installedRoot =
             cache.findOrInstallLibrary(libraryName, libraryVersion, repo).get
-          val pkg = PackageManager.Default.loadPackage(installedRoot.toFile).get
+          val pkg = PackageManager.Default
+            .loadPackage(installedRoot.location.toFile)
+            .get
           pkg.name shouldEqual libraryName.name
           val sources = pkg.listSources
           sources should have size 1

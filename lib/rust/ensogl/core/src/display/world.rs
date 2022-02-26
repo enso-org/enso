@@ -1,8 +1,6 @@
 //! This module implements `World`, the main object responsible for handling what you see on the
 //! screen.
 
-pub mod stats;
-
 pub use crate::display::symbol::types::*;
 
 use crate::prelude::*;
@@ -12,6 +10,8 @@ use crate::animation;
 use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
+use crate::debug;
+use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
 use crate::display::render;
@@ -129,8 +129,8 @@ impl WorldDataWithLoop {
         let data = WorldData::new();
         let main_loop = animation::DynamicLoop::new();
         let main_loop_handle = main_loop.on_frame(f!([data](t:animation::TimeInfo) {
-            data.stats.begin_frame();
-            if let Some(stats) = data.stats.previous_frame_stats() {
+            let previous_frame_stats = data.stats.begin_frame();
+            if let Some(stats) = previous_frame_stats {
                 data.on.prev_frame_stats.run_all(&stats);
             }
             data.on.before_frame.run_all(t);
@@ -187,7 +187,9 @@ pub struct WorldData {
     pub default_scene:    Scene,
     scene_dirty:          dirty::SharedBool,
     uniforms:             Uniforms,
-    stats:                stats::Monitor,
+    stats:                Stats,
+    stats_monitor:        debug::monitor::Monitor,
+    stats_draw_handle:    callback::Handle,
     pub on:               Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
 }
@@ -196,16 +198,31 @@ impl WorldData {
     /// Create and initialize new world instance.
     pub fn new() -> Self {
         let logger = Logger::new("world");
-        let stats: stats::Monitor = default();
-        let on = default();
+        let stats = debug::stats::Stats::new(web::performance());
+        let stats_monitor = debug::monitor::Monitor::new();
+        let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
-        let default_scene = Scene::new(&logger, &stats.stats(), on_change);
+        let default_scene = Scene::new(&logger, &stats, on_change);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
 
-        Self { logger, default_scene, scene_dirty, uniforms, stats, on, debug_hotkeys_handle }
-            .init()
+        let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
+            stats_monitor.sample_and_draw(stats);
+        }));
+
+        Self {
+            logger,
+            default_scene,
+            scene_dirty,
+            uniforms,
+            stats,
+            on,
+            debug_hotkeys_handle,
+            stats_monitor,
+            stats_draw_handle,
+        }
+        .init()
     }
 
     fn init(self) -> Self {
@@ -221,14 +238,14 @@ impl WorldData {
     }
 
     fn init_debug_hotkeys(&self) {
-        let stats = self.stats.clone_ref();
+        let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.uniforms.display_mode.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::wrap(Box::new(move |val| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
                 if key == "Backquote" {
-                    stats.toggle()
+                    stats_monitor.toggle()
                 } else if key == "Digit0" {
                     display_mode.set(0)
                 } else if key == "Digit1" {

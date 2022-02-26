@@ -2,8 +2,10 @@ package org.enso.librarymanager.published.cache
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
+import org.enso.librarymanager.resolved.LibraryRoot
 
 import java.nio.file.Path
+
 import scala.util.Try
 
 /** A library cache that is also capable of downloading missing libraries (which
@@ -26,7 +28,7 @@ trait LibraryCache extends ReadOnlyLibraryCache {
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[Path]
+  ): Option[LibraryRoot]
 
   /** If the cache contains the library, it is returned immediately, otherwise,
     * it tries to download the missing library.
@@ -46,7 +48,7 @@ trait LibraryCache extends ReadOnlyLibraryCache {
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository
-  ): Try[Path]
+  ): Try[LibraryRoot]
 
   /** Ensures that the given library and all of its dependencies are installed.
     *
