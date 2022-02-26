@@ -7,14 +7,16 @@ use crate::component::visualization::foreign::java_script::PreprocessorCallback;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::Type;
 
+use enso_web::HtmlDivElement;
+use enso_web::JsValue;
 use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::style::data::DataMatch;
 use ensogl::display::DomSymbol;
 use ensogl_hardcoded_theme;
 use fmt::Formatter;
-use wasm_bindgen::prelude::*;
-use web_sys::HtmlDivElement;
+use wasm_bindgen::prelude::wasm_bindgen;
+
 
 
 // =================
@@ -30,6 +32,7 @@ pub const JS_CLASS_NAME: &str = "Visualization";
 // === JavaScript Bindings ===
 // ===========================
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "/src/component/visualization/foreign/java_script/visualization.js")]
 extern "C" {
     #[allow(unsafe_code)]
@@ -48,6 +51,26 @@ extern "C" {
     pub fn emitPreprocessorChange(this: &Visualization) -> Result<(), JsValue>;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn __Visualization__() -> JsValue {
+    default()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Default)]
+pub struct Visualization {}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Visualization {
+    pub fn new() -> Self {
+        default()
+    }
+
+    pub fn emitPreprocessorChange(&self) -> Result<(), JsValue> {
+        Ok(())
+    }
+}
+
 /// Provides reference to the visualizations JavaScript base class.
 pub fn js_class() -> JsValue {
     __Visualization__()
@@ -59,7 +82,7 @@ pub fn js_class() -> JsValue {
 // === Theme ===
 // =============
 
-/// The theming API that we expose to JS visualizations
+/// The theming API that we expose to JS visualizations.
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct JsTheme {
@@ -151,7 +174,8 @@ impl JsConsArgs {
     }
 }
 
-#[wasm_bindgen]
+// FIXME: commented:
+// #[wasm_bindgen]
 impl JsConsArgs {
     /// Getter for the root element for the visualization.
     pub fn root(&self) -> JsValue {

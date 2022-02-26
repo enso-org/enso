@@ -55,9 +55,6 @@ mod mask {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_complex_shape_system() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
-
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();

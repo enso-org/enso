@@ -54,8 +54,6 @@ pub fn shape() -> AnyShape {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_shape_system() {
-    web::forward_panic_hook_to_console();
-
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();

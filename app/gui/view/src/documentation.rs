@@ -15,13 +15,12 @@ use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::clipboard;
-use ensogl::system::web::AttributeSetter;
-use ensogl::system::web::StyleSetter;
+use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
-use web_sys::HtmlElement;
-use web_sys::MouseEvent;
+use web::Closure;
+use web::HtmlElement;
+use web::JsCast;
+use web::MouseEvent;
 
 
 
@@ -70,9 +69,9 @@ impl Model {
     fn new(scene: &Scene) -> Self {
         let logger = Logger::new("DocumentationView");
         let display_object = display::object::Instance::new(&logger);
-        let outer_div = web::document.create_div();
+        let outer_div = web::document.create_div_or_panic();
         let outer_dom = DomSymbol::new(&outer_div);
-        let inner_div = web::document.create_div();
+        let inner_div = web::document.create_div_or_panic();
         let inner_dom = DomSymbol::new(&inner_div);
         let size =
             Rc::new(Cell::new(Vector2(VIEW_WIDTH - PADDING, VIEW_HEIGHT - PADDING - PADDING_TOP)));

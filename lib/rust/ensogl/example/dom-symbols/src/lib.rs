@@ -21,6 +21,7 @@ use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::DomSymbol;
 use ensogl_core::display::world::*;
 use ensogl_core::system::web;
+use ensogl_core::system::web::traits::*;
 use ensogl_core::system::web::NodeInserter;
 use web::StyleSetter;
 
@@ -32,7 +33,6 @@ use wasm_bindgen::prelude::*;
 #[allow(dead_code)]
 #[allow(clippy::many_single_char_names)]
 pub fn entry_point_dom_symbols() {
-    web::forward_panic_hook_to_console();
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera();
@@ -61,7 +61,7 @@ pub fn entry_point_dom_symbols() {
             sprite.mod_position(|t| *t = position);
             sprites.push(sprite);
         } else {
-            let div = web::document.create_div();
+            let div = web::document.create_div_or_panic();
             div.set_style_or_panic("width", "100%");
             div.set_style_or_panic("height", "100%");
             div.set_inner_html("top-left");

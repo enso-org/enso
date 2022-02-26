@@ -2,8 +2,11 @@
 
 pub mod listener;
 
-#[cfg(target_arch = "wasm32")]
 use crate::prelude::*;
+use js_sys::Function;
+use wasm_bindgen::JsValue;
+use web_sys::Event;
+use web_sys::EventTarget;
 
 
 
@@ -21,12 +24,11 @@ use crate::prelude::*;
 ///
 /// Typically this trait is to be implemented for uncreatable types, created for the sole
 /// purpose of denoting a particular event type within a context of an event target.
-#[cfg(target_arch = "wasm32")]
 pub trait Type {
     /// The event value -- i.e. the Rust type of a value that will be passed as an argument
     /// to the listener.
     /// For example `web_sys::CloseEvent`.
-    type Interface: AsRef<web_sys::Event>;
+    type Interface: AsRef<Event>;
 
     /// The type of the EventTarget object that fires this type of event, e.g. `web_sys::WebSocket`.
     type Target: AsRef<EventTarget> + AsRef<JsValue> + Clone + PartialEq;

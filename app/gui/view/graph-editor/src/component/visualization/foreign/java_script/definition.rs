@@ -5,8 +5,9 @@
 //! * [visualization documentation](https://dev.enso.org/docs/ide/product/visualizations.html).
 // FIXME: Can we simplify the above definition so its more minimal, yet functional?
 
-mod function;
-use function::Function;
+// FIXME:
+// mod function;
+// use function::Function;
 
 use crate::prelude::*;
 
@@ -18,12 +19,13 @@ use crate::component::visualization::InstantiationResult;
 use crate::visualization::foreign::java_script::Sources;
 
 use ensogl::display::Scene;
+use ensogl::system::web;
+use ensogl::system::web::traits::*;
+use ensogl::system::web::Function;
+use ensogl::system::web::JsString;
 use ensogl::system::web::JsValue;
 use fmt::Formatter;
-use js_sys;
-use js_sys::JsString;
 use std::str::FromStr;
-use wasm_bindgen::JsCast;
 
 
 
@@ -63,7 +65,7 @@ impl Definition {
     pub fn new(project: visualization::path::Project, sources: Sources) -> Result<Self, Error> {
         let source = sources.to_string(&project);
         let context = JsValue::NULL;
-        let function = Function::new_with_args(binding::JS_CLASS_NAME, &source)
+        let function = Function::new_with_args_fixed(binding::JS_CLASS_NAME, &source)
             .map_err(Error::InvalidFunction)?;
         let js_class = binding::js_class();
         let class = function.call1(&context, &js_class).map_err(Error::InvalidFunction)?;
@@ -102,7 +104,7 @@ impl From<Definition> for visualization::Definition {
 // === Utils ===
 
 fn try_str_field(obj: &JsValue, field: &str) -> Option<String> {
-    let field = js_sys::Reflect::get(obj, &field.into()).ok()?;
+    let field = web::Reflect::get(obj, &field.into()).ok()?;
     let js_string = field.dyn_ref::<JsString>()?;
     Some(js_string.into())
 }

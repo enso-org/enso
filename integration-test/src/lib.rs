@@ -47,7 +47,7 @@ impl IntegrationTest {
     pub async fn setup() -> Self {
         enso_web::forward_panic_hook_to_error();
         let executor = setup_global_executor();
-        let root_div = enso_web::document.create_div();
+        let root_div = enso_web::document.create_div_or_panic();
         root_div.set_id("root");
         root_div.set_style_or_panic("display", "none");
         enso_web::body().append_or_panic(&root_div);

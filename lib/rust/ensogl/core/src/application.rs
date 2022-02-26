@@ -14,6 +14,7 @@ use crate::control::callback;
 use crate::display;
 use crate::display::style::theme;
 use crate::display::world::World;
+use crate::display::scene::DomPath;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
 use enso_web::traits::*;
@@ -42,7 +43,7 @@ pub struct Application {
 
 impl Application {
     /// Constructor.
-    pub fn new(dom: &web::HtmlElement) -> Self {
+    pub fn new(dom: impl DomPath) -> Self {
         let logger = Logger::new("Application");
         let display = World::new();
         let scene = &display.default_scene;

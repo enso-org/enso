@@ -26,7 +26,7 @@ pub struct BenchContainer {
 impl BenchContainer {
     /// Creates an identificable container with provided dimensions.
     pub fn new(name: &str, width: f32, height: f32) -> Self {
-        let div = web::document.create_div();
+        let div = web::document.create_div_or_panic();
         div.set_style_or_panic("margin", "0px 2px");
         div.set_style_or_panic("height", "24px");
         div.set_style_or_panic("bottom-border", "1px solid black");

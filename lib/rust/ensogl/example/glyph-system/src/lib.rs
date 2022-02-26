@@ -31,7 +31,6 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_glyph_system() {
-    web::forward_panic_hook_to_console();
     run_once_initialized(|| init(&World::new().displayed_in("root")));
 }
 

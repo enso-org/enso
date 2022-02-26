@@ -5,6 +5,8 @@
 //! A PR with a suggested change to wasm-bindgen can be found here:
 //! https://github.com/rustwasm/wasm-bindgen/pull/2497
 
+// FIXME: integrate this
+
 use js_sys::*;
 use wasm_bindgen::prelude::*;
 

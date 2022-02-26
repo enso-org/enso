@@ -20,7 +20,7 @@ pub fn Error<S: Into<String>>(message: S) -> Error {
     Error { message }
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type XResult<T> = std::result::Result<T, Error>;
 
 impl From<JsValue> for Error {
     fn from(t: JsValue) -> Self {
@@ -49,6 +49,12 @@ impl MockDefault for () {
     fn mock_default() -> Self {}
 }
 
+impl<T: MockDefault> MockDefault for Option<T> {
+    fn mock_default() -> Self {
+        Some(mock_default())
+    }
+}
+
 impl<T: MockDefault, E> MockDefault for std::result::Result<T, E> {
     fn mock_default() -> Self {
         Ok(mock_default())
@@ -68,7 +74,7 @@ macro_rules! auto_impl_mock_default {
     };
 }
 
-auto_impl_mock_default!(bool, i16, i32, u32, f64, String, Option<T>);
+auto_impl_mock_default!(bool, i16, i32, u32, f64, String);
 
 
 
@@ -92,6 +98,7 @@ macro_rules! mock_struct {
 
         /// # Safety
         /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
+        #[allow(unsafe_code)]
         impl$(<$($param $(:?$param_tp)?),*>)?
         $name $(<$($param),*>)? {
             pub const fn const_new() -> Self {
@@ -231,8 +238,8 @@ macro_rules! mock_fn_gen {
     };
 
     ([$($viz:ident)?] $name:ident $(<$($fn_tp:ident),*>)?
-    ($($arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
-        $($viz)? fn $name $(<$($fn_tp),*>)? ($($arg : $arg_tp)*) $(-> $out)? {
+    ($($arg:ident : $arg_tp:ty),* $(,)? ) $(-> $out:ty)? ) => {
+        $($viz)? fn $name $(<$($fn_tp),*>)? ($($arg : $arg_tp),*) $(-> $out)? {
             mock_default()
         }
     };
@@ -316,13 +323,25 @@ where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
 
 /// Mock of [`wasm_bindgen::JsValue`]. All JS types can be converted to `JsValue` and thus it
 /// implements a generic conversion trait.
-mock_data! { JsValue }
+mock_data! { JsValue
+    fn is_undefined(&self) -> bool;
+}
+
+impl JsValue {
+    pub const NULL: JsValue = JsValue {};
+}
 
 auto trait IsNotJsValue {}
 impl !IsNotJsValue for JsValue {}
 impl<A: IsNotJsValue> From<A> for JsValue {
     default fn from(_: A) -> Self {
         default()
+    }
+}
+
+impl AsRef<JsValue> for wasm_bindgen::JsValue {
+    fn as_ref(&self) -> &JsValue {
+        &JsValue::NULL
     }
 }
 
@@ -350,6 +369,34 @@ impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
 
 
 
+// ================
+// === Js Prims ===
+// ================
+
+// === String ===
+mock_data! { JsString => Object
+    fn to_string(&self) -> String;
+}
+
+impl From<JsString> for String {
+    fn from(_: JsString) -> Self {
+        "JsString".into()
+    }
+}
+
+impl From<&JsString> for String {
+    fn from(_: &JsString) -> Self {
+        "JsString".into()
+    }
+}
+
+
+// === Array ===
+mock_data! { Array => Object
+}
+
+
+
 // ====================
 // === DOM Elements ===
 // ====================
@@ -362,7 +409,9 @@ pub use web_sys::WebGl2RenderingContext;
 
 // === Object ===
 mock_data! { Object => JsValue
+    fn new() -> Self;
     fn value_of(&self) -> Object;
+    fn keys(object: &Object) -> Array;
 }
 
 
@@ -381,7 +430,11 @@ mock_data! { EventTarget => Object
 
 
 // === Document ===
-mock_data! { Document => EventTarget }
+mock_data! { Document => EventTarget
+    fn body(&self) -> Option<HtmlElement>;
+    fn create_element(&self, local_name: &str) -> std::result::Result<Element, JsValue>;
+    fn get_element_by_id(&self, element_id: &str) -> Option<Element>;
+}
 
 
 // === Window ===
@@ -392,7 +445,14 @@ mock_data! { Window => EventTarget
 
 
 // === Function ===
-mock_data! { Function }
+mock_data! { Function
+    // FIXME: move it to FunctionOps
+    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue>;
+    fn call1(&self, context: &JsValue, arg1: &JsValue) -> Result<JsValue, JsValue>;
+    fn call2(&self, context: &JsValue, arg1: &JsValue, arg2: &JsValue) -> Result<JsValue, JsValue>;
+    fn call3(&self, context: &JsValue, arg1: &JsValue, arg2: &JsValue, arg3: &JsValue)
+        -> Result<JsValue, JsValue>;
+}
 
 
 // === AddEventListenerOptions ===
@@ -446,6 +506,7 @@ mock_data! { WheelEvent => MouseEvent
 // === HtmlCollection ===
 mock_data! { HtmlCollection
     fn length(&self) -> u32;
+    fn get_with_index(&self, index: u32) -> Option<Element>;
 }
 
 
@@ -465,11 +526,18 @@ mock_data! { Element => Node
     fn remove(&self);
     fn children(&self) -> HtmlCollection;
     fn get_bounding_client_rect(&self) -> DomRect;
+    fn set_inner_html(&self, value: &str);
+    fn set_class_name(&self, value: &str);
+    fn set_id(&self, value: &str);
+    fn set_attribute(&self, name: &str, value: &str) -> Result<(), JsValue>;
 }
 
 // === HtmlElement ===
 mock_data! { HtmlElement => Element
     fn set_class_name(&self, _n: &str);
+    fn set_inner_text(&self, value: &str);
+    fn inner_text(&self) -> String;
+    fn get_elements_by_class_name(&self, class_names: &str) -> HtmlCollection;
 }
 impl From<HtmlElement> for EventTarget {
     fn from(_: HtmlElement) -> Self {
@@ -488,15 +556,71 @@ impl From<HtmlDivElement> for EventTarget {
 
 
 // === HtmlCanvasElement ===
-mock_data! { HtmlCanvasElement => HtmlElement }
+mock_data! { HtmlCanvasElement => HtmlElement
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
+    fn set_width(&self, value: u32);
+    fn set_height(&self, value: u32);
+    fn get_context(&self, context_id: &str) -> std::result::Result<Option<Object>, JsValue>;
+    fn get_context_with_context_options(
+        &self,
+        context_id: &str,
+        context_options: &JsValue
+        ) -> std::result::Result<Option<Object>, JsValue>;
+}
 
 
 // === CanvasRenderingContext2d ===
-mock_data! { CanvasRenderingContext2d }
+mock_data! { CanvasRenderingContext2d
+    fn save(&self);
+    fn restore(&self);
+    fn begin_path(&self);
+    fn stroke(&self);
+    fn move_to(&self, x: f64, y: f64);
+    fn line_to(&self, x: f64, y: f64);
+    fn scale(&self, x: f64, y: f64) -> std::result::Result<(), JsValue>;
+    fn set_fill_style(&self, value: &JsValue);
+    fn set_stroke_style(&self, value: &JsValue);
+    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64);
+    fn set_line_width(&self, value: f64);
+    fn translate(&self, x: f64, y: f64) -> std::result::Result<(), JsValue>;
+    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64);
+
+}
 
 
 // === Node ===
-mock_data! { Node => EventTarget }
+mock_data! { Node => EventTarget
+    fn parent_node(&self) -> Option<Node>;
+    fn remove_child(&self, child: &Node) -> std::result::Result<Node, JsValue>;
+    fn set_text_content(&self, value: Option<&str>);
+}
+
+
+
+// ===============
+// === Reflect ===
+// ===============
+
+mock_data! { Reflect
+    fn get(target: &JsValue, key: &JsValue) -> std::result::Result<JsValue, JsValue>;
+    fn set(
+        target: &JsValue,
+        property_key: &JsValue,
+        value: &JsValue
+    ) -> std::result::Result<bool, JsValue>;
+}
+
+// pub mod Reflect {
+//     use super::*;
+//     mock_pub_fn! { set(
+//         target: &JsValue,
+//         property_key: &JsValue,
+//         value: &JsValue
+//     ) -> std::result::Result<bool, JsValue> }
+// }
+
+// mock_fn! { create_div(&self) -> HtmlDivElement }
 
 
 

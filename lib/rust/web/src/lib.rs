@@ -36,11 +36,15 @@ pub mod prelude {
 }
 
 pub mod traits {
+    pub use super::AttributeSetter;
     pub use super::DocumentOps;
+    pub use super::HtmlCanvasElementOps;
+    pub use super::JsCast;
     pub use super::NodeInserter;
     pub use super::NodeRemover;
+    pub use super::ObjectOps;
+    pub use super::ReflectOps;
     pub use super::StyleSetter;
-    pub use super::WindowApi;
 }
 
 use crate::prelude::*;
@@ -58,21 +62,111 @@ pub use binding::wasm::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use binding::mock::*;
-#[cfg(not(target_arch = "wasm32"))]
-pub use mock_apis::*;
 
 
 
-pub trait WindowApi {
-    fn forward_panic_hook_to_console(&self);
+// ==================
+// === ReflectOps ===
+// ==================
+
+pub trait ReflectOps {
+    /// Get the nested value of the provided object. This is similar to writing `foo.bar.baz` in
+    /// JavaScript, but in a safe manner, while checking if the value exists on each level.
+    fn get_nested(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue>;
+
+    /// Get the nested value of the provided object and cast it to [`Object`]. See docs of
+    /// [`get_nested`] to learn more.
+    fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue>;
+
+    /// Get the nested value of the provided object and cast it to [`String`]. See docs of
+    /// [`get_nested`] to learn more.
+    fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue>;
 }
+
+impl ReflectOps for Reflect {
+    fn get_nested(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue> {
+        let mut tgt = target.clone();
+        for key in keys {
+            let obj = tgt.dyn_into::<Object>()?;
+            let key = (*key).into();
+            tgt = Reflect::get(&obj, &key)?;
+        }
+        Ok(tgt)
+    }
+
+    fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue> {
+        let tgt = Self::get_nested(target, keys)?;
+        Ok(tgt.dyn_into()?)
+    }
+
+    fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue> {
+        let tgt = Self::get_nested(target, keys)?;
+        let str = tgt.dyn_into::<JsString>()?;
+        // FIXME: this seems better:
+        // Ok(String::from(str))
+        Ok(js_to_string(&str))
+    }
+}
+
+
+pub trait ObjectOps {
+    /// Get all the keys of the provided [`Object`].
+    fn keys_vec(obj: &Object) -> Vec<String>;
+}
+
+impl ObjectOps for Object {
+    #[cfg(target_arch = "wasm32")]
+    fn keys_vec(_obj: &Object) -> Vec<String> {
+        // The [`unwrap`] is safe, the `Object::keys` API guarantees it.
+        Object::keys(&obj)
+            .iter()
+            .map(|key| key.dyn_into::<js_sys::JsString>().unwrap().into())
+            .collect()
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn keys_vec(_obj: &Object) -> Vec<String> {
+        default()
+    }
+}
+
+
+
+// =================================
+// === Generic String Conversion ===
+// =================================
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = "String")]
+    fn js_to_string_inner(s: &JsValue) -> String;
+}
+
+#[cfg(target_arch = "wasm32")]
+/// Converts given `JsValue` into a `String`. Uses JS's `String` function,
+/// see: https://www.w3schools.com/jsref/jsref_string.asp
+pub fn js_to_string(s: impl AsRef<JsValue>) -> String {
+    js_to_string_inner(s.as_ref())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn js_to_string(_: impl AsRef<JsValue>) -> String {
+    "JsValue".into()
+}
+
+
+
+// ===================
+// === DocumentOps ===
+// ===================
 
 pub trait DocumentOps {
     fn body_or_panic(&self) -> HtmlElement;
     fn create_element_or_panic(&self, local_name: &str) -> Element;
     fn create_div_or_panic(&self) -> HtmlDivElement;
     fn create_canvas_or_panic(&self) -> HtmlCanvasElement;
-    fn get_element_by_id(&self, id: &str) -> Result<HtmlElement>;
+    fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement>;
     fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext>;
 }
 
@@ -94,12 +188,36 @@ impl DocumentOps for Document {
         self.create_element_or_panic("canvas").unchecked_into()
     }
 
-    fn get_element_by_id(&self, id: &str) -> Result<HtmlElement> {
-        todo!()
+    fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement> {
+        self.get_element_by_id(id).and_then(|t| t.dyn_into().ok())
     }
 
     fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
         todo!()
+    }
+}
+
+
+
+// =========================
+// === HtmlCanvasElement ===
+// =========================
+
+pub trait HtmlCanvasElementOps {
+    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext>;
+}
+
+impl HtmlCanvasElementOps for HtmlCanvasElement {
+    #[cfg(target_arch = "wasm32")]
+    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
+        let options = Object::new();
+        Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
+        let context = self.get_context_with_context_options("webgl2", &options).ok().flatten();
+        context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
+        None
     }
 }
 
@@ -465,6 +583,26 @@ pub fn performance() -> Performance {
 
 
 
+// =========================
+// === Stack Trace Limit ===
+// =========================
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(inline_js = "
+    export function set_stack_trace_limit() {
+        Error.stackTraceLimit = 100
+    }
+")]
+extern "C" {
+    #[allow(unsafe_code)]
+    pub fn set_stack_trace_limit2();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn set_stack_trace_limit2() {}
+
+
+
 // ==========================
 // === device_pixel_ratio ===
 // ==========================
@@ -611,3 +749,83 @@ pub fn simulate_sleep(duration: f64) {
 //         async_std::task::block_on(async_sleep())
 //     }
 // }
+
+
+
+// =============
+// === Panic ===
+// =============
+
+// TODO: 2 mechanisms here. What is the difference between them?
+
+/// Enables forwarding panic messages to `console.error`.
+pub fn forward_panic_hook_to_console2() {
+    // When the `console_error_panic_hook` feature is enabled, we can call the
+    // `set_panic_hook` function at least once during initialization, and then
+    // we will get better error messages if our code ever panics.
+    //
+    // For more details see
+    // https://github.com/rustwasm/console_error_panic_hook#readme
+    console_error_panic_hook::set_once();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn forward_panic_hook_to_error() {}
+
+#[cfg(target_arch = "wasm32")]
+/// Enables throwing a descriptive JavaScript error on panics.
+pub fn forward_panic_hook_to_error() {
+    std::panic::set_hook(Box::new(error_throwing_panic_hook));
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(module = "/js/rust_panic.js")]
+extern "C" {
+    #[allow(unsafe_code)]
+    fn new_panic_error(message: String) -> JsValue;
+}
+
+#[cfg(target_arch = "wasm32")]
+fn error_throwing_panic_hook(panic_info: &std::panic::PanicInfo) {
+    wasm_bindgen::throw_val(new_panic_error(panic_info.to_string()));
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn entry_point_panic() {
+    forward_panic_hook_to_error();
+    panic!();
+}
+
+
+// =============
+// === Sleep ===
+// =============
+
+#[cfg(target_arch = "wasm32")]
+/// Sleeps for the specified amount of time.
+///
+/// This function might sleep for slightly longer than the specified duration but never less. This
+/// function is an async version of std::thread::sleep, its timer starts just after the function
+/// call.
+pub async fn sleep(duration: Duration) {
+    use gloo_timers::future::TimeoutFuture;
+    TimeoutFuture::new(duration.as_millis() as u32).await
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use async_std::task::sleep;
+
+
+
+// ========== TODO: TO BE DECIDED
+
+/// Tries to get `Element` by ID, and runs function on it.
+pub fn with_element_by_id_or_warn<F>(logger: &Logger, id: &str, f: F)
+where F: FnOnce(Element) {
+    let root_elem = document.get_element_by_id(id);
+    match root_elem {
+        Some(v) => f(v),
+        None => warning!(logger, "Failed to get element by ID."),
+    }
+}

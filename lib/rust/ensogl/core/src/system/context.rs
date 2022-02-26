@@ -101,7 +101,7 @@ pub fn init_webgl_2_context<D: Display + 'static>(
     display: &D,
 ) -> Result<ContextLostHandler, UnsupportedStandard> {
     let hdc = display.device_context_handler();
-    let opt_context = web::get_webgl2_context(hdc);
+    let opt_context = hdc.get_webgl2_context();
     match opt_context {
         None => Err(UnsupportedStandard("WebGL 2.0")),
         Some(context) => {

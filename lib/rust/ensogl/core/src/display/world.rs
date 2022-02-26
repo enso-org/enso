@@ -195,7 +195,6 @@ pub struct WorldData {
 impl WorldData {
     /// Create and initialize new world instance.
     pub fn new() -> Self {
-        web::forward_panic_hook_to_console();
         let logger = Logger::new("world");
         let stats: stats::Monitor = default();
         let on = default();
@@ -210,9 +209,15 @@ impl WorldData {
     }
 
     fn init(self) -> Self {
+        self.init_environment();
         self.init_composer();
         self.init_debug_hotkeys();
         self
+    }
+
+    fn init_environment(&self) {
+        web::forward_panic_hook_to_console2();
+        web::set_stack_trace_limit2();
     }
 
     fn init_debug_hotkeys(&self) {

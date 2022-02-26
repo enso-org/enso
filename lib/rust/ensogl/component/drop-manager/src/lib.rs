@@ -22,12 +22,13 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use enso_web as web;
+use enso_web::binding::wasm::Error;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
-use enso_web::Error;
+use enso_web::Closure;
+use enso_web::JsCast;
 use js_sys::Uint8Array;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+// use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 
@@ -65,6 +66,7 @@ impl File {
         Ok(File { name, mime_type, size, reader })
     }
 
+    #[cfg(target_arch = "wasm32")]
     /// Read the next chunk of file content.
     ///
     /// If there is no more data, it returns [`None`].
@@ -86,6 +88,11 @@ impl File {
         } else {
             Ok(None)
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, Error> {
+        Ok(None)
     }
 }
 
@@ -116,7 +123,7 @@ pub struct Manager {
 
 impl Manager {
     /// Constructor, adding listener to the given target.
-    pub fn new(target: &web_sys::EventTarget) -> Self {
+    pub fn new(target: &enso_web::EventTarget) -> Self {
         let logger = Logger::new("DropFileManager");
         debug!(logger, "Creating");
         let network = frp::Network::new("DropFileManager");

@@ -34,7 +34,7 @@ pub enum ConnectingError {
 
 impl ConnectingError {
     /// Create a `ConstructionError` value from a JS value describing an error.
-    pub fn construction_error(js_val: impl AsRef<JsValue>) -> Self {
+    pub fn construction_error(js_val: impl AsRef<enso_web::JsValue>) -> Self {
         let text = js_to_string(js_val);
         ConnectingError::ConstructionError(text)
     }

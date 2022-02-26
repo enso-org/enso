@@ -8,7 +8,7 @@ use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::StyleSetter;
+use ensogl::system::web::traits::*;
 use ensogl_hardcoded_theme as theme;
 
 
@@ -74,7 +74,7 @@ impl Panel {
         let blue = bg_color.blue * 255.0;
         let bg_hex = format!("rgba({},{},{},{})", red, green, blue, bg_color.alpha);
 
-        let div = web::document.create_div();
+        let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was
         // overlapping        the JS visualization. This should be further investigated

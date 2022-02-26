@@ -12,6 +12,7 @@ use crate::prelude::*;
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::visualization::java_script::binding::JsConsArgs;
+use crate::component::visualization::java_script::binding::Visualization;
 use crate::component::visualization::java_script::method;
 use crate::component::visualization::*;
 
@@ -24,9 +25,8 @@ use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
+use ensogl::system::web::traits::*;
 use ensogl::system::web::JsValue;
-use ensogl::system::web::StyleSetter;
-use js_sys;
 use std::fmt::Formatter;
 
 
@@ -89,8 +89,8 @@ type PreprocessorCallbackCell = Rc<RefCell<Option<Box<dyn PreprocessorCallback>>
 pub struct InstanceModel {
     pub root_node:       DomSymbol,
     pub logger:          Logger,
-    on_data_received:    Rc<Option<js_sys::Function>>,
-    set_size:            Rc<Option<js_sys::Function>>,
+    on_data_received:    Rc<Option<web::Function>>,
+    set_size:            Rc<Option<web::Function>>,
     #[derivative(Debug = "ignore")]
     object:              Rc<java_script::binding::Visualization>,
     #[derivative(Debug = "ignore")]
@@ -105,7 +105,7 @@ impl InstanceModel {
     }
 
     fn create_root(scene: &Scene, logger: &Logger) -> result::Result<DomSymbol, Error> {
-        let div = web::document.create_div();
+        let div = web::document.create_div_or_panic();
         let root_node = DomSymbol::new(&div);
         root_node
             .dom()
@@ -140,11 +140,12 @@ impl InstanceModel {
         (closure_cell, closure)
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn instantiate_class_with_args(
         class: &JsValue,
         args: JsConsArgs,
     ) -> result::Result<java_script::binding::Visualization, Error> {
-        let js_new = js_sys::Function::new_with_args("cls,arg", "return new cls(arg)");
+        let js_new = web::Function::new_with_args_fixed("cls,arg", "return new cls(arg)").unwrap();
         let context = JsValue::NULL;
         let object = js_new
             .call2(&context, class, &args.into())
@@ -156,6 +157,14 @@ impl InstanceModel {
         Ok(object)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn instantiate_class_with_args(
+        class: &JsValue,
+        args: JsConsArgs,
+    ) -> result::Result<java_script::binding::Visualization, Error> {
+        Ok(java_script::binding::Visualization::new())
+    }
+
     /// Tries to create a InstanceModel from the given visualisation class.
     pub fn from_class(class: &JsValue, scene: &Scene) -> result::Result<Self, Error> {
         let logger = Logger::new("Instance");
@@ -164,9 +173,9 @@ impl InstanceModel {
         let styles = StyleWatch::new(&scene.style_sheet);
         let init_data = JsConsArgs::new(root_node.clone_ref(), styles, closure);
         let object = Self::instantiate_class_with_args(class, init_data)?;
-        let on_data_received = get_method(object.as_ref(), method::ON_DATA_RECEIVED).ok();
+        let on_data_received = get_method(&object, method::ON_DATA_RECEIVED).ok();
         let on_data_received = Rc::new(on_data_received);
-        let set_size = get_method(object.as_ref(), method::SET_SIZE).ok();
+        let set_size = get_method(&object, method::SET_SIZE).ok();
         let set_size = Rc::new(set_size);
         let object = Rc::new(object);
         let scene = scene.clone_ref();
@@ -188,12 +197,17 @@ impl InstanceModel {
         scene.manage(&self.root_node);
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn set_size(&self, size: Vector2) {
         let data_json = JsValue::from_serde(&size).unwrap();
         let _ = self.try_call1(&self.set_size, &data_json);
         self.root_node.set_size(size);
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn set_size(&self, size: Vector2) {}
+
+    #[cfg(target_arch = "wasm32")]
     fn receive_data(&self, data: &Data) -> result::Result<(), DataError> {
         let data_json = match data {
             Data::Json { content } => content,
@@ -209,15 +223,21 @@ impl InstanceModel {
         Ok(())
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn receive_data(&self, data: &Data) -> result::Result<(), DataError> {
+        Ok(())
+    }
+
     /// Prompt visualization JS object to emit preprocessor change with its currently desired state.
     pub fn update_preprocessor(&self) -> result::Result<(), JsValue> {
         self.object.emitPreprocessorChange()
     }
 
+    #[cfg(target_arch = "wasm32")]
     /// Helper method to call methods on the wrapped javascript object.
     fn try_call1(
         &self,
-        method: &Option<js_sys::Function>,
+        method: &Option<web::Function>,
         arg: &JsValue,
     ) -> result::Result<(), JsValue> {
         if let Some(method) = method {
@@ -226,6 +246,15 @@ impl InstanceModel {
                 return Err(error);
             }
         }
+        Ok(())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn try_call1(
+        &self,
+        method: &Option<web::Function>,
+        arg: &JsValue,
+    ) -> result::Result<(), JsValue> {
         Ok(())
     }
 
@@ -311,10 +340,11 @@ impl display::Object for Instance {
 
 // === Utils ===
 
+#[cfg(target_arch = "wasm32")]
 /// Try to return the method specified by the given name on the given object as a
-/// `js_sys::Function`.
-fn get_method(object: &js_sys::Object, property: &str) -> Result<js_sys::Function> {
-    let method_value = js_sys::Reflect::get(object, &property.into());
+/// `web::Function`.
+fn get_method(object: &web::Object, property: &str) -> Result<web::Function> {
+    let method_value = web::Reflect::get(object, &property.into());
     let method_value = method_value.map_err(|object| Error::PropertyNotFoundOnObject {
         object,
         property: property.to_string(),
@@ -323,6 +353,11 @@ fn get_method(object: &js_sys::Object, property: &str) -> Result<js_sys::Functio
         let object: JsValue = object.into();
         return Err(Error::PropertyNotFoundOnObject { object, property: property.to_string() });
     }
-    let method_function: js_sys::Function = method_value.into();
+    let method_function: web::Function = method_value.into();
     Ok(method_function)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_method(object: &Visualization, property: &str) -> Result<web::Function> {
+    Ok(default())
 }

@@ -1,15 +1,12 @@
+// FIXME this file
 //! Helpers for the Web Streaming API in Rust, mostly the missing bindings in the [`web_sys`] crate.
 
-#[cfg(target_arch = "wasm32")]
 use crate::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
-use crate::Error;
+use crate::binding::wasm::Error;
 
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -19,7 +16,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 // ===================================
 
 #[wasm_bindgen]
-#[cfg(target_arch = "wasm32")]
 extern "C" {
     /// The wrapper for ReadableStreamDefaultReader js class.
     ///
@@ -43,7 +39,6 @@ extern "C" {
 /// The extension for [`js_sys::Blob`] API.
 // TODO[ao] Those functions are part of the official API on newer web_sys versions, however the
 //     version bump is tricky, see https://github.com/enso-org/ide/issues/1591.
-#[cfg(target_arch = "wasm32")]
 pub trait BlobExt {
     /// Returns a ReadableStream which upon reading returns the data contained within the Blob.
     /// See https://developer.mozilla.org/en-US/docs/Web/API/Blob/stream.
@@ -56,7 +51,6 @@ pub trait BlobExt {
     fn stream_reader(&self) -> Result<ReadableStreamDefaultReader, Error>;
 }
 
-#[cfg(target_arch = "wasm32")]
 impl BlobExt for web_sys::Blob {
     fn stream(&self) -> Result<web_sys::ReadableStream, Error> {
         let this = self.as_ref();

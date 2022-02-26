@@ -31,7 +31,7 @@ use ensogl::display::DomSymbol;
 use ensogl::Animation;
 
 use ensogl::system::web;
-use ensogl::system::web::StyleSetter;
+use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 
 
@@ -192,7 +192,7 @@ impl View {
             bg_color.alpha
         );
 
-        let div = web::document.create_div();
+        let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was
         // overlapping        the JS visualization. This should be further investigated

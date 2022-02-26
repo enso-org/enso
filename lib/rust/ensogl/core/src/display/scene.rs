@@ -1207,18 +1207,18 @@ impl<'t> DomPath for &'t HtmlElement {
 
 impl DomPath for String {
     fn into_dom_element(self) -> Option<HtmlElement> {
-        web::get_html_element_by_id(&self).ok()
+        web::document.get_html_element_by_id(&self)
     }
 }
 
 impl<'t> DomPath for &'t String {
     fn into_dom_element(self) -> Option<HtmlElement> {
-        web::get_html_element_by_id(self).ok()
+        web::document.get_html_element_by_id(self)
     }
 }
 
 impl<'t> DomPath for &'t str {
     fn into_dom_element(self) -> Option<HtmlElement> {
-        web::get_html_element_by_id(self).ok()
+        web::document.get_html_element_by_id(self)
     }
 }

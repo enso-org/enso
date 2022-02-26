@@ -19,17 +19,17 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::NodeInserter;
-use ensogl::system::web::StyleSetter;
-use js_sys::Function;
+use ensogl::system::web::traits::*;
 use std::rc::Rc;
-use wasm_bindgen::closure::Closure;
-use web_sys::Element;
-use web_sys::EventTarget;
-use web_sys::HtmlDivElement;
-use web_sys::MouseEvent;
+use web::Closure;
+use web::Element;
+use web::EventTarget;
+use web::Function;
+use web::HtmlDivElement;
+use web::JsCast;
+use web::MouseEvent;
 
-use wasm_bindgen::JsCast;
+
 
 // =================
 // === Constants ===
@@ -134,7 +134,7 @@ impl Model {
         // Use `welcome_screen` layer to lock position when panning.
         app.display.default_scene.dom.layers.welcome_screen.manage(&dom);
 
-        let style = web::create_element("style");
+        let style = web::document.create_element_or_panic("style");
         style.set_inner_html(STYLESHEET);
         dom.append_or_warn(&style, &logger);
 
@@ -146,7 +146,7 @@ impl Model {
         side_menu: &SideMenu,
         template_cards: &TemplateCards,
     ) -> DomSymbol {
-        let root = web::document.create_div();
+        let root = web::document.create_div_or_panic();
         root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
         // We explicitly enable pointer events for Welcome Screen elements. Pointer events are
         // disabled for all DOM layers by default. See [`DomLayers`] documentation.
@@ -161,9 +161,8 @@ impl Model {
     }
 
     fn create_content_container() -> HtmlDivElement {
-        let container = web::document.create_div();
+        let container = web::document.create_div_or_panic();
         container.set_class_name(css_class::CONTAINER);
-
         container
     }
 }

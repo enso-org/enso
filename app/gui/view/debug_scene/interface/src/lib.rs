@@ -45,10 +45,8 @@ const STUB_MODULE: &str = "from Base import all\n\nmain = IO.println \"Hello\"\n
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_interface() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
     run_once_initialized(|| {
-        let app = Application::new(&web::document.get_element_by_id("root").unwrap());
+        let app = Application::new("root");
         init(&app);
         mem::forget(app);
     });
@@ -294,9 +292,9 @@ fn init(app: &Application) {
             // Temporary code removing the web-loader instance.
             // To be changed in the future.
             if was_rendered && !loader_hidden {
-                web::get_element_by_id("loader")
-                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
-                    .ok();
+                web::document
+                    .get_element_by_id("loader")
+                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
                 loader_hidden = true;
             }
             was_rendered = true;

@@ -207,7 +207,7 @@ impl MockPanel {
 //     /// Constructor.
 //     #[allow(clippy::new_without_default)]
 //     pub fn new() -> Self {
-//         let root = web::document.create_div();
+//         let root = web::document.create_div_or_panic();
 //         root.set_class_name("performance-monitor");
 //         root.set_style_or_panic("position", "absolute");
 //         root.set_style_or_panic("z-index", "100");

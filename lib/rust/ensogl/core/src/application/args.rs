@@ -140,21 +140,20 @@ macro_rules! read_args {
             /// Constructor.
             fn new() -> Self {
                 let logger = Logger::new(stringify!{Args});
-                let window = web::window;
                 let path   = vec![$($($path)*),*];
-                match web::reflect_get_nested_object(&window,&path).ok() {
+                match web::Reflect::get_nested_object(&web::window,&path).ok() {
                     None => {
                         let path = path.join(".");
                         error!(&logger,"The config path '{path}' is invalid.");
                         default()
                     }
                     Some(cfg) => {
-                        let keys      = web::object_keys(&cfg);
+                        let keys      = web::Object::keys_vec(&cfg);
                         let mut keys  = keys.into_iter().collect::<HashSet<String>>();
                         $(
                             let name   = stringify!{$field};
                             let tp     = stringify!{$field_type};
-                            let $field = web::reflect_get_nested_string(&cfg,&[name]).ok();
+                            let $field = web::Reflect::get_nested_string(&cfg,&[name]).ok();
                             let $field = $field.map($crate::application::args::ArgReader::read_arg);
                             if $field == Some(None) {
                                 warning!(&logger,"Failed to convert the argument '{name}' value \

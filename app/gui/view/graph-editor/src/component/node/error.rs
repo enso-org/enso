@@ -9,7 +9,7 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
-use ensogl::system::web::StyleSetter;
+use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -113,7 +113,7 @@ impl Container {
         let bg_blue = bg_color.blue * 255.0;
         let bg_hex = format!("rgba({},{},{},{})", bg_red, bg_green, bg_blue, bg_color.alpha);
 
-        let div = web::document.create_div();
+        let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         let (width, height) = SIZE;
         let width = format!("{}.px", width);

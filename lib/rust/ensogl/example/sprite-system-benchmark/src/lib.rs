@@ -23,7 +23,6 @@ use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 use ensogl_core::system::web;
-use ensogl_core::system::web::forward_panic_hook_to_console;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use wasm_bindgen::prelude::*;
@@ -32,8 +31,6 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_sprite_system_benchmark() {
-    forward_panic_hook_to_console();
-
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();

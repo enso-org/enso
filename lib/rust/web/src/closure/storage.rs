@@ -1,10 +1,12 @@
-#[cfg(target_arch = "wasm32")]
 use crate::prelude::*;
-#[cfg(target_arch = "wasm32")]
-use crate::prelude::*;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::convert::FromWasmAbi;
 
+use js_sys::Function;
+use wasm_bindgen::convert::FromWasmAbi;
+pub use wasm_bindgen::prelude::Closure;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+use web_sys::Event;
+use web_sys::EventTarget;
 
 
 // ======================
@@ -12,24 +14,20 @@ use wasm_bindgen::convert::FromWasmAbi;
 // ======================
 
 /// Constraint for JS closure argument types
-#[cfg(target_arch = "wasm32")]
 pub trait ClosureArg = FromWasmAbi + 'static;
 
 /// Function that can be wrapped into a `Closure`.
-#[cfg(target_arch = "wasm32")]
 pub trait ClosureFn<Arg> = FnMut(Arg) + 'static where Arg: ClosureArg;
 
 /// Stores an optional closure.
 /// The purpose it reduce boilerplate repeating when setting JS callbacks.
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = ""))]
-#[cfg(target_arch = "wasm32")]
 pub struct OptionalFmMutClosure<Arg> {
     /// The stored closure.
     pub closure: Option<Closure<dyn FnMut(Arg)>>,
 }
 
-#[cfg(target_arch = "wasm32")]
 impl<Arg> OptionalFmMutClosure<Arg> {
     /// An empty closure storage.
     pub fn new() -> OptionalFmMutClosure<Arg> {

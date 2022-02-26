@@ -12,6 +12,7 @@ use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
 use enso_prelude::*;
 use ensogl::system::web;
+use ensogl::system::web::traits::*; // FIXME: should not be needed. Macro should handle it.
 
 
 
