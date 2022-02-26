@@ -22,7 +22,6 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_selector as selector;
 use ensogl_selector::Bounds;

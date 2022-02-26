@@ -25,35 +25,26 @@ pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::WheelEvent;
 pub use web_sys::Window;
 
-use crate::Logger;
-use enso_logger::*;
-
-
 pub use std::time::Duration;
 pub use std::time::Instant;
 
 
-// lazy_static! {
-//     static ref window: Rc<Window> = Rc::new(window());
-// }
 
-mod js {
-    use super::*;
-
-    #[wasm_bindgen(inline_js = "
-        export function new_function_with_args(args, body) {
-            return new Function(args, body)
-        }
-    ")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        #[wasm_bindgen(catch)]
-        pub fn new_function_with_args(args: &str, body: &str) -> Result<JsValue, JsValue>;
+#[wasm_bindgen(inline_js = "
+    export function new_function_with_args(args, body) {
+        return new Function(args, body)
     }
+")]
+extern "C" {
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(catch)]
+    pub fn js_new_function_with_args(args: &str, body: &str) -> Result<JsValue, JsValue>;
 }
 
+
+#[allow(dead_code)]
 pub(crate) fn new_function_with_args(args: &str, body: &str) -> Result<Function, JsValue> {
-    js::new_function_with_args(args, body).map(|t| t.unchecked_into())
+    js_new_function_with_args(args, body).map(|t| t.unchecked_into())
 }
 
 // #[wasm_bindgen]
@@ -79,6 +70,7 @@ pub(crate) fn new_function_with_args(args: &str, body: &str) -> Result<Function,
 //     // pub fn call1(this: &Function, context: &JsValue, arg1: &JsValue) -> Result<JsValue,
 // JsValue>; }
 
+#[derive(Copy, Clone, Debug)]
 pub struct Reflect {}
 impl Reflect {
     pub fn get(target: &JsValue, key: &JsValue) -> Result<JsValue, JsValue> {
@@ -124,17 +116,23 @@ impl From<JsValue> for Error {
 // === DOM Helpers ===
 // ===================
 
-
+// TODO: docs and safety info
 macro_rules! wasm_lazy_global {
     ($name:ident : $tp:ty = $expr:expr) => {
         pub mod $name {
             use super::*;
             pub static mut STORE: Option<$tp> = None;
+
+            // [`Copy`] and [`Clone`] are not implemented on purpose, so when the value is cloned,
+            // the operation will deref to it's target type.
+            #[allow(missing_copy_implementations)]
+            #[derive(Debug)]
             pub struct Ref {}
         }
 
         impl Deref for $name::Ref {
             type Target = $tp;
+            #[allow(unsafe_code)]
             fn deref(&self) -> &Self::Target {
                 unsafe {
                     $name::STORE.as_ref().unwrap_or_else(|| {
@@ -146,6 +144,7 @@ macro_rules! wasm_lazy_global {
             }
         }
 
+        #[allow(non_upper_case_globals)]
         pub const $name: $name::Ref = $name::Ref {};
     };
 }

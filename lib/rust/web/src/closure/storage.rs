@@ -4,9 +4,7 @@ use js_sys::Function;
 use wasm_bindgen::convert::FromWasmAbi;
 pub use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
-use web_sys::Event;
-use web_sys::EventTarget;
+
 
 
 // ======================

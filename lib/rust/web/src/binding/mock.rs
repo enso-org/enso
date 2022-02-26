@@ -190,15 +190,17 @@ macro_rules! mock_struct_deref {
 
 
 // ===============
-// === mock_pub_fn ===
+// === mock_fn ===
 // ===============
 
+#[macro_export]
 macro_rules! mock_fn {
     ( $($ts:tt)* ) => {
         mock_fn_gen! {[] $($ts)*}
     };
 }
 
+#[macro_export]
 macro_rules! mock_pub_fn {
     ( $($ts:tt)* ) => {
         mock_fn_gen! {[pub] $($ts)*}
@@ -208,39 +210,42 @@ macro_rules! mock_pub_fn {
 /// Macro used to generate mock methods. Methods look just like their provided signature with a body
 /// returning `mock_default()`. There are two special cases: for functions returning `&Self`, and
 /// `&mut Self`, which just pass `&self` and `&mut self` to the output, respectively.
+#[macro_export]
 macro_rules! mock_fn_gen {
-    ([$($viz:ident)?] $name:ident $(<$($fn_tp:ident),*>)?
-    (&self $(,$arg:ident : $arg_tp:ty)* $(,)? ) -> &Self ) => {
-        $($viz)? fn $name $(<$($fn_tp),*>)? (&self $(,$arg : $arg_tp)*) -> &Self {
-            self
+    ($viz:tt $name:ident $(<$($fn_tp:ident),*>)? (&self $($args:tt)*) -> &Self ) => {
+        $crate::mock_fn_gen_print! {
+            $viz $name $(<$($fn_tp),*>)? (&self $($args)*) -> &Self {self}
         }
     };
 
-    ([$($viz:ident)?] $name:ident $(<$($fn_tp:ident),*>)?
-    (&mut self $(,$arg:ident : $arg_tp:ty)* $(,)? ) -> &mut Self ) => {
-        $($viz)? fn $name $(<$($fn_tp),*>)? (&mut self $(,$arg : $arg_tp)*) -> &mut Self {
-            self
+    ($viz:tt $name:ident $(<$($fn_tp:ident),*>)? (&mut self $($args:tt)*) -> &mut Self ) => {
+        $crate::mock_fn_gen_print! {
+            $viz $name $(<$($fn_tp),*>)? (&mut self $($args)*) -> &mut Self {self}
         }
     };
 
-    ([$($viz:ident)?] $name:ident $(<$($fn_tp:ident),*>)?
-    (&self $(,$arg:ident : $arg_tp:ty)* $(,)? ) -> &$out:ty ) => {
-        $($viz)? fn $name $(<$($fn_tp),*>)? (&self $(,$arg : $arg_tp)*) -> &$out {
-            self.as_ref()
+    ($viz:tt $name:ident $(<$($fn_tp:ident),*>)? (&self $($args:tt)*) -> &$out:ty ) => {
+        $crate::mock_fn_gen_print! {
+            $viz $name $(<$($fn_tp),*>)? (&self $($args)*) -> &$out {self.as_ref()}
         }
     };
 
-    ([$($viz:ident)?] $name:ident $(<$($fn_tp:ident),*>)?
-    (&self $(,$arg:ident : $arg_tp:ty)* $(,)? ) $(-> $out:ty)? ) => {
-        $($viz)? fn $name $(<$($fn_tp),*>)? (&self $(,$arg : $arg_tp)*) $(-> $out)? {
-            mock_default()
+    ($viz:tt $name:ident $(<$($fn_tp:ident),*>)? ($($args:tt)*) $(-> $out:ty)? ) => {
+        $crate::mock_fn_gen_print! {
+            $viz $name $(<$($fn_tp),*>)? ($($args)*) $(-> $out)? {mock_default()}
         }
     };
+}
 
+/// Macro used to print the final version of the function.
+#[macro_export]
+macro_rules! mock_fn_gen_print {
     ([$($viz:ident)?] $name:ident $(<$($fn_tp:ident),*>)?
-    ($($arg:ident : $arg_tp:ty),* $(,)? ) $(-> $out:ty)? ) => {
-        $($viz)? fn $name $(<$($fn_tp),*>)? ($($arg : $arg_tp),*) $(-> $out)? {
-            mock_default()
+    ( $($args:tt)* ) $(-> $out:ty)? {$($body:tt)*} ) => {
+        #[allow(unused_variables)]
+        #[allow(clippy::too_many_arguments)]
+        $($viz)? fn $name $(<$($fn_tp),*>)? ( $($args)* ) $(-> $out)? {
+            $($body)*
         }
     };
 }
@@ -418,13 +423,13 @@ mock_data! { Object => JsValue
 // === EventTarget ===
 mock_data! { EventTarget => Object
     fn remove_event_listener_with_callback
-        (&self, _tp:&str, _f:&Function) -> std::result::Result<(), JsValue>;
+        (&self, tp:&str, f:&Function) -> std::result::Result<(), JsValue>;
     fn add_event_listener_with_callback
-        (&self, _tp:&str, _f:&Function) -> std::result::Result<(), JsValue>;
+        (&self, tp:&str, f:&Function) -> std::result::Result<(), JsValue>;
     fn add_event_listener_with_callback_and_bool
-        (&self, _tp:&str, _f:&Function, _opt:bool) -> std::result::Result<(), JsValue>;
+        (&self, tp:&str, f:&Function, opt:bool) -> std::result::Result<(), JsValue>;
     fn add_event_listener_with_callback_and_add_event_listener_options
-        (&self, _tp:&str, _f:&Function, _opt:&AddEventListenerOptions)
+        (&self, tp:&str, f:&Function, opt:&AddEventListenerOptions)
         -> std::result::Result<(), JsValue>;
 }
 
@@ -439,7 +444,7 @@ mock_data! { Document => EventTarget
 
 // === Window ===
 mock_data! { Window => EventTarget
-    fn open_with_url_and_target(&self,_url: &str,_target: &str)
+    fn open_with_url_and_target(&self, url: &str, target: &str)
         -> std::result::Result<Option<Window>, JsValue>;
 }
 
@@ -458,8 +463,8 @@ mock_data! { AddEventListenerOptions
     fn new() -> Self;
 }
 impl AddEventListenerOptions {
-    mock_pub_fn!(capture(&mut self, _val:bool) -> &mut Self);
-    mock_pub_fn!(passive(&mut self, _val:bool) -> &mut Self);
+    mock_pub_fn!(capture(&mut self, val:bool) -> &mut Self);
+    mock_pub_fn!(passive(&mut self, val:bool) -> &mut Self);
 }
 
 
@@ -536,7 +541,7 @@ mock_data! { Element => Node
 
 // === HtmlElement ===
 mock_data! { HtmlElement => Element
-    fn set_class_name(&self, _n: &str);
+    fn set_class_name(&self, n: &str);
     fn set_inner_text(&self, value: &str);
     fn inner_text(&self) -> String;
     fn get_elements_by_class_name(&self, class_names: &str) -> HtmlCollection;
@@ -637,7 +642,10 @@ mock_data! { Reflect
 // === Utils ===
 // =============
 
+#[allow(non_upper_case_globals)]
 pub static document: Document = Document::const_new();
+
+#[allow(non_upper_case_globals)]
 pub static window: Window = Window {};
 
 // impl WindowApi for Window {
@@ -648,8 +656,8 @@ pub static window: Window = Window {};
 //     mock_fn! { body(&self) -> &HtmlElement }
 //     mock_fn! { create_div(&self) -> HtmlDivElement }
 //     mock_fn! { create_canvas(&self) -> HtmlCanvasElement }
-//     mock_fn! { get_element_by_id(&self, _id: &str) -> Result<HtmlElement> }
-//     mock_fn! { get_webgl2_context(&self, _canvas: &HtmlCanvasElement)
+//     mock_fn! { get_element_by_id(&self, id: &str) -> Result<HtmlElement> }
+//     mock_fn! { get_webgl2_context(&self, canvas: &HtmlCanvasElement)
 //     -> Option<WebGl2RenderingContext> }
 // }
 

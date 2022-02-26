@@ -23,10 +23,7 @@ use ensogl::system::web::traits::*;
 use std::rc::Rc;
 use web::Closure;
 use web::Element;
-use web::EventTarget;
-use web::Function;
 use web::HtmlDivElement;
-use web::JsCast;
 use web::MouseEvent;
 
 

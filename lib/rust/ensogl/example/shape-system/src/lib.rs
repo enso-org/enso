@@ -24,7 +24,6 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::ShapeSystem;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
-use ensogl_core::system::web;
 use wasm_bindgen::prelude::*;
 
 

@@ -28,7 +28,6 @@ use ensogl_core::display::shape::Rect;
 use ensogl_core::display::shape::ShapeOps;
 use ensogl_core::display::shape::ShapeSystem;
 use ensogl_core::display::Sprite;
-use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf_sys::run_once_initialized;

@@ -20,7 +20,6 @@ use ensogl_core::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::world::*;
-use ensogl_core::system::web;
 use ensogl_text::typeface::*;
 use ensogl_text_msdf_sys::run_once_initialized;
 use wasm_bindgen::prelude::*;

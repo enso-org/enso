@@ -20,7 +20,6 @@ use ensogl_core::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::system::web;
 use ensogl_text::Area;
 use ensogl_text_msdf_sys::run_once_initialized;
 use wasm_bindgen::prelude::*;

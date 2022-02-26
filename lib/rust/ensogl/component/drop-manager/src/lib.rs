@@ -26,9 +26,12 @@ use enso_web::binding::wasm::Error;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
 use enso_web::Closure;
+
+#[cfg(target_arch = "wasm32")]
 use enso_web::JsCast;
+#[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
-// use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::JsFuture;
 
 
@@ -91,6 +94,7 @@ impl File {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
+    /// Read the next chunk of file content.
     pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, Error> {
         Ok(None)
     }

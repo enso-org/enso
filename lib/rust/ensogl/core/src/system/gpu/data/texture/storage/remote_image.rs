@@ -82,6 +82,7 @@ impl<I: InternalFormat, T: ItemType> Texture<RemoteImage, I, T> {
 impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T> {
     /// Loads or re-loads the texture data from the provided url.
     /// This action will be performed asynchronously.
+    #[allow(trivial_casts)]
     #[cfg(target_arch = "wasm32")]
     fn reload(&self) {
         let url = &self.storage().url;

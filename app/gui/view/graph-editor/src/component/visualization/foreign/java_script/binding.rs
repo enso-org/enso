@@ -51,21 +51,26 @@ extern "C" {
     pub fn emitPreprocessorChange(this: &Visualization) -> Result<(), JsValue>;
 }
 
+#[allow(non_snake_case)]
 #[cfg(not(target_arch = "wasm32"))]
 fn __Visualization__() -> JsValue {
     default()
 }
 
+/// TODO: documentation here and above
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Default)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Visualization {}
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Visualization {
+    /// Constructor
     pub fn new() -> Self {
         default()
     }
 
+    /// TODO: documentation here and above
+    #[allow(non_snake_case)]
     pub fn emitPreprocessorChange(&self) -> Result<(), JsValue> {
         Ok(())
     }

@@ -11,8 +11,8 @@ use crate::prelude::*;
 
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
+use crate::component::visualization::java_script;
 use crate::component::visualization::java_script::binding::JsConsArgs;
-use crate::component::visualization::java_script::binding::Visualization;
 use crate::component::visualization::java_script::method;
 use crate::component::visualization::*;
 
@@ -159,8 +159,8 @@ impl InstanceModel {
 
     #[cfg(not(target_arch = "wasm32"))]
     fn instantiate_class_with_args(
-        class: &JsValue,
-        args: JsConsArgs,
+        _class: &JsValue,
+        _args: JsConsArgs,
     ) -> result::Result<java_script::binding::Visualization, Error> {
         Ok(java_script::binding::Visualization::new())
     }
@@ -205,7 +205,7 @@ impl InstanceModel {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn set_size(&self, size: Vector2) {}
+    fn set_size(&self, _size: Vector2) {}
 
     #[cfg(target_arch = "wasm32")]
     fn receive_data(&self, data: &Data) -> result::Result<(), DataError> {
@@ -224,7 +224,7 @@ impl InstanceModel {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn receive_data(&self, data: &Data) -> result::Result<(), DataError> {
+    fn receive_data(&self, _data: &Data) -> result::Result<(), DataError> {
         Ok(())
     }
 
@@ -249,14 +249,14 @@ impl InstanceModel {
         Ok(())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn try_call1(
-        &self,
-        method: &Option<web::Function>,
-        arg: &JsValue,
-    ) -> result::Result<(), JsValue> {
-        Ok(())
-    }
+    // #[cfg(not(target_arch = "wasm32"))]
+    // fn try_call1(
+    //     &self,
+    //     _method: &Option<web::Function>,
+    //     _arg: &JsValue,
+    // ) -> result::Result<(), JsValue> {
+    //     Ok(())
+    // }
 
     fn set_layer(&self, layer: Layer) {
         layer.apply_for_html_component(&self.scene, &self.root_node)
@@ -358,6 +358,9 @@ fn get_method(object: &web::Object, property: &str) -> Result<web::Function> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn get_method(object: &Visualization, property: &str) -> Result<web::Function> {
+fn get_method(
+    _object: &java_script::binding::Visualization,
+    _property: &str,
+) -> Result<web::Function> {
     Ok(default())
 }

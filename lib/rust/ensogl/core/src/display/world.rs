@@ -4,7 +4,6 @@
 pub use crate::display::symbol::types::*;
 
 use crate::prelude::*;
-use web::traits::*;
 
 use crate::animation;
 use crate::control::callback;

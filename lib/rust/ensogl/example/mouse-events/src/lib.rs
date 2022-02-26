@@ -27,7 +27,6 @@ use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::*;
-use ensogl_core::system::web;
 
 use enso_frp as frp;
 use ensogl_text_msdf_sys::run_once_initialized;

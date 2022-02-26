@@ -2,7 +2,6 @@
 
 pub mod listener;
 
-use crate::prelude::*;
 use js_sys::Function;
 use wasm_bindgen::JsValue;
 use web_sys::Event;

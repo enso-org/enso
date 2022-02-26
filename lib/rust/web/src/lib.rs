@@ -81,7 +81,7 @@ impl FunctionOps for Function {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue> {
+    fn new_with_args_fixed(_args: &str, _body: &str) -> std::result::Result<Function, JsValue> {
         Ok(default())
     }
 }
@@ -119,7 +119,7 @@ impl ReflectOps for Reflect {
 
     fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue> {
         let tgt = Self::get_nested(target, keys)?;
-        Ok(tgt.dyn_into()?)
+        tgt.dyn_into()
     }
 
     fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue> {

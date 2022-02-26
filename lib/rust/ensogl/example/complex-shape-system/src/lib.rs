@@ -9,7 +9,6 @@ use ensogl_core::display::scene;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::style::theme;
 use ensogl_core::display::world::*;
-use ensogl_core::system::web;
 use wasm_bindgen::prelude::*;
 
 
