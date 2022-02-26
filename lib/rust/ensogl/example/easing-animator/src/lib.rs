@@ -285,8 +285,8 @@ macro_rules! examples {
 #[allow(dead_code)]
 /// Runs EasingAnimator example.
 pub fn entry_point_easing_animator() {
-    web::forward_panic_hook_to_console2();
-    web::set_stack_trace_limit2();
+    web::forward_panic_hook_to_console();
+    web::set_stack_trace_limit();
     let container = web::document.create_div_or_panic();
     container.set_attribute_or_panic("id", "examples");
     container.set_style_or_panic("display", "flex");

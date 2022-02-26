@@ -233,8 +233,8 @@ impl WorldData {
     }
 
     fn init_environment(&self) {
-        web::forward_panic_hook_to_console2();
-        web::set_stack_trace_limit2();
+        web::forward_panic_hook_to_console();
+        web::set_stack_trace_limit();
     }
 
     fn init_debug_hotkeys(&self) {

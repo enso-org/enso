@@ -446,8 +446,6 @@ mock_data! { Window => EventTarget
 
 // === Function ===
 mock_data! { Function
-    // FIXME: move it to FunctionOps
-    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue>;
     fn call1(&self, context: &JsValue, arg1: &JsValue) -> Result<JsValue, JsValue>;
     fn call2(&self, context: &JsValue, arg1: &JsValue, arg2: &JsValue) -> Result<JsValue, JsValue>;
     fn call3(&self, context: &JsValue, arg1: &JsValue, arg2: &JsValue, arg3: &JsValue)

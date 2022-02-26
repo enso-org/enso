@@ -38,6 +38,7 @@ pub mod prelude {
 pub mod traits {
     pub use super::AttributeSetter;
     pub use super::DocumentOps;
+    pub use super::FunctionOps;
     pub use super::HtmlCanvasElementOps;
     pub use super::JsCast;
     pub use super::NodeInserter;
@@ -62,6 +63,28 @@ pub use binding::wasm::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use binding::mock::*;
+
+
+
+// ===================
+// === FunctionOps ===
+// ===================
+
+pub trait FunctionOps {
+    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue>;
+}
+
+impl FunctionOps for Function {
+    #[cfg(target_arch = "wasm32")]
+    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue> {
+        binding::wasm::new_function_with_args(args, body)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue> {
+        Ok(default())
+    }
+}
 
 
 
@@ -116,7 +139,7 @@ pub trait ObjectOps {
 
 impl ObjectOps for Object {
     #[cfg(target_arch = "wasm32")]
-    fn keys_vec(_obj: &Object) -> Vec<String> {
+    fn keys_vec(obj: &Object) -> Vec<String> {
         // The [`unwrap`] is safe, the `Object::keys` API guarantees it.
         Object::keys(&obj)
             .iter()
@@ -595,11 +618,11 @@ pub fn performance() -> Performance {
 ")]
 extern "C" {
     #[allow(unsafe_code)]
-    pub fn set_stack_trace_limit2();
+    pub fn set_stack_trace_limit();
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn set_stack_trace_limit2() {}
+pub fn set_stack_trace_limit() {}
 
 
 
@@ -759,7 +782,7 @@ pub fn simulate_sleep(duration: f64) {
 // TODO: 2 mechanisms here. What is the difference between them?
 
 /// Enables forwarding panic messages to `console.error`.
-pub fn forward_panic_hook_to_console2() {
+pub fn forward_panic_hook_to_console() {
     // When the `console_error_panic_hook` feature is enabled, we can call the
     // `set_panic_hook` function at least once during initialization, and then
     // we will get better error messages if our code ever panics.

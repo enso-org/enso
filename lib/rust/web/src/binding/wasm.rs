@@ -1,6 +1,7 @@
 use enso_prelude::*;
 
 pub use js_sys::Function;
+pub use js_sys::JsString;
 pub use js_sys::Object;
 pub use wasm_bindgen::prelude::Closure;
 pub use wasm_bindgen::prelude::*;
@@ -24,7 +25,6 @@ pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::WheelEvent;
 pub use web_sys::Window;
 
-
 use crate::Logger;
 use enso_logger::*;
 
@@ -36,6 +36,59 @@ pub use std::time::Instant;
 // lazy_static! {
 //     static ref window: Rc<Window> = Rc::new(window());
 // }
+
+mod js {
+    use super::*;
+
+    #[wasm_bindgen(inline_js = "
+        export function new_function_with_args(args, body) {
+            return new Function(args, body)
+        }
+    ")]
+    extern "C" {
+        #[allow(unsafe_code)]
+        #[wasm_bindgen(catch)]
+        pub fn new_function_with_args(args: &str, body: &str) -> Result<JsValue, JsValue>;
+    }
+}
+
+pub(crate) fn new_function_with_args(args: &str, body: &str) -> Result<Function, JsValue> {
+    js::new_function_with_args(args, body).map(|t| t.unchecked_into())
+}
+
+// #[wasm_bindgen]
+// extern "C" {
+//     // #[wasm_bindgen(extends = Object, is_type_of = JsValue::is_function)]
+//     // #[derive(Clone, Debug, PartialEq, Eq)]
+//     // pub type Function;
+//
+//     /// The `Function` constructor creates a new `Function` object. Calling the
+//     /// constructor directly can create functions dynamically, but suffers from
+//     /// security and similar (but far less significant) performance issues
+//     /// similar to `eval`. However, unlike `eval`, the `Function` constructor
+//     /// allows executing code in the global scope, prompting better programming
+//     /// habits and allowing for more efficient code minification.
+//     #[allow(unsafe_code)]
+//     #[wasm_bindgen(constructor, catch)]
+//     pub fn new_with_args_2(args: &str, body: &str) -> Result<Function, JsValue>;
+//
+//     // /// The `call()` method calls a function with a given this value and
+//     // /// arguments provided individually.
+//     // #[allow(unsafe_code)]
+//     // #[wasm_bindgen(method, catch, js_name = call)]
+//     // pub fn call1(this: &Function, context: &JsValue, arg1: &JsValue) -> Result<JsValue,
+// JsValue>; }
+
+pub struct Reflect {}
+impl Reflect {
+    pub fn get(target: &JsValue, key: &JsValue) -> Result<JsValue, JsValue> {
+        js_sys::Reflect::get(target, key)
+    }
+
+    pub fn set(target: &JsValue, key: &JsValue, value: &JsValue) -> Result<bool, JsValue> {
+        js_sys::Reflect::set(target, key, value)
+    }
+}
 
 
 // =============
