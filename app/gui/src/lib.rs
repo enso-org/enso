@@ -84,7 +84,6 @@ pub mod prelude {
     pub use ast::prelude::*;
     pub use enso_prelude::*;
     pub use ensogl::prelude::*;
-    pub use wasm_bindgen::prelude::*;
 
     pub use crate::constants;
     pub use crate::controller;

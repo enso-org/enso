@@ -33,7 +33,6 @@ pub enum ConnectingError {
 }
 
 impl ConnectingError {
-    #![allow(unused_qualifications)]
     /// Create a `ConstructionError` value from a JS value describing an error.
     pub fn construction_error(js_val: impl AsRef<enso_web::JsValue>) -> Self {
         let text = js_to_string(js_val);
@@ -55,7 +54,7 @@ pub enum SendingError {
 
 impl SendingError {
     /// Constructs from the error yielded by one of the JS's WebSocket sending functions.
-    pub fn from_send_error(error: JsValue) -> SendingError {
+    pub fn from_send_error(error: wasm_bindgen::JsValue) -> SendingError {
         SendingError::FailedToSend(js_to_string(&error))
     }
 }
@@ -193,7 +192,7 @@ impl Model {
     }
 
     /// Close the socket.
-    pub fn close(&mut self, reason: &str) -> Result<(), JsValue> {
+    pub fn close(&mut self, reason: &str) -> Result<(), wasm_bindgen::JsValue> {
         // If socket was manually requested to close, it should not try to reconnect then.
         self.auto_reconnect = false;
         let normal_closure = 1000;
@@ -230,7 +229,7 @@ impl Model {
 
     /// Establish a new WS connection, using the same URL as the previous one.
     /// All callbacks will be transferred to the new connection.
-    pub fn reconnect(&mut self) -> Result<(), JsValue> {
+    pub fn reconnect(&mut self) -> Result<(), wasm_bindgen::JsValue> {
         if !self.auto_reconnect {
             return Err(js_sys::Error::new("Reconnecting has been disabled").into());
         }
@@ -380,7 +379,7 @@ impl WebSocket {
     ///
     /// WARNING: `f` works under borrow_mut and must not give away control.
     fn send_with_open_socket<F, R>(&mut self, f: F) -> Result<R, Error>
-    where F: FnOnce(&mut web_sys::WebSocket) -> Result<R, JsValue> {
+    where F: FnOnce(&mut web_sys::WebSocket) -> Result<R, wasm_bindgen::JsValue> {
         // Sending through the closed WebSocket can return Ok() with error only
         // appearing in the log. We explicitly check for this to get failure as
         // early as possible.
