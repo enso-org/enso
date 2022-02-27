@@ -298,9 +298,8 @@ mod tests {
 
     #[test]
     fn native_compilation_in_test_mode() {
-        let world = World::new().displayed_in("root");
-        let scene = &world.default_scene;
-        let camera = scene.camera().clone_ref();
+        let _world = World::new().displayed_in("root");
+        let _scene = &world.default_scene;
         assert_eq!(1, 1);
     }
 }

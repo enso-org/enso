@@ -116,6 +116,8 @@ impl ArgReader for bool {
 #[macro_export]
 macro_rules! read_args {
     ([$($($path:tt)*).*] { $($field:ident : $field_type:ty),* $(,)? }) => {
+        use $crate::prelude::*;
+        use $crate::system::web::traits::*;
 
         /// Reflection mechanism containing string representation of option names.
         #[derive(Clone,Copy,Debug,Default)]
@@ -141,19 +143,21 @@ macro_rules! read_args {
             fn new() -> Self {
                 let logger = Logger::new(stringify!{Args});
                 let path   = vec![$($($path)*),*];
-                match web::Reflect::get_nested_object(&web::window,&path).ok() {
+                match ensogl::system::web::Reflect::get_nested_object
+                (&ensogl::system::web::window,&path).ok() {
                     None => {
                         let path = path.join(".");
                         error!(&logger,"The config path '{path}' is invalid.");
                         default()
                     }
                     Some(cfg) => {
-                        let keys      = web::Object::keys_vec(&cfg);
+                        let keys      = ensogl::system::web::Object::keys_vec(&cfg);
                         let mut keys  = keys.into_iter().collect::<HashSet<String>>();
                         $(
                             let name   = stringify!{$field};
                             let tp     = stringify!{$field_type};
-                            let $field = web::Reflect::get_nested_string(&cfg,&[name]).ok();
+                            let $field = ensogl::system::web::Reflect::get_nested_string
+                                (&cfg,&[name]).ok();
                             let $field = $field.map($crate::application::args::ArgReader::read_arg);
                             if $field == Some(None) {
                                 warning!(&logger,"Failed to convert the argument '{name}' value \
