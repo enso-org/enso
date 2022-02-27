@@ -558,26 +558,22 @@ impl Uniforms {
 // === Dirty ===
 // =============
 
-pub type ContextDirty = dirty::SharedBool<Box<dyn Fn()>>;
 pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
 pub type SymbolRegistryDirty = dirty::SharedBool<Box<dyn Fn()>>;
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Dirty {
-    context: ContextDirty,
     symbols: SymbolRegistryDirty,
     shape:   ShapeDirty,
 }
 
 impl Dirty {
     pub fn new<OnMut: Fn() + Clone + 'static>(logger: &Logger, on_mut: OnMut) -> Self {
-        let sub_logger = Logger::new_sub(logger, "context_dirty");
-        let context = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut.clone()));
         let sub_logger = Logger::new_sub(logger, "shape_dirty");
         let shape = ShapeDirty::new(sub_logger, Box::new(on_mut.clone()));
         let sub_logger = Logger::new_sub(logger, "symbols_dirty");
         let symbols = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut));
-        Self { context, symbols, shape }
+        Self { symbols, shape }
     }
 }
 
@@ -843,7 +839,6 @@ pub struct SceneData {
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        // parent_dom: &HtmlElement,
         logger: Logger,
         stats: &Stats,
         on_mut: OnMut,
@@ -851,9 +846,6 @@ impl SceneData {
         debug!(logger, "Initializing.");
 
         let dom = Dom::new(&logger);
-        // parent_dom.append_child(&dom.root).unwrap();
-        // dom.recompute_shape_with_reflow();
-
         let display_object = display::object::Instance::new(&logger);
         display_object.force_set_visibility(true);
         let var_logger = Logger::new_sub(&logger, "global_variables");
@@ -921,11 +913,10 @@ impl SceneData {
             disable_context_menu,
         }
     }
-    // wyglada na to ze nie odpalila sie inicjalizacja passow
+    
     pub fn set_context(&self, context: Option<&Context>) {
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
-        self.dirty.context.set();
         self.dirty.shape.set();
         let renderer = context.map(|c| Renderer::new(&self.logger, &self.dom, c, &self.variables));
         *self.renderer.borrow_mut() = renderer;

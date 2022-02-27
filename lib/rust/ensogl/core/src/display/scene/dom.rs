@@ -235,7 +235,6 @@ impl DomScene {
 
         match camera.projection() {
             Projection::Perspective { .. } => {
-                // FIXME: ugly
                 #[cfg(target_arch = "wasm32")]
                 js::setup_perspective(&self.data.dom, &near.into());
                 setup_camera_perspective(&self.data.view_projection_dom, near, &trans_cam);

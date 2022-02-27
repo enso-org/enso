@@ -4,17 +4,6 @@ use crate::closure::storage::OptionalFmMutClosure;
 use crate::prelude::*;
 
 
-//
-// pub struct Slot<EventType> {
-//     _phantom: PhantomData<EventType>,
-// }
-//
-// impl<EventType> Slot<EventType> {
-//     pub fn new<T>(target: T, logger: impl AnyLogger) -> Self {
-//         Slot { _phantom: default() }
-//     }
-// }
-
 
 // ============
 // === Slot ===

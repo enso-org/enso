@@ -2131,7 +2131,6 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "enso-text",
- "enso-web",
  "ensogl",
  "ensogl-component",
  "ensogl-drop-manager",

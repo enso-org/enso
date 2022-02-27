@@ -120,7 +120,6 @@ pub fn current() -> Option<Platform> {
 #[cfg(target_arch = "wasm32")]
 pub fn current_wasm() -> Option<Platform> {
     use super::window;
-    // let window = window();
     let navigator = window.navigator();
     let platform = navigator.platform().unwrap_or_default().to_lowercase();
     let agent = navigator.user_agent().unwrap_or_default().to_lowercase();

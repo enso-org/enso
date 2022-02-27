@@ -71,6 +71,10 @@ pub use binding::mock::*;
 // ===================
 
 pub trait FunctionOps {
+    /// The `wasm-bindgen` version of this function panics if the JS code contains errors. This
+    /// issue was reported and never fixed (https://github.com/rustwasm/wasm-bindgen/issues/2496).
+    /// There is also a long-standing PR with the fix that was not fixed either
+    /// (https://github.com/rustwasm/wasm-bindgen/pull/2497).
     fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue>;
 }
 

@@ -4,18 +4,20 @@ use crate::prelude::*;
 
 use crate::component::type_coloring;
 use crate::component::visualization::foreign::java_script::PreprocessorCallback;
-use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::Type;
 
-use enso_web::HtmlDivElement;
-use enso_web::JsValue;
 use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::style::data::DataMatch;
 use ensogl::display::DomSymbol;
+use ensogl::system::web::HtmlDivElement;
+use ensogl::system::web::JsValue;
 use ensogl_hardcoded_theme;
 use fmt::Formatter;
 use wasm_bindgen::prelude::wasm_bindgen;
+
+#[cfg(target_arch = "wasm32")]
+use crate::component::visualization::instance::PreprocessorConfiguration;
 
 
 
@@ -151,6 +153,7 @@ impl JsTheme {
 /// Data that is passed into the javascript Visualization baseclass.
 #[allow(missing_docs)]
 #[wasm_bindgen]
+#[allow(dead_code)] // Some fields are used by wasm32 target only.
 pub struct JsConsArgs {
     #[wasm_bindgen(skip)]
     pub root:             HtmlDivElement,
@@ -179,8 +182,8 @@ impl JsConsArgs {
     }
 }
 
-// FIXME: commented:
-// #[wasm_bindgen]
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
 impl JsConsArgs {
     /// Getter for the root element for the visualization.
     pub fn root(&self) -> JsValue {

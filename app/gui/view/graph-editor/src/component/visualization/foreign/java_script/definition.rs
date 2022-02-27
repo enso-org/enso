@@ -3,11 +3,8 @@
 //! For details of the API please see:
 //! * docstrings in the `visualization.js` file;
 //! * [visualization documentation](https://dev.enso.org/docs/ide/product/visualizations.html).
-// FIXME: Can we simplify the above definition so its more minimal, yet functional?
-
-// FIXME:
-// mod function;
-// use function::Function;
+// FIXME: The above link is broken. This is why we should always create docs here and on github
+// only.
 
 use crate::prelude::*;
 

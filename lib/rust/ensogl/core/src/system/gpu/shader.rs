@@ -40,8 +40,6 @@ pub type Program = WebGlProgram;
 // === Error ===
 // =============
 
-// type Result<T> = std::result::Result<T, Error>;
-
 #[derive(Debug, Fail, From)]
 pub enum Error {
     #[fail(display = "Unable to create {}.", target)]
@@ -156,15 +154,27 @@ pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, Error
     }
 }
 
+/// Structure representing one of two states – an error, or lack of values because of a lost
+/// context.
+#[derive(Debug)]
+pub enum ContextLossOrError {
+    ContextLoss,
+    Error(Error),
+}
+
 /// Link the provided vertex and fragment shaders into a program.
 pub fn link_program(
     ctx: &Context,
     vert_shader: &Shader,
     frag_shader: &Shader,
-) -> Result<Program, Option<Error>> {
+) -> Result<Program, ContextLossOrError> {
     let target = ErrorTarget::Program;
     match ctx.create_program() {
-        None => Err((!ctx.is_context_lost()).then_some(Error::Create { target })),
+        None => Err(if ctx.is_context_lost() {
+            ContextLossOrError::ContextLoss
+        } else {
+            ContextLossOrError::Error(Error::Create { target })
+        }),
         Some(program) => {
             ctx.attach_shader(&program, vert_shader);
             ctx.attach_shader(&program, frag_shader);
@@ -177,11 +187,11 @@ pub fn link_program(
 /// Compile the provided vertex and fragment shader sources and then link them into a program.
 pub fn compile_program(
     ctx: &Context,
-    vert_shader_src: &str,
-    frag_shader_src: &str,
-) -> Result<Program, Option<Error>> {
-    let vert_shader = compile_vertex_shader(ctx, vert_shader_src).map_err(Some)?;
-    let frag_shader = compile_fragment_shader(ctx, frag_shader_src).map_err(Some)?;
+    vert_src: &str,
+    frag_src: &str,
+) -> Result<Program, ContextLossOrError> {
+    let vert_shader = compile_vertex_shader(ctx, vert_src).map_err(ContextLossOrError::Error)?;
+    let frag_shader = compile_fragment_shader(ctx, frag_src).map_err(ContextLossOrError::Error)?;
     link_program(ctx, &vert_shader, &frag_shader)
 }
 

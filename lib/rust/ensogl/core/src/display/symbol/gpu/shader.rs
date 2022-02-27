@@ -12,6 +12,7 @@ use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
+use crate::display::symbol::shader::ContextLossOrError;
 use crate::display::symbol::ScopeType;
 use crate::system::gpu::shader::*;
 use crate::system::Context;
@@ -141,8 +142,8 @@ impl {
                     let program = compile_program(context,&shader.vertex,&shader.fragment);
                     match program {
                         Ok(program) => { self.program = Some(program);}
-                        Err(Some(err)) => error!(self.logger, "{err}"),
-                        Err(None) => {}
+                        Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
+                        Err(ContextLossOrError::ContextLoss) => {}
                     }
 
                     self.dirty.unset_all();

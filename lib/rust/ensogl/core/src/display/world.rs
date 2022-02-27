@@ -299,7 +299,7 @@ mod tests {
     #[test]
     fn native_compilation_in_test_mode() {
         let _world = World::new().displayed_in("root");
-        let _scene = &world.default_scene;
+        let _scene = &_world.default_scene;
         assert_eq!(1, 1);
     }
 }

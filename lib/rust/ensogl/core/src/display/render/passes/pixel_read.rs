@@ -170,7 +170,6 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
                 self.check_and_handle_sync(&instance.context, &sync);
             }
             if self.sync.is_none() {
-                // callback X
                 self.run_not_synced(&instance.context);
             }
         }

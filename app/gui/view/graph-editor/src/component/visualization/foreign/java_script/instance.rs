@@ -249,15 +249,6 @@ impl InstanceModel {
         Ok(())
     }
 
-    // #[cfg(not(target_arch = "wasm32"))]
-    // fn try_call1(
-    //     &self,
-    //     _method: &Option<web::Function>,
-    //     _arg: &JsValue,
-    // ) -> result::Result<(), JsValue> {
-    //     Ok(())
-    // }
-
     fn set_layer(&self, layer: Layer) {
         layer.apply_for_html_component(&self.scene, &self.root_node)
     }

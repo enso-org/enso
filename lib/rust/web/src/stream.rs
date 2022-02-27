@@ -1,4 +1,3 @@
-// FIXME this file
 //! Helpers for the Web Streaming API in Rust, mostly the missing bindings in the [`web_sys`] crate.
 
 use crate::prelude::*;
