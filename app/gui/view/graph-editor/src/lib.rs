@@ -1683,8 +1683,8 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
-    /// Finds a position to place a new node at, based on edge's source node and on the position
-    /// where the edge's target end is being dropped by user.
+    /// Finds a position to place a new node at, based on the edge's source node and on the
+    /// position where the edge's target end is being dropped by the user.
     pub fn new_node_position_after_dropping_edge(
         &self,
         edge_id: EdgeId,
@@ -1705,15 +1705,14 @@ impl GraphEditorModel {
         self.new_node_position_restricted_by_node(mouse_position, nearest_node)
     }
 
-    /// Finds a node nearest to the specified mouse position. Areas where nodes' visualizations are
-    /// shown are not treated as parts of a node for the purpose of calculating how close the mouse
-    /// position is to a node (in other words, visualizations are ignored). Nodes are assumed to
-    /// have a shape of a rectangle with fixed height and rounded corners, where each rounded
-    /// corner's radius equals half of the rectangle's height. The function takes into account
-    /// possible situations where two or more nodes could overlap each other. For the purpose of
-    /// calculating the distance to the mouse position, a node is then modeled as a line segment
-    /// connecting the centers of the circles forming the corners of the rounded rectangle
-    /// described above.
+    /// Finds a node nearest to the specified mouse position. Areas, where nodes' visualizations
+    /// are shown, are not treated as parts of a node to calculate how close the mouse position is
+    /// to a node (in other words, visualizations are ignored). Nodes are assumed to have a shape
+    /// of a rectangle with fixed height and rounded corners, where each rounded corner's radius
+    /// equals half of the rectangle's height. The function takes into account possible situations
+    /// where two or more nodes could overlap each other. To calculate the distance to the mouse
+    /// position, a node is then modeled as a line segment connecting the centers of the circles
+    /// forming the corners of the rounded rectangle described above.
     fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
