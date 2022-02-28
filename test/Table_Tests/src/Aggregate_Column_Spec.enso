@@ -25,18 +25,18 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator empty_table (Count test_name) test_name empty_table.row_count
 
     Test.specify "should be able to count NULLs in a set" <|
-        test_aggregator simple_table (Count_Null 0) "Count Null count" 1
-        test_aggregator simple_table (Count_Null 0 test_name) test_name 1
-        test_aggregator simple_table (Count_Null "text" test_name) test_name 1
-        test_aggregator simple_table (Count_Null text_col test_name) test_name 1
-        test_aggregator empty_table (Count_Null 0 test_name) test_name empty_table.row_count
+        test_aggregator simple_table (Count_Nothing 0) "Count Null count" 1
+        test_aggregator simple_table (Count_Nothing 0 test_name) test_name 1
+        test_aggregator simple_table (Count_Nothing "text" test_name) test_name 1
+        test_aggregator simple_table (Count_Nothing text_col test_name) test_name 1
+        test_aggregator empty_table (Count_Nothing 0 test_name) test_name empty_table.row_count
 
     Test.specify "should be able to count not NULLs in a set" <|
-        test_aggregator simple_table (Count_Not_Null 0) "Count NotNull count" 3
-        test_aggregator simple_table (Count_Not_Null 0 test_name) test_name 3
-        test_aggregator simple_table (Count_Not_Null "text" test_name) test_name 3
-        test_aggregator simple_table (Count_Not_Null text_col test_name) test_name 3
-        test_aggregator empty_table (Count_Not_Null 0 test_name) test_name empty_table.row_count
+        test_aggregator simple_table (Count_Not_Nothing 0) "Count NotNull count" 3
+        test_aggregator simple_table (Count_Not_Nothing 0 test_name) test_name 3
+        test_aggregator simple_table (Count_Not_Nothing "text" test_name) test_name 3
+        test_aggregator simple_table (Count_Not_Nothing text_col test_name) test_name 3
+        test_aggregator empty_table (Count_Not_Nothing 0 test_name) test_name empty_table.row_count
 
     Test.specify "should be able to count empties in a set of Texts" <|
         test_aggregator simple_table (Count_Empty -1) "Count Empty text" 2

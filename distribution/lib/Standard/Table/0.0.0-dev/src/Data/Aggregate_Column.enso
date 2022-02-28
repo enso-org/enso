@@ -10,7 +10,7 @@ type Aggregate_Column
 
     ## Creates a new column with the count of unique items in the selected
        column(s) within each group.
-    type Count_Distinct (columns:Column|Text|Integer|[Column|Text|Integer]) (name:Text|Nothing=Nothing)
+    type Count_Distinct (columns:Column|Text|Integer|[(Column|Text|Integer)]) (name:Text|Nothing=Nothing)
 
     ## ALIAS Count_Not_Null
 
@@ -83,20 +83,30 @@ type Aggregate_Column
     column_name : Table->Text
     column_name table =
         if this.name.is_nothing.not then this.name else
+            get_name c = (here.resolve_column table c).name
             case this of
                 Count _ -> "Count"
-                Count_Distinct c _ -> "Count Distinct " + (resolve_column table c).name
-                Count_Not_Nothing c _ -> "Count NotNull " + (resolve_column table c).name
-                Count_Nothing c _ -> "Count Null " + (resolve_column table c).name
-                Count_Not_Empty c _ -> "Count NotEmpty " + (resolve_column table c).name
-                Count_Empty c _ -> "Count Empty " + (resolve_column table c).name
-                Sum c _ -> "Sum " + (resolve_column table c).name
-                Average c _ -> "Average " + (resolve_column table c).name
-                Median c _ -> "Median " + (resolve_column table c).name
-                Standard_Deviation c _ _ -> "Standard Deviation " + (resolve_column table c).name
-                Concatenate c _ _ _ _ -> "Concatenate " + (resolve_column table c).name
-                First c _ -> "First " + (resolve_column table c).name
-                Last c _ -> "Last " + (resolve_column table c).name
+                Count_Distinct c _ -> "Count Distinct " + (get_name c)
+                Count_Not_Nothing c _ -> "Count NotNull " + (get_name c)
+                Count_Nothing c _ -> "Count Null " + (get_name c)
+                Count_Not_Empty c _ -> "Count NotEmpty " + (get_name c)
+                Count_Empty c _ -> "Count Empty " + (get_name c)
+                Sum c _ -> "Sum " + (get_name c)
+                Average c _ -> "Average " + (get_name c)
+                Median c _ -> "Median " + (get_name c)
+                Standard_Deviation c _ _ -> "Standard Deviation " + (get_name c)
+                Concatenate c _ _ _ _ _ -> "Concatenate " + (get_name c)
+                First c _ _ _ -> "First " + (get_name c)
+                Last c _ _ _ -> "Last " + (get_name c)
+
+    ## PRIVATE
+       Given a column reference resolve to the underlying column
+    resolve_column : Table->(Column|Text|Integer)->Column
+    resolve_column table column =
+        case column of
+            Column c -> table.at (c.name)
+            Text -> table.at column
+            Integer -> table.columns.at column
 
     ## PRIVATE
        Given a column reference resolve to the underlying column
