@@ -412,7 +412,7 @@ mod tests {
         #[profile(Objective)]
         async fn profiled() -> u32 {
             let block = async { 4 };
-            block.await
+            block.await + 1
         }
         let future = profiled();
         futures::executor::block_on(future);

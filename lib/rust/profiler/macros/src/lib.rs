@@ -507,27 +507,28 @@ struct WrapAwait;
 
 impl visit_mut::VisitMut for WrapAwait {
     fn visit_expr_mut(&mut self, expr: &mut syn::Expr) {
-        if let syn::Expr::Await(await_) = expr {
-            let new_expr = wrap_await(await_);
-            *expr = new_expr;
+        match expr {
+            syn::Expr::Await(await_) => *expr = wrap_await(await_),
+            _ => syn::visit_mut::visit_expr_mut(self, expr),
         }
     }
 }
 
-fn wrap_await(await_: &syn::ExprAwait) -> syn::Expr {
-    let expr = &await_.base;
+fn wrap_await(await_: &mut syn::ExprAwait) -> syn::Expr {
+    let expr = &mut await_.base;
+    WrapAwait.visit_expr_mut(expr);
     assert!(
         await_.attrs.is_empty(),
         "#[profile] cannot wrap a function that applies attributes to an .await expression"
     );
     let wrapped = quote::quote! {
-        {
+        ({
             let future = #expr;
             profiler::internal::Profiler::pause(&__profiler_scope.0);
             let result = future.await;
             profiler::internal::Profiler::resume(&__profiler_scope.0);
             result
-        }
+        })
     };
     syn::parse2(wrapped).unwrap()
 }
