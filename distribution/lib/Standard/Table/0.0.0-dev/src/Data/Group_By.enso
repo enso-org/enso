@@ -1,6 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 
-## Group By Key
+## Represents a comparable vector of element which is used as key for grouping.
 type Group_By_Key
     type Group_By_Key values
 
@@ -10,10 +11,4 @@ type Group_By_Key
 
     ## Compares two keys
     compare_to : Group_By_Key->Ordering
-    compare_to that =
-        loop i =
-            comparison = this.values.unsafe_at i . compare_to (that.values.unsafe_at i)
-            if comparison != Ordering.Equal then comparison else
-                if i == this.values.length - 1 then Ordering.Equal else
-                    @Tail_Call loop (i+1)
-        loop 0
+    compare_to that = Vector_Lexicographic_Order.compare this.values that.values

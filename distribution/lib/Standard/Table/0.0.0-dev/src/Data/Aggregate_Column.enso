@@ -83,7 +83,7 @@ type Aggregate_Column
     column_name : Table->Text
     column_name table =
         if this.name.is_nothing.not then this.name else
-            get_name c = (here.resolve_column table c).name
+            get_name c = (this.resolve_column table c).java_column.getName
             case this of
                 Count _ -> "Count"
                 Count_Distinct c _ -> "Count Distinct " + (get_name c)
@@ -104,18 +104,9 @@ type Aggregate_Column
     resolve_column : Table->(Column|Text|Integer)->Column
     resolve_column table column =
         case column of
-            Column c -> table.at (c.name)
+            Column _ -> table.at (column.name)
             Text -> table.at column
             Integer -> table.columns.at column
-
-    ## PRIVATE
-       Given a column reference resolve to the underlying column
-    resolve_column : Table->(Column|Text|Integer)->Column
-    resolve_column table column =
-        case column of
-            Column c -> table.at (c.name)
-            Text c -> table.at c
-            Integer c -> table.columns.at c
 
     initial_value : Any
     initial_value = case this of
@@ -123,9 +114,9 @@ type Aggregate_Column
         Median _ _ -> Map.empty
         Average _ _ -> [0, 0]
         Standard_Deviation _ _ _ -> [0, 0, 0]
-        Concatenate _ _ _ _ _ -> Nothing
-        First _ _ -> Nothing
-        Last _ _ -> Nothing
+        Concatenate _ _ _ _ _ _ -> Nothing
+        First _ _ _ _ -> Nothing
+        Last _ _ _ _ -> Nothing
         _ -> 0
 
     make_aggregator : Table->(Any->Integer->Any)
@@ -144,18 +135,18 @@ type Aggregate_Column
             Count_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
             Count_Not_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 0 else 1)
             Count_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 1 else 0)
-            First c _ -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
-            Last c _ -> create_closure c col->_->i->(col.at i)
+            First c _ _ _ -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
+            Last c _ _ _ -> create_closure c col->_->i->(col.at i)
             Sum c _ -> create_closure c col->total->i->
                 v = col.at i
                 (total + if v.is_nothing then 0 else v)
             Average c _ -> create_closure c col->a->i->
                 v = col.at i
-                (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v])
+                (c + if v.is_nothing then a else [a.first + 1, a.second + v])
             Standard_Deviation c _ _ -> create_closure c col->a->i->
                 v = col.at i
-                (c + if v.is_nothing then a else [(a.at 0) + 1, (a.at 1) + v, (a.at 2) + v*v])
-            Concatenate c _ j _ _ -> create_closure c col->text->i->
+                (c + if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v])
+            Concatenate c _ j _ _ _ -> create_closure c col->text->i->
                 val=if (col.at i).is_nothing then "" else (col.at i).to_text
                 if i==0 then val else (text + j + val)
             Median c _ -> create_closure c col->map->i->
@@ -173,7 +164,7 @@ type Aggregate_Column
         Average _ _ -> if (value.at 0) == 0 then Nothing else (value.at 1 / value.at 0)
         Standard_Deviation _ _ p -> if (value.at 0) == 0 then Nothing else
             (value.at 2/value.at 0 - (value.at 1/value.at 0)^2).sqrt * (if p then 1 else 1)
-        Concatenate _ _ _ s p -> if value.is_nothing then value else (s + value + p)
+        Concatenate _ _ _ s p _ -> if value.is_nothing then value else (s + value + p)
         _ -> value
 
 
