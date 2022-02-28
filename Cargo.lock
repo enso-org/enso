@@ -1110,6 +1110,7 @@ name = "enso-profiler"
 version = "0.1.0"
 dependencies = [
  "enso-profiler-macros",
+ "enso-web",
  "futures 0.3.21",
  "serde",
  "serde_json",

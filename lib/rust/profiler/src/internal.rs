@@ -321,18 +321,8 @@ impl Default for Timestamp {
 mod js {
     /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
     pub mod performance {
-        use wasm_bindgen::prelude::*;
-
-        #[wasm_bindgen]
-        extern "C" {
-            /// The
-            /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-            /// method returns a double-precision float, measured in milliseconds.
-            ///
-            /// The returned value represents the time elapsed since the time origin, which is when
-            /// the page began to load.
-            #[wasm_bindgen(js_namespace = performance)]
-            pub fn now() -> f64;
+        pub fn now() -> f64 {
+            enso_web::performance().now()
         }
     }
 }
