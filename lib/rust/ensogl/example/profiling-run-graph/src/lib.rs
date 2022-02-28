@@ -14,6 +14,7 @@ use wasm_bindgen::prelude::*;
 
 use enso_profiler as profiler;
 use enso_profiler::profile;
+use enso_profiler_flame_graph as profiler_flame_graph;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -45,10 +46,9 @@ pub fn entry_point_profiling_run_graph() {
     init_theme(scene);
 
     // Generate Test data
-    start_project(profiler::APP_LIFETIME);
+    start_project();
 
-    let measurements = profiler::flame_graph::FlameGraph::take_from_log();
-
+    let measurements = profiler_flame_graph::FlameGraph::take_from_log();
     let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
 
     world.add_child(&flame_graph);
@@ -101,68 +101,68 @@ fn work(n: u32) {
     println!("{}", m % 7)
 }
 
-#[profile]
-fn start_project(_profiler: profiler::Objective) {
-    wake_dragon(_profiler);
-    feed_troll(_profiler);
-    ride_rainbow(_profiler);
+#[profile(Objective)]
+fn start_project() {
+    wake_dragon();
+    feed_troll();
+    ride_rainbow();
 }
-#[profile]
-fn ride_rainbow(_profiler: profiler::Objective) {
-    work(777)
+#[profile(Objective)]
+fn ride_rainbow() {
+    work(333)
 }
-#[profile]
-fn feed_troll(_profiler: profiler::Objective) {
-    gather_herbs_and_spices(_profiler);
-    cook_troll_food(_profiler);
-    run_away(_profiler);
+#[profile(Objective)]
+fn feed_troll() {
+    gather_herbs_and_spices();
+    cook_troll_food();
+    run_away();
 }
-#[profile]
-fn run_away(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn run_away() {
     work(100)
 }
-#[profile]
-fn cook_troll_food(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn cook_troll_food() {
     work(100)
 }
-#[profile]
-fn gather_herbs_and_spices(_profiler: profiler::Objective) {
-    walk_to_woods(_profiler);
-    search_stuff(_profiler);
-    find_stuff(_profiler);
-    gather_stuff(_profiler);
+#[profile(Objective)]
+fn gather_herbs_and_spices() {
+    walk_to_woods();
+    search_stuff();
+    find_stuff();
+    gather_stuff();
 }
-#[profile]
-fn gather_stuff(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn gather_stuff() {
     work(100)
 }
-#[profile]
-fn find_stuff(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn find_stuff() {
     work(100)
 }
-#[profile]
-fn search_stuff(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn search_stuff() {
     work(100)
 }
-#[profile]
-fn walk_to_woods(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn walk_to_woods() {
     work(100)
 }
-#[profile]
-fn wake_dragon(_profiler: profiler::Objective) {
-    gather_gold(_profiler);
-    bake_gold_cake(_profiler);
-    start_tea_party(_profiler);
+#[profile(Objective)]
+fn wake_dragon() {
+    gather_gold();
+    bake_gold_cake();
+    start_tea_party();
 }
-#[profile]
-fn start_tea_party(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn start_tea_party() {
     work(100)
 }
-#[profile]
-fn bake_gold_cake(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn bake_gold_cake() {
     work(100)
 }
-#[profile]
-fn gather_gold(_profiler: profiler::Objective) {
+#[profile(Objective)]
+fn gather_gold() {
     work(100)
 }

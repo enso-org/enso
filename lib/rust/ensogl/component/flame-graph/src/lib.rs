@@ -11,7 +11,7 @@
 
 use ensogl_core::prelude::*;
 
-use enso_profiler as profiler;
+use enso_profiler_flame_graph as profiler_flame_graph;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 
@@ -45,7 +45,7 @@ pub struct FlameGraph {
 }
 
 /// Instantiate a `Block` shape for the given block data from the profiler.
-fn shape_from_block(block: profiler::flame_graph::Block, app: &Application) -> Block {
+fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Block {
     let component = app.new_view::<Block>();
 
     let size = Vector2::new(block.width() as f32, ROW_HEIGHT as f32);
@@ -62,7 +62,7 @@ fn shape_from_block(block: profiler::flame_graph::Block, app: &Application) -> B
 
 impl FlameGraph {
     /// Create a `FlameGraph` EnsoGL component from the given flame graph data from the profiler.
-    pub fn from_data(data: profiler::flame_graph::FlameGraph, app: &Application) -> Self {
+    pub fn from_data(data: profiler_flame_graph::FlameGraph, app: &Application) -> Self {
         let logger = Logger::new("FlameGraph");
         let display_object = display::object::Instance::new(&logger);
 

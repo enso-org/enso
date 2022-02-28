@@ -306,6 +306,17 @@ pub struct Metadata<M> {
 }
 
 
+// === OpaqueMetadata ===
+
+/// Black-box metadata object, for ignoring metadata contents.
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+pub enum OpaqueMetadata {
+    /// Anything.
+    #[serde(other)]
+    Unknown,
+}
+
+
 
 // ============
 // === Mark ===
@@ -314,8 +325,10 @@ pub struct Metadata<M> {
 /// A timestamp that can be used for distinguishing event order.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Mark {
-    seq:  Seq,
-    time: profiler::internal::Timestamp,
+    /// Sequence number of the mark. Used to resolve timestamp collisions.
+    seq:      Seq,
+    /// Time of the mark.
+    pub time: profiler::internal::Timestamp,
 }
 
 impl Mark {
@@ -376,6 +389,17 @@ pub struct Label {
 }
 
 
+impl fmt::Display for Label {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(pos) = self.pos.as_ref() {
+            write!(f, "{} ({}:{})", self.name, pos.file, pos.line)
+        } else {
+            write!(f, "{}", self.name)
+        }
+    }
+}
+
+
 // === CodePos ===
 
 /// Identifies a position within a specific file.
@@ -399,13 +423,6 @@ mod tests {
     use enso_profiler as profiler;
     use profiler::profile;
 
-    /// Black-box metadata object, for ignoring metadata contents.
-    #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-    pub(crate) enum OpaqueMetadata {
-        /// Anything.
-        #[serde(other)]
-        Unknown,
-    }
 
     #[test]
     fn profile_sync() {

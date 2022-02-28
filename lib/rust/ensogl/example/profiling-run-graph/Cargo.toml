@@ -14,6 +14,7 @@ ensogl-core = { path = "../../core" }
 enso-web = { path = "../../../web" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-flame-graph = { path = "../../component/flame-graph" }
+enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }
 ensogl-text = { path = "../../component/text" }

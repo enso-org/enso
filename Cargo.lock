@@ -1128,6 +1128,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-profiler-flame-graph"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "enso-profiler-data",
+ "futures 0.3.21",
+]
+
+[[package]]
 name = "enso-profiler-macros"
 version = "0.1.0"
 dependencies = [
@@ -1407,6 +1416,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-profiler",
+ "enso-profiler-flame-graph",
  "enso-web",
  "ensogl-core",
  "ensogl-flame-graph",
@@ -1509,6 +1519,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-profiler",
+ "enso-profiler-flame-graph",
  "ensogl",
  "ensogl-core",
  "ensogl-gui-component",

@@ -147,8 +147,6 @@
 pub mod internal;
 pub mod log;
 
-pub mod flame_graph;
-
 extern crate test;
 
 use std::rc;
@@ -163,23 +161,6 @@ use internal::*;
 /// The label of a profiler; this includes the name given at its creation, along with file and
 /// line-number information.
 pub type Label = &'static str;
-
-
-#[cfg(target_arch = "wasm32")]
-fn now() -> f64 {
-    use enso_web as web;
-    web::performance().now()
-}
-#[cfg(not(target_arch = "wasm32"))]
-fn now() -> f64 {
-    0.0
-}
-
-
-
-// =================
-// === Timestamp ===
-// =================
 
 
 
