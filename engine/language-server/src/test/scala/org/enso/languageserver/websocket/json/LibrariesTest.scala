@@ -13,7 +13,19 @@ import org.enso.librarymanager.published.repository.{
   ExampleRepository,
   LibraryManifest
 }
-import org.enso.pkg.{Contact, PackageManager}
+import org.enso.pkg.{
+  Component,
+  ComponentGroup,
+  ComponentGroups,
+  Config,
+  Contact,
+  ExtendedComponentGroup,
+  ModuleName,
+  ModuleReference,
+  Package,
+  PackageManager,
+  Shortcut
+}
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
@@ -213,6 +225,96 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
+    }
+
+    "get the package config" in {
+      val client = getInitialisedWsClient()
+      val testComponentGroups = ComponentGroups(
+        newGroups = List(
+          ComponentGroup(
+            module = ModuleName("Foo"),
+            color  = Some("#32a852"),
+            icon   = None,
+            exports = Seq(
+              Component("foo", Some(Shortcut("abc"))),
+              Component("bar", None)
+            )
+          )
+        ),
+        extendedGroups = List(
+          ExtendedComponentGroup(
+            module = ModuleReference(
+              LibraryName("Standard", "Base"),
+              ModuleName("Data")
+            ),
+            exports = List(
+              Component("bar", None)
+            )
+          )
+        )
+      )
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/create",
+            "id": 0,
+            "params": {
+              "namespace": "user",
+              "name": "Get_Package_Test_Lib",
+              "authors": [],
+              "maintainers": [],
+              "license": ""
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+
+      val libraryRoot = getTestDirectory
+        .resolve("test_home")
+        .resolve("libraries")
+        .resolve("user")
+        .resolve("Get_Package_Test_Lib")
+      val packageFile = libraryRoot.resolve(Package.configFileName)
+      val packageConfig =
+        YamlHelper
+          .load[Config](packageFile)
+          .get
+          .copy(
+            componentGroups = Right(testComponentGroups)
+          )
+      Files.writeString(packageFile, packageConfig.toYaml)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getPackage",
+            "id": 1,
+            "params": {
+              "namespace": "user",
+              "name": "Get_Package_Test_Lib",
+              "version": {
+                "type": "LocalLibraryVersion"
+              }
+            }
+          }
+          """)
+      val response = client.expectSomeJson()
+
+      response.hcursor
+        .downField("result")
+        .downField("license")
+        .as[Option[String]]
+        .rightValue shouldEqual None
+
+      response.hcursor
+        .downField("result")
+        .downField("componentGroups")
+        .as[ComponentGroups]
+        .rightValue shouldEqual testComponentGroups
     }
 
     "create, publish a library and fetch its manifest from the server" in {
@@ -475,14 +577,16 @@ class LibrariesTest extends BaseServerTest {
           .value
 
         val pkg =
-          PackageManager.Default.loadPackage(cachedLibraryRoot.toFile).get
+          PackageManager.Default
+            .loadPackage(cachedLibraryRoot.location.toFile)
+            .get
         pkg.name shouldEqual "Bar"
         pkg.listSources.map(
           _.file.getName
         ) should contain theSameElementsAs Seq("Main.enso")
 
         assert(
-          Files.exists(cachedLibraryRoot.resolve(LibraryManifest.filename)),
+          Files.exists(cachedLibraryRoot / LibraryManifest.filename),
           "The manifest file of a downloaded library should be saved in the cache too."
         )
       }
@@ -606,6 +710,55 @@ class LibrariesTest extends BaseServerTest {
       extractPublishedLibraries(client.expectSomeJson()) should contain(
         PublishedLibrary("Standard", "Base", isCached = true)
       )
+    }
+  }
+
+  "editions/listDefinedComponents" should {
+    "include expected components in the list" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/listDefinedComponents",
+            "id": 0,
+            "params": {
+              "edition": {
+                "type": "CurrentProjectEdition"
+              }
+            }
+          }
+          """)
+
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+              "availableComponents" : [ ]
+            }
+          }
+          """)
+
+      val currentEditionName = buildinfo.Info.currentEdition
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/listDefinedComponents",
+            "id": 0,
+            "params": {
+              "edition": {
+                "type": "NamedEdition",
+                "editionName": $currentEditionName
+              }
+            }
+          }
+          """)
+
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+              "availableComponents" : [ ]
+            }
+          }
+          """)
     }
   }
 

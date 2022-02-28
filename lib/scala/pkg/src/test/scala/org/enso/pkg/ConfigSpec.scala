@@ -134,8 +134,6 @@ class ConfigSpec
               LibraryName("Standard", "Base"),
               ModuleName("Group 2")
             ),
-            color   = None,
-            icon    = None,
             exports = List(Component("bax", None))
           )
         )

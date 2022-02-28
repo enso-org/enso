@@ -1,10 +1,10 @@
 package org.enso.languageserver.libraries
 
-import io.circe.Json
+import io.circe.{Json, JsonObject}
 import io.circe.literal.JsonStringContext
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
-import org.enso.pkg.Contact
+import org.enso.pkg.{ComponentGroups, Contact}
 
 object LibraryApi {
   case object EditionsListAvailable extends Method("editions/listAvailable") {
@@ -98,6 +98,21 @@ object LibraryApi {
     }
   }
 
+  case object EditionsListDefinedComponents
+      extends Method("editions/listDefinedComponents") { self =>
+
+    case class Params(edition: EditionReference)
+
+    case class Result(availableComponents: Seq[LibraryComponentGroup])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = self.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = self.Result
+    }
+  }
+
   case object LibraryListLocal extends Method("library/listLocal") { self =>
 
     case class Result(localLibraries: Seq[LibraryEntry])
@@ -160,6 +175,30 @@ object LibraryApi {
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type
+    }
+  }
+
+  case object LibraryGetPackage extends Method("library/getPackage") { self =>
+
+    case class Params(
+      namespace: String,
+      name: String,
+      version: LibraryEntry.LibraryVersion
+    )
+
+    // TODO[DB]: raw package was added to response as a temporary field and
+    //  should be removed when the integration with IDE is finished
+    case class Result(
+      license: Option[String],
+      componentGroups: Option[ComponentGroups],
+      raw: JsonObject
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = self.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = self.Result
     }
   }
 
@@ -256,4 +295,12 @@ object LibraryApi {
         8010,
         s"Error occurred while discovering dependencies: $reason."
       )
+
+  case class InvalidSemverVersion(version: String)
+      extends Error(8011, s"[$version] is not a valid semver version.") {
+
+    override def payload: Option[Json] = Some(
+      json"""{ "version" : $version }"""
+    )
+  }
 }

@@ -257,9 +257,9 @@ type Table
          - If duplicate columns, names or indices are provided, a
            `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices would refer to the same column, a
-           `Input_Indices_Already_Matched`, indicating that the additional
-           indices will not introduce additional columns.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
          - If there are no columns in the output table, a `No_Output_Columns`.
        - warnings: A `Warning_System` instance specifying how to handle
          warnings. This is a temporary workaround to allow for testing the
@@ -279,7 +279,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -311,9 +311,9 @@ type Table
          - If duplicate columns, names or indices are provided, a
            `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices would refer to the same column, a
-           `Input_Indices_Already_Matched`, indicating that the additional
-           indices will not introduce additional columns.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
          - If there are no columns in the output table, a `No_Output_Columns`.
        - warnings: A `Warning_System` instance specifying how to handle
          warnings. This is a temporary workaround to allow for testing the
@@ -333,7 +333,7 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (By_Name ["foo.+", "b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
 
        > Example
          Remove the first two columns and the last column.
@@ -366,9 +366,9 @@ type Table
          - If duplicate columns, names or indices are provided, a
            `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices would refer to the same column, a
-           `Input_Indices_Already_Matched`, indicating that the additional
-           indices will not introduce additional columns.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
        - warnings: A `Warning_System` instance specifying how to handle
          warnings. This is a temporary workaround to allow for testing the
          warning mechanism. Once the proper warning system is implemented, this
@@ -387,7 +387,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (By_Name ["foo.+", "b.*"] (Matching.Regex case_senitivity=Matching.Case_Insensitive))
+             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
 
        > Example
          Swap the first two columns.
@@ -424,7 +424,7 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive)
+             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new)
 
        > Example
          Sort columns in descending order.
@@ -449,9 +449,10 @@ type Table
          - If duplicate columns, names or indices are provided, a
            `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices would refer to the same column, a
-           `Input_Indices_Already_Matched`, indicating that the additional
-           indices will not introduce additional columns.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If in `By_Position` mode and more names than columns are provided,
+           a `Too_Many_Column_Names_Provided`.
          - If any of the new names are invalid, an
            `Invalid_Output_Column_Names`.
          - If any of the new names clash either with existing names or each
@@ -481,14 +482,6 @@ type Table
          them as warnings by default.
 
          The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices would refer to the same column, a
-           `Input_Indices_Already_Matched`, indicating that the additional
-           indices will not introduce additional columns.
          - If any of the new names are invalid, an
            `Invalid_Output_Column_Names`.
          - If any of the new names clash either with existing names or each

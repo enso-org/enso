@@ -45,3 +45,15 @@ spec = Test.group "Range" <|
         1.up_to 10 . find (> 10) . should_be_a Nothing
     Test.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]
+
+    Test.specify "should allow checking if a value is in the range"
+        0.up_to 10 . contains 5 . should_be_true
+        0.up_to 10 . contains 0 . should_be_true
+        0.up_to 10 . contains 9 . should_be_true
+        0.up_to 10 . contains 10 . should_be_false
+        0.up_to 0 . contains 10 . should_be_false
+        0.up_to 0 . contains 0 . should_be_false
+        3.up_to 5 . contains 2 . should_be_false
+        0.up_to 10 . contains -3 . should_be_false
+
+main = Test.Suite.run_main here.spec

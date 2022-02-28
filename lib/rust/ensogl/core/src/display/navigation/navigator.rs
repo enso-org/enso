@@ -1,16 +1,16 @@
 mod events;
 
+pub use crate::display::navigation::navigator::events::PanEvent;
+pub use crate::display::navigation::navigator::events::ZoomEvent;
+
 use crate::prelude::*;
 
 use crate::animation::physics;
 use crate::control::callback;
 use crate::display::camera::Camera2d;
+use crate::display::navigation::navigator::events::NavigatorEvents;
 use crate::display::object::traits::*;
 use crate::display::Scene;
-
-use events::NavigatorEvents;
-use events::PanEvent;
-use events::ZoomEvent;
 
 
 
@@ -33,7 +33,7 @@ const MIN_ZOOM: f32 = 0.001;
 /// Navigator enables camera navigation with mouse interactions.
 #[derive(Debug)]
 pub struct NavigatorModel {
-    _events:         NavigatorEvents,
+    events:          NavigatorEvents,
     simulator:       physics::inertia::DynSimulator<Vector3>,
     resize_callback: callback::Handle,
     zoom_speed:      SharedSwitch<f32>,
@@ -50,7 +50,7 @@ impl NavigatorModel {
         let pan_speed = Rc::new(Cell::new(Switch::On(1.0)));
         let disable_events = Rc::new(Cell::new(true));
         let max_zoom: Rc<Cell<_>> = default();
-        let (simulator, resize_callback, _events) = Self::start_navigator_events(
+        let (simulator, resize_callback, events) = Self::start_navigator_events(
             scene,
             camera,
             zoom_speed.clone_ref(),
@@ -58,15 +58,7 @@ impl NavigatorModel {
             disable_events.clone_ref(),
             max_zoom.clone_ref(),
         );
-        Self {
-            _events,
-            simulator,
-            resize_callback,
-            zoom_speed,
-            pan_speed,
-            disable_events,
-            max_zoom,
-        }
+        Self { events, simulator, resize_callback, zoom_speed, pan_speed, disable_events, max_zoom }
     }
 
     fn create_simulator(camera: &Camera2d) -> physics::inertia::DynSimulator<Vector3> {
@@ -179,6 +171,16 @@ impl NavigatorModel {
     /// zoom immediately, but the restriction will be applied on the next zoom event.
     pub fn set_max_zoom(&self, value: Option<f32>) {
         self.max_zoom.set(value);
+    }
+
+    /// Emit zoom event. This function could be used in the tests to simulate user interactions.
+    pub fn emit_zoom_event(&self, event: ZoomEvent) {
+        self.events.emit_zoom_event(event);
+    }
+
+    /// Emit pan event. This function could be used in the tests to simulate user interactions.
+    pub fn emit_pan_event(&self, event: PanEvent) {
+        self.events.emit_pan_event(event);
     }
 }
 

@@ -2,6 +2,9 @@
 
 #### Visual Environment
 
+- [Nodes can be added to the graph by clicking (+) button on the screen][3278].
+  The button is in the bottom-left corner. Node is added at the center or pushed
+  down if the center is already occupied by nodes.
 - [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
 - [Debug Mode for Graph Editor can be activated/deactivated using a
   shortcut.][3264] It allows access to a set of restricted features. See
@@ -46,6 +49,12 @@
   methods added to `Standard.Test`][3276]
 - [Implemented `Integer.parse`][3283]
 - [Made `Text.compare_to` correctly handle Unicode normalization][3282]
+- [Extend `Text.contains` API to support regex and case insensitive
+  search.][3285]
+- [Implemented new `Text.take` and `Text.drop` functions, replacing existing
+  functions][3287]
+- [Implemented new `Text.starts_with` and `Text.ends_with` functions, replacing
+  existing functions][3292]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -70,8 +79,12 @@
 [3259]: https://github.com/enso-org/enso/pull/3259
 [3273]: https://github.com/enso-org/enso/pull/3273
 [3276]: https://github.com/enso-org/enso/pull/3276
+[3278]: https://github.com/enso-org/enso/pull/3278
 [3283]: https://github.com/enso-org/enso/pull/3283
 [3282]: https://github.com/enso-org/enso/pull/3282
+[3285]: https://github.com/enso-org/enso/pull/3285
+[3287]: https://github.com/enso-org/enso/pull/3287
+[3292]: https://github.com/enso-org/enso/pull/3292
 
 #### Enso Compiler
 

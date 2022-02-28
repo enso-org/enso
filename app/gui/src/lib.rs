@@ -65,6 +65,7 @@ pub mod test;
 pub mod transport;
 
 pub use crate::ide::*;
+pub use ide_view as view;
 
 use ensogl::system::web;
 use wasm_bindgen::prelude::*;

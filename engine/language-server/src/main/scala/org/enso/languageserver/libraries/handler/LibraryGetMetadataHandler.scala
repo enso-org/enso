@@ -1,6 +1,8 @@
 package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
+
+import scala.util.{Success, Try}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import nl.gn0s1s.bump.SemVer
@@ -11,23 +13,27 @@ import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.{
   LibraryEntry,
+  LocalLibraryManagerFailureMapper,
   LocalLibraryManagerProtocol
 }
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.librarymanager.published.repository.RepositoryHelper.RepositoryMethods
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for the `library/create` endpoint.
+/** A request handler for the `library/getMetadata` endpoint.
   *
   * @param timeout request timeout
   * @param localLibraryManager reference to the local library manager actor
+  * @param publishedLibraryCache the cache of published libraries
   */
 class LibraryGetMetadataHandler(
   timeout: FiniteDuration,
-  localLibraryManager: ActorRef
+  localLibraryManager: ActorRef,
+  publishedLibraryCache: PublishedLibraryCache
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
@@ -48,11 +54,18 @@ class LibraryGetMetadataHandler(
             libraryName
           )
         case LibraryEntry.PublishedLibraryVersion(version, repositoryUrl) =>
-          fetchPublishedMetadata(
-            libraryName,
-            version,
-            repositoryUrl
-          ) pipeTo self
+          SemVer(version) match {
+            case Some(semVerVersion) =>
+              getOrFetchPublishedMetadata(
+                libraryName,
+                semVerVersion,
+                repositoryUrl
+              ) pipeTo self
+            case None =>
+              self ! LocalLibraryManagerProtocol.InvalidSemverVersionError(
+                version
+              )
+          }
       }
 
       val cancellable =
@@ -82,33 +95,59 @@ class LibraryGetMetadataHandler(
       cancellable.cancel()
       context.stop(self)
 
+    case failure: LocalLibraryManagerProtocol.Failure =>
+      replyTo ! LocalLibraryManagerFailureMapper.mapFailure(failure)
+      cancellable.cancel()
+      context.stop(self)
+
     case Status.Failure(exception) =>
       replyTo ! ResponseError(Some(id), FileSystemError(exception.getMessage))
       cancellable.cancel()
       context.stop(self)
   }
 
-  // TODO [RW] Once the manifests of downloaded libraries are being cached,
-  //  it may be worth to try resolving the local cache first to avoid
-  //  downloading the manifest again. This should be done before the issues
-  //  #1772 or #1775 are completed.
+  private def getOrFetchPublishedMetadata(
+    libraryName: LibraryName,
+    version: SemVer,
+    repositoryUrl: String
+  ): Future[LocalLibraryManagerProtocol.GetMetadataResponse] =
+    getCachedMetadata(libraryName, version) match {
+      case Some(response) =>
+        response.fold(Future.failed, Future.successful)
+      case None =>
+        fetchPublishedMetadata(libraryName, version, repositoryUrl)
+    }
+
+  private def getCachedMetadata(
+    libraryName: LibraryName,
+    version: SemVer
+  ): Option[Try[LocalLibraryManagerProtocol.GetMetadataResponse]] =
+    publishedLibraryCache
+      .findCachedLibrary(libraryName, version)
+      .map { libraryPath =>
+        libraryPath.getReadAccess
+          .readManifest()
+          .map { manifestAttempt =>
+            manifestAttempt.map(manifest =>
+              LocalLibraryManagerProtocol.GetMetadataResponse(
+                manifest.description,
+                manifest.tagLine
+              )
+            )
+          }
+          .getOrElse(
+            Success(LocalLibraryManagerProtocol.GetMetadataResponse(None, None))
+          )
+      }
+
   private def fetchPublishedMetadata(
     libraryName: LibraryName,
-    version: String,
+    version: SemVer,
     repositoryUrl: String
   ): Future[LocalLibraryManagerProtocol.GetMetadataResponse] = for {
-    semver <- Future.fromTry(
-      SemVer(version)
-        .toRight(
-          new IllegalStateException(
-            s"Library version [$version] is not a valid semver string."
-          )
-        )
-        .toTry
-    )
     manifest <- Repository(repositoryUrl)
-      .accessLibrary(libraryName, semver)
-      .downloadManifest()
+      .accessLibrary(libraryName, version)
+      .fetchManifest()
       .toFuture
   } yield LocalLibraryManagerProtocol.GetMetadataResponse(
     description = manifest.description,
@@ -122,7 +161,18 @@ object LibraryGetMetadataHandler {
     *
     * @param timeout request timeout
     * @param localLibraryManager reference to the local library manager actor
+    * @param publishedLibraryCache the cache of published libraries
     */
-  def props(timeout: FiniteDuration, localLibraryManager: ActorRef): Props =
-    Props(new LibraryGetMetadataHandler(timeout, localLibraryManager))
+  def props(
+    timeout: FiniteDuration,
+    localLibraryManager: ActorRef,
+    publishedLibraryCache: PublishedLibraryCache
+  ): Props =
+    Props(
+      new LibraryGetMetadataHandler(
+        timeout,
+        localLibraryManager,
+        publishedLibraryCache
+      )
+    )
 }

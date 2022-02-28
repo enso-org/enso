@@ -69,6 +69,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "approx"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "assert_approx_eq"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1016,11 +1025,13 @@ dependencies = [
 name = "enso-integration-test"
 version = "0.1.0"
 dependencies = [
+ "approx 0.5.1",
  "enso-frp",
  "enso-gui",
  "enso-prelude",
  "enso-web",
  "ensogl",
+ "ordered-float 2.10.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -1102,7 +1113,18 @@ dependencies = [
  "enso-web",
  "futures 0.3.21",
  "serde",
+ "serde_json",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "enso-profiler-data"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "futures 0.3.21",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1205,9 +1227,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-button"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+]
+
+[[package]]
 name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
+ "ensogl-button",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
