@@ -1,14 +1,13 @@
 [package]
-name = "enso-profiler"
+name = "enso-profiler-data"
 version = "0.1.0"
 edition = "2021"
 authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0.59", features = ["raw_value"] }
-wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
-enso-profiler-macros = { path = "macros" }
+serde_json = "1.0"
+enso-profiler = { path = "../" }
 
 [dev-dependencies]
 futures = "0.3"

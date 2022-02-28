@@ -7,6 +7,7 @@ members = [
     "app/gui",
     "build/rust-scripts",
     "lib/rust/*",
+    "lib/rust/profiler/data",
     "lib/rust/not-used/*",
     "integration-test"
 ]
