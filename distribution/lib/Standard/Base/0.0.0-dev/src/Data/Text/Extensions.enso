@@ -999,6 +999,12 @@ Text.drop range =
      Standard Annex 29. This is the smallest unit that still has semantic
      meaning in most text-processing applications.
 
+   ! What is title case?
+     Title case capitalizes the first letter of every word and ensures that all
+     the remaining letters are in lower case. Some definitions of title case
+     avoid capitalizing minor words (like the article "the" in English) but this
+     implementation treats all words in the same way.
+
    > Example
      Converting a text to lower case in the default locale:
 

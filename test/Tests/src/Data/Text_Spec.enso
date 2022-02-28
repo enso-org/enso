@@ -305,6 +305,7 @@ spec =
 
             "foo bar baz".to_case Case.Title . should_equal "Foo Bar Baz"
             "foo-bar, baz.baz foo_foo".to_case Case.Title . should_equal "Foo-Bar, Baz.baz Foo_foo"
+            "jAck the rippER".to_case Case.Title (Locale.uk) . should_equal "Jack The Ripper"
 
             "i".to_case Case.Upper . should_equal "I"
             "I".to_case Case.Lower . should_equal "i"
