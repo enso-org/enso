@@ -1683,14 +1683,16 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
+    /// Finds a position to place a new node at, based on edge's source node and on the position
+    /// where the edge's target end is being dropped by user.
     pub fn new_node_position_after_dropping_edge(
         &self,
         edge_id: EdgeId,
-        mouse_position: Vector2,
+        edge_target_drop_position: Vector2,
     ) -> Vector2 {
         let edge_source_node_id = self.edge_source_node_id(edge_id);
         let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-        self.new_node_position_based_on_mouse(mouse_position, edge_source_node)
+        self.new_node_position_restricted_by_node(edge_target_drop_position, edge_source_node)
     }
 
     /// Finds a position to place a new node at, based only on mouse position and on the placement
@@ -1700,36 +1702,34 @@ impl GraphEditorModel {
         mouse_position: Vector2,
     ) -> Vector2 {
         let nearest_node = self.find_nearest_node(mouse_position);
-        self.new_node_position_based_on_mouse(mouse_position, nearest_node)
+        self.new_node_position_restricted_by_node(mouse_position, nearest_node)
     }
 
+    /// Finds a node nearest to the specified mouse position. Areas where nodes' visualizations are
+    /// shown are not treated as parts of a node for the purpose of calculating how close the mouse
+    /// position is to a node (in other words, visualizations are ignored). Nodes are assumed to
+    /// have a shape of a rectangle with fixed height and rounded corners, where each rounded
+    /// corner's radius equals half of the rectangle's height. The function takes into account
+    /// possible situations where two or more nodes could overlap each other. For the purpose of
+    /// calculating the distance to the mouse position, a node is then modeled as a line segment
+    /// connecting the centers of the circles forming the corners of the rounded rectangle
+    /// described above.
     fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
         for node in nodes.values() {
-            // For calculating the approximate distance between a node and the mouse pointer, one
-            // of several possible reference points on a node can be chosen. In order of increasing
-            // complexity and precision:
-            //  a) node.position(),
-            //  b) the geometrical center of the node's area,
-            //  c) a point closest to the mouse pointer on the line segment connecting node's
-            //     leftmost & rightmost points,
-            //  d) a point closest to the mouse pointer on the bounding box of the node
-            //     (with extra handling for when the mouse is inside the bounding box),
-            //  e) a point closest to the mouse pointer on the rounded rectangle forming the node's
-            //     shape (with extra handling for when the mouse is inside the rounded rectangle).
-            //  The following code implements variant (c), the first of the listed ones that
-            //  resulted in a UX which feels reasonably predictable and intuitive.
             let node_position = node.position().xy();
+            let left_circle_center_x = node_position.x + node::CORNER_RADIUS;
             let node_rightmost_x = node_position.x + node.model.width();
+            let right_circle_center_x = node_rightmost_x - node::CORNER_RADIUS;
             let mouse_x = mouse_position.x;
-            let node_point_near_mouse = if mouse_x <= node_position.x {
-                node_position
-            } else if mouse_x < node_rightmost_x {
+            let node_point_near_mouse = if mouse_x <= left_circle_center_x {
+                Vector2(left_circle_center_x, node_position.y)
+            } else if mouse_x < right_circle_center_x {
                 Vector2(mouse_x, node_position.y)
             } else {
-                Vector2(node_rightmost_x, node_position.y)
+                Vector2(right_circle_center_x, node_position.y)
             };
             let distance_squared = (node_point_near_mouse - mouse_position).norm_squared();
             if distance_squared < min_distance_squared {
@@ -1740,16 +1740,16 @@ impl GraphEditorModel {
         nearest_node
     }
 
-    /// Finds a position to place a new node at, based on mouse position, taking into account
-    /// whether the mouse position is in the restricted placement area around the specified
-    /// reference node. The restricted placement area around a node is defined in the current theme
+    /// Finds a position to place a new node at, taking into account whether a draft proposed
+    /// position is in the restricted placement area around the specified reference node. The
+    /// restricted placement area around a node is defined in the current theme
     /// ([`theme::graph_editor::new_node_restricted_placement_area`]).
-    pub fn new_node_position_based_on_mouse(
+    pub fn new_node_position_restricted_by_node(
         &self,
-        mouse_position: Vector2,
-        reference_node: Option<Node>,
+        proposed_position: Vector2,
+        restricting_node: Option<Node>,
     ) -> Vector2 {
-        let guiding_node = reference_node.filter(|node| {
+        let restricting_node = restricting_node.filter(|node| {
             let node_position = node.position();
             let node_left = node_position.x;
             let node_right = node_position.x + node.model.width();
@@ -1774,11 +1774,11 @@ impl GraphEditorModel {
                 Vector2(restricted_x_min, restricted_y_min),
                 Vector2(restricted_x_max, restricted_y_max),
             );
-            restricted_area.contains(mouse_position)
+            restricted_area.contains(proposed_position)
         });
-        match guiding_node {
+        match restricting_node {
             Some(node) => self.find_free_place_under(node.id()),
-            None => mouse_position,
+            None => proposed_position,
         }
     }
 
