@@ -146,8 +146,11 @@ type Aggregate_Column
             Standard_Deviation c _ _ -> create_closure c col->a->i->
                 v = col.at i
                 (c + if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v])
-            Concatenate c _ j _ _ _ -> create_closure c col->text->i->
-                val=if (col.at i).is_nothing then "" else (col.at i).to_text
+            Concatenate c _ j _ _ q -> create_closure c col->text->i->
+                val=if (col.at i).is_nothing then "" else
+                    text = (col.at i).to_text
+                    if text == "" then (q+q) else
+                        if text.contains j then (q+text+q) else text
                 if i==0 then val else (text + j + val)
             Median c _ -> create_closure c col->map->i->
                 val = col.at i
