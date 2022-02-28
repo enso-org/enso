@@ -163,9 +163,10 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
-    if (cargoArgs) {
-        args.push('--')
-    }
+    args.push('--')
+    // Always build with line numbers. The line-numbers feature breaks macro expansion in JetBrains
+    // IDEs, so it is disabled in the default features (which IDEs use to build) and enabled here.
+    args.push('--features=enso-profiler/line-numbers')
     await run_cargo('wasm-pack', args)
     await patch_file(paths.wasm.glue, js_workaround_patcher)
     await fs.rename(paths.wasm.mainRaw, paths.wasm.main)
