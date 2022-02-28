@@ -115,7 +115,10 @@ pub mod prelude {
     pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
+use prelude::*;
+
 /// IDE startup function.
+#[profile(Objective)]
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_ide() {
