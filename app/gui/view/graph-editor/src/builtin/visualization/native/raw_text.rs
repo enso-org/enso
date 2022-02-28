@@ -99,16 +99,16 @@ impl RawTextModel {
         let text_color = format!("rgba({},{},{},{})", _red, _green, _blue, text_color.alpha);
         let padding_text = format!("{}px", PADDING_TEXT);
 
-        dom.dom().set_attribute_or_warn("class", "visualization scrollable", &logger);
-        dom.dom().set_style_or_warn("white-space", "pre", &logger);
-        dom.dom().set_style_or_warn("overflow-y", "auto", &logger);
-        dom.dom().set_style_or_warn("overflow-x", "auto", &logger);
-        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook", &logger);
-        dom.dom().set_style_or_warn("font-size", "12px", &logger);
-        dom.dom().set_style_or_warn("padding-left", &padding_text, &logger);
-        dom.dom().set_style_or_warn("padding-top", &padding_text, &logger);
-        dom.dom().set_style_or_warn("color", text_color, &logger);
-        dom.dom().set_style_or_warn("pointer-events", "auto", &logger);
+        dom.dom().set_attribute_or_warn("class", "visualization scrollable");
+        dom.dom().set_style_or_warn("white-space", "pre");
+        dom.dom().set_style_or_warn("overflow-y", "auto");
+        dom.dom().set_style_or_warn("overflow-x", "auto");
+        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook");
+        dom.dom().set_style_or_warn("font-size", "12px");
+        dom.dom().set_style_or_warn("padding-left", &padding_text);
+        dom.dom().set_style_or_warn("padding-top", &padding_text);
+        dom.dom().set_style_or_warn("color", text_color);
+        dom.dom().set_style_or_warn("pointer-events", "auto");
 
         scene.dom.layers.back.manage(&dom);
         RawTextModel { logger, dom, size, scene }.init()

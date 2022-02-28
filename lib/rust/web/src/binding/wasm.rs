@@ -1,3 +1,5 @@
+//! Native bindings to the web-api.
+
 use enso_prelude::*;
 
 pub use js_sys::Function;
@@ -100,8 +102,6 @@ pub fn Error<S: Into<String>>(message: S) -> Error {
     let message = message.into();
     Error { message }
 }
-
-pub type XResult<T> = std::result::Result<T, Error>;
 
 impl From<JsValue> for Error {
     fn from(t: JsValue) -> Self {

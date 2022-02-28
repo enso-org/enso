@@ -79,13 +79,13 @@ impl Panel {
         // TODO : We added a HTML background to the `View`, because "shape" background was
         // overlapping        the JS visualization. This should be further investigated
         // while fixing rust        visualization displaying. (#796)
-        background_dom.dom().set_style_or_warn("width", "0", &logger);
-        background_dom.dom().set_style_or_warn("height", "0", &logger);
-        background_dom.dom().set_style_or_warn("z-index", "1", &logger);
-        background_dom.dom().set_style_or_warn("overflow-y", "auto", &logger);
-        background_dom.dom().set_style_or_warn("overflow-x", "auto", &logger);
-        background_dom.dom().set_style_or_warn("background", bg_hex, &logger);
-        background_dom.dom().set_style_or_warn("border-radius", "0", &logger);
+        background_dom.dom().set_style_or_warn("width", "0");
+        background_dom.dom().set_style_or_warn("height", "0");
+        background_dom.dom().set_style_or_warn("z-index", "1");
+        background_dom.dom().set_style_or_warn("overflow-y", "auto");
+        background_dom.dom().set_style_or_warn("overflow-x", "auto");
+        background_dom.dom().set_style_or_warn("background", bg_hex);
+        background_dom.dom().set_style_or_warn("border-radius", "0");
         display_object.add_child(&background_dom);
         scene.dom.layers.fullscreen_vis.manage(&background_dom);
 

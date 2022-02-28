@@ -22,8 +22,6 @@ use ensogl_core::display::symbol::DomSymbol;
 use ensogl_core::display::world::*;
 use ensogl_core::system::web;
 use ensogl_core::system::web::traits::*;
-use ensogl_core::system::web::NodeInserter;
-use web::StyleSetter;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
@@ -77,7 +75,7 @@ pub fn entry_point_dom_symbols() {
             let color = iformat!("rgb({r},{g},{b})");
             div.set_style_or_panic("background-color", color);
 
-            object.dom().append_or_panic(&div);
+            object.dom().append_or_warn(&div);
             object.set_size(size);
             object.mod_position(|t| *t = position);
             css3d_objects.push(object);

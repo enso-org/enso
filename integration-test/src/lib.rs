@@ -62,7 +62,7 @@ impl IntegrationTest {
         let root_div = enso_web::document.create_div_or_panic();
         root_div.set_id("root");
         root_div.set_style_or_panic("display", "none");
-        enso_web::body().append_or_panic(&root_div);
+        enso_web::body().append_or_warn(&root_div);
 
         let initializer = enso_gui::ide::Initializer::new(default());
         let ide = initializer.start().await.expect("Failed to initialize the application.");

@@ -168,15 +168,15 @@ impl Model {
         let styles = StyleWatch::new(&scene.style_sheet);
         let padding_text = format!("{}px", PADDING_TEXT);
 
-        dom.dom().set_attribute_or_warn("class", "visualization scrollable", &logger);
-        dom.dom().set_style_or_warn("overflow-x", "hidden", &logger);
-        dom.dom().set_style_or_warn("overflow-y", "auto", &logger);
-        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook", &logger);
-        dom.dom().set_style_or_warn("font-size", "12px", &logger);
-        dom.dom().set_style_or_warn("border-radius", "14px", &logger);
-        dom.dom().set_style_or_warn("padding-left", &padding_text, &logger);
-        dom.dom().set_style_or_warn("padding-top", &padding_text, &logger);
-        dom.dom().set_style_or_warn("pointer-events", "auto", &logger);
+        dom.dom().set_attribute_or_warn("class", "visualization scrollable");
+        dom.dom().set_style_or_warn("overflow-x", "hidden");
+        dom.dom().set_style_or_warn("overflow-y", "auto");
+        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook");
+        dom.dom().set_style_or_warn("font-size", "12px");
+        dom.dom().set_style_or_warn("border-radius", "14px");
+        dom.dom().set_style_or_warn("padding-left", &padding_text);
+        dom.dom().set_style_or_warn("padding-top", &padding_text);
+        dom.dom().set_style_or_warn("pointer-events", "auto");
 
         scene.dom.layers.back.manage(&dom);
         Model { logger, dom, size, styles, displayed, messages, scene }.init()
@@ -242,7 +242,7 @@ impl Model {
         let green = text_color.green * 255.0;
         let blue = text_color.blue * 255.0;
         let text_color = format!("rgba({},{},{},{})", red, green, blue, text_color.alpha);
-        self.dom.dom().set_style_or_warn("color", text_color, &self.logger);
+        self.dom.dom().set_style_or_warn("color", text_color);
     }
 
     fn set_layer(&self, layer: Layer) {

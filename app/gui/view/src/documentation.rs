@@ -84,22 +84,22 @@ impl Model {
         let bg_color = styles.get_color(style_path);
         let bg_color = bg_color.to_javascript_string();
 
-        outer_dom.dom().set_style_or_warn("white-space", "normal", &logger);
-        outer_dom.dom().set_style_or_warn("overflow-y", "auto", &logger);
-        outer_dom.dom().set_style_or_warn("overflow-x", "auto", &logger);
-        outer_dom.dom().set_style_or_warn("background-color", bg_color, &logger);
-        outer_dom.dom().set_style_or_warn("pointer-events", "auto", &logger);
-        outer_dom.dom().set_style_or_warn("border-radius", format!("{}px", CORNER_RADIUS), &logger);
-        shadow::add_to_dom_element(&outer_dom, &styles, &logger);
+        outer_dom.dom().set_style_or_warn("white-space", "normal");
+        outer_dom.dom().set_style_or_warn("overflow-y", "auto");
+        outer_dom.dom().set_style_or_warn("overflow-x", "auto");
+        outer_dom.dom().set_style_or_warn("background-color", bg_color);
+        outer_dom.dom().set_style_or_warn("pointer-events", "auto");
+        outer_dom.dom().set_style_or_warn("border-radius", format!("{}px", CORNER_RADIUS));
+        shadow::add_to_dom_element(&outer_dom, &styles);
 
-        inner_dom.dom().set_attribute_or_warn("class", "scrollable", &logger);
-        inner_dom.dom().set_style_or_warn("white-space", "normal", &logger);
-        inner_dom.dom().set_style_or_warn("overflow-y", "auto", &logger);
-        inner_dom.dom().set_style_or_warn("overflow-x", "auto", &logger);
-        inner_dom.dom().set_style_or_warn("padding", format!("{}px", PADDING), &logger);
-        inner_dom.dom().set_style_or_warn("padding-top", "5px", &logger);
-        inner_dom.dom().set_style_or_warn("pointer-events", "auto", &logger);
-        inner_dom.dom().set_style_or_warn("border-radius", format!("{}px", CORNER_RADIUS), &logger);
+        inner_dom.dom().set_attribute_or_warn("class", "scrollable");
+        inner_dom.dom().set_style_or_warn("white-space", "normal");
+        inner_dom.dom().set_style_or_warn("overflow-y", "auto");
+        inner_dom.dom().set_style_or_warn("overflow-x", "auto");
+        inner_dom.dom().set_style_or_warn("padding", format!("{}px", PADDING));
+        inner_dom.dom().set_style_or_warn("padding-top", "5px");
+        inner_dom.dom().set_style_or_warn("pointer-events", "auto");
+        inner_dom.dom().set_style_or_warn("border-radius", format!("{}px", CORNER_RADIUS));
 
         overlay.roundness.set(1.0);
         overlay.radius.set(CORNER_RADIUS);
@@ -218,12 +218,8 @@ impl Model {
         let padding = (size.x.min(size.y) / 2.0).min(PADDING);
         self.outer_dom.set_size(Vector2(size.x, size.y));
         self.inner_dom.set_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
-        self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding), &self.logger);
-        self.inner_dom.dom().set_style_or_warn(
-            "padding-top",
-            format!("{}px", PADDING_TOP),
-            &self.logger,
-        );
+        self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding));
+        self.inner_dom.dom().set_style_or_warn("padding-top", format!("{}px", PADDING_TOP));
     }
 }
 

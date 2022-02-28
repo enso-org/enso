@@ -104,7 +104,7 @@ impl InstanceModel {
         styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background)
     }
 
-    fn create_root(scene: &Scene, logger: &Logger) -> result::Result<DomSymbol, Error> {
+    fn create_root(scene: &Scene) -> result::Result<DomSymbol, Error> {
         let div = web::document.create_div_or_panic();
         let root_node = DomSymbol::new(&div);
         root_node
@@ -117,7 +117,7 @@ impl InstanceModel {
         let bg_green = bg_color.green * 255.0;
         let bg_blue = bg_color.blue * 255.0;
         let bg_hex = format!("rgba({},{},{},{})", bg_red, bg_green, bg_blue, bg_color.alpha);
-        root_node.dom().set_style_or_warn("background", bg_hex, logger);
+        root_node.dom().set_style_or_warn("background", bg_hex);
 
         Ok(root_node)
     }
@@ -168,7 +168,7 @@ impl InstanceModel {
     /// Tries to create a InstanceModel from the given visualisation class.
     pub fn from_class(class: &JsValue, scene: &Scene) -> result::Result<Self, Error> {
         let logger = Logger::new("Instance");
-        let root_node = Self::create_root(scene, &logger)?;
+        let root_node = Self::create_root(scene)?;
         let (preprocessor_change, closure) = Self::preprocessor_change_callback();
         let styles = StyleWatch::new(&scene.style_sheet);
         let init_data = JsConsArgs::new(root_node.clone_ref(), styles, closure);

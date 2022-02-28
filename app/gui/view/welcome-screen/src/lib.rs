@@ -125,7 +125,7 @@ impl Model {
 
         let side_menu = SideMenu::new(&logger);
         let template_cards = TemplateCards::new(&logger);
-        let dom = Self::create_dom(&logger, &side_menu, &template_cards);
+        let dom = Self::create_dom(&side_menu, &template_cards);
         display_object.add_child(&dom);
 
         // Use `welcome_screen` layer to lock position when panning.
@@ -133,26 +133,22 @@ impl Model {
 
         let style = web::document.create_element_or_panic("style");
         style.set_inner_html(STYLESHEET);
-        dom.append_or_warn(&style, &logger);
+        dom.append_or_warn(&style);
 
         Self { application, logger, dom, display_object, side_menu, template_cards }
     }
 
-    fn create_dom(
-        logger: &Logger,
-        side_menu: &SideMenu,
-        template_cards: &TemplateCards,
-    ) -> DomSymbol {
+    fn create_dom(side_menu: &SideMenu, template_cards: &TemplateCards) -> DomSymbol {
         let root = web::document.create_div_or_panic();
         root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
         // We explicitly enable pointer events for Welcome Screen elements. Pointer events are
         // disabled for all DOM layers by default. See [`DomLayers`] documentation.
-        root.set_style_or_warn("pointer-events", "auto", logger);
+        root.set_style_or_warn("pointer-events", "auto");
 
         let container = Self::create_content_container();
-        container.append_or_warn(&side_menu.model.root_dom, logger);
-        container.append_or_warn(&template_cards.model.root_dom, logger);
-        root.append_or_warn(&container, logger);
+        container.append_or_warn(&side_menu.model.root_dom);
+        container.append_or_warn(&template_cards.model.root_dom);
+        root.append_or_warn(&container);
 
         DomSymbol::new(&root)
     }

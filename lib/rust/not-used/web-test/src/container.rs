@@ -37,19 +37,19 @@ impl Container {
         header.set_style_or_panic("height", format!("{}px", 16.0));
         header.set_style_or_panic("border-bottom", "1px solid black");
         header.set_style_or_panic("position", "relative");
-        div.append_or_panic(&header);
+        div.append_or_warn(&header);
 
         let container = web::document.create_div_or_panic();
         let container: web::HtmlElement = container.dyn_into().expect("HtmlElement");
 
         container.set_style_or_panic("width", width);
         container.set_style_or_panic("height", format!("{}px", height));
-        container.set_attribute_or_panic("id", name);
+        container.set_attribute_or_warn("id", name);
         container.set_style_or_panic("position", "relative");
 
-        div.append_or_panic(&container);
+        div.append_or_warn(&container);
 
-        Group::new(group).div.append_or_panic(&div);
+        Group::new(group).div.append_or_warn(&div);
         Self { div, header, container }
     }
 }

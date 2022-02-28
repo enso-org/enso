@@ -9,8 +9,7 @@ use crate::display::object::traits::*;
 #[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
-use crate::system::web::NodeInserter;
-use crate::system::web::StyleSetter;
+use crate::system::web::traits::*;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -116,10 +115,10 @@ impl DomSymbol {
         let logger = Logger::new("DomSymbol");
         let size = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
         let dom = web::document.create_div_or_panic();
-        dom.set_style_or_warn("position", "absolute", &logger);
-        dom.set_style_or_warn("width", "0px", &logger);
-        dom.set_style_or_warn("height", "0px", &logger);
-        dom.append_or_panic(content);
+        dom.set_style_or_warn("position", "absolute");
+        dom.set_style_or_warn("width", "0px");
+        dom.set_style_or_warn("height", "0px");
+        dom.append_or_warn(content);
         let display_object = display::object::Instance::new(logger);
         let guard = Rc::new(Guard::new(&display_object, &dom));
         display_object.set_on_updated(enclose!((dom) move |t| {

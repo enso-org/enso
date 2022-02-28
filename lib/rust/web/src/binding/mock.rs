@@ -20,7 +20,7 @@ pub fn Error<S: Into<String>>(message: S) -> Error {
     Error { message }
 }
 
-pub type XResult<T> = std::result::Result<T, Error>;
+pub type XResult<T> = Result<T, Error>;
 
 impl From<JsValue> for Error {
     fn from(t: JsValue) -> Self {
@@ -55,7 +55,7 @@ impl<T: MockDefault> MockDefault for Option<T> {
     }
 }
 
-impl<T: MockDefault, E> MockDefault for std::result::Result<T, E> {
+impl<T: MockDefault, E> MockDefault for Result<T, E> {
     fn mock_default() -> Self {
         Ok(mock_default())
     }
@@ -92,6 +92,7 @@ macro_rules! mock_struct {
     ) => {
         #[allow(missing_copy_implementations)]
         #[allow(non_snake_case)]
+        #[allow(missing_docs)]
         pub struct $name $(<$($param $(:?$param_tp)?),*>)? {
             $($( $param : PhantomData<$param> ),*)?
         }
@@ -101,6 +102,7 @@ macro_rules! mock_struct {
         #[allow(unsafe_code)]
         impl$(<$($param $(:?$param_tp)?),*>)?
         $name $(<$($param),*>)? {
+            /// Const constructor.
             pub const fn const_new() -> Self {
                 unsafe { mem::transmute(()) }
             }
@@ -244,6 +246,7 @@ macro_rules! mock_fn_gen_print {
     ( $($args:tt)* ) $(-> $out:ty)? {$($body:tt)*} ) => {
         #[allow(unused_variables)]
         #[allow(clippy::too_many_arguments)]
+        #[allow(missing_docs)]
         $($viz)? fn $name $(<$($fn_tp),*>)? ( $($args)* ) $(-> $out)? {
             $($body)*
         }
@@ -277,13 +280,14 @@ macro_rules! mock_data {
 impl<T: MockData + MockDefault + AsRef<JsValue> + Into<JsValue>> JsCast for T {}
 
 /// Mock of [`wasm_bindgen::JsCast`].
+#[allow(missing_docs)]
 pub trait JsCast
 where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
     fn has_type<T>(&self) -> bool {
         true
     }
 
-    fn dyn_into<T>(self) -> std::result::Result<T, Self>
+    fn dyn_into<T>(self) -> Result<T, Self>
     where T: JsCast {
         Ok(self.unchecked_into())
     }
@@ -333,6 +337,7 @@ mock_data! { JsValue
 }
 
 impl JsValue {
+    /// NULL value mock.
     pub const NULL: JsValue = JsValue {};
 }
 
@@ -423,21 +428,21 @@ mock_data! { Object => JsValue
 // === EventTarget ===
 mock_data! { EventTarget => Object
     fn remove_event_listener_with_callback
-        (&self, tp:&str, f:&Function) -> std::result::Result<(), JsValue>;
+        (&self, tp:&str, f:&Function) -> Result<(), JsValue>;
     fn add_event_listener_with_callback
-        (&self, tp:&str, f:&Function) -> std::result::Result<(), JsValue>;
+        (&self, tp:&str, f:&Function) -> Result<(), JsValue>;
     fn add_event_listener_with_callback_and_bool
-        (&self, tp:&str, f:&Function, opt:bool) -> std::result::Result<(), JsValue>;
+        (&self, tp:&str, f:&Function, opt:bool) -> Result<(), JsValue>;
     fn add_event_listener_with_callback_and_add_event_listener_options
         (&self, tp:&str, f:&Function, opt:&AddEventListenerOptions)
-        -> std::result::Result<(), JsValue>;
+        -> Result<(), JsValue>;
 }
 
 
 // === Document ===
 mock_data! { Document => EventTarget
     fn body(&self) -> Option<HtmlElement>;
-    fn create_element(&self, local_name: &str) -> std::result::Result<Element, JsValue>;
+    fn create_element(&self, local_name: &str) -> Result<Element, JsValue>;
     fn get_element_by_id(&self, element_id: &str) -> Option<Element>;
 }
 
@@ -445,7 +450,7 @@ mock_data! { Document => EventTarget
 // === Window ===
 mock_data! { Window => EventTarget
     fn open_with_url_and_target(&self, url: &str, target: &str)
-        -> std::result::Result<Option<Window>, JsValue>;
+        -> Result<Option<Window>, JsValue>;
 }
 
 
@@ -545,6 +550,7 @@ mock_data! { HtmlElement => Element
     fn set_inner_text(&self, value: &str);
     fn inner_text(&self) -> String;
     fn get_elements_by_class_name(&self, class_names: &str) -> HtmlCollection;
+    fn style(&self) -> CssStyleDeclaration;
 }
 impl From<HtmlElement> for EventTarget {
     fn from(_: HtmlElement) -> Self {
@@ -568,12 +574,12 @@ mock_data! { HtmlCanvasElement => HtmlElement
     fn height(&self) -> u32;
     fn set_width(&self, value: u32);
     fn set_height(&self, value: u32);
-    fn get_context(&self, context_id: &str) -> std::result::Result<Option<Object>, JsValue>;
+    fn get_context(&self, context_id: &str) -> Result<Option<Object>, JsValue>;
     fn get_context_with_context_options(
         &self,
         context_id: &str,
         context_options: &JsValue
-        ) -> std::result::Result<Option<Object>, JsValue>;
+        ) -> Result<Option<Object>, JsValue>;
 }
 
 
@@ -585,12 +591,12 @@ mock_data! { CanvasRenderingContext2d
     fn stroke(&self);
     fn move_to(&self, x: f64, y: f64);
     fn line_to(&self, x: f64, y: f64);
-    fn scale(&self, x: f64, y: f64) -> std::result::Result<(), JsValue>;
+    fn scale(&self, x: f64, y: f64) -> Result<(), JsValue>;
     fn set_fill_style(&self, value: &JsValue);
     fn set_stroke_style(&self, value: &JsValue);
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64);
     fn set_line_width(&self, value: f64);
-    fn translate(&self, x: f64, y: f64) -> std::result::Result<(), JsValue>;
+    fn translate(&self, x: f64, y: f64) -> Result<(), JsValue>;
     fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64);
     fn set_font(&self, font: &str);
     fn set_text_align(&self, text_align: &str);
@@ -605,9 +611,27 @@ mock_data! { CanvasRenderingContext2d
 // === Node ===
 mock_data! { Node => EventTarget
     fn parent_node(&self) -> Option<Node>;
-    fn remove_child(&self, child: &Node) -> std::result::Result<Node, JsValue>;
+    fn remove_child(&self, child: &Node) -> Result<Node, JsValue>;
     fn set_text_content(&self, value: Option<&str>);
     fn append_child(&self, node: &Node) -> Result<Node, JsValue>;
+    fn first_child(&self) -> Option<Node>;
+    fn last_child(&self) -> Option<Node>;
+    fn insert_before(
+        &self,
+        node: &Node,
+        child: Option<&Node>
+    ) -> Result<Node, JsValue>;
+}
+
+
+
+// ===========
+// === CSS ===
+// ===========
+
+// === CssStyleDeclaration ===
+mock_data! { CssStyleDeclaration => Object
+    fn set_property(&self, property: &str, value: &str) -> Result<(), JsValue>;
 }
 
 
@@ -617,12 +641,12 @@ mock_data! { Node => EventTarget
 // ===============
 
 mock_data! { Reflect
-    fn get(target: &JsValue, key: &JsValue) -> std::result::Result<JsValue, JsValue>;
+    fn get(target: &JsValue, key: &JsValue) -> Result<JsValue, JsValue>;
     fn set(
         target: &JsValue,
         property_key: &JsValue,
         value: &JsValue
-    ) -> std::result::Result<bool, JsValue>;
+    ) -> Result<bool, JsValue>;
 }
 
 // pub mod Reflect {
@@ -631,7 +655,7 @@ mock_data! { Reflect
 //         target: &JsValue,
 //         property_key: &JsValue,
 //         value: &JsValue
-//     ) -> std::result::Result<bool, JsValue> }
+//     ) -> Result<bool, JsValue> }
 // }
 
 // mock_fn! { create_div(&self) -> HtmlDivElement }

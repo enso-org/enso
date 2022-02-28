@@ -94,11 +94,11 @@ impl Model {
         let templates = web::document.create_div_or_panic();
 
         let header = Self::create_header("Templates");
-        templates.append_or_warn(&header, &logger);
+        templates.append_or_warn(&header);
 
-        let (cards_dom, cards) = Self::create_cards(&logger);
-        templates.append_or_warn(&cards_dom, &logger);
-        root_dom.append_or_warn(&templates, &logger);
+        let (cards_dom, cards) = Self::create_cards();
+        templates.append_or_warn(&cards_dom);
+        root_dom.append_or_warn(&templates);
 
         let model = Self { logger, root_dom, cards: Rc::new(cards) };
         model.setup_event_listeners(open_template);
@@ -123,50 +123,46 @@ impl Model {
     }
 
     /// Create main content, a set of cards.
-    fn create_cards(logger: &Logger) -> (HtmlDivElement, Vec<Card>) {
+    fn create_cards() -> (HtmlDivElement, Vec<Card>) {
         let mut cards = Vec::new();
         let dom = web::document.create_div_or_panic();
         dom.set_class_name(crate::css_class::CARDS);
 
-        let row1 = Self::create_row(&[CARD_SPREADSHEETS, CARD_GEO], &mut cards, logger);
-        dom.append_or_warn(&row1, logger);
+        let row1 = Self::create_row(&[CARD_SPREADSHEETS, CARD_GEO], &mut cards);
+        dom.append_or_warn(&row1);
 
-        let row2 = Self::create_row(&[CARD_VISUALIZE], &mut cards, logger);
-        dom.append_or_warn(&row2, logger);
+        let row2 = Self::create_row(&[CARD_VISUALIZE], &mut cards);
+        dom.append_or_warn(&row2);
 
         (dom, cards)
     }
 
-    fn create_row(
-        definitions: &[CardDefinition],
-        cards: &mut Vec<Card>,
-        logger: &Logger,
-    ) -> HtmlDivElement {
+    fn create_row(definitions: &[CardDefinition], cards: &mut Vec<Card>) -> HtmlDivElement {
         let row = web::document.create_div_or_panic();
         row.set_class_name(crate::css_class::ROW);
         for definition in definitions {
-            let card = Self::create_card(definition, logger);
-            row.append_or_warn(&card.element, logger);
+            let card = Self::create_card(definition);
+            row.append_or_warn(&card.element);
             cards.push(card.clone());
         }
         row
     }
 
     /// Helper to create a single card DOM from provided definition.
-    fn create_card(definition: &CardDefinition, logger: &Logger) -> Card {
+    fn create_card(definition: &CardDefinition) -> Card {
         let card = web::document.create_div_or_panic();
         card.set_class_name(&format!("{} {}", crate::css_class::CARD, definition.class));
         if let Some(src) = definition.background_image_url {
             let img = web::document.create_element_or_panic("img");
-            img.set_attribute_or_warn("src", src, logger);
-            card.append_or_warn(&img, logger);
+            img.set_attribute_or_warn("src", src);
+            card.append_or_warn(&img);
         }
         let card_header = web::document.create_element_or_panic("h3");
         card_header.set_text_content(Some(definition.header));
-        card.append_or_warn(&card_header, logger);
+        card.append_or_warn(&card_header);
         let text_content = web::document.create_element_or_panic("p");
         text_content.set_text_content(Some(definition.content));
-        card.append_or_warn(&text_content, logger);
+        card.append_or_warn(&text_content);
 
         let clickable_element = ClickableElement::new(card.unchecked_into());
         Card { clickable_element, template_name: definition.template }

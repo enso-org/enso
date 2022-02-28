@@ -104,7 +104,7 @@ impl Canvas {
         let context: CanvasRenderingContext2d = context.dyn_into().unwrap();
 
         let app = web::document.get_html_element_by_id(container_id).unwrap();
-        app.append_or_panic(&canvas);
+        app.append_or_warn(&canvas);
 
         Self { canvas, context }
     }
@@ -244,15 +244,15 @@ impl Example {
         ease_in_out: impl CloneableFnEasing,
     ) -> Self {
         let example = web::document.create_div_or_panic();
-        example.set_attribute_or_panic("id", name);
+        example.set_attribute_or_warn("id", name);
         example.set_style_or_panic("margin", "10px");
         let container = web::document.get_html_element_by_id("examples").unwrap();
         let header = web::document.get_html_element_by_id("center").unwrap();
         header.set_style_or_panic("background-color", "black");
         header.set_style_or_panic("color", "white");
         header.set_inner_html(name);
-        example.append_or_panic(&header);
-        container.append_or_panic(&example);
+        example.append_or_warn(&header);
+        container.append_or_warn(&example);
         let left_canvas = Canvas::new(name);
         let right_canvas = Canvas::new(name);
         let mut sampler1 = Sampler::new("green", &left_canvas, &right_canvas, ease_in);
@@ -288,11 +288,11 @@ pub fn entry_point_easing_animator() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
     let container = web::document.create_div_or_panic();
-    container.set_attribute_or_panic("id", "examples");
+    container.set_attribute_or_warn("id", "examples");
     container.set_style_or_panic("display", "flex");
     container.set_style_or_panic("flex-wrap", "wrap");
     container.set_style_or_panic("position", "absolute");
     container.set_style_or_panic("top", "0px");
-    web::document.body_or_panic().append_or_panic(&container);
+    web::document.body_or_panic().append_or_warn(&container);
     examples![expo, bounce, circ, quad, cubic, quart, quint, sine, back, elastic];
 }

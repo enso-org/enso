@@ -31,10 +31,10 @@ impl Model {
         let root_dom = web::document.create_element_or_panic("aside");
         root_dom.set_class_name(crate::css_class::SIDE_MENU);
         let header = Self::create_header("Your projects");
-        root_dom.append_or_warn(&header, &logger);
+        root_dom.append_or_warn(&header);
         let projects_list_dom = Self::create_projects_list();
-        root_dom.append_or_warn(&projects_list_dom, &logger);
-        let new_project_button = Self::create_new_project_button(&logger, &projects_list_dom);
+        root_dom.append_or_warn(&projects_list_dom);
+        let new_project_button = Self::create_new_project_button(&projects_list_dom);
         let projects = default();
 
         Self { logger, root_dom, projects_list_dom, projects, new_project_button }
@@ -61,18 +61,15 @@ impl Model {
             open_project <+ entry.click.constant(name.to_owned());
         }
         let new_project_button = &self.new_project_button;
-        self.projects_list_dom.insert_before_or_warn(&entry, new_project_button, &self.logger);
+        self.projects_list_dom.insert_before_or_warn(&entry, new_project_button);
         self.projects.borrow_mut().push(entry);
     }
 
-    fn create_new_project_button(
-        logger: &Logger,
-        projects_list: &web::Element,
-    ) -> ClickableElement {
+    fn create_new_project_button(projects_list: &web::Element) -> ClickableElement {
         let element = web::document.create_element_or_panic("li");
         element.set_id(crate::css_id::NEW_PROJECT);
         element.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
-        projects_list.append_or_warn(&element, logger);
+        projects_list.append_or_warn(&element);
         ClickableElement::new(element)
     }
 

@@ -36,9 +36,8 @@ use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::web;
+use crate::system::web::traits::*;
 use crate::system::web::EventListenerHandle;
-use crate::system::web::NodeInserter;
-use crate::system::web::StyleSetter;
 use crate::system::Context;
 use crate::system::ContextLostHandler;
 
@@ -498,34 +497,34 @@ impl DomLayers {
     pub fn new(logger: &Logger, dom: &web::HtmlDivElement) -> Self {
         let welcome_screen = DomScene::new(logger);
         welcome_screen.dom.set_class_name("welcome_screen");
-        welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
-        dom.append_or_panic(&welcome_screen.dom);
+        welcome_screen.dom.set_style_or_warn("z-index", "0");
+        dom.append_or_warn(&welcome_screen.dom);
 
         let back = DomScene::new(logger);
         back.dom.set_class_name("back");
-        back.dom.set_style_or_warn("z-index", "1", logger);
-        dom.append_or_panic(&back.dom);
+        back.dom.set_style_or_warn("z-index", "1");
+        dom.append_or_warn(&back.dom);
 
         let fullscreen_vis = DomScene::new(logger);
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
-        fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
-        dom.append_or_panic(&fullscreen_vis.dom);
+        fullscreen_vis.dom.set_style_or_warn("z-index", "2");
+        dom.append_or_warn(&fullscreen_vis.dom);
 
         let canvas = web::document.create_canvas_or_panic();
-        canvas.set_style_or_warn("display", "block", logger);
-        canvas.set_style_or_warn("z-index", "3", logger);
+        canvas.set_style_or_warn("display", "block");
+        canvas.set_style_or_warn("z-index", "3");
         // These properties are set by `DomScene::new` constuctor for other layers.
         // See its documentation for more info.
-        canvas.set_style_or_warn("position", "absolute", logger);
-        canvas.set_style_or_warn("height", "100vh", logger);
-        canvas.set_style_or_warn("width", "100vw", logger);
-        canvas.set_style_or_warn("pointer-events", "none", logger);
-        dom.append_or_panic(&canvas);
+        canvas.set_style_or_warn("position", "absolute");
+        canvas.set_style_or_warn("height", "100vh");
+        canvas.set_style_or_warn("width", "100vw");
+        canvas.set_style_or_warn("pointer-events", "none");
+        dom.append_or_warn(&canvas);
 
         let front = DomScene::new(logger);
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "4", logger);
-        dom.append_or_panic(&front.dom);
+        front.dom.set_style_or_warn("z-index", "4");
+        dom.append_or_warn(&front.dom);
 
         Self { back, welcome_screen, fullscreen_vis, front, canvas }
     }
@@ -913,7 +912,7 @@ impl SceneData {
             disable_context_menu,
         }
     }
-    
+
     pub fn set_context(&self, context: Option<&Context>) {
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
@@ -1018,8 +1017,8 @@ impl SceneData {
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
         debug!(self.logger, "Resized to {screen.width}px x {screen.height}px.", || {
-            self.dom.layers.canvas.set_attribute_or_panic("width", &width.to_string());
-            self.dom.layers.canvas.set_attribute_or_panic("height", &height.to_string());
+            self.dom.layers.canvas.set_attribute_or_warn("width", &width.to_string());
+            self.dom.layers.canvas.set_attribute_or_warn("height", &height.to_string());
             if let Some(context) = &*self.context.borrow() {
                 context.viewport(0, 0, width, height);
             }
@@ -1099,7 +1098,7 @@ impl Scene {
                 // TODO
             }
             Some(parent_dom) => {
-                parent_dom.append_or_panic(&self.dom.root);
+                parent_dom.append_or_warn(&self.dom.root);
                 self.dom.recompute_shape_with_reflow();
                 self.uniforms.pixel_ratio.set(self.dom.shape().pixel_ratio);
                 self.init();

@@ -213,7 +213,7 @@ impl Model {
     }
 
     fn set_html_style(&self, style: &'static str) {
-        web::with_element_by_id_or_warn(&self.logger, "root", |root| root.set_class_name(style));
+        web::with_element_by_id_or_warn("root", |root| root.set_class_name(style));
     }
 
     fn searcher_left_top_position_when_under_node_at(position: Vector2<f32>) -> Vector2<f32> {

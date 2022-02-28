@@ -23,7 +23,7 @@ impl Group {
             // If it doesn't exist, we create a new element.
             Err(_) => {
                 let div = web::document.create_div_or_panic();
-                div.set_attribute_or_panic("id", name);
+                div.set_attribute_or_warn("id", name);
                 div.set_style_or_panic("display", "flex");
                 div.set_style_or_panic("flex-wrap", "wrap");
                 div.set_style_or_panic("border", "1px solid black");
@@ -37,8 +37,8 @@ impl Group {
                 header.set_inner_html(name);
                 header.set_style_or_panic("border-bottom", border);
                 header.set_style_or_panic("width", "100%");
-                div.append_or_panic(&header);
-                web::body().append_or_panic(&div);
+                div.append_or_warn(&header);
+                web::body().append_or_warn(&div);
                 div
             }
         };

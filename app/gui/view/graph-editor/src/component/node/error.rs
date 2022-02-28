@@ -93,7 +93,7 @@ impl Container {
         let scene = scene.clone_ref();
         let logger = Logger::new("error::Container");
         let display_object = display::object::Instance::new(&logger);
-        let background_dom = Self::create_background_dom(&logger, &scene);
+        let background_dom = Self::create_background_dom( &scene);
         let visualization = error_visualization::Error::new(&scene);
 
         display_object.add_child(&background_dom);
@@ -102,7 +102,7 @@ impl Container {
         Self { logger, visualization, scene, background_dom, display_object }
     }
 
-    fn create_background_dom(logger: &Logger, scene: &Scene) -> DomSymbol {
+    fn create_background_dom(scene: &Scene) -> DomSymbol {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //     system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
@@ -120,14 +120,14 @@ impl Container {
         let height = format!("{}.px", height);
         let z_index = Z_INDEX.to_string();
         let border_radius = format!("{}.px", BORDER_RADIUS);
-        background_dom.dom().set_style_or_warn("width", width, logger);
-        background_dom.dom().set_style_or_warn("height", height, logger);
-        background_dom.dom().set_style_or_warn("z-index", z_index, logger);
-        background_dom.dom().set_style_or_warn("overflow-y", "auto", logger);
-        background_dom.dom().set_style_or_warn("overflow-x", "auto", logger);
-        background_dom.dom().set_style_or_warn("background", bg_hex, logger);
-        background_dom.dom().set_style_or_warn("border-radius", border_radius, logger);
-        shadow::add_to_dom_element(&background_dom, &styles, logger);
+        background_dom.dom().set_style_or_warn("width", width);
+        background_dom.dom().set_style_or_warn("height", height);
+        background_dom.dom().set_style_or_warn("z-index", z_index);
+        background_dom.dom().set_style_or_warn("overflow-y", "auto");
+        background_dom.dom().set_style_or_warn("overflow-x", "auto");
+        background_dom.dom().set_style_or_warn("background", bg_hex);
+        background_dom.dom().set_style_or_warn("border-radius", border_radius);
+        shadow::add_to_dom_element(&background_dom, &styles);
         background_dom
     }
 

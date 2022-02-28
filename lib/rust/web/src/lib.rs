@@ -1,14 +1,31 @@
-#![allow(incomplete_features)]
-#![warn(unsafe_code)]
+//! This module implements web bindings. It heavily uses [`wasm_bindgen`] and extends it with many
+//! high-level features and bug-fixes. It also provides a mock API version allowing the native
+//! compilation in order to run native tests of code which uses this API.
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+// === Features ===
+#![allow(incomplete_features)]
 #![feature(trait_alias)]
 #![feature(negative_impls)]
 #![feature(specialization)]
 #![feature(auto_traits)]
 //
+// FIXME: check these
 #![allow(unused_doc_comments)]
 #![allow(clippy::boxed_local)]
+
+use crate::prelude::*;
+
+pub use std::time::Duration;
+pub use std::time::Instant;
 
 pub mod binding;
 pub mod clipboard;
@@ -35,27 +52,11 @@ pub mod prelude {
     pub use enso_prelude::*;
 }
 
-pub mod traits {
-    pub use super::AttributeSetter;
-    pub use super::DocumentOps;
-    pub use super::FunctionOps;
-    pub use super::HtmlCanvasElementOps;
-    pub use super::JsCast;
-    pub use super::NodeInserter;
-    pub use super::NodeRemover;
-    pub use super::ObjectOps;
-    pub use super::ReflectOps;
-    pub use super::StyleSetter;
-}
-
-use crate::prelude::*;
-
-use enso_logger::warning;
-use enso_logger::WarningLogger as Logger;
 
 
-pub use std::time::Duration;
-pub use std::time::Instant;
+// ===================
+// === API Imports ===
+// ===================
 
 
 #[cfg(target_arch = "wasm32")]
@@ -66,28 +67,22 @@ pub use binding::mock::*;
 
 
 
-// ===================
-// === FunctionOps ===
-// ===================
+// ==============
+// === Traits ===
+// ==============
 
-pub trait FunctionOps {
-    /// The `wasm-bindgen` version of this function panics if the JS code contains errors. This
-    /// issue was reported and never fixed (https://github.com/rustwasm/wasm-bindgen/issues/2496).
-    /// There is also a long-standing PR with the fix that was not fixed either
-    /// (https://github.com/rustwasm/wasm-bindgen/pull/2497).
-    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue>;
-}
-
-impl FunctionOps for Function {
-    #[cfg(target_arch = "wasm32")]
-    fn new_with_args_fixed(args: &str, body: &str) -> std::result::Result<Function, JsValue> {
-        binding::wasm::new_function_with_args(args, body)
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn new_with_args_fixed(_args: &str, _body: &str) -> std::result::Result<Function, JsValue> {
-        Ok(default())
-    }
+/// All traits defined in this module.
+pub mod traits {
+    pub use super::AttributeSetter;
+    pub use super::DocumentOps;
+    pub use super::FunctionOps;
+    pub use super::HtmlCanvasElementOps;
+    pub use super::HtmlElementOps;
+    pub use super::JsCast;
+    pub use super::NodeInserter;
+    pub use super::NodeRemover;
+    pub use super::ObjectOps;
+    pub use super::ReflectOps;
 }
 
 
@@ -96,6 +91,7 @@ impl FunctionOps for Function {
 // === ReflectOps ===
 // ==================
 
+/// Extensions to the [`Reflect`] type.
 pub trait ReflectOps {
     /// Get the nested value of the provided object. This is similar to writing `foo.bar.baz` in
     /// JavaScript, but in a safe manner, while checking if the value exists on each level.
@@ -136,6 +132,12 @@ impl ReflectOps for Reflect {
 }
 
 
+
+// =================
+// === ObjectOps ===
+// =================
+
+/// Extensions to the [`Object`] type.
 pub trait ObjectOps {
     /// Get all the keys of the provided [`Object`].
     fn keys_vec(obj: &Object) -> Vec<String>;
@@ -158,28 +160,27 @@ impl ObjectOps for Object {
 
 
 
-// =================================
-// === Generic String Conversion ===
-// =================================
+// ===================
+// === FunctionOps ===
+// ===================
 
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-extern "C" {
-    #[allow(unsafe_code)]
-    #[wasm_bindgen(js_name = "String")]
-    fn js_to_string_inner(s: &JsValue) -> String;
+/// Extensions to the [`Function`] type.
+pub trait FunctionOps {
+    /// The `wasm-bindgen` version of this function panics if the JS code contains errors. This
+    /// issue was reported and never fixed (https://github.com/rustwasm/wasm-bindgen/issues/2496).
+    /// There is also a long-standing PR with the fix that was not fixed either
+    /// (https://github.com/rustwasm/wasm-bindgen/pull/2497).
+    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue>;
 }
 
-#[cfg(target_arch = "wasm32")]
-/// Converts given `JsValue` into a `String`. Uses JS's `String` function,
-/// see: https://www.w3schools.com/jsref/jsref_string.asp
-pub fn js_to_string(s: impl AsRef<JsValue>) -> String {
-    js_to_string_inner(s.as_ref())
-}
+impl FunctionOps for Function {
+    #[cfg(target_arch = "wasm32")]
+    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue> {
+        binding::wasm::new_function_with_args(args, body)
+    }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn js_to_string(_: impl AsRef<JsValue>) -> String {
-    "JsValue".into()
+    #[cfg(not(target_arch = "wasm32"))]
+    mock_fn! {new_with_args_fixed(_args: &str, _body: &str) -> Result<Function, JsValue>}
 }
 
 
@@ -249,17 +250,17 @@ impl HtmlCanvasElementOps for HtmlCanvasElement {
 }
 
 
-// ===================
-// === StyleSetter ===
-// ===================
+// ======================
+// === HtmlElementOps ===
+// ======================
 
 /// Trait used to set css styles.
-pub trait StyleSetter {
+pub trait HtmlElementOps {
     fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U);
-    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
+    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U);
 }
 
-impl StyleSetter for binding::wasm::HtmlElement {
+impl HtmlElementOps for HtmlElement {
     fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
         let name = name.as_ref();
         let value = value.as_ref();
@@ -268,21 +269,22 @@ impl StyleSetter for binding::wasm::HtmlElement {
         self.style().set_property(name, value).unwrap_or_else(panic_msg);
     }
 
-    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {
+    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
         let name = name.as_ref();
         let value = value.as_ref();
         let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
         let warn_msg: &str = &format!("Failed to set style {}", values);
         if self.style().set_property(name, value).is_err() {
-            warning!(logger, warn_msg);
+            WARNING!(warn_msg);
         }
     }
 }
 
-impl StyleSetter for binding::mock::HtmlElement {
-    fn set_style_or_panic<T: Str, U: Str>(&self, _name: T, _value: U) {}
-    fn set_style_or_warn<T: Str, U: Str>(&self, _name: T, _value: U, _logger: &Logger) {}
-}
+//
+// impl HtmlElementOps for binding::mock::HtmlElement {
+//     fn set_style_or_panic<T: Str, U: Str>(&self, _name: T, _value: U) {}
+//     fn set_style_or_warn<T: Str, U: Str>(&self, _name: T, _value: U, _logger: &Logger) {}
+// }
 
 
 // =====================
@@ -291,157 +293,75 @@ impl StyleSetter for binding::mock::HtmlElement {
 
 /// Trait used to set HtmlElement attributes.
 pub trait AttributeSetter {
-    fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U);
+    // fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
 
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger);
+    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
 }
 
-impl AttributeSetter for binding::mock::Element {
-    fn set_attribute_or_panic<T: Str, U: Str>(&self, _name: T, _value: U) {}
-
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, _name: T, _value: U, _logger: &WarningLogger) {}
-}
-
-
-impl AttributeSetter for binding::wasm::Element {
-    fn set_attribute_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        self.set_attribute(name, value)
-            .unwrap_or_else(|_| panic!("Failed to set attribute {}", values));
-    }
-
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U, logger: &Logger) {
+impl AttributeSetter for Element {
+    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
         let name = name.as_ref();
         let value = value.as_ref();
         let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
         let warn_msg: &str = &format!("Failed to set attribute {}", values);
         if self.set_attribute(name, value).is_err() {
-            warning!(logger, warn_msg)
+            WARNING!(warn_msg)
         }
     }
 }
 
 /// Trait used to insert `Node`s.
 pub trait NodeInserter {
-    fn append_or_panic(&self, node: &Self);
-
-    fn append_or_warn(&self, node: &Self, logger: &Logger);
-
-    fn prepend_or_panic(&self, node: &Self);
-
-    fn prepend_or_warn(&self, node: &Self, logger: &Logger);
-
-    fn insert_before_or_panic(&self, node: &Self, reference_node: &Self);
-
-    fn insert_before_or_warn(&self, node: &Self, reference_node: &Self, logger: &Logger);
+    fn append_or_warn(&self, node: &Self);
+    fn prepend_or_warn(&self, node: &Self);
+    fn insert_before_or_warn(&self, node: &Self, reference_node: &Self);
 }
 
-impl NodeInserter for binding::mock::Node {
-    fn append_or_panic(&self, _node: &Self) {}
-
-    fn append_or_warn(&self, _node: &Self, _logger: &WarningLogger) {}
-
-    fn prepend_or_panic(&self, _node: &Self) {}
-
-    fn prepend_or_warn(&self, _node: &Self, _logger: &WarningLogger) {}
-
-    fn insert_before_or_panic(&self, _node: &Self, _reference_node: &Self) {}
-
-    fn insert_before_or_warn(&self, _node: &Self, _reference_node: &Self, _logger: &WarningLogger) {
-    }
-}
-
-impl NodeInserter for binding::wasm::Node {
-    fn append_or_panic(&self, node: &Self) {
-        let panic_msg = |_| panic!("Failed to append child {:?} to {:?}", node, self);
-        self.append_child(node).unwrap_or_else(panic_msg);
-    }
-
-    fn append_or_warn(&self, node: &Self, logger: &Logger) {
+impl NodeInserter for Node {
+    fn append_or_warn(&self, node: &Self) {
         let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
         if self.append_child(node).is_err() {
-            warning!(logger, warn_msg)
+            WARNING!(warn_msg)
         };
     }
 
-    fn prepend_or_panic(&self, node: &Self) {
-        let panic_msg = |_| panic!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
-        let first_c = self.first_child();
-        self.insert_before(node, first_c.as_ref()).unwrap_or_else(panic_msg);
-    }
-
-    fn prepend_or_warn(&self, node: &Self, logger: &Logger) {
+    fn prepend_or_warn(&self, node: &Self) {
         let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
         let first_c = self.first_child();
         if self.insert_before(node, first_c.as_ref()).is_err() {
-            warning!(logger, warn_msg)
+            WARNING!(warn_msg)
         }
     }
 
-    fn insert_before_or_panic(&self, node: &Self, ref_node: &Self) {
-        let panic_msg =
-            |_| panic!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
-        self.insert_before(node, Some(ref_node)).unwrap_or_else(panic_msg);
-    }
-
-    fn insert_before_or_warn(&self, node: &Self, ref_node: &Self, logger: &Logger) {
+    fn insert_before_or_warn(&self, node: &Self, ref_node: &Self) {
         let warn_msg: &str =
             &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
         if self.insert_before(node, Some(ref_node)).is_err() {
-            warning!(logger, warn_msg)
+            WARNING!(warn_msg)
         }
     }
 }
 
 /// Trait used to remove `Node`s.
 pub trait NodeRemover {
-    fn remove_from_parent_or_panic(&self);
-
-    fn remove_from_parent_or_warn(&self, logger: &Logger);
-
-    fn remove_child_or_panic(&self, node: &Self);
-
-    fn remove_child_or_warn(&self, node: &Self, logger: &Logger);
+    fn remove_from_parent_or_warn(&self);
+    fn remove_child_or_warn(&self, node: &Self);
 }
 
-impl NodeRemover for binding::mock::Node {
-    fn remove_from_parent_or_panic(&self) {}
-
-    fn remove_from_parent_or_warn(&self, _logger: &WarningLogger) {}
-
-    fn remove_child_or_panic(&self, _node: &Self) {}
-
-    fn remove_child_or_warn(&self, _node: &Self, _logger: &WarningLogger) {}
-}
-
-impl NodeRemover for binding::wasm::Node {
-    fn remove_from_parent_or_panic(&self) {
-        if let Some(parent) = self.parent_node() {
-            let panic_msg = |_| panic!("Failed to remove {:?} from parent", self);
-            parent.remove_child(self).unwrap_or_else(panic_msg);
-        }
-    }
-
-    fn remove_from_parent_or_warn(&self, logger: &Logger) {
+impl NodeRemover for Node {
+    fn remove_from_parent_or_warn(&self) {
         if let Some(parent) = self.parent_node() {
             let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
             if parent.remove_child(self).is_err() {
-                warning!(logger, warn_msg)
+                WARNING!(warn_msg)
             }
         }
     }
 
-    fn remove_child_or_panic(&self, node: &Self) {
-        let panic_msg = |_| panic!("Failed to remove child {:?} from {:?}", node, self);
-        self.remove_child(node).unwrap_or_else(panic_msg);
-    }
-
-    fn remove_child_or_warn(&self, node: &Self, logger: &Logger) {
+    fn remove_child_or_warn(&self, node: &Self) {
         let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
         if self.remove_child(node).is_err() {
-            warning!(logger, warn_msg)
+            WARNING!(warn_msg)
         }
     }
 }
@@ -848,12 +768,12 @@ pub use async_std::task::sleep;
 // ========== TODO: TO BE DECIDED
 
 /// Tries to get `Element` by ID, and runs function on it.
-pub fn with_element_by_id_or_warn<F>(logger: &Logger, id: &str, f: F)
+pub fn with_element_by_id_or_warn<F>(id: &str, f: F)
 where F: FnOnce(Element) {
     let root_elem = document.get_element_by_id(id);
     match root_elem {
         Some(v) => f(v),
-        None => warning!(logger, "Failed to get element by ID."),
+        None => WARNING!("Failed to get element by ID."),
     }
 }
 
@@ -873,4 +793,30 @@ impl TimeProvider for Performance {
     fn now(&self) -> f64 {
         self.now()
     }
+}
+
+
+
+// =================================
+// === Generic String Conversion ===
+// =================================
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = "String")]
+    fn js_to_string_inner(s: &JsValue) -> String;
+}
+
+#[cfg(target_arch = "wasm32")]
+/// Converts given `JsValue` into a `String`. Uses JS's `String` function,
+/// see: https://www.w3schools.com/jsref/jsref_string.asp
+pub fn js_to_string(s: impl AsRef<JsValue>) -> String {
+    js_to_string_inner(s.as_ref())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn js_to_string(_: impl AsRef<JsValue>) -> String {
+    "JsValue".into()
 }
