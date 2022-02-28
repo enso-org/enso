@@ -64,6 +64,7 @@ use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use ensogl::prelude::*;
 use ensogl::system::web;
+use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
@@ -3179,8 +3180,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_was_pressed      <- viz_pressed.previous();
     viz_press            <- viz_press_ev.gate_not(&viz_was_pressed);
     viz_release          <- viz_release_ev.gate(&viz_was_pressed);
-    viz_press_time       <- viz_press   . map(|_| web::performance().now() as f32);
-    viz_release_time     <- viz_release . map(|_| web::performance().now() as f32);
+    viz_press_time       <- viz_press   . map(|_| web::window.performance_or_panic().now() as f32);
+    viz_release_time     <- viz_release . map(|_| web::window.performance_or_panic().now() as f32);
     viz_press_time_diff  <- viz_release_time.map2(&viz_press_time,|t1,t0| t1-t0);
     viz_preview_mode     <- viz_press_time_diff.map(|t| *t > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS);
     viz_preview_mode_end <- viz_release.gate(&viz_preview_mode).gate_not(&out.is_fs_visualization_displayed);

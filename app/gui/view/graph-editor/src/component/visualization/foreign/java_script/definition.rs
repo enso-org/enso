@@ -62,16 +62,15 @@ impl Definition {
     pub fn new(project: visualization::path::Project, sources: Sources) -> Result<Self, Error> {
         let source = sources.to_string(&project);
         let context = JsValue::NULL;
+        DEBUG!("--------------------");
+        DEBUG!("{source}");
         let function = Function::new_with_args_fixed(binding::JS_CLASS_NAME, &source)
             .map_err(Error::InvalidFunction)?;
-        let js_class = binding::js_class();
+        let js_class = binding::js_visualization_class();
         let class = function.call1(&context, &js_class).map_err(Error::InvalidFunction)?;
-
         let input_type = try_str_field(&class, field::INPUT_TYPE).unwrap_or_default();
-
         let input_format = try_str_field(&class, field::INPUT_FORMAT).unwrap_or_default();
         let input_format = visualization::data::Format::from_str(&input_format).unwrap_or_default();
-
         let label = label(&class)?;
         let path = visualization::Path::new(project, label);
         let signature = visualization::Signature::new(path, input_type, input_format);

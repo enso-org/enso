@@ -65,7 +65,7 @@ impl Default for Shape {
     fn default() -> Self {
         let width = 100.0;
         let height = 100.0;
-        let pixel_ratio = web::device_pixel_ratio() as f32;
+        let pixel_ratio = web::window.device_pixel_ratio() as f32;
         Self { width, height, pixel_ratio }
     }
 }

@@ -78,7 +78,7 @@ impl BencherData {
     /// Starts the benchmarking loop.
     fn start(self: &Rc<Self>) {
         let data_clone = self.clone();
-        let performance = web::performance();
+        let performance = web::window.performance_or_panic();
         let mut t0 = performance.now();
         let callback_guard = self.event_loop().on_frame(Box::new(move |_| {
             let mut data = data_clone.borrow_mut();

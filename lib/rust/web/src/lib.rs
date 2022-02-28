@@ -58,7 +58,6 @@ pub mod prelude {
 // === API Imports ===
 // ===================
 
-
 #[cfg(target_arch = "wasm32")]
 pub use binding::wasm::*;
 
@@ -73,16 +72,16 @@ pub use binding::mock::*;
 
 /// All traits defined in this module.
 pub mod traits {
-    pub use super::AttributeSetter;
     pub use super::DocumentOps;
+    pub use super::ElementOps;
     pub use super::FunctionOps;
     pub use super::HtmlCanvasElementOps;
     pub use super::HtmlElementOps;
     pub use super::JsCast;
-    pub use super::NodeInserter;
-    pub use super::NodeRemover;
+    pub use super::NodeOps;
     pub use super::ObjectOps;
     pub use super::ReflectOps;
+    pub use super::WindowOps;
 }
 
 
@@ -134,27 +133,39 @@ impl ReflectOps for Reflect {
 
 
 // =================
-// === ObjectOps ===
+// === WindowOps ===
 // =================
 
-/// Extensions to the [`Object`] type.
-pub trait ObjectOps {
-    /// Get all the keys of the provided [`Object`].
-    fn keys_vec(obj: &Object) -> Vec<String>;
+/// Extensions to the [`Window`] type.
+#[allow(missing_docs)]
+pub trait WindowOps {
+    fn request_animation_frame_with_closure(
+        &self,
+        f: &Closure<dyn FnMut(f64)>,
+    ) -> Result<i32, JsValue>;
+    fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32;
+    fn cancel_animation_frame_or_panic(&self, id: i32);
+    fn performance_or_panic(&self) -> Performance;
 }
 
-impl ObjectOps for Object {
-    #[cfg(target_arch = "wasm32")]
-    fn keys_vec(obj: &Object) -> Vec<String> {
-        // The [`unwrap`] is safe, the `Object::keys` API guarantees it.
-        Object::keys(&obj)
-            .iter()
-            .map(|key| key.dyn_into::<js_sys::JsString>().unwrap().into())
-            .collect()
+impl WindowOps for Window {
+    fn request_animation_frame_with_closure(
+        &self,
+        f: &Closure<dyn FnMut(f64)>,
+    ) -> Result<i32, JsValue> {
+        self.request_animation_frame(f.as_ref().unchecked_ref())
     }
-    #[cfg(not(target_arch = "wasm32"))]
-    fn keys_vec(_obj: &Object) -> Vec<String> {
-        default()
+
+    fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32 {
+        self.request_animation_frame_with_closure(f).unwrap()
+    }
+
+    fn cancel_animation_frame_or_panic(&self, id: i32) {
+        self.cancel_animation_frame(id).unwrap();
+    }
+
+    fn performance_or_panic(&self) -> Performance {
+        self.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
     }
 }
 
@@ -185,17 +196,45 @@ impl FunctionOps for Function {
 
 
 
+// =================
+// === ObjectOps ===
+// =================
+
+/// Extensions to the [`Object`] type.
+pub trait ObjectOps {
+    /// Get all the keys of the provided [`Object`].
+    fn keys_vec(obj: &Object) -> Vec<String>;
+}
+
+impl ObjectOps for Object {
+    #[cfg(target_arch = "wasm32")]
+    fn keys_vec(obj: &Object) -> Vec<String> {
+        // The [`unwrap`] is safe, the `Object::keys` API guarantees it.
+        Object::keys(&obj)
+            .iter()
+            .map(|key| key.dyn_into::<js_sys::JsString>().unwrap().into())
+            .collect()
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn keys_vec(_obj: &Object) -> Vec<String> {
+        default()
+    }
+}
+
+
+
 // ===================
 // === DocumentOps ===
 // ===================
 
+/// Extensions to the [`Document`] type.
+#[allow(missing_docs)]
 pub trait DocumentOps {
     fn body_or_panic(&self) -> HtmlElement;
     fn create_element_or_panic(&self, local_name: &str) -> Element;
     fn create_div_or_panic(&self) -> HtmlDivElement;
     fn create_canvas_or_panic(&self) -> HtmlCanvasElement;
     fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement>;
-    fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext>;
 }
 
 impl DocumentOps for Document {
@@ -206,7 +245,6 @@ impl DocumentOps for Document {
     fn create_element_or_panic(&self, local_name: &str) -> Element {
         self.create_element(local_name).unwrap()
     }
-
 
     fn create_div_or_panic(&self) -> HtmlDivElement {
         self.create_element_or_panic("div").unchecked_into()
@@ -219,105 +257,25 @@ impl DocumentOps for Document {
     fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement> {
         self.get_element_by_id(id).and_then(|t| t.dyn_into().ok())
     }
-
-    fn get_webgl2_context(&self, _canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext> {
-        todo!()
-    }
 }
 
 
 
-// =========================
-// === HtmlCanvasElement ===
-// =========================
+// ===============
+// === NodeOps ===
+// ===============
 
-pub trait HtmlCanvasElementOps {
-    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext>;
-}
-
-impl HtmlCanvasElementOps for HtmlCanvasElement {
-    #[cfg(target_arch = "wasm32")]
-    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
-        let options = Object::new();
-        Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
-        let context = self.get_context_with_context_options("webgl2", &options).ok().flatten();
-        context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok())
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
-        None
-    }
-}
-
-
-// ======================
-// === HtmlElementOps ===
-// ======================
-
-/// Trait used to set css styles.
-pub trait HtmlElementOps {
-    fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U);
-    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U);
-}
-
-impl HtmlElementOps for HtmlElement {
-    fn set_style_or_panic<T: Str, U: Str>(&self, name: T, value: U) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let panic_msg = |_| panic!("Failed to set style {}", values);
-        self.style().set_property(name, value).unwrap_or_else(panic_msg);
-    }
-
-    fn set_style_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let warn_msg: &str = &format!("Failed to set style {}", values);
-        if self.style().set_property(name, value).is_err() {
-            WARNING!(warn_msg);
-        }
-    }
-}
-
-//
-// impl HtmlElementOps for binding::mock::HtmlElement {
-//     fn set_style_or_panic<T: Str, U: Str>(&self, _name: T, _value: U) {}
-//     fn set_style_or_warn<T: Str, U: Str>(&self, _name: T, _value: U, _logger: &Logger) {}
-// }
-
-
-// =====================
-// === Other Helpers ===
-// =====================
-
-/// Trait used to set HtmlElement attributes.
-pub trait AttributeSetter {
-    // fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
-
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
-}
-
-impl AttributeSetter for Element {
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let warn_msg: &str = &format!("Failed to set attribute {}", values);
-        if self.set_attribute(name, value).is_err() {
-            WARNING!(warn_msg)
-        }
-    }
-}
-
-/// Trait used to insert `Node`s.
-pub trait NodeInserter {
+/// Extensions to the [`Node`] type.
+#[allow(missing_docs)]
+pub trait NodeOps {
     fn append_or_warn(&self, node: &Self);
     fn prepend_or_warn(&self, node: &Self);
     fn insert_before_or_warn(&self, node: &Self, reference_node: &Self);
+    fn remove_from_parent_or_warn(&self);
+    fn remove_child_or_warn(&self, node: &Self);
 }
 
-impl NodeInserter for Node {
+impl NodeOps for Node {
     fn append_or_warn(&self, node: &Self) {
         let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
         if self.append_child(node).is_err() {
@@ -340,15 +298,7 @@ impl NodeInserter for Node {
             WARNING!(warn_msg)
         }
     }
-}
 
-/// Trait used to remove `Node`s.
-pub trait NodeRemover {
-    fn remove_from_parent_or_warn(&self);
-    fn remove_child_or_warn(&self, node: &Self);
-}
-
-impl NodeRemover for Node {
     fn remove_from_parent_or_warn(&self) {
         if let Some(parent) = self.parent_node() {
             let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
@@ -366,41 +316,94 @@ impl NodeRemover for Node {
     }
 }
 
-pub use request_animation_frame_impl::*;
 
-#[cfg(not(target_arch = "wasm32"))]
-mod request_animation_frame_impl {
-    use super::*;
-    pub fn request_animation_frame(_f: &Closure<dyn FnMut(f64)>) -> i32 {
-        mock_default()
-    }
 
-    pub fn cancel_animation_frame(_id: i32) {}
+// ==================
+// === ElementOps ===
+// ==================
+
+/// Trait used to set HtmlElement attributes.
+#[allow(missing_docs)]
+pub trait ElementOps {
+    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
 }
 
-#[cfg(target_arch = "wasm32")]
-mod request_animation_frame_impl {
-    use super::*;
-    pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) -> i32 {
-        window.request_animation_frame(f.as_ref().unchecked_ref()).unwrap()
-    }
-
-    pub fn cancel_animation_frame(id: i32) {
-        window.cancel_animation_frame(id).unwrap();
+impl ElementOps for Element {
+    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
+        let name = name.as_ref();
+        let value = value.as_ref();
+        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+        let warn_msg: &str = &format!("Failed to set attribute {}", values);
+        if self.set_attribute(name, value).is_err() {
+            WARNING!(warn_msg)
+        }
     }
 }
 
 
-#[cfg(target_arch = "wasm32")]
-mod arch_dependent_impls {}
+
+// ======================
+// === HtmlElementOps ===
+// ======================
+
+/// Extensions to the [`HtmlElement`] type.
+#[allow(missing_docs)]
+pub trait HtmlElementOps {
+    fn set_style_or_panic(&self, name: impl AsRef<str>, value: impl AsRef<str>);
+    fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>);
+}
+
+impl HtmlElementOps for HtmlElement {
+    fn set_style_or_panic(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
+        let name = name.as_ref();
+        let value = value.as_ref();
+        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+        let panic_msg = |_| panic!("Failed to set style {}", values);
+        self.style().set_property(name, value).unwrap_or_else(panic_msg);
+    }
+
+    fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
+        let name = name.as_ref();
+        let value = value.as_ref();
+        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+        let warn_msg: &str = &format!("Failed to set style {}", values);
+        if self.style().set_property(name, value).is_err() {
+            WARNING!(warn_msg);
+        }
+    }
+}
+
+
+
+// =========================
+// === HtmlCanvasElement ===
+// =========================
+
+/// Extensions to the [`WebGl2RenderingContext`] type.
+#[allow(missing_docs)]
+pub trait HtmlCanvasElementOps {
+    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext>;
+}
+
+impl HtmlCanvasElementOps for HtmlCanvasElement {
+    #[cfg(target_arch = "wasm32")]
+    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
+        let options = Object::new();
+        Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
+        let context = self.get_context_with_context_options("webgl2", &options).ok().flatten();
+        context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
+        None
+    }
+}
 
 
 
 // =============
 // === Utils ===
 // =============
-
-
 
 /// Ignores context menu when clicking with the right mouse button.
 pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
@@ -419,7 +422,6 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 // =======================
 // === Event Listeners ===
 // =======================
-
 
 /// The type of closures used for 'add_event_listener_*' functions.
 pub type JsEventHandler<T = JsValue> = Closure<dyn FnMut(T)>;
@@ -499,37 +501,6 @@ gen_add_event_listener!(
 
 
 
-// ===================
-// === Performance ===
-// ===================
-
-#[cfg(target_arch = "wasm32")]
-pub use web_sys::Performance;
-
-#[cfg(target_arch = "wasm32")]
-/// Access the `window.performance` or panics if it does not exist.
-pub fn performance() -> Performance {
-    window.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Performance {}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Performance {
-    pub fn now(&self) -> f64 {
-        0.0
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn performance() -> Performance {
-    default()
-}
-
-
-
 // =========================
 // === Stack Trace Limit ===
 // =========================
@@ -550,29 +521,14 @@ pub fn set_stack_trace_limit() {}
 
 
 
-// ==========================
-// === device_pixel_ratio ===
-// ==========================
-
-#[cfg(target_arch = "wasm32")]
-/// Access the `window.devicePixelRatio` or panic if the window does not exist.
-pub fn device_pixel_ratio() -> f64 {
-    window.device_pixel_ratio()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn device_pixel_ratio() -> f64 {
-    1.0
-}
-
-
-
 // ============
 // === Time ===
 // ============
 
 static mut START_TIME: Option<std::time::Instant> = None;
 static mut TIME_OFFSET: f64 = 0.0;
+
+// FIXME: This is strange design + no one is calling it on init ...
 
 /// Initializes global stats of the program, like its start time. This function should be called
 /// exactly once, as the first operation of a program.
@@ -642,63 +598,6 @@ pub fn simulate_sleep(duration: f64) {
 
 
 
-// ============
-// === Test ===
-// ============
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     use wasm_bindgen_test::wasm_bindgen_test;
-//     use wasm_bindgen_test::wasm_bindgen_test_configure;
-//
-//     wasm_bindgen_test_configure!(run_in_browser);
-//
-//     #[cfg(target_arch = "wasm32")]
-//     mod helpers {
-//         type Instant = f64;
-//
-//         pub fn now() -> Instant {
-//             super::performance().now()
-//         }
-//
-//         pub fn elapsed(instant: Instant) -> f64 {
-//             super::performance().now() - instant
-//         }
-//     }
-//
-//     #[cfg(not(target_arch = "wasm32"))]
-//     mod helpers {
-//         use std::time::Instant;
-//
-//         pub fn now() -> Instant {
-//             Instant::now()
-//         }
-//
-//         pub fn elapsed(instant: Instant) -> f64 {
-//             instant.elapsed().as_secs_f64()
-//         }
-//     }
-//
-//     #[wasm_bindgen_test(async)]
-//     async fn async_sleep() {
-//         let instant = helpers::now();
-//         sleep(Duration::new(1, 0)).await;
-//         assert!(helpers::elapsed(instant) >= 1.0);
-//         sleep(Duration::new(2, 0)).await;
-//         assert!(helpers::elapsed(instant) >= 3.0);
-//     }
-//
-//     #[test]
-//     #[cfg(not(target_arch = "wasm32"))]
-//     fn async_sleep_native() {
-//         async_std::task::block_on(async_sleep())
-//     }
-// }
-
-
-
 // =============
 // === Panic ===
 // =============
@@ -736,6 +635,8 @@ extern "C" {
 fn error_throwing_panic_hook(panic_info: &std::panic::PanicInfo) {
     wasm_bindgen::throw_val(new_panic_error(panic_info.to_string()));
 }
+
+// FIXME: what is this?
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -801,6 +702,8 @@ impl TimeProvider for Performance {
 // === Generic String Conversion ===
 // =================================
 
+// FIXME: is this not the same as String::from?
+
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
@@ -820,3 +723,60 @@ pub fn js_to_string(s: impl AsRef<JsValue>) -> String {
 pub fn js_to_string(_: impl AsRef<JsValue>) -> String {
     "JsValue".into()
 }
+
+
+
+// ============
+// === Test ===
+// ============
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     use wasm_bindgen_test::wasm_bindgen_test;
+//     use wasm_bindgen_test::wasm_bindgen_test_configure;
+//
+//     wasm_bindgen_test_configure!(run_in_browser);
+//
+//     #[cfg(target_arch = "wasm32")]
+//     mod helpers {
+//         type Instant = f64;
+//
+//         pub fn now() -> Instant {
+//             super::performance().now()
+//         }
+//
+//         pub fn elapsed(instant: Instant) -> f64 {
+//             super::performance().now() - instant
+//         }
+//     }
+//
+//     #[cfg(not(target_arch = "wasm32"))]
+//     mod helpers {
+//         use std::time::Instant;
+//
+//         pub fn now() -> Instant {
+//             Instant::now()
+//         }
+//
+//         pub fn elapsed(instant: Instant) -> f64 {
+//             instant.elapsed().as_secs_f64()
+//         }
+//     }
+//
+//     #[wasm_bindgen_test(async)]
+//     async fn async_sleep() {
+//         let instant = helpers::now();
+//         sleep(Duration::new(1, 0)).await;
+//         assert!(helpers::elapsed(instant) >= 1.0);
+//         sleep(Duration::new(2, 0)).await;
+//         assert!(helpers::elapsed(instant) >= 3.0);
+//     }
+//
+//     #[test]
+//     #[cfg(not(target_arch = "wasm32"))]
+//     fn async_sleep_native() {
+//         async_std::task::block_on(async_sleep())
+//     }
+// }

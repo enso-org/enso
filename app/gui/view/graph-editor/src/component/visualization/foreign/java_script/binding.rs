@@ -78,8 +78,8 @@ impl Visualization {
     }
 }
 
-/// Provides reference to the visualizations JavaScript base class.
-pub fn js_class() -> JsValue {
+/// Provides reference to the [`Visualization`] JavaScript base class.
+pub fn js_visualization_class() -> JsValue {
     __Visualization__()
 }
 

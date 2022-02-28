@@ -103,7 +103,7 @@ impl Default for Config {
 impl Config {
     /// Translates the configuration to JS values.
     pub fn to_js_config(&self) -> SamplerConfig {
-        let ratio = web::device_pixel_ratio();
+        let ratio = web::window.device_pixel_ratio();
         SamplerConfig {
             background_color:      (&self.background_color).into(),
             label_color_ok:        (&self.label_color_ok).into(),
@@ -335,7 +335,7 @@ impl Renderer {
 
     fn resize(&mut self) {
         if let Some(dom) = &self.dom {
-            let ratio = web::device_pixel_ratio();
+            let ratio = web::window.device_pixel_ratio();
             let width = self.config.labels_width
                 + self.config.results_width
                 + self.config.plots_width

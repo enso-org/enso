@@ -1,7 +1,5 @@
 use crate::system::web;
-use crate::system::web::AttributeSetter;
-use crate::system::web::NodeInserter;
-use crate::system::web::StyleSetter;
+use crate::system::web::traits::*;
 use wasm_bindgen::JsCast;
 
 

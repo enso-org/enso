@@ -19,6 +19,7 @@ use crate::display::render::*;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::system::web;
+use crate::system::web::traits::*;
 
 use web::prelude::Closure;
 use web::JsCast;
@@ -197,7 +198,7 @@ impl WorldData {
     /// Create and initialize new world instance.
     pub fn new() -> Self {
         let logger = Logger::new("world");
-        let stats = debug::stats::Stats::new(web::performance());
+        let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());

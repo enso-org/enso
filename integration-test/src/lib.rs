@@ -21,9 +21,8 @@ use enso_frp::future::EventOutputExt;
 use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
+use enso_web::traits::*;
 use enso_web::HtmlDivElement;
-use enso_web::NodeInserter;
-use enso_web::StyleSetter;
 use ensogl::application::Application;
 
 /// Reexports of commonly-used structures, methods and traits.

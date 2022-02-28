@@ -45,7 +45,6 @@ use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
-use web::AttributeSetter;
 use web::HtmlElement;
 
 

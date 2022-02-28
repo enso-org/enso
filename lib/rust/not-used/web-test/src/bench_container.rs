@@ -2,8 +2,7 @@ use crate::prelude::*;
 
 use super::Container;
 use crate::system::web;
-use crate::system::web::NodeInserter;
-use crate::system::web::StyleSetter;
+use crate::system::web::traits::*;
 use wasm_bindgen::JsCast;
 
 

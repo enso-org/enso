@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::control::callback;
 use crate::system::web;
+use crate::system::web::traits::*;
 
 use web::Closure;
 
@@ -70,7 +71,9 @@ where Callback: RawLoopCallback
         let weak_data = Rc::downgrade(&data);
         let on_frame = move |time| weak_data.upgrade().for_each(|t| t.borrow_mut().run(time));
         data.borrow_mut().on_frame = Some(Closure::new(on_frame));
-        let handle_id = web::request_animation_frame(data.borrow_mut().on_frame.as_ref().unwrap());
+        let handle_id = web::window.request_animation_frame_with_closure_or_panic(
+            data.borrow_mut().on_frame.as_ref().unwrap(),
+        );
         data.borrow_mut().handle_id = handle_id;
         Self { data }
     }
@@ -100,14 +103,14 @@ impl<Callback> RawLoopData<Callback> {
         let callback = &mut self.callback;
         self.handle_id = self.on_frame.as_ref().map_or(default(), |on_frame| {
             callback(current_time_ms as f32);
-            web::request_animation_frame(on_frame)
+            web::window.request_animation_frame_with_closure_or_panic(on_frame)
         })
     }
 }
 
 impl<Callback> Drop for RawLoopData<Callback> {
     fn drop(&mut self) {
-        web::cancel_animation_frame(self.handle_id);
+        web::window.cancel_animation_frame_or_panic(self.handle_id);
     }
 }
 

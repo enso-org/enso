@@ -2,40 +2,12 @@ use enso_prelude::*;
 
 
 
-// =============
-// === Error ===
-// =============
-
-/// Generic error representation. We may want to support errors in form of structs and enums,
-/// but it requires significant work, so a simpler solution was chosen for now.
-#[derive(Debug, Fail)]
-#[fail(display = "{}", message)]
-pub struct Error {
-    message: String,
-}
-
-#[allow(non_snake_case)]
-pub fn Error<S: Into<String>>(message: S) -> Error {
-    let message = message.into();
-    Error { message }
-}
-
-pub type XResult<T> = Result<T, Error>;
-
-impl From<JsValue> for Error {
-    fn from(t: JsValue) -> Self {
-        let message = format!("{:?}", t);
-        Self { message }
-    }
-}
-
-
-
 // ===================
 // === MockDefault ===
 // ===================
 
 /// Default value provider. Similar to [`Default`] but with additional implementations.
+#[allow(missing_docs)]
 pub trait MockDefault {
     fn mock_default() -> Self;
 }
@@ -195,6 +167,8 @@ macro_rules! mock_struct_deref {
 // === mock_fn ===
 // ===============
 
+/// Create a mock implementation of a non-public function. Read the docs of [`mock_fn_gen`] to learn
+/// more.
 #[macro_export]
 macro_rules! mock_fn {
     ( $($ts:tt)* ) => {
@@ -202,6 +176,8 @@ macro_rules! mock_fn {
     };
 }
 
+/// Create a mock implementation of a public function. Read the docs of [`mock_fn_gen`] to learn
+/// more.
 #[macro_export]
 macro_rules! mock_pub_fn {
     ( $($ts:tt)* ) => {
@@ -330,8 +306,7 @@ where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
 // === JsValue ===
 // ===============
 
-/// Mock of [`wasm_bindgen::JsValue`]. All JS types can be converted to `JsValue` and thus it
-/// implements a generic conversion trait.
+/// Mock of [`wasm_bindgen::JsValue`].
 mock_data! { JsValue
     fn is_undefined(&self) -> bool;
 }
@@ -341,6 +316,7 @@ impl JsValue {
     pub const NULL: JsValue = JsValue {};
 }
 
+/// All JS types can be converted to `JsValue` and thus it implements a generic conversion trait.
 auto trait IsNotJsValue {}
 impl !IsNotJsValue for JsValue {}
 impl<A: IsNotJsValue> From<A> for JsValue {
@@ -402,8 +378,7 @@ impl From<&JsString> for String {
 
 
 // === Array ===
-mock_data! { Array => Object
-}
+mock_data! { Array => Object }
 
 
 
@@ -451,6 +426,10 @@ mock_data! { Document => EventTarget
 mock_data! { Window => EventTarget
     fn open_with_url_and_target(&self, url: &str, target: &str)
         -> Result<Option<Window>, JsValue>;
+    fn request_animation_frame(&self, callback: &Function) -> Result<i32, JsValue>;
+    fn cancel_animation_frame(&self, handle: i32) -> Result<(), JsValue>;
+    fn performance(&self) -> Option<Performance>;
+    fn device_pixel_ratio(&self) -> f64;
 }
 
 
@@ -636,6 +615,17 @@ mock_data! { CssStyleDeclaration => Object
 
 
 
+// =============
+// === Other ===
+// =============
+
+// === Performance ===
+mock_data! { Performance => EventTarget
+    fn now(&self) -> f64;
+}
+
+
+
 // ===============
 // === Reflect ===
 // ===============
@@ -649,50 +639,16 @@ mock_data! { Reflect
     ) -> Result<bool, JsValue>;
 }
 
-// pub mod Reflect {
-//     use super::*;
-//     mock_pub_fn! { set(
-//         target: &JsValue,
-//         property_key: &JsValue,
-//         value: &JsValue
-//     ) -> Result<bool, JsValue> }
-// }
-
-// mock_fn! { create_div(&self) -> HtmlDivElement }
 
 
-
-// =============
-// === Utils ===
-// =============
+// ===========================
+// === Window and Document ===
+// ===========================
 
 #[allow(non_upper_case_globals)]
-pub static document: Document = Document::const_new();
-
-#[allow(non_upper_case_globals)]
+#[allow(missing_docs)]
 pub static window: Window = Window {};
 
-// impl WindowApi for Window {
-//     mock_fn! { forward_panic_hook_to_console(&self) }
-// }
-//
-// impl DocumentApi for Document {
-//     mock_fn! { body(&self) -> &HtmlElement }
-//     mock_fn! { create_div(&self) -> HtmlDivElement }
-//     mock_fn! { create_canvas(&self) -> HtmlCanvasElement }
-//     mock_fn! { get_element_by_id(&self, id: &str) -> Result<HtmlElement> }
-//     mock_fn! { get_webgl2_context(&self, canvas: &HtmlCanvasElement)
-//     -> Option<WebGl2RenderingContext> }
-// }
-
-// mock_pub_fn! { body() -> HtmlElement }
-// mock_pub_fn! { create_div() -> HtmlDivElement }
-// mock_pub_fn! { create_canvas() -> HtmlCanvasElement }
-// mock_pub_fn! { get_html_element_by_id(_id: &str) -> Result<HtmlElement> }
-// mock_pub_fn! { get_webgl2_context(_canvas: &HtmlCanvasElement) -> Option<WebGl2RenderingContext>
-// }
-// mock_pub_fn! { forward_panic_hook_to_console() }
-
-pub trait Test {
-    fn test() -> String;
-}
+#[allow(non_upper_case_globals)]
+#[allow(missing_docs)]
+pub static document: Document = Document::const_new();
