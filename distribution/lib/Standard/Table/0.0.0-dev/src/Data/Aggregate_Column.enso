@@ -10,85 +10,102 @@ type Aggregate_Column
 
     ## Creates a new column with the count of unique items in the selected
        column(s) within each group.
-    # type Count_Distinct (columns:Column|Text|Integer|[Column|Text|Integer]) (name:Text|Nothing=Nothing)
-    type Count_Distinct (columns:Column|Text|Integer|Vector) (name:Text|Nothing=Nothing)
+    type Count_Distinct (columns:Column|Text|Integer|[Column|Text|Integer]) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the count of not null (Nothing) values of the
+    ## ALIAS Count_Not_Null
+
+       Creates a new column with the count of not `Nothing` (null) values of the
        specified column within each group.
-    type Count_Not_Null (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+    type Count_Not_Nothing (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the count of null (Nothing) values of the
+    ## ALIAS Count_Null, Count_Missing
+
+       Creates a new column with the count of `Nothing` (null) values of the
        specified column within each group.
-    type Count_Null (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+    type Count_Nothing (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the count of not null (Nothing) and non-empty
+    ## Creates a new column with the count of not `Nothing` (null) and non-empty
        ("") values of the column within each group.
     type Count_Not_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the count of null (Nothing) or empty ("") text
-       values of the column within each group.
+    ## Creates a new column with the count of `Nothing` (null) or empty ("")
+       text values of the column within each group.
     type Count_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the sum of values (ignoring NULLs) of the
-       specified column within each group.
+    ## Creates a new column with the sum of values (ignoring missing values) of
+       the specified column within each group.
     type Sum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the mean of values (ignoring NULLs) of the
-       specified column within each group.
+    ## Creates a new column with the mean of values (ignoring missing values) of
+       the specified column within each group.
     type Average (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
-    ## Creates a new column with the median of values (ignoring NULLs) of the
-       specified column within each group.
+    ## Creates a new column with the median of values (ignoring missing values)
+       of the specified column within each group.
     type Median (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the standard deviation of values (ignoring
-       NULLs) of the column within each group.
+       missing values) of the column within each group.
 
        Arguments:
        - population argument specifies if group is a sample or the population
     type Standard_Deviation (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (population:Boolean=False)
 
-    ## Creates a new column with the values concatenated together. NULL values will become an empty string.
+    ## Creates a new column with the values concatenated together. `Nothing` values will become an empty string.
 
        Arguments:
        - separator: added between each value.
        - prefix: added at the start of the result.
        - suffix: added at the end of the result.
-    type Concatenate (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (separator:Text="") (prefix:Text="") (suffix:Text="")
+       - quote_char: character used to quote the values if the value is `Empty`
+         or contains the separtor.
+    type Concatenate (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (separator:Text="") (prefix:Text="") (suffix:Text="") (quote_char:Text="")
 
     ## Creates a new column with the first value in each group.
-    type First (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+        Arguments:
+        - ignore_nothing: if `True`, then missing values are ignored and first
+          not missing value returned.
+        - order_by: required for database tables. Specifies how to order the
+          results within the group.
+    type First (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False) (order_by:Column_Selector|Nothing=Nothing)
 
     ## Creates a new column with the last value in each group.
-    type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+        Arguments:
+        - ignore_nothing: if `True`, then missing values are ignored and last
+          not missing value returned.
+        - order_by: required for database tables. Specifies how to order the
+          results within the group.
+    type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False) (order_by:Column_Selector|Nothing=Nothing)
 
     ## Gets a column name to use for the aggregate column
     column_name : Table->Text
     column_name table =
         if this.name.is_nothing.not then this.name else
-            col_name = c->(this.resolve_column table c).name
             case this of
                 Count _ -> "Count"
-                Count_Distinct columns _ -> "Count Distinct " + (columns.map col_name . join " ")
-                Count_Not_Null c _ -> "Count NotNull " + col_name c
-                Count_Null c _ -> "Count Null " + col_name c
-                Count_Not_Empty c _ -> "Count NotEmpty " + col_name c
-                Count_Empty c _ -> "Count Empty " + col_name c
-                Sum c _ -> "Sum " + col_name c
-                Average c _ -> "Average " + col_name c
-                Median c _ -> "Median " + col_name c
-                Standard_Deviation c _ _ -> "Standard Deviation " + col_name c
-                Concatenate c _ _ _ _ -> "Concatenate " + col_name c
-                First c _ -> "First " + col_name c
-                Last c _ -> "Last " + col_name c
+                Count_Distinct c _ -> "Count Distinct " + (resolve_column table c).name
+                Count_Not_Nothing c _ -> "Count NotNull " + (resolve_column table c).name
+                Count_Nothing c _ -> "Count Null " + (resolve_column table c).name
+                Count_Not_Empty c _ -> "Count NotEmpty " + (resolve_column table c).name
+                Count_Empty c _ -> "Count Empty " + (resolve_column table c).name
+                Sum c _ -> "Sum " + (resolve_column table c).name
+                Average c _ -> "Average " + (resolve_column table c).name
+                Median c _ -> "Median " + (resolve_column table c).name
+                Standard_Deviation c _ _ -> "Standard Deviation " + (resolve_column table c).name
+                Concatenate c _ _ _ _ -> "Concatenate " + (resolve_column table c).name
+                First c _ -> "First " + (resolve_column table c).name
+                Last c _ -> "Last " + (resolve_column table c).name
 
     ## PRIVATE
        Given a column reference resolve to the underlying column
     resolve_column : Table->(Column|Text|Integer)->Column
-    resolve_column table column = case column of
-        Column _ -> table.at (column.name)
-        Text -> table.at column
-        Integer -> table.columns.at column
+    resolve_column table column =
+        case column of
+            Column c -> table.at (c.name)
+            Text c -> table.at c
+            Integer c -> table.columns.at c
 
     initial_value : Any
     initial_value = case this of
@@ -113,8 +130,8 @@ type Aggregate_Column
 
         case this of
             Count _ -> count->_->(count+1)
-            Count_Not_Null c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 0 else 1)
-            Count_Null c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
+            Count_Not_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 0 else 1)
+            Count_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
             Count_Not_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 0 else 1)
             Count_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 1 else 0)
             First c _ -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
