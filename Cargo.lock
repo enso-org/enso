@@ -1111,7 +1111,19 @@ version = "0.1.0"
 dependencies = [
  "enso-profiler-macros",
  "futures 0.3.21",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "enso-profiler-data"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "futures 0.3.21",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
