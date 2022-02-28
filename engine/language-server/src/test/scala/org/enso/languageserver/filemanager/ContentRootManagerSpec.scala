@@ -8,6 +8,7 @@ import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   ContentRootsAddedNotification,
   SubscribeToNotifications
 }
+import org.apache.commons.io.FileUtils
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.EitherValue
 import org.scalatest.concurrent.Futures
@@ -18,7 +19,7 @@ import org.scalatest.{BeforeAndAfterEach, Inside, OptionValues}
 
 import java.io.File
 import java.nio.file.{Files, Path => JPath}
-import java.util.{Comparator, UUID}
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 
 class ContentRootManagerSpec
@@ -33,14 +34,15 @@ class ContentRootManagerSpec
 
   var rootManager: ContentRootManagerWrapper = _
   var rootActor: ActorRef                    = _
-  var rootProjectDirectory: JPath            = _
+  var rootProjectDirectory: File             = _
 
   override def beforeEach(): Unit = {
-    rootProjectDirectory = Files.createTempDirectory("root-manager-spec")
+    rootProjectDirectory =
+      Files.createTempDirectory("root-manager-spec").toFile()
 
     val root = ContentRootWithFile(
       ContentRoot.Project(UUID.randomUUID()),
-      rootProjectDirectory.toFile.getCanonicalFile
+      rootProjectDirectory.getCanonicalFile
     )
     val config = Config(
       root,
@@ -54,11 +56,7 @@ class ContentRootManagerSpec
   }
 
   override def afterEach(): Unit = {
-    Files
-      .walk(rootProjectDirectory)
-      .sorted(Comparator.reverseOrder())
-      .map(_.toFile)
-      .forEach(_.delete())
+    FileUtils.deleteDirectory(rootProjectDirectory)
   }
 
   "ContentRootManager" should {

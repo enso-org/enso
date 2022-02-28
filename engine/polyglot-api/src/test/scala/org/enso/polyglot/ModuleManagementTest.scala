@@ -2,7 +2,7 @@ package org.enso.polyglot
 
 import java.io.File
 import java.nio.file.{Files, Paths}
-import java.util.Comparator
+import org.apache.commons.io.FileUtils
 import org.enso.pkg.{Package, PackageManager}
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -38,11 +38,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     }
 
     def teardown(): Unit = {
-      Files
-        .walk(tmpDir.toPath())
-        .sorted(Comparator.reverseOrder())
-        .map(_.toFile)
-        .forEach(_.delete())
+      FileUtils.deleteDirectory(tmpDir)
     }
   }
 
