@@ -627,6 +627,33 @@ Text.is_digit (index=0) =
         char = (Text_Utils.get_chars grapheme).at 0
         char>=48 && char<=57
 
+## Returns if a character from the text at the specified index (0-based) is
+   constitues whitespace.
+
+   Arguments:
+     - index: The location in the text to get the character from. The
+       index is also allowed be negative, then the characters are
+       counted from the end of the text, i.e. -1 will correspond to the
+       last character.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Check if an individual character is a whitespace:
+
+         " ".is_whitespace == True
+         '\t'.is_whitespace == True
+         "A ".is_whitespace == False
+         "A ".is_whitespace 1 == True
+Text.is_whitespace : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.is_whitespace (index=0) =
+    grapheme = this.at index
+    _ = grapheme
+    Error.throw "TODO"
+
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
@@ -1022,3 +1049,63 @@ Text.to_case case_option=Case.Lower locale=Locale.Default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale this
     Case.Upper -> UCharacter.toUpperCase locale.java_locale this
     Case.Title -> UCharacter.toTitleCase locale.java_locale this Nothing
+
+# TODO where to put these
+type Start
+type End
+type Both
+
+## Returns the input padded to the specified `length`, using the `with_pad`
+   string repeated at the start or the end.
+
+   Arguments:
+   - length: The new length for the output. The result is the original string if
+     the input length is more than length.
+   - with_pad: The string to use to pad the input. If the last repetition
+     exceeds the target length, it is truncated to the required size. If padding
+     at the `End`, the beginning of the padding string is used and if padding at
+     `Start`, the end of the string is used.
+   - at: The location of where to pad the input.
+
+   > Example
+     Padding a text with whitespace at the end.
+
+         "Hello World!".pad 15 == "Hello World!   "
+
+   > Example
+     Behavior of padding if the `with_pad` string has to be truncated.
+
+         "HELLO".pad 9 "AB" == "HELLOABAB"
+         "HELLO".pad 8 "AB" == "HELLOABA"
+         "HELLO".pad 8 "AB" Start == "BABHELLO"
+
+Text.pad : Integer -> Text -> (Start | End) -> Text
+Text.pad length=0 with_pad=' ' at=End =
+    Error.throw "TODO"
+
+## This function removes the specified `trim_characters`, by default any
+   whitespace, from the start, the end, or both ends of the input.
+
+   Arguments:
+   - trim_characters: A Text containing characters that should be removed or a
+     predicate taking single character strings and specifying if they should be
+     removed. By default, this should be any Unicode whitespace characters and
+     all line terminator characters.
+   - from: The location of where to trim the input. By default, this function
+     trims both ends of the input.
+
+   > Example
+     Trimming whitespace from a string.
+
+         " Hello! ".trim == "Hello!"
+         " Hello! ".trim Start == "Hello! "
+         " Hello! ".trim End == " Hello!"
+
+   > Example
+     Trimming a specific set of letters from a string.
+
+        "ABC123".trim Start "ABC" == "123"
+        "ABBA123".trim Start "ABC" == "123"
+Text.trim : (Start | End | Both) -> (Text | (Text -> Boolean)) -> Text
+Text.trim from=Both trim_characters=_.is_whitespace =
+    Error.throw "TODO"
