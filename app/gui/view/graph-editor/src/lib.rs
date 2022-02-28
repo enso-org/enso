@@ -1693,6 +1693,13 @@ impl GraphEditorModel {
         self.new_node_position_based_on_mouse(mouse_position, edge_source_node)
     }
 
+    /// Finds a position to place a new node at, based only on mouse position and on the placement
+    /// of the existing nodes.
+    ///
+    /// The function takes into account which of the existing nodes is the closest to the mouse
+    /// position, and whether the mouse pointer is in the restricted placement area around such
+    /// node. If yes, a position is searched using the same algorithm as in
+    /// [`find_free_place_under()`]. If not, mouse position is returned.
     pub fn new_node_position_based_on_mouse_without_source(
         &self,
         mouse_position: Vector2,
@@ -1738,6 +1745,10 @@ impl GraphEditorModel {
         nearest_node
     }
 
+    /// Finds a position to place a new node at, based on mouse position, taking into account
+    /// whether the mouse position is in the restricted placement area around the specified
+    /// reference node. The restricted placement area around a node is defined in the current theme
+    /// ([`theme::graph_editor::new_node_restricted_placement_area`]).
     pub fn new_node_position_based_on_mouse(
         &self,
         mouse_position: Vector2,
