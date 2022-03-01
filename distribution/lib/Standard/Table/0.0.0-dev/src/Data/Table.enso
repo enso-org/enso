@@ -218,7 +218,7 @@ type Table
        representation for this table.
     default_visualization : Visualization.Id.Id
     default_visualization =
-        cols = this.columns.map .name . map .to_lower_case
+        cols = this.columns.map .name . map name-> name.to_case Case.Lower
         if cols.contains "latitude" && cols.contains "longitude" then Visualization.Id.geo_map else
             if cols.contains "x" && cols.contains "y" then Visualization.Id.scatter_plot else
                 Visualization.Id.table

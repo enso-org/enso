@@ -1,0 +1,10 @@
+## Specifies the casing options for text conversion.
+type Case
+    ## All letters in lower case.
+    type Lower
+
+    ## All letters in upper case.
+    type Upper
+
+    ## First letter of each word in upper case, rest in lower case.
+    type Title
