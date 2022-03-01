@@ -64,7 +64,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`EditionReference`](#editionreference)
   - [`LibraryComponentGroups`](#librarycomponentgroups)
   - [`LibraryComponentGroup`](#librarycomponentgroup)
-  - [`LibraryComponent`](#component)
+  - [`LibraryComponent`](#librarycomponent)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -1472,7 +1472,7 @@ interface LibraryComponentGroup {
 A single component of a component group.
 
 ```typescript
-interface Component {
+interface LibraryComponent {
   /** The component name. */
   name: string;
 
