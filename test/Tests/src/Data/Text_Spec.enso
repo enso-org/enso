@@ -629,6 +629,19 @@ spec =
             "foobar" . ends_with "" Regex_Matcher.new . should_be_true
             "" . ends_with "" Regex_Matcher.new . should_be_true
 
+        Test.specify "should allow to pad a text" <|
+            "Hello World!".pad 15 == "Hello World!   "
+            "HELLO".pad 9 "AB" == "HELLOABAB"
+            "HELLO".pad 8 "AB" == "HELLOABA"
+            "HELLO".pad 8 "AB" Location.Start == "BABHELLO"
+
+        Test.specify "should allow to trim a text" <|
+            " Hello! ".trim == "Hello!"
+            " Hello! ".trim Location.Start == "Hello! "
+            " Hello! ".trim Location.End == " Hello!"
+            "ABC123".trim Location.Start "ABC" == "123"
+            "ABBA123".trim Location.Start "ABC" == "123"
+
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
             match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First

@@ -6,6 +6,7 @@ from Standard.Builtins import Text, Prim_Text_Helpers
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Case
+import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
@@ -15,6 +16,7 @@ import Standard.Base.Meta
 from Standard.Builtins export Text
 
 export Standard.Base.Data.Text.Case
+export Standard.Base.Data.Text.Location
 export Standard.Base.Data.Text.Split_Kind
 export Standard.Base.Data.Text.Line_Ending_Style
 
@@ -1032,11 +1034,6 @@ Text.to_case case_option=Case.Lower locale=Locale.Default = case case_option of
     Case.Upper -> UCharacter.toUpperCase locale.java_locale this
     Case.Title -> UCharacter.toTitleCase locale.java_locale this Nothing
 
-# TODO where to put these
-type Start
-type End
-type Both
-
 ## Returns the input padded to the specified `length`, using the `with_pad`
    string repeated at the start or the end.
 
@@ -1061,18 +1058,18 @@ type Both
          "HELLO".pad 8 "AB" == "HELLOABA"
          "HELLO".pad 8 "AB" Start == "BABHELLO"
 
-Text.pad : Integer -> Text -> (Start | End) -> Text
-Text.pad length=0 with_pad=' ' at=End =
+Text.pad : Integer -> Text -> (Location.Start | Location.End) -> Text
+Text.pad length=0 with_pad=' ' at=Location.End =
     with_pad_length = with_pad.length
     if with_pad_length == 0 then Error.throw (Illegal_Argument_Error "`with_pad` must not be an empty string.") else
         pad_size = length - this.length
         if pad_size <= 0 then this else
-            full_repetitions = pad_size.div / with_pad_length
-            remainder = pad_size.div % with_pad_length
+            full_repetitions = pad_size.div with_pad_length
+            remainder = pad_size % with_pad_length
             case at of
-                Start ->
+                Location.Start ->
                     with_pad.take (Text_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + this
-                End ->
+                Location.End ->
                     this + with_pad.repeat full_repetitions + with_pad.take (Text_Sub_Range.First remainder)
 
 ## This function removes the specified `trim_characters`, by default any
@@ -1098,29 +1095,29 @@ Text.pad length=0 with_pad=' ' at=End =
 
         "ABC123".trim Start "ABC" == "123"
         "ABBA123".trim Start "ABC" == "123"
-Text.trim : (Start | End | Both) -> (Text | (Text -> Boolean)) -> Text
-Text.trim where=Both what=_.is_whitespace =
+Text.trim : (Location.Start | Location.End | Location.Both) -> (Text | (Text -> Boolean)) -> Text
+Text.trim where=Location.Both what=_.is_whitespace =
     predicate = case what of
-        Text -> what.contains
+        Text -> what.contains _
         _ -> what
     break_iterator = BreakIterator.getCharacterInstance
     break_iterator.setText this
     start_index = case where of
-        End -> 0
+        Location.End -> 0
         _ ->
             loop current next =
                 if next < 0 then current else
-                    case predicate (Text_Utils.substring current next) of
+                    case predicate (Text_Utils.substring this current next) of
                         True ->
                             @Tail_Call loop next break_iterator.next
                         False -> current
             loop 0 break_iterator.next
     end_index = case where of
-        Start -> Text_Utils.char_length this
+        Location.Start -> Text_Utils.char_length this
         _ ->
             loop current prev =
                 if prev < 0 then current else
-                    case predicate (Text_Utils.substring prev current) of
+                    case predicate (Text_Utils.substring this prev current) of
                         True ->
                             @Tail_Call loop prev break_iterator.previous
                         False -> current
