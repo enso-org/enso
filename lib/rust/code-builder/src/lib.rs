@@ -4,7 +4,7 @@
 
 #![feature(specialization)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
-#![warn(missing_docs)]
+#![allow(missing_docs)]
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
