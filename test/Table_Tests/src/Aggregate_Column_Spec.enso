@@ -10,6 +10,7 @@ spec = Test.group "Aggregate Columns" <|
     text_col = simple_table.at "text"
     bool_col = simple_table.at "is_valid"
     float_col = simple_table.at "float"
+    int_col = simple_table.at "count"
     empty_table  = Table.new [["count", []], ["is_valid", []], ["text", []]]
 
     test_name = "Test Column"
@@ -92,39 +93,49 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator simple_table (Median float_col test_name) test_name 2.75 0.000001
         test_aggregator empty_table (Median 0 test_name) test_name Nothing
 
-    Test.specify "should be able to compute first of a set of values including missing values" <|
+    Test.specify "should be able to compute first of a set of values including missing" <|
         test_aggregator simple_table (First 1 ignore_nothing=False) "First is_valid" Nothing
         test_aggregator simple_table (First 1 test_name ignore_nothing=False) test_name Nothing
         test_aggregator simple_table (First "is_valid" test_name ignore_nothing=False) test_name Nothing
         test_aggregator simple_table (First bool_col test_name ignore_nothing=False) test_name Nothing
         test_aggregator empty_table (First 0 test_name ignore_nothing=False) test_name Nothing
 
-    Test.specify "should be able to compute first of a set of values excluding missing values" <|
+    Test.specify "should be able to compute first of a set of values excluding missing" <|
         test_aggregator simple_table (First 1) "First is_valid" False
         test_aggregator simple_table (First 1 test_name) test_name False
         test_aggregator simple_table (First "is_valid" test_name) test_name False
         test_aggregator simple_table (First bool_col test_name) test_name False
         test_aggregator empty_table (First 0 test_name) test_name Nothing
 
-    Test.specify "should be able to compute last of a set of values including missing values" <|
+    Test.specify "should be able to compute last of a set of values including missing" <|
         test_aggregator simple_table (Last 1 ignore_nothing=False) "Last is_valid" Nothing
         test_aggregator simple_table (Last 1 test_name ignore_nothing=False) test_name Nothing
         test_aggregator simple_table (Last "is_valid" test_name ignore_nothing=False) test_name Nothing
         test_aggregator simple_table (Last bool_col test_name ignore_nothing=False) test_name Nothing
         test_aggregator empty_table (Last 0 test_name ignore_nothing=False) test_name Nothing
 
-    Test.specify "should be able to compute last of a set of values excluding missing values" <|
+    Test.specify "should be able to compute last of a set of values excluding missing" <|
         test_aggregator simple_table (Last 1) "Last is_valid" False
         test_aggregator simple_table (Last 1 test_name) test_name False
         test_aggregator simple_table (Last "is_valid" test_name) test_name False
         test_aggregator simple_table (Last bool_col test_name) test_name False
         test_aggregator empty_table (Last 0 test_name) test_name Nothing
 
-    Test.specify "should be able to concatenate a set of values excluding missing values" <|
+    Test.specify "should be able to concatenate a set of values excluding missing" <|
         test_aggregator simple_table (Concatenate -1 Nothing ',' '[' ']' '"') "Concatenate text" '[A,"",,"B,C",]'
         test_aggregator simple_table (Concatenate -1 test_name) test_name 'AB,C'
         test_aggregator simple_table (Concatenate "text" test_name ',') test_name 'A,,,B,C,'
         test_aggregator simple_table (Concatenate text_col test_name) test_name 'AB,C'
         test_aggregator empty_table (Concatenate 0 test_name) test_name Nothing
+
+    Test.specify "should be able to count distinct items on a single set of values" <|
+        test_aggregator simple_table (Count_Distinct 0) "Count Distinct count" 4
+        test_aggregator simple_table (Count_Distinct 0 test_name) test_name 4
+        test_aggregator simple_table (Count_Distinct "count" test_name) test_name 4
+        test_aggregator simple_table (Count_Distinct int_col test_name) test_name 4
+        test_aggregator empty_table (Count_Distinct 0 test_name) test_name 0
+
+    Test.specify "should be able to count distinct items on a multiple sets of values" <|
+        test_aggregator simple_table (Count_Distinct [0, 1]) "Count Distinct count is_valid" 5
 
 main = Test.Suite.run_main here.spec

@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table.Data.Column as Column_Module import Column
-from Standard.Table.Data.Group_By import Group_By_Key
+import Standard.Table.Data.Group_By
 
 ## Defines an Aggregate Column
 type Aggregate_Column
@@ -86,7 +86,10 @@ type Aggregate_Column
             get_name c = (this.resolve_column table c).java_column.getName
             case this of
                 Count _ -> "Count"
-                Count_Distinct c _ -> "Count Distinct " + (get_name c)
+                Count_Distinct c _ ->
+                    case c of
+                        Vector.Vector _ -> "Count Distinct " + ((c.map get_name).join " ")
+                        _ -> "Count Distinct " + (get_name c)
                 Count_Not_Nothing c _ -> "Count Not Nothing " + (get_name c)
                 Count_Nothing c _ -> "Count Nothing " + (get_name c)
                 Count_Not_Empty c _ -> "Count Not Empty " + (get_name c)
@@ -169,8 +172,10 @@ type Aggregate_Column
                 val = col.at i
                 if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
             Count_Distinct columns _ ->
-                resolved = columns.map c->(this.resolve_column table c)
-                key_maker i = Group_By_Key (resolved.map c->(c.at i))
+                resolved = case columns of
+                    Vector.Vector _ -> columns.map c->(this.resolve_column table c)
+                    _ -> [this.resolve_column table columns]
+                key_maker i = Group_By.key (resolved.map c->(c.at i))
                 map->i->(map.insert (key_maker i) 1)
 
     evaluate : Any->Any
