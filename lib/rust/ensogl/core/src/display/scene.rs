@@ -577,82 +577,95 @@ impl Dirty {
 
 
 
-// ==============
-// === Render ===
-// ==============
-
-#[derive(Clone, CloneRef, Debug, Default)]
-pub struct Render {
-    instance: Rc<RefCell<Option<Renderer>>>,
-    pipeline: Rc<RefCell<render::Pipeline>>,
-}
-
-
-
 // ================
 // === Renderer ===
 // ================
 
+/// Scene renderer. Manages the initialization and lifetime of both [`render::Pipeline`] and the
+/// [`render::Composer`].
+///
+/// Please note that the composer can be empty if the context was either not provided yet or it was
+/// lost.
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct Renderer {
-    pub logger: Logger,
-    dom:        Dom,
-    variables:  UniformScope,
-
-    pub xpipeline: Rc<CloneCell<render::Pipeline>>,
-    pub composer:  Rc<RefCell<render::Composer>>,
+    pub logger:   Logger,
+    dom:          Dom,
+    variables:    UniformScope,
+    pub pipeline: Rc<CloneCell<render::Pipeline>>,
+    pub composer: Rc<RefCell<Option<render::Composer>>>,
 }
 
 impl Renderer {
-    fn new(logger: impl AnyLogger, dom: &Dom, context: &Context, variables: &UniformScope) -> Self {
+    fn new(logger: impl AnyLogger, dom: &Dom, variables: &UniformScope) -> Self {
         let logger = Logger::new_sub(logger, "renderer");
         let dom = dom.clone_ref();
-        let context = context.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
-        let shape = dom.shape().device_pixels();
-        let width = shape.width as i32;
-        let height = shape.height as i32;
-        let composer = render::Composer::new(&pipeline, &context, &variables, width, height);
-        let xpipeline = Rc::new(CloneCell::new(pipeline));
-        let composer = Rc::new(RefCell::new(composer));
+        let composer = default();
+        Self { logger, dom, variables, pipeline, composer }
+    }
 
-        context.enable(Context::BLEND);
-        // To learn more about the blending equations used here, please see the following articles:
-        // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
-        // - https://www.khronos.org/opengl/wiki/Blending#Colors
-        context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
-        context.blend_func_separate(
-            Context::ONE,
-            Context::ONE_MINUS_SRC_ALPHA,
-            Context::ONE,
-            Context::ONE_MINUS_SRC_ALPHA,
-        );
+    fn set_context(&self, context: Option<&Context>) {
+        let composer = context.map(|context| {
+            // To learn more about the blending equations used here, please see the following
+            // articles:
+            // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
+            // - https://www.khronos.org/opengl/wiki/Blending#Colors
+            context.enable(Context::BLEND);
+            context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
+            context.blend_func_separate(
+                Context::ONE,
+                Context::ONE_MINUS_SRC_ALPHA,
+                Context::ONE,
+                Context::ONE_MINUS_SRC_ALPHA,
+            );
 
-        Self { logger, dom, variables, xpipeline, composer }
+            let (width, height) = self.view_size();
+            let pipeline = self.pipeline.get();
+            render::Composer::new(&pipeline, &context, &self.variables, width, height)
+        });
+        *self.composer.borrow_mut() = composer;
+        self.update_composer_pipeline();
     }
 
     /// Set the pipeline of this renderer.
     pub fn set_pipeline(&self, pipeline: render::Pipeline) {
-        self.composer.borrow_mut().set_pipeline(&pipeline);
-        self.xpipeline.set(pipeline);
+        self.pipeline.set(pipeline);
+        self.update_composer_pipeline()
+    }
+
+    /// Reload the composer pipeline.
+    fn update_composer_pipeline(&self) {
+        if let Some(composer) = &mut *self.composer.borrow_mut() {
+            composer.set_pipeline(&self.pipeline.get());
+        }
     }
 
     /// Reload the composer after scene shape change.
     fn resize_composer(&self) {
+        if let Some(composer) = &mut *self.composer.borrow_mut() {
+            let (width, height) = self.view_size();
+            composer.resize(width, height);
+        }
+    }
+
+    // The width and height in device pixels should be integers. If they are not then this is due to
+    // rounding errors. We round to the nearest integer to compensate for those errors.
+    fn view_size(&self) -> (i32, i32) {
         let shape = self.dom.shape().device_pixels();
-        // The width and height in device pixels should be integers. If they are not then this is
-        // due to rounding errors. We round to the nearest integer to compensate for those errors.
         let width = shape.width.round() as i32;
         let height = shape.height.round() as i32;
-        self.composer.borrow_mut().resize(width, height);
+        (width, height)
     }
 
     /// Run the renderer.
     pub fn run(&self) {
-        debug!(self.logger, "Running.", || {
-            self.composer.borrow_mut().run();
-        })
+        if let Some(composer) = &mut *self.composer.borrow_mut() {
+            debug!(self.logger, "Running.", || {
+                composer.run();
+            })
+        }
     }
 }
 
@@ -835,9 +848,7 @@ pub struct SceneData {
     pub stats:                Stats,
     pub dirty:                Dirty,
     pub logger:               Logger,
-    pub render:               Render,
-    // pub renderer:             Rc<RefCell<Option<Renderer>>>,
-    // pub render_pipeline:      Rc<RefCell<render::Pipeline>>,
+    pub renderer:             Renderer,
     pub layers:               HardcodedLayers,
     pub style_sheet:          style::Sheet,
     pub bg_color_var:         style::Var,
@@ -868,7 +879,7 @@ impl SceneData {
         let stats = stats.clone();
         let shapes = ShapeRegistry::default();
         let uniforms = Uniforms::new(&variables);
-        let render = default();
+        let renderer = Renderer::new(&logger, &dom, &variables);
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
@@ -909,7 +920,7 @@ impl SceneData {
             stats,
             dirty,
             logger,
-            render,
+            renderer,
             layers,
             style_sheet,
             bg_color_var,
@@ -924,9 +935,7 @@ impl SceneData {
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
-        let renderer = context.map(|c| Renderer::new(&self.logger, &self.dom, c, &self.variables));
-        *self.render.instance.borrow_mut() = renderer;
-        self.update_render_pipeline();
+        self.renderer.set_context(context);
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {
@@ -956,17 +965,6 @@ impl SceneData {
         }
     }
 
-    pub fn set_render_pipeline(&self, pipeline: render::Pipeline) {
-        *self.render.pipeline.borrow_mut() = pipeline;
-        self.update_render_pipeline()
-    }
-
-    fn update_render_pipeline(&self) {
-        if let Some(renderer) = &*self.render.instance.borrow() {
-            renderer.set_pipeline(self.render.pipeline.borrow().clone_ref())
-        }
-    }
-
     fn update_shape(&self) {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
@@ -974,9 +972,7 @@ impl SceneData {
             self.layers.iter_sublayers_and_masks_nested(|layer| {
                 layer.camera().set_screen(screen.width, screen.height)
             });
-            if let Some(renderer) = &*self.render.instance.borrow() {
-                renderer.resize_composer();
-            }
+            self.renderer.resize_composer();
             self.dirty.shape.unset_all();
         }
     }
@@ -1033,9 +1029,7 @@ impl SceneData {
     }
 
     pub fn render(&self) {
-        if let Some(renderer) = &*self.render.instance.borrow() {
-            renderer.run()
-        }
+        self.renderer.run()
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {

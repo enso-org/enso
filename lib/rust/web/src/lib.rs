@@ -584,7 +584,7 @@ pub fn start_time() -> std::time::Instant {
 #[allow(unsafe_code)]
 #[cfg(target_arch = "wasm32")]
 pub fn time_from_start() -> f64 {
-    unsafe { performance().now() + TIME_OFFSET }
+    unsafe { window.performance_or_panic().now() + TIME_OFFSET }
 }
 
 /// Time difference between the start time and current point in time.

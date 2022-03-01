@@ -277,7 +277,7 @@ impl WorldData {
             ))
             .add(ScreenRenderPass::new(&self.default_scene))
             .add(pixel_read_pass);
-        self.default_scene.set_render_pipeline(pipeline);
+        self.default_scene.renderer.set_pipeline(pipeline);
     }
 }
 
