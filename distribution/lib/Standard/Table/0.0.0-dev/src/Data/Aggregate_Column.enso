@@ -148,7 +148,7 @@ type Aggregate_Column
                         if v.is_nothing then current else v
             Sum c _ -> create_closure c col->total->i->
                 v = col.at i
-                if v.is_nothing then total else 
+                if v.is_nothing then total else
                     if total.is_nothing then v else total + v
             Average c _ -> create_closure c col->a->i->
                 v = col.at i
@@ -157,8 +157,11 @@ type Aggregate_Column
                 v = col.at i
                 if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v]
             Concatenate c _ j _ _ q -> create_closure c col->text->i->
-                val=if (col.at i).is_nothing then "" else
-                    text = (col.at i).to_text
+                v = col.at i
+                val=if v.is_nothing then "" else
+                    text = case v of
+                        Text -> v
+                        _ -> v.to_text
                     if text == "" then (q+q) else
                         if text.contains j then (q+text+q) else text
                 if i==0 then val else (text + j + val)
