@@ -84,4 +84,12 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator simple_table (Standard_Deviation float_col test_name population=True) test_name 1.712271 0.000001
         test_aggregator empty_table (Standard_Deviation 0 test_name population=True) test_name Nothing
 
+    Test.specify "should be able to compute median a set of values" <|
+        test_aggregator simple_table (Median -2) "Median float" 2.75 0.000001
+        test_aggregator simple_table (Median -2 test_name) test_name 2.75 0.000001
+        test_aggregator simple_table (Median "float" test_name) test_name 2.75 0.000001
+        test_aggregator simple_table (Median float_col test_name) test_name 2.75 0.000001
+        test_aggregator empty_table (Median 0 test_name) test_name Nothing
+
+
 main = Test.Suite.run_main here.spec

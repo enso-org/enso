@@ -167,21 +167,22 @@ type Aggregate_Column
         Count_Distinct _ _ -> value.size
         Median _ _ ->
             count = value.fold 0 (+)
-            case count % 2 of
-                1 ->
-                    mid = (count-1) / 2
-                    output = value.fold_with_key [0, Nothing] c->k->v->
-                        new_v = c.first + v
-                        [new_v, if c.first.up_to new_v . contains mid then k else c.second]
-                    output.second
-                0 ->
-                    mid = count / 2
-                    output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
-                        new_v = c.first + v
-                        new_s = if c.first.up_to new_v . contains mid then k else c.second
-                        new_t = if c.first.up_to new_v . contains (mid-1) then k else (c.at 2)
-                        [new_v, new_s, new_t]
-                    (output.second + (output.at 2)) / 2
+            if count == 0 then Nothing else
+                case count%2 == 1 of
+                    True ->
+                        mid = (count-1) / 2
+                        output = value.fold_with_key [0, Nothing] c->k->v->
+                            new_v = c.first + v
+                            [new_v, if c.first.up_to new_v . contains mid then k else c.second]
+                        output.second
+                    False ->
+                        mid = count / 2
+                        output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
+                            new_v = c.first + v
+                            new_s = if c.first.up_to new_v . contains mid then k else c.second
+                            new_t = if c.first.up_to new_v . contains (mid-1) then k else (c.at 2)
+                            [new_v, new_s, new_t]
+                        (output.second + (output.at 2)) / 2
         Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
         Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
             f = if p then 1 else (value.first / (value.first - 1)).sqrt
