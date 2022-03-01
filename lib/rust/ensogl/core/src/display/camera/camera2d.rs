@@ -174,8 +174,8 @@ struct Camera2dData {
     clipping:               Clipping,
     matrix:                 Matrix,
     dirty:                  Dirty,
-    zoom_update_registry:   callback::Registry1<f32>,
-    screen_update_registry: callback::Registry1<Vector2<f32>>,
+    zoom_update_registry:   callback::SharedRegistryMut1<f32>,
+    screen_update_registry: callback::SharedRegistryMut1<Vector2<f32>>,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
@@ -406,6 +406,7 @@ impl Camera2d {
         self.data.borrow_mut().update(scene)
     }
 
+    // FIXME: this can fail - updated to shared registry already.
     /// Adds a callback to notify when `zoom` is updated.
     pub fn add_zoom_update_callback<F: ZoomUpdateFn>(&self, f: F) -> callback::Handle {
         self.data.borrow_mut().add_zoom_update_callback(f)

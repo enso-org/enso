@@ -1,5 +1,4 @@
-//! This module contains implementation of `DynamicLoop`, a loop manager which runs a
-//! `DynamicLoopCallback` once per frame.
+//! This module contains implementation of loops mainly used for per-frame callbacks firing.
 
 use crate::prelude::*;
 
@@ -239,73 +238,5 @@ where Callback: LoopCallback
     /// Constructor.
     pub fn new_with_fixed_frame_rate(frame_rate: f32, callback: Callback) -> Self {
         Self::new(FixedFrameRateSampler::new(frame_rate, callback))
-    }
-}
-
-
-
-// ===================
-// === DynamicLoop ===
-// ===================
-
-/// A callback to register in DynamicLoop, taking time_ms:f32 as its input.
-pub trait DynamicLoopCallback = callback::CopyCallbackMut1Fn<TimeInfo>;
-
-/// Animation loop which allows registering and unregistering callbacks dynamically. After a
-/// callback is registered, a `callback::Handle` is returned. The callback is automatically removed
-/// as soon as its handle is dropped. You can also use the `forget` method on the handle to make the
-/// callback registered forever, but beware that it can easily lead to memory leaks.
-///
-/// Please refer to `Loop` if you don't need the ability to add / remove callbacks dynamically and
-/// you want better performance.
-#[derive(Clone, CloneRef, Debug)]
-pub struct DynamicLoop {
-    raw_loop: Loop<Box<dyn FnMut(TimeInfo)>>,
-    data:     Rc<RefCell<DynamicLoopData>>,
-}
-
-/// Internal representation for `DynamicLoop`.
-#[derive(Debug, Default)]
-pub struct DynamicLoopData {
-    on_frame:        callback::CopyRegistry1<TimeInfo>,
-    on_before_frame: callback::CopyRegistry1<TimeInfo>,
-    on_after_frame:  callback::CopyRegistry1<TimeInfo>,
-}
-
-impl Default for DynamicLoop {
-    fn default() -> Self {
-        let data = Rc::new(RefCell::new(DynamicLoopData::default()));
-        let weak = Rc::downgrade(&data);
-        let raw_loop: Loop<Box<dyn FnMut(TimeInfo)>> = Loop::new(Box::new(move |time| {
-            weak.upgrade().for_each(|data| {
-                let mut data_mut = data.borrow_mut();
-                data_mut.on_before_frame.run_all(time);
-                data_mut.on_frame.run_all(time);
-                data_mut.on_after_frame.run_all(time);
-            })
-        }));
-        Self { raw_loop, data }
-    }
-}
-
-impl DynamicLoop {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-
-    /// Add new callback which will be run on every animation frame.
-    pub fn on_frame<F: DynamicLoopCallback>(&self, callback: F) -> callback::Handle {
-        self.data.borrow_mut().on_frame.add(Box::new(callback))
-    }
-
-    /// Add new callback which will be run on before all callbacks registered with `on_frame`.
-    pub fn on_before_frame<F: DynamicLoopCallback>(&self, callback: F) -> callback::Handle {
-        self.data.borrow_mut().on_before_frame.add(Box::new(callback))
-    }
-
-    /// Add new callback which will be run on after all callbacks registered with `on_frame`.
-    pub fn on_after_frame<F: DynamicLoopCallback>(&self, callback: F) -> callback::Handle {
-        self.data.borrow_mut().on_after_frame.add(Box::new(callback))
     }
 }

@@ -25,7 +25,7 @@ use crate::data::dirty::traits::*;
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct Theme {
     tree:   Rc<RefCell<HashMapTree<String, Option<Value>>>>,
-    on_mut: callback::SharedRegistryMut,
+    on_mut: callback::RegistryMut::NoArgs,
 }
 
 impl Theme {

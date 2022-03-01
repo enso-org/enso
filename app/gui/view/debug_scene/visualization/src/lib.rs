@@ -11,6 +11,7 @@
 
 use ensogl::prelude::*;
 
+use ensogl::animation;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
@@ -21,6 +22,8 @@ use ide_view::graph_editor::component::visualization::Registry;
 use js_sys::Math::sin;
 use nalgebra::Vector2;
 use wasm_bindgen::prelude::*;
+
+
 
 fn generate_data(seconds: f64) -> Vec<Vector2<f32>> {
     let mut data = Vec::new();
@@ -124,7 +127,7 @@ fn init(app: &Application) {
     world
         .on
         .before_frame
-        .add(move |time_info| {
+        .add(move |time_info: animation::TimeInfo| {
             let _keep_alive = &navigator;
 
             let data = generate_data((time_info.local / 1000.0).into());

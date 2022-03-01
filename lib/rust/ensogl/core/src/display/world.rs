@@ -103,6 +103,8 @@ impl<'t> From<&'t World> for &'t Scene {
 // === WorldDataWithLoop ===
 // =========================
 
+pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
+
 /// World data with a main loop implementation.
 ///
 /// # Main Loop Performance
@@ -118,18 +120,16 @@ impl<'t> From<&'t World> for &'t Scene {
 /// metric, impacting Users' experience with the application.
 #[derive(Debug)]
 pub struct WorldDataWithLoop {
-    main_loop:        animation::DynamicLoop,
-    main_loop_handle: callback::Handle,
-    data:             WorldData,
+    main_loop: MainLoop,
+    data:      WorldData,
 }
 
 impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
         let data = WorldData::new();
-        let main_loop = animation::DynamicLoop::new();
-        let main_loop_handle = main_loop.on_frame(f!([data](t) data.go_to_next_frame_with_time(t)));
-        Self { main_loop, main_loop_handle, data }
+        let main_loop = MainLoop::new(Box::new(f!([data](t) data.go_to_next_frame_with_time(t))));
+        Self { main_loop, data }
     }
 }
 
@@ -157,8 +157,8 @@ impl Deref for WorldDataWithLoop {
 #[allow(missing_docs)]
 pub struct Callbacks {
     pub prev_frame_stats: callback::SharedRegistryMut1<StatsData>,
-    pub before_frame:     callback::XSharedRegistryMut<(animation::TimeInfo,)>,
-    pub after_frame:      callback::XSharedRegistryMut<(animation::TimeInfo,)>,
+    pub before_frame:     callback::RegistryMut::Copy_1<animation::TimeInfo>,
+    pub after_frame:      callback::RegistryMut::Copy_1<animation::TimeInfo>,
 }
 
 
