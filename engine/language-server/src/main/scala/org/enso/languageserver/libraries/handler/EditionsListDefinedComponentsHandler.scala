@@ -50,7 +50,7 @@ class EditionsListDefinedComponentsHandler(
       BlockingOperation
         .run {
           val edition = editionReferenceResolver.resolveEdition(reference).get
-          val definedLibraries = edition.getAllDefinedLibraries.view
+          val definedLibraries = edition.getAllDefinedLibraries.toSeq
             .map { case (name, version) =>
               readLocalPackage(name, version)
             }
