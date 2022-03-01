@@ -203,7 +203,7 @@ class ConfigSpec
       parsed.componentGroups match {
         case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
-            "Failed to decode 'Group 1' as module reference"
+            "Failed to decode 'Group 1' as a module reference"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
