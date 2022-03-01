@@ -154,14 +154,6 @@ use std::str;
 
 use internal::*;
 
-// =============
-// === Label ===
-// =============
-
-/// The label of a profiler; this includes the name given at its creation, along with file and
-/// line-number information.
-pub type Label = &'static str;
-
 
 
 // ======================
