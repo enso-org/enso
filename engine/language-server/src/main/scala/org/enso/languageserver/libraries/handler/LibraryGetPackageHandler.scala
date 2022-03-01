@@ -89,9 +89,11 @@ class LibraryGetPackageHandler(
         id,
         LibraryGetPackage.Result(
           Option.unless(license.isEmpty)(license),
-          componentGroups.map(
-            LibraryComponentGroups.fromComponentGroups(libraryName, _)
-          ),
+          componentGroups.flatMap { groups =>
+            Option.unless(
+              groups.newGroups.isEmpty && groups.extendedGroups.isEmpty
+            )(LibraryComponentGroups.fromComponentGroups(libraryName, groups))
+          },
           rawPackage
         )
       )
