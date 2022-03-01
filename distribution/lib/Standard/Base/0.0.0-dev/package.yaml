@@ -8,3 +8,8 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+component-groups:
+  new:
+    - Testme 1:
+      exports:
+        - Main.Nothing
