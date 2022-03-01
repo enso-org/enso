@@ -87,9 +87,9 @@ type Aggregate_Column
             case this of
                 Count _ -> "Count"
                 Count_Distinct c _ -> "Count Distinct " + (get_name c)
-                Count_Not_Nothing c _ -> "Count NotNull " + (get_name c)
-                Count_Nothing c _ -> "Count Null " + (get_name c)
-                Count_Not_Empty c _ -> "Count NotEmpty " + (get_name c)
+                Count_Not_Nothing c _ -> "Count Not Nothing " + (get_name c)
+                Count_Nothing c _ -> "Count Nothing " + (get_name c)
+                Count_Not_Empty c _ -> "Count Not Empty " + (get_name c)
                 Count_Empty c _ -> "Count Empty " + (get_name c)
                 Sum c _ -> "Sum " + (get_name c)
                 Average c _ -> "Average " + (get_name c)
@@ -164,9 +164,10 @@ type Aggregate_Column
     evaluate value = case this of
         Count_Distinct _ _ -> value.size
         Median _ _ -> (Error.throw "Not in prototype")
-        Average _ _ -> if (value.at 0) == 0 then Nothing else (value.at 1 / value.at 0)
-        Standard_Deviation _ _ p -> if (value.at 0) == 0 then Nothing else
-            (value.at 2/value.at 0 - (value.at 1/value.at 0)^2).sqrt * (if p then 1 else 1)
+        Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
+        Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
+            f = if p then 1 else (value.first / (value.first - 1)).sqrt
+            (value.at 2/value.at 0 - (value.at 1/value.at 0)^2).sqrt * f
         Concatenate _ _ _ s p _ -> if value.is_nothing then value else (s + value + p)
         _ -> value
 
