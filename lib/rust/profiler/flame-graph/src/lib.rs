@@ -113,19 +113,17 @@ impl FlameGraph {
 #[cfg(test)]
 mod compile_tests {
     use super::*;
-    use crate as profiler;
-    use profiler::profile;
 
-    #[profile]
-    pub fn profiled_a(_profiler: profiler::Objective) {
-        profiled_b(_profiler)
+    #[profile(Objective)]
+    pub fn profiled_a() {
+        profiled_b()
     }
-    #[profile]
-    pub fn profiled_b(_profiler: profiler::Objective) {}
+    #[profile(Objective)]
+    pub fn profiled_b() {}
 
     #[test]
     fn check_flame_graph_creation() {
-        profiled_a(profiler::APP_LIFETIME);
+        profiled_a();
 
         let flame_graph = FlameGraph::take_from_log();
         assert_eq!(flame_graph.blocks.len(), 2);

@@ -419,7 +419,9 @@ pub struct CodePos {
 
 #[cfg(test)]
 mod tests {
+
     use crate as profiler_data;
+    use crate::OpaqueMetadata;
     use enso_profiler as profiler;
     use profiler::profile;
 
