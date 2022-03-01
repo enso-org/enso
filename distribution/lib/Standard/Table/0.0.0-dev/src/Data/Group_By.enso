@@ -1,0 +1,54 @@
+from Standard.Base import all
+import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
+
+## Create a key structure for grouping operations
+key : Vector -> Group_By_Key
+key values =
+    mapper c = case c of
+        Boolean -> Comparable_Boolean c
+        Nothing -> Comparable_Nothing
+        _ -> c
+
+    Group_By_Key <| values.map mapper
+
+## PRIVATE
+   Represents a comparable vector of element which is used as key for grouping.
+type Group_By_Key
+    type Group_By_Key values
+
+    ## See if two keys are equal
+    == : Group_By_Key->Boolean
+    == that = this.values == that.values
+
+    ## Compares two keys
+    compare_to : Group_By_Key->Ordering
+    compare_to that =
+        Vector_Lexicographic_Order.compare this.values that.values
+
+## PRIVATE
+   Temporary workaround until Boolean compare_to completed
+type Comparable_Boolean
+    type Comparable_Boolean value
+
+    == : Comparable_Boolean->Boolean
+    == that = (this.compare_to that) == Ordering.Equal
+
+    compare_to : Any->Ordering
+    compare_to that =
+        if this.value == that.value then Ordering.Equal else
+            if this.value then Ordering.Greater else Ordering.Less
+
+## PRIVATE
+   Temporary workaround allowing Nothing to be in a Group_By
+type Comparable_Nothing
+    type Comparable_Nothing
+
+    == : Comparable_Nothing->Boolean
+    == that = (this.compare_to that) == Ordering.Equal
+
+    compare_to : Any->Ordering
+    compare_to that =
+        case that of
+            Comparable_Nothing -> Ordering.Equal
+            Nothing -> Ordering.Equal
+            _ -> Ordering.Less
