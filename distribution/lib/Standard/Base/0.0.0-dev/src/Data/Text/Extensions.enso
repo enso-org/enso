@@ -5,6 +5,7 @@ from Standard.Builtins import Text, Prim_Text_Helpers
 
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
@@ -13,6 +14,7 @@ import Standard.Base.Meta
 
 from Standard.Builtins export Text
 
+export Standard.Base.Data.Text.Case
 export Standard.Base.Data.Text.Split_Kind
 export Standard.Base.Data.Text.Line_Ending_Style
 
@@ -551,7 +553,7 @@ Text.equals_ignore_case that locale=Locale.default =
    used to perform case-insensitive comparisons.
 Text.to_case_insensitive_key : Locale -> Text
 Text.to_case_insensitive_key locale=Locale.default =
-    this.to_lower_case locale . to_upper_case locale
+    this.to_case Case.Lower locale . to_case Case.Upper locale
 
 ## Compare two texts to discover their ordering.
 
@@ -984,40 +986,11 @@ Text.drop range =
         if char_range.end == (Text_Utils.char_length this) then prefix else
             prefix + Text_Utils.drop_first this char_range.end
 
-## ALIAS Lower Case
-
-   Converts each character in `this` to lower case.
-
-   Arguments:
-   - locale: specifies the locale for character case mapping. Defaults to the
-     `Locale.default` locale.
-
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
-
-   > Example
-     Converting a text to lower case in the default locale:
-
-         "My TeXt!".to_lower_case == "my text!"
-
-   > Example
-     Converting a text to lower case in a specified locale (here, Turkey):
-
-         from Standard.Base import all
-         import Standard.Base.Data.Locale
-
-         example_case_with_locale = "I".to_lower_case (Locale.new "tr") == "ı"
-Text.to_lower_case : Locale.Locale -> Text
-Text.to_lower_case locale=Locale.default =
-    UCharacter.toLowerCase locale.java_locale this
-
-## ALIAS Upper Case
-
-   Converts each character in `this` to upper case.
+## ALIAS lower, upper, title, proper
+   Converts each character in `this` to the specified case.
 
    Arguments:
+   - case_option: specifies how to convert the characters.
    - locale: specifies the locale for character case mapping. Defaults to
      `Locale.default`.
 
@@ -1026,10 +999,16 @@ Text.to_lower_case locale=Locale.default =
      Standard Annex 29. This is the smallest unit that still has semantic
      meaning in most text-processing applications.
 
-   > Example
-     Converting a text to upper case in the default locale:
+   ! What is title case?
+     Title case capitalizes the first letter of every word and ensures that all
+     the remaining letters are in lower case. Some definitions of title case
+     avoid capitalizing minor words (like the article "the" in English) but this
+     implementation treats all words in the same way.
 
-         "My TeXt!".to_upper_case == "MY TEXT!"
+   > Example
+     Converting a text to lower case in the default locale:
+
+         "My TeXt!".to_case == "my text!"
 
    > Example
      Converting a text to upper case in a specified locale:
@@ -1037,7 +1016,9 @@ Text.to_lower_case locale=Locale.default =
          from Standard.Base import all
          import Standard.Base.Data.Locale
 
-         example_case_with_locale = "i".to_upper_case (Locale.new "tr") == "İ"
-Text.to_upper_case : Locale.Locale -> Text
-Text.to_upper_case locale=Locale.default =
-    UCharacter.toUpperCase locale.java_locale this
+         example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
+Text.to_case : Case -> Locale -> Text
+Text.to_case case_option=Case.Lower locale=Locale.Default = case case_option of
+    Case.Lower -> UCharacter.toLowerCase locale.java_locale this
+    Case.Upper -> UCharacter.toUpperCase locale.java_locale this
+    Case.Title -> UCharacter.toTitleCase locale.java_locale this Nothing

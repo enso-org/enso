@@ -300,12 +300,34 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
 
         Test.specify "should correctly convert character case" <|
-            "FooBar Baz".to_lower_case.should_equal "foobar baz"
-            "FooBar Baz".to_upper_case.should_equal "FOOBAR BAZ"
-            "i".to_upper_case . should_equal "I"
-            "I".to_lower_case . should_equal "i"
-            "i".to_upper_case (Locale.new "tr") . should_equal "İ"
-            "I".to_lower_case (Locale.new "tr") . should_equal "ı"
+            "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
+            "FooBar Baz".to_case Case.Upper . should_equal "FOOBAR BAZ"
+
+            "foo bar baz".to_case Case.Title . should_equal "Foo Bar Baz"
+            "foo-bar, baz.baz foo_foo".to_case Case.Title . should_equal "Foo-Bar, Baz.baz Foo_foo"
+            "jAck the rippER".to_case Case.Title (Locale.uk) . should_equal "Jack The Ripper"
+
+            "i".to_case Case.Upper . should_equal "I"
+            "I".to_case Case.Lower . should_equal "i"
+            "i".to_case Case.Upper (Locale.new "tr") . should_equal "İ"
+            "I".to_case Case.Lower (Locale.new "tr") . should_equal "ı"
+            "İ".to_case Case.Lower . should_equal "i̇"
+            "ı".to_case Case.Upper . should_equal "I"
+
+            "Straße".to_case Case.Upper . should_equal "STRASSE"
+            "STRASSE".to_case Case.Lower . should_equal "strasse"
+            "et cætera".to_case Case.Upper . should_equal "ET CÆTERA"
+            ("β".to_case Case.Upper == "B") . should_be_false
+            "δλφξ".to_case Case.Upper . should_equal "ΔΛΦΞ"
+            "ΔΛΦΞ".to_case Case.Lower . should_equal "δλφξ"
+            "δλ φξ".to_case Case.Title . should_equal "Δλ Φξ"
+
+            '✨🚀🚧😍😃😎😙😉☺'.to_case Case.Upper . should_equal '✨🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.to_case Case.Lower . should_equal '✨🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.to_case Case.Title . should_equal '✨🚀🚧😍😃😎😙😉☺'
+
+            "123".to_case Case.Upper . should_equal "123"
+            "abc123".to_case Case.Upper . should_equal "ABC123"
 
         Test.specify "should dump utf-16 characters to a vector" <|
             kshi_chars = kshi.utf_16
