@@ -68,7 +68,7 @@ type Aggregate_Column
           not missing value returned.
         - order_by: required for database tables. Specifies how to order the
           results within the group.
-    type First (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False) (order_by:Column_Selector|Nothing=Nothing)
+    type First (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
 
     ## Creates a new column with the last value in each group.
 
@@ -77,7 +77,7 @@ type Aggregate_Column
           not missing value returned.
         - order_by: required for database tables. Specifies how to order the
           results within the group.
-    type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False) (order_by:Column_Selector|Nothing=Nothing)
+    type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
 
     ## Gets a column name to use for the aggregate column
     column_name : Table->Text
@@ -136,8 +136,16 @@ type Aggregate_Column
             Count_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
             Count_Not_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 0 else 1)
             Count_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 1 else 0)
-            First c _ _ _ -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
-            Last c _ _ _ -> create_closure c col->_->i->(col.at i)
+            First c _ i _ ->
+                case i of
+                    False -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
+                    True -> create_closure c col->current->i->if current.is_nothing then (col.at i) else current
+            Last c _ i _ ->
+                case i of
+                    False -> create_closure c col->_->i->(col.at i)
+                    True -> create_closure c col->current->i->
+                        v = (col.at i)
+                        if v.is_nothing then current else v
             Sum c _ -> create_closure c col->total->i->
                 v = col.at i
                 if v.is_nothing then total else 
