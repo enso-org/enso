@@ -708,6 +708,36 @@ spec =
             '      \u{301}   '.trim . should_equal ' \u{301}'
             ' \u{301}'.trim . should_equal ' \u{301}'
 
+        Test.specify "should allow repeating as in the examples" <|
+            "ABBA".repeat 5 . should_equal "ABBAABBAABBAABBAABBA"
+            "A".repeat 5 . should_equal "AAAAA"
+            "Hello ".repeat 2 . should_equal "Hello Hello "
+
+        Test.specify "should allow more general repeating" <|
+            'He\u{302}llo\u{308}'.repeat 1 . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'.repeat 3 . should_equal 'He\u{302}llo\u{308}He\u{302}llo\u{308}He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'.repeat 0 . should_equal ''
+            'He\u{302}llo\u{308}'.repeat -5 . should_equal ''
+
+            ''.repeat 100 . should_equal ''
+
+            '✨🚀🚧'.repeat 2 . should_equal '✨🚀🚧✨🚀🚧'
+
+        Test.specify "should allow repeating using * as in the examples" <|
+            "ABBA"*5 . should_equal "ABBAABBAABBAABBAABBA"
+            "A"*5 . should_equal "AAAAA"
+            "Hello "*2 . should_equal "Hello Hello "
+
+        Test.specify "should allow more general repeating using *" <|
+            'He\u{302}llo\u{308}'*1 . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'*3 . should_equal 'He\u{302}llo\u{308}He\u{302}llo\u{308}He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'*0 . should_equal ''
+            'He\u{302}llo\u{308}'*(-5) . should_equal ''
+
+            ''*100 . should_equal ''
+
+            '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
+
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
             match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First
