@@ -26,10 +26,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -179,7 +176,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[argExecutors.length];
     boolean anyWarnings = false;
-    ArrayRope<Object> accumulatedWarnings = new ArrayRope<>();
+    ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < argExecutors.length; i++) {
       Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
       state = r.getState();

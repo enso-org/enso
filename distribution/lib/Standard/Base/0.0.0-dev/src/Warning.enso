@@ -1,0 +1,14 @@
+from Standard.Base import all
+
+type Warning
+    type Warning prim_warning
+
+    value = Prim_Warning.get_value this.prim_warning
+
+attach value warning =
+    origin = Runtime.get_stack_trace.drop_start 1
+    Prim_Warning.attach value warning origin
+
+get_all value =
+    Vector.Vector (Prim_Warning.get_all value) . map Warning
+

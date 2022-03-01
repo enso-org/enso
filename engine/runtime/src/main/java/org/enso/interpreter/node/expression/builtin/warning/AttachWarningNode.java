@@ -6,26 +6,28 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 
 @BuiltinMethod(
-    type = "Error",
-    name = "throw",
-    description = "Returns a new value error with given payload.")
+    type = "Prim_Warning",
+    name = "attach",
+    description = "Attaches the given warning to the value.")
 public abstract class AttachWarningNode extends Node {
-  abstract WithWarnings execute(Object _this, @AcceptsWarning Object value, Object warning);
+  abstract WithWarnings execute(
+      Object _this, @AcceptsWarning Object value, Object warning, Object origin);
 
   static AttachWarningNode build() {
     return AttachWarningNodeGen.create();
   }
 
   @Specialization
-  WithWarnings doWarning(Object _this, WithWarnings value, Object warning) {
-    return value.prepend(warning);
+  WithWarnings doWarning(Object _this, WithWarnings value, Object warning, Object origin) {
+    return value.prepend(new Warning(warning, origin));
   }
 
   @Fallback
-  WithWarnings doOther(Object _this, Object value, Object warning) {
-    return new WithWarnings(value, warning);
+  WithWarnings doOther(Object _this, Object value, Object warning, Object origin) {
+    return new WithWarnings(value, new Warning(warning, origin));
   }
 }

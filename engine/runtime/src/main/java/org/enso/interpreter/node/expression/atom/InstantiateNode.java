@@ -9,6 +9,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -30,9 +31,11 @@ public class InstantiateNode extends ExpressionNode {
     this.arguments = arguments;
     this.profiles = new ConditionProfile[arguments.length];
     this.sentinelProfiles = new BranchProfile[arguments.length];
+    this.warningProfiles = new ConditionProfile[arguments.length];
     for (int i = 0; i < arguments.length; ++i) {
       this.profiles[i] = ConditionProfile.createCountingProfile();
       this.sentinelProfiles[i] = BranchProfile.create();
+      this.warningProfiles[i] = ConditionProfile.createCountingProfile();
     }
   }
 
@@ -59,10 +62,10 @@ public class InstantiateNode extends ExpressionNode {
   public Object executeGeneric(VirtualFrame frame) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
-    ArrayRope<Object> accumulatedWarnings = new ArrayRope<>();
+    ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < arguments.length; i++) {
       ConditionProfile profile = profiles[i];
-      ConditionProfile warningProfile = profiles[i];
+      ConditionProfile warningProfile = warningProfiles[i];
       BranchProfile sentinelProfile = sentinelProfiles[i];
       Object argument = arguments[i].executeGeneric(frame);
       if (profile.profile(TypesGen.isDataflowError(argument))) {

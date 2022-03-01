@@ -244,14 +244,14 @@ type Error
     to_text = @Builtin_Method "Error.to_text"
 
 @Builtin_Type
-type Warning
-    type Warning
+type Prim_Warning
+    type Prim_Warning
 
     attach : Any -> Any -> Any
-    attach value warning = @Builtin_Method "Warning.attach"
+    attach value warning = @Builtin_Method "Prim_Warning.attach"
 
     get_all : Any -> Vector.Vector
-    get_all value = @Builtin_Method "Warning.get_all"
+    get_all value = @Builtin_Method "Prim_Warning.get_all"
 
 ## The runtime representation of a syntax error.
 

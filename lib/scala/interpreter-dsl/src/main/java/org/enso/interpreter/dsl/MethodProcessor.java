@@ -85,6 +85,7 @@ public class MethodProcessor extends AbstractProcessor {
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
           "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.error.PanicException",
+          "org.enso.interpreter.runtime.error.Warning",
           "org.enso.interpreter.runtime.error.WithWarnings",
           "org.enso.interpreter.runtime.state.Stateful",
           "org.enso.interpreter.runtime.type.TypesGen");
@@ -368,7 +369,7 @@ public class MethodProcessor extends AbstractProcessor {
       return false;
     } else {
       out.println("    boolean anyWarnings = false;");
-      out.println("    ArrayRope<Object> gatheredWarnings = new ArrayRope<>();");
+      out.println("    ArrayRope<Warning> gatheredWarnings = new ArrayRope<>();");
       for (var arg : argsToCheck) {
         out.println(
             "    if ("

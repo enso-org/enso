@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.interop.TruffleObject;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.ArrayRope;
 
 public class Warning implements TruffleObject {
@@ -23,5 +22,9 @@ public class Warning implements TruffleObject {
       this.time = time;
       this.location = location;
     }
+  }
+
+  public Object getValue() {
+    return value;
   }
 }

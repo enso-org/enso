@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
@@ -49,7 +50,8 @@ import org.enso.polyglot.data.TypeGraph;
   ModuleScope.class,
   Ref.class,
   PanicException.class,
-  PanicSentinel.class
+  PanicSentinel.class,
+  Warning.class
 })
 public class Types {
 

@@ -6,12 +6,13 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 
 @BuiltinMethod(
-    type = "Error",
-    name = "throw",
-    description = "Returns a new value error with given payload.")
+    type = "Prim_Warning",
+    name = "get_all",
+    description = "Gets all the warnings associated with the value.")
 public abstract class GetWarningsNode extends Node {
   abstract Array execute(Object _this, @AcceptsWarning Object value);
 
@@ -21,7 +22,10 @@ public abstract class GetWarningsNode extends Node {
 
   @Specialization
   Array doWarning(Object _this, WithWarnings value) {
-    return new Array(value.getWarningsArray());
+    Warning[] warnings = value.getWarningsArray();
+    Object[] result = new Object[warnings.length];
+    System.arraycopy(warnings, 0, result, 0, warnings.length);
+    return new Array(result);
   }
 
   @Fallback

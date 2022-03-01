@@ -83,7 +83,8 @@ public abstract class InvokeConversionNode extends BaseNode {
       return ((Atom) _this).getConstructor();
     } else {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeInvalidConversionTargetError(_this), thisNode);
+          Context.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(_this),
+          thisNode);
     }
   }
 
@@ -134,12 +135,12 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization
   Stateful doPanicSentinel(
-          VirtualFrame frame,
-          Object state,
-          UnresolvedConversion conversion,
-          Object _this,
-          PanicSentinel that,
-          Object[] arguments) {
+      VirtualFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      PanicSentinel that,
+      Object[] arguments) {
     throw that;
   }
 
