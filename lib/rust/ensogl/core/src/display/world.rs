@@ -128,19 +128,7 @@ impl WorldDataWithLoop {
     pub fn new() -> Self {
         let data = WorldData::new();
         let main_loop = animation::DynamicLoop::new();
-        let main_loop_handle = main_loop.on_frame(f!([data](t:animation::TimeInfo) {
-            let previous_frame_stats = data.stats.begin_frame();
-            if let Some(stats) = previous_frame_stats {
-                data.on.prev_frame_stats.run_all(&stats);
-            }
-            data.on.before_frame.run_all(t);
-            data.uniforms.time.set(t.local);
-            data.scene_dirty.unset_all();
-            data.default_scene.update(t);
-            data.default_scene.render();
-            data.on.after_frame.run_all(t);
-            data.stats.end_frame();
-        }));
+        let main_loop_handle = main_loop.on_frame(f!([data](t) data.go_to_next_frame_with_time(t)));
         Self { main_loop, main_loop_handle, data }
     }
 }
@@ -278,6 +266,26 @@ impl WorldData {
             .add(ScreenRenderPass::new(&self.default_scene))
             .add(pixel_read_pass);
         self.default_scene.renderer.set_pipeline(pipeline);
+    }
+
+    /// Perform to the next frame with the provided time information.
+    ///
+    /// Please note that the provided time information from the [`requestAnimationFrame`] JS
+    /// function is more precise than time obtained from the [`window.performance().now()`] one.
+    /// Follow this link to learn more:
+    /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
+    pub fn go_to_next_frame_with_time(&self, time: animation::TimeInfo) {
+        let previous_frame_stats = self.stats.begin_frame();
+        if let Some(stats) = previous_frame_stats {
+            self.on.prev_frame_stats.run_all(&stats);
+        }
+        self.on.before_frame.run_all(time);
+        self.uniforms.time.set(time.local);
+        self.scene_dirty.unset_all();
+        self.default_scene.update(time);
+        self.default_scene.render();
+        self.on.after_frame.run_all(time);
+        self.stats.end_frame();
     }
 }
 

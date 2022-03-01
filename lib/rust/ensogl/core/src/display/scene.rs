@@ -1092,12 +1092,9 @@ impl Scene {
         this
     }
 
-    // FIXME: handle multiple calls of this fn
     pub fn display_in(&self, parent_dom: impl DomPath) {
-        match parent_dom.into_dom_element() {
-            None => {
-                // TODO
-            }
+        match parent_dom.try_into_dom_element() {
+            None => error!(&self.logger, "The scene host element could not be found."),
             Some(parent_dom) => {
                 parent_dom.append_or_warn(&self.dom.root);
                 self.dom.recompute_shape_with_reflow();
@@ -1180,36 +1177,44 @@ impl display::Object for Scene {
 }
 
 
+
+// ===============
+// === DomPath ===
+// ===============
+
+/// Abstraction for DOM path. It can be either a specific HTML element or a string which will be 
+/// used to look up for the element by its id.
+#[allow(missing_docs)]
 pub trait DomPath {
-    fn into_dom_element(self) -> Option<HtmlElement>;
+    fn try_into_dom_element(self) -> Option<HtmlElement>;
 }
 
 impl DomPath for HtmlElement {
-    fn into_dom_element(self) -> Option<HtmlElement> {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
         Some(self)
     }
 }
 
 impl<'t> DomPath for &'t HtmlElement {
-    fn into_dom_element(self) -> Option<HtmlElement> {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
         Some(self.clone())
     }
 }
 
 impl DomPath for String {
-    fn into_dom_element(self) -> Option<HtmlElement> {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
         web::document.get_html_element_by_id(&self)
     }
 }
 
 impl<'t> DomPath for &'t String {
-    fn into_dom_element(self) -> Option<HtmlElement> {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
         web::document.get_html_element_by_id(self)
     }
 }
 
 impl<'t> DomPath for &'t str {
-    fn into_dom_element(self) -> Option<HtmlElement> {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
         web::document.get_html_element_by_id(self)
     }
 }

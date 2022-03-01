@@ -2,9 +2,7 @@
 //!
 //! For details of the API please see:
 //! * docstrings in the `visualization.js` file;
-//! * [visualization documentation](https://dev.enso.org/docs/ide/product/visualizations.html).
-// FIXME: The above link is broken. This is why we should always create docs here and on github
-// only.
+//! * [visualization documentation](https://enso.org/docs/developer/ide/product/visualizations.html).
 
 use crate::prelude::*;
 
@@ -62,8 +60,6 @@ impl Definition {
     pub fn new(project: visualization::path::Project, sources: Sources) -> Result<Self, Error> {
         let source = sources.to_string(&project);
         let context = JsValue::NULL;
-        DEBUG!("--------------------");
-        DEBUG!("{source}");
         let function = Function::new_with_args_fixed(binding::JS_CLASS_NAME, &source)
             .map_err(Error::InvalidFunction)?;
         let js_class = binding::js_visualization_class();

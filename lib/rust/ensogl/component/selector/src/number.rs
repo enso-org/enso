@@ -55,14 +55,8 @@ impl Frp {
         let track_shape_system = scene.shapes.shape_system(PhantomData::<track::Shape>);
         track_shape_system.shape_system.set_pointer_events(false);
 
-        let background_click = relative_shape_down_position(
-            network,
-            &model.app.display.default_scene,
-            &model.background,
-        );
-        let track_click =
-            relative_shape_down_position(network, &model.app.display.default_scene, &model.track);
-
+        let background_click = relative_shape_down_position(network, scene, &model.background);
+        let track_click = relative_shape_down_position(network, scene, &model.track);
         let style_track_color = style.get_color(theme::component::slider::track::color);
 
         frp::extend! { network
