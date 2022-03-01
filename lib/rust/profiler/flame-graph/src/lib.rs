@@ -113,6 +113,7 @@ impl FlameGraph {
 #[cfg(test)]
 mod compile_tests {
     use super::*;
+    use profiler::profile;
 
     #[profile(Objective)]
     pub fn profiled_a() {
@@ -128,9 +129,9 @@ mod compile_tests {
         let flame_graph = FlameGraph::take_from_log();
         assert_eq!(flame_graph.blocks.len(), 2);
 
-        assert_eq!(flame_graph.blocks[1].row, 0);
-        assert!(flame_graph.blocks[1].label.contains("profiled_a"));
-        assert_eq!(flame_graph.blocks[0].row, 1);
-        assert!(flame_graph.blocks[0].label.contains("profiled_b"));
+        assert_eq!(flame_graph.blocks[1].row, 1);
+        assert!(flame_graph.blocks[1].label.contains("profiled_b"));
+        assert_eq!(flame_graph.blocks[0].row, 0);
+        assert!(flame_graph.blocks[0].label.contains("profiled_a"));
     }
 }
