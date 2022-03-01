@@ -60,8 +60,8 @@ pub fn entry_point_dom_symbols() {
             sprites.push(sprite);
         } else {
             let div = web::document.create_div_or_panic();
-            div.set_style_or_panic("width", "100%");
-            div.set_style_or_panic("height", "100%");
+            div.set_style_or_warn("width", "100%");
+            div.set_style_or_warn("height", "100%");
             div.set_inner_html("top-left");
 
             let size = Vector2::new(width, height);
@@ -73,7 +73,7 @@ pub fn entry_point_dom_symbols() {
             let g = ((x + 2.0) * 32.0) as u8;
             let b = ((x + 4.0) * 64.0) as u8;
             let color = iformat!("rgb({r},{g},{b})");
-            div.set_style_or_panic("background-color", color);
+            div.set_style_or_warn("background-color", color);
 
             object.dom().append_or_warn(&div);
             object.set_size(size);

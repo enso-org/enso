@@ -54,7 +54,7 @@ impl Application {
         let themes = theme::Manager::from(&display.default_scene.style_sheet);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
-        web::document.body_or_panic().set_style_or_panic("cursor", "none");
+        web::document.body_or_panic().set_style_or_warn("cursor", "none");
         let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
         Self { logger, cursor, display, commands, shortcuts, views, themes, update_themes_handle }
     }

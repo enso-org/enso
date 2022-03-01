@@ -93,6 +93,12 @@ fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+mod js {
+    use super::*;
+    pub fn setup_perspective(_dom: &web::JsValue, _znear: &web::JsValue) {}
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn setup_camera_perspective(_dom: &web::JsValue, _near: f32, _matrix: &Matrix4<f32>) {}
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -234,7 +240,6 @@ impl DomScene {
 
         match camera.projection() {
             Projection::Perspective { .. } => {
-                #[cfg(target_arch = "wasm32")]
                 js::setup_perspective(&self.data.dom, &near.into());
                 setup_camera_perspective(&self.data.view_projection_dom, near, &trans_cam);
             }

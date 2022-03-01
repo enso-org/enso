@@ -136,18 +136,18 @@ impl Manager {
         }
 
         let drop: DropClosure =
-            Closure::wrap(Box::new(f!([logger,files_received](event:web_sys::DragEvent) {
+            Closure::new(f!([logger,files_received](event:web_sys::DragEvent) {
                 debug!(logger, "Dropped files.");
                 event.prevent_default();
                 Self::handle_drop_event(&logger,event,&files_received)
-            })));
+            }));
         // To mark element as a valid drop target, the `dragover` event handler should return
         // `false`. See
         // https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop#define_the_drop_zone
-        let drag_over: DragOverClosure = Closure::wrap(Box::new(|event: web_sys::DragEvent| {
+        let drag_over: DragOverClosure = Closure::new(|event: web_sys::DragEvent| {
             event.prevent_default();
             false
-        }));
+        });
         let drop_handle = web::add_event_listener(target, "drop", drop);
         let drag_over_handle = web::add_event_listener(target, "dragover", drag_over);
         Self { network, files_received, drop_handle, drag_over_handle }

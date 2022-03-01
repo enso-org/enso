@@ -60,7 +60,7 @@ impl IntegrationTest {
         let executor = setup_global_executor();
         let root_div = enso_web::document.create_div_or_panic();
         root_div.set_id("root");
-        root_div.set_style_or_panic("display", "none");
+        root_div.set_style_or_warn("display", "none");
         enso_web::body().append_or_warn(&root_div);
 
         let initializer = enso_gui::ide::Initializer::new(default());

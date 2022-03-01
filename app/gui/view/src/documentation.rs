@@ -150,12 +150,11 @@ impl Model {
             let create_closures = || -> Option<CodeCopyClosure> {
                 let copy_button = copy_buttons.get_with_index(i)?.dyn_into::<HtmlElement>().ok()?;
                 let code_block = code_blocks.get_with_index(i)?.dyn_into::<HtmlElement>().ok()?;
-                let closure = Box::new(move |_event: MouseEvent| {
+                let closure: Closure<dyn FnMut(MouseEvent)> = Closure::new(move |_: MouseEvent| {
                     let inner_code = code_block.inner_text();
                     clipboard::write_text(inner_code);
                 });
-                let closure: Closure<dyn FnMut(MouseEvent)> = Closure::wrap(closure);
-                let callback = closure.as_ref().unchecked_ref();
+                let callback = closure.as_js_function();
                 match copy_button.add_event_listener_with_callback("click", callback) {
                     Ok(_) => Some(closure),
                     Err(e) => {

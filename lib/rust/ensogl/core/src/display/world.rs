@@ -240,7 +240,7 @@ impl WorldData {
     fn init_debug_hotkeys(&self) {
         let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.uniforms.display_mode.clone_ref();
-        let closure: Closure<dyn Fn(JsValue)> = Closure::wrap(Box::new(move |val| {
+        let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
@@ -254,7 +254,7 @@ impl WorldData {
                     display_mode.set(2)
                 }
             }
-        }));
+        });
         let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
         *self.debug_hotkeys_handle.borrow_mut() = Some(handle);
     }

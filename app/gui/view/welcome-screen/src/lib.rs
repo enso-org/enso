@@ -85,7 +85,7 @@ impl ClickableElement {
         frp::new_network! { network
             click <- source_();
         }
-        let closure: ClickClosure = Closure::wrap(Box::new(f_!(click.emit(()))));
+        let closure: ClickClosure = Closure::new(f_!(click.emit(())));
         let handle = web::add_event_listener(&element, "click", closure);
         network.store(&handle);
         Self { element, network, click }

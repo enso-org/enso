@@ -165,17 +165,17 @@ impl DomData {
     pub fn new() -> Self {
         let root = web::document.create_div_or_panic();
         root.set_class_name("performance-monitor");
-        root.set_style_or_panic("position", "absolute");
-        root.set_style_or_panic("z-index", "100");
-        root.set_style_or_panic("left", "8px");
-        root.set_style_or_panic("top", "8px");
-        root.set_style_or_panic("overflow", "hidden");
-        root.set_style_or_panic("border-radius", "6px");
-        root.set_style_or_panic("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
+        root.set_style_or_warn("position", "absolute");
+        root.set_style_or_warn("z-index", "100");
+        root.set_style_or_warn("left", "8px");
+        root.set_style_or_warn("top", "8px");
+        root.set_style_or_warn("overflow", "hidden");
+        root.set_style_or_warn("border-radius", "6px");
+        root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
         web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
         let canvas = web::document.create_canvas_or_panic();
-        canvas.set_style_or_panic("display", "block");
+        canvas.set_style_or_warn("display", "block");
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
@@ -353,8 +353,8 @@ impl Renderer {
             self.height = height;
             dom.canvas.set_width(u_width);
             dom.canvas.set_height(u_height);
-            dom.canvas.set_style_or_panic("width", format!("{}px", width / ratio));
-            dom.canvas.set_style_or_panic("height", format!("{}px", height / ratio));
+            dom.canvas.set_style_or_warn("width", format!("{}px", width / ratio));
+            dom.canvas.set_style_or_warn("height", format!("{}px", height / ratio));
         }
     }
 

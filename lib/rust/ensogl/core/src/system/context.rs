@@ -4,6 +4,7 @@ use crate::prelude::*;
 use web::traits::*;
 
 use crate::system::web;
+
 use web::Closure;
 use web_sys::WebGl2RenderingContext;
 
@@ -54,8 +55,8 @@ pub type DeviceContextHandler = web::HtmlCanvasElement;
 /// the context, the context will not be restored automaticaly.
 #[derive(Debug)]
 pub struct ContextLostHandler {
-    on_context_lost:     web::EventListenerHandle,
-    on_context_restored: web::EventListenerHandle,
+    on_lost:     web::EventListenerHandle,
+    on_restored: web::EventListenerHandle,
 }
 
 
@@ -64,8 +65,8 @@ pub struct ContextLostHandler {
 // === ContextHandler ===
 // ======================
 
-/// Abstraction for all entities who are able to use the rendering context and handle exceptional
-/// situations such as a context loss.
+/// Abstraction for entities which contain [`DeviceContextHandler`] and are able to handle context
+/// loss. In most cases, these are top-level entities, such as a scene.
 #[allow(missing_docs)]
 pub trait Display: CloneRef {
     fn device_context_handler(&self) -> &DeviceContextHandler;
@@ -105,19 +106,13 @@ pub fn init_webgl_2_context<D: Display + 'static>(
     match opt_context {
         None => Err(UnsupportedStandard("WebGL 2.0")),
         Some(context) => {
+            type Handler = web::JsEventHandler;
             display.set_context(Some(&context));
-
-            let ctx_lost = f_!(display.set_context(None));
-            let ctx_lost: web::JsEventHandler = Closure::wrap(Box::new(ctx_lost));
-            let ctx_restored = f_!(display.set_context(Some(&context)));
-            let ctx_restored: web::JsEventHandler = Closure::wrap(Box::new(ctx_restored));
-
-            let ctx_lost_name = "webglcontextlost";
-            let ctx_restored_name = "webglcontextrestored";
-            let on_context_lost = web::add_event_listener(hdc, ctx_lost_name, ctx_lost);
-            let on_context_restored = web::add_event_listener(hdc, ctx_restored_name, ctx_restored);
-
-            Ok(ContextLostHandler { on_context_lost, on_context_restored })
+            let lost: Handler = Closure::new(f_!(display.set_context(None)));
+            let restored: Handler = Closure::new(f_!(display.set_context(Some(&context))));
+            let on_lost = web::add_event_listener(hdc, "webglcontextlost", lost);
+            let on_restored = web::add_event_listener(hdc, "webglcontextrestored", restored);
+            Ok(ContextLostHandler { on_lost, on_restored })
         }
     }
 }

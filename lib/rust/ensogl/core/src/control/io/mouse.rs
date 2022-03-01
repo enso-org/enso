@@ -97,11 +97,11 @@ macro_rules! define_bindings {
                 $(
                     let shape = dom.shape.clone_ref();
                     let dispatcher = dispatchers.$name.clone_ref();
-                    let closure : MouseEventJsClosure = Closure::wrap(Box::new(move |event:JsValue| {
+                    let closure : MouseEventJsClosure = Closure::new(move |event:JsValue| {
                         let shape = shape.value();
                         let event = event.unchecked_into::<web::$js_event>();
                         dispatcher.dispatch(&event::$target::new(event,shape))
-                    }));
+                    });
                     let js_name = stringify!($js_name);
                     let opt = event_listener_options();
                     let $name = web::add_event_listener_with_options(&target,js_name,closure,&opt);

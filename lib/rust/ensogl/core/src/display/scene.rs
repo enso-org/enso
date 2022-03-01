@@ -443,9 +443,9 @@ impl Dom {
         let root = web::document.create_div_or_panic();
         let layers = DomLayers::new(logger, &root);
         root.set_class_name("scene");
-        root.set_style_or_panic("height", "100vh");
-        root.set_style_or_panic("width", "100vw");
-        root.set_style_or_panic("display", "block");
+        root.set_style_or_warn("height", "100vh");
+        root.set_style_or_warn("width", "100vw");
+        root.set_style_or_warn("display", "block");
         let root = web::dom::WithKnownShape::new(&root);
         Self { root, layers }
     }
@@ -577,6 +577,18 @@ impl Dirty {
 
 
 
+// ==============
+// === Render ===
+// ==============
+
+#[derive(Clone, CloneRef, Debug, Default)]
+pub struct Render {
+    instance: Rc<RefCell<Option<Renderer>>>,
+    pipeline: Rc<RefCell<render::Pipeline>>,
+}
+
+
+
 // ================
 // === Renderer ===
 // ================
@@ -587,8 +599,8 @@ pub struct Renderer {
     dom:        Dom,
     variables:  UniformScope,
 
-    pub pipeline: Rc<CloneCell<render::Pipeline>>,
-    pub composer: Rc<RefCell<render::Composer>>,
+    pub xpipeline: Rc<CloneCell<render::Pipeline>>,
+    pub composer:  Rc<RefCell<render::Composer>>,
 }
 
 impl Renderer {
@@ -602,7 +614,7 @@ impl Renderer {
         let width = shape.width as i32;
         let height = shape.height as i32;
         let composer = render::Composer::new(&pipeline, &context, &variables, width, height);
-        let pipeline = Rc::new(CloneCell::new(pipeline));
+        let xpipeline = Rc::new(CloneCell::new(pipeline));
         let composer = Rc::new(RefCell::new(composer));
 
         context.enable(Context::BLEND);
@@ -617,13 +629,13 @@ impl Renderer {
             Context::ONE_MINUS_SRC_ALPHA,
         );
 
-        Self { logger, dom, variables, pipeline, composer }
+        Self { logger, dom, variables, xpipeline, composer }
     }
 
     /// Set the pipeline of this renderer.
     pub fn set_pipeline(&self, pipeline: render::Pipeline) {
         self.composer.borrow_mut().set_pipeline(&pipeline);
-        self.pipeline.set(pipeline);
+        self.xpipeline.set(pipeline);
     }
 
     /// Reload the composer after scene shape change.
@@ -651,7 +663,7 @@ impl Renderer {
 // ==============
 
 /// Please note that currently the `Layers` structure is implemented in a hacky way. It assumes the
-/// existence of several layers, which are needed for the GUI to display shapes properly. This \
+/// existence of several layers, which are needed for the GUI to display shapes properly. This
 /// should be abstracted away in the future.
 #[derive(Clone, CloneRef, Debug)]
 pub struct HardcodedLayers {
@@ -823,8 +835,9 @@ pub struct SceneData {
     pub stats:                Stats,
     pub dirty:                Dirty,
     pub logger:               Logger,
-    pub renderer:             Rc<RefCell<Option<Renderer>>>,
-    pub render_pipeline:      Rc<RefCell<render::Pipeline>>,
+    pub render:               Render,
+    // pub renderer:             Rc<RefCell<Option<Renderer>>>,
+    // pub render_pipeline:      Rc<RefCell<render::Pipeline>>,
     pub layers:               HardcodedLayers,
     pub style_sheet:          style::Sheet,
     pub bg_color_var:         style::Var,
@@ -851,15 +864,11 @@ impl SceneData {
         let dirty = Dirty::new(&logger, on_mut);
         let symbols_dirty = &dirty.symbols;
         let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
-        // FIXME: This should be abstracted away and should also handle context loss when Symbol
-        //        definition will be finally refactored in such way, that it would not require
-        //        Scene instance to be created.
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
         let shapes = ShapeRegistry::default();
         let uniforms = Uniforms::new(&variables);
-        let renderer = default();
-        let render_pipeline = default();
+        let render = default();
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
@@ -873,7 +882,7 @@ impl SceneData {
         let bg_color_change = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
                 let color = color.to_javascript_string();
-                dom.root.set_style_or_panic("background-color",color);
+                dom.root.set_style_or_warn("background-color",color);
             })
         }));
 
@@ -900,8 +909,7 @@ impl SceneData {
             stats,
             dirty,
             logger,
-            renderer,
-            render_pipeline,
+            render,
             layers,
             style_sheet,
             bg_color_var,
@@ -917,7 +925,7 @@ impl SceneData {
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         let renderer = context.map(|c| Renderer::new(&self.logger, &self.dom, c, &self.variables));
-        *self.renderer.borrow_mut() = renderer;
+        *self.render.instance.borrow_mut() = renderer;
         self.update_render_pipeline();
     }
 
@@ -949,13 +957,13 @@ impl SceneData {
     }
 
     pub fn set_render_pipeline(&self, pipeline: render::Pipeline) {
-        *self.render_pipeline.borrow_mut() = pipeline;
+        *self.render.pipeline.borrow_mut() = pipeline;
         self.update_render_pipeline()
     }
 
     fn update_render_pipeline(&self) {
-        if let Some(renderer) = &*self.renderer.borrow() {
-            renderer.set_pipeline(self.render_pipeline.borrow().clone_ref())
+        if let Some(renderer) = &*self.render.instance.borrow() {
+            renderer.set_pipeline(self.render.pipeline.borrow().clone_ref())
         }
     }
 
@@ -966,7 +974,7 @@ impl SceneData {
             self.layers.iter_sublayers_and_masks_nested(|layer| {
                 layer.camera().set_screen(screen.width, screen.height)
             });
-            if let Some(renderer) = &*self.renderer.borrow() {
+            if let Some(renderer) = &*self.render.instance.borrow() {
                 renderer.resize_composer();
             }
             self.dirty.shape.unset_all();
@@ -1025,7 +1033,7 @@ impl SceneData {
     }
 
     pub fn render(&self) {
-        if let Some(renderer) = &*self.renderer.borrow() {
+        if let Some(renderer) = &*self.render.instance.borrow() {
             renderer.run()
         }
     }

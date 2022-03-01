@@ -17,6 +17,7 @@
 #![feature(negative_impls)]
 #![feature(specialization)]
 #![feature(auto_traits)]
+#![feature(unsize)]
 //
 // FIXME: check these
 #![allow(unused_doc_comments)]
@@ -72,6 +73,7 @@ pub use binding::mock::*;
 
 /// All traits defined in this module.
 pub mod traits {
+    pub use super::ClosureOps;
     pub use super::DocumentOps;
     pub use super::ElementOps;
     pub use super::FunctionOps;
@@ -82,6 +84,49 @@ pub mod traits {
     pub use super::ObjectOps;
     pub use super::ReflectOps;
     pub use super::WindowOps;
+}
+
+
+
+// ==================
+// === ClosureOps ===
+// ==================
+
+/// Extensions to the [`Function`] type.
+#[allow(missing_docs)]
+pub trait ClosureOps {
+    fn as_js_function(&self) -> &Function;
+}
+
+impl<T: ?Sized> ClosureOps for Closure<T> {
+    fn as_js_function(&self) -> &Function {
+        self.as_ref().unchecked_ref()
+    }
+}
+
+
+
+// ===================
+// === FunctionOps ===
+// ===================
+
+/// Extensions to the [`Function`] type.
+pub trait FunctionOps {
+    /// The `wasm-bindgen` version of this function panics if the JS code contains errors. This
+    /// issue was reported and never fixed (https://github.com/rustwasm/wasm-bindgen/issues/2496).
+    /// There is also a long-standing PR with the fix that was not fixed either
+    /// (https://github.com/rustwasm/wasm-bindgen/pull/2497).
+    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue>;
+}
+
+impl FunctionOps for Function {
+    #[cfg(target_arch = "wasm32")]
+    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue> {
+        binding::wasm::new_function_with_args(args, body)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    mock_fn! {new_with_args_fixed(_args: &str, _body: &str) -> Result<Function, JsValue>}
 }
 
 
@@ -153,7 +198,7 @@ impl WindowOps for Window {
         &self,
         f: &Closure<dyn FnMut(f64)>,
     ) -> Result<i32, JsValue> {
-        self.request_animation_frame(f.as_ref().unchecked_ref())
+        self.request_animation_frame(f.as_js_function())
     }
 
     fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32 {
@@ -167,31 +212,6 @@ impl WindowOps for Window {
     fn performance_or_panic(&self) -> Performance {
         self.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
     }
-}
-
-
-
-// ===================
-// === FunctionOps ===
-// ===================
-
-/// Extensions to the [`Function`] type.
-pub trait FunctionOps {
-    /// The `wasm-bindgen` version of this function panics if the JS code contains errors. This
-    /// issue was reported and never fixed (https://github.com/rustwasm/wasm-bindgen/issues/2496).
-    /// There is also a long-standing PR with the fix that was not fixed either
-    /// (https://github.com/rustwasm/wasm-bindgen/pull/2497).
-    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue>;
-}
-
-impl FunctionOps for Function {
-    #[cfg(target_arch = "wasm32")]
-    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue> {
-        binding::wasm::new_function_with_args(args, body)
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    mock_fn! {new_with_args_fixed(_args: &str, _body: &str) -> Result<Function, JsValue>}
 }
 
 
@@ -349,19 +369,10 @@ impl ElementOps for Element {
 /// Extensions to the [`HtmlElement`] type.
 #[allow(missing_docs)]
 pub trait HtmlElementOps {
-    fn set_style_or_panic(&self, name: impl AsRef<str>, value: impl AsRef<str>);
     fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>);
 }
 
 impl HtmlElementOps for HtmlElement {
-    fn set_style_or_panic(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let panic_msg = |_| panic!("Failed to set style {}", values);
-        self.style().set_property(name, value).unwrap_or_else(panic_msg);
-    }
-
     fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
         let name = name.as_ref();
         let value = value.as_ref();
@@ -407,13 +418,12 @@ impl HtmlCanvasElementOps for HtmlCanvasElement {
 
 /// Ignores context menu when clicking with the right mouse button.
 pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
-    let closure = move |event: MouseEvent| {
+    let closure: Closure<dyn FnMut(MouseEvent)> = Closure::new(move |event: MouseEvent| {
         const RIGHT_MOUSE_BUTTON: i16 = 2;
         if event.button() == RIGHT_MOUSE_BUTTON {
             event.prevent_default();
         }
-    };
-    let closure = Closure::wrap(Box::new(closure) as Box<dyn FnMut(MouseEvent)>);
+    });
     add_event_listener_with_bool(target, "contextmenu", closure, true)
 }
 
@@ -427,9 +437,15 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 pub type JsEventHandler<T = JsValue> = Closure<dyn FnMut(T)>;
 
 /// Handler for event listeners. Unregisters the listener when the last clone is dropped.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Clone, CloneRef)]
 pub struct EventListenerHandle {
     rc: Rc<EventListenerHandleData>,
+}
+
+impl Debug for EventListenerHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EventListenerHandle")
+    }
 }
 
 impl EventListenerHandle {
@@ -437,11 +453,10 @@ impl EventListenerHandle {
     pub fn new<T: ?Sized + 'static>(
         target: EventTarget,
         name: ImString,
-        listener: Function,
         closure: Closure<T>,
     ) -> Self {
-        let _closure = Box::new(closure);
-        let data = EventListenerHandleData { target, name, listener, _closure };
+        let closure = Box::new(closure);
+        let data = EventListenerHandleData { target, name, closure };
         let rc = Rc::new(data);
         Self { rc }
     }
@@ -452,17 +467,16 @@ impl EventListenerHandle {
 /// # Implementation Notes
 /// The [`_closure`] field contains a wasm_bindgen's [`Closure<T>`]. Dropping it causes the
 /// associated function to be pruned from memory.
-#[derive(Debug)]
 struct EventListenerHandleData {
-    target:   EventTarget,
-    name:     ImString,
-    listener: Function,
-    _closure: Box<dyn Any>,
+    target:  EventTarget,
+    name:    ImString,
+    closure: Box<dyn ClosureOps>,
 }
 
 impl Drop for EventListenerHandleData {
     fn drop(&mut self) {
-        self.target.remove_event_listener_with_callback(&self.name, &self.listener).ok();
+        let function = self.closure.as_js_function();
+        self.target.remove_event_listener_with_callback(&self.name, function).ok();
     }
 }
 
@@ -476,13 +490,12 @@ macro_rules! gen_add_event_listener {
             closure: Closure<T>
             $(,$arg : $tp)*
         ) -> EventListenerHandle {
-            let listener = closure.as_ref().unchecked_ref::<Function>().clone();
             // Please note that using [`ok`] is safe here, as according to MDN this function never
             // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener.
-            target.$wbindgen_name(name, &listener $(,$arg)*).ok();
+            target.$wbindgen_name(name, closure.as_js_function() $(,$arg)*).ok();
             let target = target.clone();
             let name = name.into();
-            EventListenerHandle::new(target, name, listener, closure)
+            EventListenerHandle::new(target, name, closure)
         }
     };
 }

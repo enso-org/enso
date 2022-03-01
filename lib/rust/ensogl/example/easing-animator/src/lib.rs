@@ -96,7 +96,7 @@ impl Canvas {
     /// Constructor.
     pub fn new(container_id: &str) -> Self {
         let canvas = web::document.create_canvas_or_panic();
-        canvas.set_style_or_panic("border", "1px solid black");
+        canvas.set_style_or_warn("border", "1px solid black");
         canvas.set_width(256);
         canvas.set_height(256);
 
@@ -245,11 +245,11 @@ impl Example {
     ) -> Self {
         let example = web::document.create_div_or_panic();
         example.set_attribute_or_warn("id", name);
-        example.set_style_or_panic("margin", "10px");
+        example.set_style_or_warn("margin", "10px");
         let container = web::document.get_html_element_by_id("examples").unwrap();
         let header = web::document.get_html_element_by_id("center").unwrap();
-        header.set_style_or_panic("background-color", "black");
-        header.set_style_or_panic("color", "white");
+        header.set_style_or_warn("background-color", "black");
+        header.set_style_or_warn("color", "white");
         header.set_inner_html(name);
         example.append_or_warn(&header);
         container.append_or_warn(&example);
@@ -289,10 +289,10 @@ pub fn entry_point_easing_animator() {
     web::set_stack_trace_limit();
     let container = web::document.create_div_or_panic();
     container.set_attribute_or_warn("id", "examples");
-    container.set_style_or_panic("display", "flex");
-    container.set_style_or_panic("flex-wrap", "wrap");
-    container.set_style_or_panic("position", "absolute");
-    container.set_style_or_panic("top", "0px");
+    container.set_style_or_warn("display", "flex");
+    container.set_style_or_warn("flex-wrap", "wrap");
+    container.set_style_or_warn("position", "absolute");
+    container.set_style_or_warn("top", "0px");
     web::document.body_or_panic().append_or_warn(&container);
     examples![expo, bounce, circ, quad, cubic, quart, quint, sine, back, elastic];
 }

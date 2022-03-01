@@ -1,5 +1,7 @@
 use enso_prelude::*;
 
+use std::marker::Unsize;
+
 
 
 // ===================
@@ -339,11 +341,18 @@ impl AsRef<JsValue> for wasm_bindgen::JsValue {
 
 /// The generated structure does not implement a generic [`AsRef`] impl, as the usages base on the
 /// fact that there exist exactly one such an impl (provided below), so the type inferencer can
-/// monomoprhise more free variables.
+/// monomoprphise more free variables.
 mock_data! { [NO_AS_REF] Closure<T: ?Sized>
-    fn new<F>(_t: F) -> Closure<T>;
     fn wrap(_data: Box<T>) -> Closure<T>;
     fn once<F>(_fn_once: F) -> Closure<F>;
+}
+
+#[allow(missing_docs)]
+impl<T: ?Sized> Closure<T> {
+    pub fn new<F>(_t: F) -> Closure<T>
+    where F: Unsize<T> + 'static {
+        mock_default()
+    }
 }
 
 #[allow(unsafe_code)]
