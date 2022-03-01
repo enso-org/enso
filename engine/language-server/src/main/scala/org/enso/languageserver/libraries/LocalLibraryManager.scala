@@ -208,6 +208,7 @@ class LocalLibraryManager(
         )
       }
       GetPackageResponse(
+        libraryName     = LibraryName(config.namespace, config.name),
         license         = config.license,
         componentGroups = config.componentGroups.toOption,
         rawPackage      = config.originalJson

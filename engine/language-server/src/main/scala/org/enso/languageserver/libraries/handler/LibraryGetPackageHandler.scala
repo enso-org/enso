@@ -9,11 +9,7 @@ import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
-import org.enso.languageserver.libraries.{
-  LibraryEntry,
-  LocalLibraryManagerFailureMapper,
-  LocalLibraryManagerProtocol
-}
+import org.enso.languageserver.libraries._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.librarymanager.published.PublishedLibraryCache
@@ -83,6 +79,7 @@ class LibraryGetPackageHandler(
       context.stop(self)
 
     case LocalLibraryManagerProtocol.GetPackageResponse(
+          libraryName,
           license,
           componentGroups,
           rawPackage
@@ -92,7 +89,9 @@ class LibraryGetPackageHandler(
         id,
         LibraryGetPackage.Result(
           Option.unless(license.isEmpty)(license),
-          componentGroups,
+          componentGroups.map(
+            LibraryComponentGroups.fromComponentGroups(libraryName, _)
+          ),
           rawPackage
         )
       )
@@ -133,6 +132,7 @@ class LibraryGetPackageHandler(
           .readPackage()
           .map(config =>
             LocalLibraryManagerProtocol.GetPackageResponse(
+              LibraryName(config.namespace, config.name),
               config.license,
               config.componentGroups.toOption,
               config.originalJson
@@ -150,6 +150,7 @@ class LibraryGetPackageHandler(
       .fetchPackageConfig()
       .toFuture
   } yield LocalLibraryManagerProtocol.GetPackageResponse(
+    libraryName     = LibraryName(config.namespace, config.name),
     license         = config.license,
     componentGroups = config.componentGroups.toOption,
     rawPackage      = config.originalJson
