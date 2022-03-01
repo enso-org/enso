@@ -7,7 +7,6 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
-import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -106,7 +105,10 @@ class LibraryGetPackageHandler(
       context.stop(self)
 
     case Status.Failure(exception) =>
-      replyTo ! ResponseError(Some(id), FileSystemError(exception.getMessage))
+      replyTo ! ResponseError(
+        Some(id),
+        LocalLibraryManagerFailureMapper.mapException(exception)
+      )
       cancellable.cancel()
       context.stop(self)
   }
