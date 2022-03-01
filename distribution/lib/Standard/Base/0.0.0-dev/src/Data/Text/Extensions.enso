@@ -487,7 +487,7 @@ Text.words keep_whitespace=False =
 
     build prev nxt = if nxt == -1 then Nothing else
         word = Text_Utils.substring this prev nxt
-        word_not_whitespace = (Text_Utils.is_whitespace word).not
+        word_not_whitespace = (Text_Utils.is_all_whitespace word).not
         if word_not_whitespace then bldr.append word else
             if keep_whitespace then
                 bldr.append word
@@ -620,39 +620,22 @@ Text.not_empty = this.is_empty.not
          "A0".is_digit == False
          "A0".is_digit 1 == True
          "건반(Korean)".is_digit 1 == False
-Text.is_digit : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds_Error
 Text.is_digit (index=0) =
     grapheme = this.at index
-    if grapheme.is_error then grapheme else
-        char = (Text_Utils.get_chars grapheme).at 0
-        char>=48 && char<=57
+    char = (Text_Utils.get_chars grapheme).at 0
+    char>=48 && char<=57
 
-## Returns if a character from the text at the specified index (0-based) is
-   constitues whitespace.
-
-   Arguments:
-     - index: The location in the text to get the character from. The
-       index is also allowed be negative, then the characters are
-       counted from the end of the text, i.e. -1 will correspond to the
-       last character.
-
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+## Checks if the text consists only of whitespace characters.
 
    > Example
-     Check if an individual character is a whitespace:
+     Check if a text is whitespace only.
 
-         " ".is_whitespace == True
-         '\t'.is_whitespace == True
-         "A ".is_whitespace == False
-         "A ".is_whitespace 1 == True
-Text.is_whitespace : Integer -> Text ! Index_Out_Of_Bounds_Error
-Text.is_whitespace (index=0) =
-    grapheme = this.at index
-    _ = grapheme
-    Error.throw "TODO"
+         ' \t'.is_whitespace == True
+         "0 ".is_whitespace == False
+Text.is_whitespace : Boolean
+Text.is_whitespace =
+    Text_Utils.is_all_whitespace this
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
@@ -967,8 +950,7 @@ Text.take range =
     char_range = case range of
         Range _ _ -> here.range_to_char_indices this range
         _ -> range.to_char_range this
-    if char_range.is_error then char_range else
-        Text_Utils.substring this char_range.start char_range.end
+    Text_Utils.substring this char_range.start char_range.end
 
 ## ALIAS skip, remove
    Creates a new Text by removing the specified range of the input.
@@ -1081,7 +1063,17 @@ type Both
 
 Text.pad : Integer -> Text -> (Start | End) -> Text
 Text.pad length=0 with_pad=' ' at=End =
-    Error.throw "TODO"
+    with_pad_length = with_pad.length
+    if with_pad_length == 0 then Error.throw (Illegal_Argument_Error "`with_pad` must not be an empty string.") else
+        pad_size = length - this.length
+        if pad_size <= 0 then this else
+            full_repetitions = pad_size.div / with_pad_length
+            remainder = pad_size.div % with_pad_length
+            case at of
+                Start ->
+                    with_pad.take (Text_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + this
+                End ->
+                    this + with_pad.repeat full_repetitions + with_pad.take (Text_Sub_Range.First remainder)
 
 ## This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
@@ -1107,5 +1099,31 @@ Text.pad length=0 with_pad=' ' at=End =
         "ABC123".trim Start "ABC" == "123"
         "ABBA123".trim Start "ABC" == "123"
 Text.trim : (Start | End | Both) -> (Text | (Text -> Boolean)) -> Text
-Text.trim from=Both trim_characters=_.is_whitespace =
-    Error.throw "TODO"
+Text.trim where=Both what=_.is_whitespace =
+    predicate = case what of
+        Text -> what.contains
+        _ -> what
+    break_iterator = BreakIterator.getCharacterInstance
+    break_iterator.setText this
+    start_index = case where of
+        End -> 0
+        _ ->
+            loop current next =
+                if next < 0 then current else
+                    case predicate (Text_Utils.substring current next) of
+                        True ->
+                            @Tail_Call loop next break_iterator.next
+                        False -> current
+            loop 0 break_iterator.next
+    end_index = case where of
+        Start -> Text_Utils.char_length this
+        _ ->
+            loop current prev =
+                if prev < 0 then current else
+                    case predicate (Text_Utils.substring prev current) of
+                        True ->
+                            @Tail_Call loop prev break_iterator.previous
+                        False -> current
+            current = break_iterator.last
+            loop current break_iterator.previous
+    Text_Utils.substring this start_index end_index

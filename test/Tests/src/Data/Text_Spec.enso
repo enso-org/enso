@@ -344,6 +344,7 @@ spec =
             str.is_digit 2 . should_be_true
             str.is_digit 3 . should_be_true
             str.is_digit 4 . should_be_false
+            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to check by negative index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -352,6 +353,7 @@ spec =
             str.is_digit -3 . should_be_true
             str.is_digit -4 . should_be_false
             str.is_digit -5 . should_be_false
+            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
