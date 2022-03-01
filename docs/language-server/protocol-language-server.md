@@ -1447,7 +1447,7 @@ The component group provided by a library.
 interface LibraryComponentGroup {
   /**
    * Thf fully qualified module name. A string consisting of a namespace and
-   * a lirary name separated by the dot <namespace>.<library name>,
+   * a library name separated by the dot <namespace>.<library name>,
    * i.e. `Standard.Base`.
    */
   library: string;

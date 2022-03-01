@@ -154,7 +154,7 @@ object ExtendedComponentGroup {
         .fromModuleName(moduleName)
         .toRight(
           DecodingFailure(
-            s"Failed to decode '$moduleName' as module reference. " +
+            s"Failed to decode '$moduleName' as a module reference. " +
             s"Module reference should consist of a namespace (author), " +
             s"library name and a module name (e.g. Standard.Base.Data).",
             json.history
