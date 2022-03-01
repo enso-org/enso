@@ -630,10 +630,13 @@ spec =
             "" . ends_with "" Regex_Matcher.new . should_be_true
 
         Test.specify "should allow to pad a text" <|
-            "Hello World!".pad 15 == "Hello World!   "
-            "HELLO".pad 9 "AB" == "HELLOABAB"
-            "HELLO".pad 8 "AB" == "HELLOABA"
-            "HELLO".pad 8 "AB" Location.Start == "BABHELLO"
+            "Hello World!".pad 15 . should_equal "Hello World!   "
+            "HELLO".pad 9 "AB" . should_equal "HELLOABAB"
+            "HELLO".pad 8 "AB" . should_equal "HELLOABA"
+            "HELLO".pad 8 "AB" Location.Start . should_equal "BABHELLO"
+            "".pad 4 . should_equal "    "
+            "A".pad 3 "" . should_fail_with Illegal_Argument_Error
+            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument_Error
 
         Test.specify "should allow to trim a text" <|
             " Hello! ".trim == "Hello!"
