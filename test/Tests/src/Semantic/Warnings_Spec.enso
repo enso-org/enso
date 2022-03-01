@@ -9,6 +9,24 @@ type My_Warning reason
 type My_Type a b c
 My_Type.my_method = this.a + this.b + this.c
 
+type Wrap foo
+
+rewrap w = case w of
+    Wrap a -> Wrap a+1
+
+poly_sum x y =
+    Long.sum x y
+
+get_foo x = x.foo
+
+reassign_test x =
+    consed = Wrap x
+    reconsed = here.rewrap consed
+    x1 = here.get_foo reconsed
+    prim_sum = 1 + x1
+    r = here.poly_sum prim_sum 1
+    r
+
 baz value = Warning.attach value "I have warned you"
 bar value = here.baz value
 foo value = here.bar value
@@ -57,8 +75,12 @@ spec = Test.group "Dataflow Warnings" <|
         warned = here.foo "value"
         warning_stack = Warning.get_all warned . head . origin
         relevant = warning_stack . drop_end current.length
-        IO.println relevant
+        relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
 
-
-
+    Test.specify "should attach reassignment info" <|
+        x = Warning.attach 1 "warn!"
+        r = here.reassign_test x
+        warn = Warning.get_all r . head
+        IO.println warn.value
+        warn.reassignments.each IO.println
 

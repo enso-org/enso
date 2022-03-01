@@ -146,9 +146,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
 
     arguments[0] = _this.getValue();
+    ArrayRope<Warning> warnings = _this.getReassignedWarnings(Context.get(this), this);
     Stateful result = childDispatch.execute(frame, state, symbol, _this.getValue(), arguments);
-    return new Stateful(
-        result.getState(), WithWarnings.prependTo(result.getValue(), _this.getWarnings()));
+    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
   }
 
   @ExplodeLoop
@@ -188,7 +188,8 @@ public abstract class InvokeMethodNode extends BaseNode {
         warningProfiles[i].enter();
         anyWarnings = true;
         accumulatedWarnings =
-            accumulatedWarnings.append(((WithWarnings) r.getValue()).getWarnings());
+            accumulatedWarnings.append(
+                ((WithWarnings) r.getValue()).getReassignedWarnings(Context.get(this), this));
         args[i] = ((WithWarnings) r.getValue()).getValue();
       }
     }

@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.Warning;
@@ -73,7 +74,8 @@ public class InstantiateNode extends ExpressionNode {
       } else if (warningProfile.profile(argument instanceof WithWarnings)) {
         anyWarnings = true;
         WithWarnings originalArg = (WithWarnings) argument;
-        accumulatedWarnings = accumulatedWarnings.append(originalArg.getWarnings());
+        accumulatedWarnings =
+            accumulatedWarnings.append(originalArg.getReassignedWarnings(Context.get(this), this));
         argumentValues[i] = originalArg.getValue();
       } else if (TypesGen.isPanicSentinel(argument)) {
         sentinelProfile.enter();

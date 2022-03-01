@@ -3,6 +3,8 @@ package org.enso.interpreter.runtime.error;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
@@ -34,13 +36,19 @@ public class WithWarnings implements TruffleObject {
   }
 
   public Warning[] getWarningsArray() {
-    Warning[] result = new Warning[warnings.size()];
-    warnings.writeArray(result);
-    return result;
+    return warnings.toArray(Warning[]::new);
   }
 
   public ArrayRope<Warning> getWarnings() {
     return warnings;
+  }
+
+  public ArrayRope<Warning> getReassignedWarnings(Context ctx, Node location) {
+    Warning[] warnings = getWarningsArray();
+    for (int i = 0; i < warnings.length; i++) {
+      warnings[i] = warnings[i].reassign(ctx, location);
+    }
+    return new ArrayRope<>(warnings);
   }
 
   public static WithWarnings appendTo(Object target, ArrayRope<Warning> warnings) {

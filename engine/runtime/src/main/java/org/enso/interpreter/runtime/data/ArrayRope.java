@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data;
 
 import java.util.Arrays;
+import java.util.function.Function;
 
 public final class ArrayRope<T> {
   private final ArrayRopeSegment<T> segment;
@@ -32,6 +33,12 @@ public final class ArrayRope<T> {
     return new ArrayRope<>(new ConcatSegment<>(new ArraySegment<>(items), this.segment));
   }
 
+  public T[] toArray(Function<Integer, T[]> genArray) {
+    T[] res = genArray.apply(size());
+    writeArray(res);
+    return res;
+  }
+
   public void writeArray(T[] arr) {
     segment.appendTo(arr, 0);
   }
@@ -42,9 +49,7 @@ public final class ArrayRope<T> {
 
   @Override
   public String toString() {
-    return "ArrayRope{" +
-            "segment=" + segment +
-            '}';
+    return "ArrayRope{" + "segment=" + segment + '}';
   }
 
   private interface ArrayRopeSegment<T> {
@@ -72,9 +77,7 @@ public final class ArrayRope<T> {
 
     @Override
     public String toString() {
-      return "ArraySegment{" +
-              "elements=" + Arrays.toString(elements) +
-              '}';
+      return "ArraySegment{" + "elements=" + Arrays.toString(elements) + '}';
     }
   }
 
@@ -105,11 +108,14 @@ public final class ArrayRope<T> {
 
     @Override
     public String toString() {
-      return "ConcatSegment{" +
-              "left=" + left +
-              ", right=" + right +
-              ", cachedSize=" + cachedSize +
-              '}';
+      return "ConcatSegment{"
+          + "left="
+          + left
+          + ", right="
+          + right
+          + ", cachedSize="
+          + cachedSize
+          + '}';
     }
   }
 }

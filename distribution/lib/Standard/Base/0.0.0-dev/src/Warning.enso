@@ -7,9 +7,16 @@ type Warning
 
     origin = Prim_Warning.get_origin this.prim_warning
 
+    reassignments =
+        Vector.Vector (Prim_Warning.get_reassignments this.prim_warning) . map r->
+            loc = case r.getLocation of
+                Nothing -> Nothing
+                loc -> Source_Location loc
+            Stack_Trace_Element r.getMethodName loc
+
 attach value warning =
-    origin = Runtime.get_stack_trace.drop_start 1
-    Prim_Warning.attach value warning origin
+    origin = Runtime.get_stack_trace
+    Prim_Warning.attach value warning (origin.drop_start 1)
 
 get_all value =
     Vector.Vector (Prim_Warning.get_all value) . map Warning
