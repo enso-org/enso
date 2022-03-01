@@ -5,6 +5,8 @@ type Warning
 
     value = Prim_Warning.get_value this.prim_warning
 
+    origin = Prim_Warning.get_origin this.prim_warning
+
 attach value warning =
     origin = Runtime.get_stack_trace.drop_start 1
     Prim_Warning.attach value warning origin

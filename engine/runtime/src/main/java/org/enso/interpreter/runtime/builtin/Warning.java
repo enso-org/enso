@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.warning.AttachWarningMethodGen;
+import org.enso.interpreter.node.expression.builtin.warning.GetOriginMethodGen;
 import org.enso.interpreter.node.expression.builtin.warning.GetValueMethodGen;
 import org.enso.interpreter.node.expression.builtin.warning.GetWarningsMethodGen;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -15,5 +16,7 @@ public class Warning {
     scope.registerMethod(warning, "get_all", GetWarningsMethodGen.makeFunction(language));
     scope.registerMethod(warning, "attach", AttachWarningMethodGen.makeFunction(language));
     scope.registerMethod(warning, "get_value", GetValueMethodGen.makeFunction(language));
+    scope.registerMethod(warning, "get_origin", GetOriginMethodGen.makeFunction(language));
+
   }
 }

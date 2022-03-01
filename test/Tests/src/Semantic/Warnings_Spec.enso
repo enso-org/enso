@@ -9,6 +9,10 @@ type My_Warning reason
 type My_Type a b c
 My_Type.my_method = this.a + this.b + this.c
 
+baz value = Warning.attach value "I have warned you"
+bar value = here.baz value
+foo value = here.bar value
+
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|
         x = 1233
@@ -47,6 +51,14 @@ spec = Test.group "Dataflow Warnings" <|
             My_Type a b c -> a + b + c
         r.should_equal 6
         Warning.get_all r . map .value . should_equal [My_Warning "warn!", My_Warning "warn!!", My_Warning "warn!!!"]
+
+    Test.specify "should attach correct stacktraces" <|
+        current = Runtime.get_stack_trace
+        warned = here.foo "value"
+        warning_stack = Warning.get_all warned . head . origin
+        relevant = warning_stack . drop_end current.length
+        IO.println relevant
+
 
 
 

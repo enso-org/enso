@@ -27,4 +27,8 @@ public class Warning implements TruffleObject {
   public Object getValue() {
     return value;
   }
+
+  public Object getOrigin() {
+    return origin;
+  }
 }
