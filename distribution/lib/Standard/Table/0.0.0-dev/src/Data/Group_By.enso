@@ -18,7 +18,7 @@ type Group_By_Key
 
     ## See if two keys are equal
     == : Group_By_Key->Boolean
-    == that = (this.compare_to that) == Ordering.Equal
+    == that = this.values == that.values
 
     ## Compares two keys
     compare_to : Group_By_Key->Ordering

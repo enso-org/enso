@@ -83,7 +83,7 @@ type Aggregate_Column
     column_name : Table->Text
     column_name table =
         if this.name.is_nothing.not then this.name else
-            get_name c = (this.resolve_column table c).java_column.getName
+            get_name c = (this.resolve_column table c).name
             case this of
                 Count _ -> "Count"
                 Count_Distinct c _ ->
