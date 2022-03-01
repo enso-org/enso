@@ -6,7 +6,7 @@ from Standard.Table.Data.Aggregate_Column import all
 import Standard.Test
 
 spec = Test.group "Aggregate Columns" <|
-    simple_table = Table.new [["count", [1, 2, Nothing, 3]], ["is_valid", [True, False, True, False]], ["float", [1, 2.1, 3.4, 5.6]], ["text", ["A", "", Nothing, "B"]]]
+    simple_table = Table.new [["count", [1, 2, Nothing, 3, Nothing]], ["is_valid", [True, False, True, False, Nothing]], ["float", [1, 2.1, 3.4, 5.6, Nothing]], ["text", ["A", "", Nothing, "B", Nothing]]]
     text_col = simple_table.at "text"
     float_col = simple_table.at "float"
     empty_table  = Table.new [["count", []], ["is_valid", []], ["text", []]]
@@ -20,7 +20,7 @@ spec = Test.group "Aggregate Columns" <|
         folded_value = 0.up_to table.row_count . fold col.initial_value acc
         result = col.evaluate folded_value
 
-        if epsilon != False then (result.should_equal expected_result epsilon=epsilon) else
+        if epsilon != False then ((result - expected_result).abs < epsilon).should_be_true else
             result.should_equal expected_result
 
     Test.specify "should be able to count a set" <|
@@ -29,10 +29,10 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator empty_table (Count test_name) test_name empty_table.row_count
 
     Test.specify "should be able to count missing values in a set" <|
-        test_aggregator simple_table (Count_Nothing 0) "Count Nothing count" 1
-        test_aggregator simple_table (Count_Nothing 0 test_name) test_name 1
-        test_aggregator simple_table (Count_Nothing "text" test_name) test_name 1
-        test_aggregator simple_table (Count_Nothing text_col test_name) test_name 1
+        test_aggregator simple_table (Count_Nothing 0) "Count Nothing count" 2
+        test_aggregator simple_table (Count_Nothing 0 test_name) test_name 2
+        test_aggregator simple_table (Count_Nothing "text" test_name) test_name 2
+        test_aggregator simple_table (Count_Nothing text_col test_name) test_name 2
         test_aggregator empty_table (Count_Nothing 0 test_name) test_name empty_table.row_count
 
     Test.specify "should be able to count non missing values in a set" <|
@@ -43,10 +43,10 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator empty_table (Count_Not_Nothing 0 test_name) test_name empty_table.row_count
 
     Test.specify "should be able to count empties in a set of Texts" <|
-        test_aggregator simple_table (Count_Empty -1) "Count Empty text" 2
-        test_aggregator simple_table (Count_Empty -1 test_name) test_name 2
-        test_aggregator simple_table (Count_Empty "text" test_name) test_name 2
-        test_aggregator simple_table (Count_Empty text_col test_name) test_name 2
+        test_aggregator simple_table (Count_Empty -1) "Count Empty text" 3
+        test_aggregator simple_table (Count_Empty -1 test_name) test_name 3
+        test_aggregator simple_table (Count_Empty "text" test_name) test_name 3
+        test_aggregator simple_table (Count_Empty text_col test_name) test_name 3
         test_aggregator empty_table (Count_Empty 0 test_name) test_name empty_table.row_count
 
     Test.specify "should be able to count non empties in a set of Texts" <|
@@ -61,13 +61,27 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator simple_table (Sum -2 test_name) test_name 12.1
         test_aggregator simple_table (Sum "float" test_name) test_name 12.1
         test_aggregator simple_table (Sum float_col test_name) test_name 12.1
-        test_aggregator empty_table (Sum 0 test_name) test_name 0
+        test_aggregator empty_table (Sum 0 test_name) test_name Nothing
 
-    Test.specify "should be able to total a set of values" <|
-        test_aggregator simple_table (Sum -2) "Sum float" 12.1 0.000001
-        test_aggregator simple_table (Sum -2 test_name) test_name 12.1 0.000001
-        test_aggregator simple_table (Sum "float" test_name) test_name 12.1 0.000001
-        test_aggregator simple_table (Sum float_col test_name) test_name 12.1 0.000001
-        test_aggregator empty_table (Sum 0 test_name) test_name 0 0.000001
+    Test.specify "should be able to average a set of values" <|
+        test_aggregator simple_table (Average -2) "Average float" 3.025 0.000001
+        test_aggregator simple_table (Average -2 test_name) test_name 3.025 0.000001
+        test_aggregator simple_table (Average "float" test_name) test_name 3.025 0.000001
+        test_aggregator simple_table (Average float_col test_name) test_name 3.025 0.000001
+        test_aggregator empty_table (Average 0 test_name) test_name Nothing
+
+    Test.specify "should be able to compute standard deviation a set of values" <|
+        test_aggregator simple_table (Standard_Deviation -2) "Standard Deviation float" 1.977161 0.000001
+        test_aggregator simple_table (Standard_Deviation -2 test_name) test_name 1.977161 0.000001
+        test_aggregator simple_table (Standard_Deviation "float" test_name) test_name 1.977161 0.000001
+        test_aggregator simple_table (Standard_Deviation float_col test_name) test_name 1.977161 0.000001
+        test_aggregator empty_table (Standard_Deviation 0 test_name) test_name Nothing
+
+    Test.specify "should be able to compute standard deviation of a population a set of values" <|
+        test_aggregator simple_table (Standard_Deviation -2 population=True) "Standard Deviation float" 1.712271 0.000001
+        test_aggregator simple_table (Standard_Deviation -2 test_name population=True) test_name 1.712271 0.000001
+        test_aggregator simple_table (Standard_Deviation "float" test_name population=True) test_name 1.712271 0.000001
+        test_aggregator simple_table (Standard_Deviation float_col test_name population=True) test_name 1.712271 0.000001
+        test_aggregator empty_table (Standard_Deviation 0 test_name population=True) test_name Nothing
 
 main = Test.Suite.run_main here.spec

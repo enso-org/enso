@@ -117,6 +117,7 @@ type Aggregate_Column
         Concatenate _ _ _ _ _ _ -> Nothing
         First _ _ _ _ -> Nothing
         Last _ _ _ _ -> Nothing
+        Sum _ _ -> Nothing
         _ -> 0
 
     make_aggregator : Table->(Any->Integer->Any)
@@ -139,13 +140,14 @@ type Aggregate_Column
             Last c _ _ _ -> create_closure c col->_->i->(col.at i)
             Sum c _ -> create_closure c col->total->i->
                 v = col.at i
-                (total + if v.is_nothing then 0 else v)
+                if v.is_nothing then total else 
+                    if total.is_nothing then v else total + v
             Average c _ -> create_closure c col->a->i->
                 v = col.at i
-                (c + if v.is_nothing then a else [a.first + 1, a.second + v])
+                if v.is_nothing then a else [a.first + 1, a.second + v]
             Standard_Deviation c _ _ -> create_closure c col->a->i->
                 v = col.at i
-                (c + if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v])
+                if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v]
             Concatenate c _ j _ _ q -> create_closure c col->text->i->
                 val=if (col.at i).is_nothing then "" else
                     text = (col.at i).to_text
@@ -163,11 +165,27 @@ type Aggregate_Column
     evaluate : Any->Any
     evaluate value = case this of
         Count_Distinct _ _ -> value.size
-        Median _ _ -> (Error.throw "Not in prototype")
+        Median _ _ ->
+            count = value.fold 0 (+)
+            case count % 2 of
+                1 ->
+                    mid = (count-1) / 2
+                    output = value.fold_with_key [0, Nothing] c->k->v->
+                        new_v = c.first + v
+                        [new_v, if c.first.up_to new_v . contains mid then k else c.second]
+                    output.second
+                0 ->
+                    mid = count / 2
+                    output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
+                        new_v = c.first + v
+                        new_s = if c.first.up_to new_v . contains mid then k else c.second
+                        new_t = if c.first.up_to new_v . contains (mid-1) then k else (c.at 2)
+                        [new_v, new_s, new_t]
+                    (output.second + (output.at 2)) / 2
         Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
         Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
             f = if p then 1 else (value.first / (value.first - 1)).sqrt
-            (value.at 2/value.at 0 - (value.at 1/value.at 0)^2).sqrt * f
+            ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
         Concatenate _ _ _ s p _ -> if value.is_nothing then value else (s + value + p)
         _ -> value
 
