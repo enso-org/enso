@@ -148,6 +148,7 @@ spec = Test.group "Vectors" <|
         [[1]].flatten . should_equal [1]
         [[[1], [2, 3]], [[4]]].flatten . should_equal [[1], [2, 3], [4]]
         [["a", 2], [], [[[3]]], [T 1 2, 44]].flatten . should_equal ["a", 2, [[3]], T 1 2, 44]
+        (["polyglot", " ", "array"].map .utf_8).flatten . should_equal "polyglot array".utf_8
 
     Test.specify "should allow applying a function to each element" <|
         vec = [1, 2, 3, 4]

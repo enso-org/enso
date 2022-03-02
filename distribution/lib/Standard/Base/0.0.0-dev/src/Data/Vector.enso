@@ -470,8 +470,7 @@ type Vector
         length = this.fold 0 acc-> elem-> acc + elem.length
         arr = Array.new length
         this.fold 0 i-> vec->
-            # TODO could use Array.copy here, if it was safe...
-            vec.map_with_index j-> elem-> arr.set_at i+j elem
+            vec.copy_array 0 arr i vec.length
             i + vec.length
         Vector arr
 
@@ -588,7 +587,10 @@ type Vector
         eq_at i = this.unsafe_at i == that.unsafe_at i
         if this.length == that.length then 0.up_to this.length . all eq_at else False
 
-    ## Copy the backing Array to an Enso Array
+    ## PRIVATE
+       Copy the backing Array to an Enso Array
+       TODO This is a workaround for the issue with polyglot Array.copy
+            https://www.pivotaltracker.com/story/show/181122542
     copy_array : Array
     copy_array start_index dest_array dest_start length =
         case Builtins.Meta.is_polyglot this.to_array of
