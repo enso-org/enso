@@ -21,7 +21,6 @@ spec =
 
         Test.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
-            IO.println (Meta.get_qualified_type_name contents.to_array)
             contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
@@ -109,5 +108,3 @@ spec =
 
             filtered2 = Enso_Project.data.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
-
-main = Test.Suite.run_main here.spec
