@@ -450,13 +450,7 @@ type Vector
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Vector Any
     flat_map function =
-        mapped = this.map function
-        length = mapped.fold 0 acc-> elem-> acc + elem.length
-        arr = Array.new length
-        mapped.fold 0 i-> vec->
-            vec.map_with_index j-> elem-> arr.set_at i+j elem
-            i + vec.length
-        Vector arr
+        this.map function . flatten
 
     ## Transforms a vector of vectors into a vector of inner elements - removes
        one layer of nesting from a stack of nested vectors.
