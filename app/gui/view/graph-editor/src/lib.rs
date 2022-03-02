@@ -1701,18 +1701,18 @@ impl GraphEditorModel {
         &self,
         mouse_position: Vector2,
     ) -> Vector2 {
-        let nearest_node = self.find_nearest_node(mouse_position);
+        let nearest_node = self.find_node_nearest_to_point(mouse_position);
         self.new_node_position_restricted_by_node(mouse_position, nearest_node)
     }
 
-    /// Finds a node nearest to the specified mouse position.
-    fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
+    /// Finds a node nearest to the specified point.
+    fn find_node_nearest_to_point(&self, point: Vector2) -> Option<Node> {
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
         for node in nodes.values() {
             let node_bounding_box = node.frp.bounding_box.value();
-            let distance_squared = node_bounding_box.distance_squared(mouse_position);
+            let distance_squared = node_bounding_box.distance_squared(point);
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
                 nearest_node = Some(node.clone_ref());
