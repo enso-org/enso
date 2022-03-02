@@ -926,6 +926,8 @@ Text.* count = this.repeat count
          "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text
 Text.repeat count=1 =
+    ## TODO max is a workaround until Range is sorted to make 0..-1 not cause an infinite loop
+       https://www.pivotaltracker.com/n/projects/2539304
     0.up_to (count.max 0) . fold "" acc-> _-> acc + this
 
 ## PRIVATE
