@@ -690,6 +690,14 @@ impl Node {
             eval new_size ((t) model.output.frp.set_size.emit(t));
 
 
+            // === Bounding Box ===
+            bounding_box_input <- all2(&new_size,&position);
+            out.source.bounding_box <+ bounding_box_input.map(|(size,position)| {
+                let position = position - Vector2::new(0.0,size.y / 2.0);
+                BoundingBox::from_position_and_size(position,*size)
+            });
+
+
             // === Action Bar ===
 
             let visualization_enabled = action_bar.action_visibility.clone_ref();
@@ -698,16 +706,6 @@ impl Node {
             show_action_bar   <- out.hover  && frp.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval frp.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
-
-
-            // === Bounding Box ===
-
-            bounding_box_input <- all3(&new_size,&position,&visualization_enabled);
-            out.source.bounding_box <+ bounding_box_input.map(
-                |(size,position,visualization_enabled)| {
-                    let position = position - Vector2::new(0.0,size.y / 2.0);
-                    BoundingBox::from_position_and_size(position,*size)
-                });
 
 
             // === View Mode ===

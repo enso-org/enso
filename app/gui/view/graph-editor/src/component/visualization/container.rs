@@ -16,7 +16,6 @@ use crate::prelude::*;
 
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::data::enso;
-use crate::selection::BoundingBox;
 use crate::visualization;
 
 use action_bar::ActionBar;
@@ -142,8 +141,7 @@ ensogl::define_endpoints! {
         size           (Vector2),
         is_selected    (bool),
         visible        (bool),
-        vis_input_type (Option<enso::Type>),
-        bounding_box   (BoundingBox)
+        vis_input_type (Option<enso::Type>)
     }
 }
 
@@ -505,13 +503,6 @@ impl Container {
         let registry = &model.registry;
         let selection = Animation::new(network);
 
-        // Hook up the display object position updates to the node's FRP. Required to calculate the
-        // bounding box.
-        frp::extend! { network
-            position <- source::<Vector2>();
-        }
-        model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
-
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
             eval_ frp.toggle_visibility (model.toggle_visibility());
@@ -525,14 +516,6 @@ impl Container {
                 }
                 model.view.set_layer(*l);
             });
-
-
-            // === Bounding Box ===
-
-            bounding_box_input <- all2(&frp.size,&position);
-            frp.source.bounding_box <+ bounding_box_input.map(|(size,position)|
-                BoundingBox::from_position_and_size(*position,*size)
-            );
         }
 
 
