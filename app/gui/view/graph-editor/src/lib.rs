@@ -1347,6 +1347,7 @@ impl GraphEditorModelWithNetwork {
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
+        DEBUG!("create_node mouse=" mouse_position;?);
         let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
         let source_node = match way {
@@ -1702,6 +1703,9 @@ impl GraphEditorModel {
         mouse_position: Vector2,
     ) -> Vector2 {
         let nearest_node = self.find_nearest_node(mouse_position);
+        if let Some(ref n) = nearest_node {
+            DEBUG!("   nearest_node=" n.id();? " vis.id=" n.model.visualization.id() " vis.bb=" n.model.visualization.frp.bounding_box.value();?);
+        }
         self.new_node_position_restricted_by_node(mouse_position, nearest_node)
     }
 

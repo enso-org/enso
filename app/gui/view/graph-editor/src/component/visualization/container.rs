@@ -509,8 +509,13 @@ impl Container {
         // bounding box.
         frp::extend! { network
             position <- source::<Vector2>();
+            // tmpid <- source::<ShapeSystemId>();
         }
-        model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
+        // model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
+        model.display_object.set_on_updated(f!((p) {
+            position.emit(p.position().xy());
+            // tmpid.emit(p.id());
+        }));
 
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
@@ -530,9 +535,14 @@ impl Container {
             // === Bounding Box ===
 
             bounding_box_input <- all2(&frp.size,&position);
-            frp.source.bounding_box <+ bounding_box_input.map(|(size,position)|
-                BoundingBox::from_position_and_size(*position,*size)
-            );
+            frp.source.bounding_box <+ bounding_box_input.map(|(size,position)| {
+                let position = position - Vector2(size.x/2.0, size.y/2.0);
+                let bb = BoundingBox::from_position_and_size(position,*size);
+                // DEBUG!("MCDBG bb visualization: " bb;? "\n      size=" size;? "\n      pos=" position;?);
+                DEBUG!("MCDBG bb visualization\n      size=" size;? "\n      pos=" position;?);
+                // DEBUG!("MCDBG bb visualization " self.id();? "\n      size=" size;? "\n      pos=" position;?);
+                bb
+            });
         }
 
 
