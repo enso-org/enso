@@ -709,7 +709,7 @@ impl Node {
                 |(node_size,node_position,visualization_enabled,visualization_size)| {
                     let bounding_box_position = node_position - Vector2::new(0.0, node_size.y / 2.0);
                     let bb = BoundingBox::from_position_and_size(bounding_box_position, *node_size);
-                    // FIXME: that appears to be not enough in case of error visualizations
+                    // FIXME: the condition below appears to be not enough in case of error visualizations
                     if *visualization_enabled {
                         let node_width = node_size.x;
                         let pos_of_visualization_relative_to_pos_of_node = Vector2(node_width / 2.0, VISUALIZATION_OFFSET_Y);
