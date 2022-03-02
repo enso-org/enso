@@ -2623,7 +2623,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ======================
 
     let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
-    add_node <- any (inputs.add_node,add_node_at_cursor);
+    add_node <- any (inputs.add_node,add_node_at_cursor).profile();
     new_node <- add_node.map(f_!([model,node_pointer_style,node_tooltip,out] {
         let ctx = NodeCreationContext {
             pointer_style  : &node_pointer_style,
