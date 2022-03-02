@@ -6,6 +6,7 @@ from Standard.Builtins import Text, Prim_Text_Helpers
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Case
+import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
@@ -15,6 +16,7 @@ import Standard.Base.Meta
 from Standard.Builtins export Text
 
 export Standard.Base.Data.Text.Case
+export Standard.Base.Data.Text.Location
 export Standard.Base.Data.Text.Split_Kind
 export Standard.Base.Data.Text.Line_Ending_Style
 
@@ -487,7 +489,7 @@ Text.words keep_whitespace=False =
 
     build prev nxt = if nxt == -1 then Nothing else
         word = Text_Utils.substring this prev nxt
-        word_not_whitespace = (Text_Utils.is_whitespace word).not
+        word_not_whitespace = (Text_Utils.is_all_whitespace word).not
         if word_not_whitespace then bldr.append word else
             if keep_whitespace then
                 bldr.append word
@@ -620,12 +622,22 @@ Text.not_empty = this.is_empty.not
          "A0".is_digit == False
          "A0".is_digit 1 == True
          "건반(Korean)".is_digit 1 == False
-Text.is_digit : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds_Error
 Text.is_digit (index=0) =
     grapheme = this.at index
-    if grapheme.is_error then grapheme else
-        char = (Text_Utils.get_chars grapheme).at 0
-        char>=48 && char<=57
+    char = (Text_Utils.get_chars grapheme).at 0
+    char>=48 && char<=57
+
+## Checks if the text consists only of whitespace characters.
+
+   > Example
+     Check if a text is whitespace only.
+
+         ' \t'.is_whitespace == True
+         "0 ".is_whitespace == False
+Text.is_whitespace : Boolean
+Text.is_whitespace =
+    Text_Utils.is_all_whitespace this
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
@@ -940,8 +952,7 @@ Text.take range =
     char_range = case range of
         Range _ _ -> here.range_to_char_indices this range
         _ -> range.to_char_range this
-    if char_range.is_error then char_range else
-        Text_Utils.substring this char_range.start char_range.end
+    Text_Utils.substring this char_range.start char_range.end
 
 ## ALIAS skip, remove
    Creates a new Text by removing the specified range of the input.
@@ -1022,3 +1033,95 @@ Text.to_case case_option=Case.Lower locale=Locale.Default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale this
     Case.Upper -> UCharacter.toUpperCase locale.java_locale this
     Case.Title -> UCharacter.toTitleCase locale.java_locale this Nothing
+
+## Returns the input padded to the specified `length`, using the `with_pad`
+   string repeated at the start or the end.
+
+   Arguments:
+   - length: The new length for the output. The result is the original string if
+     the input length is more than length.
+   - with_pad: The string to use to pad the input. If the last repetition
+     exceeds the target length, it is truncated to the required size. If padding
+     at the `End`, the beginning of the padding string is used and if padding at
+     `Start`, the end of the string is used.
+   - at: The location of where to pad the input.
+
+   > Example
+     Padding a text with whitespace at the end.
+
+         "Hello World!".pad 15 == "Hello World!   "
+
+   > Example
+     Behavior of padding if the `with_pad` string has to be truncated.
+
+         "HELLO".pad 9 "AB" == "HELLOABAB"
+         "HELLO".pad 8 "AB" == "HELLOABA"
+         "HELLO".pad 8 "AB" Start == "BABHELLO"
+
+Text.pad : Integer -> Text -> (Location.Start | Location.End) -> Text
+Text.pad length=0 with_pad=' ' at=Location.End =
+    with_pad_length = with_pad.length
+    if with_pad_length == 0 then Error.throw (Illegal_Argument_Error "`with_pad` must not be an empty string.") else
+        pad_size = length - this.length
+        if pad_size <= 0 then this else
+            full_repetitions = pad_size.div with_pad_length
+            remainder = pad_size % with_pad_length
+            case at of
+                Location.Start ->
+                    with_pad.take (Text_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + this
+                Location.End ->
+                    this + with_pad.repeat full_repetitions + with_pad.take (Text_Sub_Range.First remainder)
+
+## This function removes the specified `trim_characters`, by default any
+   whitespace, from the start, the end, or both ends of the input.
+
+   Arguments:
+   - trim_characters: A Text containing characters that should be removed or a
+     predicate taking single character strings and specifying if they should be
+     removed. By default, this should be any Unicode whitespace characters and
+     all line terminator characters.
+   - from: The location of where to trim the input. By default, this function
+     trims both ends of the input.
+
+   > Example
+     Trimming whitespace from a string.
+
+         " Hello! ".trim == "Hello!"
+         " Hello! ".trim Start == "Hello! "
+         " Hello! ".trim End == " Hello!"
+
+   > Example
+     Trimming a specific set of letters from a string.
+
+        "ABC123".trim Start "ABC" == "123"
+        "ABBA123".trim Start "ABC" == "123"
+Text.trim : (Location.Start | Location.End | Location.Both) -> (Text | (Text -> Boolean)) -> Text
+Text.trim where=Location.Both what=_.is_whitespace =
+    predicate = case what of
+        Text -> what.contains _
+        _ -> what
+    break_iterator = BreakIterator.getCharacterInstance
+    break_iterator.setText this
+    start_index = case where of
+        Location.End -> 0
+        _ ->
+            loop current next =
+                if next < 0 then current else
+                    case predicate (Text_Utils.substring this current next) of
+                        True ->
+                            @Tail_Call loop next break_iterator.next
+                        False -> current
+            loop 0 break_iterator.next
+    end_index = case where of
+        Location.Start -> Text_Utils.char_length this
+        _ ->
+            loop current prev =
+                if prev < 0 then current else
+                    case predicate (Text_Utils.substring this prev current) of
+                        True ->
+                            @Tail_Call loop prev break_iterator.previous
+                        False -> current
+            current = break_iterator.last
+            loop current break_iterator.previous
+    if start_index >= end_index then "" else
+        Text_Utils.substring this start_index end_index

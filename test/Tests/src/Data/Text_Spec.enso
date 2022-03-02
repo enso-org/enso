@@ -168,6 +168,7 @@ spec =
             "Hello World!".take (First 0) . should_equal ""
             "Hello World!".take Last.new . should_equal "!"
             "Hello World!".take (Last 6) . should_equal "World!"
+            "Hello World!".take (Last 0) . should_equal ""
             "Hello World!".take (Last 100) . should_equal "Hello World!"
             "Hello World!".take (Before " ") . should_equal "Hello"
             "Hello World!".take (Before "z") . should_equal "Hello World!"
@@ -219,6 +220,7 @@ spec =
             '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'
             '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
             '✨🚀🚧😍😃😎😙😉☺'.take Last.new . should_equal '☺'
+            '✨🚀🚧😍😃😎😙😉☺'.take (Last 0) . should_equal ''
             '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Before '😍') . should_equal '✨🚀🚧'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Before_Last '😍') . should_equal '✨🚀🚧😍😃'
@@ -344,6 +346,7 @@ spec =
             str.is_digit 2 . should_be_true
             str.is_digit 3 . should_be_true
             str.is_digit 4 . should_be_false
+            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to check by negative index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -352,6 +355,16 @@ spec =
             str.is_digit -3 . should_be_true
             str.is_digit -4 . should_be_false
             str.is_digit -5 . should_be_false
+            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should be able to check if a text consists only of whitespace" <|
+            '  \t\n'.is_whitespace . should_be_true
+            'AB'.is_whitespace . should_be_false
+            '  A   '.is_whitespace . should_be_false
+
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.is_whitespace . should_be_true
+            # The Unicode Zero Width Space is not considered whitespace
+            '\u{200b}'.is_whitespace . should_be_false
 
         Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
@@ -626,6 +639,74 @@ spec =
             "ABC" . ends_with "\AC\z" Regex_Matcher.new . should_be_false
             "foobar" . ends_with "" Regex_Matcher.new . should_be_true
             "" . ends_with "" Regex_Matcher.new . should_be_true
+
+        Test.specify "should allow to pad a text" <|
+            "Hello World!".pad 15 . should_equal "Hello World!   "
+            "HELLO".pad 9 "AB" . should_equal "HELLOABAB"
+            "HELLO".pad 8 "AB" . should_equal "HELLOABA"
+            "HELLO".pad 8 "AB" Location.Start . should_equal "BABHELLO"
+            "".pad 4 . should_equal "    "
+            "A".pad 3 "" . should_fail_with Illegal_Argument_Error
+            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument_Error
+            "".pad 0 "" . should_fail_with Illegal_Argument_Error
+
+            "".pad 0 . should_equal ""
+            "ABC".pad 3 . should_equal "ABC"
+            "AB".pad -1 . should_equal "AB"
+            "ABC".pad -100 . should_equal "ABC"
+
+            'a\u{301}'.pad 2 . should_equal 'a\u{301} '
+            "".pad 2 'a\u{302}' . should_equal 'a\u{302}a\u{302}'
+            'XX'.pad 5 'yy\u{301}' . should_equal 'XXyy\u{301}y'
+            'XX'.pad 5 'y\u{301}y' . should_equal 'XXy\u{301}yy\u{301}'
+            'XX'.pad 4 'yy\u{301}Z' . should_equal 'XXyy\u{301}'
+
+            '🚀'.pad 3 'B' Location.End . should_equal '🚀BB'
+            '🚀'.pad 3 'B' Location.Start . should_equal 'BB🚀'
+
+            ## It is technically possible to use a combining diacritical mark as
+               the padding, then the actual length of the text will not increase
+               because all padding will still constitute a single grapheme
+               cluster.
+            'e'.pad 7 '\u{301}' . length . should_equal 1
+
+        Test.specify "should allow to trim a text" <|
+            " Hello! ".trim . should_equal  "Hello!"
+            " Hello! ".trim Location.Start . should_equal  "Hello! "
+            " Hello! ".trim Location.End . should_equal  " Hello!"
+            "ABC123".trim Location.Start "ABC" . should_equal  "123"
+            "ABBA123".trim Location.Start "ABC" . should_equal  "123"
+            "ABCZ-]".trim Location.Both "[A-Z]" . should_equal "BC"
+
+            "   ".trim . should_equal ""
+            "  Hello World!   ".trim . should_equal  "Hello World!"
+            "  Hello World!   ".trim Location.Start . should_equal  "Hello World!   "
+            "  Hello World!   ".trim Location.End . should_equal  "  Hello World!"
+            "ABCD".trim Location.Start "ABCDEF" . should_equal ""
+            "ABCD".trim Location.End "ABCDEF" . should_equal ""
+            "ABCD".trim Location.Both "ABCDEF" . should_equal ""
+
+            "".trim . should_equal ""
+            "A".trim . should_equal "A"
+            " A ".trim . should_equal "A"
+            '   A\u{301} \n   '.trim . should_equal 'A\u{301}'
+            "🚧".trim . should_equal "🚧"
+            "  🚧  🚧  ".trim . should_equal "🚧  🚧"
+            "  🚧  🚧  ".trim Location.End . should_equal "  🚧  🚧"
+
+            "ABCD".trim Location.Start (_ -> True) . should_equal ""
+            "ABCD".trim Location.Both (_ -> True) . should_equal ""
+            "ABCD".trim Location.Both (_ -> False) . should_equal "ABCD"
+            "123AB98".trim Location.Both _.is_digit . should_equal "AB"
+
+            ' \t\n\r'.trim . should_equal ''
+            '\t\t  Test\nFoo\r\n'.trim . should_equal 'Test\nFoo'
+            # Check various kinds of Unicode whitespace
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.trim . should_equal ''
+
+            # A whitespace with an accent is not treated as whitespace anymore
+            '      \u{301}   '.trim . should_equal ' \u{301}'
+            ' \u{301}'.trim . should_equal ' \u{301}'
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
