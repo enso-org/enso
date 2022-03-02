@@ -506,3 +506,251 @@ macro_rules! define_endpoints_emit_alias {
         }
     };
 }
+
+
+#[macro_export]
+macro_rules! define_endpoints_2 {
+    (
+        $([$($global_opts:tt)*])?
+        $(<$($param:ident $(:($($constraints:tt)*))?),*>)?
+
+        $(Input { $([$($input_opts:tt)*])?
+            $($(#[doc=$($in_doc:tt)*])*
+            $in_field : ident ($($in_field_type : tt)*)),* $(,)?
+        })?
+
+        $(Output { $([$($output_opts:tt)*])?
+            $($(#[doc=$($out_doc:tt)*])*
+            $out_field : ident ($($out_field_type : tt)*)),* $(,)?
+        })?
+    ) => {
+        $crate::define_endpoints_2! {
+            NORMALIZED
+            $([$($global_opts)*])?
+            $(<$($param $(:($($constraints)*))?),*>)?
+
+            Input { $($([$($input_opts)*])?)?
+                /// Focus the element. Focused elements are meant to receive shortcut events.
+                focus(),
+                /// Defocus the element. Non-focused elements are meant to be inactive and don't
+                /// receive shortcut events.
+                defocus(),
+                /// Wrapper for `focus` and `defocus`.
+                set_focus(bool),
+                $($($(#[doc=$($in_doc )*])*
+                $in_field ($($in_field_type )*)),*)?
+            }
+
+            Output { $($([$($output_opts)*])?)?
+                /// Focus state checker.
+                focused(bool),
+                $($($(#[doc=$($out_doc)*])*
+                $out_field ($($out_field_type)*)),*)?
+            }
+        }
+    };
+
+    (
+        NORMALIZED
+        $([$($global_opts:tt)*])?
+        $(<$($param:ident $(:($($constraints:tt)*))?),*>)?
+
+        Input { $([$($input_opts:tt)*])?
+            $($(#[doc=$($in_doc :tt)*])*
+            $in_field : ident ($($in_field_type : tt)*)),* $(,)?
+        }
+
+        Output { $([$($output_opts:tt)*])?
+            $($(#[doc=$($out_doc:tt)*])*
+            $out_field : ident ($($out_field_type : tt)*)),* $(,)?
+        }
+    ) => {
+        use $crate::frp::IntoParam;
+
+        /// Frp network and endpoints.
+        #[derive(Debug,Derivative)]
+        #[allow(missing_docs)]
+        pub struct Frp $(<$($param $(:$($constraints)*)?),*>)? {
+            public: api::Public $(<$($param $(:$($constraints)*)?),*>)?, // deref
+            private: api::Private $(<$($param $(:$($constraints)*)?),*>)?,
+        }
+
+
+        pub mod api {
+            use super::*;
+
+
+
+            // ==============
+            // === Public ===
+            // ==============
+
+            #[derive(Debug, CloneRef, Clone)]
+            pub struct Public $(<$($param $(:$($constraints)*)?),*>)? {
+                pub input: public::Input,
+                pub output: public::Output,
+                combined: public::Combined, // deref
+            }
+
+            pub mod public {
+                use super::*;
+
+
+
+                // =============
+                // === Input ===
+                // =============
+
+                #[derive(Debug, CloneRef, Clone)]
+                pub struct Input {
+                    data: Rc<InputData>
+                }
+
+
+                #[derive(Debug, CloneRef, Derivative)]
+                #[derivative(Clone(bound = ""))]
+                pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
+                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+                     _phantom_type_args : ($($(PhantomData<$param>),*)?),
+                }
+
+                impl InputData {
+                    fn new(network: &$crate::frp::Network, public_input: &super::public::Input) -> Self {
+                        $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
+                            $($in_field <- any_mut();)*
+                        }
+                        let _phantom_type_args = default();
+                        Self { $($in_field),*, _phantom_type_args }
+                    }
+
+                    $($crate::define_endpoints_emit_alias!{$in_field ($($in_field_type)*)})*
+
+                }
+
+
+
+                // ==============
+                // === Output ===
+                // ==============
+
+                #[derive(Debug, CloneRef, Clone)]
+                pub struct Output $(<$($param $(:$($constraints)*)?),*>)? {
+                    data: Rc<OutputData>
+                }
+
+                #[derive(Debug)]
+                pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
+                    //                    ($(#[doc=$($out_doc)*])*
+                    // pub $out_field  : $crate::frp::Stream<($($out_field_type)*)>,
+                    // )*
+
+
+                    pub status_map    : Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
+                    pub command_map   : Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
+                    _params : ($($(PhantomData<$param>),*)?),
+                }
+
+                // impl OutputData {
+                //     fn new(network: &frp::Network, private_output: &Frp::private::Output) -> Self {
+                //
+                //         let _phantom_type_args = default();
+                //         Self { focused, foo, _phantom_type_args }
+                //     }
+                // }
+
+                // ================
+                // === Combined ===
+                // ================
+
+                #[derive(Debug, CloneRef, Clone)]
+                pub struct Combined $(<$($param $(:$($constraints)*)?),*>)? {
+                    data: Rc<CombinedData> // deref
+                }
+
+                #[derive(Debug)]
+                pub struct CombinedData $(<$($param $(:$($constraints)*)?),*>)? {
+                    $( $(#[doc=$($in_doc)*])*
+                    pub $in_field : $crate::frp::Any<($($in_field_type)*)>,
+                    )*
+                    // ($(#[doc=$($out_doc)*])*
+                    // pub $out_field  : $crate::frp::Stream<($($out_field_type)*)>,
+                    // )*
+                }
+            }
+
+
+            // ===============
+            // === Private ===
+            // ===============
+
+            // No Clone. We do not want `network` to be cloned easily in the future.
+            #[derive(Debug)]
+            pub struct Private {
+                pub network: $crate::frp::Network,
+                pub input: private::Input,
+                pub output: private::Output,
+            }
+
+            pub mod private {
+                use super::*;
+
+
+
+                // =============
+                // === Input ===
+                // =============
+
+                #[derive(Debug)]
+                pub struct Input  $(<$($param $(:$($constraints)*)?),*>)? {
+                    data: Rc<InputData>
+                }
+
+                #[derive(Debug)]
+                pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
+                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Stream<($($in_field_type)*)>,)*
+                     _params : ($($(PhantomData<$param>),*)?),
+                }
+
+                // ==============
+                // === Output ===
+                // ==============
+
+                #[derive(Debug)]
+                pub struct Output $(<$($param $(:$($constraints)*)?),*>)? {
+                    data: Rc<OutputData>
+                }
+
+                #[derive(Debug)]
+                pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
+                    // ($(#[doc=$($out_doc)*])*
+                    // pub $out_field  : $crate::frp::Stream<($($out_field_type)*)>,
+                    // )*
+                    _params : ($($(PhantomData<$param>),*)?),
+
+                }
+            }
+
+        }
+    };
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+
+    // Check compilation of macro output
+    define_endpoints_2! {
+        Input{
+            set_x(u32)
+        }
+        Output{
+            x(u32)
+        }
+    }
+
+    #[test]
+    fn test() {
+        // Frp::new();
+    }
+}
