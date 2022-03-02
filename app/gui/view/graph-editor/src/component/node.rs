@@ -719,6 +719,7 @@ impl Node {
                         DEBUG!("MCDBG: vis enabled, v.size=" visualization_size;? " n.pos=" node_position;? " n.size=" node_size;? " v.bbox=" visualization_bounding_box;?);
                         bb.grow_to_include(&visualization_bounding_box);
                     }
+                    DEBUG!("MCDBG node.bb=" bb;? "\n    n.pos=" node_position;? " n.size=" node_size);
                     bb
                 });
 

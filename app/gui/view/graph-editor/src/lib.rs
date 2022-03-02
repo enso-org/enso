@@ -1347,6 +1347,7 @@ impl GraphEditorModelWithNetwork {
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
+        DEBUG!("create_node mouse=" mouse_position;?);
         let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
         let source_node = match way {
