@@ -72,7 +72,6 @@ type Text_Sub_Range
                     Range 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
             Last count ->
                 if count <= 0 then (Range 0 0) else
-                    first_count = text.length - count
                     iterator = BreakIterator.getCharacterInstance
                     iterator.setText text
                     iterator.last
