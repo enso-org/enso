@@ -887,11 +887,6 @@ Text.to_json = Json.String this
      the new text.
 
    > Example
-     Repeat the string "ABBA" five times.
-
-         "ABBA" * 5 == "ABBAABBAABBAABBAABBA"
-
-   > Example
      Repeat the string "A" five times.
 
          "A" * 5 == "AAAAA"
@@ -914,11 +909,6 @@ Text.* count = this.repeat count
      Repeat the string "ABBA" five times.
 
          "ABBA".repeat 5 == "ABBAABBAABBAABBAABBA"
-
-   > Example
-     Repeat the string "A" five times.
-
-         "A".repeat 5 == "AAAAA"
 
    > Example
      Repeat the string "Hello " twice.
