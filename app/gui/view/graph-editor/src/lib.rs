@@ -1362,7 +1362,7 @@ impl GraphEditorModelWithNetwork {
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
             StartCreationEvent =>
-                self.new_node_position_aligned_to_nodes_close_to_mouse(mouse_position),
+                self.new_node_position_at_mouse_aligned_to_close_nodes(mouse_position),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { edge_id } =>
@@ -1697,7 +1697,7 @@ impl GraphEditorModel {
 
     // Finds a position to place a new node at, based only on mouse position and on the placement
     // of the existing nodes.
-    pub fn new_node_position_aligned_to_nodes_close_to_mouse(
+    pub fn new_node_position_at_mouse_aligned_to_close_nodes(
         &self,
         mouse_position: Vector2,
     ) -> Vector2 {
