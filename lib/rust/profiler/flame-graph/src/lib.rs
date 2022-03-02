@@ -53,7 +53,7 @@ fn blocks_from_measurement<Metadata>(measurement: &Measurement<Metadata>, row: u
         Lifetime::Async(lifetime) => lifetime
             .active
             .iter()
-            .map(|interval| block_from_interval(&measurement.label, row, interval))
+            .map(|interval| block_from_interval(&measurement.label, 0, interval))
             .collect(),
         Lifetime::NonAsync { active } => vec![block_from_interval(&measurement.label, row, active)],
     }
