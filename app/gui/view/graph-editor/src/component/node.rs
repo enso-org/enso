@@ -46,7 +46,6 @@ use super::edge;
 use crate::selection::BoundingBox;
 
 
-fn xy(v: Vector2) -> String { iformat!("(" v.x ", " v.y ")") }
 
 // =================
 // === Constants ===
@@ -717,10 +716,10 @@ impl Node {
                         let absolute_pos_of_visualization = node_position + pos_of_visualization_relative_to_pos_of_node;
                         let absolute_pos_of_visualization_bounding_box = absolute_pos_of_visualization - visualization_size / 2.0;
                         let visualization_bounding_box = BoundingBox::from_position_and_size(absolute_pos_of_visualization_bounding_box, *visualization_size);
-                        DEBUG!("MCDBG: vis enabled, v.size=" xy(*visualization_size) " v.bbox=" visualization_bounding_box;?);
+                        DEBUG!("MCDBG: vis enabled, v.size=" visualization_size;? " n.pos=" node_position;? " n.size=" node_size;? " v.bbox=" visualization_bounding_box;?);
                         bb.grow_to_include(&visualization_bounding_box);
                     }
-                    DEBUG!("MCDBG node.bb=" bb;? "\n    n.pos=" xy(*node_position) " n.size=" xy(*node_size));
+                    DEBUG!("MCDBG node.bb=" bb;? "\n    n.pos=" node_position;? " n.size=" node_size);
                     bb
                 });
 
