@@ -177,6 +177,20 @@ public class Text_Utils {
   }
 
   /**
+   * Combine strings {@code strings}
+   *
+   * @param strings the string values to be concatenated
+   * @return the resulting string
+   */
+  public static String concat(String... strings) {
+    StringBuilder sb = new StringBuilder();
+    for (String arg: strings) {
+      sb.append(arg);
+    }
+    return sb.toString();
+  }
+
+  /**
    * Replaces all occurrences of {@code oldSequence} within {@code str} with {@code newSequence}.
    *
    * @param str the string to process

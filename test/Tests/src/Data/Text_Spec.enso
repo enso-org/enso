@@ -30,6 +30,8 @@ spec =
             things like decimal points (1.0314e3) and other language scripts as well
             건반(Korean).
         sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
+        hello_world = 'Hello World!'
+        cruel = ' Cruel'
 
         Test.specify "should allow naive length computation over grapheme clusters" <|
             kshi.length . should_equal 1
@@ -338,6 +340,24 @@ spec =
         Test.specify "should convert an array of utf-16 characters to text" <|
             kshi_chars = [2325, 2381, 2359, 2367]
             Text.from_utf_16 kshi_chars . should_equal kshi
+
+        Test.specify "should insert text at a positive index position" <|
+            hello_world.insert 0 cruel . should_equal " CruelHello World!"
+            hello_world.insert 5 cruel . should_equal "Hello Cruel World!"
+            hello_world.insert (hello_world.length - 1) cruel . should_equal "Hello World Cruel!"
+            hello_world.insert hello_world.length cruel . should_equal "Hello World! Cruel"
+
+        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid positive index position" <|
+            hello_world.insert (hello_world.length + 1) cruel . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should insert text at a negative index position" <|
+            hello_world.insert -1 cruel . should_equal "Hello World! Cruel"
+            hello_world.insert -5 cruel . should_equal "Hello Wo Cruelrld!"
+            hello_world.insert -(hello_world.length) cruel . should_equal "H Cruelello World!"
+            hello_world.insert -(hello_world.length + 1) cruel . should_equal "" CruelHello World!"
+
+        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid negative index position" <|
+            hello_world.insert -(hello_world.length + 2) cruel . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
