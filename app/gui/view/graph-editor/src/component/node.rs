@@ -712,8 +712,8 @@ impl Node {
                     // FIXME: that appears to be not enough in case of error visualizations
                     if *visualization_enabled {
                         let node_width = node_size.x;
-                        let relative_pos_of_visualization = Vector2(node_width / 2.0, VISUALIZATION_OFFSET_Y);
-                        let absolute_pos_of_visualization = node_position + relative_pos_of_visualization;
+                        let pos_of_visualization_relative_to_pos_of_node = Vector2(node_width / 2.0, VISUALIZATION_OFFSET_Y);
+                        let absolute_pos_of_visualization = node_position + pos_of_visualization_relative_to_pos_of_node;
                         let absolute_pos_of_visualization_bounding_box = absolute_pos_of_visualization - visualization_size / 2.0;
                         let visualization_bounding_box = BoundingBox::from_position_and_size(absolute_pos_of_visualization_bounding_box, *visualization_size);
                         DEBUG!("MCDBG: vis enabled, v.size=" visualization_size;? " n.pos=" node_position;? " n.size=" node_size;? " v.bbox=" visualization_bounding_box;?);
