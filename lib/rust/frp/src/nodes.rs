@@ -1626,7 +1626,6 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedProfile<T> {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "");
         ERROR!("[FRP] {self.label()}: {event:?}");
         self.emit_event(stack, event);
-        self.post_process.as_deref().map(|f| f());
     }
 }
 
