@@ -1365,8 +1365,11 @@ impl GraphEditorModelWithNetwork {
                 self.new_node_position_at_mouse_aligned_to_close_nodes(mouse_position),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
-            DroppingEdge { edge_id } =>
-                self.new_node_position_at_mouse_aligned_to_edge_source_node_if_near(edge_id, mouse_position),
+            DroppingEdge { edge_id } => self
+                .new_node_position_at_mouse_aligned_to_edge_source_node_if_near(
+                    edge_id,
+                    mouse_position,
+                ),
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
@@ -1757,7 +1760,7 @@ impl GraphEditorModel {
             let node_bottom = node_position.y - node.model.height() / 2.0;
             use theme::graph_editor::new_node_restricted_placement_area as restricted_area_theme;
             let distance_from_left_node_edge_to_alignment_area_left_edge =
-             styles.get_number_or(restricted_area_theme::to_the_left_of_reference_node, 0.0);
+                styles.get_number_or(restricted_area_theme::to_the_left_of_reference_node, 0.0);
 
             let restricted_space_left_style = restricted_area_theme::to_the_left_of_reference_node;
             let restricted_space_right_style =

@@ -81,11 +81,17 @@ impl BoundingBox {
         self.right += size;
     }
 
-    pub fn grow_left(&mut self, size: f32) { self.left-=size;}
+    pub fn grow_left(&mut self, size: f32) {
+        self.left -= size;
+    }
 
-    pub fn grow_up(&mut self,size:f32){self.top+=size;}
+    pub fn grow_up(&mut self, size: f32) {
+        self.top += size;
+    }
 
-    pub fn grow_down(&mut self,size:f32){self.bottom-=size;}
+    pub fn grow_down(&mut self, size: f32) {
+        self.bottom -= size;
+    }
 
     pub fn grow_to_include(&mut self, other: &BoundingBox) {
         self.left = self.left.min(other.left);
@@ -99,9 +105,8 @@ impl BoundingBox {
     pub fn squared_distance_to_point(&self, point: Vector2) -> f32 {
         let x_of_nearest_point_in_bounding_box = clamp(point.x, self.left, self.right);
         let y_of_nearest_point_in_bounding_box = clamp(point.y, self.bottom, self.top);
-        let nearest_point_in_bounding_box = Vector2(
-            x_of_nearest_point_in_bounding_box,
-            y_of_nearest_point_in_bounding_box);
+        let nearest_point_in_bounding_box =
+            Vector2(x_of_nearest_point_in_bounding_box, y_of_nearest_point_in_bounding_box);
         (nearest_point_in_bounding_box - point).norm_squared()
     }
 }
