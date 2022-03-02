@@ -355,6 +355,15 @@ spec =
             str.is_digit -5 . should_be_false
             str.is_digit -100 . should_fail_with Index_Out_Of_Bounds_Error
 
+        Test.specify "should be able to check if a text consists only of whitespace" <|
+            '  \t\n'.is_whitespace . should_be_true
+            'AB'.is_whitespace . should_be_false
+            '  A   '.is_whitespace . should_be_false
+
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.is_whitespace . should_be_true
+            # The Unicode Zero Width Space is not considered whitespace
+            '\u{200b}'.is_whitespace . should_be_false
+
         Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
             str.at -6 . should_fail_with Index_Out_Of_Bounds_Error
@@ -637,13 +646,53 @@ spec =
             "".pad 4 . should_equal "    "
             "A".pad 3 "" . should_fail_with Illegal_Argument_Error
             "ABCDE".pad 3 "" . should_fail_with Illegal_Argument_Error
+            "".pad 0 "" . should_fail_with Illegal_Argument_Error
+
+            "".pad 0 . should_equal ""
+            "ABC".pad 3 . should_equal "ABC"
+            "AB".pad -1 . should_equal "AB"
+            "ABC".pad -100 . should_equal "ABC"
+
+            'a\u{301}'.pad 2 . should_equal 'a\u{301} '
+            "".pad 2 'a\u{302}' . should_equal 'a\u{302}a\u{302}'
+            'XX'.pad 5 'yy\u{301}' . should_equal 'XXyy\u{301}y'
+
+            '🚀'.pad 3 'B' Location.End . should_equal '🚀BB'
+            '🚀'.pad 3 'B' Location.Start . should_equal 'BB🚀'
 
         Test.specify "should allow to trim a text" <|
-            " Hello! ".trim == "Hello!"
-            " Hello! ".trim Location.Start == "Hello! "
-            " Hello! ".trim Location.End == " Hello!"
-            "ABC123".trim Location.Start "ABC" == "123"
-            "ABBA123".trim Location.Start "ABC" == "123"
+            " Hello! ".trim . should_equal  "Hello!"
+            " Hello! ".trim Location.Start . should_equal  "Hello! "
+            " Hello! ".trim Location.End . should_equal  " Hello!"
+            "ABC123".trim Location.Start "ABC" . should_equal  "123"
+            "ABBA123".trim Location.Start "ABC" . should_equal  "123"
+            "ABCZ-]".trim Location.Both "[A-Z]" . should_equal "BC"
+
+            "   ".trim . should_equal ""
+            "  Hello World!   ".trim . should_equal  "Hello World!"
+            "  Hello World!   ".trim Location.Start . should_equal  "Hello World!   "
+            "  Hello World!   ".trim Location.End . should_equal  "  Hello World!"
+            "ABCD".trim Location.Start "ABCDEF" . should_equal ""
+            "ABCD".trim Location.End "ABCDEF" . should_equal ""
+            "ABCD".trim Location.Both "ABCDEF" . should_equal ""
+
+            "".trim . should_equal ""
+            "A".trim . should_equal "A"
+            " A ".trim . should_equal "A"
+            '   A\u{301} \n   '.trim . should_equal 'A\u{301}'
+            "🚧".trim . should_equal "🚧"
+            "  🚧  🚧  ".trim . should_equal "🚧  🚧"
+            "  🚧  🚧  ".trim Location.End . should_equal "  🚧  🚧"
+
+            "ABCD".trim Location.Start (_ -> True) . should_equal ""
+            "ABCD".trim Location.Both (_ -> True) . should_equal ""
+            "ABCD".trim Location.Both (_ -> False) . should_equal "ABCD"
+            "123AB98".trim Location.Both _.is_digit . should_equal "AB"
+
+            ' \t\n\r'.trim . should_equal ''
+            '\t\t  Test\nFoo\r\n'.trim . should_equal 'Test\nFoo'
+            # Check various kinds of Unicode whitespace
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.trim . should_equal ''
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|

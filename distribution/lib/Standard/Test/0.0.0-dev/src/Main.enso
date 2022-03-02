@@ -238,7 +238,7 @@ Any.should_equal that frames_to_skip=0 = case this == that of
          import Standard.Test
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
-Error.should_equal : Any -> Assertion.
+Error.should_equal : Any -> Assertion
 Error.should_equal _ = Panic.throw (Matched_On_Error this)
 
 ## Asserts that `this` is within `epsilon` from `that`.

@@ -1123,4 +1123,5 @@ Text.trim where=Location.Both what=_.is_whitespace =
                         False -> current
             current = break_iterator.last
             loop current break_iterator.previous
-    Text_Utils.substring this start_index end_index
+    if start_index >= end_index then "" else
+        Text_Utils.substring this start_index end_index
