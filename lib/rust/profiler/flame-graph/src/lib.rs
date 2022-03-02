@@ -60,8 +60,8 @@ fn blocks_from_measurement<Metadata>(measurement: &Measurement<Metadata>, row: u
 }
 
 fn block_from_interval(label: &data::Label, row: u32, interval: &Interval) -> Block {
-    let start = interval.start.time.into_ms();
-    let end = interval.end.map(|mark| mark.time.into_ms()).unwrap_or(f64::MAX); // TODO Error handling
+    let start = interval.start.into_ms();
+    let end = interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
     let label = label.to_string();
     let row = row;
     Block { start, end, label, row }
