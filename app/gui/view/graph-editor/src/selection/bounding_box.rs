@@ -1,6 +1,8 @@
 //! Module that contains an implementation of a simple axis aligned bounding box.
 use ensogl::prelude::*;
 
+use nalgebra::clamp;
+
 
 
 // ===================
@@ -80,6 +82,17 @@ impl BoundingBox {
         self.right = self.right.max(other.right);
         self.bottom = self.bottom.min(other.bottom);
         self.top = self.top.max(other.top);
+    }
+
+    /// Calculates the squared norm of a vector between the specified point and a point in the
+    /// bounding box that is nearest to the specified point.
+    pub fn distance_squared(&self, point: Vector2) -> f32 {
+        let x_of_nearest_point_in_bounding_box = clamp(point.x, self.left, self.right);
+        let y_of_nearest_point_in_bounding_box = clamp(point.y, self.bottom, self.top);
+        let nearest_point_in_bounding_box = Vector2(
+            x_of_nearest_point_in_bounding_box,
+            y_of_nearest_point_in_bounding_box);
+        (nearest_point_in_bounding_box - point).norm_squared()
     }
 }
 

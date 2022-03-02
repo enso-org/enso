@@ -1705,32 +1705,14 @@ impl GraphEditorModel {
         self.new_node_position_restricted_by_node(mouse_position, nearest_node)
     }
 
-    /// Finds a node nearest to the specified mouse position. Areas, where nodes' visualizations
-    /// are shown, are not treated as parts of a node to calculate how close the mouse position is
-    /// to a node (in other words, visualizations are ignored). Nodes are assumed to have a shape
-    /// of a rectangle with fixed height and rounded corners, where each rounded corner's radius
-    /// equals half of the rectangle's height. The function takes into account possible situations
-    /// where two or more nodes could overlap each other. To calculate the distance to the mouse
-    /// position, a node is then modeled as a line segment connecting the centers of the circles
-    /// forming the corners of the rounded rectangle described above.
+    /// Finds a node nearest to the specified mouse position.
     fn find_nearest_node(&self, mouse_position: Vector2) -> Option<Node> {
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
         for node in nodes.values() {
-            let node_position = node.position().xy();
-            let left_circle_center_x = node_position.x + node::CORNER_RADIUS;
-            let node_rightmost_x = node_position.x + node.model.width();
-            let right_circle_center_x = node_rightmost_x - node::CORNER_RADIUS;
-            let mouse_x = mouse_position.x;
-            let node_point_near_mouse = if mouse_x <= left_circle_center_x {
-                Vector2(left_circle_center_x, node_position.y)
-            } else if mouse_x < right_circle_center_x {
-                Vector2(mouse_x, node_position.y)
-            } else {
-                Vector2(right_circle_center_x, node_position.y)
-            };
-            let distance_squared = (node_point_near_mouse - mouse_position).norm_squared();
+            let node_bounding_box = node.frp.bounding_box.value();
+            let distance_squared = node_bounding_box.distance_squared(mouse_position);
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
                 nearest_node = Some(node.clone_ref());
