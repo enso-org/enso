@@ -84,9 +84,9 @@ impl BoundingBox {
         self.top = self.top.max(other.top);
     }
 
-    /// Calculates the squared norm of a vector between the specified point and a point in the
-    /// bounding box that is nearest to the specified point.
-    pub fn distance_squared(&self, point: Vector2) -> f32 {
+    /// Calculates the squared norm of a vector between the point passed as argument, and a point
+    /// in the bounding box that is nearest to the point passed as argument.
+    pub fn squared_distance_to_point(&self, point: Vector2) -> f32 {
         let x_of_nearest_point_in_bounding_box = clamp(point.x, self.left, self.right);
         let y_of_nearest_point_in_bounding_box = clamp(point.y, self.bottom, self.top);
         let nearest_point_in_bounding_box = Vector2(

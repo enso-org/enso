@@ -1712,7 +1712,7 @@ impl GraphEditorModel {
         let nodes = self.nodes.all.raw.borrow();
         for node in nodes.values() {
             let node_bounding_box = node.frp.bounding_box.value();
-            let distance_squared = node_bounding_box.distance_squared(point);
+            let distance_squared = node_bounding_box.squared_distance_to_point(point);
             if distance_squared < min_distance_squared {
                 min_distance_squared = distance_squared;
                 nearest_node = Some(node.clone_ref());
