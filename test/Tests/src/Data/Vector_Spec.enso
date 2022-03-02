@@ -345,4 +345,9 @@ spec = Test.group "Vectors" <|
     Test.specify "should return a vector containing only unique elements up to some criteria" <|
         [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) . should_equal [Pair 1 "a", Pair 2 "b"]
 
+    Test.specify "should be able to sort a polyglot vector" <|
+        input = "beta".utf_8
+        expected = "abet".utf_8
+        input.sort . should_equal expected
+
 main = Test.Suite.run_main here.spec
