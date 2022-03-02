@@ -65,7 +65,6 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx,
       @Cached ConditionProfile atomProfile,
       @Cached ConditionProfile atomConstructorProfile,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
@@ -74,7 +73,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           dispatch.getConversionFunction(
               that,
               InvokeConversionNode.extractConstructor(
-                  this, _this, ctx, atomConstructorProfile, atomProfile),
+                  this, _this, atomConstructorProfile, atomProfile),
               conversion);
       return indirectInvokeFunctionNode.execute(
           function,
@@ -87,7 +86,11 @@ public abstract class IndirectInvokeConversionNode extends Node {
           isTail);
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchConversionError(_this, that, conversion), this);
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeNoSuchConversionError(_this, that, conversion),
+          this);
     }
   }
 
@@ -104,7 +107,6 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx,
       @Cached BranchProfile profile,
       @Cached ConditionProfile atomProfile,
       @Cached ConditionProfile atomConstructorProfile,
@@ -114,7 +116,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           dispatch.getConversionFunction(
               that,
               InvokeConversionNode.extractConstructor(
-                  this, _this, ctx, atomConstructorProfile, atomProfile),
+                  this, _this, atomConstructorProfile, atomProfile),
               conversion);
       return indirectInvokeFunctionNode.execute(
           function,
@@ -163,7 +165,6 @@ public abstract class IndirectInvokeConversionNode extends Node {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached ConditionProfile atomProfile,
       @Cached ConditionProfile atomConstructorProfile,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     try {
       String str = interop.asString(that);
@@ -172,7 +173,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           textDispatch.getConversionFunction(
               txt,
               InvokeConversionNode.extractConstructor(
-                  this, _this, ctx, atomConstructorProfile, atomProfile),
+                  this, _this, atomConstructorProfile, atomProfile),
               conversion);
       arguments[0] = txt;
       return indirectInvokeFunctionNode.execute(
@@ -188,31 +189,35 @@ public abstract class IndirectInvokeConversionNode extends Node {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchConversionError(_this, that, conversion), this);
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeNoSuchConversionError(_this, that, conversion),
+          this);
     }
   }
 
   @Specialization(
-          guards = {
-                  "!methods.canConvertFrom(that)",
-                  "!interop.isString(that)",
-                  "!methods.hasSpecialConversion(that)"
-          })
+      guards = {
+        "!methods.canConvertFrom(that)",
+        "!interop.isString(that)",
+        "!methods.hasSpecialConversion(that)"
+      })
   Stateful doFallback(
-          MaterializedFrame frame,
-          Object state,
-          UnresolvedConversion conversion,
-          Object _this,
-          Object that,
-          Object[] arguments,
-          CallArgumentInfo[] schema,
-          InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-          InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-          BaseNode.TailStatus isTail,
-          @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
-          @CachedLibrary(limit = "10") InteropLibrary interop,
-          @CachedContext(Language.class) Context ctx) {
+      MaterializedFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      Object that,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
-            ctx.getBuiltins().error().makeNoSuchConversionError(_this, that, conversion), this);
+        Context.get(this).getBuiltins().error().makeNoSuchConversionError(_this, that, conversion),
+        this);
   }
 }

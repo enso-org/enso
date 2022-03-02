@@ -39,9 +39,9 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all z . map .value . should_equal ["I'm serious", "don't do this"]
 
     Test.specify "should thread warnings through constructor calls" <|
-        x = Warning.attach 1 (My_Warning "warn!")
-        y = Warning.attach 2 (My_Warning "warn!!")
         z = Warning.attach 3 (My_Warning "warn!!!")
+        y = Warning.attach 2 (My_Warning "warn!!")
+        x = Warning.attach 1 (My_Warning "warn!")
         mtp = My_Type x y z
         mtp.should_equal (My_Type 1 2 3)
         Warning.get_all mtp . map .value . should_equal [My_Warning "warn!", My_Warning "warn!!", My_Warning "warn!!!"]
@@ -54,16 +54,16 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all r . map .value . should_equal ["omgggg"]
 
     Test.specify "should thread warnings through polyglot calls" <|
-        x = Warning.attach 1 "warn!"
         y = Warning.attach 2 "warn!!"
+        x = Warning.attach 1 "warn!"
         r = Long.sum x y
         r.should_equal 3
         Warning.get_all r . map .value . should_equal ['warn!', 'warn!!']
 
     Test.specify "should thread warnings through case expressions" <|
-        x = Warning.attach 1 (My_Warning "warn!")
-        y = Warning.attach 2 (My_Warning "warn!!")
         z = Warning.attach 3 (My_Warning "warn!!!")
+        y = Warning.attach 2 (My_Warning "warn!!")
+        x = Warning.attach 1 (My_Warning "warn!")
         mtp = My_Type x y z
         r = case mtp of
             My_Type a b c -> a + b + c

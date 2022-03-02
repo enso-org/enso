@@ -18,11 +18,6 @@ public class GetReassignmentsNode extends Node {
   Array execute(Object _this, Warning warning) {
     Warning.Reassignment[] reassignments =
         warning.getReassignments().toArray(Warning.Reassignment[]::new);
-    Object[] result = new Object[reassignments.length];
-    TruffleLanguage.Env env = Context.get(this).getEnvironment();
-    for (int i = 0; i < result.length; i++) {
-      result[i] = env.asGuestValue(reassignments[i]);
-    }
-    return new Array(result);
+    return new Array(Arrays.copyOf(reassignments, reassignments.length, Object[].class));
   }
 }
