@@ -414,7 +414,7 @@ type Vector
          Splitting a vector into elements at even and odd positions.
 
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
-    partition_with_index : (Integer -> Any -> Boolean) -> Pair Vector Any Vector Any
+    partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index predicate =
         pair = this.fold_with_index (Pair here.new_builder here.new_builder) acc-> ix-> elem->
             case predicate ix elem of
