@@ -74,6 +74,13 @@ impl BoundingBox {
         self.bottom -= size / 2.0;
         self.top += size / 2.0;
     }
+
+    pub fn grow_to_include(&mut self, other: &BoundingBox) {
+        self.left = self.left.min(other.left);
+        self.right = self.right.max(other.right);
+        self.bottom = self.bottom.min(other.bottom);
+        self.top = self.top.max(other.top);
+    }
 }
 
 

@@ -708,7 +708,7 @@ impl Node {
             out.source.bounding_box <+ bounding_box_input.map(
                 |(node_size,node_position,visualization_enabled,visualization_size)| {
                     let bounding_box_position = node_position - Vector2::new(0.0, node_size.y / 2.0);
-                    let bb = BoundingBox::from_position_and_size(bounding_box_position, *node_size);
+                    let mut bb = BoundingBox::from_position_and_size(bounding_box_position, *node_size);
                     // FIXME: the condition below appears to be not enough in case of error visualizations
                     if *visualization_enabled {
                         let node_width = node_size.x;
@@ -717,6 +717,7 @@ impl Node {
                         let absolute_pos_of_visualization_bounding_box = absolute_pos_of_visualization - visualization_size / 2.0;
                         let visualization_bounding_box = BoundingBox::from_position_and_size(absolute_pos_of_visualization_bounding_box, *visualization_size);
                         DEBUG!("MCDBG: vis enabled, v.size=" visualization_size;? " n.pos=" node_position;? " n.size=" node_size;? " v.bbox=" visualization_bounding_box;?);
+                        bb.grow_to_include(&visualization_bounding_box);
                     }
                     bb
                 });
