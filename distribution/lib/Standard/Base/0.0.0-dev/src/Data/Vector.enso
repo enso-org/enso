@@ -386,7 +386,7 @@ type Vector
          Splitting a vector into even and odd elements.
 
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
-    partition : (Any -> Boolean) -> Pair Vector Any Vector Any
+    partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition predicate =
         pair = this.fold (Pair here.new_builder here.new_builder) acc-> elem->
             case predicate elem of
