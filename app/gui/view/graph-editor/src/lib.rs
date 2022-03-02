@@ -1366,7 +1366,7 @@ impl GraphEditorModelWithNetwork {
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { edge_id } =>
-                self.new_node_position_after_dropping_edge(edge_id, mouse_position),
+                self.new_node_position_aligned_to_edge_source_node_if_near_mouse(edge_id, mouse_position),
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
@@ -1685,14 +1685,14 @@ impl GraphEditorModel {
 
     // Finds a position to place a new node at, based on the edge's source node and on the
     // position where the edge's target end is being dropped by the user.
-    pub fn new_node_position_after_dropping_edge(
+    pub fn new_node_position_aligned_to_edge_source_node_if_near_mouse(
         &self,
         edge_id: EdgeId,
-        edge_target_drop_position: Vector2,
+        mouse_position: Vector2,
     ) -> Vector2 {
         let edge_source_node_id = self.edge_source_node_id(edge_id);
         let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-        self.new_node_position_aligned_if_close_to_node(edge_target_drop_position, edge_source_node)
+        self.new_node_position_aligned_if_close_to_node(mouse_position, edge_source_node)
     }
 
     // Finds a position to place a new node at, based only on mouse position and on the placement
