@@ -706,13 +706,7 @@ impl Node {
             out.source.bounding_box <+ bounding_box_input.map(
                 |(size,position,visualization_enabled)| {
                     let position = position - Vector2::new(0.0,size.y / 2.0);
-                    // FIXME 'expression'? 'text'? ...?
-                    let expression_area_bounding_box =
-                        BoundingBox::from_position_and_size(position,*size);
-                    if *visualization_enabled {
-                        let _ = (); //let visualization_po
-                    }
-                    expression_area_bounding_box
+                    BoundingBox::from_position_and_size(position,*size)
                 });
 
 
