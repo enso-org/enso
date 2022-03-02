@@ -77,6 +77,16 @@ impl BoundingBox {
         self.top += size / 2.0;
     }
 
+    pub fn grow_right(&mut self, size: f32) {
+        self.right += size;
+    }
+
+    pub fn grow_left(&mut self, size: f32) { self.left-=size;}
+
+    pub fn grow_up(&mut self,size:f32){self.top+=size;}
+
+    pub fn grow_down(&mut self,size:f32){self.bottom-=size;}
+
     pub fn grow_to_include(&mut self, other: &BoundingBox) {
         self.left = self.left.min(other.left);
         self.right = self.right.max(other.right);

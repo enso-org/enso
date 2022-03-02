@@ -1728,15 +1728,37 @@ impl GraphEditorModel {
     pub fn new_node_position_aligned_if_close_to_node(
         &self,
         proposed_position: Vector2,
-        restricting_node: Option<Node>,
+        alignment_node: Option<Node>,
     ) -> Vector2 {
-        let restricting_node = restricting_node.filter(|node| {
+        let alignment_node = alignment_node.filter(|node| {
+            // let node_bounding_box = node.frp.bounding_box.value();
+            let mut alignment_area = node.frp.bounding_box.value();
+            use theme::alignment_area_around_node as alignment_area_theme;
+            let distance_from_left_node_edge_to_alignment_area_left_edge =
+                styles.get_number_or(alignment_area_theme::distance_to_the_left_of_node, 0.0);
+            alignment_area.grow_left(distance_from_left_node_edge_to_alignment_area_left_edge);
+            let distance_from_right_node_edge_to_alignment_area_right_edge =
+                styles.get_number_or(alignment_area_theme::distance_to_the_right_of_node, 0.0);
+            alignment_area.grow_right(distance_from_right_node_edge_to_alignment_area_right_edge);
+            let distance_from_top_node_edge_to_alignment_area_top_edge =
+                styles.get_number_or(alignment_area_theme::distance_above_node, 0.0);
+            alignment_area.grow_up(distance_from_top_node_edge_to_alignment_area_top_edge);
+            let distance_from_bottom_node_edge_to_alignment_area_bottom_edge =
+                styles.get_number_or(alignment_area_theme::distance_below_node, 0.0);
+            alignment_area.grow_down(distance_from_bottom_node_edge_to_alignment_area_bottom_edge);
+
+            // let distance_from_left_node_edge_to_alignment_area_left_edge =
+
+
             let node_position = node.position();
             let node_left = node_position.x;
             let node_right = node_position.x + node.model.width();
             let node_top = node_position.y + node.model.height() / 2.0;
             let node_bottom = node_position.y - node.model.height() / 2.0;
             use theme::graph_editor::new_node_restricted_placement_area as restricted_area_theme;
+            let distance_from_left_node_edge_to_alignment_area_left_edge =
+             styles.get_number_or(restricted_area_theme::to_the_left_of_reference_node, 0.0);
+
             let restricted_space_left_style = restricted_area_theme::to_the_left_of_reference_node;
             let restricted_space_right_style =
                 restricted_area_theme::to_the_right_of_reference_node;
@@ -1757,7 +1779,7 @@ impl GraphEditorModel {
             );
             restricted_area.contains(proposed_position)
         });
-        match restricting_node {
+        match alignment_node {
             Some(node) => self.find_free_place_under(node.id()),
             None => proposed_position,
         }
