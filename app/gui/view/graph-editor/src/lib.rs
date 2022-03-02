@@ -1362,7 +1362,7 @@ impl GraphEditorModelWithNetwork {
             StartCreationEvent | ClickingButton if selection.is_some() =>
                 self.find_free_place_under(selection.unwrap()),
             StartCreationEvent =>
-                self.new_node_position_based_on_mouse_and_existing_nodes(mouse_position),
+                self.new_node_position_aligned_to_nodes_close_to_mouse(mouse_position),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { edge_id } =>
@@ -1683,8 +1683,8 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
-    /// Finds a position to place a new node at, based on the edge's source node and on the
-    /// position where the edge's target end is being dropped by the user.
+    // Finds a position to place a new node at, based on the edge's source node and on the
+    // position where the edge's target end is being dropped by the user.
     pub fn new_node_position_after_dropping_edge(
         &self,
         edge_id: EdgeId,
@@ -1692,17 +1692,17 @@ impl GraphEditorModel {
     ) -> Vector2 {
         let edge_source_node_id = self.edge_source_node_id(edge_id);
         let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-        self.new_node_position_restricted_by_node(edge_target_drop_position, edge_source_node)
+        self.new_node_position_aligned_if_close_to_node(edge_target_drop_position, edge_source_node)
     }
 
-    /// Finds a position to place a new node at, based only on mouse position and on the placement
-    /// of the existing nodes.
-    pub fn new_node_position_based_on_mouse_and_existing_nodes(
+    // Finds a position to place a new node at, based only on mouse position and on the placement
+    // of the existing nodes.
+    pub fn new_node_position_aligned_to_nodes_close_to_mouse(
         &self,
         mouse_position: Vector2,
     ) -> Vector2 {
         let nearest_node = self.find_node_nearest_to_point(mouse_position);
-        self.new_node_position_restricted_by_node(mouse_position, nearest_node)
+        self.new_node_position_aligned_if_close_to_node(mouse_position, nearest_node)
     }
 
     /// Finds a node nearest to the specified point.
@@ -1721,11 +1721,11 @@ impl GraphEditorModel {
         nearest_node
     }
 
-    /// Finds a position to place a new node at, taking into account whether a draft proposed
-    /// position is in the restricted placement area around the specified reference node. The
-    /// restricted placement area around a node is defined in the current theme
-    /// ([`theme::graph_editor::new_node_restricted_placement_area`]).
-    pub fn new_node_position_restricted_by_node(
+    // Finds a position to place a new node at, taking into account whether a draft proposed
+    // position is in the restricted placement area around the specified reference node. The
+    // restricted placement area around a node is defined in the current theme
+    // ([`theme::graph_editor::new_node_restricted_placement_area`]).
+    pub fn new_node_position_aligned_if_close_to_node(
         &self,
         proposed_position: Vector2,
         restricting_node: Option<Node>,
