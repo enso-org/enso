@@ -660,6 +660,12 @@ spec =
             '🚀'.pad 3 'B' Location.End . should_equal '🚀BB'
             '🚀'.pad 3 'B' Location.Start . should_equal 'BB🚀'
 
+            ## It is technically possible to use a combining diacritical mark as
+               the padding, then the actual length of the text will not increase
+               because all padding will still constitute a single grapheme
+               cluster.
+            'e'.pad 7 '\u{301}' . length . should_equal 1
+
         Test.specify "should allow to trim a text" <|
             " Hello! ".trim . should_equal  "Hello!"
             " Hello! ".trim Location.Start . should_equal  "Hello! "
@@ -693,6 +699,10 @@ spec =
             '\t\t  Test\nFoo\r\n'.trim . should_equal 'Test\nFoo'
             # Check various kinds of Unicode whitespace
             '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.trim . should_equal ''
+
+            # A whitespace with an accent is not treated as whitespace anymore
+            '      \u{301}   '.trim . should_equal ' \u{301}'
+            ' \u{301}'.trim . should_equal ' \u{301}'
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
