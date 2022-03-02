@@ -878,8 +878,28 @@ Text.contains term="" matcher=Text_Matcher.new = case matcher of
 Text.to_json : Json.String
 Text.to_json = Json.String this
 
-## Takes a non-negative integer and returns a new text, consisting of `count`
-   concatenated copies of `this`.
+
+## Takes an integer and returns a new text, consisting of `count` concatenated
+   copies of `this`.
+
+   Arguments:
+   - count: The number of times that the text `this` should be repeated to make
+     the new text.
+
+   > Example
+     Repeat the string "A" five times.
+
+         "A" * 5 == "AAAAA"
+
+   > Example
+     Repeat the string "Hello " twice.
+
+         "Hello " * 2 == "Hello Hello "
+Text.* : Integer -> Text
+Text.* count = this.repeat count
+
+## Takes an integer and returns a new text, consisting of `count` concatenated
+   copies of `this`.
 
    Arguments:
    - count: The number of times that the text `this` should be repeated to make
@@ -888,10 +908,17 @@ Text.to_json = Json.String this
    > Example
      Repeat the string "ABBA" five times.
 
-         "ABBA".repeat 5
+         "ABBA".repeat 5 == "ABBAABBAABBAABBAABBA"
+
+   > Example
+     Repeat the string "Hello " twice.
+
+         "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text
-Text.repeat count =
-    0.up_to count . fold "" acc-> _-> acc + this
+Text.repeat count=1 =
+    ## TODO max is a workaround until Range is sorted to make 0..-1 not cause an infinite loop
+       https://www.pivotaltracker.com/story/show/181435598
+    0.up_to (count.max 0) . fold "" acc-> _-> acc + this
 
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting to a range on the underlying code points
