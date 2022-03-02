@@ -33,12 +33,12 @@ class UpdatingEditionProvider(
     name: String
   ): Either[EditionLoadingError, Editions.Raw.Edition] = {
     provider.findEditionForName(name) match {
-      case Left(EditionNotFound()) =>
+      case Left(EditionNotFound(_)) =>
         if (!wasUpdateTried) {
           wasUpdateTried = true
           updater.updateEditions()
           provider.findEditionForName(name)
-        } else Left(EditionNotFound())
+        } else Left(EditionNotFound(name))
       case Left(otherError) => Left(otherError)
       case Right(value)     => Right(value)
     }

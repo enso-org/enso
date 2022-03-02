@@ -1,8 +1,8 @@
 package org.enso.languageserver.libraries
 
+import org.enso.editions.provider.EditionNotFound
 import org.enso.jsonrpc
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
-import org.enso.librarymanager.published.repository.LibraryNotFoundException
 
 /** The object mapping the [[LocalLibraryManagerProtocol]] failures into the
   * corresponding JSONRPC error messages.
@@ -29,8 +29,10 @@ object LocalLibraryManagerFailureMapper {
     */
   def mapException(error: Throwable): jsonrpc.Error =
     error match {
-      case ex: LibraryNotFoundException =>
+      case ex: LocalLibraryManagerProtocol.LocalLibraryNotFoundError =>
         LibraryApi.LocalLibraryNotFound(ex.libraryName)
+      case ex: EditionNotFound =>
+        LibraryApi.EditionNotFoundError(ex.editionName)
       case _ =>
         FileSystemError(error.getMessage)
     }
