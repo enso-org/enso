@@ -77,10 +77,11 @@ spec = Test.group "Dataflow Warnings" <|
         relevant = warning_stack . drop_end current.length
         relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
 
-    Test.specify "should attach reassignment info" <|
+    Test.specify "should attach reassignment info in the last-reassigned-first order" <|
         x = Warning.attach 1 "warn!"
         r = here.reassign_test x
         warn = Warning.get_all r . head
-        IO.println warn.value
-        warn.reassignments.each IO.println
+        reassignments = warn.reassignments.map .name
+        reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap']
+
 

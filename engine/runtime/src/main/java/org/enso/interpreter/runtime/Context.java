@@ -153,6 +153,10 @@ public class Context {
     return REFERENCE.get(node);
   }
 
+  public static TruffleLanguage.ContextReference<Context> getReference() {
+    return REFERENCE;
+  }
+
   /** Performs eventual cleanup before the context is disposed of. */
   public void shutdown() {
     threadManager.shutdown();

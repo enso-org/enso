@@ -75,7 +75,7 @@ public class InstantiateNode extends ExpressionNode {
         anyWarnings = true;
         WithWarnings originalArg = (WithWarnings) argument;
         accumulatedWarnings =
-            accumulatedWarnings.append(originalArg.getReassignedWarnings(Context.get(this), this));
+            accumulatedWarnings.append(originalArg.getReassignedWarnings(this));
         argumentValues[i] = originalArg.getValue();
       } else if (TypesGen.isPanicSentinel(argument)) {
         sentinelProfile.enter();

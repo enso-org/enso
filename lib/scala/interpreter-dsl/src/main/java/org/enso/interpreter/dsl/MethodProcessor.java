@@ -83,6 +83,7 @@ public class MethodProcessor extends AbstractProcessor {
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
+          "org.enso.interpreter.runtime.Context",
           "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
@@ -249,10 +250,7 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println("  @Override");
       out.println("  protected RootNode cloneUninitialized() {");
-      out.println(
-          "    return new "
-              + methodDefinition.getClassName()
-              + "(lookupLanguageReference(Language.class).get());");
+      out.println("    return new " + methodDefinition.getClassName() + "(Language.get(this));");
       out.println("  }");
 
       out.println();
@@ -344,7 +342,7 @@ public class MethodProcessor extends AbstractProcessor {
     out.println(
         "      " + varName + " = " + castName + "(" + argsArray + "[" + arg.getPosition() + "]);");
     out.println("    } catch (UnexpectedResultException e) {");
-    out.println("      var builtins = lookupContextReference(Language.class).get().getBuiltins();");
+    out.println("      var builtins = Context.get(this).getBuiltins();");
     out.println(
         "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments["
             + arg.getPosition()
@@ -386,7 +384,7 @@ public class MethodProcessor extends AbstractProcessor {
                 + arrayRead(argumentsArray, arg.getPosition())
                 + " = withWarnings.getValue();");
         out.println(
-            "      gatheredWarnings = gatheredWarnings.prepend(withWarnings.getWarnings());");
+            "      gatheredWarnings = gatheredWarnings.prepend(withWarnings.getReassignedWarnings(this));");
         out.println("    }");
       }
       return true;

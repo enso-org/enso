@@ -43,10 +43,10 @@ public class WithWarnings implements TruffleObject {
     return warnings;
   }
 
-  public ArrayRope<Warning> getReassignedWarnings(Context ctx, Node location) {
+  public ArrayRope<Warning> getReassignedWarnings(Node location) {
     Warning[] warnings = getWarningsArray();
     for (int i = 0; i < warnings.length; i++) {
-      warnings[i] = warnings[i].reassign(ctx, location);
+      warnings[i] = warnings[i].reassign(location);
     }
     return new ArrayRope<>(warnings);
   }
