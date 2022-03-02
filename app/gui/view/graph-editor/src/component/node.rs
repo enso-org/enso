@@ -712,7 +712,6 @@ impl Node {
                     if *visualization_enabled {
                         let _ = (); //let visualization_po
                     }
-                    // DEBUG!("MCDBG bb node: " expression_area_bounding_box;?);
                     expression_area_bounding_box
                 });
 
