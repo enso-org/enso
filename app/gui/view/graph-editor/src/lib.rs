@@ -1736,23 +1736,23 @@ impl GraphEditorModel {
         let alignment_node = alignment_node.filter(|node| {
             let node_bounding_box = node.frp.bounding_box.value();
             let styles = &self.styles_frp;
-            use theme::alignment_area_around_node as alignment_area_style_path;
+            use theme::graph_editor::alignment_area_around_node as alignment_area_style_path;
             let distance_from_left_node_edge_to_alignment_area_left_edge =
                 styles.get_number_or(alignment_area_style_path::distance_to_the_left_of_node, 0.0);
-            let alignment_area_min_x =
-                node_bounding_box.left() - distance_from_left_node_edge_to_alignment_area_left_edge;
+            let alignment_area_min_x = node_bounding_box.left()
+                - distance_from_left_node_edge_to_alignment_area_left_edge.value();
             let distance_from_right_node_edge_to_alignment_area_right_edge =
                 styles.get_number_or(alignment_area_style_path::distance_to_the_right_of_node, 0.0);
             let alignment_area_max_x = node_bounding_box.right()
-                + distance_from_right_node_edge_to_alignment_area_right_edge;
+                + distance_from_right_node_edge_to_alignment_area_right_edge.value();
             let distance_from_top_node_edge_to_alignment_area_top_edge =
                 styles.get_number_or(alignment_area_style_path::distance_above_node, 0.0);
-            let alignment_area_max_y =
-                node_bounding_box.top() + distance_from_top_node_edge_to_alignment_area_top_edge;
+            let alignment_area_max_y = node_bounding_box.top()
+                + distance_from_top_node_edge_to_alignment_area_top_edge.value();
             let distance_from_bottom_node_edge_to_alignment_area_bottom_edge =
                 styles.get_number_or(alignment_area_style_path::distance_below_node, 0.0);
             let alignment_area_min_y = node_bounding_box.bottom()
-                - distance_from_bottom_node_edge_to_alignment_area_bottom_edge;
+                - distance_from_bottom_node_edge_to_alignment_area_bottom_edge.value();
             let alignment_area = selection::BoundingBox::from_corners(
                 Vector2(alignment_area_min_x, alignment_area_min_y),
                 Vector2(alignment_area_max_x, alignment_area_max_y),

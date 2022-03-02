@@ -374,10 +374,10 @@ define_themes! { [light:0, dark:1]
         // The specific conditions when the alignment mechanism is triggered, as well as the
         // algorithm used to perform the alignment, are governed by the Graph Editor.
         alignment_area_around_node {
-            above_node           = 7.0  , 7.0;
-            below_node           = 50.0 , 50.0;
-            to_the_left_of_node  = 5.0  , 5.0;
-            to_the_right_of_node = 5.0  , 5.0;
+            distance_above_node           = 7.0  , 7.0;
+            distance_below_node           = 50.0 , 50.0;
+            distance_to_the_left_of_node  = 5.0  , 5.0;
+            distance_to_the_right_of_node = 5.0  , 5.0;
         }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
