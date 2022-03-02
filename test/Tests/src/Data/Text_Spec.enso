@@ -168,6 +168,7 @@ spec =
             "Hello World!".take (First 0) . should_equal ""
             "Hello World!".take Last.new . should_equal "!"
             "Hello World!".take (Last 6) . should_equal "World!"
+            "Hello World!".take (Last 0) . should_equal ""
             "Hello World!".take (Last 100) . should_equal "Hello World!"
             "Hello World!".take (Before " ") . should_equal "Hello"
             "Hello World!".take (Before "z") . should_equal "Hello World!"
@@ -219,6 +220,7 @@ spec =
             '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'
             '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
             '✨🚀🚧😍😃😎😙😉☺'.take Last.new . should_equal '☺'
+            '✨🚀🚧😍😃😎😙😉☺'.take (Last 0) . should_equal ''
             '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Before '😍') . should_equal '✨🚀🚧'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Before_Last '😍') . should_equal '✨🚀🚧😍😃'
@@ -656,6 +658,8 @@ spec =
             'a\u{301}'.pad 2 . should_equal 'a\u{301} '
             "".pad 2 'a\u{302}' . should_equal 'a\u{302}a\u{302}'
             'XX'.pad 5 'yy\u{301}' . should_equal 'XXyy\u{301}y'
+            'XX'.pad 5 'y\u{301}y' . should_equal 'XXy\u{301}yy\u{301}'
+            'XX'.pad 4 'yy\u{301}Z' . should_equal 'XXyy\u{301}'
 
             '🚀'.pad 3 'B' Location.End . should_equal '🚀BB'
             '🚀'.pad 3 'B' Location.Start . should_equal 'BB🚀'
