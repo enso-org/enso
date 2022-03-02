@@ -601,8 +601,11 @@ type Vector
     + : Vector Any -> Vector Any
     + that =
         this_len = this.length
-        arr = Array.clone this.to_array 0 this_len (this_len + that.length)
-        Array.copy that.to_array 0 arr this_len that.length
+        arr = Array.new (this_len + that.length)
+        0.up_to this_len . each i->
+            arr.set_at i (this.unsafe_at i)
+        this.length.up_to arr.length . each i->
+            arr.set_at i (that.unsafe_at i-this_len)
         Vector arr
 
     ## Add `element` to the beginning of `this` vector.
@@ -664,7 +667,7 @@ type Vector
         slice_end = Math.min this.length end
         if slice_start >= slice_end then Vector (Array.new 0) else
             len = slice_end - slice_start
-            new_array = Array.clone this.to_array slice_start len len
+            here.new len (i -> this.unsafe_at (i+slice_start))
             Vector new_array
 
     ## Creates a new vector with the first `count` elements in `this` removed.
@@ -893,7 +896,8 @@ type Vector
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
            intended to be mutable.
-        new_vec_arr = Array.clone this.to_array 0 this.length this.length
+        new_vec_arr = Array.new this.length
+        Array.copy this.to_array 0 new_vec_arr 0 this.length
 
         ## As we want to account for both custom projections and custom
            comparisons we need to construct a comparator for internal use that
@@ -1068,7 +1072,8 @@ type Builder
             Unsafe.set_atom_field this 1 (this.length + 1)
         False ->
             old_array = this.to_array
-            new_array = Array.clone this.to_array 0 old_array.length old_array.length*2
+            new_array = Array.new old_array.length*2
+            Array.copy old_arrays 0 new_array 0 old_array.length
             Unsafe.set_atom_field this 0 new_array
             this.append item
             Nothing
@@ -1096,7 +1101,9 @@ type Builder
                 bldr.to_vector
     to_vector : Vector Any
     to_vector =
-        new_array = Array.clone this.to_array 0 this.length this.length
+        old_array = this.to_array
+        new_array = Array.new this.length
+        Array.copy old_arrays 0 new_array 0 this.length
         Vector new_array
 
 ## UNSTABLE

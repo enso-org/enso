@@ -906,19 +906,6 @@ type Array
     copy src source_index dest dest_index count =
         @Builtin_Method "Array.copy"
 
-    ## Clones from the source array, beginning at the specified position, to
-       a new destination array.
-
-       Arguments:
-       - src: The source array.
-       - source_index: The start position in the src array.
-       - source_count: Amount to copy from source.
-       - new_size: Size of new array.
-
-    clone : Array -> Integer -> Integer -> Integer -> Array
-    clone src source_index source_count new_size =
-        @Builtin_Method "Array.clone"
-
     ## Gets the element at index in the array this.
 
        Arguments:

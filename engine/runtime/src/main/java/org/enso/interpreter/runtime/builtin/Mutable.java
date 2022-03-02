@@ -30,7 +30,6 @@ public class Mutable {
     scope.registerMethod(array, "at", GetAtMethodGen.makeFunction(language));
     scope.registerMethod(array, "set_at", SetAtMethodGen.makeFunction(language));
     scope.registerMethod(array, "copy", CopyMethodGen.makeFunction(language));
-    scope.registerMethod(array, "clone", CloneMethodGen.makeFunction(language));
     scope.registerMethod(array, "sort", SortMethodGen.makeFunction(language));
 
     ref = new AtomConstructor("Ref", scope).initializeFields();
