@@ -668,7 +668,6 @@ type Vector
         if slice_start >= slice_end then Vector (Array.new 0) else
             len = slice_end - slice_start
             here.new len (i -> this.unsafe_at (i+slice_start))
-            Vector new_array
 
     ## Creates a new vector with the first `count` elements in `this` removed.
 
@@ -1073,7 +1072,7 @@ type Builder
         False ->
             old_array = this.to_array
             new_array = Array.new old_array.length*2
-            Array.copy old_arrays 0 new_array 0 old_array.length
+            Array.copy old_array 0 new_array 0 old_array.length
             Unsafe.set_atom_field this 0 new_array
             this.append item
             Nothing
@@ -1103,7 +1102,7 @@ type Builder
     to_vector =
         old_array = this.to_array
         new_array = Array.new this.length
-        Array.copy old_arrays 0 new_array 0 this.length
+        Array.copy old_array 0 new_array 0 this.length
         Vector new_array
 
 ## UNSTABLE
