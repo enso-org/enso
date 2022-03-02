@@ -588,6 +588,13 @@ type Vector
         eq_at i = this.unsafe_at i == that.unsafe_at i
         if this.length == that.length then 0.up_to this.length . all eq_at else False
 
+    ## Copy the backing Array to an Enso Array
+    copy_array : Array
+    copy_array start_index dest_array dest_start length =
+        case Builtins.Meta.is_polyglot this.to_array of
+            True -> 0.up_to length . each i->(dest_array.set_at (i+dest_start) (this.to_array.at i+start_index))
+            False -> Array.copy this.to_array start_index dest_array dest_start length
+
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `this`, followed by all the elements of `that`.
 
@@ -602,10 +609,8 @@ type Vector
     + that =
         this_len = this.length
         arr = Array.new (this_len + that.length)
-        0.up_to this_len . each i->
-            arr.set_at i (this.unsafe_at i)
-        this.length.up_to arr.length . each i->
-            arr.set_at i (that.unsafe_at i-this_len)
+        this.copy_array 0 arr 0 this_len
+        that.copy_array 0 arr this_len that.length
         Vector arr
 
     ## Add `element` to the beginning of `this` vector.
@@ -666,8 +671,11 @@ type Vector
         slice_start = Math.max 0 start
         slice_end = Math.min this.length end
         if slice_start >= slice_end then Vector (Array.new 0) else
-            len = slice_end - slice_start
-            here.new len (i -> this.unsafe_at (i+slice_start))
+            if (slice_start == 0) && (slice_end == this.length) then this else
+                len = slice_end - slice_start
+                arr = Array.new len
+                this.copy_array slice_start arr 0 len
+                Vector arr
 
     ## Creates a new vector with the first `count` elements in `this` removed.
 
@@ -896,7 +904,7 @@ type Vector
            not want to sort in place on the original vector, as `sort` is not
            intended to be mutable.
         new_vec_arr = Array.new this.length
-        Array.copy this.to_array 0 new_vec_arr 0 this.length
+        this.copy_array 0 new_vec_arr 0 this.length
 
         ## As we want to account for both custom projections and custom
            comparisons we need to construct a comparator for internal use that
