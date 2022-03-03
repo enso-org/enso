@@ -14,10 +14,12 @@ type Warning
                 True -> Source_Location (Polyglot.get_source_location r)
             Stack_Trace_Element (Polyglot.get_executable_name r) loc
 
-attach value warning =
+attach warning value =
     origin = Runtime.get_stack_trace
     Prim_Warning.attach value warning (origin.drop_start 1)
 
 get_all value =
     Vector.Vector (Prim_Warning.get_all value) . map Warning
 
+set warnings value =
+    Prim_Warning.set value (warnings.map .prim_warning).to_array
