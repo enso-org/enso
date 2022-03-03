@@ -949,10 +949,10 @@ impl Node {
                 );
             let absolute_pos_of_visualization =
                 node_position + pos_of_visualization_relative_to_pos_of_node;
-            let absolute_pos_of_visualization_bounding_box =
+            let absolute_pos_of_bounding_box_of_visualization =
                 absolute_pos_of_visualization - visualization_size / 2.0;
             let visualization_bounding_box = BoundingBox::from_position_and_size(
-                absolute_pos_of_visualization_bounding_box,
+                absolute_pos_of_bounding_box_of_visualization ,
                 visualization_size,
             );
             node_bounding_box.grow_to_include(&visualization_bounding_box);
