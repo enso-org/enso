@@ -866,10 +866,9 @@ impl Node {
 
             // === Bounding Box ===
 
-            // FIXME: `.clone_ref()` or `= &...` ?
-            let visualization_size             = model.visualization.frp.size.clone_ref();
+            let visualization_size             = &model.visualization.frp.size;
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
-            bounding_box_input <- all4(&new_size,&position,&visualization_enabled_and_visible,&visualization_size);
+            bounding_box_input <- all4(&new_size,&position,&visualization_enabled_and_visible,visualization_size);
             out.source.bounding_box <+ bounding_box_input.map(
                 |(node_size,node_position,visualization_enabled_and_visible,visualization_size)| {
                     let bounding_box_position = node_position - Vector2::new(0.0, node_size.y / 2.0);
