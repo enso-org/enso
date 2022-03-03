@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -20,19 +21,21 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
 
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
+  private @Child InvokeConversionNode childDispatch;
   private final ConditionProfile atomProfile = ConditionProfile.createCountingProfile();
   private final ConditionProfile atomConstructorProfile = ConditionProfile.createCountingProfile();
+  private final int thatArgumentPosition;
 
   /**
    * Creates a new node for method invocation.
@@ -45,16 +48,20 @@ public abstract class InvokeConversionNode extends BaseNode {
   public static InvokeConversionNode build(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeConversionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      int thatArgumentPosition) {
+    return InvokeConversionNodeGen.create(
+        schema, defaultsExecutionMode, argumentsExecutionMode, thatArgumentPosition);
   }
 
   InvokeConversionNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      int thatArgumentPosition) {
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+    this.thatArgumentPosition = thatArgumentPosition;
   }
 
   @Override
@@ -143,6 +150,42 @@ public abstract class InvokeConversionNode extends BaseNode {
       PanicSentinel that,
       Object[] arguments) {
     throw that;
+  }
+
+  @Specialization
+  Stateful doWarning(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      WithWarnings that,
+      Object[] arguments) {
+    // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
+    if (childDispatch == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      Lock lock = getLock();
+      lock.lock();
+      try {
+        if (childDispatch == null) {
+          childDispatch =
+              insert(
+                  build(
+                      invokeFunctionNode.getSchema(),
+                      invokeFunctionNode.getDefaultsExecutionMode(),
+                      invokeFunctionNode.getArgumentsExecutionMode(),
+                      thatArgumentPosition));
+          childDispatch.setTailStatus(getTailStatus());
+          notifyInserted(childDispatch);
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
+    arguments[thatArgumentPosition] = that.getValue();
+    ArrayRope<Warning> warnings = that.getReassignedWarnings(this);
+    Stateful result =
+        childDispatch.execute(frame, state, conversion, _this, that.getValue(), arguments);
+    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
   }
 
   @Specialization(guards = "interop.isString(that)")

@@ -37,6 +37,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   private final BranchProfile polyglotArgumentErrorProfile = BranchProfile.create();
   private @Child InvokeMethodNode childDispatch;
   private final int argumentCount;
+  private final int thisArgumentPosition;
 
   /**
    * Creates a new node for method invocation.
@@ -49,17 +50,21 @@ public abstract class InvokeMethodNode extends BaseNode {
   public static InvokeMethodNode build(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeMethodNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      int thisArgumentPosition) {
+    return InvokeMethodNodeGen.create(
+        schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition);
   }
 
   InvokeMethodNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      int thisArgumentPosition) {
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.argumentCount = schema.length;
+    this.thisArgumentPosition = thisArgumentPosition;
   }
 
   @Override
@@ -136,7 +141,8 @@ public abstract class InvokeMethodNode extends BaseNode {
                   build(
                       invokeFunctionNode.getSchema(),
                       invokeFunctionNode.getDefaultsExecutionMode(),
-                      invokeFunctionNode.getArgumentsExecutionMode()));
+                      invokeFunctionNode.getArgumentsExecutionMode(),
+                      thisArgumentPosition));
           childDispatch.setTailStatus(getTailStatus());
           notifyInserted(childDispatch);
         }
@@ -145,7 +151,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
     }
 
-    arguments[0] = _this.getValue();
+    arguments[thisArgumentPosition] = _this.getValue();
     ArrayRope<Warning> warnings = _this.getReassignedWarnings(this);
     Stateful result = childDispatch.execute(frame, state, symbol, _this.getValue(), arguments);
     return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));

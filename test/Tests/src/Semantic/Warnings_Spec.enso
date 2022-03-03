@@ -19,10 +19,14 @@ poly_sum x y =
 
 get_foo x = x.foo
 
+unwrap x = Integer.from x
+
 reassign_test x =
     consed = Wrap x
     reconsed = here.rewrap consed
-    x1 = here.get_foo reconsed
+    i = here.unwrap reconsed
+    rereconsed = Wrap i
+    x1 = here.get_foo rereconsed
     prim_sum = 1 + x1
     r = here.poly_sum prim_sum 1
     r
@@ -30,6 +34,8 @@ reassign_test x =
 baz value = Warning.attach value "I have warned you"
 bar value = here.baz value
 foo value = here.bar value
+
+Integer.from (that:Wrap) = that.foo
 
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|
@@ -70,6 +76,11 @@ spec = Test.group "Dataflow Warnings" <|
         r.should_equal 6
         Warning.get_all r . map .value . should_equal [My_Warning "warn!", My_Warning "warn!!", My_Warning "warn!!!"]
 
+    Test.specify "should thread warnings through conversions" <|
+        z = Wrap (Warning.attach 1 'warn!')
+        i = Integer.from z
+        Warning.get_all i . map .value . should_equal ['warn!']
+
     Test.specify "should attach correct stacktraces" <|
         current = Runtime.get_stack_trace
         warned = here.foo "value"
@@ -82,6 +93,6 @@ spec = Test.group "Dataflow Warnings" <|
         r = here.reassign_test x
         warn = Warning.get_all r . head
         reassignments = warn.reassignments.map .name
-        reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap']
+        reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.Wrap', 'Warnings_Spec.unwrap', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap']
 
 
