@@ -11,6 +11,8 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::command::CommandApi;
+use ensogl_core::application::command::FrpNetworkProvider;
+use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
@@ -25,8 +27,12 @@ use ensogl_core::display::shape::*;
 /// returns `Self`. The model will be created with this constructor when constructing the
 /// `Component`.
 pub trait Model {
+    /// Identifier of the Model. Used for initializing the component logger and
+    /// to provide the label for the `command::View` implementation.
+    fn label() -> &'static str;
+
     /// Constructor.
-    fn new(app: &Application) -> Self;
+    fn new(app: &Application, logger: &Logger) -> Self;
 }
 
 
@@ -41,6 +47,12 @@ pub trait Model {
 pub trait Frp<Model>: Default + CommandApi {
     /// Frp initializer.
     fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp);
+
+    /// Set of default shortcuts to be used in the `CommandApi`. See
+    /// `lib/rust/ensogl/core/src/application/command.rs` for more details.
+    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+        default()
+    }
 }
 
 
@@ -57,6 +69,7 @@ pub struct Component<Model, Frp> {
     /// Public FRP api of the Component.
     pub frp: Rc<Frp>,
     model:   Rc<Model>,
+    logger:  Logger,
     /// Reference to the application the Component belongs to. Generally required for implementing
     /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
     /// `Component`.
@@ -67,12 +80,13 @@ impl<M: Model, F: Frp<M>> Component<M, F> {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let model = Rc::new(M::new(&app));
+        let logger = Logger::new(M::label());
+        let model = Rc::new(M::new(&app, &logger));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
         frp.init(&app, &model, &style);
         let frp = Rc::new(frp);
-        Self { frp, model, app }
+        Self { frp, model, app, logger }
     }
 }
 
@@ -89,10 +103,26 @@ impl<M, F: Frp<M>> Deref for Component<M, F> {
     }
 }
 
-impl<M, F: application::command::FrpNetworkProvider> application::command::FrpNetworkProvider
-    for Component<M, F>
-{
+impl<M, F: FrpNetworkProvider> FrpNetworkProvider for Component<M, F> {
     fn network(&self) -> &frp::Network {
         self.frp.network()
+    }
+}
+
+impl<M: Model, F: Frp<M> + FrpNetworkProvider> application::View for Component<M, F> {
+    fn label() -> &'static str {
+        M::label()
+    }
+
+    fn new(app: &Application) -> Self {
+        Component::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        &self.app
+    }
+
+    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+        F::default_shortcuts()
     }
 }
