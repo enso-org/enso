@@ -1676,11 +1676,11 @@ impl GraphEditorModel {
         //   `find_free_place` looks for free place for the origin point, and we want to fit not
         //   only the point, but the whole node.
         let node_areas = nodes.values().map(|node| {
-            let position = node.position();
-            let left = position.x - x_gap - min_spacing;
-            let right = position.x + node.view.model.width() + x_gap;
-            let top = position.y + node::HEIGHT + y_gap;
-            let bottom = position.y - node::HEIGHT - y_gap;
+            let bounding_box = node.frp.bounding_box.value();
+            let left = bounding_box.left() - x_gap - min_spacing;
+            let right = bounding_box.right() + x_gap;
+            let top = bounding_box.top() + node::HEIGHT / 2.0 + y_gap;
+            let bottom = bounding_box.bottom() - node::HEIGHT / 2.0 - y_gap;
             OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
         });
         find_free_place(starting_from, direction, node_areas)
