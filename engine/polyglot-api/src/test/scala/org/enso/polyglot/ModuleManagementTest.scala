@@ -2,17 +2,23 @@ package org.enso.polyglot
 
 import java.io.File
 import java.nio.file.{Files, Paths}
-import org.apache.commons.io.FileUtils
 import org.enso.pkg.{Package, PackageManager}
+import org.enso.testkit.WithTemporaryDirectory
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ModuleManagementTest extends AnyFlatSpec with Matchers {
+class ModuleManagementTest extends AnyFlatSpec with Matchers with WithTemporaryDirectory {
+  var ctx: TestContext = _
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    ctx = new TestContext("test")
+  }
+
   class TestContext(packageName: String) {
-    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
+      PackageManager.Default.create(getTestDirectory.toFile, packageName, "Enso_Test")
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
@@ -27,7 +33,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         .build()
     )
 
-    def mkFile(name: String): File = new File(tmpDir, name)
+    def mkFile(name: String): File = new File(getTestDirectory.toFile, name)
 
     def writeFile(name: String, contents: String): Unit = {
       Files.write(mkFile(name).toPath, contents.getBytes): Unit
@@ -36,23 +42,9 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     def writeMain(contents: String): Unit = {
       Files.write(pkg.mainFile.toPath, contents.getBytes): Unit
     }
-
-    def teardown(): Unit = {
-      FileUtils.deleteDirectory(tmpDir)
-    }
   }
 
-  object TestContext {
-    def apply(packageName: String)(testCase: TestContext => Unit): Unit = {
-      val ctx = new TestContext(packageName)
-      try     { testCase(ctx)  }
-      finally { ctx.teardown() }
-    }
-  }
-
-  "Modules Polyglot API" should "allow to trigger reparsing of on-disk sources" in TestContext(
-    "Test"
-  ) { ctx =>
+  "Modules Polyglot API" should "allow to trigger reparsing of on-disk sources" in {
     ctx.writeMain("""
                     |main =
                     |    12345
@@ -74,9 +66,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     mainFun2.execute(assocCons).asLong() shouldEqual 4567L
   }
 
-  it should "allow to switch back and forth between literal and on-disk sources" in TestContext(
-    "test"
-  ) { ctx =>
+  it should "allow to switch back and forth between literal and on-disk sources" in {
     ctx.writeMain("""
                     |main = 123
                     |""".stripMargin)
@@ -109,8 +99,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     mainFun4.execute(assocCons).asLong() shouldEqual 987L
   }
 
-  it should "allow to create new, importable modules" in TestContext("test") {
-    ctx =>
+  it should "allow to create new, importable modules" in {
       ctx.writeMain("""
                       |import Enso_Test.Test.Foo
                       |
@@ -136,8 +125,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
       mainFun.execute(assocCons).asLong shouldEqual 11L
   }
 
-  it should "allow importing literal-source modules" in TestContext("test") {
-    ctx =>
+  it should "allow importing literal-source modules" in {
       ctx.writeMain("""
                       |import Enso_Test.Test.Foo
                       |
@@ -166,7 +154,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
       mainFun.execute(assocCons).asLong shouldEqual 21L
   }
 
-  it should "allow for module deletions" in TestContext("test") { ctx =>
+  it should "allow for module deletions" in {
     ctx.writeMain("""
                     |foo = 123
                     |""".stripMargin)
@@ -198,7 +186,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     exception.getMessage shouldEqual "Compilation aborted due to errors."
   }
 
-  it should "allow gathering imported libraries" in TestContext("test") { ctx =>
+  it should "allow gathering imported libraries" in {
     ctx.writeMain("""
                     |import Foo.Bar.Baz
                     |

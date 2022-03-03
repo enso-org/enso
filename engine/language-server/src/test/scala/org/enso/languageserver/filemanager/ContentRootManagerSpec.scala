@@ -8,17 +8,16 @@ import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   ContentRootsAddedNotification,
   SubscribeToNotifications
 }
-import org.apache.commons.io.FileUtils
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.EitherValue
+import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.{BeforeAndAfterEach, Inside, OptionValues}
+import org.scalatest.{Inside, OptionValues}
 
 import java.io.File
-import java.nio.file.{Files, Path => JPath}
+import java.nio.file.{Path => JPath}
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 
@@ -30,19 +29,17 @@ class ContentRootManagerSpec
     with Inside
     with EitherValue
     with OptionValues
-    with BeforeAndAfterEach {
+    with WithTemporaryDirectory {
 
   var rootManager: ContentRootManagerWrapper = _
   var rootActor: ActorRef                    = _
-  var rootProjectDirectory: File             = _
 
   override def beforeEach(): Unit = {
-    rootProjectDirectory =
-      Files.createTempDirectory("root-manager-spec").toFile()
+    super.beforeEach()
 
     val root = ContentRootWithFile(
       ContentRoot.Project(UUID.randomUUID()),
-      rootProjectDirectory.getCanonicalFile
+      getTestDirectory.toFile.getCanonicalFile
     )
     val config = Config(
       root,
@@ -53,10 +50,6 @@ class ContentRootManagerSpec
     )
     rootActor   = system.actorOf(ContentRootManagerActor.props(config))
     rootManager = new ContentRootManagerWrapper(config, rootActor)
-  }
-
-  override def afterEach(): Unit = {
-    FileUtils.deleteDirectory(rootProjectDirectory)
   }
 
   "ContentRootManager" should {
