@@ -939,9 +939,9 @@ impl Node {
         visualization_enabled_and_visible: bool,
         visualization_size: Vector2,
     ) -> BoundingBox {
-        let node_bounding_box_position = node_position - Vector2(0.0, node_size.y / 2.0);
+        let position_of_bounding_box_of_node = node_position - Vector2(0.0, node_size.y / 2.0);
         let mut node_bounding_box =
-            BoundingBox::from_position_and_size(node_bounding_box_position, node_size);
+            BoundingBox::from_position_and_size(position_of_bounding_box_of_node, node_size);
         if visualization_enabled_and_visible {
             let position_of_visualization_relative_to_position_of_node =
                 NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(
