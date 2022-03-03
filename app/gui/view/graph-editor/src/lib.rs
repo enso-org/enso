@@ -1758,8 +1758,11 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
-    // Finds a position to place a new node at, based on the edge's source node and on the
-    // position where the edge's target end is being dropped by the user.
+    /// Find a position for a new node, aligned to a source node of the edge if mouse position is
+    /// near the source node. If mouse position is not near, return mouse position without
+    /// aligning.
+    ///
+    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "near" means.
     pub fn new_node_position_at_mouse_aligned_to_edge_source_node_if_near(
         &self,
         edge_id: EdgeId,
@@ -1770,8 +1773,11 @@ impl GraphEditorModel {
         self.new_node_position_aligned_if_close_to_node(mouse_position, edge_source_node)
     }
 
-    // Finds a position to place a new node at, based only on mouse position and on the placement
-    // of the existing nodes.
+    /// Find a position for a new node, aligned to the node closest to mouse position if mouse
+    /// position is near the closest node. If mouse position is not near, return mouse position
+    /// without aligning.
+    ///
+    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "near" means.
     pub fn new_node_position_at_mouse_aligned_to_close_nodes(
         &self,
         mouse_position: Vector2,
@@ -1796,10 +1802,11 @@ impl GraphEditorModel {
         nearest_node
     }
 
-    // Finds a position to place a new node at, taking into account whether a draft proposed
-    // position is in the restricted placement area around the specified reference node. The
-    // restricted placement area around a node is defined in the current theme
-    // ([`theme::graph_editor::new_node_restricted_placement_area`]).
+    /// Finds a position for a new node, aligning it to the specified reference node if the
+    /// proposed position is near enough to it.
+    ///
+    /// A point is "near enough" to a node if it is located in an alignment area around a node,
+    /// defined in the current theme ([`theme::graph_editor::alignment_area_around_node`]).
     pub fn new_node_position_aligned_if_close_to_node(
         &self,
         proposed_position: Vector2,
