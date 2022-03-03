@@ -5,7 +5,7 @@ sealed class EditionLoadingError(message: String, cause: Throwable = null)
     extends RuntimeException(message, cause)
 
 /** Indicates that the requested edition was not found in the caches. */
-case class EditionNotFound()
+case class EditionNotFound(editionName: String)
     extends EditionLoadingError("The edition was not found.")
 
 /** Indicates that the edition was found but could not be read, for example due

@@ -311,6 +311,6 @@ object ComponentGroupsResolverSpec {
       module  = ModuleName(module),
       color   = None,
       icon    = None,
-      exports = exports.map(Component(_, None))
+      exports = exports.map(LibraryComponent(_, None))
     )
 }
