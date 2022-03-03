@@ -1110,6 +1110,7 @@ name = "enso-profiler"
 version = "0.1.0"
 dependencies = [
  "enso-profiler-macros",
+ "enso-web",
  "futures 0.3.21",
  "serde",
  "serde_json",
@@ -1124,6 +1125,15 @@ dependencies = [
  "futures 0.3.21",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "enso-profiler-flame-graph"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "enso-profiler-data",
+ "futures 0.3.21",
 ]
 
 [[package]]
@@ -1241,6 +1251,7 @@ dependencies = [
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
+ "ensogl-flame-graph",
  "ensogl-label",
  "ensogl-list-view",
  "ensogl-scroll-area",
@@ -1400,6 +1411,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-profiling-run-graph"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "enso-profiler-flame-graph",
+ "enso-web",
+ "ensogl-core",
+ "ensogl-flame-graph",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+ "ensogl-text-msdf-sys",
+ "futures 0.3.21",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-scroll-area"
 version = "0.1.0"
 dependencies = [
@@ -1469,6 +1497,7 @@ dependencies = [
  "ensogl-example-glyph-system",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
+ "ensogl-example-profiling-run-graph",
  "ensogl-example-scroll-area",
  "ensogl-example-shape-system",
  "ensogl-example-slider",
@@ -1483,6 +1512,20 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
+]
+
+[[package]]
+name = "ensogl-flame-graph"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "enso-profiler-flame-graph",
+ "ensogl",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
 ]
 
 [[package]]
