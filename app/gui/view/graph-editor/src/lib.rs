@@ -1758,11 +1758,10 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
-    /// Find a position for a new node, aligned to a source node of the edge if mouse position is
-    /// near the source node. If mouse position is not near, return mouse position without
-    /// aligning.
+    /// Calculate a position for a new node at mouse position, aligned to a source node of the
+    /// specified edge if mouse position is close to the source node.
     ///
-    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "near" means.
+    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "close to" means.
     pub fn new_node_position_at_mouse_aligned_if_close_to_edge_source_node(
         &self,
         edge_id: EdgeId,
@@ -1773,11 +1772,10 @@ impl GraphEditorModel {
         self.new_node_position_aligned_if_close_to_node(mouse_position, edge_source_node)
     }
 
-    /// Find a position for a new node, aligned to the node closest to mouse position if mouse
-    /// position is near the closest node. If mouse position is not near, return mouse position
-    /// without aligning.
+    /// Calculate a position for a new node at mouse position, aligned to the node closest to mouse
+    /// position if the distance is close enough.
     ///
-    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "near" means.
+    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what is close enough.
     pub fn new_node_position_at_mouse_aligned_to_close_nodes(
         &self,
         mouse_position: Vector2,
@@ -1802,10 +1800,10 @@ impl GraphEditorModel {
         nearest_node
     }
 
-    /// Finds a position for a new node, aligning it to the specified reference node if the
-    /// proposed position is near enough to it.
+    /// Calculates a position for a new node, aligning it to the specified reference node if the
+    /// proposed position is close enough to it.
     ///
-    /// A point is "near enough" to a node if it is located in an alignment area around a node,
+    /// A point is close enough to a node if it is located in an alignment area around a node,
     /// defined in the current theme ([`theme::graph_editor::alignment_area_around_node`]).
     pub fn new_node_position_aligned_if_close_to_node(
         &self,
