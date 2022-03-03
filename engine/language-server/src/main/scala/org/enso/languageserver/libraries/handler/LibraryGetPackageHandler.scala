@@ -7,13 +7,8 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
-import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
-import org.enso.languageserver.libraries.{
-  LibraryEntry,
-  LocalLibraryManagerFailureMapper,
-  LocalLibraryManagerProtocol
-}
+import org.enso.languageserver.libraries._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.librarymanager.published.PublishedLibraryCache
@@ -83,6 +78,7 @@ class LibraryGetPackageHandler(
       context.stop(self)
 
     case LocalLibraryManagerProtocol.GetPackageResponse(
+          libraryName,
           license,
           componentGroups,
           rawPackage
@@ -92,7 +88,11 @@ class LibraryGetPackageHandler(
         id,
         LibraryGetPackage.Result(
           Option.unless(license.isEmpty)(license),
-          componentGroups,
+          componentGroups.flatMap { groups =>
+            Option.unless(
+              groups.newGroups.isEmpty && groups.extendedGroups.isEmpty
+            )(LibraryComponentGroups.fromComponentGroups(libraryName, groups))
+          },
           rawPackage
         )
       )
@@ -105,7 +105,10 @@ class LibraryGetPackageHandler(
       context.stop(self)
 
     case Status.Failure(exception) =>
-      replyTo ! ResponseError(Some(id), FileSystemError(exception.getMessage))
+      replyTo ! ResponseError(
+        Some(id),
+        LocalLibraryManagerFailureMapper.mapException(exception)
+      )
       cancellable.cancel()
       context.stop(self)
   }
@@ -133,6 +136,7 @@ class LibraryGetPackageHandler(
           .readPackage()
           .map(config =>
             LocalLibraryManagerProtocol.GetPackageResponse(
+              LibraryName(config.namespace, config.name),
               config.license,
               config.componentGroups.toOption,
               config.originalJson
@@ -150,6 +154,7 @@ class LibraryGetPackageHandler(
       .fetchPackageConfig()
       .toFuture
   } yield LocalLibraryManagerProtocol.GetPackageResponse(
+    libraryName     = LibraryName(config.namespace, config.name),
     license         = config.license,
     componentGroups = config.componentGroups.toOption,
     rawPackage      = config.originalJson

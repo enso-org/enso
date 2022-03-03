@@ -31,6 +31,7 @@ object LocalLibraryManagerProtocol {
 
   /** A response to the [[GetPackage]] request. */
   case class GetPackageResponse(
+    libraryName: LibraryName,
     license: String,
     componentGroups: Option[ComponentGroups],
     rawPackage: JsonObject
