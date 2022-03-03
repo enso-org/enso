@@ -38,46 +38,40 @@ struct Model {
 impl Model {
     /// Instantiate a new project presenter, which will display current project in the view.
     #[profile(Task)]
-    fn setup_and_display_new_project(self: Rc<Self>) {
+    async fn setup_and_display_new_project(self: Rc<Self>) {
         // Remove the old integration first. We want to be sure the old and new integrations will
         // not race for the view.
         *self.current_project.borrow_mut() = None;
+        let project_model = match self.controller.current_project() {
+            Some(model) => model,
+            None => return,
+        };
+        self.view.switch_view_to_project();
+        // We know the name of new project before it loads. We set it right now to avoid
+        // displaying a placeholder on the scene during loading.
+        let project_view = self.view.project();
+        let status_bar = self.view.status_bar().clone_ref();
+        let breadcrumbs = &project_view.graph().model.breadcrumbs;
+        breadcrumbs.project_name(project_model.name().to_string());
 
-        if let Some(project_model) = self.controller.current_project() {
-            self.view.switch_view_to_project();
-            // We know the name of new project before it loads. We set it right now to avoid
-            // displaying placeholder on the scene during loading.
-            let project_view = self.view.project();
-            let breadcrumbs = &project_view.graph().model.breadcrumbs;
-            breadcrumbs.project_name(project_model.name().to_string());
-
-            #[profile(Task)]
-            async fn setup_and_display(self_: Rc<Model>, project_model: model::Project) {
-                let project_view = self_.view.project();
-                let status_bar = self_.view.status_bar().clone_ref();
-                let status_notifications = self_.controller.status_notifications().clone_ref();
-                let ide_controller = self_.controller.clone_ref();
-                let project_controller =
-                    controller::Project::new(project_model, status_notifications.clone_ref());
-                match presenter::Project::initialize(
-                    ide_controller,
-                    project_controller,
-                    project_view,
-                    status_bar,
-                )
-                    .await
-                {
-                    Ok(project) => {
-                        *self_.current_project.borrow_mut() = Some(project);
-                    }
-                    Err(err) => {
-                        let err_msg = format!("Failed to initialize project: {}", err);
-                        error!(self_.logger, "{err_msg}");
-                        status_notifications.publish_event(err_msg)
-                    }
-                }
+        let status_notifications = self.controller.status_notifications().clone_ref();
+        let ide_controller = self.controller.clone_ref();
+        let project_controller = controller::Project::new(project_model, status_notifications);
+        let project_presenter = presenter::Project::initialize(
+            ide_controller,
+            project_controller,
+            project_view,
+            status_bar,
+        );
+        match project_presenter.await {
+            Ok(project) => {
+                *self.current_project.borrow_mut() = Some(project);
             }
-            executor::global::spawn(setup_and_display(self, project_model));
+            Err(err) => {
+                let err_msg = format!("Failed to initialize project: {}", err);
+                error!(self.logger, "{err_msg}");
+                self.controller.status_notifications().publish_event(err_msg);
+            }
         }
     }
 
@@ -166,8 +160,8 @@ impl Presenter {
     fn init(self) -> Self {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
-        crate::executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
-        self.model.clone_ref().setup_and_display_new_project();
+        executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
+        executor::global::spawn(self.model.clone_ref().setup_and_display_new_project());
         self
     }
 
@@ -209,7 +203,7 @@ impl Presenter {
             match notification {
                 controller::ide::Notification::NewProjectCreated
                 | controller::ide::Notification::ProjectOpened =>
-                    model.setup_and_display_new_project(),
+                    executor::global::spawn(model.setup_and_display_new_project()),
             }
             futures::future::ready(())
         });
