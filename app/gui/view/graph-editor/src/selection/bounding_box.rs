@@ -87,7 +87,7 @@ mod tests {
     fn test_intersection() {
         let bb1 = BoundingBox::from_corners(Vector2::new(0.5, 0.5), Vector2::new(1.0, 1.0));
         let bb2 = BoundingBox::from_corners(Vector2::new(0.0, 0.0), Vector2::new(2.0, 2.0));
-        assert!(bb1.intersects(&bb2));
+        assert!(!bb1.intersects(&bb2));
         assert!(bb2.intersects(&bb1));
 
         let bb1 = BoundingBox::from_corners(Vector2::new(3.0, 3.0), Vector2::new(4.0, 4.0));
