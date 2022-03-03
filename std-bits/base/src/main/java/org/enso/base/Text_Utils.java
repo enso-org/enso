@@ -1,5 +1,6 @@
 package org.enso.base;
 
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
@@ -99,17 +100,6 @@ public class Text_Utils {
    */
   public static String[] split_on_lines(String str) {
     return vertical_space.split(str);
-  }
-
-  /**
-   * Checks if the provided string consists only of whitespace characters.
-   *
-   * @param str the string to check
-   * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
-   */
-  public static boolean is_whitespace(String str) {
-    var matcher = whitespace.matcher(str);
-    return matcher.matches();
   }
 
   /**
@@ -251,5 +241,15 @@ public class Text_Utils {
    */
   public static String normalize(String str) {
     return Normalizer2.getNFDInstance().normalize(str);
+  }
+
+  /**
+   * Checks if the given string consists only of whitespace characters.
+   *
+   * @param str the string to check
+   * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
+   */
+  public static boolean is_all_whitespace(String text) {
+    return text.codePoints().allMatch(UCharacter::isUWhiteSpace);
   }
 }
