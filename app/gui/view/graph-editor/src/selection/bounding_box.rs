@@ -130,7 +130,7 @@ mod tests {
     macro_rules! bounding_box_from_corners {
         (($x1:expr, $y1:expr), ($x2:expr, $y2:expr)) => {
             BoundingBox::from_corners(Vector2($x1, $y1), Vector2($x2, $y2))
-        }
+        };
     }
 
     #[test]

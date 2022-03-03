@@ -577,14 +577,17 @@ impl NodeModel {
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_pos = NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(size);
+        let visualization_pos =
+            NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(size);
         self.error_visualization.set_position_xy(visualization_pos);
         self.visualization.set_position_xy(visualization_pos);
 
         size
     }
 
-    fn position_of_visualization_relative_to_position_of_node_of_given_size(node_size: Vector2) -> Vector2 {
+    fn position_of_visualization_relative_to_position_of_node_of_given_size(
+        node_size: Vector2,
+    ) -> Vector2 {
         Vector2(node_size.x / 2.0, VISUALIZATION_OFFSET_Y)
     }
 
