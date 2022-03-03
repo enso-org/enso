@@ -895,9 +895,10 @@ impl Node {
                 &new_size,&position,&visualization_enabled_and_visible,visualization_size);
             out.source.bounding_box <+ bounding_box_input.map(
                 |(node_size,node_position,visualization_enabled_and_visible,visualization_size)| {
-                    let bounding_box_position = node_position - Vector2(0.0, node_size.y / 2.0);
-                    let mut bb = BoundingBox::from_position_and_size(
-                        bounding_box_position, *node_size);
+                    let node_bounding_box_position = node_position - Vector2(
+                        0.0, node_size.y / 2.0);
+                    let mut node_bounding_box = BoundingBox::from_position_and_size(
+                        node_bounding_box_position, *node_size);
                     if *visualization_enabled_and_visible {
                         let pos_of_visualization_relative_to_pos_of_node =
                             NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(*node_size);
@@ -907,9 +908,9 @@ impl Node {
                             absolute_pos_of_visualization - visualization_size / 2.0;
                         let visualization_bounding_box = BoundingBox::from_position_and_size(
                             absolute_pos_of_visualization_bounding_box, *visualization_size);
-                        bb.grow_to_include(&visualization_bounding_box);
+                        node_bounding_box.grow_to_include(&visualization_bounding_box);
                     }
-                    bb
+                    node_bounding_box
                 });
 
 
