@@ -17,13 +17,3 @@ from Standard.Builtins import Builtins
 Array.to_default_visualization_data : Text
 Array.to_default_visualization_data =
     Vector.Vector this . to_default_visualization_data
-
-## PRIVATE
-   Copy the backing Array to an Enso Array
-   TODO This is a workaround for the issue with polyglot Array.copy
-        https://www.pivotaltracker.com/story/show/181122542
-Array.copy_to : Array->Integer->Array->Integer->Integer
-Array.copy_to src_array src_start dest_array dest_start length =
-    case Builtins.Meta.is_polyglot src_array of
-        True -> 0.up_to length . each i->(dest_array.set_at (i+dest_start) (src_array.at i+src_start))
-        False -> Array.copy src_array src_start dest_array dest_start length
