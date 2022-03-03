@@ -60,6 +60,7 @@
 - [Implemented initial `Table.group_by` function on Standard.Table][3305]
 - [Implemented `Text.pad` and `Text.trim`][3309]
 - [Updated `Text.repeat` and added `*` operator shorthand][3310]
+- [Implemented new `Text.insert` method][3311]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -94,6 +95,7 @@
 [3305]: https://github.com/enso-org/enso/pull/3305
 [3309]: https://github.com/enso-org/enso/pull/3309
 [3310]: https://github.com/enso-org/enso/pull/3310
+[3311]: https://github.com/enso-org/enso/pull/3311
 
 #### Enso Compiler
 
