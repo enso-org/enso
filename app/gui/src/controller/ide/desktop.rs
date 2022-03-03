@@ -138,8 +138,7 @@ impl Handle {
         use model::project::Synchronized as Project;
 
         let list = self.project_manager.list_projects(&None).await?;
-        let existing_names: HashSet<_> =
-            list.projects.into_iter().map(|p| p.name.into()).collect();
+        let existing_names: HashSet<_> = list.projects.into_iter().map(|p| p.name.into()).collect();
         let name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
         let name = choose_new_project_name(&existing_names, &name);
         let name = ProjectName::new_unchecked(name);

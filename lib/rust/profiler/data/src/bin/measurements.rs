@@ -1,5 +1,5 @@
-use std::io::Read;
 use enso_profiler_data as profiler_data;
+use std::io::Read;
 
 fn fmt_interval(interval: profiler_data::Interval) -> String {
     let start = interval.start.into_ms();
@@ -10,7 +10,7 @@ fn fmt_interval(interval: profiler_data::Interval) -> String {
 fn print_measurement(measurement: &enso_profiler_data::Measurement<()>, i: usize) {
     let mut indent = String::new();
     for _ in 0..i {
-        indent.extend("  ".chars());
+        indent.push_str("  ");
     }
     println!("{}{}", indent, measurement.label);
     match &measurement.lifetime {
