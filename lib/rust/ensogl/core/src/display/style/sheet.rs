@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::control::callback;
+use crate::control::callback::traits::*;
 use crate::data::HashMapTree;
 use crate::data::Index;
 use crate::data::OptVec;
@@ -885,7 +886,7 @@ pub struct Sheet {
 }
 
 /// Type of callback registry used in `Sheet`.
-pub type CallbackRegistry = callback::SharedRegistryMut1<Option<Data>>;
+pub type CallbackRegistry = callback::registry::RefMut1<Option<Data>>;
 
 impl Sheet {
     /// Constructor.

@@ -5,6 +5,7 @@ use crate::prelude::*;
 pub mod event;
 
 use crate::control::callback;
+use crate::control::callback::traits::*;
 use crate::system::web;
 
 use std::cell::RefCell;
@@ -48,7 +49,7 @@ macro_rules! define_bindings {
         #[derive(Clone,CloneRef,Debug,Default)]
         #[allow(missing_docs)]
         pub struct MouseManagerDispatchers {
-            $(pub $name : callback::SharedRegistryMut1<$target>),*
+            $(pub $name : callback::registry::RefMut1<$target>),*
         }
 
         impl MouseManager {

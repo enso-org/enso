@@ -21,40 +21,39 @@ use std::any::TypeId;
 use std::marker::Unsize;
 
 
-// ================
-// === Callback ===
-// ================
+// ==============================
+// === Popular Callback Types ===
+// ==============================
 
-/// Immutable callback type.
-pub trait CallbackFn = Fn() + 'static;
+pub use callback_types::*;
+mod callback_types {
+    pub trait NoArgs = 'static + Fn();
+    pub trait NoArgsMut = 'static + FnMut();
 
-/// Immutable callback object.
-pub type Callback = Box<dyn CallbackFn>;
+    pub trait Copy1<T1> = 'static + Fn(T1);
+    pub trait Copy2<T1, T2> = 'static + Fn(T1, T2);
+    pub trait Copy3<T1, T2, T3> = 'static + Fn(T1, T2, T3);
+    pub trait Copy4<T1, T2, T3, T4> = 'static + Fn(T1, T2, T3, T4);
+    pub trait Copy5<T1, T2, T3, T4, T5> = 'static + Fn(T1, T2, T3, T4, T5);
 
-/// Callback object smart constructor.
-#[allow(non_snake_case)]
-pub fn Callback<F: CallbackFn>(f: F) -> Callback {
-    Box::new(f)
+    pub trait Ref1<T1> = 'static + Fn(&T1);
+    pub trait Ref2<T1, T2> = 'static + Fn(&T1, &T2);
+    pub trait Ref3<T1, T2, T3> = 'static + Fn(&T1, &T2, &T3);
+    pub trait Ref4<T1, T2, T3, T4> = 'static + Fn(&T1, &T2, &T3, &T4);
+    pub trait Ref5<T1, T2, T3, T4, T5> = 'static + Fn(&T1, &T2, &T3, &T4, &T5);
+
+    pub trait CopyMut1<T1> = 'static + FnMut(T1);
+    pub trait CopyMut2<T1, T2> = 'static + FnMut(T1, T2);
+    pub trait CopyMut3<T1, T2, T3> = 'static + FnMut(T1, T2, T3);
+    pub trait CopyMut4<T1, T2, T3, T4> = 'static + FnMut(T1, T2, T3, T4);
+    pub trait CopyMut5<T1, T2, T3, T4, T5> = 'static + FnMut(T1, T2, T3, T4, T5);
+
+    pub trait RefMut1<T1> = 'static + FnMut(&T1);
+    pub trait RefMut2<T1, T2> = 'static + FnMut(&T1, &T2);
+    pub trait RefMut3<T1, T2, T3> = 'static + FnMut(&T1, &T2, &T3);
+    pub trait RefMut4<T1, T2, T3, T4> = 'static + FnMut(&T1, &T2, &T3, &T4);
+    pub trait RefMut5<T1, T2, T3, T4, T5> = 'static + FnMut(&T1, &T2, &T3, &T4, &T5);
 }
-
-/// Mutable callback type.
-pub trait CallbackMutFn = FnMut() + 'static;
-
-/// Mutable callback object.
-pub type CallbackMut = Box<dyn CallbackMutFn>;
-
-/// Mutable callback type with one parameter.
-pub trait CallbackMut1Fn<T> = FnMut(&T) + 'static;
-
-/// Mutable callback object with one parameter.
-pub type CallbackMut1<T> = Box<dyn CallbackMut1Fn<T>>;
-
-/// Mutable callback type with one parameter.
-pub trait CopyCallbackMut1Fn<T> = FnMut(T) + 'static;
-
-/// Mutable callback object with one parameter.
-pub type CopyCallbackMut1<T> = Box<dyn CopyCallbackMut1Fn<T>>;
-
 
 
 // ==============
@@ -107,143 +106,104 @@ impl Guard {
 
 
 
-// ==========================
-// === SharedRegistryMut1 ===
-// ==========================
-// pub trait CallbackMut1Fn<T> = FnMut(&T) + 'static;
-/// Registry gathering callbacks implemented with internal mutability pattern. Each registered
-/// callback is assigned with a handle. Callback and handle lifetimes are strictly connected. As
-/// soon a handle is dropped, the callback is removed as well.
-#[derive(CloneRef, Derivative)]
+//////////////////////
+
+pub trait RegistryFnCall<Args> {
+    fn call(&self, args: Args);
+}
+
+pub trait RegistryFnNew {
+    type InternalF: ?Sized;
+    fn new<C: Unsize<Self::InternalF> + 'static>(f: C) -> Self;
+}
+
+
+
+#[derive(Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
-#[derivative(Default(bound = ""))]
-#[allow(clippy::type_complexity)]
-pub struct SharedRegistryMut1<T> {
+pub struct RegistryFn<F: ?Sized> {
     #[derivative(Debug = "ignore")]
-    callback_list: Rc<RefCell<Vec<(Guard, Rc<RefCell<dyn for<'a> FnMut(&'a T) + 'static>>)>>>,
+    function: Rc<F>,
 }
 
-impl<T> SharedRegistryMut1<T> {
-    /// Constructor.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Adds new callback and returns a new handle for it.
-    pub fn add<F: CallbackMut1Fn<T>>(&self, callback: F) -> Handle {
-        let callback = Rc::new(RefCell::new(callback));
-        let handle = Handle::default();
-        let guard = handle.guard();
-        self.callback_list.borrow_mut().push((guard, callback));
-        handle
-    }
-
-    ///Checks whether there are any callbacks registered.
-    pub fn is_empty(&self) -> bool {
-        self.callback_list.borrow().is_empty()
-    }
-
-    /// Fires all registered callbacks and removes the ones which got dropped. The implementation is
-    /// safe - you are allowed to change the registry while a callback is running.
-    pub fn run_all(&self, t: &T) {
-        self.clear_unused_callbacks();
-        let callbacks = self.callback_list.borrow().clone();
-        callbacks.iter().for_each(|(_, callback)| (&mut *callback.borrow_mut())(t));
-    }
-
-    /// Checks all registered callbacks and removes the ones which got dropped.
-    fn clear_unused_callbacks(&self) {
-        self.callback_list.borrow_mut().retain(|(guard, _)| guard.exists());
+impl<F: ?Sized> RegistryFnNew for RegistryFn<F> {
+    type InternalF = F;
+    fn new<C: Unsize<F> + 'static>(f: C) -> Self {
+        let function = Rc::new(f);
+        Self { function }
     }
 }
 
+impl<Args, F: ?Sized + Fn<Args>> RegistryFnCall<Args> for RegistryFn<F> {
+    fn call(&self, args: Args) {
+        (&*self.function).call(args);
+    }
+}
 
+#[derive(Derivative)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
+pub struct RegistryFnMut<F: ?Sized> {
+    #[derivative(Debug = "ignore")]
+    function: Rc<RefCell<F>>,
+}
 
-// #[derive(CloneRef, Derivative)]
-// #[derivative(Clone(bound = ""))]
-// #[derivative(Debug(bound = ""))]
-// #[derivative(Default(bound = ""))]
-// #[allow(clippy::type_complexity)]
-// pub struct XSharedRegistryMut<Args = (), Output = ()> {
-//     #[derivative(Debug = "ignore")]
-//     callback_list: Rc<RefCell<Vec<(Guard, Rc<RefCell<dyn FnMut<Args, Output = Output>>>)>>>,
-// }
-//
-// impl<Args: Copy, Output> XSharedRegistryMut<Args, Output> {
-//     pub fn new() -> Self {
-//         Self::default()
-//     }
-//
-//     pub fn add<F>(&self, callback: F) -> Handle
-//     where F: FnMut<Args, Output = Output> + 'static {
-//         let callback = Rc::new(RefCell::new(callback));
-//         let handle = Handle::default();
-//         let guard = handle.guard();
-//         self.callback_list.borrow_mut().push((guard, callback));
-//         handle
-//     }
-//
-//     ///Checks whether there are any callbacks registered.
-//     pub fn is_empty(&self) -> bool {
-//         self.callback_list.borrow().is_empty()
-//     }
-//
-//     /// Checks all registered callbacks and removes the ones which got dropped.
-//     fn clear_unused_callbacks(&self) {
-//         self.callback_list.borrow_mut().retain(|(guard, _)| guard.exists());
-//     }
-//
-//     /// Fires all registered callbacks and removes the ones which got dropped. The implementation
-//     /// is safe - you are allowed to change the registry while a callback is running.
-//     pub fn run_all_with_args(&self, args: Args) {
-//         self.clear_unused_callbacks();
-//         let callbacks = self.callback_list.borrow().clone();
-//         callbacks.iter().for_each(move |(_, callback)| {
-//             (&mut *callback.borrow_mut()).call_mut(args);
-//         });
-//     }
-// }
-//
-// impl<Output> XSharedRegistryMut<(), Output> {
-//     pub fn run_all(&self) {
-//         self.run_all_with_args(())
-//     }
-// }
-//
-// impl<T1: Copy, Output> XSharedRegistryMut<(T1,), Output> {
-//     pub fn run_all(&self, t1: T1) {
-//         self.run_all_with_args((t1,))
-//     }
-// }
-//
-// impl<T1: Copy, T2: Copy, Output> XSharedRegistryMut<(T1, T2), Output> {
-//     pub fn run_all(&self, t1: T1, t2: T2) {
-//         self.run_all_with_args((t1, t2))
-//     }
-// }
-//
-// impl<T1: Copy, T2: Copy, T3: Copy, Output> XSharedRegistryMut<(T1, T2, T3), Output> {
-//     pub fn run_all(&self, t1: T1, t2: T2, t3: T3) {
-//         self.run_all_with_args((t1, t2, t3))
-//     }
-// }
+impl<Args, F: ?Sized + FnMut<Args>> RegistryFnCall<Args> for RegistryFnMut<F> {
+    fn call(&self, args: Args) {
+        (&mut *self.function.borrow_mut()).call_mut(args);
+    }
+}
 
+impl<F: ?Sized> RegistryFnNew for RegistryFnMut<F> {
+    type InternalF = F;
+    fn new<C: Unsize<F> + 'static>(f: C) -> Self {
+        let function = Rc::new(RefCell::new(f));
+        Self { function }
+    }
+}
 
+macro_rules! gen_registry_alias {
+    ($name:ident = $data:ident<$w_tp:ident<dyn $fn_tp:ident($($arg:ident),*)>>) => {
+        pub type $name<$($arg),*> = $data<$w_tp<dyn $fn_tp($($arg,)*)>>;
+    };
+}
 
-// ===================
-// === RegistryMut ===
-// ===================
+macro_rules! gen_registry_alias_ref {
+    ($name:ident = $data:ident<$w_tp:ident<dyn $fn_tp:ident($($arg:ident),*)>>) => {
+        pub type $name<$($arg),*> = $data<$w_tp<dyn $fn_tp($(&$arg,)*)>>;
+    };
+}
 
-pub mod RegistryMut {
+pub mod registry {
     use super::*;
-    pub type NoArgs = RegistryMutGen<dyn FnMut()>;
-    pub type Copy_1<T1> = RegistryMutGen<dyn FnMut(T1)>;
-    pub type Copy_2<T1, T2> = RegistryMutGen<dyn FnMut(T1, T2)>;
-    pub type Copy_3<T1, T2, T3> = RegistryMutGen<dyn FnMut(T1, T2, T3)>;
-    pub type Ref_1<T1> = RegistryMutGen<dyn FnMut(&T1)>;
-    pub type Ref_2<T1, T2> = RegistryMutGen<dyn FnMut(&T1, &T2)>;
-    pub type Ref_3<T1, T2, T3> = RegistryMutGen<dyn FnMut(&T1, &T2, &T3)>;
+
+    gen_registry_alias!(NoArgs = Registry<RegistryFn<dyn Fn()>>);
+    gen_registry_alias!(NoArgsMut = Registry<RegistryFnMut<dyn FnMut()>>);
+
+    gen_registry_alias!(Copy1 = Registry<RegistryFn<dyn Fn(T1)>>);
+    gen_registry_alias!(Copy2 = Registry<RegistryFn<dyn Fn(T1,T2)>>);
+    gen_registry_alias!(Copy3 = Registry<RegistryFn<dyn Fn(T1,T2,T3)>>);
+    gen_registry_alias!(Copy4 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4)>>);
+    gen_registry_alias!(Copy5 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4,T5)>>);
+
+    gen_registry_alias_ref!(Ref1 = Registry<RegistryFn<dyn Fn(T1)>>);
+    gen_registry_alias_ref!(Ref2 = Registry<RegistryFn<dyn Fn(T1,T2)>>);
+    gen_registry_alias_ref!(Ref3 = Registry<RegistryFn<dyn Fn(T1,T2,T3)>>);
+    gen_registry_alias_ref!(Ref4 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4)>>);
+    gen_registry_alias_ref!(Ref5 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4,T5)>>);
+
+    gen_registry_alias!(CopyMut1 = Registry<RegistryFnMut<dyn FnMut(T1)>>);
+    gen_registry_alias!(CopyMut2 = Registry<RegistryFnMut<dyn FnMut(T1,T2)>>);
+    gen_registry_alias!(CopyMut3 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3)>>);
+    gen_registry_alias!(CopyMut4 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4)>>);
+    gen_registry_alias!(CopyMut5 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4,T5)>>);
+
+    gen_registry_alias_ref!(RefMut1 = Registry<RegistryFnMut<dyn FnMut(T1)>>);
+    gen_registry_alias_ref!(RefMut2 = Registry<RegistryFnMut<dyn FnMut(T1,T2)>>);
+    gen_registry_alias_ref!(RefMut3 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3)>>);
+    gen_registry_alias_ref!(RefMut4 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4)>>);
+    gen_registry_alias_ref!(RefMut5 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4,T5)>>);
 }
 
 
@@ -252,19 +212,21 @@ pub mod RegistryMut {
 #[derivative(Debug(bound = ""))]
 #[derivative(Default(bound = ""))]
 #[allow(clippy::type_complexity)]
-pub struct RegistryMutGen<F: ?Sized> {
+pub struct Registry<F> {
     #[derivative(Debug = "ignore")]
-    callback_list: Rc<RefCell<Vec<(Guard, Rc<RefCell<F>>)>>>,
+    callback_list: Rc<RefCell<Vec<(Guard, F)>>>,
 }
 
-impl<F: ?Sized> RegistryMutGen<F> {
+impl<F> Registry<F> {
     pub fn new() -> Self {
         Self::default()
     }
 
     pub fn add<C>(&self, callback: C) -> Handle
-    where C: Unsize<F> + 'static {
-        let callback = Rc::new(RefCell::new(callback));
+    where
+        F: RegistryFnNew,
+        C: Unsize<<F as RegistryFnNew>::InternalF> + 'static, {
+        let callback = F::new(callback);
         let handle = Handle::default();
         let guard = handle.guard();
         self.callback_list.borrow_mut().push((guard, callback));
@@ -280,89 +242,90 @@ impl<F: ?Sized> RegistryMutGen<F> {
     fn clear_unused_callbacks(&self) {
         self.callback_list.borrow_mut().retain(|(guard, _)| guard.exists());
     }
-}
 
-impl<F: ?Sized> RegistryMutGen<F> {
     /// Fires all registered callbacks and removes the ones which got dropped. The implementation
     /// is safe - you are allowed to change the registry while a callback is running.
     pub fn run_all_with_args<Args: Copy>(&self, args: Args)
-    where F: FnMut<Args> {
+    where F: Clone + RegistryFnCall<Args> {
         self.clear_unused_callbacks();
         let callbacks = self.callback_list.borrow().clone();
         callbacks.iter().for_each(move |(_, callback)| {
-            (&mut *callback.borrow_mut()).call_mut(args);
+            callback.call(args);
         });
     }
 }
 
-impl<Out> RegistryMutGen<dyn FnMut() -> Out> {
-    /// Run all callbacks.
-    pub fn run_all(&self) {
-        self.run_all_with_args(())
-    }
+
+//////////////////////
+
+
+macro_rules! gen_runner_traits {
+    ($name:ident, $ref_name:ident, ($($arg:ident),*)) => {
+        pub trait $name {
+            $( type $arg; )*
+            fn run_all(&self, $($arg : Self::$arg),*);
+        }
+
+        pub trait $ref_name {
+            $( type $arg; )*
+            fn run_all(&self, $($arg : &Self::$arg),*);
+        }
+    };
 }
 
-impl<Out, T1: Copy> RegistryMutGen<dyn FnMut(T1) -> Out> {
-    /// Run all callbacks.
-    pub fn run_all(&self, t1: T1) {
-        self.run_all_with_args((t1,))
-    }
+macro_rules! gen_runner {
+    ($name:ident, $ref_name:ident, $data:ident, $data_ref:ident, <$($arg:ident),*>) => {
+        impl<$($arg: Copy),*> $name for registry::$data<$($arg),*> {
+            $(type $arg = $arg;)*
+            fn run_all(&self, $($arg : Self::$arg),*) {
+                self.run_all_with_args(($($arg),*,))
+            }
+        }
+
+        impl<$($arg),*> $ref_name for registry::$data_ref<$($arg),*>  {
+            $(type $arg = $arg;)*
+            fn run_all(&self, $($arg : &Self::$arg),*) {
+                self.run_all_with_args(($($arg),*,))
+            }
+        }
+    };
 }
 
-impl<Out, T1: Copy, T2: Copy> RegistryMutGen<dyn FnMut(T1, T2) -> Out> {
-    /// Run all callbacks.
-    pub fn run_all(&self, t1: T1, t2: T2) {
-        self.run_all_with_args((t1, t2))
+
+
+#[allow(missing_docs)]
+#[allow(non_camel_case_types)]
+pub mod traits {
+    use super::*;
+
+    pub trait RegistryRunner0 {
+        fn run_all(&self);
     }
+
+    impl RegistryRunner0 for registry::NoArgsMut {
+        fn run_all(&self) {
+            self.run_all_with_args(())
+        }
+    }
+
+    impl RegistryRunner0 for registry::NoArgs {
+        fn run_all(&self) {
+            self.run_all_with_args(())
+        }
+    }
+
+    gen_runner_traits!(RegistryRunner1, RegistryRunnerRef1, (T1));
+    gen_runner_traits!(RegistryRunner2, RegistryRunnerRef2, (T1, T2));
+    gen_runner_traits!(RegistryRunner3, RegistryRunnerRef3, (T1, T2, T3));
+    gen_runner_traits!(RegistryRunner4, RegistryRunnerRef4, (T1, T2, T3, T4));
+    gen_runner_traits!(RegistryRunner5, RegistryRunnerRef5, (T1, T2, T3, T4, T5));
+
+    gen_runner!(RegistryRunner1, RegistryRunnerRef1, CopyMut1, RefMut1, <T1>);
+    gen_runner!(RegistryRunner2, RegistryRunnerRef2, CopyMut2, RefMut2, <T1,T2>);
+    gen_runner!(RegistryRunner3, RegistryRunnerRef3, CopyMut3, RefMut3, <T1,T2,T3>);
+    gen_runner!(RegistryRunner4, RegistryRunnerRef4, CopyMut4, RefMut4, <T1,T2,T3,T4>);
+    gen_runner!(RegistryRunner5, RegistryRunnerRef5, CopyMut5, RefMut5, <T1,T2,T3,T4,T5>);
 }
-
-
-
-// #[derive(CloneRef, Derivative)]
-// #[derivative(Clone(bound = ""))]
-// #[derivative(Debug(bound = ""))]
-// #[derivative(Default(bound = ""))]
-// #[allow(clippy::type_complexity)]
-// pub struct XSharedRegistry<Args, Output = ()> {
-//     #[derivative(Debug = "ignore")]
-//     callback_list: Rc<RefCell<Vec<(Guard, Rc<dyn Fn<Args, Output = Output>>)>>>,
-// }
-//
-// impl<Args: Copy, Output> XSharedRegistry<Args, Output> {
-//     pub fn new() -> Self {
-//         Self::default()
-//     }
-//
-//     pub fn add<F>(&self, callback: F) -> Handle
-//     where F: Fn<Args, Output = Output> + 'static {
-//         let callback = Rc::new(callback);
-//         let handle = Handle::default();
-//         let guard = handle.guard();
-//         self.callback_list.borrow_mut().push((guard, callback));
-//         handle
-//     }
-//
-//     ///Checks whether there are any callbacks registered.
-//     pub fn is_empty(&self) -> bool {
-//         self.callback_list.borrow().is_empty()
-//     }
-//
-//     /// Checks all registered callbacks and removes the ones which got dropped.
-//     fn clear_unused_callbacks(&self) {
-//         self.callback_list.borrow_mut().retain(|(guard, _)| guard.exists());
-//     }
-//
-//     /// Fires all registered callbacks and removes the ones which got dropped. The implementation
-//     /// is safe - you are allowed to change the registry while a callback is running.
-//     pub fn run_all(&self, args: Args) {
-//         self.clear_unused_callbacks();
-//         let callbacks = self.callback_list.borrow().clone();
-//         callbacks.iter().for_each(move |(_, callback)| {
-//             callback.call(args);
-//         });
-//     }
-// }
-
 
 
 // ==========================
@@ -390,12 +353,13 @@ impl DynEvent {
 #[derivative(Debug)]
 pub struct DynEventDispatcher {
     #[derivative(Debug = "ignore")]
-    listener_map: HashMap<TypeId, Vec<(Guard, CallbackMut1<DynEvent>)>>,
+    #[allow(clippy::type_complexity)]
+    listener_map: HashMap<TypeId, Vec<(Guard, Box<dyn RefMut1<DynEvent>>)>>,
 }
 
 impl DynEventDispatcher {
     /// Registers a new listener for a given type.
-    pub fn add_listener<F: CallbackMut1Fn<T>, T: 'static>(&mut self, mut f: F) -> Handle {
+    pub fn add_listener<F: RefMut1<T>, T: 'static>(&mut self, mut f: F) -> Handle {
         let callback = Box::new(move |event: &DynEvent| {
             event.any.downcast_ref::<T>().iter().for_each(|t| f(t))
         });

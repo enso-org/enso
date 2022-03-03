@@ -5,7 +5,7 @@ pub mod builder;
 
 use crate::prelude::*;
 
-use crate::control::callback::CallbackFn;
+use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
@@ -86,7 +86,7 @@ impl {
     }
 
     /// Creates new shader with attached callback.
-    pub fn new<OnMut:CallbackFn>(logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
+    pub fn new<OnMut:callback::NoArgs>(logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_shader_count();
         let context           = default();
         let geometry_material = default();

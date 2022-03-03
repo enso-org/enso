@@ -7,6 +7,7 @@ use crate::prelude::*;
 
 use crate::animation;
 use crate::control::callback;
+use crate::control::callback::traits::*;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::debug;
@@ -156,9 +157,9 @@ impl Deref for WorldDataWithLoop {
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Callbacks {
-    pub prev_frame_stats: callback::SharedRegistryMut1<StatsData>,
-    pub before_frame:     callback::RegistryMut::Copy_1<animation::TimeInfo>,
-    pub after_frame:      callback::RegistryMut::Copy_1<animation::TimeInfo>,
+    pub prev_frame_stats: callback::registry::RefMut1<StatsData>,
+    pub before_frame:     callback::registry::CopyMut1<animation::TimeInfo>,
+    pub after_frame:      callback::registry::CopyMut1<animation::TimeInfo>,
 }
 
 

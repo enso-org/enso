@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::control::callback::CallbackFn;
+use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
@@ -119,7 +119,7 @@ pub struct MeshData {
 
 impl {
     /// Creates new mesh with attached dirty callback.
-    pub fn new<OnMut:CallbackFn>
+    pub fn new<OnMut:callback::NoArgs>
     (logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
