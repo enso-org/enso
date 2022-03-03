@@ -185,7 +185,7 @@ mod tests {
         let point = Vector2(3.0, 4.0);
         assert_approx_eq!(bb.squared_distance_to_point(point), 5.0.pow(2.0));
 
-        // Distance to a point inside the bounding box should be 0.
+        // Distance between a bounding box and a point inside it should be 0.
         let bb = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
         let point = Vector2(0.5, 0.5);
         assert_approx_eq!(bb.squared_distance_to_point(point), 0.0);
