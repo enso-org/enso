@@ -302,7 +302,7 @@ type Vector
 
              [-1, 1, 5, 8].all (< 0)
     all : (Any -> Boolean) -> Boolean
-    all predicate = (this.exists (r -> (predicate r).not)).not
+    all predicate = this . exists (predicate >> .not) . not
 
     ## Checks whether this vector contains a given value as an element.
 
