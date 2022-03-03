@@ -7,18 +7,18 @@ upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".utf_16
 lower_case_letters = "abcdefghijklmnopqrstuvwxyz".utf_16
 numbers = "0123456789".utf_16
 
+## Creates a new Faker which can be used for creating test values.
+
+   Arguments:
+   - seed: Optional seed value to make the sequence deterministic
+new : Integer -> Faker
+new (seed = 0) =
+    generator = if seed == 0 then Random.new else Random.new seed
+    Faker generator
+
 ## Object to generate (deterministic) random value for testing
 type Faker
     type Faker generator
-
-    ## Creates a new Faker which can be used for creating test values.
-
-       Arguments:
-       - seed: Optional seed value to make the sequence deterministic
-    new : Integer -> Faker
-    new (seed = 0) =
-        generator = if seed == 0 then Random.new else Random.new seed
-        Faker generator
 
     ## Creates a random Text based on a template of character sets.
 
@@ -65,8 +65,8 @@ type Faker
 
        Arguments:
        - length: length of text to generate
-    alpha_numeric : Integer->Text
-    alpha_numeric length=1 upper_case=False =
+    hexadecimal : Integer->Text
+    hexadecimal length=1 =
         alphabet = "0123456789ABCDEF".utf_16
         this.string_value <| 0.up_to length . map _->alphabet
 
@@ -82,7 +82,7 @@ type Faker
 
     ## Create a random Decimal value
     decimal : Decimal->Decimal->Decimal
-    decimal minimum=0.0 maximum=1.0 generator =
+    decimal minimum=0.0 maximum=1.0 =
         minimum + this.generator.nextDouble * (maximum - minimum)
 
     ## Picks an item at Random from a list
@@ -96,5 +96,5 @@ type Faker
 
     ## Randomly converts some values to Nothing
     make_some_nothing : Any->Decimal->Any
-    make_some_nothing value (chance=0.1)
+    make_some_nothing value (chance=0.1) =
         if this.generator.nextDouble <= chance then Nothing else value
