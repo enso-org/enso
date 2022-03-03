@@ -206,7 +206,7 @@ class LocalLibraryManager(
         case Left(error) =>
           logger.error(
             s"Failed to parse library [$libraryName] component groups " +
-            s"(reason: ${error.message})"
+            s"(reason: ${error.message})."
           )
         case _ =>
       }
