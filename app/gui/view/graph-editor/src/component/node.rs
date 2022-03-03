@@ -891,17 +891,22 @@ impl Node {
 
             let visualization_size             = &model.visualization.frp.size;
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
-            bounding_box_input <- all4(&new_size,&position,&visualization_enabled_and_visible,visualization_size);
+            bounding_box_input <- all4(
+                &new_size,&position,&visualization_enabled_and_visible,visualization_size);
             out.source.bounding_box <+ bounding_box_input.map(
                 |(node_size,node_position,visualization_enabled_and_visible,visualization_size)| {
-                    let bounding_box_position = node_position - Vector2::new(0.0, node_size.y / 2.0);
-                    let mut bb = BoundingBox::from_position_and_size(bounding_box_position, *node_size);
+                    let bounding_box_position = node_position - Vector2(0.0, node_size.y / 2.0);
+                    let mut bb = BoundingBox::from_position_and_size(
+                        bounding_box_position, *node_size);
                     if *visualization_enabled_and_visible {
-                        let pos_of_visualization_relative_to_pos_of_node = NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(*node_size);
-                        let absolute_pos_of_visualization = node_position + pos_of_visualization_relative_to_pos_of_node;
-                        let absolute_pos_of_visualization_bounding_box = absolute_pos_of_visualization - visualization_size / 2.0;
-                        let visualization_bounding_box = BoundingBox::from_position_and_size(absolute_pos_of_visualization_bounding_box, *visualization_size);
-                        DEBUG!("MCDBG: vis enabled, v.size=" visualization_size;? " n.pos=" node_position;? " n.size=" node_size;? " v.bbox=" visualization_bounding_box;?);
+                        let pos_of_visualization_relative_to_pos_of_node =
+                            NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(*node_size);
+                        let absolute_pos_of_visualization =
+                            node_position + pos_of_visualization_relative_to_pos_of_node;
+                        let absolute_pos_of_visualization_bounding_box =
+                            absolute_pos_of_visualization - visualization_size / 2.0;
+                        let visualization_bounding_box = BoundingBox::from_position_and_size(
+                            absolute_pos_of_visualization_bounding_box, *visualization_size);
                         bb.grow_to_include(&visualization_bounding_box);
                     }
                     bb
