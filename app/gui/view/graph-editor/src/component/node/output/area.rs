@@ -59,7 +59,6 @@ pub type PortRefMut<'a> = span_tree::node::RefMut<'a, port::Model>;
 
 /// Specialized version of `node::Expression`, containing the port information.
 #[derive(Default)]
-#[allow(missing_docs)]
 pub struct Expression {
     pub code:            Option<String>,
     pub span_tree:       SpanTree,
@@ -70,7 +69,6 @@ pub struct Expression {
 }
 
 impl Expression {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn code(&self) -> String {
         self.code.clone().unwrap_or_default()
     }
@@ -418,7 +416,6 @@ impl Model {
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct Area {
-    #[allow(missing_docs)]
     pub frp: Frp,
     model:   Rc<Model>,
 }
@@ -432,7 +429,6 @@ impl Deref for Area {
 
 
 impl Area {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(logger, app, &frp));
@@ -493,7 +489,6 @@ impl Area {
         Self { frp, model }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression
@@ -504,12 +499,10 @@ impl Area {
             .and_then(|t| t.frp.as_ref().and_then(|frp| frp.tp.value()))
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {
         self.model.expression.borrow().whole_expr_id
     }

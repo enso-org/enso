@@ -1,5 +1,3 @@
-//! FIXME[everyone] Modules should be documented
-
 use crate::prelude::*;
 
 use enso_text::unit::*;
@@ -86,7 +84,6 @@ pub mod viz {
 /// ╰───┴────────┴──┄
 /// ```
 #[derive(Clone, CloneRef, Debug)]
-#[allow(missing_docs)]
 pub struct Shape {
     pub root:  display::object::Instance,
     pub hover: hover::View,
@@ -94,7 +91,6 @@ pub struct Shape {
 }
 
 impl Shape {
-    /// Constructor.
     pub fn new(logger: &Logger, scene: &Scene, size: Vector2, hover_height: f32) -> Self {
         let root = display::object::Instance::new(logger);
         let hover = hover::View::new(logger);
@@ -152,7 +148,6 @@ ensogl::define_endpoints! {
 /// Input port model. Please note that this is not a component model. It is a `SpanTree` payload
 /// model.
 #[derive(Clone, Debug, Default)]
-#[allow(missing_docs)]
 pub struct Model {
     pub frp:             Frp,
     pub shape:           Option<Shape>,
@@ -171,7 +166,6 @@ impl Deref for Model {
 }
 
 impl Model {
-    /// Constructor.
     pub fn new() -> Self {
         default()
     }

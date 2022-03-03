@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! NOTE
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
@@ -13,7 +15,6 @@
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
@@ -115,7 +116,6 @@ fn traffic_lights_gap_width() -> f32 {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Default(bound = ""))]
 #[derivative(Clone(bound = ""))]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct SharedVec<T> {
     pub raw: Rc<RefCell<Vec<T>>>,
 }
@@ -186,7 +186,6 @@ impl<T: Clone> SharedVec<T> {
 
 #[derive(Derivative, CloneRef)]
 #[derivative(Debug(bound = "T:Eq+Hash+Debug, S:std::hash::BuildHasher"))]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct SharedHashSet<T, S = std::collections::hash_map::RandomState> {
     pub raw: Rc<RefCell<HashSet<T, S>>>,
 }
@@ -214,12 +213,10 @@ where
     T: Eq + Hash,
     S: Default + std::hash::BuildHasher,
 {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new() -> Self {
         default()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn mem_take(&self) -> HashSet<T, S> {
         mem::take(&mut *self.raw.borrow_mut())
     }
@@ -230,45 +227,37 @@ where
     T: Eq + Hash,
     S: std::hash::BuildHasher,
 {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn insert(&self, t: T) -> bool {
         self.raw.borrow_mut().insert(t)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn remove(&self, t: &T) -> bool {
         self.raw.borrow_mut().remove(t)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn contains(&self, value: &T) -> bool {
         self.raw.borrow().contains(value)
     }
 }
 
 impl<T, S> SharedHashSet<T, S> {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn is_empty(&self) -> bool {
         self.raw.borrow().is_empty()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn clear(&self) {
         self.raw.borrow_mut().clear()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn for_each<F>(&self, f: F)
     where F: FnMut(&T) {
         self.raw.borrow_mut().iter().for_each(f)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn replace_with(&self, t: HashSet<T, S>) {
         *self.raw.borrow_mut() = t;
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn keys(&self) -> Vec<T>
     where T: Clone {
         self.raw.borrow().iter().cloned().collect_vec()
@@ -283,7 +272,6 @@ impl<T, S> SharedHashSet<T, S> {
 
 #[derive(Derivative, CloneRef)]
 #[derivative(Debug(bound = "K:Eq+Hash+Debug, V:Debug, S:std::hash::BuildHasher"))]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct SharedHashMap<K, V, S = std::collections::hash_map::RandomState> {
     pub raw: Rc<RefCell<HashMap<K, V, S>>>,
 }
@@ -311,12 +299,10 @@ where
     K: Eq + Hash,
     S: Default + std::hash::BuildHasher,
 {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new() -> Self {
         default()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn mem_take(&self) -> HashMap<K, V, S> {
         mem::take(&mut *self.raw.borrow_mut())
     }
@@ -327,63 +313,52 @@ where
     K: Eq + Hash,
     S: std::hash::BuildHasher,
 {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn insert(&self, k: K, v: V) -> Option<V> {
         self.raw.borrow_mut().insert(k, v)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn get_copied(&self, k: &K) -> Option<V>
     where V: Copy {
         self.raw.borrow().get(k).copied()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn get_cloned(&self, k: &K) -> Option<V>
     where V: Clone {
         self.raw.borrow().get(k).cloned()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn get_cloned_ref(&self, k: &K) -> Option<V>
     where V: CloneRef {
         self.raw.borrow().get(k).map(|t| t.clone_ref())
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn remove(&self, k: &K) -> Option<V> {
         self.raw.borrow_mut().remove(k)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn contains_key(&self, key: &K) -> bool {
         self.raw.borrow().contains_key(key)
     }
 }
 
 impl<K, V, S> SharedHashMap<K, V, S> {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn len(&self) -> usize {
         self.raw.borrow().len()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn is_empty(&self) -> bool {
         self.raw.borrow().is_empty()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn clear(&self) {
         self.raw.borrow_mut().clear()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn for_each<F>(&self, f: F)
     where F: FnMut((&K, &V)) {
         self.raw.borrow_mut().iter().for_each(f)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn keys(&self) -> Vec<K>
     where K: Clone {
         self.raw.borrow().keys().cloned().collect_vec()
@@ -402,7 +377,6 @@ impl<K, V, S> SharedHashMap<K, V, S> {
 /// This is information meant to be sent to searcher, which can, for example, auto- connect the
 /// source to "this" port of new node.
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, PartialEq)]
-#[allow(missing_docs)]
 pub struct NodeSource {
     pub node: NodeId,
 }
@@ -700,7 +674,6 @@ impl application::command::FrpNetworkProvider for GraphEditor {
 // ============
 
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct Node {
     #[shrinkwrap(main_field)]
     pub view:      component::Node,
@@ -709,18 +682,15 @@ pub struct Node {
 }
 
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, From, Hash, Into, PartialEq, Ord, PartialOrd)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct NodeId(pub Id);
 
 impl Node {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(view: component::Node) -> Self {
         let in_edges = default();
         let out_edges = default();
         Self { view, in_edges, out_edges }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn id(&self) -> NodeId {
         self.view.id().into()
     }
@@ -750,7 +720,6 @@ impl Display for NodeId {
 // ============
 
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct Edge {
     #[shrinkwrap(main_field)]
     pub view: component::Edge,
@@ -759,58 +728,47 @@ pub struct Edge {
 }
 
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, From, Hash, Into, PartialEq)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct EdgeId(pub Id);
 
 impl Edge {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(view: component::Edge) -> Self {
         let source = default();
         let target = default();
         Self { view, source, target }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn id(&self) -> EdgeId {
         self.view.id().into()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn target(&self) -> Option<EdgeEndpoint> {
         self.target.borrow().as_ref().map(|t| t.clone_ref())
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn source(&self) -> Option<EdgeEndpoint> {
         self.source.borrow().as_ref().map(|t| t.clone_ref())
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn has_source(&self) -> bool {
         self.source.borrow().is_some()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn has_target(&self) -> bool {
         self.target.borrow().is_some()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn set_source(&self, source: EdgeEndpoint) {
         *self.source.borrow_mut() = Some(source)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn set_target(&self, target: EdgeEndpoint) {
         *self.target.borrow_mut() = Some(target)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn take_source(&self) -> Option<EdgeEndpoint> {
         mem::take(&mut *self.source.borrow_mut())
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn take_target(&self) -> Option<EdgeEndpoint> {
         mem::take(&mut *self.target.borrow_mut())
     }
@@ -942,20 +900,17 @@ pub struct LocalCall {
 // ==================
 
 #[derive(Clone, CloneRef, Debug, Default, Eq, PartialEq)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct EdgeEndpoint {
     pub node_id: NodeId,
     pub port:    span_tree::Crumbs,
 }
 
 impl EdgeEndpoint {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(node_id: impl Into<NodeId>, port: span_tree::Crumbs) -> Self {
         let node_id = node_id.into();
         Self { node_id, port }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn is_connected_to(&self, node_id: NodeId) -> bool {
         self.node_id == node_id
     }
@@ -1021,7 +976,6 @@ impl Grid {
 // =============
 
 #[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct Nodes {
     pub logger:   Logger,
     pub all:      SharedHashMap<NodeId, Node>,
@@ -1037,7 +991,6 @@ impl Deref for Nodes {
 }
 
 impl Nodes {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "nodes");
         let all = default();
@@ -1046,7 +999,6 @@ impl Nodes {
         Self { logger, all, selected, grid }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn insert(&self, node_id: NodeId, node: Node) {
         self.all.insert(node_id, node);
         self.recompute_grid(default());
@@ -1067,17 +1019,14 @@ impl Nodes {
         *self.grid.borrow_mut() = Grid { sorted_xs, sorted_ys };
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn check_grid_magnet(&self, position: Vector2<f32>) -> Vector2<Option<f32>> {
         self.grid.borrow().close_to(position, SNAP_DISTANCE_THRESHOLD)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn set_quick_preview(&self, quick: bool) {
         self.all.raw.borrow().values().for_each(|node| node.view.frp.quick_preview_vis.emit(quick))
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn show_quick_actions(&self, quick: bool) {
         self.all
             .raw
@@ -1143,7 +1092,6 @@ impl Nodes {
 // =============
 
 #[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct Edges {
     pub logger:          Logger,
     pub all:             SharedHashMap<EdgeId, Edge>,
@@ -1159,7 +1107,6 @@ impl Deref for Edges {
 }
 
 impl Edges {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "edges");
         let all = default();
@@ -1168,12 +1115,10 @@ impl Edges {
         Self { logger, all, detached_source, detached_target }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn insert(&self, edge: Edge) {
         self.all.insert(edge.id(), edge);
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn detached_edges_iter(&self) -> impl Iterator<Item = EdgeId> {
         let detached_target = self.detached_target.raw.borrow();
         let detached_source = self.detached_source.raw.borrow();
@@ -1203,7 +1148,6 @@ struct Visualisations {
 
 #[derive(Debug, CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct TouchNetwork<T: frp::Data> {
     pub down:     frp::Source<T>,
     pub up:       frp::Stream<T>,
@@ -1212,7 +1156,6 @@ pub struct TouchNetwork<T: frp::Data> {
 }
 
 impl<T: frp::Data> TouchNetwork<T> {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
         frp::extend! { network
             down          <- source::<T> ();
@@ -1235,14 +1178,12 @@ impl<T: frp::Data> TouchNetwork<T> {
 }
 
 #[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct TouchState {
     pub nodes:      TouchNetwork<NodeId>,
     pub background: TouchNetwork<()>,
 }
 
 impl TouchState {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
         let nodes = TouchNetwork::<NodeId>::new(network, mouse);
         let background = TouchNetwork::<()>::new(network, mouse);
@@ -1252,7 +1193,6 @@ impl TouchState {
 
 
 
-#[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
 pub fn is_sub_crumb_of(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bool {
     if src.len() < tgt.len() {
         return false;
@@ -1265,7 +1205,6 @@ pub fn is_sub_crumb_of(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bo
     true
 }
 
-#[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
 pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bool {
     is_sub_crumb_of(src, tgt) || is_sub_crumb_of(tgt, src)
 }
@@ -1277,7 +1216,6 @@ pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> boo
 // ===================================
 
 #[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct GraphEditorModelWithNetwork {
     pub model:   GraphEditorModel,
     pub network: frp::Network,
@@ -1292,7 +1230,6 @@ impl Deref for GraphEditorModelWithNetwork {
 
 
 impl GraphEditorModelWithNetwork {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
         let model = GraphEditorModel::new(app, cursor, frp);
@@ -1314,7 +1251,6 @@ impl GraphEditorModelWithNetwork {
         false
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn get_node_position(&self, node_id: NodeId) -> Option<Vector3<f32>> {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
     }
@@ -1590,7 +1526,6 @@ impl GraphEditorModelWithNetwork {
 // ========================
 
 #[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct GraphEditorModel {
     pub logger:           Logger,
     pub display_object:   display::object::Instance,
@@ -1620,7 +1555,6 @@ pub struct GraphEditorModel {
 // === Public ===
 
 impl GraphEditorModel {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = &frp.network;
         let scene = app.display.scene();
@@ -1681,7 +1615,6 @@ impl GraphEditorModel {
         self
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn all_nodes(&self) -> Vec<NodeId> {
         self.nodes.all.keys()
     }
@@ -1694,27 +1627,23 @@ impl GraphEditorModel {
 
 // === Add node ===
 impl GraphEditorModel {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
         let (node_id, _) = self.frp.node_added.value();
         node_id
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn add_node_below(&self, above: NodeId) -> NodeId {
         let pos = self.find_free_place_under(above);
         self.add_node_at(pos)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn add_node_at(&self, pos: Vector2) -> NodeId {
         let node_id = self.add_node();
         self.frp.set_node_position((node_id, pos));
         node_id
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn find_free_place_under(&self, node_above: NodeId) -> Vector2 {
         let above_pos = self.node_position(node_above);
         let y_gap = self.frp.default_y_gap_between_nodes.value();
@@ -1724,7 +1653,6 @@ impl GraphEditorModel {
         self.find_free_place_for_node(starting_point, direction).unwrap()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn find_free_place_for_node(
         &self,
         starting_from: Vector2,
@@ -1753,7 +1681,6 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn start_editing_new_node(&self, node_id: NodeId) {
         self.frp.set_node_expression.emit(&(node_id, node::Expression::default()));
         self.frp.edit_node.emit(&node_id);
@@ -1986,7 +1913,6 @@ impl GraphEditorModel {
         self.edges.detached_target.raw.borrow().clone()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn clear_all_detached_edges(&self) -> Vec<EdgeId> {
         let source_edges = self.edges.detached_source.mem_take();
         source_edges.iter().for_each(|edge| {
@@ -2039,7 +1965,6 @@ impl GraphEditorModel {
 // === Position ===
 
 impl GraphEditorModel {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn set_node_position(&self, node_id: impl Into<NodeId>, position: Vector2) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
@@ -2080,13 +2005,11 @@ impl GraphEditorModel {
         self.nodes.recompute_grid(node_ids.iter().cloned().collect());
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn node_position(&self, node_id: impl Into<NodeId>) -> Vector2<f32> {
         let node_id = node_id.into();
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position().xy()).unwrap_or_default()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn node_pos_mod(&self, node_id: impl Into<NodeId>, pos_diff: Vector2) -> (NodeId, Vector2) {
         let node_id = node_id.into();
         let new_position = if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
@@ -2097,13 +2020,11 @@ impl GraphEditorModel {
         (node_id, new_position)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn refresh_edge_position(&self, edge_id: EdgeId) {
         self.refresh_edge_source_position(edge_id);
         self.refresh_edge_target_position(edge_id);
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn refresh_edge_source_size(&self, edge_id: EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
@@ -2116,7 +2037,6 @@ impl GraphEditorModel {
         };
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn refresh_edge_color(&self, edge_id: EdgeId, neutral_color: color::Lcha) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             let color = self.edge_color(edge_id, neutral_color);
@@ -2130,7 +2050,6 @@ impl GraphEditorModel {
         }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn refresh_edge_source_position(&self, edge_id: EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
@@ -2144,7 +2063,6 @@ impl GraphEditorModel {
         };
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn refresh_edge_target_position(&self, edge_id: EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_target) = edge.target() {
@@ -2344,7 +2262,6 @@ impl GraphEditorModel {
         self.first_detached_edge().map(|t| self.edge_color(t, neutral_color))
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn has_edges_with_detached_targets(&self, node_id: NodeId) -> bool {
         let mut found = false;
         self.with_node(node_id, |node| {
@@ -2372,7 +2289,6 @@ impl display::Object for GraphEditorModel {
 // ===================
 
 #[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct GraphEditor {
     pub model: GraphEditorModelWithNetwork,
     pub frp:   Frp,
