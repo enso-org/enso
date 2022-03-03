@@ -124,31 +124,45 @@ impl BoundingBox {
 mod tests {
     use super::*;
 
+    macro_rules! bounding_box_from_corners {
+        (($x1:expr, $y1:expr), ($x2:expr, $y2:expr)) => {
+            BoundingBox::from_corners(Vector2($x1, $y1), Vector2($x2, $y2))
+        }
+    }
+
     #[test]
     fn test_intersection() {
-        let bb1 = BoundingBox::from_corners(Vector2::new(0.5, 0.5), Vector2::new(1.0, 1.0));
-        let bb2 = BoundingBox::from_corners(Vector2::new(0.0, 0.0), Vector2::new(2.0, 2.0));
+        let bb1 = bounding_box_from_corners!((0.5, 0.5), (1.0, 1.0));
+        let bb2 = bounding_box_from_corners!((0.0, 0.0), (2.0, 2.0));
         assert!(bb1.intersects(&bb2));
         assert!(bb2.intersects(&bb1));
 
-        let bb1 = BoundingBox::from_corners(Vector2::new(3.0, 3.0), Vector2::new(4.0, 4.0));
-        let bb2 = BoundingBox::from_corners(Vector2::new(0.0, 0.0), Vector2::new(2.0, 2.0));
+        let bb1 = bounding_box_from_corners!((3.0, 3.0), (4.0, 4.0));
+        let bb2 = bounding_box_from_corners!((0.0, 0.0), (2.0, 2.0));
         assert!(!bb1.intersects(&bb2));
         assert!(!bb2.intersects(&bb1));
 
-        let bb1 = BoundingBox::from_corners(Vector2::new(0.0, 0.0), Vector2::new(4.0, 4.0));
-        let bb2 = BoundingBox::from_corners(Vector2::new(0.0, 0.0), Vector2::new(-2.0, -2.0));
+        let bb1 = bounding_box_from_corners!((0.0, 0.0), (4.0, 4.0));
+        let bb2 = bounding_box_from_corners!((0.0, 0.0), (-2.0, -2.0));
         assert!(bb1.intersects(&bb2));
         assert!(bb2.intersects(&bb1));
 
-        let bb1 = BoundingBox::from_corners(Vector2::new(0.0, 0.0), Vector2::new(4.0, 4.0));
-        let bb2 = BoundingBox::from_corners(Vector2::new(2.0, 2.0), Vector2::new(200.0, 200.0));
+        let bb1 = bounding_box_from_corners!((0.0, 0.0), (4.0, 4.0));
+        let bb2 = bounding_box_from_corners!((2.0, 2.0), (200.0, 200.0));
         assert!(bb1.intersects(&bb2));
         assert!(bb2.intersects(&bb1));
 
-        let bb1 = BoundingBox::from_corners(Vector2::new(-50.0, -50.0), Vector2::new(25.0, 25.0));
-        let bb2 = BoundingBox::from_corners(Vector2::new(5.00, 50.0), Vector2::new(100.0, 100.0));
+        let bb1 = bounding_box_from_corners!((-50.0, -50.0), (25.0, 25.0));
+        let bb2 = bounding_box_from_corners!((5.00, 50.0), (100.0, 100.0));
         assert!(!bb1.intersects(&bb2));
         assert!(!bb2.intersects(&bb1));
+    }
+
+    #[test]
+    fn test_grow_to_include() {
+        let mut bb1 = bounding_box_from_corners!((0.0, 0.0), (2.0, 3.0));
+        let bb2 = bounding_box_from_corners!((2.0, 3.0), (4.0, 5.0));
+        bb1.grow_to_include(bb2);
+        assert_eq!((bb1.left, bb1.bottom, bb1.right, bb1.top), (0.0, 0.0, 4.0, 5.0));
     }
 }
