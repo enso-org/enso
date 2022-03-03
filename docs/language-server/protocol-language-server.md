@@ -62,12 +62,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`LibraryVersion`](#libraryversion)
   - [`Contact`](#contact)
   - [`EditionReference`](#editionreference)
-  - [`ComponentGroups`](#componentgroups)
-  - [`ComponentGroup`](#componentgroup)
-  - [`ExtendedComponentGroup`](#extendedcomponentgroup)
-  - [`ModuleReference`](#modulereference)
-  - [`Component`](#component)
+  - [`LibraryComponentGroups`](#librarycomponentgroups)
   - [`LibraryComponentGroup`](#librarycomponentgroup)
+  - [`LibraryComponent`](#librarycomponent)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -1427,84 +1424,18 @@ interface NamedEdition {
 }
 ```
 
-### `ComponentGroups`
+### `LibraryComponentGroups`
 
 The description of component groups provided by the package. Object fields can
 be omitted if the corresponding list is empty.
 
 ```typescript
-interface ComponentGroups {
+interface LibraryComponentGroups {
   /** The list of component groups provided by the package. */
-  newGroups?: ComponentGroup[];
+  newGroups?: LibraryComponentGroup[];
 
   /** The list of component groups that this package extends.*/
-  extendedGroups?: ExtendedComponentGroup[];
-}
-```
-
-### `ComponentGroup`
-
-The definition of a single component group.
-
-```typescript
-interface ComponentGroup {
-  /** The module name containing the declared componennts. */
-  module: string;
-
-  color?: string;
-
-  icon?: string;
-
-  /** The list of components provided by this component group. */
-  exports: Component[];
-}
-```
-
-### `ExtendedComponentGroup`
-
-The definition of a component group that extends an existing one.
-
-```typescript
-interface ExtendedComponentGroup {
-  /** The reference to the component group module being extended. */
-  module: ModuleReference;
-
-  /** The list of components provided by this component group. */
-  exports: Component[];
-}
-```
-
-### `ModuleReference`
-
-The reference to a module.
-
-```typescript
-interface ModuleReference {
-  /**
-   * A string consisting of a namespace and a lirary name separated by the dot
-   * <namespace>.<library name>, i.e. `Standard.Base`.
-   */
-  libraryName: string;
-
-  /** The module name without the library name prefix.
-   *  E.g. given the `Standard.Base.Data.Vector` module reference,
-   * the `moduleName` field contains `Data.Vector`.
-   */
-  moduleName: string;
-}
-```
-
-### `Component`
-
-A single component of a component group.
-
-```typescript
-interface Component {
-  /** The component name. */
-  name: string;
-
-  /** The component shortcut. */
-  shortcut?: string;
+  extendedGroups?: LibraryComponentGroup[];
 }
 ```
 
@@ -1515,8 +1446,9 @@ The component group provided by a library.
 ```typescript
 interface LibraryComponentGroup {
   /**
-   * A string consisting of a namespace and a lirary name separated by the dot
-   * <namespace>.<library name>, i.e. `Standard.Base`.
+   * Thf fully qualified module name. A string consisting of a namespace and
+   * a library name separated by the dot <namespace>.<library name>,
+   * i.e. `Standard.Base`.
    */
   library: string;
 
@@ -1531,7 +1463,21 @@ interface LibraryComponentGroup {
   icon?: string;
 
   /** The list of components provided by this component group. */
-  exports: Component[];
+  exports: LibraryComponent[];
+}
+```
+
+### `LibraryComponent`
+
+A single component of a component group.
+
+```typescript
+interface LibraryComponent {
+  /** The component name. */
+  name: string;
+
+  /** The component shortcut. */
+  shortcut?: string;
 }
 ```
 
@@ -4620,7 +4566,7 @@ All returned fields are optional, as they may be missing.
 ```typescript
 {
   license?: String;
-  componentGroups?: ComponentGroups;
+  componentGroups?: LibraryComponentGroups;
 }
 ```
 
