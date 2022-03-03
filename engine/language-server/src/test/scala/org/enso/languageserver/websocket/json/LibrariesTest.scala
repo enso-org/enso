@@ -5,7 +5,7 @@ import io.circe.{Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
-import org.enso.languageserver.libraries.LibraryEntry
+import org.enso.languageserver.libraries.{LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{
@@ -227,6 +227,32 @@ class LibrariesTest extends BaseServerTest {
           """)
     }
 
+    "return LibraryNotFound error when getting the metadata of unknown library" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 0,
+            "params": {
+              "namespace": "user",
+              "name": "Get_Package_Unknown",
+              "version": {
+                "type": "LocalLibraryVersion"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "error": {
+              "code": 8007,
+              "message": "Local library [user.Get_Package_Unknown] has not been found."
+            }
+          }
+          """)
+    }
+
     "get the package config" in {
       val client = getInitialisedWsClient()
       val testComponentGroups = ComponentGroups(
@@ -313,8 +339,37 @@ class LibrariesTest extends BaseServerTest {
       response.hcursor
         .downField("result")
         .downField("componentGroups")
-        .as[ComponentGroups]
-        .rightValue shouldEqual testComponentGroups
+        .as[LibraryComponentGroups]
+        .rightValue shouldEqual LibraryComponentGroups.fromComponentGroups(
+        LibraryName("user", "Get_Package_Test_Lib"),
+        testComponentGroups
+      )
+    }
+
+    "return LibraryNotFound error when getting the package of unknown library" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getPackage",
+            "id": 0,
+            "params": {
+              "namespace": "user",
+              "name": "Get_Package_Unknown",
+              "version": {
+                "type": "LocalLibraryVersion"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "error": {
+              "code": 8007,
+              "message": "Local library [user.Get_Package_Unknown] has not been found."
+            }
+          }
+          """)
     }
 
     "create, publish a library and fetch its manifest from the server" in {
