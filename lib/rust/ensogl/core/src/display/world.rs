@@ -162,9 +162,9 @@ impl World {
                     display_mode.set(1)
                 } else if key == "Digit2" {
                     display_mode.set(2)
-                } else if key == "p" {
+                } else if key == "KeyP" {
                     let log = profiler::internal::take_log();
-                    info!(Logger::new("raw_profiling_data"), log);
+                    error!(Logger::new("raw_profiling_data"), log);
                 }
             }
         }));
