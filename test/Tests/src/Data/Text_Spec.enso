@@ -341,7 +341,7 @@ spec =
             kshi_chars = [2325, 2381, 2359, 2367]
             Text.from_utf_16 kshi_chars . should_equal kshi
 
-        Test.specify "should insert text at a positive index position" <|
+        Test.specify "should insert text at a non-negative index position" <|
             hello_world.insert 0 cruel . should_equal " CruelHello World!"
             hello_world.insert 5 cruel . should_equal "Hello Cruel World!"
             hello_world.insert (hello_world.length - 1) cruel . should_equal "Hello World Cruel!"
