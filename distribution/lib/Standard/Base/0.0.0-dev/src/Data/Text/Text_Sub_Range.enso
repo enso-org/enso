@@ -72,10 +72,10 @@ type Text_Sub_Range
                     Range 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
             Last count ->
                 if count <= 0 then (Range 0 0) else
-                    first_count = text.length - count
                     iterator = BreakIterator.getCharacterInstance
                     iterator.setText text
-                    start_index = iterator.next first_count
+                    iterator.last
+                    start_index = iterator.next -count
                     Range (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
             Before delimiter ->
                 if delimiter.is_empty then (Range 0 0) else

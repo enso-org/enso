@@ -1,0 +1,8 @@
+## Indicates the beginning of a text.
+type Start
+
+## Indicates the end of a text.
+type End
+
+## Indicates both the beginning and end of a text.
+type Both
