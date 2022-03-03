@@ -23,7 +23,7 @@ use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
-
+use futures;
 
 
 // ===================
@@ -46,7 +46,7 @@ pub fn entry_point_profiling_run_graph() {
     init_theme(scene);
 
     // Generate Test data
-    start_project();
+    futures::executor::block_on(start_project());
 
     let measurements = profiler_flame_graph::FlameGraph::take_from_log();
     let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
@@ -102,8 +102,8 @@ fn work(n: u32) {
 }
 
 #[profile(Objective)]
-fn start_project() {
-    wake_dragon();
+async fn start_project() {
+    wake_dragon().await;
     feed_troll();
     ride_rainbow();
 }
@@ -149,20 +149,26 @@ fn walk_to_woods() {
     work(100)
 }
 #[profile(Objective)]
-fn wake_dragon() {
-    gather_gold();
-    bake_gold_cake();
-    start_tea_party();
+async fn wake_dragon() {
+    gather_gold().await;
+    bake_gold_cake().await;
+    start_tea_party().await;
 }
 #[profile(Objective)]
-fn start_tea_party() {
+async fn start_tea_party() {
     work(100)
 }
 #[profile(Objective)]
-fn bake_gold_cake() {
+async fn bake_gold_cake() {
     work(100)
 }
 #[profile(Objective)]
-fn gather_gold() {
-    work(100)
+fn pick_coin() {
+    work(75)
+}
+#[profile(Objective)]
+async fn gather_gold() {
+    for _ in 0..5 {
+        pick_coin()
+    }
 }

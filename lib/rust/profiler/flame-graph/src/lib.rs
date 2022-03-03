@@ -53,7 +53,7 @@ fn blocks_from_measurement<Metadata>(measurement: &Measurement<Metadata>, row: u
         Lifetime::Async(lifetime) => lifetime
             .active
             .iter()
-            .map(|interval| block_from_interval(&measurement.label, 0, interval))
+            .map(|interval| block_from_interval(&measurement.label, row, interval))
             .collect(),
         Lifetime::NonAsync { active } => vec![block_from_interval(&measurement.label, row, active)],
     }
@@ -79,9 +79,10 @@ impl<Metadata> From<data::Measurement<Metadata>> for FlameGraph {
             let measurement = to_parse.pop();
             match measurement {
                 Some((measurement, row)) => {
-                    let measurement_blocks = blocks_from_measurement(measurement, row);
+                    let target_row = if measurement.lifetime.is_async() { 0 } else { row };
+                    let measurement_blocks = blocks_from_measurement(measurement, target_row);
                     blocks.extend(measurement_blocks);
-                    to_parse.extend(measurement.children.iter().map(|m| (m, row + 1)));
+                    to_parse.extend(measurement.children.iter().map(|m| (m, target_row + 1)));
                 }
                 None => break,
             }
