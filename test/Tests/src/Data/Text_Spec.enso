@@ -30,8 +30,6 @@ spec =
             things like decimal points (1.0314e3) and other language scripts as well
             건반(Korean).
         sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
-        hello_world = 'Hello World!'
-        cruel = ' Cruel'
 
         Test.specify "should allow naive length computation over grapheme clusters" <|
             kshi.length . should_equal 1
@@ -342,31 +340,33 @@ spec =
             Text.from_utf_16 kshi_chars . should_equal kshi
 
         Test.specify "should insert text at a non-negative index position" <|
-            hello_world.insert 0 cruel . should_equal " CruelHello World!"
-            hello_world.insert 5 cruel . should_equal "Hello Cruel World!"
-            hello_world.insert (hello_world.length - 1) cruel . should_equal "Hello World Cruel!"
-            hello_world.insert hello_world.length cruel . should_equal "Hello World! Cruel"
+            "Hello World!".insert 0 " Cruel" . should_equal " CruelHello World!"
+            "Hello World!".insert 5 " Cruel" . should_equal "Hello Cruel World!"
+            "Hello World!".insert ("Hello World!".length - 1) " Cruel" . should_equal "Hello World Cruel!"
+            "Hello World!".insert "Hello World!".length " Cruel" . should_equal "Hello World! Cruel"
             txt = kshi + facepalm + accent_1
-            txt.insert 1 cruel . should_equal (kshi + cruel + facepalm + accent_1)
-            txt.insert 3 cruel . should_equal (kshi + facepalm + accent_1 + cruel)
+            txt.insert 0 " Cruel" . should_equal (" Cruel" + kshi + facepalm + accent_1)
+            txt.insert 1 " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
+            txt.insert 2 " Cruel" . should_equal (kshi + facepalm + " Cruel" + accent_1)
+            txt.insert 3 " Cruel" . should_equal (kshi + facepalm + accent_1 + " Cruel")
 
-        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid positive index position" <|
-            hello_world.insert (hello_world.length + 1) cruel . should_fail_with Index_Out_Of_Bounds_Error
-            (kshi + facepalm + accent_1).insert 4 cruel . should_fail_with Index_Out_Of_Bounds_Error
+        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid non-negative index position" <|
+            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds_Error
+            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should insert text at a negative index position" <|
-            hello_world.insert -1 cruel . should_equal "Hello World! Cruel"
-            hello_world.insert -5 cruel . should_equal "Hello Wo Cruelrld!"
-            hello_world.insert -(hello_world.length) cruel . should_equal "H Cruelello World!"
-            hello_world.insert -(hello_world.length + 1) cruel . should_equal " CruelHello World!"
+            "Hello World!".insert -1 " Cruel" . should_equal "Hello World! Cruel"
+            "Hello World!".insert -5 " Cruel" . should_equal "Hello Wo Cruelrld!"
+            "Hello World!".insert -("Hello World!".length) " Cruel" . should_equal "H Cruelello World!"
+            "Hello World!".insert -("Hello World!".length + 1) " Cruel" . should_equal " CruelHello World!"
             txt = kshi + facepalm + accent_1
-            txt.insert -1 cruel . should_equal (txt + cruel)
-            txt.insert -(txt.length) cruel . should_equal (kshi + cruel + facepalm + accent_1)
+            txt.insert -1 " Cruel" . should_equal (txt + " Cruel")
+            txt.insert -(txt.length) " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
 
         Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid negative index position" <|
-            hello_world.insert -(hello_world.length + 2) cruel . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
             txt = kshi + facepalm + accent_1
-            txt.insert -(txt.length + 2) cruel . should_fail_with Index_Out_Of_Bounds_Error
+            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
