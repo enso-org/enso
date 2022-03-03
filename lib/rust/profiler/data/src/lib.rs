@@ -319,8 +319,10 @@ pub struct Mark {
 }
 
 impl Mark {
-    fn time_origin() -> Self {
-        Self::default()
+    fn time_origin() -> Self { Self::default() }
+
+    pub fn into_ms(self) -> f64 {
+        self.time.into_ms()
     }
 }
 
@@ -373,6 +375,16 @@ pub struct Label {
     pub name: String,
     /// Location in the code the measurement originated, if compiled with line numbers enabled.
     pub pos:  Option<CodePos>,
+}
+
+impl fmt::Display for Label {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(pos) = self.pos.as_ref() {
+            write!(f, "{} ({}:{})", self.name, pos.file, pos.line)
+        } else {
+            write!(f, "{}", self.name)
+        }
+    }
 }
 
 
