@@ -55,6 +55,11 @@
   functions][3287]
 - [Implemented new `Text.starts_with` and `Text.ends_with` functions, replacing
   existing functions][3292]
+- [Implemented `Text.to_case`, replacing `Text.to_lower_case` and
+  `Text.to_upper_case`][3302]
+- [Implemented initial `Table.group_by` function on Standard.Table][3305]
+- [Implemented `Text.pad` and `Text.trim`][3309]
+- [Updated `Text.repeat` and added `*` operator shorthand][3310]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -85,6 +90,10 @@
 [3285]: https://github.com/enso-org/enso/pull/3285
 [3287]: https://github.com/enso-org/enso/pull/3287
 [3292]: https://github.com/enso-org/enso/pull/3292
+[3302]: https://github.com/enso-org/enso/pull/3302
+[3305]: https://github.com/enso-org/enso/pull/3305
+[3309]: https://github.com/enso-org/enso/pull/3309
+[3310]: https://github.com/enso-org/enso/pull/3310
 
 #### Enso Compiler
 
