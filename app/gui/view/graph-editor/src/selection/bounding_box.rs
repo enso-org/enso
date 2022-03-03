@@ -77,18 +77,22 @@ impl BoundingBox {
         self.top += size / 2.0;
     }
 
+    /// Get x position of the left boundary.
     pub fn left(&self) -> f32 {
         self.left
     }
 
+    /// Get x position of the right boundary.
     pub fn right(&self) -> f32 {
         self.right
     }
 
+    /// Get y position of the top boundary.
     pub fn top(&self) -> f32 {
         self.top
     }
 
+    /// Get y position of the bottom boundary.
     pub fn bottom(&self) -> f32 {
         self.bottom
     }
