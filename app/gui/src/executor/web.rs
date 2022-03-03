@@ -13,6 +13,7 @@ use futures::task::LocalFutureObj;
 use futures::task::LocalSpawn;
 use futures::task::SpawnError;
 
+/// An alias for a main animation loop.
 pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
 
 /// Executor. Uses a single-threaded `LocalPool` underneath, relying on ensogl's

@@ -1,3 +1,6 @@
+//! Mocked bindings to the web-api allowing its compilation for the native target without throwing
+//! panics.
+
 use enso_prelude::*;
 
 use std::marker::Unsize;

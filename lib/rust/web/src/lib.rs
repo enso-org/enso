@@ -538,7 +538,7 @@ pub fn set_stack_trace_limit() {}
 // === Time ===
 // ============
 
-static mut START_TIME: Option<std::time::Instant> = None;
+static mut START_TIME: Option<Instant> = None;
 static mut TIME_OFFSET: f64 = 0.0;
 
 // FIXME: This is strange design + no one is calling it on init ...
@@ -550,9 +550,9 @@ static mut TIME_OFFSET: f64 = 0.0;
 /// This function modifies a global variable, however, it should be safe as it should be called
 /// exactly once on program entry point.
 #[allow(unsafe_code)]
-pub fn init() -> std::time::Instant {
+pub fn init() -> Instant {
     unsafe {
-        let now = std::time::Instant::now();
+        let now = Instant::now();
         START_TIME = Some(now);
         now
     }
@@ -566,7 +566,7 @@ pub fn init() -> std::time::Instant {
 /// bad should happen (the variable may be initialized several times). Moreover, the variable
 /// should be initialized on program start, so this should be always safe.
 #[allow(unsafe_code)]
-pub fn start_time() -> std::time::Instant {
+pub fn start_time() -> Instant {
     unsafe {
         match START_TIME {
             Some(time) => time,

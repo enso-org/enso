@@ -26,7 +26,7 @@ use crate::data::dirty::traits::*;
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct Theme {
     tree:   Rc<RefCell<HashMapTree<String, Option<Value>>>>,
-    on_mut: callback::registry::NoArgsMut,
+    on_mut: callback::registry::MutNoArgs,
 }
 
 impl Theme {
@@ -61,7 +61,7 @@ impl Theme {
     }
 
     /// Add a new callback which will be triggered everytime this theme is modified.
-    pub fn on_mut(&self, callback: impl callback::NoArgsMut) -> callback::Handle {
+    pub fn on_mut(&self, callback: impl callback::MutNoArgs) -> callback::Handle {
         self.on_mut.add(callback)
     }
 
