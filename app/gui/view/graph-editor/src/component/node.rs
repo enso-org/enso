@@ -563,11 +563,15 @@ impl NodeModel {
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_pos = Vector2(width / 2.0, VISUALIZATION_OFFSET_Y);
+        let visualization_pos = NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(size);
         self.error_visualization.set_position_xy(visualization_pos);
         self.visualization.set_position_xy(visualization_pos);
 
         size
+    }
+
+    fn position_of_visualization_relative_to_position_of_node_of_given_size(node_size: Vector2) -> Vector2 {
+        Vector2(node_size.x / 2.0, VISUALIZATION_OFFSET_Y)
     }
 
     pub fn visualization(&self) -> &visualization::Container {
@@ -874,8 +878,7 @@ impl Node {
                     let bounding_box_position = node_position - Vector2::new(0.0, node_size.y / 2.0);
                     let mut bb = BoundingBox::from_position_and_size(bounding_box_position, *node_size);
                     if *visualization_enabled_and_visible {
-                        let node_width = node_size.x;
-                        let pos_of_visualization_relative_to_pos_of_node = Vector2(node_width / 2.0, VISUALIZATION_OFFSET_Y);
+                        let pos_of_visualization_relative_to_pos_of_node = NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(*node_size);
                         let absolute_pos_of_visualization = node_position + pos_of_visualization_relative_to_pos_of_node;
                         let absolute_pos_of_visualization_bounding_box = absolute_pos_of_visualization - visualization_size / 2.0;
                         let visualization_bounding_box = BoundingBox::from_position_and_size(absolute_pos_of_visualization_bounding_box, *visualization_size);
