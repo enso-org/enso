@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -9,7 +8,6 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
@@ -34,11 +32,10 @@ public abstract class CopyNode extends Node {
       long source_index,
       Array dest,
       long dest_index,
-      long count,
-      @CachedContext(Language.class) Context ctx) {
+      long count) {
     System.arraycopy(
         src.getItems(), (int) source_index, dest.getItems(), (int) dest_index, (int) count);
-    return ctx.getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing().newInstance();
   }
 
   @Specialization(guards = "arrays.hasArrayElements(src)")
