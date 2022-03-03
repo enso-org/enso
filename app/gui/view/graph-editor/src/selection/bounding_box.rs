@@ -77,26 +77,28 @@ impl BoundingBox {
         self.top += size / 2.0;
     }
 
-    /// Get x position of the left boundary.
+    /// Return the x position of the left boundary.
     pub fn left(&self) -> f32 {
         self.left
     }
 
-    /// Get x position of the right boundary.
+    /// Return the x position of the right boundary.
     pub fn right(&self) -> f32 {
         self.right
     }
 
-    /// Get y position of the top boundary.
+    /// Return the y position of the top boundary.
     pub fn top(&self) -> f32 {
         self.top
     }
 
-    /// Get y position of the bottom boundary.
+    /// Return the y position of the bottom boundary.
     pub fn bottom(&self) -> f32 {
         self.bottom
     }
 
+    /// Expand the boundaries to make them contain all points belonging to the bounding box passed
+    /// as an argument.
     pub fn grow_to_include(&mut self, other: &BoundingBox) {
         self.left = self.left.min(other.left);
         self.right = self.right.max(other.right);
@@ -105,7 +107,7 @@ impl BoundingBox {
     }
 
     /// Calculates the squared norm of a vector between the point passed as argument, and a point
-    /// in the bounding box that is nearest to the point passed as argument.
+    /// in the bounding box that is nearest to the point passed as an argument.
     pub fn squared_distance_to_point(&self, point: Vector2) -> f32 {
         let x_of_nearest_point_in_bounding_box = clamp(point.x, self.left, self.right);
         let y_of_nearest_point_in_bounding_box = clamp(point.y, self.bottom, self.top);
