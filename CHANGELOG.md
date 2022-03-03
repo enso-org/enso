@@ -61,6 +61,8 @@
 - [Implemented initial `Table.group_by` function on Standard.Table][3305]
 - [Implemented `Text.pad` and `Text.trim`][3309]
 - [Updated `Text.repeat` and added `*` operator shorthand][3310]
+- [General improved Vector performance and new `Vector.each_with_index`,
+  `Vector.fold_with_index` and `Vector.take` methods.][3236]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -96,6 +98,7 @@
 [3309]: https://github.com/enso-org/enso/pull/3309
 [3310]: https://github.com/enso-org/enso/pull/3310
 [3316]: https://github.com/enso-org/enso/pull/3316
+[3236]: https://github.com/enso-org/enso/pull/3236
 
 #### Enso Compiler
 
