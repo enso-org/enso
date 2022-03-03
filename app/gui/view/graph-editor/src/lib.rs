@@ -1759,7 +1759,7 @@ impl GraphEditorModel {
     }
 
     /// Calculate a position for a new node at mouse position, aligned to a source node of the
-    /// specified edge if mouse position is close to the source node.
+    /// specified edge if the mouse position is close to the source node.
     ///
     /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "close to" means.
     pub fn new_node_position_at_mouse_aligned_if_close_to_edge_source_node(
@@ -1785,6 +1785,9 @@ impl GraphEditorModel {
     }
 
     /// Finds a node nearest to the specified point.
+    ///
+    /// The distance between a point and a node is the distance between the point and the node's
+    /// bounding box.
     fn find_node_nearest_to_point(&self, point: Vector2) -> Option<Node> {
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
