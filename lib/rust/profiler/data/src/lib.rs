@@ -306,6 +306,17 @@ pub struct Metadata<M> {
 }
 
 
+// === OpaqueMetadata ===
+
+/// Black-box metadata object, for ignoring metadata contents.
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+pub enum OpaqueMetadata {
+    /// Anything.
+    #[serde(other)]
+    Unknown,
+}
+
+
 
 // ============
 // === Mark ===
@@ -413,17 +424,12 @@ pub struct CodePos {
 
 #[cfg(test)]
 mod tests {
+
     use crate as profiler_data;
+    use crate::OpaqueMetadata;
     use enso_profiler as profiler;
     use profiler::profile;
 
-    /// Black-box metadata object, for ignoring metadata contents.
-    #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-    pub(crate) enum OpaqueMetadata {
-        /// Anything.
-        #[serde(other)]
-        Unknown,
-    }
 
     #[test]
     fn profile_sync() {
