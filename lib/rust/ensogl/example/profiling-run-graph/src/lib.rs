@@ -23,7 +23,7 @@ use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
-use futures;
+
 
 
 // ===================
