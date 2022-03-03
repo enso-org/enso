@@ -1268,6 +1268,7 @@ dependencies = [
  "enso-logger",
  "enso-optics",
  "enso-prelude",
+ "enso-profiler",
  "enso-shapely",
  "enso-shortcuts",
  "enso-types",
