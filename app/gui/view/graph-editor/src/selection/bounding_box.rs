@@ -124,6 +124,9 @@ impl BoundingBox {
 mod tests {
     use super::*;
 
+    use assert_approx_eq::assert_approx_eq;
+
+
     macro_rules! bounding_box_from_corners {
         (($x1:expr, $y1:expr), ($x2:expr, $y2:expr)) => {
             BoundingBox::from_corners(Vector2($x1, $y1), Vector2($x2, $y2))
@@ -162,7 +165,45 @@ mod tests {
     fn test_grow_to_include() {
         let mut bb1 = bounding_box_from_corners!((0.0, 0.0), (2.0, 3.0));
         let bb2 = bounding_box_from_corners!((2.0, 3.0), (4.0, 5.0));
-        bb1.grow_to_include(bb2);
+        bb1.grow_to_include(&bb2);
         assert_eq!((bb1.left, bb1.bottom, bb1.right, bb1.top), (0.0, 0.0, 4.0, 5.0));
+
+        let mut bb1 = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
+        let bb2 = bounding_box_from_corners!((-1.0, -1.0), (0.5, 0.5));
+        bb1.grow_to_include(&bb2);
+        assert_eq!((bb1.left, bb1.bottom, bb1.right, bb1.top), (-1.0, -1.0, 1.0, 1.0));
+
+        let mut bb1 = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
+        let bb2 = bounding_box_from_corners!((0.3, 0.3), (0.6, 0.6));
+        bb1.grow_to_include(&bb2);
+        assert_eq!((bb1.left, bb1.bottom, bb1.right, bb1.top), (0.0, 0.0, 1.0, 1.0));
+    }
+
+    #[test]
+    fn test_squared_distance_to_point() {
+        let bb = bounding_box_from_corners!((-1.0, -1.0), (0.0, 0.0));
+        let point = Vector2(3.0, 4.0);
+        assert_approx_eq!(bb.squared_distance_to_point(point), 5.0.pow(2.0));
+
+        // Distance to a point inside the bounding box should be 0.
+        let bb = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
+        let point = Vector2(0.5, 0.5);
+        assert_approx_eq!(bb.squared_distance_to_point(point), 0.0);
+
+        let bb = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
+        let point = Vector2(3.0, 0.0);
+        assert_approx_eq!(bb.squared_distance_to_point(point), 2.0.pow(2.0));
+
+        let bb = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
+        let point = Vector2(-2.0, 0.0);
+        assert_approx_eq!(bb.squared_distance_to_point(point), 2.0.pow(2.0));
+
+        let bb = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
+        let point = Vector2(0.0, -2.0);
+        assert_approx_eq!(bb.squared_distance_to_point(point), 2.0.pow(2.0));
+
+        let bb = bounding_box_from_corners!((0.0, 0.0), (1.0, 1.0));
+        let point = Vector2(0.0, 3.0);
+        assert_approx_eq!(bb.squared_distance_to_point(point), 2.0.pow(2.0));
     }
 }

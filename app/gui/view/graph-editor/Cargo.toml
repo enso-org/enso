@@ -40,4 +40,5 @@ version = "0.3.4"
 features = []
 
 [dev-dependencies]
+assert_approx_eq = { version = "1.1.0" }
 enso-prelude = { path = "../../../../lib/rust/prelude", features = ["serde"] }
