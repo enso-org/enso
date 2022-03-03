@@ -314,13 +314,18 @@ pub struct Metadata<M> {
 /// A timestamp that can be used for distinguishing event order.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Mark {
+    /// Sequence number of the mark. Used to resolve timestamp collisions.
     seq:  Seq,
+    /// Time of the mark.
     time: profiler::internal::Timestamp,
 }
 
 impl Mark {
-    fn time_origin() -> Self { Self::default() }
+    fn time_origin() -> Self {
+        Self::default()
+    }
 
+    /// Time of the mark in milliseconds.
     pub fn into_ms(self) -> f64 {
         self.time.into_ms()
     }
@@ -376,6 +381,7 @@ pub struct Label {
     /// Location in the code the measurement originated, if compiled with line numbers enabled.
     pub pos:  Option<CodePos>,
 }
+
 
 impl fmt::Display for Label {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
