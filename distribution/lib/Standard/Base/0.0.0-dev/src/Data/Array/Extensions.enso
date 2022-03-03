@@ -16,4 +16,3 @@ from Standard.Base import all
 Array.to_default_visualization_data : Text
 Array.to_default_visualization_data =
     Vector.Vector this . to_default_visualization_data
-
