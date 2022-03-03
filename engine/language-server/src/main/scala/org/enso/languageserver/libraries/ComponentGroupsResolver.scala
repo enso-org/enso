@@ -2,7 +2,6 @@ package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
 import org.enso.pkg.{
-  ComponentGroup,
   ComponentGroups,
   Config,
   ExtendedComponentGroup,
@@ -53,7 +52,9 @@ final class ComponentGroupsResolver {
     val newLibraryComponentGroups: View[LibraryComponentGroup] =
       libraryComponents.view
         .flatMap { case (libraryName, componentGroups) =>
-          componentGroups.newGroups.map(toLibraryComponentGroup(libraryName, _))
+          componentGroups.newGroups.map(
+            LibraryComponentGroup.fromComponentGroup(libraryName, _)
+          )
         }
     val newLibraryComponentGroupsMap
       : Map[ModuleReference, LibraryComponentGroup] =
@@ -114,29 +115,9 @@ final class ComponentGroupsResolver {
     extendedComponentGroup: ExtendedComponentGroup
   ): LibraryComponentGroup =
     libraryComponentGroup.copy(
-      exports = libraryComponentGroup.exports :++ extendedComponentGroup.exports
+      exports = libraryComponentGroup.exports :++
+        extendedComponentGroup.exports.map(LibraryComponent.fromComponent)
     )
-
-  /** Convert [[ComponentGroup]] to [[LibraryComponentGroup]] representation.
-    *
-    * @param libraryName the library name defining this component group
-    * @param componentGroup the component group to convert
-    * @return the [[LibraryComponentGroup]] representation of this component
-    * group
-    */
-  private def toLibraryComponentGroup(
-    libraryName: LibraryName,
-    componentGroup: ComponentGroup
-  ): LibraryComponentGroup = {
-    LibraryComponentGroup(
-      libraryName,
-      componentGroup.module,
-      componentGroup.color,
-      componentGroup.icon,
-      componentGroup.exports
-    )
-  }
-
 }
 
 object ComponentGroupsResolver {
