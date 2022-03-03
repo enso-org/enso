@@ -700,29 +700,6 @@ impl Node {
             eval frp.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
 
 
-            // === Bounding Box ===
-
-            // FIXME: `.clone_ref()` or `= &...` ?
-            let visualization_size = model.visualization.frp.size.clone_ref();
-            bounding_box_input <- all4(&new_size,&position,&visualization_enabled,&visualization_size);
-            out.source.bounding_box <+ bounding_box_input.map(
-                |(node_size,node_position,visualization_enabled,visualization_size)| {
-                    let bounding_box_position = node_position - Vector2::new(0.0, node_size.y / 2.0);
-                    let mut bb = BoundingBox::from_position_and_size(bounding_box_position, *node_size);
-                    // FIXME: the condition below appears to be not enough in case of error visualizations
-                    if *visualization_enabled {
-                        let node_width = node_size.x;
-                        let pos_of_visualization_relative_to_pos_of_node = Vector2(node_width / 2.0, VISUALIZATION_OFFSET_Y);
-                        let absolute_pos_of_visualization = node_position + pos_of_visualization_relative_to_pos_of_node;
-                        let absolute_pos_of_visualization_bounding_box = absolute_pos_of_visualization - visualization_size / 2.0;
-                        let visualization_bounding_box = BoundingBox::from_position_and_size(absolute_pos_of_visualization_bounding_box, *visualization_size);
-                        DEBUG!("MCDBG: vis enabled, v.size=" visualization_size;? " n.pos=" node_position;? " n.size=" node_size;? " v.bbox=" visualization_bounding_box;?);
-                        bb.grow_to_include(&visualization_bounding_box);
-                    }
-                    bb
-                });
-
-
             // === View Mode ===
 
             model.input.set_view_mode           <+ frp.set_view_mode;
@@ -885,6 +862,29 @@ impl Node {
 
             model.output.set_type_label_visibility
                 <+ visualization_visible.not().and(&no_error_set);
+
+
+            // === Bounding Box ===
+
+            // FIXME: `.clone_ref()` or `= &...` ?
+            let visualization_size             = model.visualization.frp.size.clone_ref();
+            visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
+            bounding_box_input <- all4(&new_size,&position,&visualization_enabled_and_visible,&visualization_size);
+            out.source.bounding_box <+ bounding_box_input.map(
+                |(node_size,node_position,visualization_enabled_and_visible,visualization_size)| {
+                    let bounding_box_position = node_position - Vector2::new(0.0, node_size.y / 2.0);
+                    let mut bb = BoundingBox::from_position_and_size(bounding_box_position, *node_size);
+                    if *visualization_enabled_and_visible {
+                        let node_width = node_size.x;
+                        let pos_of_visualization_relative_to_pos_of_node = Vector2(node_width / 2.0, VISUALIZATION_OFFSET_Y);
+                        let absolute_pos_of_visualization = node_position + pos_of_visualization_relative_to_pos_of_node;
+                        let absolute_pos_of_visualization_bounding_box = absolute_pos_of_visualization - visualization_size / 2.0;
+                        let visualization_bounding_box = BoundingBox::from_position_and_size(absolute_pos_of_visualization_bounding_box, *visualization_size);
+                        DEBUG!("MCDBG: vis enabled, v.size=" visualization_size;? " n.pos=" node_position;? " n.size=" node_size;? " v.bbox=" visualization_bounding_box;?);
+                        bb.grow_to_include(&visualization_bounding_box);
+                    }
+                    bb
+                });
 
 
             // === VCS Handling ===
