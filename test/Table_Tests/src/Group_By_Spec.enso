@@ -61,4 +61,37 @@ spec =
             grouped.columns.at 7 . name . should_equal "Standard Deviation ValueWithNothing_1"
             grouped.columns.at 7 . at 0 . should_equal 58.575554 epsilon=0.000001
 
+        Test.specify "should be able to create median values" <|
+            grouped = table.group_by (Column_Selector.By_Index []) [Median "Index", Median "Value", Median "ValueWithNothing"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 3
+            grouped.columns.at 0 . name . should_equal "Median Index"
+            grouped.columns.at 0 . at 0 . should_equal 5 epsilon=0.000001
+            grouped.columns.at 1 . name . should_equal "Median Value"
+            grouped.columns.at 1 . at 0 . should_equal 1.298375 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Median ValueWithNothing"
+            grouped.columns.at 2 . at 0 . should_equal 2.235 epsilon=0.000001
+
+        Test.specify "should be able to get first and last values" <|
+            grouped = table.group_by (Column_Selector.By_Index []) [First "Index", Last "Value"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 2
+            grouped.columns.at 0 . name . should_equal "First Index"
+            grouped.columns.at 0 . at 0 . should_equal 7
+            grouped.columns.at 1 . name . should_equal "Last Value"
+            grouped.columns.at 1 . at 0 . should_equal 70.99931 epsilon=0.000001
+
+        Test.specify "should be able to get minimum and maximum values" <|
+            grouped = table.group_by (Column_Selector.By_Index []) [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Minimum Value"
+            grouped.columns.at 0 . at 0 . should_equal -99.964200 epsilon=0.000001
+            grouped.columns.at 1 . name . should_equal "Maximum Value"
+            grouped.columns.at 1 . at 0 . should_equal 99.977480 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Minimum ValueWithNothing"
+            grouped.columns.at 2 . at 0 . should_equal -99.99 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Maximum ValueWithNothing"
+            grouped.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
+
 main = Test.Suite.run_main here.spec

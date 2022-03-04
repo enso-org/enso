@@ -79,6 +79,18 @@ type Aggregate_Column
           results within the group.
     type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
 
+    ## Creates a new column with the maximum value in each group.
+    type Maximum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the maximum value in each group.
+    type Minimum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the shortest text in each group.
+    type Shortest (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the longest text in each group.
+    type Longest (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
     ## Gets a column name to use for the aggregate column
     column_name : Table->Text
     column_name table =
@@ -101,6 +113,10 @@ type Aggregate_Column
                 Concatenate c _ _ _ _ _ -> "Concatenate " + (get_name c)
                 First c _ _ _ -> "First " + (get_name c)
                 Last c _ _ _ -> "Last " + (get_name c)
+                Maximum c _ -> "Maximum " + (get_name c)
+                Minimum c _ -> "Minimum " + (get_name c)
+                Shortest c _ -> "Shortest " + (get_name c)
+                Longest c _ -> "Longest " + (get_name c)
 
     ## PRIVATE
        Given a column reference resolve to the underlying column
@@ -121,6 +137,10 @@ type Aggregate_Column
         First _ _ _ _ -> Nothing
         Last _ _ _ _ -> Nothing
         Sum _ _ -> Nothing
+        Maximum _ _ -> Nothing
+        Minimum _ _ -> Nothing
+        Shortest _ _ -> Nothing
+        Longest _ _ -> Nothing
         _ -> 0
 
     make_aggregator : Table->(Any->Integer->Any)
@@ -149,6 +169,18 @@ type Aggregate_Column
                     True -> create_closure c col->current->i->
                         v = (col.at i)
                         if v.is_nothing then current else v
+            Maximum c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else m.max v
+            Minimum c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else m.min v
+            Shortest c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else if m.length <= v.length then m else v
+            Longest c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else if m.length >= v.length then m else v
             Sum c _ -> create_closure c col->total->i->
                 v = col.at i
                 if v.is_nothing then total else
