@@ -1780,15 +1780,15 @@ impl GraphEditorModel {
         &self,
         mouse_position: Vector2,
     ) -> Vector2 {
-        let nearest_node = self.find_node_nearest_to_point(mouse_position);
+        let nearest_node = self.node_nearest_to_point(mouse_position);
         self.new_node_position_aligned_if_close_to_node(mouse_position, nearest_node)
     }
 
-    /// Finds a node nearest to the specified point.
+    /// Return a node nearest to the specified point.
     ///
     /// The distance between a point and a node is the distance between the point and the node's
     /// bounding box.
-    fn find_node_nearest_to_point(&self, point: Vector2) -> Option<Node> {
+    fn node_nearest_to_point(&self, point: Vector2) -> Option<Node> {
         let mut min_distance_squared = f32::MAX;
         let mut nearest_node = None;
         let nodes = self.nodes.all.raw.borrow();
