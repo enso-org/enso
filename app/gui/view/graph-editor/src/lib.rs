@@ -1761,7 +1761,7 @@ impl GraphEditorModel {
     /// Calculate a position for a new node, starting from the mouse position and aligning to the
     /// source node of the specified edge if the mouse position is close to the node.
     ///
-    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "close to" means.
+    /// See [`new_node_position_aligned_if_close_to_node`] for details on what "close to" means.
     pub fn new_node_position_at_mouse_aligned_if_close_to_edge_source_node(
         &self,
         edge_id: EdgeId,
@@ -1775,7 +1775,7 @@ impl GraphEditorModel {
     /// Calculate a position for a new node, starting from the mouse position and aligning to the
     /// node closest to the mouse position if it is close enough.
     ///
-    /// See [`new_node_position_aligned_if_close_to_node()`] for details on what is close enough.
+    /// See [`new_node_position_aligned_if_close_to_node`] for details on what is close enough.
     pub fn new_node_position_at_mouse_aligned_to_close_nodes(
         &self,
         mouse_position: Vector2,
