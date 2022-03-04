@@ -1,6 +1,9 @@
 //! Mocked bindings to the web-api allowing its compilation for the native target without throwing
 //! panics.
 
+#![allow(clippy::boxed_local)]
+
+
 use enso_prelude::*;
 
 use std::marker::Unsize;
@@ -311,7 +314,6 @@ where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
 // === JsValue ===
 // ===============
 
-/// Mock of [`wasm_bindgen::JsValue`].
 mock_data! { JsValue
     fn is_undefined(&self) -> bool;
 }
@@ -342,9 +344,6 @@ impl AsRef<JsValue> for wasm_bindgen::JsValue {
 // === Closure ===
 // ===============
 
-/// The generated structure does not implement a generic [`AsRef`] impl, as the usages base on the
-/// fact that there exist exactly one such an impl (provided below), so the type inferencer can
-/// monomoprphise more free variables.
 mock_data! { [NO_AS_REF] Closure<T: ?Sized>
     fn wrap(_data: Box<T>) -> Closure<T>;
     fn once<F>(_fn_once: F) -> Closure<F>;
@@ -358,6 +357,9 @@ impl<T: ?Sized> Closure<T> {
     }
 }
 
+/// The generated structure does not implement a generic [`AsRef`] impl, as the usages base on the
+/// fact that there exist exactly one such an impl (provided below), so the type inferencer can
+/// monomoprphise more free variables.
 #[allow(unsafe_code)]
 impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
     fn as_ref(&self) -> &JsValue {

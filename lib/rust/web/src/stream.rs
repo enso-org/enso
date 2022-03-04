@@ -57,7 +57,7 @@ impl BlobExt for web_sys::Blob {
         let this = self.as_ref();
         let method_as_value = js_sys::Reflect::get(this, &"stream".into())?;
         let method = method_as_value.dyn_into::<js_sys::Function>()?;
-        Ok(method.call0(this)?.dyn_into()?)
+        method.call0(this)?.dyn_into()
     }
 
     #[allow(unused_qualifications)]
@@ -65,6 +65,6 @@ impl BlobExt for web_sys::Blob {
         let stream = self.stream();
         let method_as_value = js_sys::Reflect::get(&stream, &"getReader".into())?;
         let method = method_as_value.dyn_into::<js_sys::Function>()?;
-        Ok(method.call0(&stream)?.dyn_into()?)
+        method.call0(&stream)?.dyn_into()
     }
 }

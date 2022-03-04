@@ -59,19 +59,18 @@ fn __Visualization__() -> JsValue {
     default()
 }
 
-/// TODO: documentation here and above
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Copy, Clone, Debug, Default)]
+#[allow(missing_docs)]
 pub struct Visualization {}
 
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(missing_docs)]
 impl Visualization {
-    /// Constructor
     pub fn new() -> Self {
         default()
     }
 
-    /// TODO: documentation here and above
     #[allow(non_snake_case)]
     pub fn emitPreprocessorChange(&self) -> Result<(), JsValue> {
         Ok(())

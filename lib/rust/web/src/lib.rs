@@ -18,10 +18,7 @@
 #![feature(specialization)]
 #![feature(auto_traits)]
 #![feature(unsize)]
-//
-// FIXME: check these
-#![allow(unused_doc_comments)]
-#![allow(clippy::boxed_local)]
+
 
 use crate::prelude::*;
 
@@ -243,7 +240,6 @@ ops! { FunctionOps for Function
 // === ReflectOps ===
 // ==================
 
-/// Extensions to the [`Reflect`] type.
 ops! { ReflectOps for Reflect
     trait {
         /// Get the nested value of the provided object. This is similar to writing `foo.bar.baz` in
@@ -365,6 +361,7 @@ ops! { DocumentOps for Document
         fn create_div_or_panic(&self) -> HtmlDivElement;
         fn create_canvas_or_panic(&self) -> HtmlCanvasElement;
         fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement>;
+        fn with_element_by_id_or_warn<F: FnOnce(Element)>(&self, id: &str, f: F);
     }
 
     impl {
@@ -386,6 +383,14 @@ ops! { DocumentOps for Document
 
         fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement> {
             self.get_element_by_id(id).and_then(|t| t.dyn_into().ok())
+        }
+
+        fn with_element_by_id_or_warn<F: FnOnce(Element)>(&self, id: &str, f: F) {
+            let root_elem = self.get_element_by_id(id);
+            match root_elem {
+                Some(v) => f(v),
+                None => WARNING!("Failed to get element by ID."),
+            }
         }
     }
 }
@@ -762,20 +767,6 @@ pub use async_std::task::sleep;
 
 
 
-// ========== TODO: TO BE DECIDED
-
-/// Tries to get `Element` by ID, and runs function on it.
-pub fn with_element_by_id_or_warn<F>(id: &str, f: F)
-where F: FnOnce(Element) {
-    let root_elem = document.get_element_by_id(id);
-    match root_elem {
-        Some(v) => f(v),
-        None => WARNING!("Failed to get element by ID."),
-    }
-}
-
-
-
 // ====================
 // === TimeProvider ===
 // ====================
@@ -791,60 +782,3 @@ impl TimeProvider for Performance {
         self.now()
     }
 }
-
-
-
-// ============
-// === Test ===
-// ============
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     use wasm_bindgen_test::wasm_bindgen_test;
-//     use wasm_bindgen_test::wasm_bindgen_test_configure;
-//
-//     wasm_bindgen_test_configure!(run_in_browser);
-//
-//     #[cfg(target_arch = "wasm32")]
-//     mod helpers {
-//         type Instant = f64;
-//
-//         pub fn now() -> Instant {
-//             super::performance().now()
-//         }
-//
-//         pub fn elapsed(instant: Instant) -> f64 {
-//             super::performance().now() - instant
-//         }
-//     }
-//
-//     #[cfg(not(target_arch = "wasm32"))]
-//     mod helpers {
-//         use std::time::Instant;
-//
-//         pub fn now() -> Instant {
-//             Instant::now()
-//         }
-//
-//         pub fn elapsed(instant: Instant) -> f64 {
-//             instant.elapsed().as_secs_f64()
-//         }
-//     }
-//
-//     #[wasm_bindgen_test(async)]
-//     async fn async_sleep() {
-//         let instant = helpers::now();
-//         sleep(Duration::new(1, 0)).await;
-//         assert!(helpers::elapsed(instant) >= 1.0);
-//         sleep(Duration::new(2, 0)).await;
-//         assert!(helpers::elapsed(instant) >= 3.0);
-//     }
-//
-//     #[test]
-//     #[cfg(not(target_arch = "wasm32"))]
-//     fn async_sleep_native() {
-//         async_std::task::block_on(async_sleep())
-//     }
-// }
