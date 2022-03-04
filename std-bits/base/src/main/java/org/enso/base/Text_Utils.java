@@ -1,12 +1,15 @@
 package org.enso.base;
 
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.CaseMap;
 import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -274,6 +277,16 @@ public class Text_Utils {
     return pos == StringSearch.DONE ? -1 : pos;
   }
 
+  public static List<Long> index_of_all(String haystack, String needle) {
+    StringSearch search = new StringSearch(needle, haystack);
+    ArrayList<Long> occurrences = new ArrayList<>();
+    long ix;
+    while ((ix = search.next()) != StringSearch.DONE) {
+      occurrences.add(ix);
+    }
+    return occurrences;
+  }
+
   /**
    * Find the last index of needle in the haystack
    *
@@ -288,6 +301,45 @@ public class Text_Utils {
       return -1;
     }
     return pos;
+  }
+
+  /** Converts a codepoint index to index of the grapheme that this codepoint belongs to.
+   *
+   * @param text the text associated with the index
+   * @param codepoint_indices the codepoint index
+   * @return a grapheme index corresponding to the codepoint from the input
+   */
+  public static long codepoint_index_to_grapheme_index(String text, long codepoint_index) {
+    BreakIterator breakIterator = BreakIterator.getCharacterInstance();
+    breakIterator.setText(text);
+    if (codepoint_index < 0 || codepoint_index > text.length()) {
+      throw new IndexOutOfBoundsException("Index " + codepoint_index + " is outside of the provided text.");
+    }
+
+//    int grapheme_start = breakIterator.current();
+    int grapheme_end = breakIterator.next();
+    int grapheme_index = 0;
+
+    while (true) {
+      if (codepoint_index < grapheme_end || grapheme_end == -1) {
+        return grapheme_index;
+      } else {
+        grapheme_index++;
+        grapheme_end = breakIterator.next();
+      }
+    }
+  }
+
+  /** Converts a series of codepoint indices to indices of graphemes that these codepoints belong to.
+   *
+   * @param text the text associated with the indices
+   * @param codepoint_indices the array of codepoint indices
+   * @return an array of grapheme indices corresponding to the codepoints from the input
+   */
+  public static List<Long> codepoint_indices_to_grapheme_indices(String text, List<Long> codepoint_indices) {
+    BreakIterator breakIterator = BreakIterator.getCharacterInstance();
+    breakIterator.setText(text);
+    throw new RuntimeException("Not implemented");
   }
 
   /**

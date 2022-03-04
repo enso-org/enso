@@ -34,6 +34,7 @@ import project.Data.Text_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
 import project.Data.Text.Regex_Spec
+import project.Data.Text.Utils_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
 import project.Data.Text.Matching_Spec
 import project.Data.Text.Span_Spec
@@ -87,6 +88,7 @@ main = Test.Suite.run_main <|
     Runtime_Spec.spec
     Span_Spec.spec
     Stack_Traces_Spec.spec
+    Utils_Spec.spec
     Text_Spec.spec
     Time_Spec.spec
     Uri_Spec.spec

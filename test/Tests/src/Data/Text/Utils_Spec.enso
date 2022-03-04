@@ -1,0 +1,38 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.Text_Utils
+import Standard.Test
+
+polyglot java import com.ibm.icu.text.BreakIterator
+spec =
+    Test.group "Text_Utils" <|
+        kshi = '\u0915\u094D\u0937\u093F'
+        facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
+
+        Test.specify "should correctly translate an codepoint index to a grapheme index" <|
+            txt = "a"+kshi+facepalm+'e\u{301}Z'
+            txt.utf_16.length . should_equal (1 + 4 + 7 + 2 + 1)
+
+            Text_Utils.codepoint_index_to_grapheme_index txt 0 . should_equal 0
+
+            Text_Utils.codepoint_index_to_grapheme_index txt 1 . should_equal 1
+            Text_Utils.codepoint_index_to_grapheme_index txt 2 . should_equal 1
+            Text_Utils.codepoint_index_to_grapheme_index txt 3 . should_equal 1
+            Text_Utils.codepoint_index_to_grapheme_index txt 4 . should_equal 1
+
+            Text_Utils.codepoint_index_to_grapheme_index txt 5 . should_equal 2
+            Text_Utils.codepoint_index_to_grapheme_index txt 6 . should_equal 2
+            Text_Utils.codepoint_index_to_grapheme_index txt 7 . should_equal 2
+            Text_Utils.codepoint_index_to_grapheme_index txt 8 . should_equal 2
+            Text_Utils.codepoint_index_to_grapheme_index txt 9 . should_equal 2
+            Text_Utils.codepoint_index_to_grapheme_index txt 10 . should_equal 2
+            Text_Utils.codepoint_index_to_grapheme_index txt 11 . should_equal 2
+
+            Text_Utils.codepoint_index_to_grapheme_index txt 12 . should_equal 3
+            Text_Utils.codepoint_index_to_grapheme_index txt 13 . should_equal 3
+
+            Text_Utils.codepoint_index_to_grapheme_index txt 14 . should_equal 4
+
+            Text_Utils.codepoint_index_to_grapheme_index txt 15 . should_equal 5
+
+main = Test.Suite.run_main here.spec
