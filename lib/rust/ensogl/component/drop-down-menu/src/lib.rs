@@ -220,7 +220,7 @@ impl DropDownMenu {
         let frp = &self.frp;
         let model = &self.model;
 
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
 
         frp::extend! { network
@@ -368,7 +368,7 @@ impl DropDownMenu {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
         // shape system (#795)
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
         model.label.set_default_color(text_color);
 

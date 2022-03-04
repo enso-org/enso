@@ -426,7 +426,7 @@ impl NodeModel {
     /// Constructor.
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
-            app.display.scene() => {
+            app.display.default_scene => {
                 //TODO[ao] The two lines below should not be needed - the ordering should be
                 //    transitive. But removing them causes a visual glitches described in
                 //    https://github.com/enso-org/ide/issues/1624
@@ -449,7 +449,7 @@ impl NodeModel {
             }
         }
 
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("node");
 
         let main_logger = Logger::new_sub(&logger, "main_area");
@@ -495,7 +495,7 @@ impl NodeModel {
         let output = output::Area::new(&logger, app);
         display_object.add_child(&output);
 
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
         let comment = text::Area::new(app);
         display_object.add_child(&comment);
@@ -624,7 +624,7 @@ impl Node {
         //      in https://github.com/enso-org/ide/issues/1031
         // let comment_color    = color::Animation::new(network);
         let error_color_anim = color::Animation::new(network);
-        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let style_frp = &model.style;
         let action_bar = &model.action_bar.frp;
         // Hook up the display object position updates to the node's FRP. Required to calculate the

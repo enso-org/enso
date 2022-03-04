@@ -63,6 +63,7 @@ use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use ensogl::prelude::*;
 use ensogl::system::web;
+use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
@@ -1623,7 +1624,7 @@ impl GraphEditorModel {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("GraphEditor");
         let display_object = display::object::Instance::new(&logger);
         let nodes = Nodes::new(&logger);
@@ -1687,7 +1688,7 @@ impl GraphEditorModel {
     }
 
     fn scene(&self) -> &Scene {
-        self.app.display.scene()
+        &self.app.display.default_scene
     }
 }
 
@@ -2479,7 +2480,7 @@ pub fn enable_disable_toggle(
 #[allow(unused_parens)]
 fn new_graph_editor(app: &Application) -> GraphEditor {
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let cursor = &app.cursor;
     let frp = Frp::new();
     let model = GraphEditorModelWithNetwork::new(app, cursor.clone_ref(), &frp);
@@ -3263,8 +3264,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_was_pressed      <- viz_pressed.previous();
     viz_press            <- viz_press_ev.gate_not(&viz_was_pressed);
     viz_release          <- viz_release_ev.gate(&viz_was_pressed);
-    viz_press_time       <- viz_press   . map(|_| web::performance().now() as f32);
-    viz_release_time     <- viz_release . map(|_| web::performance().now() as f32);
+    viz_press_time       <- viz_press   . map(|_| web::window.performance_or_panic().now() as f32);
+    viz_release_time     <- viz_release . map(|_| web::window.performance_or_panic().now() as f32);
     viz_press_time_diff  <- viz_release_time.map2(&viz_press_time,|t1,t0| t1-t0);
     viz_preview_mode     <- viz_press_time_diff.map(|t| *t > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS);
     viz_preview_mode_end <- viz_release.gate(&viz_preview_mode).gate_not(&out.is_fs_visualization_displayed);
