@@ -1430,7 +1430,7 @@ impl GraphEditorModelWithNetwork {
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { edge_id } => self
-                .new_node_position_at_mouse_aligned_if_close_to_edge_source_node(
+                .new_node_position_at_mouse_aligned_if_close_to_source_node(
                     edge_id,
                     mouse_position,
                 ),
@@ -1759,17 +1759,17 @@ impl GraphEditorModel {
     }
 
     /// Calculate a position for a new node, starting from the mouse position and aligning to the
-    /// source node of the specified edge if the mouse position is close to the node.
+    /// node at the source of the specified edge if the mouse position is close to the node.
     ///
     /// See [`new_node_position_aligned_if_close_to_node`] for details on what "close to" means.
-    pub fn new_node_position_at_mouse_aligned_if_close_to_edge_source_node(
+    pub fn new_node_position_at_mouse_aligned_if_close_to_source_node(
         &self,
         edge_id: EdgeId,
         mouse_position: Vector2,
     ) -> Vector2 {
-        let edge_source_node_id = self.edge_source_node_id(edge_id);
-        let edge_source_node = edge_source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
-        self.new_node_position_aligned_if_close_to_node(mouse_position, edge_source_node)
+        let source_node_id = self.edge_source_node_id(edge_id);
+        let source_node = source_node_id.and_then(|id| self.nodes.get_cloned_ref(&id));
+        self.new_node_position_aligned_if_close_to_node(mouse_position, source_node)
     }
 
     /// Calculate a position for a new node, starting from the mouse position and aligning to the
