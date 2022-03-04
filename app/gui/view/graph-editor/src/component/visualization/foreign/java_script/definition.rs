@@ -2,11 +2,7 @@
 //!
 //! For details of the API please see:
 //! * docstrings in the `visualization.js` file;
-//! * [visualization documentation](https://dev.enso.org/docs/ide/product/visualizations.html).
-// FIXME: Can we simplify the above definition so its more minimal, yet functional?
-
-mod function;
-use function::Function;
+//! * [visualization documentation](https://enso.org/docs/developer/ide/product/visualizations.html).
 
 use crate::prelude::*;
 
@@ -18,12 +14,13 @@ use crate::component::visualization::InstantiationResult;
 use crate::visualization::foreign::java_script::Sources;
 
 use ensogl::display::Scene;
+use ensogl::system::web;
+use ensogl::system::web::traits::*;
+use ensogl::system::web::Function;
+use ensogl::system::web::JsString;
 use ensogl::system::web::JsValue;
 use fmt::Formatter;
-use js_sys;
-use js_sys::JsString;
 use std::str::FromStr;
-use wasm_bindgen::JsCast;
 
 
 
@@ -63,16 +60,13 @@ impl Definition {
     pub fn new(project: visualization::path::Project, sources: Sources) -> Result<Self, Error> {
         let source = sources.to_string(&project);
         let context = JsValue::NULL;
-        let function = Function::new_with_args(binding::JS_CLASS_NAME, &source)
+        let function = Function::new_with_args_fixed(binding::JS_CLASS_NAME, &source)
             .map_err(Error::InvalidFunction)?;
-        let js_class = binding::js_class();
+        let js_class = binding::js_visualization_class();
         let class = function.call1(&context, &js_class).map_err(Error::InvalidFunction)?;
-
         let input_type = try_str_field(&class, field::INPUT_TYPE).unwrap_or_default();
-
         let input_format = try_str_field(&class, field::INPUT_FORMAT).unwrap_or_default();
         let input_format = visualization::data::Format::from_str(&input_format).unwrap_or_default();
-
         let label = label(&class)?;
         let path = visualization::Path::new(project, label);
         let signature = visualization::Signature::new(path, input_type, input_format);
@@ -102,7 +96,7 @@ impl From<Definition> for visualization::Definition {
 // === Utils ===
 
 fn try_str_field(obj: &JsValue, field: &str) -> Option<String> {
-    let field = js_sys::Reflect::get(obj, &field.into()).ok()?;
+    let field = web::Reflect::get(obj, &field.into()).ok()?;
     let js_string = field.dyn_ref::<JsString>()?;
     Some(js_string.into())
 }

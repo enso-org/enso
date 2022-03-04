@@ -27,7 +27,6 @@ use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::*;
-use ensogl_core::system::web;
 
 use enso_frp as frp;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -158,15 +157,13 @@ impl application::View for View {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_mouse_events() {
-    web::forward_panic_hook_to_console();
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
-
+        let app = Application::new("root");
         let shape: View = app.new_view();
         shape.model.shape.size.set(Vector2::new(300.0, 300.0));
         app.display.add_child(&shape);
 
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
 

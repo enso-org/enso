@@ -19,14 +19,12 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::NodeInserter;
-use ensogl::system::web::StyleSetter;
+use ensogl::system::web::traits::*;
 use std::rc::Rc;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
-use web_sys::Element;
-use web_sys::HtmlDivElement;
-use web_sys::MouseEvent;
+use web::Closure;
+use web::Element;
+use web::HtmlDivElement;
+use web::MouseEvent;
 
 
 
@@ -83,25 +81,22 @@ impl Deref for ClickableElement {
 }
 
 impl ClickableElement {
-    pub fn new(element: Element, logger: &Logger) -> Self {
+    pub fn new(element: Element) -> Self {
         frp::new_network! { network
             click <- source_();
         }
-        let closure: ClickClosure = Closure::wrap(Box::new(f_!(click.emit(()))));
-        let callback = closure.as_ref().unchecked_ref();
-        if element.add_event_listener_with_callback("click", callback).is_err() {
-            error!(logger, "Could not add event listener for ClickableElement.");
-        }
-        network.store(&Rc::new(closure));
+        let closure: ClickClosure = Closure::new(f_!(click.emit(())));
+        let handle = web::add_event_listener(&element, "click", closure);
+        network.store(&handle);
         Self { element, network, click }
     }
 }
 
 
+
 // =============
 // === Model ===
 // =============
-
 
 // === CSS Styles ===
 
@@ -130,42 +125,37 @@ impl Model {
 
         let side_menu = SideMenu::new(&logger);
         let template_cards = TemplateCards::new(&logger);
-        let dom = Self::create_dom(&logger, &side_menu, &template_cards);
+        let dom = Self::create_dom(&side_menu, &template_cards);
         display_object.add_child(&dom);
 
         // Use `welcome_screen` layer to lock position when panning.
-        app.display.scene().dom.layers.welcome_screen.manage(&dom);
+        app.display.default_scene.dom.layers.welcome_screen.manage(&dom);
 
-        let style = web::create_element("style");
+        let style = web::document.create_element_or_panic("style");
         style.set_inner_html(STYLESHEET);
-        dom.append_or_warn(&style, &logger);
+        dom.append_or_warn(&style);
 
         Self { application, logger, dom, display_object, side_menu, template_cards }
     }
 
-    fn create_dom(
-        logger: &Logger,
-        side_menu: &SideMenu,
-        template_cards: &TemplateCards,
-    ) -> DomSymbol {
-        let root = web::create_div();
+    fn create_dom(side_menu: &SideMenu, template_cards: &TemplateCards) -> DomSymbol {
+        let root = web::document.create_div_or_panic();
         root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
         // We explicitly enable pointer events for Welcome Screen elements. Pointer events are
         // disabled for all DOM layers by default. See [`DomLayers`] documentation.
-        root.set_style_or_warn("pointer-events", "auto", logger);
+        root.set_style_or_warn("pointer-events", "auto");
 
         let container = Self::create_content_container();
-        container.append_or_warn(&side_menu.model.root_dom, logger);
-        container.append_or_warn(&template_cards.model.root_dom, logger);
-        root.append_or_warn(&container, logger);
+        container.append_or_warn(&side_menu.model.root_dom);
+        container.append_or_warn(&template_cards.model.root_dom);
+        root.append_or_warn(&container);
 
         DomSymbol::new(&root)
     }
 
     fn create_content_container() -> HtmlDivElement {
-        let container = web::create_div();
+        let container = web::document.create_div_or_panic();
         container.set_class_name(css_class::CONTAINER);
-
         container
     }
 }
@@ -220,7 +210,7 @@ impl View {
         frp::extend! { network
             // === Update DOM's size so CSS styles work correctly. ===
 
-            let scene_size = app.display.scene().shape().clone_ref();
+            let scene_size = app.display.default_scene.shape().clone_ref();
             eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
         }
         frp::extend! { network

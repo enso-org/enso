@@ -1,6 +1,7 @@
 //! This module defines a DOM management utilities.
 
 use crate::prelude::*;
+use web::traits::*;
 
 use crate::display::camera::camera2d::Projection;
 use crate::display::camera::Camera2d;
@@ -8,13 +9,13 @@ use crate::display::object::traits::*;
 use crate::display::symbol::dom::eps;
 use crate::display::symbol::dom::inverse_y_translation;
 use crate::display::symbol::DomSymbol;
-use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
-use crate::system::web::NodeInserter;
-use crate::system::web::StyleSetter;
+use web::HtmlDivElement;
 
+#[cfg(target_arch = "wasm32")]
+use crate::system::gpu::data::JsBufferView;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
-use web_sys::HtmlDivElement;
 
 
 
@@ -22,6 +23,7 @@ use web_sys::HtmlDivElement;
 // === Js Bindings ===
 // ===================
 
+#[cfg(target_arch = "wasm32")]
 mod js {
     use super::*;
     #[wasm_bindgen(inline_js = "
@@ -64,6 +66,8 @@ mod js {
     }
 }
 
+
+#[cfg(target_arch = "wasm32")]
 #[allow(unsafe_code)]
 fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
@@ -75,6 +79,7 @@ fn setup_camera_perspective(dom: &web::JsValue, near: f32, matrix: &Matrix4<f32>
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[allow(unsafe_code)]
 fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
@@ -85,6 +90,18 @@ fn setup_camera_orthographic(dom: &web::JsValue, matrix: &Matrix4<f32>) {
         js::setup_camera_orthographic(dom, &matrix_array)
     }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+mod js {
+    use super::*;
+    pub fn setup_perspective(_dom: &web::JsValue, _znear: &web::JsValue) {}
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn setup_camera_perspective(_dom: &web::JsValue, _near: f32, _matrix: &Matrix4<f32>) {}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn setup_camera_orthographic(_dom: &web::JsValue, _matrix: &Matrix4<f32>) {}
 
 
 
@@ -149,27 +166,27 @@ impl DomScene {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "DomScene");
-        let dom = web::create_div();
-        let view_projection_dom = web::create_div();
+        let dom = web::document.create_div_or_panic();
+        let view_projection_dom = web::document.create_div_or_panic();
 
         dom.set_class_name("dom-scene-layer");
         // z-index works on positioned elements only.
-        dom.set_style_or_warn("position", "absolute", &logger);
-        dom.set_style_or_warn("top", "0px", &logger);
-        dom.set_style_or_warn("overflow", "hidden", &logger);
-        dom.set_style_or_warn("overflow", "hidden", &logger);
-        dom.set_style_or_warn("width", "100%", &logger);
-        dom.set_style_or_warn("height", "100%", &logger);
+        dom.set_style_or_warn("position", "absolute");
+        dom.set_style_or_warn("top", "0px");
+        dom.set_style_or_warn("overflow", "hidden");
+        dom.set_style_or_warn("overflow", "hidden");
+        dom.set_style_or_warn("width", "100%");
+        dom.set_style_or_warn("height", "100%");
         // We ignore pointer events to avoid stealing them from other DomScenes.
         // See https://github.com/enso-org/enso/blob/develop/lib/rust/ensogl/doc/mouse-handling.md.
-        dom.set_style_or_warn("pointer-events", "none", &logger);
+        dom.set_style_or_warn("pointer-events", "none");
 
         view_projection_dom.set_class_name("view_projection");
-        view_projection_dom.set_style_or_warn("width", "100%", &logger);
-        view_projection_dom.set_style_or_warn("height", "100%", &logger);
-        view_projection_dom.set_style_or_warn("transform-style", "preserve-3d", &logger);
+        view_projection_dom.set_style_or_warn("width", "100%");
+        view_projection_dom.set_style_or_warn("height", "100%");
+        view_projection_dom.set_style_or_warn("transform-style", "preserve-3d");
 
-        dom.append_or_warn(&view_projection_dom, &logger);
+        dom.append_or_warn(&view_projection_dom);
 
         let data = DomSceneData::new(dom, view_projection_dom, logger);
         let data = Rc::new(data);
@@ -183,13 +200,13 @@ impl DomScene {
 
     /// Sets the z-index of this DOM element.
     pub fn set_z_index(&self, z: i32) {
-        self.data.dom.set_style_or_warn("z-index", z.to_string(), &self.logger);
+        self.data.dom.set_style_or_warn("z-index", z.to_string());
     }
 
     /// Sets the CSS property `filter: grayscale({value})` on this element. A value of 0.0 displays
     /// the element normally. A value of 1.0 will make the element completely gray.
     pub fn filter_grayscale(&self, value: f32) {
-        self.data.dom.set_style_or_warn("filter", format!("grayscale({})", value), &self.logger);
+        self.data.dom.set_style_or_warn("filter", format!("grayscale({})", value));
     }
 
     /// Creates a new instance of DomSymbol and adds it to parent.
@@ -197,11 +214,11 @@ impl DomScene {
         let dom = object.dom();
         let data = &self.data;
         if object.is_visible() {
-            self.view_projection_dom.append_or_panic(dom);
+            self.view_projection_dom.append_or_warn(dom);
         }
         object.display_object().set_on_hide(f_!(dom.remove()));
         object.display_object().set_on_show(f__!([data,dom] {
-            data.view_projection_dom.append_or_panic(&dom)
+            data.view_projection_dom.append_or_warn(&dom)
         }));
     }
 

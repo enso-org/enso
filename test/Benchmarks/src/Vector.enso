@@ -21,8 +21,18 @@ make_random_vec n =
 
 main =
     random_vec = here.make_random_vec here.vector_size
+    random_vec_2 = here.make_random_vec 100000
 
+    Bench.measure (Base.Vector.new here.vector_size i->i) "New Vector" here.iter_size here.num_iterations
+    Bench.measure (random_vec + [1]) "Append Single" here.iter_size here.num_iterations
+    Bench.measure (random_vec + random_vec_2) "Append Large" here.iter_size here.num_iterations
+    Bench.measure (random_vec.sum) "Sum" here.iter_size here.num_iterations
+    Bench.measure ((random_vec.drop_start 20).sum) "Drop First 20 and Sum" here.iter_size here.num_iterations
+    Bench.measure ((random_vec.drop_end 20).sum) "Drop Last 20 and Sum" here.iter_size here.num_iterations
     Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" here.iter_size here.num_iterations
+    Bench.measure (random_vec.filter_with_index (i->x -> (i+x) % 3 == 1)) "Filter With Index" here.iter_size here.num_iterations
+    Bench.measure (random_vec.partition (x -> x % 3 == 1)) "Partition" here.iter_size here.num_iterations
+    Bench.measure (random_vec.partition_with_index (i->x -> (i+x) % 3 == 1)) "Partition With Index" here.iter_size here.num_iterations
 
     stateful_fun x =
        s = State.get Number

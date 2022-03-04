@@ -306,6 +306,17 @@ pub struct Metadata<M> {
 }
 
 
+// === OpaqueMetadata ===
+
+/// Black-box metadata object, for ignoring metadata contents.
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+pub enum OpaqueMetadata {
+    /// Anything.
+    #[serde(other)]
+    Unknown,
+}
+
+
 
 // ============
 // === Mark ===
@@ -314,13 +325,20 @@ pub struct Metadata<M> {
 /// A timestamp that can be used for distinguishing event order.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Mark {
+    /// Sequence number of the mark. Used to resolve timestamp collisions.
     seq:  Seq,
+    /// Time of the mark.
     time: profiler::internal::Timestamp,
 }
 
 impl Mark {
     fn time_origin() -> Self {
         Self::default()
+    }
+
+    /// Time of the mark in milliseconds.
+    pub fn into_ms(self) -> f64 {
+        self.time.into_ms()
     }
 }
 
@@ -376,6 +394,17 @@ pub struct Label {
 }
 
 
+impl fmt::Display for Label {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(pos) = self.pos.as_ref() {
+            write!(f, "{} ({}:{})", self.name, pos.file, pos.line)
+        } else {
+            write!(f, "{}", self.name)
+        }
+    }
+}
+
+
 // === CodePos ===
 
 /// Identifies a position within a specific file.
@@ -395,17 +424,12 @@ pub struct CodePos {
 
 #[cfg(test)]
 mod tests {
+
     use crate as profiler_data;
+    use crate::OpaqueMetadata;
     use enso_profiler as profiler;
     use profiler::profile;
 
-    /// Black-box metadata object, for ignoring metadata contents.
-    #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-    pub(crate) enum OpaqueMetadata {
-        /// Anything.
-        #[serde(other)]
-        Unknown,
-    }
 
     #[test]
     fn profile_sync() {

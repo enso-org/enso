@@ -9,6 +9,7 @@ ensogl-button = { path = "button" }
 ensogl-drop-down-menu = { path = "drop-down-menu" }
 ensogl-drop-manager = { path = "drop-manager" }
 ensogl-file-browser = { path = "file-browser" }
+ensogl-flame-graph = { path = "flame-graph" }
 ensogl-label = { path = "label" }
 ensogl-list-view = { path = "list-view" }
 ensogl-scroll-area = { path = "scroll-area" }

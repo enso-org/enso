@@ -40,7 +40,7 @@ class ProjectCreateDefaultToLatestSpec
             "error": {
               "code": 4022,
               "message": $message,
-              "data" : {
+              "payload" : {
                 "minimumRequiredVersion" : "9999.0.0"
               }
             }

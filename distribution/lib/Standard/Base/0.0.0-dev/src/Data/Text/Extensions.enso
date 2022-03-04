@@ -601,12 +601,44 @@ Text.is_empty = this == ""
 Text.not_empty : Boolean
 Text.not_empty = this.is_empty.not
 
+## Inserts text value at the specified index.
+
+   Arguments:
+     - index: The position (0-based) in the text to inset text at.
+       When the index is non-negative the text is inserted before the
+       specified position.
+       When the index is negative, then the characters are counted from
+       the end of the text and the text is inserted after the specified
+       position, i.e. -1 will insert the text after the last character.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+    Insert text at a specified index
+
+         "Hello World!".insert 0 " Cruel" == " CruelHello World!"
+         "Hello World!".insert 5 " Cruel" == "Hello Cruel World!"
+         "Hello World!".insert -1 " Cruel" == "Hello World! Cruel"
+Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
+Text.insert index that =
+    len = this.length
+    idx = if index < 0 then len + index + 1 else index
+    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error index len) else
+        if idx == 0 then that + this else
+            if idx == len then this + that else
+                pre = this.take (Range 0 idx)
+                post = this.take (Range idx len)
+                pre + that + post
+
 ## Returns if a character from the text at the specified index (0-based) is a
    digit (0-9).
 
    Arguments:
      - index: The location in the text to get the character from. The
-       index is also allowed be negative, then the characters are
+       index is also allowed to be negative, then the characters are
        counted from the end of the text, i.e. -1 will correspond to the
        last character.
 

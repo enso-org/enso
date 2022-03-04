@@ -45,10 +45,8 @@ const STUB_MODULE: &str = "from Base import all\n\nmain = IO.println \"Hello\"\n
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_interface() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let app = Application::new("root");
         init(&app);
         mem::forget(app);
     });
@@ -100,10 +98,10 @@ impl DummyTypeGenerator {
 // ========================
 
 fn init(app: &Application) {
-    let _bg = app.display.scene().style_sheet.var(theme::application::background);
+    let _bg = app.display.default_scene.style_sheet.var(theme::application::background);
 
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
 
@@ -252,7 +250,9 @@ fn init(app: &Application) {
     let mut to_theme_switch = 100;
 
     world
-        .on_frame(move |_| {
+        .on
+        .before_frame
+        .add(move |_| {
             let _keep_alive = &navigator;
             let _keep_alive = &root_view;
 
@@ -292,9 +292,9 @@ fn init(app: &Application) {
             // Temporary code removing the web-loader instance.
             // To be changed in the future.
             if was_rendered && !loader_hidden {
-                web::get_element_by_id("loader")
-                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
-                    .ok();
+                web::document
+                    .get_element_by_id("loader")
+                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
                 loader_hidden = true;
             }
             was_rendered = true;
