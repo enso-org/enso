@@ -183,21 +183,7 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 /// A hierarchical representation of object containing information about transformation in 3D space,
 /// list of children, and set of utils for dirty flag propagation.
 ///
-/// ## Host
-/// The model is parametrized with a `Host`. In real life use cases, host will be instantiated with
-/// `Scene`. For the needs of tests, its often instantiated with empty tuple for simplicity. Host
-/// has a very important role in decoupling the architecture. You need to provide the `update`
-/// method with a reference to the host, which is then passed to `on_show` and `on_hide` callbacks
-/// when a particular display objects gets shown or hidden respectively. This can be used for a
-/// dynamic management of GPU-side sprites. For example, after adding a display object to a scene,
-/// a new sprites can be created to display it visually. After removing the objects, and adding it
-/// to a different scene (second GPU context), the sprites in the first context can be removed, and
-/// new sprites in the new context can be created. Thus, abstracting over `Host` allows users of
-/// this library to define a view model (like few sliders in a box) without the need to contain
-/// reference to a particular renderer, and attach the renderer on-demand, when the objects will be
-/// placed on the stage.
-///
-/// Please note, that this functionality is fairly new, and the library do not use it like this yet.
+/// See the documentation of [`Instance`] to learn more.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct Model<Host = Scene> {
@@ -610,18 +596,33 @@ pub struct Id(usize);
 /// list of children, and set of utils for dirty flag propagation.
 ///
 /// ## Host
-/// The structure is parametrized with a `Host`. In real life use cases, host will be instantiated
-/// with [`Scene`]. For simplicity, it is instantiated to empty tuple in tests. Host has a very
-/// important role in decoupling the architecture. You need to provide the `update` method with a
-/// reference to the host, which is then passed to `on_show` and `on_hide` callbacks when a
-/// particular display objects gets shown or hidden respectively. This can be used for a dynamic
-/// management of GPU-side sprites. For example, after adding a display object to a scene, a new
-/// sprites can be created to display it visually. After removing the objects, and adding it to a
-/// different scene (second GPU context), the sprites in the first context can be removed, and new
-/// sprites in the new context can be created. Thus, abstracting over `Host` allows users of this
-/// library to define a view model (like few sliders in a box) without the need to contain reference
-/// to a particular renderer, and attach the renderer on-demand, when the objects will be placed on
-/// the stage.
+/// The model is parametrized with a `Host`. In real life use cases, host is **ALWAYS** instantiated
+/// with `Scene`. For the needs of tests, its often instantiated with empty tuple for simplicity.
+/// Host has a very important role in decoupling the architecture. You need to provide the `update`
+/// method with a reference to the host, which is then passed to `on_show` and `on_hide` callbacks
+/// when a particular display objects gets shown or hidden respectively.
+///
+/// This can be used for a dynamic management of GPU-side rendering. After adding a display object
+/// to a scene, a new sprite can be created to display it visually. After removing the object and
+/// adding it to a different scene (another GPU context), the sprite in the first context can be
+/// trashed, and a new sprite in the new context can be created instead. This mechanism is currently
+/// also used for sprites layer management, but this functionality is inherently connected to the
+/// sprites creation in a given context (moving object to a different layer of the same [`Scene`] is
+/// similar to moving it to a layer of a different [`Scene`].
+///
+/// Thus, abstracting over `Host` allows users of this library to define a view model (like few
+/// sliders in a box) without the need to contain reference to a particular renderer, and attach the
+/// renderer on-demand, when the objects will be placed on the stage.
+///
+/// Please note, that moving an object between two Scenes (two WebGL contexts) is not implemented
+/// yet.
+///
+/// ## Possible changes to the Host parametrization design
+/// Instead of parametrizing the Display Object, the [`Host`] could be implemented as dyn trait
+/// object exposing a few options to registering sprites in Scene layers. This is a way less generic
+/// solution than the one implemented currently, but it would allow [`Scene`] parametrization. For
+/// example, if we would like to implement [`Scene<Context>`], where the [`Context`] is either a
+/// WebGL or an OpenGL context (currently contexts are implemented as dyn traits instead).
 ///
 /// ## Scene Layers
 /// Each display object instance contains an optional list of [`scene::LayerId`]. During object
@@ -630,13 +631,6 @@ pub struct Id(usize);
 /// plays a very important role in decoupling the architecture. It allows objects and their children
 /// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
 /// management.
-///
-/// ## Future Development
-/// Please note, that currently, the design is abstract over [`Host`], but it is not abstract over
-/// scene layers. This may change in the future, but first, the [`Scene`] implementation has to be
-/// refactored to allow the creation of [`Symbol`]s without requirement of a [`Scene`] instance
-/// existence. See this ticket to learn more: https://github.com/enso-org/ide/issues/1129 .
-
 #[derive(Derivative)]
 #[derive(CloneRef)]
 #[derivative(Clone(bound = ""))]

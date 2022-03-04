@@ -69,10 +69,10 @@ pub fn write_text(text: impl Into<String>) {
 pub fn read_text(callback: impl Fn(String) + 'static) {
     let handler: Rc<RefCell<Option<ReadTextClosure>>> = default();
     let handler_clone = handler.clone_ref();
-    let closure = Closure::wrap(Box::new(move |result| {
+    let closure: Closure<dyn Fn(String)> = Closure::new(move |result| {
         *handler_clone.borrow_mut() = None;
         callback(result);
-    }) as Box<dyn Fn(String)>);
+    });
     *handler.borrow_mut() = Some(closure);
     readText(handler.borrow().as_ref().unwrap());
 }

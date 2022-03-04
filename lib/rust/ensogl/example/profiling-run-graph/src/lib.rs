@@ -37,9 +37,9 @@ pub fn entry_point_profiling_run_graph() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
 
-    let app = &Application::new(&web::get_html_element_by_id("root").unwrap());
+    let app = &Application::new("root");
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
 
@@ -56,10 +56,12 @@ pub fn entry_point_profiling_run_graph() {
     scene.layers.main.add_exclusive(&flame_graph);
 
     world.keep_alive_forever();
-    let scene = world.scene().clone_ref();
+    let scene = world.default_scene.clone_ref();
 
     world
-        .on_frame(move |_time| {
+        .on
+        .before_frame
+        .add(move |_time| {
             let _keep_alive = &navigator;
             let _keep_alive = &scene;
             let _keep_alive = &flame_graph;

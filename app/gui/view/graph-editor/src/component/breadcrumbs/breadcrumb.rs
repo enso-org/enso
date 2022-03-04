@@ -279,7 +279,7 @@ impl BreadcrumbModel {
         method_pointer: &MethodPointer,
         expression_id: &ast::Id,
     ) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new(&logger);
         let view_logger = Logger::new_sub(&logger, "view_logger");
@@ -492,7 +492,7 @@ impl Breadcrumb {
         let frp = Frp::new();
         let model = Rc::new(BreadcrumbModel::new(app, &frp, method_pointer, expression_id));
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)

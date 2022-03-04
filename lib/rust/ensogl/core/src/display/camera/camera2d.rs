@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::control::callback;
+use crate::control::callback::traits::*;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::display;
@@ -158,10 +159,10 @@ impl Default for Matrix {
 // ====================
 
 /// Function used to return the updated screen dimensions.
-pub trait ScreenUpdateFn = callback::CallbackMut1Fn<Vector2<f32>>;
+pub trait ScreenUpdateFn = Fn(Vector2<f32>) + 'static;
 
 /// Function used to return the updated `Camera2d`'s zoom.
-pub trait ZoomUpdateFn = callback::CallbackMut1Fn<f32>;
+pub trait ZoomUpdateFn = Fn(f32) + 'static;
 
 /// Internal `Camera2d` representation. Please see `Camera2d` for full documentation.
 #[derive(Debug)]
@@ -174,8 +175,8 @@ struct Camera2dData {
     clipping:               Clipping,
     matrix:                 Matrix,
     dirty:                  Dirty,
-    zoom_update_registry:   callback::Registry1<f32>,
-    screen_update_registry: callback::Registry1<Vector2<f32>>,
+    zoom_update_registry:   callback::registry::CopyMut1<f32>,
+    screen_update_registry: callback::registry::CopyMut1<Vector2<f32>>,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
@@ -271,8 +272,7 @@ impl Camera2dData {
         }
         if changed {
             self.matrix.view_projection = self.matrix.projection * self.matrix.view;
-            let zoom = self.zoom;
-            self.zoom_update_registry.run_all(&zoom);
+            self.zoom_update_registry.run_all(self.zoom);
         }
         changed
     }
@@ -311,7 +311,7 @@ impl Camera2dData {
             _ => unimplemented!(),
         };
         let dimensions = Vector2::new(width, height);
-        self.screen_update_registry.run_all(&dimensions);
+        self.screen_update_registry.run_all(dimensions);
     }
 
     fn reset_zoom(&mut self) {
@@ -406,6 +406,8 @@ impl Camera2d {
         self.data.borrow_mut().update(scene)
     }
 
+    // FIXME: This can fail, for example, when during calling the callback another callback is
+    //        being registered.
     /// Adds a callback to notify when `zoom` is updated.
     pub fn add_zoom_update_callback<F: ZoomUpdateFn>(&self, f: F) -> callback::Handle {
         self.data.borrow_mut().add_zoom_update_callback(f)
