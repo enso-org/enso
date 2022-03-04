@@ -948,7 +948,7 @@ impl Node {
                 position_of_bounding_box_of_visualization,
                 visualization_size,
             );
-            node_bounding_box.grow_to_include(&visualization_bounding_box);
+            node_bounding_box.concat_mut(visualization_bounding_box);
         }
         node_bounding_box
     }

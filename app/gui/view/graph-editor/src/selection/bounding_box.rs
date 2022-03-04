@@ -97,15 +97,6 @@ impl BoundingBox {
         self.bottom
     }
 
-    /// Expand the boundaries to make them contain all points belonging to the bounding box passed
-    /// as an argument.
-    pub fn grow_to_include(&mut self, other: &BoundingBox) {
-        self.left = min(self.left, other.left);
-        self.right = max(self.right, other.right);
-        self.bottom = min(self.bottom, other.bottom);
-        self.top = max(self.top, other.top);
-    }
-
     /// Calculates the squared norm of a vector between the point passed as argument, and a point
     /// in the bounding box that is nearest to the point passed as an argument.
     pub fn squared_distance_to_point(&self, point: Vector2) -> f32 {
@@ -114,6 +105,17 @@ impl BoundingBox {
         let nearest_point_in_bounding_box =
             Vector2(x_of_nearest_point_in_bounding_box, y_of_nearest_point_in_bounding_box);
         (nearest_point_in_bounding_box - point).norm_squared()
+    }
+}
+
+impl PartialSemigroup<BoundingBox> for BoundingBox {
+    /// Expand the boundaries to make them contain all points belonging to the bounding box passed
+    /// as an argument.
+    fn concat_mut(&mut self, other: BoundingBox) {
+        self.left = min(self.left, other.left);
+        self.right = max(self.right, other.right);
+        self.bottom = min(self.bottom, other.bottom);
+        self.top = max(self.top, other.top);
     }
 }
 
