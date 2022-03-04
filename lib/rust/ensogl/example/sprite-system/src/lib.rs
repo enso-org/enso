@@ -19,19 +19,13 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::world::*;
-use ensogl_core::system::web;
-use ensogl_core::system::web::forward_panic_hook_to_console;
 
 
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_sprite_system() {
-    forward_panic_hook_to_console();
-
-    let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let scene = world.scene();
-    let camera = scene.camera().clone_ref();
-    let navigator = Navigator::new(scene, &camera);
+    let world = World::new().displayed_in("root");
+    let navigator = Navigator::new(&world.default_scene, &world.default_scene.camera());
     let sprite_system = SpriteSystem::new(&world);
 
     let sprite2 = sprite_system.new_instance();
@@ -39,12 +33,14 @@ pub fn entry_point_sprite_system() {
     sprite1.size.set(Vector2::new(15.0, 15.0));
     sprite2.size.set(Vector2::new(15.0, 15.0));
 
-    scene.add_child(&sprite_system);
+    world.default_scene.add_child(&sprite_system);
     world.keep_alive_forever();
 
     let mut i = 0;
     world
-        .on_frame(move |_| {
+        .on
+        .after_frame
+        .add(move |_| {
             i += 1;
             let _keep_alive = &navigator;
             let _keep_alive = &sprite1;

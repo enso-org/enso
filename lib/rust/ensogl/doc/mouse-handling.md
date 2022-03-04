@@ -26,7 +26,7 @@ event types:
 
 These event listeners are attached to [`window`][window] object. Every DOM
 object can setup specific listeners for these event types using
-`application.display.scene().mouse.frp` FRP network.
+`application.display.default_scene.mouse.frp` FRP network.
 
 This method is flexible and allows consistent mouse event handling across all
 Enso GUI parts. However, it also requires registering `Shapes` for every

@@ -143,7 +143,7 @@ impl Deref for Button {
 impl Button {
     /// Constructs a new button for toggling the editor's view mode.
     pub fn new(app: &Application) -> Button {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let styles = StyleWatchFrp::new(&scene.style_sheet);
         let frp = Frp::new();
         let network = &frp.network;

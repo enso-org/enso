@@ -5,16 +5,17 @@ pub mod builder;
 
 use crate::prelude::*;
 
-use crate::control::callback::CallbackFn;
+use crate::control::callback;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
+use crate::display::symbol::shader::ContextLossOrError;
 use crate::display::symbol::ScopeType;
-use crate::system::gpu::shader::Context;
 use crate::system::gpu::shader::*;
+use crate::system::Context;
 
 use web_sys::WebGlProgram;
 
@@ -85,7 +86,7 @@ impl {
     }
 
     /// Creates new shader with attached callback.
-    pub fn new<OnMut:CallbackFn>(logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
+    pub fn new<OnMut:callback::NoArgs>(logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_shader_count();
         let context           = default();
         let geometry_material = default();
@@ -134,22 +135,17 @@ impl {
                         shader_cfg.add_output(name,&decl.tp);
                     });
 
-                    let vertex_code   = self.geometry_material.code().clone();
+                    let vertex_code = self.geometry_material.code().clone();
                     let fragment_code = self.surface_material.code().clone();
                     shader_builder.compute(&shader_cfg,vertex_code,fragment_code);
-                    let shader      = shader_builder.build();
-                    let vert_shader = compile_vertex_shader  (context,&shader.vertex);
-                    let frag_shader = compile_fragment_shader(context,&shader.fragment);
-                    if let Err(ref err) = frag_shader {
-                        error!(self.logger,"{err}")
+                    let shader = shader_builder.build();
+                    let program = compile_program(context,&shader.vertex,&shader.fragment);
+                    match program {
+                        Ok(program) => { self.program = Some(program);}
+                        Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
+                        Err(ContextLossOrError::ContextLoss) => {}
                     }
 
-                    let vert_shader = vert_shader.unwrap();
-                    let frag_shader = frag_shader.unwrap();
-                    let program     = link_program(context,&vert_shader,&frag_shader);
-
-                    let program     = program.unwrap();
-                    self.program    = Some(program);
                     self.dirty.unset_all();
                 }
             }

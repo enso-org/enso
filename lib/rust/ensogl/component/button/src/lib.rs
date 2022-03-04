@@ -274,7 +274,7 @@ impl<Shape: ButtonShape> View<Shape> {
         let frp = Frp::new();
         let model = Model::<Shape>::new(app);
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let style = StyleWatchFrp::new(&scene.style_sheet);
         let mouse = &scene.mouse.frp;
 

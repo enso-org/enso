@@ -86,7 +86,7 @@ struct Model {
 impl Model {
     fn new(app: Application) -> Self {
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("TextLabel");
         let display_object = display::object::Instance::new(&logger);
         let label = app.new_view::<text::Area>();
@@ -95,7 +95,7 @@ impl Model {
         display_object.add_child(&background);
         display_object.add_child(&label);
 
-        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
         let model = Model { background, label, display_object, style };
         model.set_layers(&scene.layers.tooltip, &scene.layers.tooltip_text);
