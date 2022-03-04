@@ -10,7 +10,7 @@ use ensogl::display::shape::compound::path::path;
 use ensogl::display::shape::*;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::StyleSetter;
+use ensogl::system::web::traits::*;
 use ensogl_hardcoded_theme::application::searcher::icons as theme;
 use std::f32::consts::PI;
 use wasm_bindgen::prelude::*;
@@ -998,27 +998,24 @@ mod frame {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_searcher_icons() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
-
     let logger = Logger::new("Icons example");
-    let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+    let app = Application::new("root");
     ensogl_hardcoded_theme::builtin::dark::register(&app);
     ensogl_hardcoded_theme::builtin::light::register(&app);
     ensogl_hardcoded_theme::builtin::light::enable(&app);
     let world = app.display.clone();
     mem::forget(app);
-    let scene = world.scene();
+    let scene = &world.default_scene;
     mem::forget(Navigator::new(scene, &scene.camera()));
 
 
     // === Grid ===
 
-    let grid_div = web::create_div();
-    grid_div.set_style_or_panic("width", "1000px");
-    grid_div.set_style_or_panic("height", "16px");
-    grid_div.set_style_or_panic("background-size", "1.0px 1.0px");
-    grid_div.set_style_or_panic(
+    let grid_div = web::document.create_div_or_panic();
+    grid_div.set_style_or_warn("width", "1000px");
+    grid_div.set_style_or_warn("height", "16px");
+    grid_div.set_style_or_warn("background-size", "1.0px 1.0px");
+    grid_div.set_style_or_warn(
         "background-image",
         "linear-gradient(to right,  grey 0.05px, transparent 0.05px),
                                  linear-gradient(to bottom, grey 0.05px, transparent 0.05px)",

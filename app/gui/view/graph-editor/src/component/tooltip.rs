@@ -188,7 +188,7 @@ impl Tooltip {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let hide_delay_duration_ms = styles.get_number_or(
             ensogl_hardcoded_theme::application::tooltip::hide_delay_duration_ms,
             0.0,

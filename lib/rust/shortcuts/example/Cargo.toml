@@ -14,7 +14,7 @@ enso-prelude = { path = "../../prelude" }
 enso-frp = { path = "../../frp" }
 enso-shortcuts = { path = "../../shortcuts" }
 enso-web = { path = "../../web" }
-wasm-bindgen = { version = "0.2.58", features = [
+wasm-bindgen = { version = "0.2.78", features = [
   "nightly",
   "serde-serialize"
 ] }

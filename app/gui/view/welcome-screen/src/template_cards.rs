@@ -9,11 +9,10 @@ use crate::ClickableElement;
 
 use enso_frp as frp;
 use ensogl::system::web;
-use ensogl::system::web::AttributeSetter;
-use ensogl::system::web::NodeInserter;
-use wasm_bindgen::JsCast;
-use web_sys::Element;
-use web_sys::HtmlDivElement;
+use ensogl::system::web::traits::*;
+use web::Element;
+use web::HtmlDivElement;
+use web::JsCast;
 
 
 
@@ -88,16 +87,16 @@ pub struct Model {
 impl Model {
     /// Constructor.
     pub fn new(logger: Logger, open_template: &frp::Any<String>) -> Self {
-        let root_dom = web::create_element("main");
+        let root_dom = web::document.create_element_or_panic("main");
         root_dom.set_class_name(crate::css_class::CONTENT);
-        let templates = web::create_div();
+        let templates = web::document.create_div_or_panic();
 
         let header = Self::create_header("Templates");
-        templates.append_or_warn(&header, &logger);
+        templates.append_or_warn(&header);
 
-        let (cards_dom, cards) = Self::create_cards(&logger);
-        templates.append_or_warn(&cards_dom, &logger);
-        root_dom.append_or_warn(&templates, &logger);
+        let (cards_dom, cards) = Self::create_cards();
+        templates.append_or_warn(&cards_dom);
+        root_dom.append_or_warn(&templates);
 
         let model = Self { logger, root_dom, cards: Rc::new(cards) };
         model.setup_event_listeners(open_template);
@@ -116,58 +115,54 @@ impl Model {
     }
 
     fn create_header(content: &str) -> Element {
-        let header = web::create_element("h2");
+        let header = web::document.create_element_or_panic("h2");
         header.set_text_content(Some(content));
         header
     }
 
     /// Create main content, a set of cards.
-    fn create_cards(logger: &Logger) -> (HtmlDivElement, Vec<Card>) {
+    fn create_cards() -> (HtmlDivElement, Vec<Card>) {
         let mut cards = Vec::new();
-        let dom = web::create_div();
+        let dom = web::document.create_div_or_panic();
         dom.set_class_name(crate::css_class::CARDS);
 
-        let row1 = Self::create_row(&[CARD_SPREADSHEETS, CARD_GEO], &mut cards, logger);
-        dom.append_or_warn(&row1, logger);
+        let row1 = Self::create_row(&[CARD_SPREADSHEETS, CARD_GEO], &mut cards);
+        dom.append_or_warn(&row1);
 
-        let row2 = Self::create_row(&[CARD_VISUALIZE], &mut cards, logger);
-        dom.append_or_warn(&row2, logger);
+        let row2 = Self::create_row(&[CARD_VISUALIZE], &mut cards);
+        dom.append_or_warn(&row2);
 
         (dom, cards)
     }
 
-    fn create_row(
-        definitions: &[CardDefinition],
-        cards: &mut Vec<Card>,
-        logger: &Logger,
-    ) -> HtmlDivElement {
-        let row = web::create_div();
+    fn create_row(definitions: &[CardDefinition], cards: &mut Vec<Card>) -> HtmlDivElement {
+        let row = web::document.create_div_or_panic();
         row.set_class_name(crate::css_class::ROW);
         for definition in definitions {
-            let card = Self::create_card(definition, logger);
-            row.append_or_warn(&card.element, logger);
+            let card = Self::create_card(definition);
+            row.append_or_warn(&card.element);
             cards.push(card.clone());
         }
         row
     }
 
     /// Helper to create a single card DOM from provided definition.
-    fn create_card(definition: &CardDefinition, logger: &Logger) -> Card {
-        let card = web::create_div();
+    fn create_card(definition: &CardDefinition) -> Card {
+        let card = web::document.create_div_or_panic();
         card.set_class_name(&format!("{} {}", crate::css_class::CARD, definition.class));
         if let Some(src) = definition.background_image_url {
-            let img = web::create_element("img");
-            img.set_attribute_or_warn("src", src, logger);
-            card.append_or_warn(&img, logger);
+            let img = web::document.create_element_or_panic("img");
+            img.set_attribute_or_warn("src", src);
+            card.append_or_warn(&img);
         }
-        let card_header = web::create_element("h3");
+        let card_header = web::document.create_element_or_panic("h3");
         card_header.set_text_content(Some(definition.header));
-        card.append_or_warn(&card_header, logger);
-        let text_content = web::create_element("p");
+        card.append_or_warn(&card_header);
+        let text_content = web::document.create_element_or_panic("p");
         text_content.set_text_content(Some(definition.content));
-        card.append_or_warn(&text_content, logger);
+        card.append_or_warn(&text_content);
 
-        let clickable_element = ClickableElement::new(card.unchecked_into(), logger);
+        let clickable_element = ClickableElement::new(card.unchecked_into());
         Card { clickable_element, template_name: definition.template }
     }
 }
