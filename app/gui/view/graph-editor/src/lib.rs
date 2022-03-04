@@ -1758,7 +1758,7 @@ impl GraphEditorModel {
         find_free_place(starting_from, direction, node_areas)
     }
 
-    /// Calculate a position for a new node, starting from the mouse position, but aligning to the
+    /// Calculate a position for a new node, starting from the mouse position and aligning to the
     /// source node of the specified edge if the mouse position is close to the node.
     ///
     /// See [`new_node_position_aligned_if_close_to_node()`] for details on what "close to" means.
@@ -1772,7 +1772,7 @@ impl GraphEditorModel {
         self.new_node_position_aligned_if_close_to_node(mouse_position, edge_source_node)
     }
 
-    /// Calculate a position for a new node, starting from the mouse position, but aligning to the
+    /// Calculate a position for a new node, starting from the mouse position and aligning to the
     /// node closest to the mouse position if it is close enough.
     ///
     /// See [`new_node_position_aligned_if_close_to_node()`] for details on what is close enough.
