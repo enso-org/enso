@@ -10,6 +10,22 @@ use nalgebra::clamp;
 // ===================
 
 /// Describes a 2D bounding box of an UI component.
+///
+/// As pictured below, the left edge of a bounding box has a smaller or equal x coordinate compared
+/// to the right edge, and the bottom edge has a smaller or equal y coordinate compared to the top
+/// edge.
+/// ```text
+///  ▲
+///  ┆ y
+///  ┆          top
+///  ┆       ┌────────┐
+///  ┆ left  │        │ right
+///  ┆       └────────┘
+///  ┆         bottom
+///  ┆                        x
+/// ┄+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄▶
+///  ┆
+/// ```
 #[derive(Clone, Copy, Default, Debug)]
 pub struct BoundingBox {
     top:    f32,
