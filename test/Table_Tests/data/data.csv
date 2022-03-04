@@ -2,9 +2,9 @@ Code,Index,Flag,Value,ValueWithNothing,TextWithNothing,Hexadecimal
 gxl,7,True,38.76109,63.13,pq6igd2wyd,4DD4675B
 wca,0,False,-66.77495,31.29,2pr4102wc4,
 gjb,6,False,74.19642,-11.06,kmqxqkl6qx,431A3D20
-nfw,1,True,88.65713,-68.71,nlb8q51hhf,01896EAB
-ivt,7,False,-17.12076,24.83,7bhhucbo4a,22BAF9F6
-zfd,2,True,48.50013,-13.3,6aw8ela55j,BFFCC5FC
+nfw,1,True,88.65713,-68.71,"",01896EAB
+ivt,7,False,-17.12076,24.83,"",22BAF9F6
+zfd,2,True,48.50013,-13.3,"",BFFCC5FC
 zoh,1,False,-62.63629,22.61,byo6kn5l3s,CB056D3A
 gtt,7,False,-29.82496,87.69,tlujzya1c1,B433E5B9
 wmh,9,False,-73.1439,53.1,r6k0uepdx6,9DCB7D82
@@ -674,10 +674,10 @@ pkc,5,False,71.07812,-59.3,0u84uk90go,94E92DD2
 qlw,8,True,-30.08134,,oyza7v5w1p,A4F706B1
 vpn,2,True,-36.55397,-36.26,ac79yz8l7p,4980473E
 gfw,5,False,-43.39455,23.17,ekiucvf180,962DEA9E
-pnz,1,False,-33.18765,17.88,f5etkc3p2n,C230DD60
+pnz,1,False,-33.18765,17.88,f5,C230DD60
 fsk,6,True,-69.42736,-40.96,nu696crq1g,
 oyi,3,True,-92.40619,-87.65,abq0s4fmr1,B7F9E6B2
-txe,3,True,93.18332,37.65,setp295gjv,1FA0E84D
+txe,3,True,93.18332,37.65,setp295gjvbanana,1FA0E84D
 uqb,9,False,63.79064,-95.85,vqmhwk2n9o,FEF6E7D9
 uur,2,False,-5.89696,97.39,1gshxyxs21,645C3035
 yfl,5,False,-1.83678,-56.1,,9315791B
