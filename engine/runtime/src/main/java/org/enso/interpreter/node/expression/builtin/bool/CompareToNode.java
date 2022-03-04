@@ -1,12 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.bool;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Ordering;
@@ -25,9 +21,8 @@ public abstract class CompareToNode extends Node {
     @Specialization
     Atom doBoolean(
             Boolean _this,
-            Boolean that,
-            @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef,
-            @Cached("getOrdering(ctxRef)") Ordering ordering) {
+            Boolean that) {
+        Ordering ordering = Context.get(this).getBuiltins().ordering();
         if (_this == that) {
             return ordering.newEqual();
         } else if (_this) {
@@ -39,14 +34,10 @@ public abstract class CompareToNode extends Node {
 
     @Specialization
     Atom doOther(
-            Boolean _this, Object that, @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef) {
+            Boolean _this, Object that) {
         CompilerDirectives.transferToInterpreter();
-        var bool = ctxRef.get().getBuiltins().bool().getBool().newInstance();
-        var typeError = ctxRef.get().getBuiltins().error().makeTypeError(that, bool, "that");
+        var bool = Context.get(this).getBuiltins().bool().getBool().newInstance();
+        var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, bool, "that");
         throw new PanicException(typeError, this);
-    }
-
-    Ordering getOrdering(TruffleLanguage.ContextReference<Context> ctxRef) {
-        return ctxRef.get().getBuiltins().ordering();
     }
 }
