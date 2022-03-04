@@ -4824,7 +4824,7 @@ Signals that the requested file read was out of bounds for the file's size.
 "error" : {
   "code" : 1009
   "message" : "Read is out of bounds for the file"
-  "data" : {
+  "payload" : {
     "fileLength" : 0
   }
 }
@@ -4927,7 +4927,7 @@ cannot be evaluated. The error contains an optional `data` field of type
 "error" : {
   "code" : 2007,
   "message" : "Evaluation of the visualisation expression failed [i is not defined]"
-  "data" : {
+  "payload" : {
     "kind" : "Error",
     "message" : "i is not defined",
     "path" : null,
