@@ -1,10 +1,13 @@
 package org.enso.base;
 
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.CaseMap;
+import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /** Utils for standard library operations on Text. */
@@ -118,6 +121,23 @@ public class Text_Utils {
   }
 
   /**
+   * Checks whether two strings are equal up to Unicode canonicalization and ignoring case.
+   *
+   * @param str1 the first string
+   * @param str2 the second string
+   * @param locale the locale to use for case folding
+   * @return the result of comparison
+   */
+  public static boolean equals_ignore_case(String str1, Object str2, Locale locale) {
+    if (str2 instanceof String) {
+      Fold fold = case_fold_algorithm_for_locale(locale);
+      return compare_normalized(fold.apply(str1), fold.apply((String) str2)) == 0;
+    } else {
+      return false;
+    }
+  }
+
+  /**
    * Converts an array of codepoints into a string.
    *
    * @param codepoints the codepoints to convert
@@ -177,6 +197,48 @@ public class Text_Utils {
   }
 
   /**
+   * Checks if {@code substring} is a substring of {@code string}.
+   *
+   * @param string the containing string.
+   * @param substring the contained string.
+   * @return whether {@code substring} is a substring of {@code string}.
+   */
+  public static boolean contains_case_insensitive(String string, String substring, Locale locale) {
+    // {@code StringSearch} does not handle empty strings as we would want, so we need these special
+    // cases.
+    if (substring.length() == 0) return true;
+    if (string.length() == 0) return false;
+
+    Fold fold = case_fold_algorithm_for_locale(locale);
+    StringSearch searcher = new StringSearch(fold.apply(substring), fold.apply(string));
+    return searcher.first() != StringSearch.DONE;
+  }
+
+  /**
+   * Transforms the provided string into a form which can be used for case insensitive comparisons.
+   *
+   * @param string the string to transform
+   * @param locale the locale to use - needed to distinguish a special case when handling Turkish
+   *     'i' characters
+   * @return a transformed string that can be used for case insensitive comparisons
+   */
+  public static String case_insensitive_key(String string, Locale locale) {
+    Fold fold = case_fold_algorithm_for_locale(locale);
+    return fold.apply(string);
+  }
+
+  private static final Locale AZ_LOCALE = new Locale("az");
+  private static final Locale TR_LOCALE = new Locale("tr");
+
+  /** Returns a case folding algorithm appropriate for the given locale. */
+  public static Fold case_fold_algorithm_for_locale(Locale locale) {
+    if (locale.equals(AZ_LOCALE) || locale.equals(TR_LOCALE)) {
+      return CaseMap.fold().turkic();
+    }
+    return CaseMap.fold();
+  }
+
+  /**
    * Replaces all occurrences of {@code oldSequence} within {@code str} with {@code newSequence}.
    *
    * @param str the string to process
@@ -221,15 +283,10 @@ public class Text_Utils {
    */
   public static long last_index_of(String haystack, String needle) {
     StringSearch search = new StringSearch(needle, haystack);
-    int pos = search.first();
+    int pos = search.last();
     if (pos == StringSearch.DONE) {
       return -1;
     }
-
-    for (int next = search.next(); next != StringSearch.DONE; next = search.next()) {
-      pos = next;
-    }
-
     return pos;
   }
 
