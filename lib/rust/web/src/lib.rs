@@ -252,7 +252,8 @@ ops! { ReflectOps for Reflect
 
         /// Get the nested value of the provided object and cast it to [`String`]. See docs of
         /// [`get_nested`] to learn more.
-        fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue>;
+        fn get_nested_object_printed_as_string(target: &JsValue, keys: &[&str])
+            -> Result<String, JsValue>;
     }
 
     impl {
@@ -271,14 +272,17 @@ ops! { ReflectOps for Reflect
             tgt.dyn_into()
         }
 
-        fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue> {
+        fn get_nested_object_printed_as_string
+        (target: &JsValue, keys: &[&str]) -> Result<String, JsValue> {
             let tgt = Self::get_nested(target, keys)?;
-            let str = tgt.dyn_into::<JsString>()?;
-            Ok(String::from(str))
+            if tgt.is_undefined() {
+                Err(Error::new("Key was not present in the target.").into())
+            } else {
+                Ok(tgt.print_to_string())
+            }
         }
     }
 }
-
 
 
 // =================

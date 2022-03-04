@@ -2,6 +2,7 @@
 
 use enso_prelude::*;
 
+pub use js_sys::Error;
 pub use js_sys::Function;
 pub use js_sys::JsString;
 pub use js_sys::Object;

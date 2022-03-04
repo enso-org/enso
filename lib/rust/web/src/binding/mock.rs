@@ -395,6 +395,19 @@ impl From<&JsString> for String {
 mock_data! { Array => Object }
 
 
+// === Error ===
+
+mock_data! { Error => Object
+    fn new(message: &str) -> Self;
+}
+
+impl From<Error> for JsValue {
+    fn from(_: Error) -> Self {
+        mock_default()
+    }
+}
+
+
 
 // ====================
 // === DOM Elements ===

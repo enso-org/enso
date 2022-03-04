@@ -158,8 +158,8 @@ macro_rules! read_args {
                             $(
                                 let name   = stringify!{$field};
                                 let tp     = stringify!{$field_type};
-                                let $field = ensogl::system::web::Reflect::get_nested_string
-                                    (&cfg,&[name]).ok();
+                                let $field = ensogl::system::web::Reflect::
+                                    get_nested_object_printed_as_string(&cfg,&[name]).ok();
                                 let $field = $field.map
                                     ($crate::application::args::ArgReader::read_arg);
                                 if $field == Some(None) {
