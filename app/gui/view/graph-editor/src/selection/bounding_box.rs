@@ -131,69 +131,112 @@ mod tests {
 
     #[test]
     fn test_intersection() {
-        assert_intersect(((0.5, 0.5), (1.0, 1.0)), ((0.0, 0.0), (2.0, 2.0)), true);
-        assert_intersect(((3.0, 3.0), (4.0, 4.0)), ((0.0, 0.0), (2.0, 2.0)), false);
-        assert_intersect(((0.0, 0.0), (4.0, 4.0)), ((0.0, 0.0), (-2.0, -2.0)), true);
-        assert_intersect(((0.0, 0.0), (4.0, 4.0)), ((2.0, 2.0), (200.0, 200.0)), true);
-        assert_intersect(((-50.0, -50.0), (25.0, 25.0)), ((5.00, 50.0), (100.0, 100.0)), false);
+        assert_intersect(
+            bounding_box((0.5, 0.5), (1.0, 1.0)),
+            bounding_box((0.0, 0.0), (2.0, 2.0)),
+            true,
+        );
+        assert_intersect(
+            bounding_box((3.0, 3.0), (4.0, 4.0)),
+            bounding_box((0.0, 0.0), (2.0, 2.0)),
+            false,
+        );
+        assert_intersect(
+            bounding_box((0.0, 0.0), (4.0, 4.0)),
+            bounding_box((0.0, 0.0), (-2.0, -2.0)),
+            true,
+        );
+        assert_intersect(
+            bounding_box((0.0, 0.0), (4.0, 4.0)),
+            bounding_box((2.0, 2.0), (200.0, 200.0)),
+            true,
+        );
+        assert_intersect(
+            bounding_box((-50.0, -50.0), (25.0, 25.0)),
+            bounding_box((5.00, 50.0), (100.0, 100.0)),
+            false,
+        );
     }
 
-    fn assert_intersect(bb1: RectangleCorners, bb2: RectangleCorners, expected_to_intersect: bool) {
-        let bb1 = bounding_box_from_corners(bb1.0, bb1.1);
-        let bb2 = bounding_box_from_corners(bb2.0, bb2.1);
+    fn assert_intersect(bb1: BoundingBox, bb2: BoundingBox, expected_to_intersect: bool) {
         assert_eq!(bb1.intersects(&bb2), expected_to_intersect);
         assert_eq!(bb2.intersects(&bb1), expected_to_intersect);
     }
 
     #[test]
     fn test_concat() {
-        assert_concat(((0.0, 0.0), (2.0, 3.0)), ((2.0, 3.0), (4.0, 5.0)), ((0.0, 0.0), (4.0, 5.0)));
         assert_concat(
-            ((0.0, 0.0), (1.0, 1.0)),
-            ((-1.0, -1.0), (0.5, 0.5)),
-            ((-1.0, -1.0), (1.0, 1.0)),
+            bounding_box((0.0, 0.0), (2.0, 3.0)),
+            bounding_box((2.0, 3.0), (4.0, 5.0)),
+            bounding_box((0.0, 0.0), (4.0, 5.0)),
         );
-        assert_concat(((0.0, 0.0), (1.0, 1.0)), ((0.3, 0.3), (0.6, 0.6)), ((0.0, 0.0), (1.0, 1.0)));
+        assert_concat(
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+            bounding_box((-1.0, -1.0), (0.5, 0.5)),
+            bounding_box((-1.0, -1.0), (1.0, 1.0)),
+        );
+        assert_concat(
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+            bounding_box((0.3, 0.3), (0.6, 0.6)),
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+        );
     }
 
-    fn bounding_box_from_corners(bottom_left: (f32, f32), top_right: (f32, f32)) -> BoundingBox {
+    fn bounding_box(bottom_left: (f32, f32), top_right: (f32, f32)) -> BoundingBox {
         BoundingBox::from_corners(
             Vector2(bottom_left.0, bottom_left.1),
             Vector2(top_right.0, top_right.1),
         )
     }
 
-    type RectangleCorners = ((f32, f32), (f32, f32));
-
-    fn assert_concat(
-        bb1: RectangleCorners,
-        bb2: RectangleCorners,
-        expected_result: RectangleCorners,
-    ) {
-        let bb1 = bounding_box_from_corners(bb1.0, bb1.1);
-        let bb2 = bounding_box_from_corners(bb2.0, bb2.1);
+    fn assert_concat(bb1: BoundingBox, bb2: BoundingBox, expected_result: BoundingBox) {
         let result = bb1.concat(bb2);
-        assert_eq!(((result.left, result.bottom), (result.right, result.top)), expected_result);
+        assert_eq!(result.left, expected_result.left);
+        assert_eq!(result.right, expected_result.right);
+        assert_eq!(result.top, expected_result.top);
+        assert_eq!(result.bottom, expected_result.bottom);
     }
 
     fn assert_squared_distance_to_point(
-        bb: RectangleCorners,
-        point: (f32, f32),
+        bb: BoundingBox,
+        point: Vector2,
         expected_squared_distance: f32,
     ) {
-        let bb = bounding_box_from_corners(bb.0, bb.1);
-        let point = Vector2(point.0, point.1);
         assert_approx_eq!(bb.squared_distance_to_point(point), expected_squared_distance);
     }
 
     #[test]
     fn test_squared_distance_to_point() {
-        assert_squared_distance_to_point(((-1.0, -1.0), (0.0, 0.0)), (3.0, 4.0), 5.0.pow(2.0));
+        assert_squared_distance_to_point(
+            bounding_box((-1.0, -1.0), (0.0, 0.0)),
+            Vector2(3.0, 4.0),
+            5.0.pow(2.0),
+        );
         // Distance between a bounding box and a point inside it should be 0.
-        assert_squared_distance_to_point(((0.0, 0.0), (1.0, 1.0)), (0.5, 0.5), 0.0);
-        assert_squared_distance_to_point(((0.0, 0.0), (1.0, 1.0)), (3.0, 0.0), 2.0.pow(2.0));
-        assert_squared_distance_to_point(((0.0, 0.0), (1.0, 1.0)), (-2.0, 0.0), 2.0.pow(2.0));
-        assert_squared_distance_to_point(((0.0, 0.0), (1.0, 1.0)), (0.0, -2.0), 2.0.pow(2.0));
-        assert_squared_distance_to_point(((0.0, 0.0), (1.0, 1.0)), (0.0, 3.0), 2.0.pow(2.0));
+        assert_squared_distance_to_point(
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+            Vector2(0.5, 0.5),
+            0.0,
+        );
+        assert_squared_distance_to_point(
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+            Vector2(3.0, 0.0),
+            2.0.pow(2.0),
+        );
+        assert_squared_distance_to_point(
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+            Vector2(-2.0, 0.0),
+            2.0.pow(2.0),
+        );
+        assert_squared_distance_to_point(
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+            Vector2(0.0, -2.0),
+            2.0.pow(2.0),
+        );
+        assert_squared_distance_to_point(
+            bounding_box((0.0, 0.0), (1.0, 1.0)),
+            Vector2(0.0, 3.0),
+            2.0.pow(2.0),
+        );
     }
 }
