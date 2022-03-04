@@ -76,3 +76,19 @@ impl AsRef<theme::Manager> for Application {
         &self.themes
     }
 }
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_compilation_in_test_mode() {
+        let _app = Application::new("root");
+        assert_eq!(1, 1);
+    }
+}
