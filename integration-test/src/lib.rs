@@ -56,7 +56,6 @@ impl IntegrationTest {
 
     /// Initializes the executor and `Ide` structure and returns new Fixture.
     pub async fn setup() -> Self {
-        enso_web::forward_panic_hook_to_console();
         let executor = setup_global_executor();
         let root_div = enso_web::document.create_div_or_panic();
         root_div.set_id("root");

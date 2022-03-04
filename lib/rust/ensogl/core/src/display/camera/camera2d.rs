@@ -406,7 +406,8 @@ impl Camera2d {
         self.data.borrow_mut().update(scene)
     }
 
-    // FIXME: this can fail - updated to shared registry already.
+    // FIXME: This can fail, for example, when during calling the callback another callback is
+    //        being registered.
     /// Adds a callback to notify when `zoom` is updated.
     pub fn add_zoom_update_callback<F: ZoomUpdateFn>(&self, f: F) -> callback::Handle {
         self.data.borrow_mut().add_zoom_update_callback(f)

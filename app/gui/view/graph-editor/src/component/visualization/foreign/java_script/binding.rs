@@ -34,6 +34,9 @@ pub const JS_CLASS_NAME: &str = "Visualization";
 // === JavaScript Bindings ===
 // ===========================
 
+// TODO: Add docs to the WASM32 bindings below - esp. what is the difference between
+//       __Visualization__ and Visualization.
+
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "/src/component/visualization/foreign/java_script/visualization.js")]
 extern "C" {

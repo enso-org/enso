@@ -240,17 +240,6 @@ impl<F> Registry<F> {
 }
 
 
-macro_rules! gen_registry_alias {
-    ($name:ident = $data:ident<$w_tp:ident<dyn $fn_tp:ident($($arg:ident),*)>>) => {
-        pub type $name<$($arg),*> = $data<$w_tp<dyn $fn_tp($($arg,)*)>>;
-    };
-}
-
-macro_rules! gen_registry_alias_ref {
-    ($name:ident = $data:ident<$w_tp:ident<dyn $fn_tp:ident($($arg:ident),*)>>) => {
-        pub type $name<$($arg),*> = $data<$w_tp<dyn $fn_tp($(&$arg,)*)>>;
-    };
-}
 
 /// Aliases for common [`Registry`] instantiations. The names directly correspond to the
 /// [`::callback_types`] namespace. For example, the [`::registry::CopyMut3`] is a callback registry
@@ -279,32 +268,33 @@ macro_rules! gen_registry_alias_ref {
 pub mod registry {
     use super::*;
 
-    gen_registry_alias!(NoArgs = Registry<RegistryFn<dyn Fn()>>);
-    gen_registry_alias!(MutNoArgs = Registry<RegistryFnMut<dyn FnMut()>>);
+    pub type NoArgs = Registry<RegistryFn<dyn Fn()>>;
+    pub type MutNoArgs = Registry<RegistryFnMut<dyn FnMut()>>;
 
-    gen_registry_alias!(Copy1 = Registry<RegistryFn<dyn Fn(T1)>>);
-    gen_registry_alias!(Copy2 = Registry<RegistryFn<dyn Fn(T1,T2)>>);
-    gen_registry_alias!(Copy3 = Registry<RegistryFn<dyn Fn(T1,T2,T3)>>);
-    gen_registry_alias!(Copy4 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4)>>);
-    gen_registry_alias!(Copy5 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4,T5)>>);
+    pub type Copy1<T1> = Registry<RegistryFn<dyn Fn(T1)>>;
+    pub type Copy2<T1, T2> = Registry<RegistryFn<dyn Fn(T1, T2)>>;
+    pub type Copy3<T1, T2, T3> = Registry<RegistryFn<dyn Fn(T1, T2, T3)>>;
+    pub type Copy4<T1, T2, T3, T4> = Registry<RegistryFn<dyn Fn(T1, T2, T3, T4)>>;
+    pub type Copy5<T1, T2, T3, T4, T5> = Registry<RegistryFn<dyn Fn(T1, T2, T3, T4, T5)>>;
 
-    gen_registry_alias_ref!(Ref1 = Registry<RegistryFn<dyn Fn(T1)>>);
-    gen_registry_alias_ref!(Ref2 = Registry<RegistryFn<dyn Fn(T1,T2)>>);
-    gen_registry_alias_ref!(Ref3 = Registry<RegistryFn<dyn Fn(T1,T2,T3)>>);
-    gen_registry_alias_ref!(Ref4 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4)>>);
-    gen_registry_alias_ref!(Ref5 = Registry<RegistryFn<dyn Fn(T1,T2,T3,T4,T5)>>);
+    pub type Ref1<T1> = Registry<RegistryFn<dyn Fn(&T1)>>;
+    pub type Ref2<T1, T2> = Registry<RegistryFn<dyn Fn(&T1, &T2)>>;
+    pub type Ref3<T1, T2, T3> = Registry<RegistryFn<dyn Fn(&T1, &T2, &T3)>>;
+    pub type Ref4<T1, T2, T3, T4> = Registry<RegistryFn<dyn Fn(&T1, &T2, &T3, &T4)>>;
+    pub type Ref5<T1, T2, T3, T4, T5> = Registry<RegistryFn<dyn Fn(&T1, &T2, &T3, &T4, &T5)>>;
 
-    gen_registry_alias!(CopyMut1 = Registry<RegistryFnMut<dyn FnMut(T1)>>);
-    gen_registry_alias!(CopyMut2 = Registry<RegistryFnMut<dyn FnMut(T1,T2)>>);
-    gen_registry_alias!(CopyMut3 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3)>>);
-    gen_registry_alias!(CopyMut4 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4)>>);
-    gen_registry_alias!(CopyMut5 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4,T5)>>);
+    pub type CopyMut1<T1> = Registry<RegistryFnMut<dyn FnMut(T1)>>;
+    pub type CopyMut2<T1, T2> = Registry<RegistryFnMut<dyn FnMut(T1, T2)>>;
+    pub type CopyMut3<T1, T2, T3> = Registry<RegistryFnMut<dyn FnMut(T1, T2, T3)>>;
+    pub type CopyMut4<T1, T2, T3, T4> = Registry<RegistryFnMut<dyn FnMut(T1, T2, T3, T4)>>;
+    pub type CopyMut5<T1, T2, T3, T4, T5> = Registry<RegistryFnMut<dyn FnMut(T1, T2, T3, T4, T5)>>;
 
-    gen_registry_alias_ref!(RefMut1 = Registry<RegistryFnMut<dyn FnMut(T1)>>);
-    gen_registry_alias_ref!(RefMut2 = Registry<RegistryFnMut<dyn FnMut(T1,T2)>>);
-    gen_registry_alias_ref!(RefMut3 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3)>>);
-    gen_registry_alias_ref!(RefMut4 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4)>>);
-    gen_registry_alias_ref!(RefMut5 = Registry<RegistryFnMut<dyn FnMut(T1,T2,T3,T4,T5)>>);
+    pub type RefMut1<T1> = Registry<RegistryFnMut<dyn FnMut(&T1)>>;
+    pub type RefMut2<T1, T2> = Registry<RegistryFnMut<dyn FnMut(&T1, &T2)>>;
+    pub type RefMut3<T1, T2, T3> = Registry<RegistryFnMut<dyn FnMut(&T1, &T2, &T3)>>;
+    pub type RefMut4<T1, T2, T3, T4> = Registry<RegistryFnMut<dyn FnMut(&T1, &T2, &T3, &T4)>>;
+    pub type RefMut5<T1, T2, T3, T4, T5> =
+        Registry<RegistryFnMut<dyn FnMut(&T1, &T2, &T3, &T4, &T5)>>;
 }
 
 

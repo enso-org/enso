@@ -145,12 +145,8 @@ async fn adding_node_with_add_node_button() {
     assert!(node_source.is_none());
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 3);
     let node_position = graph_editor.model.get_node_position(node_id).expect("Node was not added");
-    let center_of_screen = test
-        .ide
-        .ensogl_app
-        .display
-        .default_scene
-        .screen_to_scene_coordinates(Vector3(0.0, 0.0, 0.0));
+    let scene = &test.ide.ensogl_app.display.default_scene;
+    let center_of_screen = scene.screen_to_scene_coordinates(Vector3(0.0, 0.0, 0.0));
     assert_abs_diff_eq!(node_position.x, center_of_screen.x, epsilon = 10.0);
     assert_abs_diff_eq!(node_position.y, center_of_screen.y, epsilon = 10.0);
 }

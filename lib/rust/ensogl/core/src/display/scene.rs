@@ -1181,8 +1181,8 @@ impl display::Object for Scene {
 // === DomPath ===
 // ===============
 
-/// Abstraction for DOM path. It can be either a specific HTML element or a string which will be
-/// used to look up for the element by its id.
+/// Abstraction for DOM path. It can be either a specific HTML element or a DOM id, a string used
+/// to query the DOM structure to find the corresponding HTML node.
 #[allow(missing_docs)]
 pub trait DomPath {
     fn try_into_dom_element(self) -> Option<HtmlElement>;
