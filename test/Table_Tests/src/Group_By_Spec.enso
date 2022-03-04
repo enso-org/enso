@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+import Standard.Table
+import Standard.Table.Data.Column_Selector
+from Standard.Table.Data.Aggregate_Column import all
+
+import Standard.Test
+
+spec =
+    file_contents = (Enso_Project.data / "data.csv")
+    table = Table.from_csv file_contents
+
+    Test.group "summarize whole table "<|
+        Test.specify "should be able to count" <|
+            grouped = table.group_by (Column_Selector.By_Index []) [Count Nothing]
+            grouped.columns.count . should_equal 1
+            grouped.columns.first.name . should_equal "Count"
+            grouped.row_count . should_equal 1
+            grouped.columns.first.at 0 . should_equal 2500
+
+main = Test.Suite.run_main here.spec

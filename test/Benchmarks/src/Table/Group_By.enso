@@ -7,23 +7,24 @@ import Standard.Table.Data.Table
 
 ## Bench Utilities ============================================================
 
-vector_size = 10000
+vector_size = 2500
 iter_size = 100
 num_iterations = 10
 
 create_table : Integer->Integer->Table
 create_table rows (seed=1646322139) =
     faker = Faker.new seed
-    key1 = ["Code", 0.up_to rows . map (faker.alpha 3)]
-    key2 = ["Index", 0.up_to rows . map (faker.integer 0 10)]
-    key3 = ["Flag", 0.up_to rows . map (faker.boolean)]
-    value1 = ["Value", 0.up_to rows . map (faker.decimal -100 100)]
-    value2 = ["ValueWithNothing", 0.up_to rows . map (faker.make_some_nothing (faker.decimal -100 100))]
-    text1 = ["TextWithNothing", 0.up_to rows . map (faker.make_some_nothing (faker.alpha_numeric 10))]
-    text2 = ["Hexadecimal", 0.up_to rows . map (faker.make_some_nothing (faker.hexadecimal 8))]
+    key1 = ["Code", 0.up_to rows . map _-> faker.alpha 3]
+    key2 = ["Index", 0.up_to rows . map _-> faker.integer 0 10]
+    key3 = ["Flag", 0.up_to rows . map _-> faker.boolean]
+    value1 = ["Value", 0.up_to rows . map _-> ((faker.decimal -100 100)*100000).floor/100000]
+    value2 = ["ValueWithNothing", 0.up_to rows . map _-> faker.make_some_nothing ((faker.decimal -100 100)*100).floor/100]
+    text1 = ["TextWithNothing", 0.up_to rows . map _-> faker.make_some_nothing (faker.alpha_numeric 10)]
+    text2 = ["Hexadecimal", 0.up_to rows . map _-> faker.make_some_nothing (faker.hexadecimal 8)]
     Table.new [key1, key2, key3, value1, value2, text1, text2]
 
 # The Benchmarks ==============================================================
 main =
     IO.println <| "Making table data..."
     table = here.create_table here.vector_size
+    table.write_csv (File.new "data.csv")
