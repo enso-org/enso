@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-// use crate::binding::wasm::Error;
-
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 

@@ -89,6 +89,5 @@ mod tests {
     #[test]
     fn native_compilation_in_test_mode() {
         let _app = Application::new("root");
-        assert_eq!(1, 1);
     }
 }

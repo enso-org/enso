@@ -22,7 +22,6 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use enso_web as web;
-// use enso_web::binding::wasm::Error;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
 use enso_web::Closure;

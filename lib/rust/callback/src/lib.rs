@@ -239,8 +239,6 @@ impl<F> Registry<F> {
     }
 }
 
-
-
 /// Aliases for common [`Registry`] instantiations. The names directly correspond to the
 /// [`::callback_types`] namespace. For example, the [`::registry::CopyMut3`] is a callback registry
 /// for [`CopyMut3`] callbacks.
