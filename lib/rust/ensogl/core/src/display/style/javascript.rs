@@ -168,7 +168,7 @@ pub fn expose_to_window(manager: &Manager) {
         mem::forget(interactive_mode);
         theme_ref
     });
-    
+
     #[cfg(target_arch = "wasm32")]
     let window = web::window;
     #[cfg(target_arch = "wasm32")]

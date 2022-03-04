@@ -93,7 +93,7 @@ impl Container {
         let scene = scene.clone_ref();
         let logger = Logger::new("error::Container");
         let display_object = display::object::Instance::new(&logger);
-        let background_dom = Self::create_background_dom( &scene);
+        let background_dom = Self::create_background_dom(&scene);
         let visualization = error_visualization::Error::new(&scene);
 
         display_object.add_child(&background_dom);
