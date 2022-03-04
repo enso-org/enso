@@ -64,7 +64,7 @@ type PointData
 
     ## PRIVATE
     name : Text
-    name = this.to_text.to_lower_case
+    name = this.to_text.to_case Case.Lower
 
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column

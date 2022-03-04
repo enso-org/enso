@@ -9,16 +9,6 @@
 //! Every profiler has a parent, except the special profiler value [`APP_LIFETIME`]. Each of its
 //! children is considered a *root profiler*.
 //!
-//! ## Parents of async tasks
-//!
-//! `async` tasks do not have an inherent parent-child relationship. To fit them into a hierarchical
-//! data model, we must rely on convention: when a profiler is created, **its parent must be
-//! chosen** such that the lifetime of the child is entirely bounded within the lifetime of the
-//! parent. The appropriate parent for a profiler will not necessarily be its direct ancestor in
-//! scope, nor necessarily the most recent profiler that has been started and not yet finished--
-//! typically, it will be both of those things, but users must be aware of exceptional cases.
-//! Exceptions will usually occur when a task is *spawned*, e.g. with `executor::global::spawn`.
-//!
 //! # Profiling levels
 //!
 //! Profiling has performance overhead; to support fine-grained measurement when it is needed, but
@@ -59,7 +49,7 @@
 //! units of organization of the code.
 //!
 //! To support such structured measurement, the **primary interface is a
-//! [`#[profile]`](macro@profile)  attribute macro**, which instruments a whole function.
+//! [`#[profile]`](macro@profile) attribute macro**, which instruments a whole function.
 //!
 //! # Low-level: RAII interface
 //!
@@ -80,18 +70,23 @@
 //!
 //! ```
 //! # use enso_profiler as profiler;
-//! fn using_low_level_api(input: u32, profiler: impl profiler::Parent<profiler::Task>) {
+//! # use profiler::profile;
+//! async fn using_low_level_api(input: u32, profiler: impl profiler::Parent<profiler::Task>) {
 //!     if input == 4 {
 //!         let _profiler = profiler::start_task!(profiler, "subtask_4");
 //!         // ...
 //!     } else {
 //!         let _profiler = profiler::start_task!(profiler, "subtask_other");
+//!         profiler::await_!(callee(input), _profiler);
 //!         // ...
 //!     }
 //! }
+//!
+//! #[profile(Detail)]
+//! async fn callee(input: u32) {}
 //! ```
 //!
-//! ## Measuring a block
+//! ### Measuring a block
 //!
 //! When a measurement is ended by implicitly dropping its profiler at the end of a block, the
 //! profiler should be created as **the first line of the block**; it measures one full block, and
@@ -102,12 +97,18 @@
 //! indicates that the binding is used to identify a scope, even if it is *also* used for its a
 //! value.
 //!
-//! ## Accepting a parent argument
+//! ### Accepting a parent argument
 //!
 //! A function using the low-level API may need to accept a profiler argument to use as the parent
 //! for a new profiler. The function should be able to accept any type of profiler that is of a
 //! suitable level to be a parent of the profiler it is creating. This is supported by accepting an
 //! **argument that is generic over the [`Parent`] trait**.
+//!
+//! ### Profiling `.await`
+//!
+//! Within a profiled scope, `.await` should not be used directly. The wrapper [`await_!`] is
+//! provided to await a future while making the profiling framework aware of the start and end times
+//! of the await-interval.
 //!
 //! ## Advanced Example: creating a root profiler
 //!
@@ -143,273 +144,47 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+pub mod internal;
+pub mod log;
+
 extern crate test;
 
-use std::cell;
-use std::num;
+use std::rc;
 use std::str;
 
-
-
-// =============
-// === Label ===
-// =============
-
-/// The label of a profiler; this includes the name given at its creation, along with file and
-/// line-number information.
-pub type Label = &'static str;
+use internal::*;
 
 
 
-// =================
-// === Timestamp ===
-// =================
+// ======================
+// === MetadataLogger ===
+// ======================
 
-/// Time elapsed since the [time origin](https://www.w3.org/TR/hr-time-2/#sec-time-origin).
-///
-/// Stored in units of 100us, because that is maximum resolution of performance.now():
-/// - [in the specification](https://www.w3.org/TR/hr-time-3), 100us is the limit
-/// - in practice, as observed in debug consoles: Chromium 97 (100us) and Firefox 95 (1ms)
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct Timestamp(num::NonZeroU64);
+/// An object that supports writing a specific type of metadata to the profiling log.
+#[derive(Debug)]
+pub struct MetadataLogger<T> {
+    id:      u32,
+    entries: rc::Rc<log::Log<T>>,
+}
 
-/// Offset used to encode a timestamp, which may be 0, in a [`NonZeroU64`].
-/// To maximize the supported range, this is the smallest positive integer.
-const TS_OFFSET: u64 = 1;
-
-impl Timestamp {
-    /// Return the current time, relative to the time origin.
-    pub fn now() -> Self {
-        Self::from_ms(js::performance::now())
+impl<T: 'static + serde::Serialize> MetadataLogger<T> {
+    /// Create a MetadataLogger for logging a particular type.
+    ///
+    /// The name given here must match the name used for deserialization.
+    pub fn new(name: &'static str) -> Self {
+        let id = METADATA_LOGS.len() as u32;
+        let entries = rc::Rc::new(log::Log::new());
+        METADATA_LOGS.append(rc::Rc::new(MetadataLog::<T> { name, entries: entries.clone() }));
+        Self { id, entries }
     }
 
-    /// Return the timestamp corresponding to an offset from the time origin, in ms.
-    #[allow(unsafe_code)]
-    pub fn from_ms(ms: f64) -> Self {
-        let ticks = (ms * 10.0).round() as u64;
-        // Safety: ticks + 1 will not be 0 unless a Timestamp wraps.
-        // It takes (2 ** 64) * 100us = 58_455_453 years for a Timestamp to wrap.
-        unsafe { Self(num::NonZeroU64::new_unchecked(ticks + TS_OFFSET)) }
+    /// Write a metadata object to the profiling event log.
+    ///
+    /// Returns an identifier that can be used to create references between log entries.
+    pub fn log(&self, t: T) -> EventId {
+        self.entries.append(t);
+        EventLog.metadata(self.id)
     }
-
-    /// Convert to an offset from the time origin, in ms.
-    pub fn into_ms(self) -> f64 {
-        (self.0.get() - TS_OFFSET) as f64 / 10.0
-    }
-}
-
-// === FFI ===
-
-#[cfg(target_arch = "wasm32")]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        use wasm_bindgen::prelude::*;
-
-        #[wasm_bindgen]
-        extern "C" {
-            /// The
-            /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-            /// method returns a double-precision float, measured in milliseconds.
-            ///
-            /// The returned value represents the time elapsed since the time origin, which is when
-            /// the page began to load.
-            #[wasm_bindgen(js_namespace = performance)]
-            pub fn now() -> f64;
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// Web APIs.
-pub mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        /// The
-        /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-        /// method returns a double-precision float, measured in milliseconds.
-        ///
-        /// The returned value represents the time elapsed since the time origin, which is when
-        /// the page began to load.
-        // This mock implementation returns a dummy value.
-        pub fn now() -> f64 {
-            0.0
-        }
-    }
-}
-
-
-
-// ==================
-// === ProfilerId ===
-// ==================
-
-/// Uniquely identifies a runtime measurement.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ProfilerId(u32);
-
-impl ProfilerId {
-    fn new() -> Self {
-        thread_local! {
-            pub static NEXT_ID: cell::Cell<u32> = cell::Cell::new(1);
-        }
-        ProfilerId(NEXT_ID.with(|next_id| {
-            let id = next_id.get();
-            next_id.set(id + 1);
-            id
-        }))
-    }
-}
-
-/// Pseudo-profiler serving as the root of the measurement hierarchy.
-pub const APP_LIFETIME: Objective = Objective(ProfilerId(0));
-
-
-
-// =======================
-// === StartedProfiler ===
-// =======================
-
-/// The interface supported by profiler-data objects.
-pub trait StartedProfiler {
-    /// Log a measurement, identified by `profiler`, with end-time set to now.
-    fn finish(&self, profiler: ProfilerId);
-}
-
-// === Implementation for disabled profilers ===
-
-impl StartedProfiler for () {
-    fn finish(&self, _: ProfilerId) {}
-}
-
-
-
-// ====================
-// === ProfilerData ===
-// ====================
-
-/// Data used by a started [`Measurement`] for an enabled profile level.
-#[derive(Debug, Copy, Clone)]
-pub struct ProfilerData {
-    /// Identifier of the parent [`Measurement`].
-    pub parent: ProfilerId,
-    /// Start time for this [`Measurement`], or None to indicate it is the same as `parent`.
-    pub start:  Option<Timestamp>,
-    /// Identifies where in the code this [`Measurement`] originates.
-    pub label:  Label,
-}
-
-// === Trait Implementations ===
-
-impl StartedProfiler for ProfilerData {
-    fn finish(&self, profiler: ProfilerId) {
-        let parent = self.parent;
-        let start = self.start;
-        let label = self.label;
-        let end = Timestamp::now();
-        let measurement = Measurement { parent, profiler, start, end, label };
-        crate::MEASUREMENTS.with(move |log| log.push(measurement));
-    }
-}
-
-
-
-// ===================
-// === Measurement ===
-// ===================
-
-/// Record of a profiled section, the parent it was reached by, and its entry and exit times.
-#[derive(Debug, Copy, Clone)]
-pub struct Measurement {
-    /// A unique identifier.
-    pub profiler: ProfilerId,
-    /// Identifies parent [`Measurement`] by its `profiler` field.
-    pub parent:   ProfilerId,
-    /// Start time, or None to indicate it is the same as `parent`.
-    pub start:    Option<Timestamp>,
-    /// The end time.
-    pub end:      Timestamp,
-    /// Identifies where in the code this [`Measurement`] originates.
-    pub label:    Label,
-}
-
-/// Internal
-pub mod internal {
-    use crate::*;
-
-    use std::cell;
-    use std::mem;
-
-    // =======================
-    // === LocalVecBuilder ===
-    // =======================
-
-    /// Data structure supporting limited interior mutability, to build up a collection.
-    #[derive(Debug)]
-    pub struct LocalVecBuilder<T>(cell::UnsafeCell<Vec<T>>);
-    #[allow(unsafe_code)]
-    impl<T> LocalVecBuilder<T> {
-        #[allow(clippy::new_without_default)]
-        /// Create a new, empty vec builder.
-        pub fn new() -> Self {
-            Self(cell::UnsafeCell::new(vec![]))
-        }
-
-        /// Push an element.
-        pub fn push(&self, element: T) {
-            // Note [LocalVecBuilder Safety]
-            unsafe {
-                (&mut *self.0.get()).push(element);
-            }
-        }
-
-        /// Return (and consume) all elements pushed so far.
-        pub fn build(&self) -> Vec<T> {
-            // Note [LocalVecBuilder Safety]
-            unsafe { mem::take(&mut *self.0.get()) }
-        }
-    }
-    // Note [LocalVecBuilder Safety]
-    // =============================
-    // When obtaining a reference from the UnsafeCell, all accessors follow these rules:
-    // - There must be a scope that the reference doesn't escape.
-    // - There must be no other references obtained in the same scope.
-    // Consistently following these rules ensures the no-alias rule of mutable references is
-    // satisfied.
-
-
-
-    // ====================
-    // === MEASUREMENTS ===
-    // ====================
-
-    thread_local! {
-        /// Global log of [`Measurement`]s.
-        pub static MEASUREMENTS: LocalVecBuilder<Measurement> = LocalVecBuilder::new();
-    }
-}
-
-#[doc(inline)]
-pub use internal::MEASUREMENTS;
-
-/// Gather all measurements taken since the last time take_log() was called.
-pub fn take_log() -> Vec<Measurement> {
-    MEASUREMENTS.with(|log| log.build())
-}
-
-
-// ================
-// === Profiler ===
-// ================
-
-/// The interface supported by profilers of all profiling levels.
-pub trait Profiler: Copy {
-    /// Metadata this profiler stores from when it is started until it is finished.
-    type Started: StartedProfiler;
-    /// Log a measurement, using `self` as identifier, the present time as end time, and metadata as
-    /// provided in `data`.
-    fn finish(self, data: &Self::Started);
 }
 
 
@@ -419,50 +194,29 @@ pub trait Profiler: Copy {
 // ==============
 
 /// Any object representing a profiler that is a valid parent for a profiler of type T.
-pub trait Parent<T: Profiler> {
+pub trait Parent<T: Profiler + Copy> {
     /// Start a new profiler, with `self` as its parent.
-    fn new_child(&self, label: Label) -> Started<T>;
+    fn new_child(&self, label: StaticLabel) -> Started<T>;
     /// Create a new profiler, with `self` as its parent, and the same start time as `self`.
-    fn new_child_same_start(&self, label: Label) -> Started<T>;
+    fn new_child_same_start(&self, label: StaticLabel) -> Started<T>;
 }
 
 
 
 // ===============
-// === Started ===
+// === await_! ===
 // ===============
 
-/// A profiler that has a start time set, and will complete its measurement when dropped.
-#[derive(Debug)]
-pub struct Started<T: Profiler> {
-    /// The ID to log this measurement as.
-    pub profiler: T,
-    /// Metadata to associate with this measurement when it is logged.
-    pub data:     T::Started,
-}
-
-
-// === Trait Implementations ===
-
-impl<T: Profiler> Drop for Started<T> {
-    fn drop(&mut self) {
-        let profiler = self.profiler;
-        profiler.finish(&self.data);
-    }
-}
-
-impl<T, U> Parent<T> for Started<U>
-where
-    U: Parent<T> + Profiler,
-    T: Profiler,
-{
-    fn new_child(&self, label: Label) -> Started<T> {
-        self.profiler.new_child(label)
-    }
-
-    fn new_child_same_start(&self, label: Label) -> Started<T> {
-        self.profiler.new_child_same_start(label)
-    }
+/// Await a future, logging appropriate await events for the given profiler.
+#[macro_export]
+macro_rules! await_ {
+    ($evaluates_to_future:expr, $profiler:ident) => {{
+        let future = $evaluates_to_future;
+        profiler::internal::Profiler::pause(&$profiler);
+        let result = future.await;
+        profiler::internal::Profiler::resume(&$profiler);
+        result
+    }};
 }
 
 
@@ -479,24 +233,15 @@ where
 ///
 /// # Usage
 ///
-/// The last argument must be an instance of a profiler type. The type given determines the
-/// profiling level at which measurement is enabled; the macro will modify the function's
-/// signature so that it can be called with any profiler that could be a *parent* of the
-/// profiler.
+/// The argument to the macro is a profiler type name, identifying the
+/// [profiling level](#profiling-levels) at which to instrument the function.
 ///
 /// ```
 /// # use enso_profiler as profiler;
 /// # use enso_profiler::profile;
-/// #[profile]
-/// fn small_computation(input: i16, profiler: profiler::Detail) -> u32 {
-///     todo!()
-/// }
-///
-/// #[enso_profiler_macros::profile]
-/// fn bigger_computation(profiler: profiler::Task) -> u32 {
-///     // Our task-level profiler is not the same type as the detail-level profiler available
-///     // inside `small_computation`; it will be converted implicitly.
-///     small_computation(7, profiler)
+/// #[profile(Detail)]
+/// fn example(input: u32) -> u32 {
+///     input
 /// }
 /// ```
 ///
@@ -505,100 +250,81 @@ where
 /// ```
 /// # use enso_profiler as profiler;
 /// # use enso_profiler::profile;
-/// fn small_computation(input: i16, profiler: impl profiler::Parent<profiler::Detail>) -> u32 {
-///     let _profiler = profiler.new_child("small_computation (file.rs:43)");
-///     let profiler = _profiler.profiler;
-///     return (|input: i16, profiler: profiler::Detail| todo!())(input, profiler);
+/// fn example(input: u32) -> u32 {
+///     let __profiler_scope = {
+///         use profiler::internal::Profiler;
+///         let parent = profiler::internal::EventId::implicit();
+///         let now = Some(profiler::internal::Timestamp::now());
+///         let label = profiler::internal::Label("example (profiler/src/lib.rs:78)");
+///         let profiler =
+///             profiler::Detail::start(parent, label, now, profiler::internal::StartState::Active);
+///         profiler::internal::Started(profiler)
+///     };
+///     {
+///         input
+///     }
 /// }
+/// ```
 ///
-/// fn bigger_computation(profiler: impl profiler::Parent<profiler::Task>) -> u32 {
-///     let _profiler = profiler.new_child("bigger_computation (file.rs:48)");
-///     let profiler = _profiler.profiler;
-///     return (|profiler: profiler::Task| {
-///         // Our task-level profiler is not the same type as the detail-level profiler available
-///         // inside `small_computation`; it will be converted implicitly.
-///         small_computation(7, profiler)
-///     })(profiler);
+/// The macro is used the same way with async functions:
+///
+/// ```
+/// # use enso_profiler as profiler;
+/// # use enso_profiler::profile;
+/// #[profile(Detail)]
+/// async fn example(input: u32) -> u32 {
+///     input
+/// }
+/// ```
+///
+/// The implementation for async is a little more complicated:
+///
+/// ```
+/// # use enso_profiler as profiler;
+/// # use enso_profiler::profile;
+/// fn async_example(input: u32) -> impl std::future::Future<Output = u32> {
+///     let __profiler_scope = {
+///         use profiler::internal::Profiler;
+///         let parent = profiler::internal::EventId::implicit();
+///         let now = Some(profiler::internal::Timestamp::now());
+///         let label = profiler::internal::Label("async_example (lib.rs:571)");
+///         let profiler =
+///             profiler::Task::start(parent, label, now, profiler::internal::StartState::Paused);
+///         profiler::internal::Started(profiler)
+///     };
+///     async move {
+///         profiler::internal::Profiler::resume(&__profiler_scope.0);
+///         let result = { input };
+///         std::mem::drop(__profiler_scope);
+///         result
+///     }
 /// }
 /// ```
 ///
 /// # Limitations
 ///
-/// Some syntactic constructs are not (currently) supported.
+/// ## `.await` expressions with attributes
 ///
-/// ## Unsafe functions
+/// `#[profile]` must rewrite `.await` expressions; it separates the base expression from the
+/// `.await` in order to insert instrumentation between them. Since the literal expression the
+/// attribute was applied to does not exist in the output, there is no way to handle the
+/// attribute that would be correct for any type of attribute.
 ///
-/// Unsafe functions cannot be wrapped (yet). Use the low-level API.
+/// ## Send approximation
 ///
-/// ## Destructuring binding in function signatures
-///
-/// This won't compile:
-///
-/// ```compile_fail
-/// # use enso_profiler as profiler;
-/// # use profiler::profile;
-/// #[profile]
-/// fn unsupported_binding((x, y): (u32, u32), profiler: profiler::Task) -> u32 {
-///     x + y
-/// }
-/// ```
-///
-/// Instead, rewrite the function to take the destructuring out of the signature:
-///
-/// ```
-/// # use enso_profiler as profiler;
-/// # use profiler::profile;
-/// #[profile]
-/// fn supported_binding(xy: (u32, u32), profiler: profiler::Task) -> u32 {
-///     let (x, y) = xy;
-///     x + y
-/// }
-/// ```
-///
-/// ## Method definitions in nested items
-///
-/// Use of the `self` keyword to refer to anything except the receiver of the wrapped item is
-/// not supported; this means you can't define methods *inside* a wrapped function, like this:
-///
-/// ```compile_fail
-/// # use enso_profiler as profiler;
-/// # use profiler::profile;
-/// #[profile]
-/// fn bad_nested_method_def(profiler: profiler::Task) {
-///     // This is technically legal syntax, but #[profile] doesn't support it.
-///     struct Foo;
-///     impl Foo {
-///         fn consume(self) {}
-///         fn call_consume(self) {
-///             self.consume()
-///         }
-///     }
-///     // ...
-/// }
-/// ```
-///
-/// Instead, define the items outside the lexical scope of the profiled function:
-///
-/// ```
-/// # use enso_profiler as profiler;
-/// # use profiler::profile;
-/// struct Foo;
-/// impl Foo {
-///     fn consume(self) {}
-///     fn call_consume(self) {
-///         self.consume()
-///     }
-/// }
-///
-/// #[profile]
-/// fn no_nested_method_def(profiler: profiler::Task) {
-///     // ...
-/// }
-/// ```
+/// `#[profile]` breaks
+/// [Send approximation](https://rust-lang.github.io/async-book/07_workarounds/03_send_approximation.html);
+/// when it is applied to an `async fn`, the `Future` returned will always be `!Send`.
 #[doc(inline)]
 pub use enso_profiler_macros::profile;
 
 enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
+
+
+// === APP_LIFETIME ===
+
+/// Pseudo-profiler serving as the root of the measurement hierarchy.
+pub const APP_LIFETIME: Objective = Objective(EventId::APP_LIFETIME);
 
 
 
@@ -611,6 +337,19 @@ mod tests {
     use crate as profiler;
     use profiler::profile;
 
+    /// Black-box metadata object, for ignoring metadata contents.
+    #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+    pub(crate) enum OpaqueMetadata {
+        /// Anything.
+        #[serde(other)]
+        Unknown,
+    }
+
+    /// Take and parse the log (convenience function for tests).
+    fn get_log<M: serde::de::DeserializeOwned>() -> Vec<profiler::Event<M, String>> {
+        serde_json::from_str(&profiler::take_log()).unwrap()
+    }
+
     #[test]
     fn root() {
         {
@@ -619,11 +358,16 @@ mod tests {
             // by absolute paths" (<https://github.com/rust-lang/rust/issues/52234>).
             let _profiler = start_objective!(profiler::APP_LIFETIME, "test");
         }
-        let measurements = profiler::take_log();
-        assert_eq!(measurements.len(), 1);
-        assert_eq!(measurements[0].parent, profiler::APP_LIFETIME.0);
-        assert!(measurements[0].label.starts_with("test "));
-        assert!(measurements[0].end >= measurements[0].start.unwrap());
+        let log = get_log::<OpaqueMetadata>();
+        match &log[..] {
+            [profiler::Event::Start(m0), profiler::Event::End { id, timestamp: end_time }] => {
+                assert_eq!(m0.parent, profiler::APP_LIFETIME.0);
+                assert_eq!(id.0, 0);
+                assert!(m0.label.0.starts_with("test "));
+                assert!(*end_time >= m0.start.unwrap());
+            }
+            _ => panic!("log: {:?}", log),
+        }
     }
 
     #[test]
@@ -632,36 +376,134 @@ mod tests {
             let _profiler0 = start_objective!(profiler::APP_LIFETIME, "test0");
             let _profiler1 = objective_with_same_start!(_profiler0, "test1");
         }
-        let measurements = profiler::take_log();
-        assert_eq!(measurements.len(), 2);
-        // _profiler1 is with_same_start, indicated by None in the log
-        // Note: _profiler1 is _measurements[0] because position in the log is determined by end
-        // order, not start order.
-        assert_eq!(measurements[0].start, None);
-        // _profiler0 has a start time
-        assert!(measurements[1].start.is_some());
+        let log = get_log::<OpaqueMetadata>();
+        use profiler::Event::*;
+        match &log[..] {
+            [Start(m0), Start(m1), End { id: id1, .. }, End { id: id0, .. }] => {
+                // _profiler0 has a start time
+                assert!(m0.start.is_some());
+                // _profiler1 is with_same_start, indicated by None in the log
+                assert_eq!(m1.start, None);
+                assert_eq!(id1.0, 1);
+                assert_eq!(id0.0, 0);
+            }
+            _ => panic!("log: {:?}", log),
+        }
     }
 
     #[test]
     fn profile() {
-        #[profile]
-        fn profiled(_profiler: profiler::Objective) {}
-        profiled(profiler::APP_LIFETIME);
-        let measurements = profiler::take_log();
-        assert_eq!(measurements.len(), 1);
+        #[profile(Objective)]
+        fn profiled() {}
+        profiled();
+        let log = get_log::<OpaqueMetadata>();
+        match &log[..] {
+            [profiler::Event::Start(m0), profiler::Event::End { id: id0, .. }] => {
+                assert!(m0.start.is_some());
+                assert_eq!(m0.parent, profiler::EventId::IMPLICIT);
+                assert_eq!(id0.0, 0);
+            }
+            _ => panic!("log: {:?}", log),
+        }
     }
 
     #[test]
     fn profile_async() {
-        #[profile]
-        async fn profiled(_profiler: profiler::Objective) -> u32 {
+        #[profile(Objective)]
+        async fn profiled() -> u32 {
             let block = async { 4 };
             block.await
         }
-        let future = profiled(profiler::APP_LIFETIME);
+        let future = profiled();
         futures::executor::block_on(future);
-        let measurements = profiler::take_log();
-        assert_eq!(measurements.len(), 1);
+        let log = get_log::<OpaqueMetadata>();
+        #[rustfmt::skip]
+        match &log[..] {
+            [
+            // async fn starts paused
+            profiler::Event::StartPaused(_),
+            profiler::Event::Resume { id: resume0, .. },
+            // block.await
+            profiler::Event::Pause { id: pause1, .. },
+            profiler::Event::Resume { id: resume1, .. },
+            profiler::Event::End { id: end_id, .. },
+            ] => {
+                assert_eq!(resume0.0, 0);
+                assert_eq!(pause1.0, 0);
+                assert_eq!(resume1.0, 0);
+                assert_eq!(end_id.0, 0);
+            }
+            _ => panic!("log: {:#?}", log),
+        };
+    }
+
+    #[test]
+    fn store_metadata() {
+        // A metadata type.
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct MyData(u32);
+
+        // Attach some metadata to a profiler.
+        #[profile(Objective)]
+        fn demo() {
+            let meta_logger = profiler::MetadataLogger::new("MyData");
+            meta_logger.log(&MyData(23));
+        }
+
+        // We can deserialize a metadata entry as an enum containing a newtype-variant for each
+        // type of metadata we are able to interpret; the variant name is the string given to
+        // MetadataLogger::register.
+        //
+        // We don't use an enum like this to *write* metadata because defining it requires
+        // dependencies from all over the app, but when consuming metadata we need all the datatype
+        // definitions anyway.
+        #[derive(serde::Deserialize)]
+        enum MyMetadata {
+            MyData(MyData),
+        }
+
+        demo();
+        let log = get_log::<MyMetadata>();
+        match &log[..] {
+            #[rustfmt::skip]
+            &[
+            profiler::Event::Start(_),
+            profiler::Event::Metadata(
+                profiler::Timestamped{ timestamp: _, data: MyMetadata::MyData (MyData(23)) }),
+            profiler::Event::End { .. },
+            ] => (),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn format_stability() {
+        #[allow(unused)]
+        fn static_assert_exhaustiveness<M, L>(e: profiler::Event<M, L>) -> profiler::Event<M, L> {
+            // If you define a new Event variant, this will fail to compile to remind you to:
+            // - Create a new test covering deserialization of the previous format, if necessary.
+            // - Update `TEST_LOG` in this test to cover every variant of the new Event definition.
+            match e {
+                profiler::Event::Start(_) => e,
+                profiler::Event::StartPaused(_) => e,
+                profiler::Event::End { .. } => e,
+                profiler::Event::Pause { .. } => e,
+                profiler::Event::Resume { .. } => e,
+                profiler::Event::Metadata(_) => e,
+            }
+        }
+        const TEST_LOG: &str = "[\
+            {\"Start\":{\"parent\":4294967294,\"start\":null,\"label\":\"dummy label (lib.rs:23)\"}},\
+            {\"StartPaused\":{\"parent\":4294967294,\"start\":1,\"label\":\"dummy label2 (lib.rs:17)\"}},\
+            {\"End\":{\"id\":1,\"timestamp\":1}},\
+            {\"Pause\":{\"id\":1,\"timestamp\":1}},\
+            {\"Resume\":{\"id\":1,\"timestamp\":1}},\
+            {\"Metadata\":{\"timestamp\":1,\"data\":\"Unknown\"}}\
+            ]";
+        let events: Vec<profiler::Event<OpaqueMetadata, String>> =
+            serde_json::from_str(TEST_LOG).unwrap();
+        let reserialized = serde_json::to_string(&events).unwrap();
+        assert_eq!(TEST_LOG, &reserialized[..]);
     }
 }
 
@@ -675,7 +517,7 @@ mod tests {
 //
 // Performance variability impact: There's no easy way to measure this, so I'm speaking
 // theoretically here. The only operation expected to have a significantly variable cost is the
-// Vec::push to grow the MEASUREMENTS log; it sometimes needs to reallocate. However even at its
+// Vec::push to grow the EVENTS log; it sometimes needs to reallocate. However even at its
 // most expensive, it should be on the order of a 1μs (for reasonable numbers of measurements); so
 // the variance introduced by this framework shouldn't disturb even very small measurements (I
 // expect <1% added variability for a 1ms measurement).
@@ -686,9 +528,9 @@ mod bench {
     /// Perform a specified number of measurements, for benchmarking.
     fn log_measurements(count: usize) {
         for _ in 0..count {
-            let _profiler = start_objective!(profiler::APP_LIFETIME, "");
+            let _profiler = start_objective!(profiler::APP_LIFETIME, "log_measurement");
         }
-        test::black_box(profiler::take_log());
+        test::black_box(crate::EVENTS.take_all());
     }
 
     #[bench]
@@ -702,72 +544,66 @@ mod bench {
     }
 
     /// For comparison with time taken by [`log_measurements`].
-    fn push_vec(count: usize, measurements: &mut Vec<profiler::Measurement>) {
-        let some_timestamp = profiler::Timestamp(std::num::NonZeroU64::new(1).unwrap());
+    fn push_vec(
+        count: usize,
+        log: &mut Vec<profiler::Event<crate::tests::OpaqueMetadata, &'static str>>,
+    ) {
         for _ in 0..count {
-            measurements.push(profiler::Measurement {
-                parent:   profiler::ProfilerId(0),
-                profiler: profiler::ProfilerId(0),
-                start:    None,
-                end:      some_timestamp,
-                label:    "",
+            log.push(profiler::Event::Start(profiler::Start {
+                parent: profiler::EventId::APP_LIFETIME,
+                start:  None,
+                label:  profiler::Label(""),
+            }));
+            log.push(profiler::Event::End {
+                id:        profiler::EventId::implicit(),
+                timestamp: Default::default(),
             });
         }
-        test::black_box(&measurements);
-        measurements.clear();
+        test::black_box(&log);
+        log.clear();
     }
 
     #[bench]
     fn push_vec_1000(b: &mut test::Bencher) {
-        let mut measurements = vec![];
-        b.iter(|| push_vec(1000, &mut measurements));
+        let mut log = vec![];
+        b.iter(|| push_vec(1000, &mut log));
     }
 
     #[bench]
     fn push_vec_10_000(b: &mut test::Bencher) {
-        let mut measurements = vec![];
-        b.iter(|| push_vec(10_000, &mut measurements));
+        let mut log = vec![];
+        b.iter(|| push_vec(10_000, &mut log));
     }
 }
 
 #[cfg(test)]
+#[allow(unused)]
 mod compile_tests {
     use crate as profiler;
     use profiler::profile;
 
     /// Decorating a pub fn.
-    #[profile]
-    pub fn profiled_pub(_profiler: profiler::Objective) {}
+    #[profile(Task)]
+    pub fn profiled_pub() {}
 
-    #[profile]
-    async fn profiled_async(_profiler: profiler::Objective) {}
+    #[profile(Objective)]
+    async fn profiled_async() {}
 
-    #[profile]
+    #[profile(Detail)]
     #[allow(unsafe_code)]
-    unsafe fn profiled_unsafe(_profiler: profiler::Objective) {}
+    unsafe fn profiled_unsafe() {}
 
-    #[test]
     fn mut_binding() {
-        #[profile]
-        fn profiled(mut _x: u32, _profiler: profiler::Objective) {
+        #[profile(Objective)]
+        fn profiled(mut _x: u32) {
             _x = 4;
         }
-        profiled(0, profiler::APP_LIFETIME);
-        let measurements = profiler::take_log();
-        assert_eq!(measurements.len(), 1);
     }
 
-    // Unsupported:
-    // #[profile]
-    // fn profiled_destructuring((_x, _y): (u32, u32), _profiler: profiler::Objective) {}
+    #[profile(Task)]
+    fn profiled_destructuring((_x, _y): (u32, u32)) {}
 
-    #[allow(dead_code)]
-    struct Foo;
-
-    impl Foo {
-        #[profile]
-        fn profiled_method(&mut self, _arg: u32, _profiler: profiler::Objective) {
-            profiled_pub(_profiler)
-        }
+    fn root() {
+        let _profiler = start_task!(profiler::APP_LIFETIME, "test");
     }
 }

@@ -10,6 +10,7 @@ import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.librarymanager.{
   DefaultLibraryProvider,
   ResolvingLibraryProvider
@@ -23,6 +24,7 @@ import org.enso.pkg.{
   PackageManager,
   QualifiedName
 }
+
 import java.nio.file.Path
 
 import scala.util.Try
@@ -247,14 +249,14 @@ object PackageRepository {
     private def loadPackage(
       libraryName: LibraryName,
       libraryVersion: LibraryVersion,
-      root: Path
+      root: LibraryRoot
     ): Either[Error, Package[TruffleFile]] = Try {
       logger.debug(
         s"Loading library $libraryName from " +
-        s"[${MaskedPath(root).applyMasking()}]."
+        s"[${MaskedPath(root.location).applyMasking()}]."
       )
       val rootFile = context.getEnvironment.getInternalTruffleFile(
-        root.toAbsolutePath.normalize.toString
+        root.location.toAbsolutePath.normalize.toString
       )
       val pkg = packageManager.loadPackage(rootFile).get
       registerPackageInternal(
@@ -362,7 +364,7 @@ object PackageRepository {
           case Right(resolved) =>
             logger.info(
               s"Found library ${resolved.name} @ ${resolved.version} " +
-              s"at [${MaskedPath(resolved.location).applyMasking()}]."
+              s"at [${MaskedPath(resolved.root.location).applyMasking()}]."
             )
         }
 
@@ -373,7 +375,7 @@ object PackageRepository {
           else
             resolvedLibrary
               .flatMap { library =>
-                loadPackage(library.name, library.version, library.location)
+                loadPackage(library.name, library.version, library.root)
               }
               .flatMap(resolveComponentGroups)
               .left

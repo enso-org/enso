@@ -1,0 +1,23 @@
+[package]
+name = "ensogl-example-profiling-run-graph"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+enso-profiler = { path = "../../../profiler" }
+enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
+enso-web = { path = "../../../web" }
+ensogl-core = { path = "../../core" }
+ensogl-flame-graph = { path = "../../component/flame-graph" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-text = { path = "../../component/text" }
+ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+futures = "0.3"
+wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }
+

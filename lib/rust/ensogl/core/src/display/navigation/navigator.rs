@@ -1,16 +1,16 @@
 mod events;
 
+pub use crate::display::navigation::navigator::events::PanEvent;
+pub use crate::display::navigation::navigator::events::ZoomEvent;
+
 use crate::prelude::*;
 
 use crate::animation::physics;
 use crate::control::callback;
 use crate::display::camera::Camera2d;
+use crate::display::navigation::navigator::events::NavigatorEvents;
 use crate::display::object::traits::*;
 use crate::display::Scene;
-
-use events::NavigatorEvents;
-use events::PanEvent;
-use events::ZoomEvent;
 
 
 
@@ -33,7 +33,7 @@ const MIN_ZOOM: f32 = 0.001;
 /// Navigator enables camera navigation with mouse interactions.
 #[derive(Debug)]
 pub struct NavigatorModel {
-    _events:         NavigatorEvents,
+    events:          NavigatorEvents,
     simulator:       physics::inertia::DynSimulator<Vector3>,
     resize_callback: callback::Handle,
     zoom_speed:      SharedSwitch<f32>,
@@ -50,7 +50,7 @@ impl NavigatorModel {
         let pan_speed = Rc::new(Cell::new(Switch::On(1.0)));
         let disable_events = Rc::new(Cell::new(true));
         let max_zoom: Rc<Cell<_>> = default();
-        let (simulator, resize_callback, _events) = Self::start_navigator_events(
+        let (simulator, resize_callback, events) = Self::start_navigator_events(
             scene,
             camera,
             zoom_speed.clone_ref(),
@@ -58,15 +58,7 @@ impl NavigatorModel {
             disable_events.clone_ref(),
             max_zoom.clone_ref(),
         );
-        Self {
-            _events,
-            simulator,
-            resize_callback,
-            zoom_speed,
-            pan_speed,
-            disable_events,
-            max_zoom,
-        }
+        Self { events, simulator, resize_callback, zoom_speed, pan_speed, disable_events, max_zoom }
     }
 
     fn create_simulator(camera: &Camera2d) -> physics::inertia::DynSimulator<Vector3> {
@@ -88,33 +80,33 @@ impl NavigatorModel {
         disable_events: Rc<Cell<bool>>,
         max_zoom: Rc<Cell<Option<f32>>>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
-        let distance_to_zoom_factor_of_1 = |scene: &Scene, camera: &Camera2d| {
+        let distance_to_zoom_factor_of_1 = |camera: &Camera2d| {
             let fovy_slope = camera.half_fovy_slope();
-            scene.shape().value().height / 2.0 / fovy_slope
+            camera.screen().height / 2.0 / fovy_slope
         };
 
         let simulator = Self::create_simulator(camera);
-        let panning_callback = f!([scene,camera,simulator,pan_speed] (pan: PanEvent) {
+        let panning_callback = f!([camera,simulator,pan_speed] (pan: PanEvent) {
             let distance = camera.position().z;
-            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
+            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&camera);
             let pan_speed = pan_speed.get().into_on().unwrap_or(0.0);
             let movement_scale_for_distance = distance / distance_to_zoom_factor_of_1;
-            let diff = pan_speed * Vector3::new(pan.movement.x, pan.movement.y, 0.0) * movement_scale_for_distance;
+            let movement = Vector3::new(pan.movement.x, pan.movement.y, 0.0);
+            let diff = pan_speed * movement * movement_scale_for_distance;
             simulator.update_target_value(|p| p - diff);
         });
 
-        let resize_callback = camera.add_screen_update_callback(
-            enclose!((mut simulator,camera) move |_:&Vector2<f32>| {
+        let resize_callback =
+            camera.add_screen_update_callback(enclose!((mut simulator,camera) move |_| {
                 let position = camera.position();
                 simulator.set_value(position);
                 simulator.set_target_value(position);
                 simulator.set_velocity(default());
-            }),
-        );
+            }));
 
-        let zoom_callback = f!([scene,camera,simulator,max_zoom] (zoom:ZoomEvent) {
+        let zoom_callback = f!([camera,simulator,max_zoom] (zoom:ZoomEvent) {
             let point = zoom.focus;
-            let normalized = normalize_point2(point,scene.shape().value().into());
+            let normalized = normalize_point2(point,camera.screen().into());
             let normalized = normalized_to_range2(normalized, -1.0, 1.0);
             let half_height = 1.0;
 
@@ -127,7 +119,7 @@ impl NavigatorModel {
             let zoom_amount = zoom.amount * position.z;
             let translation = direction * zoom_amount;
 
-            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&scene, &camera);
+            let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&camera);
             let max_zoom = max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM);
             // Usage of min/max prefixes might be confusing here. Remember that the max zoom means
             // the maximum visible size, thus the minimal distance from the camera and vice versa.
@@ -179,6 +171,16 @@ impl NavigatorModel {
     /// zoom immediately, but the restriction will be applied on the next zoom event.
     pub fn set_max_zoom(&self, value: Option<f32>) {
         self.max_zoom.set(value);
+    }
+
+    /// Emit zoom event. This function could be used in the tests to simulate user interactions.
+    pub fn emit_zoom_event(&self, event: ZoomEvent) {
+        self.events.emit_zoom_event(event);
+    }
+
+    /// Emit pan event. This function could be used in the tests to simulate user interactions.
+    pub fn emit_pan_event(&self, event: PanEvent) {
+        self.events.emit_pan_event(event);
     }
 }
 

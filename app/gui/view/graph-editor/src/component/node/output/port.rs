@@ -1,3 +1,5 @@
+//! FIXME[everyone] Modules should be documented
+
 use crate::prelude::*;
 
 use crate::component::node;
@@ -347,6 +349,7 @@ pub mod multi_port {
 
 /// Abstraction over [`SinglePortView`] and [`MultiPortView`].
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub enum PortShapeView {
     Single(SinglePortView),
     Multi(MultiPortView),
@@ -443,6 +446,7 @@ ensogl::define_endpoints! {
 }
 
 #[derive(Clone, Debug, Default)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub struct Model {
     pub frp:            Option<Frp>,
     pub shape:          Option<PortShapeView>,
@@ -455,6 +459,7 @@ pub struct Model {
 }
 
 impl Model {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn init_shape(
         &mut self,
         logger: impl AnyLogger,
@@ -619,6 +624,7 @@ impl Model {
         self.frp = Some(frp);
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn set_size(&self, size: Vector2) {
         if let Some(frp) = &self.frp {
             frp.set_size(size);

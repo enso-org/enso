@@ -41,7 +41,7 @@ impl Frp {
     pub fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
         let frp = &self;
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
 
         let base_frp = super::Frp::new(model, style, network, frp.resize.clone().into(), mouse);

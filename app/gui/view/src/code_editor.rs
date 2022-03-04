@@ -67,8 +67,8 @@ impl Deref for View {
 impl View {
     /// Create Code Editor component.
     pub fn new(app: &Application) -> Self {
-        let scene = app.display.scene();
-        let styles = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let scene = &app.display.default_scene;
+        let styles = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = Frp::new();
         let network = &frp.network;
         let model = app.new_view::<text::Area>();
@@ -101,7 +101,7 @@ impl View {
             frp.source.is_visible <+ frp.toggle.map2(&is_visible, |(),b| !b);
 
             def init = source_();
-            let shape  = app.display.scene().shape();
+            let shape  = app.display.default_scene.shape();
             position <- all_with3(&height_fraction.value,shape,&init, |height_f,scene_size,_init| {
                 let height = height_f * scene_size.height;
                 let x      = -scene_size.width  / 2.0 + PADDING_LEFT;

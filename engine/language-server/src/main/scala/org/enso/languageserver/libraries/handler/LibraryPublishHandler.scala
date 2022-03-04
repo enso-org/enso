@@ -107,7 +107,7 @@ class LibraryPublishHandler(
           new CompilerBasedDependencyExtractor(logLevel)
         LibraryUploader(dependencyExtractor)
           .uploadLibrary(
-            libraryRoot,
+            libraryRoot.location,
             uploadUrl,
             token,
             progressReporter

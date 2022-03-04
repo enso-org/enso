@@ -1,17 +1,15 @@
-//! This module implements performance monitoring utils.
+//! This module implements the stats monitor view, which can be visible on the screen in debug mode.
 
 use crate::prelude::*;
 
 use crate::debug::stats::StatsData;
 use crate::system::web;
-use crate::system::web::StyleSetter;
+use crate::system::web::traits::*;
+use crate::system::web::JsValue;
 
 use num_traits::cast::AsPrimitive;
 use std::collections::VecDeque;
 use std::f64;
-use wasm_bindgen;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 
 
@@ -105,7 +103,7 @@ impl Default for Config {
 impl Config {
     /// Translates the configuration to JS values.
     pub fn to_js_config(&self) -> SamplerConfig {
-        let ratio = web::window().device_pixel_ratio();
+        let ratio = web::window.device_pixel_ratio();
         SamplerConfig {
             background_color:      (&self.background_color).into(),
             label_color_ok:        (&self.label_color_ok).into(),
@@ -165,19 +163,19 @@ impl DomData {
     /// Constructor.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        let root = web::create_div();
+        let root = web::document.create_div_or_panic();
         root.set_class_name("performance-monitor");
-        root.set_style_or_panic("position", "absolute");
-        root.set_style_or_panic("z-index", "100");
-        root.set_style_or_panic("left", "8px");
-        root.set_style_or_panic("top", "8px");
-        root.set_style_or_panic("overflow", "hidden");
-        root.set_style_or_panic("border-radius", "6px");
-        root.set_style_or_panic("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
-        web::body().prepend_with_node_1(&root).unwrap();
+        root.set_style_or_warn("position", "absolute");
+        root.set_style_or_warn("z-index", "100");
+        root.set_style_or_warn("left", "8px");
+        root.set_style_or_warn("top", "8px");
+        root.set_style_or_warn("overflow", "hidden");
+        root.set_style_or_warn("border-radius", "6px");
+        root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
+        web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
-        let canvas = web::create_canvas();
-        canvas.set_style_or_panic("display", "block");
+        let canvas = web::document.create_canvas_or_panic();
+        canvas.set_style_or_warn("display", "block");
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
@@ -198,9 +196,59 @@ impl Drop for DomData {
 // === Monitor ===
 // ===============
 
-/// Implementation of the monitoring panel.
-#[derive(Debug)]
+/// Visual panel showing performance-related statistics.
+#[derive(Debug, Clone, CloneRef)]
 pub struct Monitor {
+    renderer: Rc<RefCell<Renderer>>,
+}
+
+impl Default for Monitor {
+    fn default() -> Self {
+        let mut renderer = Renderer::new();
+        renderer.add::<FrameTime>();
+        renderer.add::<Fps>();
+        renderer.add::<WasmMemory>();
+        renderer.add::<GpuMemoryUsage>();
+        renderer.add::<DrawCallCount>();
+        renderer.add::<DataUploadCount>();
+        renderer.add::<DataUploadSize>();
+        renderer.add::<BufferCount>();
+        renderer.add::<SymbolCount>();
+        renderer.add::<ShaderCount>();
+        renderer.add::<ShaderCompileCount>();
+        renderer.add::<SpriteSystemCount>();
+        renderer.add::<SpriteCount>();
+        Self { renderer: Rc::new(RefCell::new(renderer)) }
+    }
+}
+
+impl Monitor {
+    /// Constructor.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Draw the monitor and update its graphs based on the provided stats data.
+    /// Does nothing if the monitor is not visible (see: [`toggle()`]).
+    pub fn sample_and_draw(&self, stats: &StatsData) {
+        self.renderer.borrow_mut().sample_and_draw(stats);
+    }
+
+    /// Toggle the visibility of the monitor.
+    pub fn toggle(&self) {
+        self.renderer.borrow_mut().toggle();
+    }
+}
+
+
+
+// ================
+// === Renderer ===
+// ================
+
+/// Code responsible for drawing [`Monitor`]'s data.
+#[derive(Debug)]
+struct Renderer {
     user_config: Config,
     config:      SamplerConfig,
     width:       f64,
@@ -210,11 +258,8 @@ pub struct Monitor {
     first_draw:  bool,
 }
 
-
-// === Public API ===
-
-impl Default for Monitor {
-    fn default() -> Self {
+impl Renderer {
+    fn new() -> Self {
         let user_config = Config::default();
         let panels = default();
         let width = default();
@@ -226,35 +271,21 @@ impl Default for Monitor {
         out.update_config();
         out
     }
-}
-
-impl Monitor {
-    /// Cnstructor.
-    pub fn new() -> Self {
-        default()
-    }
-
-    /// Modify the Monitor's config and update the view.
-    pub fn mod_config<F: FnOnce(&mut Config)>(&mut self, f: F) {
-        f(&mut self.user_config);
-        self.update_config();
-    }
 
     /// Add new display element.
-    pub fn add<S: Sampler + Default + 'static>(&mut self) -> Panel {
+    fn add<S: Sampler + Default + 'static>(&mut self) {
         let panel = Panel::new(self.config.clone(), S::default());
-        self.panels.push(panel.clone());
+        self.panels.push(panel);
         self.resize();
-        panel
     }
 
-    /// Check whether the mointor is visible.
-    pub fn visible(&self) -> bool {
+    /// Check whether the monitor is visible.
+    fn visible(&self) -> bool {
         self.dom.is_some()
     }
 
     /// Show the monitor and add it's DOM to the scene.
-    pub fn show(&mut self) {
+    fn show(&mut self) {
         if !self.visible() {
             self.first_draw = true;
             self.dom = Some(Dom::new());
@@ -263,12 +294,12 @@ impl Monitor {
     }
 
     /// Hides the monitor and remove it's DOM from the scene.
-    pub fn hide(&mut self) {
+    fn hide(&mut self) {
         self.dom = None;
     }
 
     /// Toggle the visibility of the monitor.
-    pub fn toggle(&mut self) {
+    fn toggle(&mut self) {
         if self.visible() {
             self.hide();
         } else {
@@ -276,8 +307,17 @@ impl Monitor {
         }
     }
 
-    /// Draw the Monitor and update all of it's values.
-    pub fn draw(&mut self) {
+    fn sample_and_draw(&mut self, stats: &StatsData) {
+        if self.visible() {
+            for panel in &self.panels {
+                panel.sample_and_postprocess(stats);
+            }
+            self.draw();
+        }
+    }
+
+    /// Draw the widget and update all of the graphs.
+    fn draw(&mut self) {
         if let Some(dom) = self.dom.clone() {
             if self.first_draw {
                 self.first_draw = false;
@@ -288,19 +328,14 @@ impl Monitor {
             self.draw_plots(&dom);
         }
     }
-}
 
-
-// === Private API ===
-
-impl Monitor {
     fn update_config(&mut self) {
         self.config = self.user_config.to_js_config()
     }
 
     fn resize(&mut self) {
         if let Some(dom) = &self.dom {
-            let ratio = web::window().device_pixel_ratio();
+            let ratio = web::window.device_pixel_ratio();
             let width = self.config.labels_width
                 + self.config.results_width
                 + self.config.plots_width
@@ -318,8 +353,8 @@ impl Monitor {
             self.height = height;
             dom.canvas.set_width(u_width);
             dom.canvas.set_height(u_height);
-            dom.canvas.set_style_or_panic("width", format!("{}px", width / ratio));
-            dom.canvas.set_style_or_panic("height", format!("{}px", height / ratio));
+            dom.canvas.set_style_or_warn("width", format!("{}px", width / ratio));
+            dom.canvas.set_style_or_warn("height", format!("{}px", height / ratio));
         }
     }
 
@@ -743,14 +778,8 @@ macro_rules! stats_sampler {
                 $precision
             }
             fn check(&self, stats: &StatsData) -> ValueCheck {
-                // Before the first frame, all stat values will be 0, which in (only) this case is
-                // correct.
-                if stats.frame_counter == 0 {
-                    ValueCheck::Correct
-                } else {
-                    let value = self.value(&stats);
-                    ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
-                }
+                let value = self.value(&stats);
+                ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
             }
             fn max_value(&self) -> Option<f64> {
                 $max_value
@@ -786,32 +815,90 @@ stats_sampler!(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use enso_prelude::*;
 
-    use crate::debug::stats::Stats;
+    use crate::debug::stats::StatsWithTimeProvider;
+    use enso_web::TimeProvider;
+    use std::ops::AddAssign;
 
     use assert_approx_eq::assert_approx_eq;
 
 
-    #[derive(Default)]
-    struct TestSampler<S: Sampler> {
-        stats:   Stats,
-        sampler: S,
-        t:       f64,
+    // === MockTimeProvider ===
+
+    #[derive(Default, Clone)]
+    struct MockTimeProvider {
+        t: Rc<RefCell<f64>>,
     }
+
+    impl TimeProvider for MockTimeProvider {
+        fn now(&self) -> f64 {
+            *self.t.borrow()
+        }
+    }
+
+    impl AddAssign<f64> for MockTimeProvider {
+        fn add_assign(&mut self, dt: f64) {
+            *self.t.borrow_mut() += dt;
+        }
+    }
+
+
+    // === TestSampler ===
+
+    struct TestSampler<S> {
+        stats:   StatsWithTimeProvider<MockTimeProvider>,
+        sampler: S,
+        t:       MockTimeProvider,
+    }
+
+    impl<S: Sampler + Default> Default for TestSampler<S> {
+        fn default() -> Self {
+            let t: MockTimeProvider = default();
+            let stats = StatsWithTimeProvider::new(t.clone());
+            let sampler = default();
+            Self { stats, sampler, t }
+        }
+    }
+
+    const STAT_VALUE_COMPARISON_PRECISION: f64 = 0.001;
 
     macro_rules! test_and_advance_frame {
         ($test:expr, $expected_value:expr, $expected_check:path
         ; next: $frame_time:expr, $post_frame_delay:expr) => {
-            let prev_frame_stats = $test.stats.begin_frame($test.t);
-            let tested_value = $test.sampler.value(&prev_frame_stats);
-            let tested_check = $test.sampler.check(&prev_frame_stats);
-            assert_approx_eq!(tested_value, $expected_value, 0.001);
-            assert!(matches!(tested_check, $expected_check));
+            let prev_frame_stats = $test.stats.begin_frame();
+            if let Some(prev_frame_stats) = prev_frame_stats {
+                let tested_value = $test.sampler.value(&prev_frame_stats);
+                let tested_check = $test.sampler.check(&prev_frame_stats);
+                assert_approx_eq!(tested_value, $expected_value, STAT_VALUE_COMPARISON_PRECISION);
+                let mismatch_msg = iformat!(
+                    "Stat check was expected to return: " $expected_check;?
+                    ", but got: " tested_check;? " instead.");
+                assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
+            } else {
+                assert!(false,
+                    "Expected previous frame's stats to be returned by begin_frame(), \
+                    but got none.");
+            }
             $test.t += $frame_time;
-            $test.stats.end_frame($test.t);
+            $test.stats.end_frame();
+            $test.t += $post_frame_delay;
+        };
+
+        ($test:expr, None; next: $frame_time:expr, $post_frame_delay:expr) => {
+            let prev_frame_stats = $test.stats.begin_frame();
+            let mismatch_msg = iformat!(
+                "Expected no stats to be returned by begin_frame(), but got: "
+                prev_frame_stats;? " instead.");
+            assert!(matches!(prev_frame_stats, None), "{}", mismatch_msg);
+            $test.t += $frame_time;
+            $test.stats.end_frame();
             $test.t += $post_frame_delay;
         };
     }
+
+
+    // === Tests ===
 
     #[test]
     fn frame_time() {
@@ -823,10 +910,8 @@ mod tests {
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
-        // Note: there is no frame before "Frame 1", so the tested value for the previous frame
-        // will always be 0.0 and "Correct" at this point (which is a special case - depending on
-        // tested stat, for later frames 0.0 could result in a threshold warning/error).
-        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
+        // Note: we expect no stats data to be returned before the 1st frame was started.
+        test_and_advance_frame!(test, None; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
         // starting next frame.
@@ -855,11 +940,8 @@ mod tests {
         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
         // starting next frame.
         //
-        // Note: there is no earlier frame before "Frame 1", so the tested value for the previous
-        // frame will always be 0.0 and [`Correct`] at this point (which is a special case -
-        // depending on tested stat, for later frames 0.0 could result in a threshold
-        // warning/error).
-        test_and_advance_frame!(test, 0.0, ValueCheck::Correct; next: 10.0, 6.0);
+        // Note: we expect no stats data to be returned before the 1st frame was started.
+        test_and_advance_frame!(test, None; next: 10.0, 6.0);
 
         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
         // starting next frame.
