@@ -22,7 +22,7 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use enso_web as web;
-use enso_web::binding::wasm::Error;
+// use enso_web::binding::wasm::Error;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
 use enso_web::Closure;
@@ -59,7 +59,7 @@ pub struct File {
 
 impl File {
     /// Constructor from the [`web_sys::File`].
-    pub fn from_js_file(file: &web_sys::File) -> Result<Self, Error> {
+    pub fn from_js_file(file: &web_sys::File) -> Result<Self, web::JsValue> {
         let name = ImString::new(file.name());
         let size = file.size() as u64;
         let mime_type = ImString::new(file.type_());
@@ -77,7 +77,7 @@ impl File {
     /// The chunk size depend on the browser implementation, but it is assumed to be reasonable.
     /// See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read and
     /// https://github.com/w3c/FileAPI/issues/144#issuecomment-570982732.
-    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, Error> {
+    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, web::JsValue> {
         if let Some(reader) = &*self.reader {
             let js_result = JsFuture::from(reader.read()).await?;
             let is_done = js_sys::Reflect::get(&js_result, &"done".into())?.as_bool().unwrap();
@@ -95,7 +95,7 @@ impl File {
 
     #[cfg(not(target_arch = "wasm32"))]
     /// Read the next chunk of file content.
-    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, Error> {
+    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, web::JsValue> {
         Ok(None)
     }
 }

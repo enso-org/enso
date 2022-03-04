@@ -120,32 +120,3 @@ wasm_lazy_global! { window : Window = web_sys::window().unwrap() }
 
 #[cfg(target_arch = "wasm32")]
 wasm_lazy_global! { document : Document = window.document().unwrap() }
-
-
-
-// FIXME: what to do with errors?
-
-// =============
-// === Error ===
-// =============
-
-/// Generic error representation.
-#[derive(Debug, Fail)]
-#[fail(display = "{}", message)]
-pub struct Error {
-    message: String,
-}
-
-/// Constructor.
-#[allow(non_snake_case)]
-pub fn Error(message: impl Into<String>) -> Error {
-    let message = message.into();
-    Error { message }
-}
-
-impl From<JsValue> for Error {
-    fn from(t: JsValue) -> Self {
-        let message = format!("{:?}", t);
-        Self { message }
-    }
-}
