@@ -339,6 +339,35 @@ spec =
             kshi_chars = [2325, 2381, 2359, 2367]
             Text.from_utf_16 kshi_chars . should_equal kshi
 
+        Test.specify "should insert text at a non-negative index position" <|
+            "Hello World!".insert 0 " Cruel" . should_equal " CruelHello World!"
+            "Hello World!".insert 5 " Cruel" . should_equal "Hello Cruel World!"
+            "Hello World!".insert ("Hello World!".length - 1) " Cruel" . should_equal "Hello World Cruel!"
+            "Hello World!".insert "Hello World!".length " Cruel" . should_equal "Hello World! Cruel"
+            txt = kshi + facepalm + accent_1
+            txt.insert 0 " Cruel" . should_equal (" Cruel" + kshi + facepalm + accent_1)
+            txt.insert 1 " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
+            txt.insert 2 " Cruel" . should_equal (kshi + facepalm + " Cruel" + accent_1)
+            txt.insert 3 " Cruel" . should_equal (kshi + facepalm + accent_1 + " Cruel")
+
+        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid non-negative index position" <|
+            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds_Error
+            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should insert text at a negative index position" <|
+            "Hello World!".insert -1 " Cruel" . should_equal "Hello World! Cruel"
+            "Hello World!".insert -5 " Cruel" . should_equal "Hello Wo Cruelrld!"
+            "Hello World!".insert -("Hello World!".length) " Cruel" . should_equal "H Cruelello World!"
+            "Hello World!".insert -("Hello World!".length + 1) " Cruel" . should_equal " CruelHello World!"
+            txt = kshi + facepalm + accent_1
+            txt.insert -1 " Cruel" . should_equal (txt + " Cruel")
+            txt.insert -(txt.length) " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
+
+        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid negative index position" <|
+            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
+            txt = kshi + facepalm + accent_1
+            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
+
         Test.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
             str.is_digit . should_be_false
