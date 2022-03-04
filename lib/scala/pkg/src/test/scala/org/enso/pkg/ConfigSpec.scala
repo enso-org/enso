@@ -102,17 +102,19 @@ class ConfigSpec
         """name: FooBar
           |component-groups:
           |  new:
-          |  - Group 1:
-          |    color: '#C047AB'
-          |    icon: icon-name
-          |    exports:
-          |      - foo:
-          |        shortcut: f
-          |      - bar
+          |    - Group 1:
+          |        color: '#C047AB'
+          |        icon: icon-name
+          |        exports:
+          |          - foo:
+          |              shortcut: f
+          |          - bar
           |  extends:
-          |  - Standard.Base.Group 2:
-          |    exports:
-          |      - bax
+          |    - Standard.Base.Group 2:
+          |        exports:
+          |          - baz:
+          |              shortcut: k
+          |          - quux
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
@@ -134,7 +136,10 @@ class ConfigSpec
               LibraryName("Standard", "Base"),
               ModuleName("Group 2")
             ),
-            exports = List(Component("bax", None))
+            exports = List(
+              Component("baz", Some(Shortcut("k"))),
+              Component("quux", None)
+            )
           )
         )
       )
@@ -144,17 +149,19 @@ class ConfigSpec
       serialized should include(
         """component-groups:
           |  new:
-          |  - module: Group 1
-          |    color: '#C047AB'
-          |    icon: icon-name
-          |    exports:
-          |    - name: foo
-          |      shortcut: f
-          |    - bar
+          |  - Group 1:
+          |      color: '#C047AB'
+          |      icon: icon-name
+          |      exports:
+          |      - foo:
+          |          shortcut: f
+          |      - bar
           |  extends:
-          |  - module: Standard.Base.Group 2
-          |    exports:
-          |    - bax""".stripMargin.linesIterator.mkString("\n")
+          |  - Standard.Base.Group 2:
+          |      exports:
+          |      - baz:
+          |          shortcut: k
+          |      - quux""".stripMargin.linesIterator.mkString("\n")
       )
     }
 
@@ -188,15 +195,15 @@ class ConfigSpec
           |component-groups:
           |  extends:
           |  - Group 1:
-          |    exports:
-          |    - bax
+          |      exports:
+          |      - bax
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
       parsed.componentGroups match {
         case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
-            "Failed to decode 'Group 1' as module reference"
+            "Failed to decode 'Group 1' as a module reference"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
@@ -209,16 +216,16 @@ class ConfigSpec
           |component-groups:
           |  new:
           |  - Group 1:
-          |    exports:
-          |    - foo:
-          |      shortcut: f
-          |    - bar:
-          |      shortcut: fgh
-          |    - baz:
-          |      shortcut: 0
-          |    - quux:
-          |      shortcut:
-          |    - hmmm:
+          |      exports:
+          |      - foo:
+          |          shortcut: f
+          |      - bar:
+          |          shortcut: fgh
+          |      - baz:
+          |          shortcut: 0
+          |      - quux:
+          |          shortcut:
+          |      - hmmm
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
       val expectedComponentGroups = ComponentGroups(
@@ -248,9 +255,9 @@ class ConfigSpec
           |component-groups:
           |  new:
           |  - Group 1:
-          |    exports:
-          |    - foo:
-          |      shortcut: []
+          |      exports:
+          |      - foo:
+          |          shortcut: []
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
       parsed.componentGroups match {
@@ -275,7 +282,7 @@ class ConfigSpec
       parsed.componentGroups match {
         case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
-            "Failed to decode component group name"
+            "Failed to decode component group"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")
@@ -288,14 +295,14 @@ class ConfigSpec
           |component-groups:
           |  new:
           |  - Group 1:
-          |    exports:
-          |    - one: two
+          |      exports:
+          |      - one: two
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
       parsed.componentGroups match {
         case Left(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
-            "Failed to decode component name"
+            "Failed to decode exported component"
           )
         case unexpected =>
           fail(s"Unexpected result: $unexpected")

@@ -142,7 +142,11 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
           .resolveError(bareError.code)
           .getOrElse(
             Errors
-              .UnknownError(bareError.code, bareError.message, bareError.data)
+              .UnknownError(
+                bareError.code,
+                bareError.message,
+                bareError.payload
+              )
           )
         controller ! ResponseError(mayId, error)
         mayId.foreach(id =>
@@ -154,7 +158,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
 
   private def makeError(id: Option[Id], error: Error): String = {
     val bareError =
-      JsonProtocol.ErrorData(error.code, error.message, data = error.payload)
+      JsonProtocol.ErrorData(error.code, error.message, error.payload)
     val bareErrorResponse = JsonProtocol.ResponseError(id, bareError)
     JsonProtocol.encode(bareErrorResponse)
   }
