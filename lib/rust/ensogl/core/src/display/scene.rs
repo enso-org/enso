@@ -36,7 +36,6 @@ use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::web;
-use crate::system::web::traits::*;
 use crate::system::web::EventListenerHandle;
 use crate::system::Context;
 use crate::system::ContextLostHandler;
@@ -623,7 +622,7 @@ impl Renderer {
 
             let (width, height) = self.view_size();
             let pipeline = self.pipeline.get();
-            render::Composer::new(&pipeline, &context, &self.variables, width, height)
+            render::Composer::new(&pipeline, context, &self.variables, width, height)
         });
         *self.composer.borrow_mut() = composer;
         self.update_composer_pipeline();
@@ -1182,7 +1181,7 @@ impl display::Object for Scene {
 // === DomPath ===
 // ===============
 
-/// Abstraction for DOM path. It can be either a specific HTML element or a string which will be 
+/// Abstraction for DOM path. It can be either a specific HTML element or a string which will be
 /// used to look up for the element by its id.
 #[allow(missing_docs)]
 pub trait DomPath {

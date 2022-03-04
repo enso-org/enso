@@ -67,7 +67,6 @@ pub mod transport;
 pub use crate::ide::*;
 pub use ide_view as view;
 
-use ensogl::system::web;
 use wasm_bindgen::prelude::*;
 
 // Those imports are required to have all EnsoGL examples entry points visible in IDE.
@@ -115,8 +114,6 @@ pub mod prelude {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_ide() {
-    web::forward_panic_hook_to_error();
-
     ensogl_text_msdf_sys::run_once_initialized(|| {
         // Logging of build information.
         #[cfg(debug_assertions)]

@@ -104,6 +104,7 @@ impl<'t> From<&'t World> for &'t Scene {
 // === WorldDataWithLoop ===
 // =========================
 
+/// Main loop closure type.
 pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
 
 /// World data with a main loop implementation.

@@ -83,6 +83,7 @@ impl Reflect {
 /// target is single-threaded.
 macro_rules! wasm_lazy_global {
     ($name:ident : $tp:ty = $expr:expr) => {
+        #[allow(missing_docs)]
         pub mod $name {
             use super::*;
             pub static mut STORE: Option<$tp> = None;

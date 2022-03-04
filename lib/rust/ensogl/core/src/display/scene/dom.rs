@@ -10,13 +10,14 @@ use crate::display::symbol::dom::eps;
 use crate::display::symbol::dom::inverse_y_translation;
 use crate::display::symbol::DomSymbol;
 use crate::system::web;
-use crate::system::web::traits::*;
 use web::HtmlDivElement;
 
 #[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
+// #[cfg(target_arch = "wasm32")]
+// use crate::system::web::traits::*;
 
 
 

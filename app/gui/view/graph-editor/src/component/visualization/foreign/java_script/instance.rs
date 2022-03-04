@@ -303,13 +303,11 @@ impl Instance {
         let callback = move |preprocessor_config| change.emit(preprocessor_config);
         let callback = Box::new(callback);
         self.model.preprocessor_change.borrow_mut().replace(callback);
-        if let Err(js_error) = self.model.update_preprocessor() {
-            use enso_frp::web::js_to_string;
+        if let Err(err) = self.model.update_preprocessor() {
             let logger = self.model.logger.clone();
             error!(
                 logger,
-                "Failed to trigger initial preprocessor update from JS: \
-            {js_to_string(&js_error)}"
+                "Failed to trigger initial preprocessor update from JS: {err.print_to_string()}"
             );
         }
         self

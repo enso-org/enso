@@ -8,7 +8,6 @@ use crate::control::callback;
 use crate::control::callback::traits::*;
 use crate::system::web;
 
-use std::cell::RefCell;
 use std::rc::Rc;
 use web::Closure;
 use web::JsCast;

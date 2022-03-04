@@ -9,7 +9,9 @@ use crate::display::object::traits::*;
 #[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
-use crate::system::web::traits::*;
+
+// #[cfg(target_arch = "wasm32")]
+// use crate::system::web::traits::*;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;

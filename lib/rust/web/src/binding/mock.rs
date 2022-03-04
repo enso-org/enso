@@ -174,7 +174,7 @@ macro_rules! mock_struct_deref {
 
 /// Create a mock implementation of a non-public function. Read the docs of [`mock_fn_gen`] to learn
 /// more.
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! mock_fn {
     ( $($ts:tt)* ) => {
         mock_fn_gen! {[] $($ts)*}
@@ -183,7 +183,7 @@ macro_rules! mock_fn {
 
 /// Create a mock implementation of a public function. Read the docs of [`mock_fn_gen`] to learn
 /// more.
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! mock_pub_fn {
     ( $($ts:tt)* ) => {
         mock_fn_gen! {[pub] $($ts)*}
@@ -193,7 +193,7 @@ macro_rules! mock_pub_fn {
 /// Macro used to generate mock methods. Methods look just like their provided signature with a body
 /// returning `mock_default()`. There are two special cases: for functions returning `&Self`, and
 /// `&mut Self`, which just pass `&self` and `&mut self` to the output, respectively.
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! mock_fn_gen {
     ($viz:tt $name:ident $(<$($fn_tp:ident),*>)? (&self $($args:tt)*) -> &Self ) => {
         $crate::mock_fn_gen_print! {

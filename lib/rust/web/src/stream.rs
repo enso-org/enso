@@ -51,6 +51,7 @@ pub trait BlobExt {
 }
 
 impl BlobExt for web_sys::Blob {
+    #[allow(unused_qualifications)]
     fn stream(&self) -> Result<web_sys::ReadableStream, Error> {
         let this = self.as_ref();
         let method_as_value = js_sys::Reflect::get(this, &"stream".into())?;
@@ -58,6 +59,7 @@ impl BlobExt for web_sys::Blob {
         Ok(method.call0(this)?.dyn_into()?)
     }
 
+    #[allow(unused_qualifications)]
     fn stream_reader(&self) -> Result<ReadableStreamDefaultReader, Error> {
         let stream = self.stream();
         let method_as_value = js_sys::Reflect::get(&stream, &"getReader".into())?;

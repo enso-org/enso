@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use enso_web::event::listener::Slot;
-use enso_web::js_to_string;
+use enso_web::traits::*;
 use failure::Error;
 use futures::channel::mpsc;
 use json_rpc::Transport;
@@ -35,7 +35,7 @@ pub enum ConnectingError {
 impl ConnectingError {
     /// Create a `ConstructionError` value from a JS value describing an error.
     pub fn construction_error(js_val: impl AsRef<enso_web::JsValue>) -> Self {
-        let text = js_to_string(js_val);
+        let text = js_val.as_ref().print_to_string();
         ConnectingError::ConstructionError(text)
     }
 }
@@ -55,7 +55,7 @@ pub enum SendingError {
 impl SendingError {
     /// Constructs from the error yielded by one of the JS's WebSocket sending functions.
     pub fn from_send_error(error: wasm_bindgen::JsValue) -> SendingError {
-        SendingError::FailedToSend(js_to_string(&error))
+        SendingError::FailedToSend(error.print_to_string())
     }
 }
 
@@ -256,7 +256,7 @@ impl Drop for Model {
         if let Err(e) = self.close("Rust Value has been dropped.") {
             error!(
                 self.logger,
-                "Error when closing socket due to being dropped: {js_to_string(&e)}"
+                "Error when closing socket due to being dropped: {e.print_to_string()}"
             )
         }
     }
@@ -303,7 +303,7 @@ impl WebSocket {
         move |_| {
             if let Some(model) = model.upgrade() {
                 if let Err(e) = model.borrow_mut().reconnect() {
-                    error!(logger, "Failed to reconnect: {js_to_string(&e)}");
+                    error!(logger, "Failed to reconnect: {e.print_to_string()}");
                 }
             }
         }
@@ -433,7 +433,7 @@ impl Transport for WebSocket {
                 let event = TransportEvent::BinaryMessage(binary_data);
                 channel::emit(&transmitter_copy, event);
             } else {
-                info!(logger_copy, "Received other kind of message: {js_to_string(e.data())}.");
+                info!(logger_copy, "Received other kind of message: {e.data().print_to_string()}.");
             }
         });
 

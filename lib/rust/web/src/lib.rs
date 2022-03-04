@@ -25,6 +25,8 @@
 
 use crate::prelude::*;
 
+use wasm_bindgen::prelude::wasm_bindgen;
+
 pub use std::time::Duration;
 pub use std::time::Instant;
 
@@ -71,19 +73,125 @@ pub use binding::mock::*;
 // === Traits ===
 // ==============
 
+macro_rules! gen_traits {
+    ( $($name:ident),* $(,)?) => {
+        /// WASM-target oriented traits. Extending the possibilities of wasm-bindgen structures.
+        pub mod wasm_traits {
+            $(pub use super::$name::WasmTrait as $name;)*
+            pub use super::binding::wasm::JsCast;
+        }
+
+        /// Mock traits. Counterpart of [`wasm_traits`].
+        pub mod mock_traits {
+            $(pub use super::$name::MockTrait as $name;)*
+            pub use super::binding::mock::JsCast;
+        }
+
+        /// Both wasm and mock traits, unnamed.
+        pub mod anonymous_traits {
+            $(pub use super::$name::WasmTrait as _;)*
+            $(pub use super::$name::MockTrait as _;)*
+        }
+    };
+}
+
+gen_traits! {
+    ClosureOps,
+    DocumentOps,
+    ElementOps,
+    FunctionOps,
+    HtmlCanvasElementOps,
+    HtmlElementOps,
+    JsValueOps,
+    NodeOps,
+    ObjectOps,
+    ReflectOps,
+    WindowOps,
+}
+
 /// All traits defined in this module.
 pub mod traits {
-    pub use super::ClosureOps;
-    pub use super::DocumentOps;
-    pub use super::ElementOps;
-    pub use super::FunctionOps;
-    pub use super::HtmlCanvasElementOps;
-    pub use super::HtmlElementOps;
-    pub use super::JsCast;
-    pub use super::NodeOps;
-    pub use super::ObjectOps;
-    pub use super::ReflectOps;
-    pub use super::WindowOps;
+    pub use super::anonymous_traits::*;
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use super::mock_traits::*;
+    #[cfg(target_arch = "wasm32")]
+    pub use super::wasm_traits::*;
+}
+
+
+macro_rules! ops {
+    ($(<$($arg:ident : ($($arg_tp:tt)*)),*>)? $trait:ident for $target:ident
+    trait $defs:tt
+    $(impl {$($body:tt)*})?
+    $(wasm_impl {$($wasm_body:tt)*})?
+    $(mock_impl {$($mock_body:tt)*})?
+    ) => {
+        /// [`$trait`] extensions.
+        #[allow(non_snake_case)]
+        #[allow(missing_docs)]
+        #[allow(unused_imports)]
+        pub mod $trait {
+            use super::*;
+
+            /// WASM bindings.
+            pub mod wasm {
+                use enso_prelude::*;
+                use super::binding::wasm::*;
+                use super::wasm_traits::*;
+                /// Extensions to the [`$target`] type.
+                pub trait Trait $defs
+                impl $(<$($arg: $($arg_tp)*),*>)? Trait for $target $(<$($arg),*>)?
+                    {$($($body)*)? $($($wasm_body)*)?}
+            }
+
+            /// Mock bindings.
+            pub mod mock {
+                use enso_prelude::*;
+                use super::binding::mock::*;
+                use super::mock_traits::*;
+                /// Extensions to the [`$target`] type.
+                pub trait Trait $defs
+                impl $(<$($arg: $($arg_tp)*),*>)? Trait for $target $(<$($arg),*>)?
+                    {$($($body)*)? $($($mock_body)*)?}
+            }
+            pub use self::wasm::Trait as WasmTrait;
+            pub use self::mock::Trait as MockTrait;
+        }
+    };
+}
+
+
+
+// ==================
+// === JsValueOps ===
+// ==================
+
+ops! { JsValueOps for JsValue
+    trait {
+        /// Converts **any** `JsValue` into a `String`. Uses JS's `String` function,
+        /// see: https://www.w3schools.com/jsref/jsref_string.asp
+        fn print_to_string(&self) -> String;
+    }
+
+    wasm_impl {
+        fn print_to_string(&self) -> String {
+            super::js_print_to_string(self)
+        }
+    }
+
+    mock_impl {
+        fn print_to_string(&self) -> String {
+            "JsValue".into()
+        }
+    }
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = "String")]
+    #[allow(unused_qualifications)]
+    fn js_print_to_string(s: &binding::wasm::JsValue) -> String;
 }
 
 
@@ -92,15 +200,14 @@ pub mod traits {
 // === ClosureOps ===
 // ==================
 
-/// Extensions to the [`Function`] type.
-#[allow(missing_docs)]
-pub trait ClosureOps {
-    fn as_js_function(&self) -> &Function;
-}
-
-impl<T: ?Sized> ClosureOps for Closure<T> {
-    fn as_js_function(&self) -> &Function {
-        self.as_ref().unchecked_ref()
+ops! {<T: (?Sized)> ClosureOps for Closure
+    trait {
+        fn as_js_function(&self) -> &Function;
+    }
+    impl {
+        fn as_js_function(&self) -> &Function {
+            self.as_ref().unchecked_ref()
+        }
     }
 }
 
@@ -110,25 +217,26 @@ impl<T: ?Sized> ClosureOps for Closure<T> {
 // === FunctionOps ===
 // ===================
 
-/// Extensions to the [`Function`] type.
-pub trait FunctionOps {
-    /// The `wasm-bindgen` version of this function panics if the JS code contains errors. This
-    /// issue was reported and never fixed (https://github.com/rustwasm/wasm-bindgen/issues/2496).
-    /// There is also a long-standing PR with the fix that was not fixed either
-    /// (https://github.com/rustwasm/wasm-bindgen/pull/2497).
-    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue>;
-}
 
-impl FunctionOps for Function {
-    #[cfg(target_arch = "wasm32")]
-    fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue> {
-        binding::wasm::new_function_with_args(args, body)
+ops! { FunctionOps for Function
+    trait {
+        /// The `wasm-bindgen` version of this function panics if the JS code contains errors. This
+        /// issue was reported and never fixed (https://github.com/rustwasm/wasm-bindgen/issues/2496).
+        /// There is also a long-standing PR with the fix that was not fixed either
+        /// (https://github.com/rustwasm/wasm-bindgen/pull/2497).
+        fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue>;
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    mock_fn! {new_with_args_fixed(_args: &str, _body: &str) -> Result<Function, JsValue>}
-}
+    wasm_impl {
+        fn new_with_args_fixed(args: &str, body: &str) -> Result<Function, JsValue> {
+            new_function_with_args(args, body)
+        }
+    }
 
+    mock_impl {
+        crate::mock_fn! {new_with_args_fixed(_args: &str, _body: &str) -> Result<Function, JsValue>}
+    }
+}
 
 
 // ==================
@@ -136,42 +244,42 @@ impl FunctionOps for Function {
 // ==================
 
 /// Extensions to the [`Reflect`] type.
-pub trait ReflectOps {
-    /// Get the nested value of the provided object. This is similar to writing `foo.bar.baz` in
-    /// JavaScript, but in a safe manner, while checking if the value exists on each level.
-    fn get_nested(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue>;
+ops! { ReflectOps for Reflect
+    trait {
+        /// Get the nested value of the provided object. This is similar to writing `foo.bar.baz` in
+        /// JavaScript, but in a safe manner, while checking if the value exists on each level.
+        fn get_nested(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue>;
 
-    /// Get the nested value of the provided object and cast it to [`Object`]. See docs of
-    /// [`get_nested`] to learn more.
-    fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue>;
+        /// Get the nested value of the provided object and cast it to [`Object`]. See docs of
+        /// [`get_nested`] to learn more.
+        fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue>;
 
-    /// Get the nested value of the provided object and cast it to [`String`]. See docs of
-    /// [`get_nested`] to learn more.
-    fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue>;
-}
+        /// Get the nested value of the provided object and cast it to [`String`]. See docs of
+        /// [`get_nested`] to learn more.
+        fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue>;
+    }
 
-impl ReflectOps for Reflect {
-    fn get_nested(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue> {
-        let mut tgt = target.clone();
-        for key in keys {
-            let obj = tgt.dyn_into::<Object>()?;
-            let key = (*key).into();
-            tgt = Reflect::get(&obj, &key)?;
+    impl {
+        fn get_nested(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue> {
+            let mut tgt = target.clone();
+            for key in keys {
+                let obj = tgt.dyn_into::<Object>()?;
+                let key = (*key).into();
+                tgt = Reflect::get(&obj, &key)?;
+            }
+            Ok(tgt)
         }
-        Ok(tgt)
-    }
 
-    fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue> {
-        let tgt = Self::get_nested(target, keys)?;
-        tgt.dyn_into()
-    }
+        fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue> {
+            let tgt = Self::get_nested(target, keys)?;
+            tgt.dyn_into()
+        }
 
-    fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue> {
-        let tgt = Self::get_nested(target, keys)?;
-        let str = tgt.dyn_into::<JsString>()?;
-        // FIXME: this seems better:
-        // Ok(String::from(str))
-        Ok(js_to_string(&str))
+        fn get_nested_string(target: &JsValue, keys: &[&str]) -> Result<String, JsValue> {
+            let tgt = Self::get_nested(target, keys)?;
+            let str = tgt.dyn_into::<JsString>()?;
+            Ok(String::from(str))
+        }
     }
 }
 
@@ -181,36 +289,37 @@ impl ReflectOps for Reflect {
 // === WindowOps ===
 // =================
 
-/// Extensions to the [`Window`] type.
-#[allow(missing_docs)]
-pub trait WindowOps {
-    fn request_animation_frame_with_closure(
-        &self,
-        f: &Closure<dyn FnMut(f64)>,
-    ) -> Result<i32, JsValue>;
-    fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32;
-    fn cancel_animation_frame_or_panic(&self, id: i32);
-    fn performance_or_panic(&self) -> Performance;
-}
-
-impl WindowOps for Window {
-    fn request_animation_frame_with_closure(
-        &self,
-        f: &Closure<dyn FnMut(f64)>,
-    ) -> Result<i32, JsValue> {
-        self.request_animation_frame(f.as_js_function())
+ops! { WindowOps for Window
+    trait {
+        fn request_animation_frame_with_closure(
+            &self,
+            f: &Closure<dyn FnMut(f64)>,
+        ) -> Result<i32, JsValue>;
+        fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32;
+        fn cancel_animation_frame_or_panic(&self, id: i32);
+        fn performance_or_panic(&self) -> Performance;
     }
 
-    fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32 {
-        self.request_animation_frame_with_closure(f).unwrap()
-    }
+    impl {
+        fn request_animation_frame_with_closure(
+            &self,
+            f: &Closure<dyn FnMut(f64)>,
+        ) -> Result<i32, JsValue> {
+            self.request_animation_frame(f.as_js_function())
+        }
 
-    fn cancel_animation_frame_or_panic(&self, id: i32) {
-        self.cancel_animation_frame(id).unwrap();
-    }
+        fn request_animation_frame_with_closure_or_panic
+        (&self, f: &Closure<dyn FnMut(f64)>) -> i32 {
+            self.request_animation_frame_with_closure(f).unwrap()
+        }
 
-    fn performance_or_panic(&self) -> Performance {
-        self.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
+        fn cancel_animation_frame_or_panic(&self, id: i32) {
+            self.cancel_animation_frame(id).unwrap();
+        }
+
+        fn performance_or_panic(&self) -> Performance {
+            self.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
+        }
     }
 }
 
@@ -220,24 +329,26 @@ impl WindowOps for Window {
 // === ObjectOps ===
 // =================
 
-/// Extensions to the [`Object`] type.
-pub trait ObjectOps {
-    /// Get all the keys of the provided [`Object`].
-    fn keys_vec(obj: &Object) -> Vec<String>;
-}
-
-impl ObjectOps for Object {
-    #[cfg(target_arch = "wasm32")]
-    fn keys_vec(obj: &Object) -> Vec<String> {
-        // The [`unwrap`] is safe, the `Object::keys` API guarantees it.
-        Object::keys(&obj)
-            .iter()
-            .map(|key| key.dyn_into::<js_sys::JsString>().unwrap().into())
-            .collect()
+ops! { ObjectOps for Object
+    trait {
+        /// Get all the keys of the provided [`Object`].
+        fn keys_vec(obj: &Object) -> Vec<String>;
     }
-    #[cfg(not(target_arch = "wasm32"))]
-    fn keys_vec(_obj: &Object) -> Vec<String> {
-        default()
+
+    wasm_impl {
+        fn keys_vec(obj: &Object) -> Vec<String> {
+            // The [`unwrap`] is safe, the `Object::keys` API guarantees it.
+            Object::keys(obj)
+                .iter()
+                .map(|key| key.dyn_into::<JsString>().unwrap().into())
+                .collect()
+        }
+    }
+
+    mock_impl {
+        fn keys_vec(_obj: &Object) -> Vec<String> {
+            default()
+        }
     }
 }
 
@@ -247,35 +358,35 @@ impl ObjectOps for Object {
 // === DocumentOps ===
 // ===================
 
-/// Extensions to the [`Document`] type.
-#[allow(missing_docs)]
-pub trait DocumentOps {
-    fn body_or_panic(&self) -> HtmlElement;
-    fn create_element_or_panic(&self, local_name: &str) -> Element;
-    fn create_div_or_panic(&self) -> HtmlDivElement;
-    fn create_canvas_or_panic(&self) -> HtmlCanvasElement;
-    fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement>;
-}
-
-impl DocumentOps for Document {
-    fn body_or_panic(&self) -> HtmlElement {
-        self.body().unwrap()
+ops! { DocumentOps for Document
+    trait {
+        fn body_or_panic(&self) -> HtmlElement;
+        fn create_element_or_panic(&self, local_name: &str) -> Element;
+        fn create_div_or_panic(&self) -> HtmlDivElement;
+        fn create_canvas_or_panic(&self) -> HtmlCanvasElement;
+        fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement>;
     }
 
-    fn create_element_or_panic(&self, local_name: &str) -> Element {
-        self.create_element(local_name).unwrap()
-    }
+    impl {
+        fn body_or_panic(&self) -> HtmlElement {
+            self.body().unwrap()
+        }
 
-    fn create_div_or_panic(&self) -> HtmlDivElement {
-        self.create_element_or_panic("div").unchecked_into()
-    }
+        fn create_element_or_panic(&self, local_name: &str) -> Element {
+            self.create_element(local_name).unwrap()
+        }
 
-    fn create_canvas_or_panic(&self) -> HtmlCanvasElement {
-        self.create_element_or_panic("canvas").unchecked_into()
-    }
+        fn create_div_or_panic(&self) -> HtmlDivElement {
+            self.create_element_or_panic("div").unchecked_into()
+        }
 
-    fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement> {
-        self.get_element_by_id(id).and_then(|t| t.dyn_into().ok())
+        fn create_canvas_or_panic(&self) -> HtmlCanvasElement {
+            self.create_element_or_panic("canvas").unchecked_into()
+        }
+
+        fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement> {
+            self.get_element_by_id(id).and_then(|t| t.dyn_into().ok())
+        }
     }
 }
 
@@ -285,53 +396,53 @@ impl DocumentOps for Document {
 // === NodeOps ===
 // ===============
 
-/// Extensions to the [`Node`] type.
-#[allow(missing_docs)]
-pub trait NodeOps {
-    fn append_or_warn(&self, node: &Self);
-    fn prepend_or_warn(&self, node: &Self);
-    fn insert_before_or_warn(&self, node: &Self, reference_node: &Self);
-    fn remove_from_parent_or_warn(&self);
-    fn remove_child_or_warn(&self, node: &Self);
-}
-
-impl NodeOps for Node {
-    fn append_or_warn(&self, node: &Self) {
-        let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
-        if self.append_child(node).is_err() {
-            WARNING!(warn_msg)
-        };
+ops! { NodeOps for Node
+    trait {
+        fn append_or_warn(&self, node: &Self);
+        fn prepend_or_warn(&self, node: &Self);
+        fn insert_before_or_warn(&self, node: &Self, reference_node: &Self);
+        fn remove_from_parent_or_warn(&self);
+        fn remove_child_or_warn(&self, node: &Self);
     }
 
-    fn prepend_or_warn(&self, node: &Self) {
-        let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
-        let first_c = self.first_child();
-        if self.insert_before(node, first_c.as_ref()).is_err() {
-            WARNING!(warn_msg)
+    impl {
+        fn append_or_warn(&self, node: &Self) {
+            let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
+            if self.append_child(node).is_err() {
+                WARNING!(warn_msg)
+            };
         }
-    }
 
-    fn insert_before_or_warn(&self, node: &Self, ref_node: &Self) {
-        let warn_msg: &str =
-            &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
-        if self.insert_before(node, Some(ref_node)).is_err() {
-            WARNING!(warn_msg)
-        }
-    }
-
-    fn remove_from_parent_or_warn(&self) {
-        if let Some(parent) = self.parent_node() {
-            let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
-            if parent.remove_child(self).is_err() {
+        fn prepend_or_warn(&self, node: &Self) {
+            let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
+            let first_c = self.first_child();
+            if self.insert_before(node, first_c.as_ref()).is_err() {
                 WARNING!(warn_msg)
             }
         }
-    }
 
-    fn remove_child_or_warn(&self, node: &Self) {
-        let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
-        if self.remove_child(node).is_err() {
-            WARNING!(warn_msg)
+        fn insert_before_or_warn(&self, node: &Self, ref_node: &Self) {
+            let warn_msg: &str =
+                &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
+            if self.insert_before(node, Some(ref_node)).is_err() {
+                WARNING!(warn_msg)
+            }
+        }
+
+        fn remove_from_parent_or_warn(&self) {
+            if let Some(parent) = self.parent_node() {
+                let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
+                if parent.remove_child(self).is_err() {
+                    WARNING!(warn_msg)
+                }
+            }
+        }
+
+        fn remove_child_or_warn(&self, node: &Self) {
+            let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
+            if self.remove_child(node).is_err() {
+                WARNING!(warn_msg)
+            }
         }
     }
 }
@@ -342,20 +453,20 @@ impl NodeOps for Node {
 // === ElementOps ===
 // ==================
 
-/// Trait used to set HtmlElement attributes.
-#[allow(missing_docs)]
-pub trait ElementOps {
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
-}
+ops! { ElementOps for Element
+    trait {
+        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
+    }
 
-impl ElementOps for Element {
-    fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let warn_msg: &str = &format!("Failed to set attribute {}", values);
-        if self.set_attribute(name, value).is_err() {
-            WARNING!(warn_msg)
+    impl {
+        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
+            let name = name.as_ref();
+            let value = value.as_ref();
+            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+            let warn_msg: &str = &format!("Failed to set attribute {}", values);
+            if self.set_attribute(name, value).is_err() {
+                WARNING!(warn_msg)
+            }
         }
     }
 }
@@ -366,20 +477,20 @@ impl ElementOps for Element {
 // === HtmlElementOps ===
 // ======================
 
-/// Extensions to the [`HtmlElement`] type.
-#[allow(missing_docs)]
-pub trait HtmlElementOps {
-    fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>);
-}
+ops! { HtmlElementOps for HtmlElement
+    trait {
+        fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>);
+    }
 
-impl HtmlElementOps for HtmlElement {
-    fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
-        let name = name.as_ref();
-        let value = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-        let warn_msg: &str = &format!("Failed to set style {}", values);
-        if self.style().set_property(name, value).is_err() {
-            WARNING!(warn_msg);
+    impl {
+        fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
+            let name = name.as_ref();
+            let value = value.as_ref();
+            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+            let warn_msg: &str = &format!("Failed to set style {}", values);
+            if self.style().set_property(name, value).is_err() {
+                WARNING!(warn_msg);
+            }
         }
     }
 }
@@ -390,23 +501,24 @@ impl HtmlElementOps for HtmlElement {
 // === HtmlCanvasElement ===
 // =========================
 
-/// Extensions to the [`WebGl2RenderingContext`] type.
-#[allow(missing_docs)]
-pub trait HtmlCanvasElementOps {
-    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext>;
-}
-
-impl HtmlCanvasElementOps for HtmlCanvasElement {
-    #[cfg(target_arch = "wasm32")]
-    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
-        let options = Object::new();
-        Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
-        let context = self.get_context_with_context_options("webgl2", &options).ok().flatten();
-        context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok())
+ops! { HtmlCanvasElementOps for HtmlCanvasElement
+    trait {
+        fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext>;
     }
-    #[cfg(not(target_arch = "wasm32"))]
-    fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
-        None
+
+    wasm_impl {
+        fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
+            let options = Object::new();
+            Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
+            let context = self.get_context_with_context_options("webgl2", &options).ok().flatten();
+            context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok())
+        }
+    }
+
+    mock_impl {
+        fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
+            None
+        }
     }
 }
 
@@ -470,7 +582,7 @@ impl EventListenerHandle {
 struct EventListenerHandleData {
     target:  EventTarget,
     name:    ImString,
-    closure: Box<dyn ClosureOps>,
+    closure: Box<dyn traits::ClosureOps>,
 }
 
 impl Drop for EventListenerHandleData {
@@ -518,6 +630,7 @@ gen_add_event_listener!(
 // === Stack Trace Limit ===
 // =========================
 
+/// Increases the JavaScript stack trace limit to make errors more understandable.
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(inline_js = "
     export function set_stack_trace_limit() {
@@ -529,6 +642,7 @@ extern "C" {
     pub fn set_stack_trace_limit();
 }
 
+/// Increases the JavaScript stack trace limit to make errors more understandable.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn set_stack_trace_limit() {}
 
@@ -615,8 +729,6 @@ pub fn simulate_sleep(duration: f64) {
 // === Panic ===
 // =============
 
-// TODO: 2 mechanisms here. What is the difference between them?
-
 /// Enables forwarding panic messages to `console.error`.
 pub fn forward_panic_hook_to_console() {
     // When the `console_error_panic_hook` feature is enabled, we can call the
@@ -628,35 +740,6 @@ pub fn forward_panic_hook_to_console() {
     console_error_panic_hook::set_once();
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn forward_panic_hook_to_error() {}
-
-#[cfg(target_arch = "wasm32")]
-/// Enables throwing a descriptive JavaScript error on panics.
-pub fn forward_panic_hook_to_error() {
-    std::panic::set_hook(Box::new(error_throwing_panic_hook));
-}
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(module = "/js/rust_panic.js")]
-extern "C" {
-    #[allow(unsafe_code)]
-    fn new_panic_error(message: String) -> JsValue;
-}
-
-#[cfg(target_arch = "wasm32")]
-fn error_throwing_panic_hook(panic_info: &std::panic::PanicInfo) {
-    wasm_bindgen::throw_val(new_panic_error(panic_info.to_string()));
-}
-
-// FIXME: what is this?
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn entry_point_panic() {
-    forward_panic_hook_to_error();
-    panic!();
-}
 
 
 // =============
@@ -707,34 +790,6 @@ impl TimeProvider for Performance {
     fn now(&self) -> f64 {
         self.now()
     }
-}
-
-
-
-// =================================
-// === Generic String Conversion ===
-// =================================
-
-// FIXME: is this not the same as String::from?
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-extern "C" {
-    #[allow(unsafe_code)]
-    #[wasm_bindgen(js_name = "String")]
-    fn js_to_string_inner(s: &JsValue) -> String;
-}
-
-#[cfg(target_arch = "wasm32")]
-/// Converts given `JsValue` into a `String`. Uses JS's `String` function,
-/// see: https://www.w3schools.com/jsref/jsref_string.asp
-pub fn js_to_string(s: impl AsRef<JsValue>) -> String {
-    js_to_string_inner(s.as_ref())
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn js_to_string(_: impl AsRef<JsValue>) -> String {
-    "JsValue".into()
 }
 
 
