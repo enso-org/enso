@@ -1,0 +1,15 @@
+[package]
+name = "ensogl-flame-graph"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }
+enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
+enso-profiler = { path = "../../../profiler" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-text = { path = "../text" }
+ensogl = { version = "0.1.0", path = "../../../ensogl" }
+ensogl-gui-component = { version = "0.1.0", path = "../../component/gui" }

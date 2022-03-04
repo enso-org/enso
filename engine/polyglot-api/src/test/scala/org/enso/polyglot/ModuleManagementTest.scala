@@ -3,15 +3,22 @@ package org.enso.polyglot
 import java.io.File
 import java.nio.file.{Files, Paths}
 import org.enso.pkg.{Package, PackageManager}
+import org.enso.testkit.WithTemporaryDirectory
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ModuleManagementTest extends AnyFlatSpec with Matchers {
+class ModuleManagementTest extends AnyFlatSpec with Matchers with WithTemporaryDirectory {
+  var ctx: TestContext = _
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    ctx = new TestContext("test")
+  }
+
   class TestContext(packageName: String) {
-    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
+      PackageManager.Default.create(getTestDirectory.toFile, packageName, "Enso_Test")
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
@@ -26,7 +33,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         .build()
     )
 
-    def mkFile(name: String): File = new File(tmpDir, name)
+    def mkFile(name: String): File = new File(getTestDirectory.toFile, name)
 
     def writeFile(name: String, contents: String): Unit = {
       Files.write(mkFile(name).toPath, contents.getBytes): Unit
@@ -37,11 +44,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  val subject = "Modules Polyglot API"
-
-  subject should "allow to trigger reparsing of on-disk sources" in {
-    val ctx = new TestContext("Test")
-
+  "Modules Polyglot API" should "allow to trigger reparsing of on-disk sources" in {
     ctx.writeMain("""
                     |main =
                     |    12345
@@ -63,9 +66,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     mainFun2.execute(assocCons).asLong() shouldEqual 4567L
   }
 
-  subject should "allow to switch back and forth between literal and on-disk sources" in {
-    val ctx = new TestContext("Test")
-
+  it should "allow to switch back and forth between literal and on-disk sources" in {
     ctx.writeMain("""
                     |main = 123
                     |""".stripMargin)
@@ -98,66 +99,62 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     mainFun4.execute(assocCons).asLong() shouldEqual 987L
   }
 
-  subject should "allow to create new, importable modules" in {
-    val ctx = new TestContext("Test")
-    ctx.writeMain("""
-                    |import Enso_Test.Test.Foo
-                    |
-                    |main = Foo.foo + 1
-                    |""".stripMargin)
+  it should "allow to create new, importable modules" in {
+      ctx.writeMain("""
+                      |import Enso_Test.Test.Foo
+                      |
+                      |main = Foo.foo + 1
+                      |""".stripMargin)
 
-    ctx.writeFile(
-      "Foo.enso",
-      """
-        |foo = 10
-        |""".stripMargin
-    )
+      ctx.writeFile(
+        "Foo.enso",
+        """
+          |foo = 10
+          |""".stripMargin
+      )
 
-    val topScope = ctx.executionContext.getTopScope
-    topScope.registerModule(
-      "Enso_Test.Test.Foo",
-      ctx.mkFile("Foo.enso").getAbsolutePath
-    )
+      val topScope = ctx.executionContext.getTopScope
+      topScope.registerModule(
+        "Enso_Test.Test.Foo",
+        ctx.mkFile("Foo.enso").getAbsolutePath
+      )
 
-    val mainModule = topScope.getModule("Enso_Test.Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun    = mainModule.getMethod(assocCons, "main").get
-    mainFun.execute(assocCons).asLong shouldEqual 11L
+      val mainModule = topScope.getModule("Enso_Test.Test.Main")
+      val assocCons  = mainModule.getAssociatedConstructor
+      val mainFun    = mainModule.getMethod(assocCons, "main").get
+      mainFun.execute(assocCons).asLong shouldEqual 11L
   }
 
-  subject should "allow importing literal-source modules" in {
-    val ctx = new TestContext("Test")
-    ctx.writeMain("""
-                    |import Enso_Test.Test.Foo
-                    |
-                    |main = Foo.foo + 1
-                    |""".stripMargin)
+  it should "allow importing literal-source modules" in {
+      ctx.writeMain("""
+                      |import Enso_Test.Test.Foo
+                      |
+                      |main = Foo.foo + 1
+                      |""".stripMargin)
 
-    ctx.writeFile(
-      "Foo.enso",
-      """
-        |foo = 10
-        |""".stripMargin
-    )
+      ctx.writeFile(
+        "Foo.enso",
+        """
+          |foo = 10
+          |""".stripMargin
+      )
 
-    val topScope = ctx.executionContext.getTopScope
-    val fooModule = topScope.registerModule(
-      "Enso_Test.Test.Foo",
-      ctx.mkFile("Foo.enso").getAbsolutePath
-    )
-    fooModule.setSource("""
-                          |foo = 20
-                          |""".stripMargin)
+      val topScope = ctx.executionContext.getTopScope
+      val fooModule = topScope.registerModule(
+        "Enso_Test.Test.Foo",
+        ctx.mkFile("Foo.enso").getAbsolutePath
+      )
+      fooModule.setSource("""
+                            |foo = 20
+                            |""".stripMargin)
 
-    val mainModule = topScope.getModule("Enso_Test.Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun    = mainModule.getMethod(assocCons, "main").get
-    mainFun.execute(assocCons).asLong shouldEqual 21L
+      val mainModule = topScope.getModule("Enso_Test.Test.Main")
+      val assocCons  = mainModule.getAssociatedConstructor
+      val mainFun    = mainModule.getMethod(assocCons, "main").get
+      mainFun.execute(assocCons).asLong shouldEqual 21L
   }
 
-  subject should "allow for module deletions" in {
-    val ctx = new TestContext("Test")
-
+  it should "allow for module deletions" in {
     ctx.writeMain("""
                     |foo = 123
                     |""".stripMargin)
@@ -189,8 +186,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     exception.getMessage shouldEqual "Compilation aborted due to errors."
   }
 
-  subject should "allow gathering imported libraries" in {
-    val ctx = new TestContext("Test")
+  it should "allow gathering imported libraries" in {
     ctx.writeMain("""
                     |import Foo.Bar.Baz
                     |

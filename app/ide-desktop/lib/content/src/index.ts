@@ -934,7 +934,10 @@ async function runEntryPoint(config: Config) {
     //initCrashHandling()
     style_root()
     printScamWarning()
-    hideLogs()
+    /// Only hide logs in production, but show them when running a development version.
+    if (!Versions.isDevVersion()) {
+        hideLogs()
+    }
     disableContextMenu()
 
     let entryTarget = ok(config.entry) ? config.entry : main_entry_point

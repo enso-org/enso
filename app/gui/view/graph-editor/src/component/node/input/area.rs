@@ -33,6 +33,7 @@ use ensogl_hardcoded_theme as theme;
 // === Constants ===
 // =================
 
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
 pub const TEXT_OFFSET: f32 = 10.0;
 
 /// Width of a single glyph
@@ -76,6 +77,7 @@ pub type PortRefMut<'a> = span_tree::node::RefMut<'a, port::Model>;
 
 /// Specialized version of `node::Expression`, containing the port information.
 #[derive(Clone, Default)]
+#[allow(missing_docs)]
 pub struct Expression {
     /// Visual code representation. It can contain names of missing arguments, and thus can differ
     /// from `code`.
@@ -329,6 +331,7 @@ fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct Area {
+    #[allow(missing_docs)]
     pub frp: Frp,
     model:   Rc<Model>,
 }
@@ -341,6 +344,7 @@ impl Deref for Area {
 }
 
 impl Area {
+    /// Constructor.
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let model = Rc::new(Model::new(logger, app));
         let frp = Frp::new();
@@ -444,6 +448,7 @@ impl Area {
         Self { frp, model }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
@@ -457,15 +462,18 @@ impl Area {
         })
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn label(&self) -> &text::Area {
         &self.model.label
     }

@@ -265,6 +265,7 @@ ensogl_core::define_endpoints! {
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
+        default_color   (color::Rgba),
     }
 }
 
@@ -468,6 +469,8 @@ impl Area {
             // === Colors ===
 
             eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
+            self.frp.source.default_color <+ self.frp.set_default_color;
+
             eval input.set_default_text_size ((t) {
                 m.buffer.frp.set_default_text_size(*t);
                 m.redraw(true);

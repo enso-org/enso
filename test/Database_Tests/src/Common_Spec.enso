@@ -228,7 +228,7 @@ spec prefix connection pending=Nothing =
 
             r = t5.drop_missing_columns
             r.columns.map .name . should_equal ["a"]
-            r.at "A" . to_vector . should_equal [1, 2, 3]
+            r.at "a" . to_vector . should_equal [1, 2, 3]
 
             empty = t4.drop_missing_columns
             empty.columns.length . should_equal 0

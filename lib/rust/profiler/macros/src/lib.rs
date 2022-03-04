@@ -60,8 +60,13 @@ fn define_profiler(
             // === Trait Implementations ===
 
             impl Profiler for #obj_ident {
-                fn start(parent: EventId, label: Label, time: Option<Timestamp>) -> Self {
-                    #obj_ident(EventLog.start(parent, label, time))
+                fn start(
+                    parent: EventId,
+                    label: StaticLabel,
+                    time: Option<Timestamp>,
+                    start: StartState,
+                ) -> Self {
+                    #obj_ident(EventLog.start(parent, label, time, start))
                 }
                 fn finish(self) {
                     EventLog.end(self.0, Timestamp::now())
@@ -82,8 +87,10 @@ fn define_profiler(
             macro_rules! #start {
                 ($parent: expr, $label: expr) => {{
                     use profiler::Parent;
-                    let label = concat!($label, " (", file!(), ":", line!(), ")");
-                    let profiler: profiler::Started<profiler::#obj_ident> = $parent.new_child(label);
+                    let label = profiler::internal::Label(
+                        concat!($label, " (", file!(), ":", line!(), ")"));
+                    let profiler: profiler::internal::Started<profiler::#obj_ident> =
+                        $parent.new_child(label);
                     profiler
                 }}
             }
@@ -93,8 +100,9 @@ fn define_profiler(
             macro_rules! #with_same_start {
                 ($parent: expr, $label: expr) => {{
                     use profiler::Parent;
-                    let label = concat!($label, " (", file!(), ":", line!(), ")");
-                    let profiler: profiler::Started<profiler::#obj_ident> =
+                    let label = profiler::internal::Label(
+                        concat!($label, " (", file!(), ":", line!(), ")"));
+                    let profiler: profiler::internal::Started<profiler::#obj_ident> =
                         $parent.new_child_same_start(label);
                     profiler
                 }}
@@ -114,7 +122,14 @@ fn define_profiler(
             // === Trait Implementations ===
 
             impl Profiler for #obj_ident {
-                fn start(_: EventId, _: Label, _: Option<Timestamp>) -> Self { Self(()) }
+                fn start(
+                    _: EventId,
+                    _: StaticLabel,
+                    _: Option<Timestamp>,
+                    _: StartState,
+                ) -> Self {
+                    Self(())
+                }
                 fn finish(self) {}
                 fn pause(&self) {}
                 fn resume(&self) { }
@@ -127,14 +142,14 @@ fn define_profiler(
             #[macro_export]
             macro_rules! #start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started(profiler::#obj_ident(()))
+                    profiler::internal::Started(profiler::#obj_ident(()))
                 }
             }
             #[macro_export]
             #[doc = #doc_with_same_start]
             macro_rules! #with_same_start {
                 ($parent: expr, $label: expr) => {
-                    profiler::Started(profiler::#obj_ident(()))
+                    profiler::internal::Started(profiler::#obj_ident(()))
                 }
             }
         }
@@ -150,12 +165,12 @@ fn enabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#child_ident> for #parent_ident {
-            fn new_child(&self, label:Label) -> Started<#child_ident> {
+            fn new_child(&self, label: StaticLabel) -> Started<#child_ident> {
                 let start = Some(Timestamp::now());
-                Started(#child_ident::start(self.0, label, start))
+                Started(#child_ident::start(self.0, label, start, StartState::Active))
             }
-            fn new_child_same_start(&self, label:Label) -> Started<#child_ident> {
-                Started(#child_ident::start(self.0, label, None))
+            fn new_child_same_start(&self, label: StaticLabel) -> Started<#child_ident> {
+                Started(#child_ident::start(self.0, label, None, StartState::Active))
             }
         }
     };
@@ -170,10 +185,10 @@ fn disabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#child_ident> for #parent_ident {
-            fn new_child(&self, label: Label) -> Started<#child_ident> {
+            fn new_child(&self, label: StaticLabel) -> Started<#child_ident> {
                 self.new_child_same_start(label)
             }
-            fn new_child_same_start(&self, _label: Label) -> Started<#child_ident> {
+            fn new_child_same_start(&self, _label: StaticLabel) -> Started<#child_ident> {
                 Started(#child_ident(()))
             }
         }
@@ -262,7 +277,7 @@ fn profile_async(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
     let body = quote::quote! {{
         #start_profiler
         async move {
-            profiler::Profiler::resume(&__profiler_scope.0);
+            profiler::internal::Profiler::resume(&__profiler_scope.0);
             let result = #block;
             std::mem::drop(__profiler_scope);
             result
@@ -295,18 +310,18 @@ fn start_profiler(
     label: String,
     asyncness: bool,
 ) -> proc_macro2::TokenStream {
-    let start_await = match asyncness {
-        true => quote::quote! { profiler.pause(); },
-        false => quote::quote! {},
+    let state = match asyncness {
+        true => quote::quote! { profiler::internal::StartState::Paused },
+        false => quote::quote! { profiler::internal::StartState::Active },
     };
     quote::quote! {
         let __profiler_scope = {
-            use profiler::Profiler;
-            let parent = profiler::IMPLICIT_ID;
-            let now = Some(profiler::Timestamp::now());
-            let profiler = profiler::#obj_ident::start(parent, #label, now);
-            #start_await
-            profiler::Started(profiler)
+            use profiler::internal::Profiler;
+            let parent = profiler::internal::EventId::implicit();
+            let now = Some(profiler::internal::Timestamp::now());
+            let label = profiler::internal::Label(#label);
+            let profiler = profiler::#obj_ident::start(parent, label, now, #state);
+            profiler::internal::Started(profiler)
         };
     }
 }
@@ -347,9 +362,9 @@ fn wrap_await(await_: &syn::ExprAwait) -> syn::Expr {
     let wrapped = quote::quote! {
         {
             let future = #expr;
-            profiler::Profiler::pause(&__profiler_scope.0);
+            profiler::internal::Profiler::pause(&__profiler_scope.0);
             let result = future.await;
-            profiler::Profiler::resume(&__profiler_scope.0);
+            profiler::internal::Profiler::resume(&__profiler_scope.0);
             result
         }
     };
