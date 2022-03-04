@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -12,7 +11,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
@@ -235,12 +233,16 @@ public final class AtomConstructor implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(AtomConstructor cons, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(cons, Context.get(null).getBuiltins().any());
+      return symbol.resolveFor(cons, getContext().getBuiltins().any());
+    }
+
+    static Context getContext() {
+      return Context.get(null);
     }
 
     @Specialization(
         guards = {
-          "!context.isInlineCachingDisabled()",
+          "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
           "_this == cachedConstructor",
           "function != null"
@@ -282,12 +284,16 @@ public final class AtomConstructor implements TruffleObject {
         AtomConstructor cons,
         AtomConstructor target,
         UnresolvedConversion conversion) {
-      return conversion.resolveFor(target, cons, Context.get(null).getBuiltins().any());
+      return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
+    }
+
+    static Context getContext() {
+      return Context.get(null);
     }
 
     @Specialization(
         guards = {
-          "!context.isInlineCachingDisabled()",
+          "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
           "_this == cachedConstructor",

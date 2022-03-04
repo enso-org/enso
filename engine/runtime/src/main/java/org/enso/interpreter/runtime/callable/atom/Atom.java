@@ -209,12 +209,16 @@ public class Atom implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(AtomConstructor cons, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(cons, Context.get(null).getBuiltins().any());
+      return symbol.resolveFor(cons, getContext().getBuiltins().any());
+    }
+
+    static Context getContext() {
+      return Context.get(null);
     }
 
     @Specialization(
         guards = {
-          "!Context.get(null).isInlineCachingDisabled()",
+          "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
           "_this.constructor == cachedConstructor",
           "function != null"
@@ -256,12 +260,16 @@ public class Atom implements TruffleObject {
         AtomConstructor cons,
         AtomConstructor target,
         UnresolvedConversion conversion) {
-      return conversion.resolveFor(target, cons, Context.get(null).getBuiltins().any());
+      return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
+    }
+
+    static Context getContext() {
+      return Context.get(null);
     }
 
     @Specialization(
         guards = {
-          "!Context.get(null).isInlineCachingDisabled()",
+          "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
           "_this.constructor == cachedConstructor",
