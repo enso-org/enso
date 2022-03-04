@@ -894,14 +894,7 @@ impl Node {
             bounding_box_input                <- all4(
                 &new_size,&position,&visualization_enabled_and_visible,visualization_size);
             out.source.bounding_box <+ bounding_box_input.map(
-                |(node_size,node_position,visualization_enabled_and_visible,visualization_size)| {
-                    Node::node_bounding_box(
-                        *node_size,
-                        *node_position,
-                        *visualization_enabled_and_visible,
-                        *visualization_size,
-                    )
-                });
+                |(a,b,c,d)| Node::node_bounding_box(*a,*b,*c,*d));
 
 
             // === VCS Handling ===
