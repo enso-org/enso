@@ -23,7 +23,6 @@
   node cration.][3186]
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
-- [Updated Electron to version 17.1.0][3316]
 
 #### Enso Standard Library
 
