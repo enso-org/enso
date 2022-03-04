@@ -131,30 +131,18 @@ mod tests {
 
     #[test]
     fn test_intersection() {
-        let bb1 = bounding_box_from_corners((0.5, 0.5), (1.0, 1.0));
-        let bb2 = bounding_box_from_corners((0.0, 0.0), (2.0, 2.0));
-        assert!(bb1.intersects(&bb2));
-        assert!(bb2.intersects(&bb1));
+        assert_intersect(((0.5, 0.5), (1.0, 1.0)), ((0.0, 0.0), (2.0, 2.0)), true);
+        assert_intersect(((3.0, 3.0), (4.0, 4.0)), ((0.0, 0.0), (2.0, 2.0)), false);
+        assert_intersect(((0.0, 0.0), (4.0, 4.0)), ((0.0, 0.0), (-2.0, -2.0)), true);
+        assert_intersect(((0.0, 0.0), (4.0, 4.0)), ((2.0, 2.0), (200.0, 200.0)), true);
+        assert_intersect(((-50.0, -50.0), (25.0, 25.0)), ((5.00, 50.0), (100.0, 100.0)), false);
+    }
 
-        let bb1 = bounding_box_from_corners((3.0, 3.0), (4.0, 4.0));
-        let bb2 = bounding_box_from_corners((0.0, 0.0), (2.0, 2.0));
-        assert!(!bb1.intersects(&bb2));
-        assert!(!bb2.intersects(&bb1));
-
-        let bb1 = bounding_box_from_corners((0.0, 0.0), (4.0, 4.0));
-        let bb2 = bounding_box_from_corners((0.0, 0.0), (-2.0, -2.0));
-        assert!(bb1.intersects(&bb2));
-        assert!(bb2.intersects(&bb1));
-
-        let bb1 = bounding_box_from_corners((0.0, 0.0), (4.0, 4.0));
-        let bb2 = bounding_box_from_corners((2.0, 2.0), (200.0, 200.0));
-        assert!(bb1.intersects(&bb2));
-        assert!(bb2.intersects(&bb1));
-
-        let bb1 = bounding_box_from_corners((-50.0, -50.0), (25.0, 25.0));
-        let bb2 = bounding_box_from_corners((5.00, 50.0), (100.0, 100.0));
-        assert!(!bb1.intersects(&bb2));
-        assert!(!bb2.intersects(&bb1));
+    fn assert_intersect(bb1: RectangleCorners, bb2: RectangleCorners, expected_to_intersect: bool) {
+        let bb1 = bounding_box_from_corners(bb1.0, bb1.1);
+        let bb2 = bounding_box_from_corners(bb2.0, bb2.1);
+        assert_eq!(bb1.intersects(&bb2), expected_to_intersect);
+        assert_eq!(bb2.intersects(&bb1), expected_to_intersect);
     }
 
     #[test]
