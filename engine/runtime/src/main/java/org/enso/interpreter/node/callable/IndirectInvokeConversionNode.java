@@ -23,10 +23,9 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -50,7 +49,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail);
+      BaseNode.TailStatus isTail,
+      int thatArgumentPosition);
 
   @Specialization(guards = "dispatch.canConvertFrom(that)")
   Stateful doConvertFrom(
@@ -64,6 +64,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thatArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
       @Cached ConditionProfile atomProfile,
       @Cached ConditionProfile atomConstructorProfile,
@@ -106,6 +107,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thatArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
       @Cached BranchProfile profile,
       @Cached ConditionProfile atomProfile,
@@ -144,8 +146,41 @@ public abstract class IndirectInvokeConversionNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail) {
+      BaseNode.TailStatus isTail,
+      int thatArgumentPosition) {
     throw that;
+  }
+
+  @Specialization
+  Stateful doWarning(
+      MaterializedFrame frame,
+      Object state,
+      UnresolvedConversion conversion,
+      Object _this,
+      WithWarnings that,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail,
+      int thatArgumentPosition,
+      @Cached IndirectInvokeConversionNode childDispatch) {
+    arguments[thatArgumentPosition] = that.getValue();
+    ArrayRope<Warning> warnings = that.getReassignedWarnings(this);
+    Stateful result =
+        childDispatch.execute(
+            frame,
+            state,
+            conversion,
+            _this,
+            that.getValue(),
+            arguments,
+            schema,
+            defaultsExecutionMode,
+            argumentsExecutionMode,
+            isTail,
+            thatArgumentPosition);
+    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
   }
 
   @Specialization(guards = "interop.isString(that)")
@@ -160,6 +195,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thatArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
       @CachedLibrary(limit = "10") InteropLibrary interop,
@@ -214,6 +250,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thatArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(

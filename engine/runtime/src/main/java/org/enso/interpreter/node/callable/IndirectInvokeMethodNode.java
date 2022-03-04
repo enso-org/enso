@@ -27,10 +27,9 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -54,7 +53,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail);
+      BaseNode.TailStatus isTail,
+      int thisArgumentPosition);
 
   @Specialization(guards = "dispatch.hasFunctionalDispatch(_this)")
   Stateful doFunctionalDispatch(
@@ -67,9 +67,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thisArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     try {
       Function function = dispatch.getFunctionalDispatch(_this, symbol);
       return invokeFunctionNode.execute(
@@ -83,7 +83,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
           isTail);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }
   }
 
@@ -98,6 +98,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thisArgumentPosition,
       @Cached DataflowErrorResolverNode dataflowErrorResolverNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode,
       @Cached ConditionProfile profile) {
@@ -118,6 +119,36 @@ public abstract class IndirectInvokeMethodNode extends Node {
   }
 
   @Specialization
+  Stateful doWarning(
+      MaterializedFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      WithWarnings _this,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail,
+      int thisArgumentPosition,
+      @Cached IndirectInvokeMethodNode childDispatch) {
+    arguments[thisArgumentPosition] = _this.getValue();
+    ArrayRope<Warning> warnings = _this.getReassignedWarnings(this);
+    Stateful result =
+        childDispatch.execute(
+            frame,
+            state,
+            symbol,
+            _this.getValue(),
+            arguments,
+            schema,
+            defaultsExecutionMode,
+            argumentsExecutionMode,
+            isTail,
+            thisArgumentPosition);
+    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
+  }
+
+  @Specialization
   Stateful doPanicSentinel(
       MaterializedFrame frame,
       Object state,
@@ -127,7 +158,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail) {
+      BaseNode.TailStatus isTail,
+      int thisArgumentPosition) {
     throw _this;
   }
 
@@ -148,6 +180,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thisArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
@@ -184,10 +217,10 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thisArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     try {
       String str = interop.asString(_this);
@@ -207,7 +240,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }
   }
 
@@ -228,6 +261,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
+      int thisArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")

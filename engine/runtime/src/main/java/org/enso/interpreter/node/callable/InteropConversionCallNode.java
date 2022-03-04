@@ -97,7 +97,8 @@ public abstract class InteropConversionCallNode extends Node {
             buildSchema(arguments.length),
             DefaultsExecutionMode.EXECUTE,
             ArgumentsExecutionMode.PRE_EXECUTED,
-            TailStatus.NOT_TAIL)
+            TailStatus.NOT_TAIL,
+            1)
         .getValue();
   }
 }

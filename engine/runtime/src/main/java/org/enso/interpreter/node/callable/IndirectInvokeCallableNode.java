@@ -156,7 +156,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
           schema,
           defaultsExecutionMode,
           argumentsExecutionMode,
-          isTail);
+          isTail,
+          thisArgumentPosition);
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }

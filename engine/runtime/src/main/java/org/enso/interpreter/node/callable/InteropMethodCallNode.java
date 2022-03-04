@@ -108,7 +108,8 @@ public abstract class InteropMethodCallNode extends Node {
             buildSchema(arguments.length),
             DefaultsExecutionMode.EXECUTE,
             ArgumentsExecutionMode.PRE_EXECUTED,
-            TailStatus.NOT_TAIL)
+            TailStatus.NOT_TAIL,
+            0)
         .getValue();
   }
 }
