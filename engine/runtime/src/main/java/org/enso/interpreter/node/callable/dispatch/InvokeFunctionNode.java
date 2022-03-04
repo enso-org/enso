@@ -62,15 +62,18 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
+  Context getContext() {
+    return Context.get(this);
+  }
+
   @Specialization(
-      guards = {"!context.isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
+      guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   Stateful invokeCached(
       Function function,
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
-      @CachedContext(Language.class) Context context,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
       @Cached("generate(cachedSchema, getSchema())")
           CallArgumentInfo.ArgumentMapping argumentMapping,

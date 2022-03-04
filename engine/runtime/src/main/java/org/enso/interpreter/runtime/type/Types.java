@@ -99,7 +99,7 @@ public class Types {
    */
   public static void extractArguments(Object[] arguments) throws ArityException {
     if (arguments.length != 0) {
-      throw ArityException.create(0, arguments.length);
+      throw ArityException.create(0, 0, arguments.length);
     }
   }
 
@@ -166,7 +166,7 @@ public class Types {
   public static <A> A extractArguments(Object[] arguments, Class<A> cls)
       throws ArityException, UnsupportedTypeException {
     if (arguments.length != 1) {
-      throw ArityException.create(1, arguments.length);
+      throw ArityException.create(1, 1, arguments.length);
     }
 
     if (!(cls.isInstance(arguments[0]))) {
@@ -192,7 +192,7 @@ public class Types {
   public static <A, B> Pair<A, B> extractArguments(Object[] arguments, Class<A> cls1, Class<B> cls2)
       throws ArityException, UnsupportedTypeException {
     if (arguments.length != 2) {
-      throw ArityException.create(2, arguments.length);
+      throw ArityException.create(2, 2, arguments.length);
     }
     if (!(cls1.isInstance(arguments[0]))) {
       throw UnsupportedTypeException.create(

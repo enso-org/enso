@@ -194,8 +194,9 @@ public final class AtomConstructor implements TruffleObject {
    */
   @ExportMessage
   Atom instantiate(Object... arguments) throws ArityException {
-    if (arguments.length != getArity()) {
-      throw ArityException.create(getArity(), arguments.length);
+    int expected_arity = getArity();
+    if (arguments.length != expected_arity) {
+      throw ArityException.create(expected_arity, expected_arity, arguments.length);
     }
     if (cachedInstance != null) {
       return cachedInstance;
