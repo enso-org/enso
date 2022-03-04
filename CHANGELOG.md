@@ -62,6 +62,7 @@
 - [Updated `Text.repeat` and added `*` operator shorthand][3310]
 - [General improved Vector performance and new `Vector.each_with_index`,
   `Vector.fold_with_index` and `Vector.take` methods.][3236]
+- [Implemented new `Text.insert` method][3311]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -96,7 +97,6 @@
 [3305]: https://github.com/enso-org/enso/pull/3305
 [3309]: https://github.com/enso-org/enso/pull/3309
 [3310]: https://github.com/enso-org/enso/pull/3310
-[3236]: https://github.com/enso-org/enso/pull/3236
 
 #### Enso Compiler
 
