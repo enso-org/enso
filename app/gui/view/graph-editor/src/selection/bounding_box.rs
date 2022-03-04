@@ -100,10 +100,10 @@ impl BoundingBox {
     /// Expand the boundaries to make them contain all points belonging to the bounding box passed
     /// as an argument.
     pub fn grow_to_include(&mut self, other: &BoundingBox) {
-        self.left = self.left.min(other.left);
-        self.right = self.right.max(other.right);
-        self.bottom = self.bottom.min(other.bottom);
-        self.top = self.top.max(other.top);
+        self.left = min(self.left, other.left);
+        self.right = max(self.right, other.right);
+        self.bottom = min(self.bottom, other.bottom);
+        self.top = max(self.top, other.top);
     }
 
     /// Calculates the squared norm of a vector between the point passed as argument, and a point
