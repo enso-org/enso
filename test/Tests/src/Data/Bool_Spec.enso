@@ -4,7 +4,7 @@ import Standard.Test
 from Standard.Base.Data.Ordering import Equal, Less, Greater
 
 spec =
-    Test.group "Text" <|
+    Test.group "Booleans" <|
         Test.specify "should allow converting Bools to Text values" <|
             True.to_text . should_equal "True"
             False.to_text . should_equal "False"
