@@ -890,6 +890,7 @@ impl Node {
             // === Bounding Box ===
 
             let visualization_size             = &model.visualization.frp.size;
+            // Visualization can be enabled and not visible when the node has an error.
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bounding_box_input                <- all4(
                 &new_size,&position,&visualization_enabled_and_visible,visualization_size);
