@@ -6,6 +6,7 @@
 members = [
     "app/gui",
     "build/rust-scripts",
+    "build/enso-formatter",
     "lib/rust/*",
     "lib/rust/profiler/data",
     "integration-test"
