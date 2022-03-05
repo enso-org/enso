@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -173,8 +172,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
-    Context ctx = lookupContextReference(Language.class).get();
-    Atom error = ctx.getBuiltins().error().makeNotInvokableError(callable);
+    Atom error = Context.get(this).getBuiltins().error().makeNotInvokableError(callable);
     throw new PanicException(error, this);
   }
 }

@@ -10,7 +10,6 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -86,7 +85,6 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Child private InvokeConversionNode invokeConversionNode;
   @Child private ThunkExecutorNode thisExecutor;
   @Child private ThunkExecutorNode thatExecutor;
-  private final ConditionProfile functionErrorProfile = ConditionProfile.createCountingProfile();
 
   private final boolean canApplyThis;
   private final boolean canApplyThat;

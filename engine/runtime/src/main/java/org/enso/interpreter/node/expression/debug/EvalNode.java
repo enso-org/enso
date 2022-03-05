@@ -8,7 +8,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.context.InlineContext;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -77,7 +76,7 @@ public abstract class EvalNode extends BaseNode {
     }
     ClosureRootNode framedNode =
         ClosureRootNode.build(
-            lookupLanguageReference(Language.class).get(),
+            context.getLanguage(),
             localScope,
             moduleScope,
             expr,
