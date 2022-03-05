@@ -61,7 +61,7 @@ public abstract class EvalNode extends BaseNode {
   public abstract Stateful execute(CallerInfo callerInfo, Object state, Text expression);
 
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
-    Context context = lookupContextReference(Language.class).get();
+    Context context = Context.get(this);
     LocalScope localScope = scope.createChild();
     InlineContext inlineContext =
         InlineContext.fromJava(
