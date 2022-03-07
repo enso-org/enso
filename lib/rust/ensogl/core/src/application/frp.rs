@@ -588,12 +588,6 @@ macro_rules! define_endpoints_2 {
                 let private  = api::Private{ network, input: private_input, output: private_output};
                 Self {public,private}
             }
-
-            // /// Create Frp endpoints within the provided network.
-            // pub fn extend(network:&$crate::frp::Network) -> FrpEndpoints $(<$($param),*>)? {
-            //     let input = FrpInputs::new(network);
-            //     FrpEndpoints::new(network,input)
-            // }
         }
 
         impl $(<$($param $(:$($constraints)*)?),*>)? Default for Frp $(<$($param),*>)? {
@@ -898,23 +892,46 @@ macro_rules! define_endpoints_2 {
 }
 
 
+
+// =============
+// === Tests ===
+// =============
+
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
 
-    // Check compilation of macro output
-    define_endpoints_2! { <Id:(Default+Debug+Clone+'static)>
+    use crate::application::command::FrpNetworkProvider;
+    use crate::frp;
+
+
+    // Check compilation of macro output.
+    define_endpoints_2! { <Value:(Default+Debug+Clone+'static)>
         Input{
-            set_id(Id)
+            set_radius(Value)
         }
         Output{
-            id(Id)
+            radius(Value),
+            diameter(Value)
         }
     }
 
 
     #[test]
-    fn test_instantiation() {
-        let _frp = Frp::<f64>::default();
+    fn test_simple_api_usage() {
+        let frp = Frp::<u32>::default();
+        let network = frp.network();
+
+        // Set up internal logic.
+        frp::extend! { network
+             frp.private.output.radius <+ frp.private.input.set_radius;
+             frp.private.output.diameter <+ frp.private.input.set_radius.map(|r| 2 * r);
+        }
+
+        // Public API usage.
+        frp.public.input.set_radius(2);
+
+        assert_eq!(frp.public.output.radius.value(), 2);
+        assert_eq!(frp.public.output.diameter.value(), 4);
     }
 }
