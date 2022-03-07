@@ -152,6 +152,7 @@ fn main() {
 
     let total_len: usize = header.iter().map(|t| t.as_str().len()).sum();
 
+    println!("??? {} {}", header_len, attrs_len);
 
     let mut header_map = HashMap::<HeaderToken, Vec<String>>::new();
 
@@ -163,7 +164,6 @@ fn main() {
     }
 
     // TODO: Comment not done
-    powtarzaja sie linie w outpucie
     let mut out = String::new();
     print(&mut out, &mut header_map, &[ModuleDoc]);
     print(&mut out, &mut header_map, &[ModuleAttrib]);
