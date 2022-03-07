@@ -578,18 +578,11 @@ impl NodeModel {
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_pos =
-            NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(size);
+        let visualization_pos = visualization_position_of_node_with_size(size);
         self.error_visualization.set_position_xy(visualization_pos);
         self.visualization.set_position_xy(visualization_pos);
 
         size
-    }
-
-    fn position_of_visualization_relative_to_position_of_node_of_given_size(
-        node_size: Vector2,
-    ) -> Vector2 {
-        Vector2(node_size.x / 2.0, VISUALIZATION_OFFSET_Y)
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
@@ -895,8 +888,7 @@ impl Node {
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input                        <- all4(
                 &new_size,&position,&visualization_enabled_and_visible,visualization_size);
-            out.source.bounding_box <+ bbox_input.map(
-                |(a,b,c,d)| Node::node_bounding_box(*a,*b,*c,*d));
+            out.source.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
 
 
             // === VCS Handling ===
@@ -927,33 +919,6 @@ impl Node {
             color::Lcha::transparent()
         }
     }
-
-    fn node_bounding_box(
-        node_size: Vector2,
-        node_position: Vector2,
-        visualization_enabled_and_visible: bool,
-        visualization_size: Vector2,
-    ) -> BoundingBox {
-        let position_of_bounding_box_of_node = node_position - Vector2(0.0, node_size.y / 2.0);
-        let mut node_bounding_box =
-            BoundingBox::from_position_and_size(position_of_bounding_box_of_node, node_size);
-        if visualization_enabled_and_visible {
-            let position_of_visualization_relative_to_position_of_node =
-                NodeModel::position_of_visualization_relative_to_position_of_node_of_given_size(
-                    node_size,
-                );
-            let position_of_visualization =
-                node_position + position_of_visualization_relative_to_position_of_node;
-            let position_of_bounding_box_of_visualization =
-                position_of_visualization - visualization_size / 2.0;
-            let visualization_bounding_box = BoundingBox::from_position_and_size(
-                position_of_bounding_box_of_visualization,
-                visualization_size,
-            );
-            node_bounding_box.concat_mut(visualization_bounding_box);
-        }
-        node_bounding_box
-    }
 }
 
 impl display::Object for Node {
@@ -967,4 +932,28 @@ impl display::Object for Node {
 
 fn view_position_of_node_with_size(size: Vector2) -> Vector2 {
     Vector2(size.x / 2.0, 0.0)
+}
+
+fn visualization_position_of_node_with_size(size: Vector2) -> Vector2 {
+    view_position_of_node_with_size(size) + Vector2(0.0, VISUALIZATION_OFFSET_Y)
+}
+
+fn bounding_box(
+    node_size: Vector2,
+    node_position: Vector2,
+    visualization_enabled_and_visible: bool,
+    visualization_size: Vector2,
+) -> BoundingBox {
+    let node_view_position = node_position + view_position_of_node_with_size(node_size);
+    let node_bbox_position = node_view_position - node_size / 2.0;
+    let mut node_bbox = BoundingBox::from_position_and_size(node_bbox_position, node_size);
+    if visualization_enabled_and_visible {
+        let visualization_position_of_node = visualization_position_of_node_with_size(node_size);
+        let visualization_position = node_position + visualization_position_of_node;
+        let visualization_bbox_position = visualization_position - visualization_size / 2.0;
+        let visualization_bbox =
+            BoundingBox::from_position_and_size(visualization_bbox_position, visualization_size);
+        node_bbox.concat_mut(visualization_bbox);
+    }
+    node_bbox
 }
