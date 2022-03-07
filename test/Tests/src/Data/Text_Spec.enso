@@ -6,6 +6,7 @@ import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
 from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Text.Text_Sub_Range import all
+import Standard.Base.Data.Text.Regex.Mode
 import Standard.Test
 
 type Auto a
@@ -774,6 +775,15 @@ spec =
 
             "Hello World!".span_of_all "J" . should_equal []
             "Hello World!".span_of_all "o" . map .start . should_equal [4, 7]
+
+        Test.specify "should allow regexes in span_of" <|
+            "Hello world".span_of ".o" Mode.First Regex_Matcher.new . should_equal (Span (Range 3 5) "Hello world")
+            "Hello world".span_of_all ".o" Regex_Matcher.new . map .start . should_equal [3, 6]
+
+            "foobar".span_of "BAR" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal (Span (Range 3 6) "foobar")
+
+            ## Regex matching does not do folding
+            "Strasse".span_of "ß" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal Nothing
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|

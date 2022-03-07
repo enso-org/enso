@@ -262,7 +262,7 @@ type Pattern
                 internal_matcher = this.build_matcher input start end
 
                 if internal_matcher . find start . not then Nothing else
-                    Match internal_matcher start end
+                    Match internal_matcher start end input
             Integer ->
                 if mode < 0 then Panic.throw <|
                     Mode_Error "Cannot match a negative number of times."
@@ -277,7 +277,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match internal_matcher start end)
+                            builder.append (Match internal_matcher start end input)
                             @Tail_Call go (internal_matcher.end 0) remaining_count-1
 
                 go start mode
@@ -294,7 +294,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match internal_matcher start end)
+                            builder.append (Match internal_matcher start end input)
                             @Tail_Call go (internal_matcher.end 0)
 
                 go start
@@ -304,7 +304,7 @@ type Pattern
             Mode.Full ->
                 internal_matcher = this.build_matcher input start end
                 if internal_matcher.matches.not then Nothing else
-                    Match internal_matcher start end
+                    Match internal_matcher start end input
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Modes cannot be recursive."
 
@@ -334,7 +334,7 @@ type Pattern
                  pattern.matches input
     matches : Text -> Boolean
     matches input = case this.match input mode=Mode.Full of
-        Match _ _ _ -> True
+        Match _ _ _ _ -> True
         Vector.Vector _ -> True
         _ -> False
 
@@ -405,7 +405,7 @@ type Pattern
     find input mode=Mode.All =
         matches = this.match input mode
         case matches of
-            Match _ _ _ -> matches.group 0
+            Match _ _ _ _ -> matches.group 0
             Vector.Vector _ -> matches.map (_.group 0)
             _ -> matches
 
@@ -548,7 +548,7 @@ type Pattern
                 internal_matcher.replaceAll replacement
             Mode.Full ->
                 case this.match input mode=Mode.Full of
-                    Match _ _ _ -> replacement
+                    Match _ _ _ _ -> replacement
                     Nothing -> input
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Modes cannot be recursive."
@@ -570,7 +570,8 @@ type Match
          match.
        - region_start: The start of the region over which the match was made.
        - region_end: The end of the region over which the match was made.
-    type Match (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer)
+       - input: The input text that was being matched.
+    type Match (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer) (input : Text)
 
     ## Gets the text matched by the group with the provided identifier, or
        `Nothing` if the group did not participate in the match. If no such group
@@ -746,7 +747,7 @@ type Match
     span : Integer | Text -> Span | Nothing ! Regex.No_Such_Group_Error
     span id = case this.group id of
         Nothing -> Nothing
-        _ -> Span.new (this.start id) (this.end id) (this.group 0)
+        _ -> Span.new (this.start id) (this.end id) this.input
 
     ## Returns the start character index of the match's region.
 

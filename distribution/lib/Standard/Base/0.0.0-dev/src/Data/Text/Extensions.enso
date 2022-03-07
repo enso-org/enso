@@ -1207,6 +1207,11 @@ Text.trim where=Location.Both what=_.is_whitespace =
    ! Match Length
      TODO describe the peculiarity of case insenitive matching
 
+   ! What is a Character?
+     TODO note on indexing of regexes
+     TODO [RW] This should be ensured to be consistent as part of:
+     https://www.pivotaltracker.com/n/projects/2539304/stories/181463278
+
    > Example
      TODO
 
@@ -1223,7 +1228,10 @@ Text.span_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case ma
                 end = start + term.length
                 Span (Range start end) this
         Case_Insensitive locale -> Error.throw "TODO"
-    Regex_Matcher _ _ _ _ _ -> Error.throw "TODO"
+    Regex_Matcher _ _ _ _ _ ->
+        case matcher.compile term . match this Mode.First of
+            Nothing -> Nothing
+            match -> match.span 0
 
 ## ALIAS
    Finds all the locations of the `term` in the input.
@@ -1239,6 +1247,11 @@ Text.span_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case ma
 
    ! Match Length
      TODO describe the peculiarity of case insenitive matching
+
+   ! What is a Character?
+     TODO note on indexing of regexes
+     TODO [RW] This should be ensured to be consistent as part of:
+     https://www.pivotaltracker.com/n/projects/2539304/stories/181463278
 
    > Example
      TODO
@@ -1256,4 +1269,7 @@ Text.span_of_all term="" matcher=Text_Matcher.new = case matcher of
                 end = start+offset
                 Span (Range start end) this
         Case_Insensitive locale -> Error.throw "TODO"
-    Regex_Matcher _ _ _ _ _ -> Error.throw "TODO"
+    Regex_Matcher _ _ _ _ _ ->
+        case matcher.compile term . match this Mode.All of
+            Nothing -> []
+            matches -> matches.map m-> m.span 0
