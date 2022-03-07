@@ -6,7 +6,7 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option as Global_Option
-import Standard.Base.Data.Text.Span
+from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
@@ -501,10 +501,10 @@ spec =
         match . should_be_a Default_Engine.Match
 
         Test.specify "should get the span of a group by index" <|
-            match.span 1 . should_equal (Span.new 0 6 input)
+            match.span 1 . should_equal (Utf_16_Span (Range 0 6) input)
 
         Test.specify "should get the span of a group by name" <|
-            match.span "letters" . should_equal (Span.new 6 18 input)
+            match.span "letters" . should_equal (Utf_16_Span (Range 6 18) input)
 
         Test.specify "should return Nothing if the group didn't match" <|
             match.span 3 . should_equal Nothing

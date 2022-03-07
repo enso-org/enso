@@ -15,26 +15,26 @@ spec =
 
         Test.specify "should correctly translate an codepoint index to a grapheme index" <|
             codepoints_to_graphemes . each_with_index codepoint_ix-> grapheme_ix->
-                found_grapheme_ix = Text_Utils.codepoint_index_to_grapheme_index text codepoint_ix
+                found_grapheme_ix = Text_Utils.utf16_index_to_grapheme_index text codepoint_ix
                 found_grapheme_ix.should_equal grapheme_ix
 
-            Text_Utils.codepoint_index_to_grapheme_index text text.utf_16.length . should_equal text.length
-            Text_Utils.codepoint_index_to_grapheme_index "" 0 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index text text.utf_16.length . should_equal text.length
+            Text_Utils.utf16_index_to_grapheme_index "" 0 . should_equal 0
 
-            Text_Utils.codepoint_index_to_grapheme_index 'ą' 0 . should_equal 0
-            Text_Utils.codepoint_index_to_grapheme_index 'ą' 1 . should_equal 1
+            Text_Utils.utf16_index_to_grapheme_index 'ą' 0 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index 'ą' 1 . should_equal 1
 
-            Text_Utils.codepoint_index_to_grapheme_index "aB" 0 . should_equal 0
-            Text_Utils.codepoint_index_to_grapheme_index "aB" 1 . should_equal 1
-            Text_Utils.codepoint_index_to_grapheme_index "aB" 2 . should_equal 2
+            Text_Utils.utf16_index_to_grapheme_index "aB" 0 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index "aB" 1 . should_equal 1
+            Text_Utils.utf16_index_to_grapheme_index "aB" 2 . should_equal 2
 
-            Text_Utils.codepoint_index_to_grapheme_index 'a\u{301}' 0 . should_equal 0
-            Text_Utils.codepoint_index_to_grapheme_index 'a\u{301}' 1 . should_equal 0
-            Text_Utils.codepoint_index_to_grapheme_index 'a\u{301}' 2 . should_equal 1
+            Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 0 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 1 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 2 . should_equal 1
 
         Test.specify "should correctly translate a series of codepoint indices to a grapheme indices in a batch" <|
             translate_indices text ixes =
-                Vector.from_array <| Text_Utils.codepoint_indices_to_grapheme_indices text ixes.to_array
+                Vector.from_array <| Text_Utils.utf16_indices_to_grapheme_indices text ixes.to_array
             codepoint_indices = Vector.new text.utf_16.length ix->ix
             translate_indices text codepoint_indices . should_equal codepoints_to_graphemes
 

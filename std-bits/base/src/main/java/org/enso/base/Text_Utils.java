@@ -313,13 +313,13 @@ public class Text_Utils {
   }
 
   /**
-   * Converts a codepoint index to index of the grapheme that this codepoint belongs to.
+   * Converts a UTF-16 index to index of the grapheme that this codepoint belongs to.
    *
    * @param text the text associated with the index
-   * @param codepoint_indices the codepoint index
-   * @return a grapheme index corresponding to the codepoint from the input
+   * @param codepoint_indices the UTF-16 index
+   * @return an index of an extended grapheme cluster that contains the code unit from the input
    */
-  public static long codepoint_index_to_grapheme_index(String text, long codepoint_index) {
+  public static long utf16_index_to_grapheme_index(String text, long codepoint_index) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
     if (codepoint_index < 0 || codepoint_index > text.length()) {
@@ -338,7 +338,7 @@ public class Text_Utils {
   }
 
   /**
-   * Converts a series of codepoint indices to indices of graphemes that these codepoints belong to.
+   * Converts a series of UTF-16 indices to indices of graphemes that these codepoints belong to.
    *
    * <p>For performance, it assumes that the provided indices are sorted in a non-decreasing order
    * (duplicate entries are permitted). Behaviour is unspecified if an unsorted list is provided.
@@ -347,10 +347,10 @@ public class Text_Utils {
    * text.length()].
    *
    * @param text the text associated with the indices
-   * @param codepoint_indices the array of codepoint indices, sorted in non-decreasing order
-   * @return an array of grapheme indices corresponding to the codepoints from the input
+   * @param codepoint_indices the array of UTF-16 code unit indices, sorted in non-decreasing order
+   * @return an array of grapheme indices corresponding to the UTF-16 units from the input
    */
-  public static long[] codepoint_indices_to_grapheme_indices(
+  public static long[] utf16_indices_to_grapheme_indices(
       String text, List<Long> codepoint_indices) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);

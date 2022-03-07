@@ -40,7 +40,7 @@ import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Option as Global_Option
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Polyglot.Java as Java_Ext
-import Standard.Base.Data.Text.Span
+from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
 from Standard.Builtins import Java
 
@@ -744,10 +744,10 @@ type Match
              example_Span =
                  match = Examples.match
                  match.span 0
-    span : Integer | Text -> Span | Nothing ! Regex.No_Such_Group_Error
+    span : Integer | Text -> Utf_16_Span | Nothing ! Regex.No_Such_Group_Error
     span id = case this.group id of
         Nothing -> Nothing
-        _ -> Span.new (this.start id) (this.end id) this.input
+        _ -> Utf_16_Span (Range (this.start id) (this.end id)) this.input
 
     ## Returns the start character index of the match's region.
 

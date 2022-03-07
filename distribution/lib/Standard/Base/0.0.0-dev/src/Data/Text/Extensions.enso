@@ -955,27 +955,6 @@ Text.repeat count=1 =
        https://www.pivotaltracker.com/story/show/181435598
     0.up_to (count.max 0) . fold "" acc-> _-> acc + this
 
-## PRIVATE
-   Utility function taking a range pointing at grapheme clusters and converting to a range on the underlying code points
-range_to_char_indices : Text -> Range -> Range ! Index_Out_Of_Bounds_Error
-range_to_char_indices text range =
-    len = text.length
-    start = if range.start < 0 then range.start + len else range.start
-    end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
-    is_valid = (Range 0 len+1).contains
-
-    case (Pair (is_valid start) (is_valid end)) of
-        Pair False _ -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
-        Pair True False -> Error.throw (Index_Out_Of_Bounds_Error range.end len)
-        Pair True True ->
-            if start>=end then (Range 0 0) else
-                iterator = BreakIterator.getCharacterInstance
-                iterator.setText text
-
-                start_index = iterator.next start
-                end_index = iterator.next (end - start)
-                Range start_index end_index
-
 ## ALIAS first, last, left, right, mid, substring
    Creates a new Text by selecting the specified range of the input.
 
@@ -1012,7 +991,7 @@ range_to_char_indices text range =
 Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.take range =
     char_range = case range of
-        Range _ _ -> here.range_to_char_indices this range
+        Range _ _ -> Span_Module.range_to_char_indices this range
         _ -> range.to_char_range this
     Text_Utils.substring this char_range.start char_range.end
 
@@ -1052,7 +1031,7 @@ Text.take range =
 Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop range =
     char_range = case range of
-        Range _ _ -> here.range_to_char_indices this range
+        Range _ _ -> Span_Module.range_to_char_indices this range
         _ -> range.to_char_range this
     if char_range.start == 0 then Text_Utils.drop_first this char_range.end else
         prefix = Text_Utils.substring this 0 char_range.start
@@ -1224,14 +1203,14 @@ Text.span_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case ma
         True ->
             codepoint_ix = Text_Utils.index_of this term
             if codepoint_ix < 0 then Nothing else
-                start = Text_Utils.codepoint_index_to_grapheme_index this codepoint_ix
+                start = Text_Utils.utf16_index_to_grapheme_index this codepoint_ix
                 end = start + term.length
                 Span (Range start end) this
         Case_Insensitive locale -> Error.throw "TODO"
     Regex_Matcher _ _ _ _ _ ->
         case matcher.compile term . match this Mode.First of
             Nothing -> Nothing
-            match -> match.span 0
+            match -> match.span 0 . to_grapheme_span
 
 ## ALIAS
    Finds all the locations of the `term` in the input.
@@ -1263,7 +1242,7 @@ Text.span_of_all term="" matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
         True ->
             codepoint_ixes = Text_Utils.index_of_all this term
-            grahpeme_ixes = Vector.from_array <| Text_Utils.codepoint_indices_to_grapheme_indices this codepoint_ixes
+            grahpeme_ixes = Vector.from_array <| Text_Utils.utf16_indices_to_grapheme_indices this codepoint_ixes
             offset = term.length
             grahpeme_ixes . map start->
                 end = start+offset
@@ -1272,4 +1251,4 @@ Text.span_of_all term="" matcher=Text_Matcher.new = case matcher of
     Regex_Matcher _ _ _ _ _ ->
         case matcher.compile term . match this Mode.All of
             Nothing -> []
-            matches -> matches.map m-> m.span 0
+            matches -> matches.map m-> m.span 0 . to_grapheme_span
