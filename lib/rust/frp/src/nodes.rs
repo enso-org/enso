@@ -1623,7 +1623,8 @@ impl<T: EventOutput> OwnedProfile<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedProfile<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "");
+        let _label = self.label();
+        let _profiler = profiler::start_debug!(profiler::UNKNOWN, _label);
         self.emit_event(stack, event);
     }
 }

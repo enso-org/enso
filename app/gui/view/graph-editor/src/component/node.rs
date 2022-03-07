@@ -897,9 +897,9 @@ impl Node {
         // Init defaults.
         init.emit(());
         model.error_visualization.set_layer(visualization::Layer::Front);
-        frp.public.input.set_error.emit(None);
-        frp.public.input.set_disabled.emit(false);
-        frp.public.input.show_quick_action_bar_on_hover.emit(true);
+        frp.set_error.emit(None);
+        frp.set_disabled.emit(false);
+        frp.show_quick_action_bar_on_hover.emit(true);
 
         Self { model, frp }
     }

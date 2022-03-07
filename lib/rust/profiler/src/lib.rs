@@ -325,6 +325,8 @@ enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
 
 /// Pseudo-profiler serving as the root of the measurement hierarchy.
 pub const APP_LIFETIME: Objective = Objective(EventId::APP_LIFETIME);
+/// Pseudo-profiler indicating, that the parent of the profiler is unknown.
+pub const UNKNOWN: Objective = Objective(EventId::IMPLICIT);
 
 
 
