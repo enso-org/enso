@@ -316,7 +316,6 @@ public class Text_Utils {
       throw new IndexOutOfBoundsException("Index " + codepoint_index + " is outside of the provided text.");
     }
 
-//    int grapheme_start = breakIterator.current();
     int grapheme_end = breakIterator.next();
     int grapheme_index = 0;
 
@@ -339,7 +338,8 @@ public class Text_Utils {
   public static List<Long> codepoint_indices_to_grapheme_indices(String text, List<Long> codepoint_indices) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
-    throw new RuntimeException("Not implemented");
+    // TODO
+    return new ArrayList<>();
   }
 
   /**
