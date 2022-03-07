@@ -303,7 +303,8 @@ public class Text_Utils {
     return pos;
   }
 
-  /** Converts a codepoint index to index of the grapheme that this codepoint belongs to.
+  /**
+   * Converts a codepoint index to index of the grapheme that this codepoint belongs to.
    *
    * @param text the text associated with the index
    * @param codepoint_indices the codepoint index
@@ -313,29 +314,29 @@ public class Text_Utils {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
     if (codepoint_index < 0 || codepoint_index > text.length()) {
-      throw new IndexOutOfBoundsException("Index " + codepoint_index + " is outside of the provided text.");
+      throw new IndexOutOfBoundsException(
+          "Index " + codepoint_index + " is outside of the provided text.");
     }
 
     int grapheme_end = breakIterator.next();
     int grapheme_index = 0;
 
-    while (true) {
-      if (codepoint_index < grapheme_end || grapheme_end == -1) {
-        return grapheme_index;
-      } else {
-        grapheme_index++;
-        grapheme_end = breakIterator.next();
-      }
+    while (grapheme_end <= codepoint_index && grapheme_end != -1) {
+      grapheme_index++;
+      grapheme_end = breakIterator.next();
     }
+    return grapheme_index;
   }
 
-  /** Converts a series of codepoint indices to indices of graphemes that these codepoints belong to.
+  /**
+   * Converts a series of codepoint indices to indices of graphemes that these codepoints belong to.
    *
    * @param text the text associated with the indices
    * @param codepoint_indices the array of codepoint indices
    * @return an array of grapheme indices corresponding to the codepoints from the input
    */
-  public static List<Long> codepoint_indices_to_grapheme_indices(String text, List<Long> codepoint_indices) {
+  public static List<Long> codepoint_indices_to_grapheme_indices(
+      String text, List<Long> codepoint_indices) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
     // TODO
