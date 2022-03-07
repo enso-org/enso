@@ -28,11 +28,11 @@ class FileSystemEditionProvider(searchPaths: List[Path])
     case head :: tail =>
       val headResult = loadEdition(name, head)
       headResult match {
-        case Left(EditionNotFound()) =>
+        case Left(EditionNotFound(_)) =>
           findEdition(name, tail)
         case _ => headResult
       }
-    case Nil => Left(EditionNotFound())
+    case Nil => Left(EditionNotFound(name))
   }
 
   private def loadEdition(
@@ -47,7 +47,7 @@ class FileSystemEditionProvider(searchPaths: List[Path])
         .toEither
         .left
         .map(EditionReadError)
-    } else Left(EditionNotFound())
+    } else Left(EditionNotFound(name))
   }
 
   /** Finds all editions available on the [[searchPaths]]. */

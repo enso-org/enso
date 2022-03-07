@@ -239,7 +239,7 @@ Any.should_equal that frames_to_skip=0 = case this == that of
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Assertion
-Error.should_equal _ = Panic.throw (Matched_On_Error this)
+Error.should_equal _ frames_to_skip=0 = here.fail_match_on_unexpected_error this 1+frames_to_skip
 
 ## Asserts that `this` is within `epsilon` from `that`.
 
@@ -297,7 +297,7 @@ Boolean.should_be_true = case this of
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Error.should_be_true : Assertion
-Error.should_be_true = Panic.throw (Matched_On_Error this)
+Error.should_be_true = here.fail_match_on_unexpected_error this 1
 
 ## Asserts that the given `Boolean` is `False`
 
@@ -325,7 +325,7 @@ Boolean.should_be_false = case this of
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Error.should_be_false : Assertion
-Error.should_be_false = Panic.throw (Matched_On_Error this)
+Error.should_be_false = here.fail_match_on_unexpected_error this 1
 
 ## Asserts that a value is of a given type.
 
@@ -490,14 +490,6 @@ Suite.is_fail = this.specs.any .is_fail
 type Finished_With_Error err stack_trace_text
 
 ## PRIVATE
-
-   An error describing that the test runner matched on an unexpected error.
-
-   Arguments:
-   - err: The payload of the error that triggered this error.
-type Matched_On_Error err
-
-## PRIVATE
 type Assertion
 
     ## PRIVATE
@@ -551,3 +543,12 @@ run_spec ~behavior =
                 Failure ("An unexpected error was returned: " + err.to_text + '\n' + stack_trace_text)
             _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
     result
+
+## PRIVATE
+   Reports an unexpected dataflow error has occurred.
+fail_match_on_unexpected_error : Error -> Integer -> Nothing
+fail_match_on_unexpected_error error frames_to_skip =
+    payload = error.catch
+    loc = Meta.get_source_location 1+frames_to_skip
+    msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
+    here.fail msg

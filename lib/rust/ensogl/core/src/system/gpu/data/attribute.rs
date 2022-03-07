@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::control::callback::CallbackFn;
+use crate::control::callback;
 use crate::data::dirty;
 use crate::data::OptVec;
 use crate::debug::Stats;
@@ -102,7 +102,7 @@ pub struct AttributeScopeData {
 
 impl {
     /// Create a new scope with the provided dirty callback.
-    pub fn new<OnMut:CallbackFn+Clone>
+    pub fn new<OnMut:callback::NoArgs+Clone>
     (lgr:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         info!(lgr,"Initializing.",|| {
             let logger          = lgr.clone();

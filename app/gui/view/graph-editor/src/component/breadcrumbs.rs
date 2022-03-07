@@ -185,7 +185,7 @@ impl BreadcrumbsModel {
     /// The `gap_width` describes an empty space on the left of all the content. This space will be
     /// covered by the background and is intended to make room for windows control buttons.
     pub fn new(app: Application, frp: &Frp) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let project_name = app.new_view();
         let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new(&logger);
@@ -450,7 +450,7 @@ pub struct Breadcrumbs {
 impl Breadcrumbs {
     /// Constructor.
     pub fn new(app: Application) -> Self {
-        let scene = app.display.scene().clone_ref();
+        let scene = app.display.default_scene.clone_ref();
         let frp = Frp::new();
         let model = Rc::new(BreadcrumbsModel::new(app, &frp));
         let network = &frp.network;

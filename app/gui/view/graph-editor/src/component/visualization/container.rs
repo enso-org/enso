@@ -31,7 +31,7 @@ use ensogl::display::DomSymbol;
 use ensogl::Animation;
 
 use ensogl::system::web;
-use ensogl::system::web::StyleSetter;
+use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 
 
@@ -192,19 +192,19 @@ impl View {
             bg_color.alpha
         );
 
-        let div = web::create_div();
+        let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was
-        // overlapping        the JS visualization. This should be further investigated
-        // while fixing rust        visualization displaying. (#796)
-        background_dom.dom().set_style_or_warn("width", "0", &logger);
-        background_dom.dom().set_style_or_warn("height", "0", &logger);
-        background_dom.dom().set_style_or_warn("z-index", "1", &logger);
-        background_dom.dom().set_style_or_warn("overflow-y", "auto", &logger);
-        background_dom.dom().set_style_or_warn("overflow-x", "auto", &logger);
-        background_dom.dom().set_style_or_warn("background", bg_hex, &logger);
-        background_dom.dom().set_style_or_warn("border-radius", "14px", &logger);
-        shadow::add_to_dom_element(&background_dom, &styles, &logger);
+        // overlapping the JS visualization. This should be further investigated
+        // while fixing rust visualization displaying. (#796)
+        background_dom.dom().set_style_or_warn("width", "0");
+        background_dom.dom().set_style_or_warn("height", "0");
+        background_dom.dom().set_style_or_warn("z-index", "1");
+        background_dom.dom().set_style_or_warn("overflow-y", "auto");
+        background_dom.dom().set_style_or_warn("overflow-x", "auto");
+        background_dom.dom().set_style_or_warn("background", bg_hex);
+        background_dom.dom().set_style_or_warn("border-radius", "14px");
+        shadow::add_to_dom_element(&background_dom, &styles);
         display_object.add_child(&background_dom);
 
         Self { display_object, background, overlay, background_dom, scene }.init()
@@ -259,7 +259,7 @@ pub struct ContainerModel {
 impl ContainerModel {
     /// Constructor.
     pub fn new(logger: &Logger, app: &Application, registry: visualization::Registry) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new_sub(logger, "visualization_container");
         let display_object = display::object::Instance::new(&logger);
         let drag_root = display::object::Instance::new(&logger);
@@ -391,10 +391,10 @@ impl ContainerModel {
             // self.fullscreen_view.background.shape.sprite.size.set(size);
             // self.view.background.shape.sprite.size.set(zero());
             self.view.overlay.size.set(zero());
-            dom.set_style_or_warn("width", "0", &self.logger);
-            dom.set_style_or_warn("height", "0", &self.logger);
-            bg_dom.set_style_or_warn("width", format!("{}px", size[0]), &self.logger);
-            bg_dom.set_style_or_warn("height", format!("{}px", size[1]), &self.logger);
+            dom.set_style_or_warn("width", "0");
+            dom.set_style_or_warn("height", "0");
+            bg_dom.set_style_or_warn("width", format!("{}px", size[0]));
+            bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
             self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
             // self.view.background.shape.radius.set(CORNER_RADIUS);
@@ -402,10 +402,10 @@ impl ContainerModel {
             self.view.background.radius.set(CORNER_RADIUS);
             self.view.overlay.size.set(size);
             self.view.background.size.set(size + 2.0 * Vector2(PADDING, PADDING));
-            dom.set_style_or_warn("width", format!("{}px", size[0]), &self.logger);
-            dom.set_style_or_warn("height", format!("{}px", size[1]), &self.logger);
-            bg_dom.set_style_or_warn("width", "0", &self.logger);
-            bg_dom.set_style_or_warn("height", "0", &self.logger);
+            dom.set_style_or_warn("width", format!("{}px", size[0]));
+            dom.set_style_or_warn("height", format!("{}px", size[1]));
+            bg_dom.set_style_or_warn("width", "0");
+            bg_dom.set_style_or_warn("height", "0");
             // self.fullscreen_view.background.shape.sprite.size.set(zero());
 
             let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);

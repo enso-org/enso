@@ -2,16 +2,20 @@
 //! elements on the scene.
 
 use crate::prelude::*;
+use web::traits::*;
 
 use crate::display;
 use crate::display::object::traits::*;
+#[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
-use crate::system::web::NodeInserter;
-use crate::system::web::StyleSetter;
 
+// #[cfg(target_arch = "wasm32")]
+// use crate::system::web::traits::*;
+
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
-use web_sys::HtmlDivElement;
+use web::HtmlDivElement;
 
 
 
@@ -19,6 +23,7 @@ use web_sys::HtmlDivElement;
 // === Js Bindings ===
 // ===================
 
+#[cfg(target_arch = "wasm32")]
 mod js {
     use super::*;
     #[wasm_bindgen(inline_js = "
@@ -38,9 +43,15 @@ mod js {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+mod js {
+    use super::*;
+    pub fn set_object_transform(_dom: &web::JsValue, _matrix_array: &web::Object) {}
+}
 
 /// Sets the object transform as the CSS style property.
 #[allow(unsafe_code)]
+#[cfg(target_arch = "wasm32")]
 pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
@@ -50,6 +61,10 @@ pub fn set_object_transform(dom: &web::JsValue, matrix: &Matrix4<f32>) {
         js::set_object_transform(dom, &matrix_array);
     }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(missing_docs)]
+pub fn set_object_transform(_dom: &web::JsValue, _matrix: &Matrix4<f32>) {}
 
 
 
@@ -98,14 +113,14 @@ pub struct DomSymbol {
 
 impl DomSymbol {
     /// Constructor.
-    pub fn new(content: &web_sys::Node) -> Self {
+    pub fn new(content: &web::Node) -> Self {
         let logger = Logger::new("DomSymbol");
         let size = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
-        let dom = web::create_div();
-        dom.set_style_or_warn("position", "absolute", &logger);
-        dom.set_style_or_warn("width", "0px", &logger);
-        dom.set_style_or_warn("height", "0px", &logger);
-        dom.append_or_panic(content);
+        let dom = web::document.create_div_or_panic();
+        dom.set_style_or_warn("position", "absolute");
+        dom.set_style_or_warn("width", "0px");
+        dom.set_style_or_warn("height", "0px");
+        dom.append_or_warn(content);
         let display_object = display::object::Instance::new(logger);
         let guard = Rc::new(Guard::new(&display_object, &dom));
         display_object.set_on_updated(enclose!((dom) move |t| {
@@ -130,8 +145,8 @@ impl DomSymbol {
     /// Size setter.
     pub fn set_size(&self, size: Vector2<f32>) {
         self.size.set(size);
-        self.dom.set_style_or_panic("width", format!("{}px", size.x));
-        self.dom.set_style_or_panic("height", format!("{}px", size.y));
+        self.dom.set_style_or_warn("width", format!("{}px", size.x));
+        self.dom.set_style_or_warn("height", format!("{}px", size.y));
     }
 }
 

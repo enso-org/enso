@@ -4,14 +4,12 @@ use crate::prelude::*;
 
 use crate::debug::stats::StatsData;
 use crate::system::web;
-use crate::system::web::StyleSetter;
+use crate::system::web::traits::*;
+use crate::system::web::JsValue;
 
 use num_traits::cast::AsPrimitive;
 use std::collections::VecDeque;
 use std::f64;
-use wasm_bindgen;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 
 
@@ -105,7 +103,7 @@ impl Default for Config {
 impl Config {
     /// Translates the configuration to JS values.
     pub fn to_js_config(&self) -> SamplerConfig {
-        let ratio = web::window().device_pixel_ratio();
+        let ratio = web::window.device_pixel_ratio();
         SamplerConfig {
             background_color:      (&self.background_color).into(),
             label_color_ok:        (&self.label_color_ok).into(),
@@ -165,19 +163,19 @@ impl DomData {
     /// Constructor.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        let root = web::create_div();
+        let root = web::document.create_div_or_panic();
         root.set_class_name("performance-monitor");
-        root.set_style_or_panic("position", "absolute");
-        root.set_style_or_panic("z-index", "100");
-        root.set_style_or_panic("left", "8px");
-        root.set_style_or_panic("top", "8px");
-        root.set_style_or_panic("overflow", "hidden");
-        root.set_style_or_panic("border-radius", "6px");
-        root.set_style_or_panic("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
-        web::body().prepend_with_node_1(&root).unwrap();
+        root.set_style_or_warn("position", "absolute");
+        root.set_style_or_warn("z-index", "100");
+        root.set_style_or_warn("left", "8px");
+        root.set_style_or_warn("top", "8px");
+        root.set_style_or_warn("overflow", "hidden");
+        root.set_style_or_warn("border-radius", "6px");
+        root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
+        web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
-        let canvas = web::create_canvas();
-        canvas.set_style_or_panic("display", "block");
+        let canvas = web::document.create_canvas_or_panic();
+        canvas.set_style_or_warn("display", "block");
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
@@ -337,7 +335,7 @@ impl Renderer {
 
     fn resize(&mut self) {
         if let Some(dom) = &self.dom {
-            let ratio = web::window().device_pixel_ratio();
+            let ratio = web::window.device_pixel_ratio();
             let width = self.config.labels_width
                 + self.config.results_width
                 + self.config.plots_width
@@ -355,8 +353,8 @@ impl Renderer {
             self.height = height;
             dom.canvas.set_width(u_width);
             dom.canvas.set_height(u_height);
-            dom.canvas.set_style_or_panic("width", format!("{}px", width / ratio));
-            dom.canvas.set_style_or_panic("height", format!("{}px", height / ratio));
+            dom.canvas.set_style_or_warn("width", format!("{}px", width / ratio));
+            dom.canvas.set_style_or_warn("height", format!("{}px", height / ratio));
         }
     }
 

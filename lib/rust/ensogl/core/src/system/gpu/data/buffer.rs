@@ -6,8 +6,7 @@ pub mod usage;
 use crate::prelude::*;
 
 use crate::closure;
-use crate::control::callback::Callback;
-use crate::control::callback::CallbackFn;
+use crate::control::callback;
 use crate::data::dirty;
 use crate::data::seq::observable::Observable;
 use crate::debug::stats::Stats;
@@ -15,7 +14,7 @@ use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
 use crate::system::gpu::data::buffer::usage::BufferUsage;
-use crate::system::gpu::shader::Context;
+use crate::system::Context;
 
 use crate::data::dirty::traits::*;
 use crate::system::gpu::data::default::gpu_default;
@@ -39,10 +38,10 @@ pub use crate::system::gpu::data::Storable;
 pub type ObservableVec<T> = Observable<Vec<T>, OnMut, OnResize>;
 
 /// Dirty flag keeping track of the range of modified elements.
-pub type MutDirty = dirty::SharedRange<usize, Callback>;
+pub type MutDirty = dirty::SharedRange<usize, Box<dyn callback::NoArgs>>;
 
 /// Dirty flag keeping track of whether the buffer was resized.
-pub type ResizeDirty = dirty::SharedBool<Callback>;
+pub type ResizeDirty = dirty::SharedBool<Box<dyn callback::NoArgs>>;
 
 closure! {
 fn on_resize_fn(dirty:ResizeDirty) -> OnResize {
@@ -113,15 +112,15 @@ pub struct BufferData<T> {
 
 impl<T:Storable> {
     /// Constructor.
-    pub fn new<OnMut:CallbackFn, OnResize:CallbackFn>
+    pub fn new<OnMut:callback::NoArgs, OnResize:callback::NoArgs>
     (logger:Logger, stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
         info!(logger,"Creating new {T::type_display()} buffer.", || {
             stats.inc_buffer_count();
             let logger        = logger.clone();
             let sublogger     = Logger::new_sub(&logger,"mut_dirty");
-            let mut_dirty     = MutDirty::new(sublogger,Callback(on_mut));
+            let mut_dirty     = MutDirty::new(sublogger,Box::new(on_mut));
             let sublogger     = Logger::new_sub(&logger,"resize_dirty");
-            let resize_dirty  = ResizeDirty::new(sublogger, Callback(on_resize));
+            let resize_dirty  = ResizeDirty::new(sublogger, Box::new(on_resize));
             resize_dirty.set();
             let on_resize_fn  = on_resize_fn(resize_dirty.clone_ref());
             let on_mut_fn     = on_mut_fn(mut_dirty.clone_ref());

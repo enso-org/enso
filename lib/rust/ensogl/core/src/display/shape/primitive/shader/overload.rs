@@ -4,14 +4,33 @@
 
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "/src/display/shape/primitive/glsl/overload.js")]
-extern "C" {
-    /// Returns GLSL code which redirects mangled function names to their original primitive
-    /// definitions.
-    #[allow(unsafe_code)]
-    pub fn builtin_redirections() -> String;
+mod js {
+    use super::*;
+    #[wasm_bindgen(module = "/src/display/shape/primitive/glsl/overload.js")]
+    extern "C" {
+        /// Returns GLSL code which redirects mangled function names to their original primitive
+        /// definitions.
+        #[allow(unsafe_code)]
+        pub fn builtin_redirections() -> String;
 
-    /// Mangles the provided GLSL code to allow primitive definitions overloading.
-    #[allow(unsafe_code)]
-    pub fn allow_overloading(s: &str) -> String;
+        /// Mangles the provided GLSL code to allow primitive definitions overloading.
+        #[allow(unsafe_code)]
+        pub fn allow_overloading(s: &str) -> String;
+    }
 }
+
+#[allow(missing_docs)]
+mod mock {
+    pub fn builtin_redirections() -> String {
+        "".into()
+    }
+    pub fn allow_overloading(_: &str) -> String {
+        "".into()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub use js::*;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use mock::*;

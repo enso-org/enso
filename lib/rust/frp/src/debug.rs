@@ -176,7 +176,7 @@ pub trait GraphvizBuilder {
         let code = self.to_graphviz();
         let url = percent_encoding::utf8_percent_encode(&code, percent_encoding::NON_ALPHANUMERIC);
         let url = format!("https://dreampuf.github.io/GraphvizOnline/#{}", url);
-        crate::web::window().open_with_url_and_target(&url, "_blank").unwrap();
+        crate::web::window.open_with_url_and_target(&url, "_blank").unwrap();
     }
 }
 
@@ -184,7 +184,7 @@ pub fn display_graphviz(viz: Graphviz) {
     let code: String = viz.into();
     let url = percent_encoding::utf8_percent_encode(&code, percent_encoding::NON_ALPHANUMERIC);
     let url = format!("https://dreampuf.github.io/GraphvizOnline/#{}", url);
-    crate::web::window().open_with_url_and_target(&url, "_blank").unwrap();
+    crate::web::window.open_with_url_and_target(&url, "_blank").unwrap();
 }
 
 

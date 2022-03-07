@@ -1,10 +1,10 @@
 package org.enso.languageserver.libraries
 
-import io.circe.{Json, JsonObject}
 import io.circe.literal.JsonStringContext
+import io.circe.{Json, JsonObject}
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
-import org.enso.pkg.{ComponentGroups, Contact}
+import org.enso.pkg.Contact
 
 object LibraryApi {
   case object EditionsListAvailable extends Method("editions/listAvailable") {
@@ -190,7 +190,7 @@ object LibraryApi {
     //  should be removed when the integration with IDE is finished
     case class Result(
       license: Option[String],
-      componentGroups: Option[ComponentGroups],
+      componentGroups: Option[LibraryComponentGroups],
       raw: JsonObject
     )
 
