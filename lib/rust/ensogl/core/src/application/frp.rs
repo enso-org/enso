@@ -569,10 +569,11 @@ macro_rules! define_endpoints_2 {
 
         /// Frp network and endpoints.
         #[derive(Debug,Derivative)]
+        #[derive(CloneRef, Clone)]
         #[allow(missing_docs)]
         pub struct Frp $(<$($param $(:$($constraints)*)?),*>)? {
             public: api::Public $(<$($param),*>)?,// deref
-            private: api::Private $(<$($param),*>)?,
+            private: Rc<api::Private $(<$($param),*>)?>,
         }
 
          impl $(<$($param $(:$($constraints)*)?),*>)? Frp $(<$($param),*>)? {
@@ -585,7 +586,7 @@ macro_rules! define_endpoints_2 {
                 let public_output = api::public::Output::new(&network, &private_output, &public_input);
                 let combined = api::public::Combined::new(&public_input,&public_output);
                 let public  = api::Public{ input: public_input, output: public_output, combined };
-                let private  = api::Private{ network, input: private_input, output: private_output};
+                let private  = Rc::new(api::Private{ network, input: private_input, output: private_output});
                 Self {public,private}
             }
         }
@@ -611,6 +612,13 @@ macro_rules! define_endpoints_2 {
             fn network(&self) -> &$crate::frp::Network { &self.private.network }
         }
 
+        impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Frp $(<$($param),*>)? {
+                    type Target = api::Public $(<$($param),*>)?;
+            fn deref(&self) -> &Self::Target {
+                &self.public
+            }
+        }
+
 
 
         pub mod api {
@@ -630,10 +638,10 @@ macro_rules! define_endpoints_2 {
             }
 
             impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Public $(<$($param),*>)? {
-                    type Target = public::Combined $(<$($param),*>)?;
-                    fn deref(&self) -> &Self::Target {
-                        &self.combined
-                    }
+                type Target = public::Combined $(<$($param),*>)?;
+                fn deref(&self) -> &Self::Target {
+                    &self.combined
+                }
             }
 
 
@@ -755,7 +763,18 @@ macro_rules! define_endpoints_2 {
                         let data = Rc::new(CombinedData::new(input,output));
                         Self { data }
                     }
+
+                    $($crate::define_endpoints_emit_alias!{$in_field ($($in_field_type)*)})*
+
                 }
+
+                impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Combined $(<$($param),*>)? {
+                    type Target = CombinedData $(<$($param),*>)?;
+                    fn deref(&self) -> &Self::Target {
+                        &self.data
+                    }
+                }
+
 
                 #[allow(unused_parens)]
                 #[derive(Debug)]
@@ -954,9 +973,14 @@ mod tests {
         }
 
         // Public API usage.
-        frp.public.input.set_radius(2);
+        frp.set_radius(2);
 
         assert_eq!(frp.public.output.radius.value(), 2);
         assert_eq!(frp.public.output.diameter.value(), 4);
+        assert_eq!(frp.public.combined.radius.value(), 2);
+        assert_eq!(frp.public.combined.diameter.value(), 4);
+
+        assert_eq!(frp.radius.value(), 2);
+        assert_eq!(frp.diameter.value(), 4);
     }
 }

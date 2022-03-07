@@ -1075,7 +1075,11 @@ impl Nodes {
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn set_quick_preview(&self, quick: bool) {
-        self.all.raw.borrow().values().for_each(|node| node.view.frp.quick_preview_vis.emit(quick))
+        self.all
+            .raw
+            .borrow()
+            .values()
+            .for_each(|node| node.view.frp.input.quick_preview_vis.emit(quick))
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
@@ -1084,7 +1088,7 @@ impl Nodes {
             .raw
             .borrow()
             .values()
-            .for_each(|node| node.view.frp.show_quick_action_bar_on_hover.emit(quick))
+            .for_each(|node| node.view.frp.input.show_quick_action_bar_on_hover.emit(quick))
     }
 }
 
@@ -1440,6 +1444,8 @@ impl GraphEditorModelWithNetwork {
     }
 
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
+        use ensogl::application::command::FrpNetworkProvider;
+
         let view = component::Node::new(&self.app, self.vis_registry.clone_ref());
         let node = Node::new(view);
         let node_id = node.id();
@@ -1455,7 +1461,8 @@ impl GraphEditorModelWithNetwork {
             output,
         } = ctx;
 
-        frp::new_bridge_network! { [self.network, node.frp.network] graph_node_bridge
+        let node_network = node.frp.network();
+        frp::new_bridge_network! { [self.network, node_network] graph_node_bridge
             eval_ node.frp.background_press(touch.nodes.down.emit(node_id));
 
             hovered <- node.output.hover.map (move |t| Some(Switch::new(node_id,*t)));
