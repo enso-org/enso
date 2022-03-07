@@ -163,11 +163,11 @@ mod tests {
 
     #[test]
     fn test_intersection() {
-        assert_intersect!{ ((0.5, 0.5), (1.0, 1.0))  *?  ((0.0, 0.0), (  2.0,   2.0))  ==  true };
-        assert_intersect!{ ((3.0, 3.0), (4.0, 4.0))  *?  ((0.0, 0.0), (  2.0,   2.0))  ==  false };
-        assert_intersect!{ ((0.0, 0.0), (4.0, 4.0))  *?  ((0.0, 0.0), ( -2.0,  -2.0))  ==  true };
-        assert_intersect!{ ((0.0, 0.0), (4.0, 4.0))  *?  ((2.0, 2.0), (200.0, 200.0))  ==  true };
-        assert_intersect!{
+        assert_intersect! { ((0.5, 0.5), (1.0, 1.0))  *?  ((0.0, 0.0), (  2.0,   2.0))  ==  true };
+        assert_intersect! { ((3.0, 3.0), (4.0, 4.0))  *?  ((0.0, 0.0), (  2.0,   2.0))  ==  false };
+        assert_intersect! { ((0.0, 0.0), (4.0, 4.0))  *?  ((0.0, 0.0), ( -2.0,  -2.0))  ==  true };
+        assert_intersect! { ((0.0, 0.0), (4.0, 4.0))  *?  ((2.0, 2.0), (200.0, 200.0))  ==  true };
+        assert_intersect! {
             ((-50.0, -50.0), (25.0, 25.0))  *?  ((5.00, 50.0), (100.0, 100.0))  ==  false
         };
     }
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_concat() {
-        assert_concat!{
+        assert_concat! {
             ((0.0, 0.0), (2.0, 3.0)) + (( 2.0,  3.0), (4.0, 5.0)) == ((0.0,   0.0), (4.0, 5.0));
             ((0.0, 0.0), (1.0, 1.0)) + ((-1.0, -1.0), (0.5, 0.5)) == ((-1.0, -1.0), (1.0, 1.0));
             ((0.0, 0.0), (1.0, 1.0)) + (( 0.3,  0.3), (0.6, 0.6)) == ((0.0,   0.0), (1.0, 1.0));
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_squared_distance_to_point() {
-        assert_squared_distance_to_point!{
+        assert_squared_distance_to_point! {
             ((-1.0, -1.0), (0.0, 0.0))  <-sq->  ( 3.0,  4.0)  =~  5.0.pow(2.0);
             // Distance between a bounding box and a point inside it should be 0.
             (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 0.5,  0.5)  =~  0.0;
