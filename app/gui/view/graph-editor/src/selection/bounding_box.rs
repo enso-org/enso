@@ -214,46 +214,39 @@ mod tests {
         )
     }
 
-    fn assert_squared_distance_to_point(
-        bb: BoundingBox,
-        point: Vector2,
-        expected_squared_distance: f32,
-    ) {
-        assert_approx_eq!(bb.squared_distance_to_point(point), expected_squared_distance);
+    const SQUARED_DISTANCE_COMPARISON_PRECISION: f32 = 0.001;
+
+    macro_rules! assert_squared_distance_to_point {
+        ( $( $bbox:tt <-sq-> $point:tt =~ $expected_sq_distance:expr ; )+ ) => {
+            $(
+                assert_squared_distance_to_point!{ $bbox <-sq-> $point =~ $expected_sq_distance };
+            )+
+        };
+
+        ($bbox:tt <-sq-> $point:tt =~ $expected_sq_distance:expr) => {
+            let bbox = bounding_box($bbox.0, $bbox.1);
+            let point = Vector2($point.0, $point.1);
+            let result = bbox.squared_distance_to_point(point);
+            let result_deviation = (result - $expected_sq_distance).abs();
+            let result_ok = result_deviation < SQUARED_DISTANCE_COMPARISON_PRECISION;
+            let assert_msg = iformat!(
+                "Squared distance between " bbox;? " and " point;?
+                " expected to approximately equal " $expected_sq_distance
+                ", but got " result " instead.");
+            assert!(result_ok, "{}", assert_msg);
+        };
     }
 
     #[test]
     fn test_squared_distance_to_point() {
-        assert_squared_distance_to_point(
-            bounding_box((-1.0, -1.0), (0.0, 0.0)),
-            Vector2(3.0, 4.0),
-            5.0.pow(2.0),
-        );
-        // Distance between a bounding box and a point inside it should be 0.
-        assert_squared_distance_to_point(
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-            Vector2(0.5, 0.5),
-            0.0,
-        );
-        assert_squared_distance_to_point(
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-            Vector2(3.0, 0.0),
-            2.0.pow(2.0),
-        );
-        assert_squared_distance_to_point(
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-            Vector2(-2.0, 0.0),
-            2.0.pow(2.0),
-        );
-        assert_squared_distance_to_point(
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-            Vector2(0.0, -2.0),
-            2.0.pow(2.0),
-        );
-        assert_squared_distance_to_point(
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-            Vector2(0.0, 3.0),
-            2.0.pow(2.0),
-        );
+        assert_squared_distance_to_point!{
+            ((-1.0, -1.0), (0.0, 0.0))  <-sq->  ( 3.0,  4.0)  =~  5.0.pow(2.0);
+            // Distance between a bounding box and a point inside it should be 0.
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 0.5,  0.5)  =~  0.0;
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 3.0,  0.0)  =~  2.0.pow(2.0);
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  (-2.0,  0.0)  =~  2.0.pow(2.0);
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 0.0, -2.0)  =~  2.0.pow(2.0);
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 0.0,  3.0)  =~  2.0.pow(2.0);
+        };
     }
 }
