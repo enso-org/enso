@@ -1430,11 +1430,8 @@ impl GraphEditorModelWithNetwork {
                 self.new_node_position_at_mouse_aligned_to_close_nodes(mouse_position),
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
-            DroppingEdge { edge_id } => self
-                .new_node_position_at_mouse_aligned_to_source_node(
-                    edge_id,
-                    mouse_position,
-                ),
+            DroppingEdge { edge_id } =>
+                self.new_node_position_at_mouse_aligned_to_source_node(edge_id, mouse_position),
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
