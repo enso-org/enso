@@ -21,9 +21,8 @@ use enso_frp::future::EventOutputExt;
 use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
+use enso_web::traits::*;
 use enso_web::HtmlDivElement;
-use enso_web::NodeInserter;
-use enso_web::StyleSetter;
 use ensogl::application::Application;
 
 /// Reexports of commonly-used structures, methods and traits.
@@ -57,12 +56,11 @@ impl IntegrationTest {
 
     /// Initializes the executor and `Ide` structure and returns new Fixture.
     pub async fn setup() -> Self {
-        enso_web::forward_panic_hook_to_error();
         let executor = setup_global_executor();
-        let root_div = enso_web::create_div();
+        let root_div = enso_web::document.create_div_or_panic();
         root_div.set_id("root");
-        root_div.set_style_or_panic("display", "none");
-        enso_web::body().append_or_panic(&root_div);
+        root_div.set_style_or_warn("display", "none");
+        enso_web::document.body_or_panic().append_or_warn(&root_div);
 
         let initializer = enso_gui::ide::Initializer::new(default());
         let ide = initializer.start().await.expect("Failed to initialize the application.");
@@ -72,7 +70,7 @@ impl IntegrationTest {
 
     fn set_screen_size(app: &Application) {
         let (screen_width, screen_height) = Self::SCREEN_SIZE;
-        app.display.scene().layers.iter_sublayers_and_masks_nested(|layer| {
+        app.display.default_scene.layers.iter_sublayers_and_masks_nested(|layer| {
             layer.camera().set_screen(screen_width, screen_height)
         });
     }

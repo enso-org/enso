@@ -173,7 +173,7 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const limitMb = 4.6
+        const limitMb = 4.62
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
     // Copy WASM files from temporary directory to Webpack's `dist` directory.
@@ -269,7 +269,7 @@ commands['integration-test'].rust = async function (argv) {
     }
     try {
         console.log(`Running Rust WASM test suite.`)
-        process.env.WASM_BINDGEN_TEST_TIMEOUT = 120
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 180
         let args = [
             'test',
             '--headless',

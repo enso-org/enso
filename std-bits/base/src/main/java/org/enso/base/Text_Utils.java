@@ -1,5 +1,6 @@
 package org.enso.base;
 
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
@@ -102,17 +103,6 @@ public class Text_Utils {
   }
 
   /**
-   * Checks if the provided string consists only of whitespace characters.
-   *
-   * @param str the string to check
-   * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
-   */
-  public static boolean is_whitespace(String str) {
-    var matcher = whitespace.matcher(str);
-    return matcher.matches();
-  }
-
-  /**
    * Checks whether two strings are equal up to Unicode canonicalization.
    *
    * @param str1 the first string
@@ -180,8 +170,8 @@ public class Text_Utils {
   public static boolean contains(String string, String substring) {
     // {@code StringSearch} does not handle empty strings as we would want, so we need these special
     // cases.
-    if (substring.length() == 0) return true;
-    if (string.length() == 0) return false;
+    if (substring.isEmpty()) return true;
+    if (string.isEmpty()) return false;
     StringSearch searcher = new StringSearch(substring, string);
     return searcher.first() != StringSearch.DONE;
   }
@@ -251,5 +241,15 @@ public class Text_Utils {
    */
   public static String normalize(String str) {
     return Normalizer2.getNFDInstance().normalize(str);
+  }
+
+  /**
+   * Checks if the given string consists only of whitespace characters.
+   *
+   * @param str the string to check
+   * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
+   */
+  public static boolean is_all_whitespace(String text) {
+    return text.codePoints().allMatch(UCharacter::isUWhiteSpace);
   }
 }

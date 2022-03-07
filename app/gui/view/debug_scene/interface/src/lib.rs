@@ -45,10 +45,8 @@ const STUB_MODULE: &str = "from Base import all\n\nmain = IO.println \"Hello\"\n
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_interface() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let app = Application::new("root");
         init(&app);
         mem::forget(app);
     });
@@ -100,10 +98,10 @@ impl DummyTypeGenerator {
 // ========================
 
 fn init(app: &Application) {
-    let _bg = app.display.scene().style_sheet.var(theme::application::background);
+    let _bg = app.display.default_scene.style_sheet.var(theme::application::background);
 
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
 
@@ -127,9 +125,9 @@ fn init(app: &Application) {
 
     // === Nodes ===
 
-    let node1_id = graph_editor.add_node();
-    let node2_id = graph_editor.add_node();
-    let node3_id = graph_editor.add_node();
+    let node1_id = graph_editor.model.add_node();
+    let node2_id = graph_editor.model.add_node();
+    let node3_id = graph_editor.model.add_node();
 
     graph_editor.frp.set_node_position.emit((node1_id, Vector2(-150.0, 50.0)));
     graph_editor.frp.set_node_position.emit((node2_id, Vector2(50.0, 50.0)));
@@ -144,7 +142,7 @@ fn init(app: &Application) {
     let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id, expression_2.clone()));
 
-    let expression_3 = expression_mock2();
+    let expression_3 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node3_id, expression_3));
     let kind = Immutable(graph_editor::component::node::error::Kind::Panic);
     let message = Rc::new(Some("Runtime Error".to_owned()));
@@ -152,10 +150,10 @@ fn init(app: &Application) {
     let error = graph_editor::component::node::Error { kind, message, propagated };
     graph_editor.frp.set_node_error_status.emit((node3_id, Some(error)));
 
-    let foo_node = graph_editor.add_node_below(node3_id);
+    let foo_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((foo_node, Expression::new_plain("foo")));
 
-    let baz_node = graph_editor.add_node_below(node3_id);
+    let baz_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((baz_node, Expression::new_plain("baz")));
     let (_, baz_position) = graph_editor.node_position_set.value();
     let styles = StyleWatch::new(&scene.style_sheet);
@@ -164,7 +162,7 @@ fn init(app: &Application) {
     let gap_for_bar_node = min_spacing + gap_between_nodes + f32::EPSILON;
     graph_editor.set_node_position((baz_node, baz_position + Vector2(gap_for_bar_node, 0.0)));
 
-    let bar_node = graph_editor.add_node_below(node3_id);
+    let bar_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((bar_node, Expression::new_plain("bar")));
 
 
@@ -178,9 +176,9 @@ fn init(app: &Application) {
 
     // === VCS ===
 
-    let dummy_node_added_id = graph_editor.add_node();
-    let dummy_node_edited_id = graph_editor.add_node();
-    let dummy_node_unchanged_id = graph_editor.add_node();
+    let dummy_node_added_id = graph_editor.model.add_node();
+    let dummy_node_edited_id = graph_editor.model.add_node();
+    let dummy_node_unchanged_id = graph_editor.model.add_node();
 
     graph_editor.frp.set_node_position.emit((dummy_node_added_id, Vector2(-450.0, 50.0)));
     graph_editor.frp.set_node_position.emit((dummy_node_edited_id, Vector2(-450.0, 125.0)));
@@ -252,7 +250,9 @@ fn init(app: &Application) {
     let mut to_theme_switch = 100;
 
     world
-        .on_frame(move |_| {
+        .on
+        .before_frame
+        .add(move |_| {
             let _keep_alive = &navigator;
             let _keep_alive = &root_view;
 
@@ -292,9 +292,9 @@ fn init(app: &Application) {
             // Temporary code removing the web-loader instance.
             // To be changed in the future.
             if was_rendered && !loader_hidden {
-                web::get_element_by_id("loader")
-                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
-                    .ok();
+                web::document
+                    .get_element_by_id("loader")
+                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
                 loader_hidden = true;
             }
             was_rendered = true;
@@ -338,6 +338,7 @@ pub fn expression_mock() -> Expression {
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
+// TODO[ao] This expression mocks results in panic. If you want to use it, please fix it first.
 pub fn expression_mock2() -> Expression {
     let pattern = Some("var1".to_string());
     let pattern_cr = vec![Seq { right: false }, Or, Or, Build];

@@ -1,17 +1,15 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Matching import Matching_Strategy, Exact
-
 ## Specifies a selection of columns from the table on which an operation is
    going to be performed.
 type Column_Selector
 
     ## Selects columns based on their names.
 
-       The `matching_strategy` can be used to specify if the names should be
-       matched exactly or should be treated as regular expressions. It also
-       allows to specify if the matching should be case-sensitive.
-    type By_Name (names : Vector Text) (matching_strategy : Matching_Strategy = Exact.new)
+       The `matcher` can be used to specify if the names should be matched
+       exactly or should be treated as regular expressions. It also allows to
+       specify if the matching should be case-sensitive.
+    type By_Name (names : Vector Text) (matcher : Matcher = Text_Matcher.new)
 
     ## Selects columns by their index.
 
@@ -36,5 +34,5 @@ type Column_Selector
    Atom constructors, as described in the following issue:
    https://github.com/enso-org/enso/issues/1600
    Once that issue is fixed, it can be removed.
-By_Name.new : Vector Text -> Matching_Strategy  -> By_Name
-By_Name.new names (matching_strategy = Exact.new) = By_Name names matching_strategy
+By_Name.new : Vector Text -> Matcher  -> By_Name
+By_Name.new names (matcher = Text_Matcher.new) = By_Name names matcher

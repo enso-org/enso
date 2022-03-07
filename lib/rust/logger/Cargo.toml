@@ -23,7 +23,7 @@ default = []
 [dependencies]
 enso-prelude = { version = "^0.2.1", path = "../prelude" }
 enso-shapely = { version = "^0.2.0", path = "../shapely" }
-wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 js-sys = { version = "0.3.28" }
 
 [dependencies.web-sys]

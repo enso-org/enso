@@ -1,3 +1,5 @@
+//! FIXME[everyone] Modules should be documented
+
 // ==================
 // === Data Types ===
 // ==================
@@ -26,6 +28,7 @@ pub mod enso {
             "Any".into()
         }
 
+        #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
         pub fn alternatives(&self) -> impl Iterator<Item = Type> + '_ {
             self.content.split('|').map(str::trim).map(Type::new)
         }

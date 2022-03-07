@@ -94,19 +94,19 @@ impl ProjectList {
         display_object.add_child(&background);
         display_object.add_child(&caption);
         display_object.add_child(&list);
-        app.display.scene().layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add_exclusive(&display_object);
         caption.set_content("Open Project");
-        caption.add_to_scene_layer(&app.display.scene().layers.panel_text);
-        list.set_label_layer(app.display.scene().layers.panel_text.id());
+        caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
+        list.set_label_layer(app.display.default_scene.layers.panel_text.id());
 
         ensogl::shapes_order_dependencies! {
-            app.display.scene() => {
+            app.display.default_scene => {
                 background            -> list_view::selection;
                 list_view::background -> background;
             }
         }
 
-        let style_watch = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let width = style_watch.get_number(theme::width);
         let height = style_watch.get_number(theme::height);
         let bar_height = style_watch.get_number(theme::bar::height);

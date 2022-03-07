@@ -58,8 +58,8 @@ impl Model {
         let label_full = app.new_view::<text::Area>();
         let label_left = app.new_view::<text::Area>();
 
-        label_full.remove_from_scene_layer(&app.display.scene().layers.main);
-        label_full.add_to_scene_layer(&app.display.scene().layers.label);
+        label_full.remove_from_scene_layer(&app.display.default_scene.layers.main);
+        label_full.add_to_scene_layer(&app.display.default_scene.layers.label);
 
         root.add_child(&label_full);
         root.add_child(&label_left);

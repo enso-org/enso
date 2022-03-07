@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Error.Warnings
-import Standard.Table.Data.Matching
+import Standard.Base.Data.Text.Matching
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
@@ -150,16 +150,16 @@ rename_columns internal_columns mapping on_problems warnings =
         matched = HashSet.new
 
         mapper = name->
-            index = 0.up_to good_names.length . find i->(Matching.match_single_criterion name ((good_names.at i).at 0) ms)
+            index = 0.up_to good_names.length . find i->(ms.match_single_criterion name ((good_names.at i).at 0))
             case index of
                 Nothing -> Nothing
                 _ ->
                     matched.add index
                     new_name = case ms of
-                        Matching.Regex _ ->
+                        Regex_Matcher _ _ _ _ _ ->
                             pattern = ms.compile ((good_names.at index).at 0)
                             pattern.replace name ((good_names.at index).at 1)
-                        _ -> (good_names.at index).at 1
+                        Text_Matcher _ -> (good_names.at index).at 1
                     unique.make_unique new_name
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
@@ -168,7 +168,7 @@ rename_columns internal_columns mapping on_problems warnings =
         Validation_Result new_names (validation.problems + if unused.is_empty then [] else [Missing_Input_Columns unused])
 
     mapped = case mapping of
-        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Matching.Exact case_sensitivity=True)
+        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher.new case_sensitive=True)
         Column_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Mapping.By_Index map ->
             validation = here.validate_indices col_count map.keys
@@ -251,11 +251,11 @@ sort_columns internal_columns sort_method =
      will be removed in the future.
 select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Vector
 select_columns_helper internal_columns selector reorder on_problems warnings = case selector of
-    By_Name names matching_strategy ->
+    By_Name names matcher ->
         validation = here.validate_unique names v->[Duplicate_Column_Selectors v]
         on_problems.attach_problems_before validation.problems warnings <|
             Warnings.map_warnings_and_errors here.promote_no_matches_to_missing_columns warnings warnings->
-                Matching.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) matching_strategy=matching_strategy on_problems=on_problems warnings=warnings
+                matcher.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) on_problems=on_problems warnings=warnings
     By_Index indices ->
         validation  = here.validate_indices internal_columns.length indices
         good_indices = validation.valid.map p->(p.at 0)
@@ -267,7 +267,7 @@ select_columns_helper internal_columns selector reorder on_problems warnings = c
                 here.select_indices_preserving_order internal_columns good_indices
     By_Column columns ->
         column_names = columns.map .name
-        new_selector = By_Name column_names (Matching.Exact case_sensitivity=True)
+        new_selector = By_Name column_names (Text_Matcher.new case_sensitive=True)
         here.select_columns internal_columns new_selector reorder=reorder on_problems=on_problems warnings=warnings
 
 ## PRIVATE

@@ -21,7 +21,6 @@ use ensogl_core::prelude::*;
 use enso_text::unit::Bytes;
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -38,10 +37,8 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_list_view() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let app = Application::new("root");
         init(&app);
         mem::forget(app);
     });
@@ -97,7 +94,7 @@ fn init(app: &Application) {
     list_view.frp.set_entries(provider);
     app.display.add_child(&list_view);
     // FIXME[WD]: This should not be needed after text gets proper depth-handling.
-    app.display.scene().layers.below_main.add_exclusive(&list_view);
+    app.display.default_scene.layers.below_main.add_exclusive(&list_view);
 
     let logger: Logger = Logger::new("SelectDebugScene");
     let network = enso_frp::Network::new("test");
