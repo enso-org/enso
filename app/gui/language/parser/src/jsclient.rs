@@ -84,7 +84,7 @@ impl Client {
     ) -> api::Result<api::ParsedSourceFile<M>> {
         let result = || {
             let json = &parse_with_metadata(program)?;
-            let module = from_json_str_without_recursion_limit(&json)?;
+            let module = from_json_str_without_recursion_limit(json)?;
             Result::Ok(module)
         };
         Ok(result()?)

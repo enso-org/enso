@@ -8,6 +8,7 @@ use crate::prelude::*;
 
 use crate::display::object::traits::*;
 
+use crate::application::Application;
 use crate::display;
 use crate::display::scene;
 use crate::display::scene::layer::WeakLayer;
@@ -20,7 +21,6 @@ use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::attribute;
 
 use enso_frp as frp;
-
 
 
 // =======================
@@ -228,5 +228,93 @@ impl<T: display::Object> display::Object for ShapeViewModel<T> {
 impl<T: display::Object> display::Object for ShapeView<T> {
     fn display_object(&self) -> &display::object::Instance {
         self.shape.display_object()
+    }
+}
+
+
+
+// =================
+// === Component ===
+// =================
+
+/// The EnsoGL component abstraction.
+///
+/// The component is a structure being a display object, consisting of a FRP network and a
+/// model.
+///
+/// * The `Frp` structure should own `frp::Network` structure handling the component's logic. It's
+///   recommended to create one with [`crate::application::frp::define_endpoints`] macro.
+/// * The `Model` is any structure containing the component properties, subcomponents etc.
+///   manipulated by the FRP network.
+///
+/// # Dropping component
+///
+/// Upon dropping Component structure, the object will be hidden, but both FRP and Model will
+/// not be dropped at once. Instead, they will be passed to the EnsoGL's garbage collector,
+/// because handling all effects of hiding object and emitting appropriate events  (for example:
+/// the "on_hide" event of [`core::gui::component::ShapeEvents`]) may take a several frames, and
+/// we want to have FRP network alive to handle those effects. Thus, both FRP and model will
+/// be dropped only after all process of object hiding will be handled.
+#[derive(Debug)]
+pub struct Component<Frp: 'static, Model: 'static> {
+    app:            Application,
+    display_object: display::object::Instance,
+    frp:            std::mem::ManuallyDrop<Frp>,
+    model:          std::mem::ManuallyDrop<Model>,
+}
+
+impl<Frp: 'static, Model: 'static> Deref for Component<Frp, Model> {
+    type Target = Frp;
+
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl<Frp: 'static, Model: 'static> Component<Frp, Model> {
+    /// Create a new component.
+    pub fn new(
+        app: &Application,
+        frp: Frp,
+        model: Model,
+        display_object: display::object::Instance,
+    ) -> Self {
+        Self {
+            app: app.clone_ref(),
+            display_object,
+            frp: std::mem::ManuallyDrop::new(frp),
+            model: std::mem::ManuallyDrop::new(model),
+        }
+    }
+
+    /// Get the FRP structure. It is also a result of deref-ing the component.
+    pub fn frp(&self) -> &Frp {
+        &self.frp
+    }
+
+    /// Get the Model structure.
+    pub fn model(&self) -> &Model {
+        &self.model
+    }
+}
+
+impl<Frp: 'static, Model: 'static> Drop for Component<Frp, Model> {
+    fn drop(&mut self) {
+        self.display_object.unset_parent();
+        // Taking the value from `ManuallyDrop` requires us to not use it anymore.
+        // This is clearly the case, because the structure will be soon dropped anyway.
+        #[allow(unsafe_code)]
+        unsafe {
+            let frp = std::mem::ManuallyDrop::take(&mut self.frp);
+            let model = std::mem::ManuallyDrop::take(&mut self.model);
+            self.app.display.collect_garbage(frp);
+            self.app.display.collect_garbage(model);
+        }
+    }
+}
+
+impl<Frp: 'static, Model: 'static> display::Object for Component<Frp, Model> {
+    fn display_object(&self) -> &display::object::Instance<Scene> {
+        &self.display_object
     }
 }

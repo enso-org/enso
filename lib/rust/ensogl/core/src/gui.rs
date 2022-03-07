@@ -3,3 +3,5 @@
 pub mod component;
 pub mod cursor;
 pub mod style;
+
+pub use component::Component;

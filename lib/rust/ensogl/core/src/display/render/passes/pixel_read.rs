@@ -50,13 +50,15 @@ impl<T: JsTypedArrayItem> PixelReadPassData<T> {
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct PixelReadPass<T: JsTypedArrayItem> {
-    data:         Option<PixelReadPassData<T>>,
-    sync:         Option<WebGlSync>,
-    position:     Uniform<Vector2<i32>>,
-    threshold:    usize,
-    to_next_read: usize,
+    data:          Option<PixelReadPassData<T>>,
+    sync:          Option<WebGlSync>,
+    position:      Uniform<Vector2<i32>>,
+    threshold:     usize,
+    to_next_read:  usize,
     #[derivative(Debug = "ignore")]
-    callback:     Option<Rc<dyn Fn(Vec<T>)>>,
+    callback:      Option<Rc<dyn Fn(Vec<T>)>>,
+    #[derivative(Debug = "ignore")]
+    sync_callback: Option<Rc<dyn Fn()>>,
 }
 
 impl<T: JsTypedArrayItem> PixelReadPass<T> {
@@ -66,16 +68,26 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let sync = default();
         let position = position.clone_ref();
         let callback = default();
+        let sync_callback = default();
         let threshold = 0;
         let to_next_read = 0;
-        Self { data, sync, position, threshold, to_next_read, callback }
+        Self { data, sync, position, threshold, to_next_read, callback, sync_callback }
     }
 
-    /// Sets a callback which will be evaluated after a successful pixel read action. Please note
-    /// that it will not be evaluated after each run of this pass, as the read is performed in an
-    /// asynchronous fashion and can take longer than a single frame.
+    /// Sets a callback which will be evaluated after a successful pixel read action.
+    ///
+    /// Please note that it will not be evaluated after each run of this pass, as the read is
+    /// performed in an asynchronous fashion and can take longer than a single frame.
     pub fn set_callback<F: Fn(Vec<T>) + 'static>(&mut self, f: F) {
         self.callback = Some(Rc::new(f));
+    }
+
+    /// Sets a callback which will be evaluated after at the beginning of pixel read action.
+    ///
+    /// It will not be evaluated after each run of this pass as the read is performed in an
+    /// asynchronous fashion and can take longer than a single frame.
+    pub fn set_sync_callback<F: Fn() + 'static>(&mut self, f: F) {
+        self.sync_callback = Some(Rc::new(f));
     }
 
     /// Sets a threshold of how often the pass should be run. Threshold of 0 means that it will be
@@ -171,6 +183,9 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
             }
             if self.sync.is_none() {
                 self.run_not_synced(&instance.context);
+                if let Some(callback) = &self.sync_callback {
+                    callback()
+                }
             }
         }
     }

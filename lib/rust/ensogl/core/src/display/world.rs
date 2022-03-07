@@ -244,6 +244,10 @@ impl World {
         mem::forget(self.clone_ref())
     }
 
+    /// Pass object for garbage collection.
+    ///
+    /// The collector is designed to handle EnsoGL component's FRP networks and models, but any
+    /// structure with static timeline may be put. For details, see docs of [`garbage::Collector`].
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
     }

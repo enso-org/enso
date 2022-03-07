@@ -25,7 +25,6 @@ use crate::tooltip;
 use crate::view;
 use crate::Type;
 
-use crate::display::object::component::Component;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;
@@ -34,6 +33,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
+use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
@@ -381,22 +381,31 @@ ensogl::define_endpoints! {
 ///    emitted back to the right node).
 ///
 /// Currently, the solution "C" (most optimal) is implemented here.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
-pub struct Node(Rc<display::object::component::Component<Frp, Rc<NodeModel>>>);
+pub struct Node {
+    component: Rc<gui::Component<Frp, Rc<NodeModel>>>,
+}
 
-// impl AsRef<Node> for Node {
-//     fn as_ref(&self) -> &Self {
-//         self
-//     }
-// }
-//
-// impl Deref for Node {
-//     type Target = Frp;
-//     fn deref(&self) -> &Self::Target {
-//         &self.frp
-//     }
-// }
+impl AsRef<Node> for Node {
+    fn as_ref(&self) -> &Node {
+        self
+    }
+}
+
+impl AsRef<gui::Component<Frp, Rc<NodeModel>>> for Node {
+    fn as_ref(&self) -> &gui::Component<Frp, Rc<NodeModel>> {
+        &self.component
+    }
+}
+
+
+impl Deref for Node {
+    type Target = gui::Component<Frp, Rc<NodeModel>>;
+    fn deref(&self) -> &Self::Target {
+        &self.component
+    }
+}
 
 /// Internal data of `Node`
 #[derive(Clone, CloneRef, Debug)]
@@ -899,7 +908,8 @@ impl Node {
         frp.show_quick_action_bar_on_hover.emit(true);
 
         let display_object = model.display_object.clone_ref();
-        Node(Rc::new(display::object::component::Component::new(app, frp, model, display_object)))
+        let component = Rc::new(gui::Component::new(app, frp, model, display_object));
+        Node { component }
     }
 
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
