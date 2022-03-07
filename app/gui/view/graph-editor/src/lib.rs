@@ -1075,11 +1075,7 @@ impl Nodes {
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
     pub fn set_quick_preview(&self, quick: bool) {
-        self.all
-            .raw
-            .borrow()
-            .values()
-            .for_each(|node| node.view.frp.input.quick_preview_vis.emit(quick))
+        self.all.raw.borrow().values().for_each(|node| node.view.frp.quick_preview_vis.emit(quick))
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
@@ -1088,7 +1084,7 @@ impl Nodes {
             .raw
             .borrow()
             .values()
-            .for_each(|node| node.view.frp.input.show_quick_action_bar_on_hover.emit(quick))
+            .for_each(|node| node.view.frp.show_quick_action_bar_on_hover.emit(quick))
     }
 }
 
