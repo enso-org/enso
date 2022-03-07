@@ -49,10 +49,8 @@ fn download_file(file: ensogl_drop_manager::File) {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_drop_manager() {
-    web::forward_panic_hook_to_console();
-
-    let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let drop_manager = ensogl_drop_manager::Manager::new(world.scene().dom.root.as_ref());
+    let world = World::new().displayed_in("root");
+    let drop_manager = ensogl_drop_manager::Manager::new(world.default_scene.dom.root.as_ref());
     let network = enso_frp::Network::new("Debug Scene");
     enso_frp::extend! { network
         let file_received = drop_manager.files_received().clone_ref();
@@ -61,11 +59,13 @@ pub fn entry_point_drop_manager() {
 
     let mut loader_hidden = false;
     world
-        .on_frame(move |_| {
+        .on
+        .before_frame
+        .add(move |_| {
             if !loader_hidden {
-                web::get_element_by_id("loader")
-                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
-                    .ok();
+                web::document
+                    .get_element_by_id("loader")
+                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
                 loader_hidden = true;
             }
         })

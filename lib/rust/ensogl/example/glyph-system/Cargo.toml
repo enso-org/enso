@@ -12,4 +12,4 @@ crate-type = ["cdylib", "rlib"]
 ensogl-core = { path = "../../core" }
 ensogl-text = { path = "../../component/text" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
-wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }

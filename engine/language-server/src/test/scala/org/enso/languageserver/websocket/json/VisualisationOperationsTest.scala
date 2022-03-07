@@ -188,7 +188,7 @@ class VisualisationOperationsTest extends BaseServerTest {
             "error" : {
               "code" : 2007,
               "message" : $errorMessage,
-              "data": {
+              "payload": {
                 "kind" : "Error",
                 "message" : $expressionFailureMessage,
                 "path" : null,

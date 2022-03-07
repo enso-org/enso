@@ -6,10 +6,11 @@ use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
 use crate::system::gpu::Context;
+#[cfg(target_arch = "wasm32")]
 use crate::system::web;
-
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
+use web::Closure;
+#[cfg(target_arch = "wasm32")]
 use web_sys::HtmlImageElement;
 
 
@@ -81,10 +82,12 @@ impl<I: InternalFormat, T: ItemType> Texture<RemoteImage, I, T> {
 impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T> {
     /// Loads or re-loads the texture data from the provided url.
     /// This action will be performed asynchronously.
+    #[allow(trivial_casts)]
+    #[cfg(target_arch = "wasm32")]
     fn reload(&self) {
         let url = &self.storage().url;
         let image = HtmlImageElement::new().unwrap();
-        let no_callback = <Option<Closure<dyn FnMut()>>>::None;
+        let no_callback = <Option<web::EventListenerHandle>>::None;
         let callback_ref = Rc::new(RefCell::new(no_callback));
         let image_ref = Rc::new(RefCell::new(image));
         let callback_ref2 = callback_ref.clone();
@@ -92,7 +95,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
         let context = self.context().clone();
         let gl_texture = self.gl_texture().clone();
         let parameters = *self.parameters();
-        let callback: Closure<dyn FnMut()> = Closure::once(move || {
+        let callback: web::JsEventHandler = Closure::once(move |_| {
             let _keep_alive = callback_ref2;
             let image = image_ref_opt.borrow();
             let target = Context::TEXTURE_2D;
@@ -113,14 +116,16 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
                 .unwrap();
 
             parameters.apply_parameters(&context);
-        });
-        let js_callback = callback.as_ref().unchecked_ref();
+        }) as web::JsEventHandler;
         let image = image_ref.borrow();
         request_cors_if_not_same_origin(&image, url);
         image.set_src(url);
-        image.add_event_listener_with_callback_and_bool("load", js_callback, true).unwrap();
-        *callback_ref.borrow_mut() = Some(callback);
+        let handler = web::add_event_listener_with_bool(&image, "load", callback, true);
+        *callback_ref.borrow_mut() = Some(handler);
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload(&self) {}
 }
 
 // === Utils ===
@@ -137,9 +142,10 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
 /// requests, so it's slower than not asking. If we know we're on the same domain or we know we
 /// won't use the image for anything except img tags and or canvas2d then we don't want to set
 /// crossDomain because it will make things slower.
+#[cfg(target_arch = "wasm32")]
 fn request_cors_if_not_same_origin(img: &HtmlImageElement, url_str: &str) {
     let url = web_sys::Url::new(url_str).unwrap();
-    let origin = web::window().location().origin().unwrap();
+    let origin = web::window.location().origin().unwrap();
     if url.origin() != origin {
         img.set_cross_origin(Some(""));
     }

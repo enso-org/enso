@@ -146,7 +146,7 @@ impl<E: Entry> Model<E> {
     fn padding(&self) -> f32 {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles = StyleWatch::new(&self.app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&self.app.display.default_scene.style_sheet);
         styles.get_number(ensogl_hardcoded_theme::application::searcher::padding)
     }
 
@@ -188,7 +188,7 @@ impl<E: Entry> Model<E> {
     /// Check if the `point` is inside component assuming that it have given `size`.
     fn is_inside(&self, point: Vector2<f32>, size: Vector2<f32>) -> bool {
         let pos_obj_space =
-            self.app.display.scene().screen_to_object_space(&self.background, point);
+            self.app.display.default_scene.screen_to_object_space(&self.background, point);
         let x_range = (-size.x / 2.0)..=(size.x / 2.0);
         let y_range = (-size.y / 2.0)..=(size.y / 2.0);
         x_range.contains(&pos_obj_space.x) && y_range.contains(&pos_obj_space.y)
@@ -295,7 +295,7 @@ where E::Model: Default
         let frp = &self.frp;
         let network = &frp.network;
         let model = &self.model;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let view_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_y = DEPRECATED_Animation::<f32>::new(network);

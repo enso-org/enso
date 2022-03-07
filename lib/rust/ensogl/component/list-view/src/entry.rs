@@ -90,7 +90,7 @@ impl Entry for Label {
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
         let network = frp::Network::new("list_view::entry::Label");
-        let style_watch = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let color = style_watch.get_color(theme::widget::list_view::text);
         let size = style_watch.get_number(theme::widget::list_view::text::size);
 

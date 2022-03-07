@@ -61,8 +61,8 @@ impl PopupLabel {
         let network = frp::Network::new("PopupLabel");
         let label = Label::new(app);
         label.set_opacity(0.0);
-        let background_layer = &app.display.scene().layers.panel;
-        let text_layer = &app.display.scene().layers.panel_text;
+        let background_layer = &app.display.default_scene.layers.panel;
+        let text_layer = &app.display.default_scene.layers.panel_text;
         label.set_layers(background_layer, text_layer);
 
         let opacity_animation = Animation::new(&network);
@@ -175,7 +175,7 @@ impl View {
 
         frp::extend! { network
             init <- source_();
-            let shape  = app.display.scene().shape();
+            let shape  = app.display.default_scene.shape();
             _eval <- all_with(shape, &init, f!([model](scene_size, _init) {
                 let half_height = scene_size.height / 2.0;
                 let label_height = model.label_height();
