@@ -17,10 +17,21 @@ public abstract class ArityErrorToDisplayTextNode extends Node {
 
   @Specialization
   Text doAtom(Atom _this) {
+    Object[] fields = _this.getFields();
+
+    Text expected;
+    if (fields[0].equals(fields[1])) {
+        expected = Text.create(String.valueOf(fields[0]));
+    } else {
+        expected = Text.create(String.valueOf(fields[0]))
+            .add("-")
+            .add(String.valueOf(fields[1]));
+    }
+
     return Text.create("Wrong number of arguments. Expected ")
-        .add(String.valueOf(_this.getFields()[0]))
+        .add(expected)
         .add(", but got ")
-        .add(String.valueOf(_this.getFields()[1]))
+        .add(String.valueOf(fields[2]))
         .add(".");
   }
 
