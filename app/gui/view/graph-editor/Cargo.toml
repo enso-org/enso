@@ -38,6 +38,3 @@ wasm-bindgen = { version = "0.2.78", features = ["nightly", "serde-serialize"] }
 [dependencies.web-sys]
 version = "0.3.4"
 features = []
-
-[dev-dependencies]
-enso-prelude = { path = "../../../../lib/rust/prelude", features = ["serde"] }
