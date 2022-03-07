@@ -9,6 +9,7 @@ import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
+from Standard.Base.Data.Text.Span as Span_Module import Span
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Locale
@@ -1187,9 +1188,9 @@ Text.trim where=Location.Both what=_.is_whitespace =
     if start_index >= end_index then "" else
         Text_Utils.substring this start_index end_index
 
-## ALIAS find, position_of
+## ALIAS find, index_of, position_of
    Find the location of the `term` in the input.
-   Returns a 0-based index of the location at which the term was found, or
+   Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
 
    Arguments:
@@ -1202,16 +1203,57 @@ Text.trim where=Location.Both what=_.is_whitespace =
        specified in the matcher.
      - If a `Regex_Matcher`, the `term` is used as a regular expression and
        matched using the associated options.
-Text.index_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Integer | Nothing
-Text.index_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
+
+   ! Match Length
+     TODO describe the peculiarity of case insenitive matching
+
+   > Example
+     TODO
+
+         "Hello World!".span_of "J" == Nothing
+         "Hello World!".span_of "o" == Span (Range 4 5) "Hello World!"
+         "Hello World!".span_of "o" mode=Last == Span (Range 4 5) "Hello World!"
+Text.span_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
+Text.span_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
-        True -> Error.throw "TODO"
+        True ->
+            codepoint_ix = Text_Utils.index_of this term
+            if codepoint_ix < 0 then Nothing else
+                start = Text_Utils.codepoint_index_to_grapheme_index this codepoint_ix
+                end = start + term.length
+                Span (Range start end) this
         Case_Insensitive locale -> Error.throw "TODO"
     Regex_Matcher _ _ _ _ _ -> Error.throw "TODO"
 
-Text.index_of_all : Text -> Matcher -> [Integer]
-Text.index_of_all term="" matcher=Text_Matcher.new = case matcher of
+## ALIAS
+   Finds all the locations of the `term` in the input.
+   If not found, the function returns an empty Vector.
+
+   Arguments:
+   - term: The term to find.
+   - matcher: Specifies how the term is matched against the input:
+     - If a `Text_Matcher`, the text is compared using case-sensitively rules
+       specified in the matcher.
+     - If a `Regex_Matcher`, the `term` is used as a regular expression and
+       matched using the associated options.
+
+   ! Match Length
+     TODO describe the peculiarity of case insenitive matching
+
+   > Example
+     TODO
+
+         "Hello World!".span_of_all "J" == []
+         "Hello World!".span_of_all "o" . map .start == [4, 7]
+Text.span_of_all : Text -> Matcher -> [Span]
+Text.span_of_all term="" matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
-        True -> Error.throw "TODO"
+        True ->
+            codepoint_ixes = Text_Utils.index_of_all this term
+            grahpeme_ixes = Vector.from_array <| Text_Utils.codepoint_indices_to_grapheme_indices this codepoint_ixes
+            offset = term.length
+            grahpeme_ixes . map start->
+                end = start+offset
+                Span (Range start end) this
         Case_Insensitive locale -> Error.throw "TODO"
     Regex_Matcher _ _ _ _ _ -> Error.throw "TODO"

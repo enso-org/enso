@@ -9,7 +9,6 @@ import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -278,18 +277,10 @@ public class Text_Utils {
     return pos == StringSearch.DONE ? -1 : pos;
   }
 
-  public static List<Long> index_of_all(String haystack, String needle) {
-    StringSearch search = new StringSearch(needle, haystack);
-    ArrayList<Long> occurrences = new ArrayList<>();
-    long ix;
-    while ((ix = search.next()) != StringSearch.DONE) {
-      occurrences.add(ix);
-    }
-    return occurrences;
-  }
-
   /**
    * Find the last index of needle in the haystack
+   *
+   * <p>The index is in codepoint space and not grapheme space.
    *
    * @param haystack the string to search
    * @param needle the substring that is searched for
@@ -302,6 +293,23 @@ public class Text_Utils {
       return -1;
     }
     return pos;
+  }
+
+  /**
+   * Find indices of all occurrences of the needle within the haystack.
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return a list of indices at which the needle occurs in the haystack
+   */
+  public static List<Long> index_of_all(String haystack, String needle) {
+    StringSearch search = new StringSearch(needle, haystack);
+    ArrayList<Long> occurrences = new ArrayList<>();
+    long ix;
+    while ((ix = search.next()) != StringSearch.DONE) {
+      occurrences.add(ix);
+    }
+    return occurrences;
   }
 
   /**
@@ -335,11 +343,14 @@ public class Text_Utils {
    * <p>For performance, it assumes that the provided indices are sorted in a non-decreasing order
    * (duplicate entries are permitted). Behaviour is unspecified if an unsorted list is provided.
    *
+   * <p>The behaviour is unspecified if indices provided on the input are outside of the range [0,
+   * text.length()].
+   *
    * @param text the text associated with the indices
    * @param codepoint_indices the array of codepoint indices, sorted in non-decreasing order
    * @return an array of grapheme indices corresponding to the codepoints from the input
    */
-  public static List<Long> codepoint_indices_to_grapheme_indices(
+  public static long[] codepoint_indices_to_grapheme_indices(
       String text, List<Long> codepoint_indices) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
@@ -347,14 +358,15 @@ public class Text_Utils {
     int grapheme_end = breakIterator.next();
     long grapheme_index = 0;
 
-    ArrayList<Long> result = new ArrayList<>(codepoint_indices.size());
+    long[] result = new long[codepoint_indices.size()];
+    int result_ix = 0;
 
     for (long codepoint_index : codepoint_indices) {
       while (grapheme_end <= codepoint_index && grapheme_end != -1) {
         grapheme_index++;
         grapheme_end = breakIterator.next();
       }
-      result.add(grapheme_index);
+      result[result_ix++] = grapheme_index;
     }
 
     return result;

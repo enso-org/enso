@@ -4,6 +4,7 @@ from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
+from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Text.Text_Sub_Range import all
 import Standard.Test
 
@@ -765,6 +766,14 @@ spec =
             ''*100 . should_equal ''
 
             '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
+
+        Test.specify "should allow to find span_of occurrences within a text" <|
+            "Hello World!".span_of "J" . should_equal Nothing
+            "Hello World!".span_of "o" . should_equal <| Span (Range 4 5) "Hello World!"
+            "Hello World!".span_of "o" mode=Last . should_equal <| Span (Range 4 5) "Hello World!"
+
+            "Hello World!".span_of_all "J" . should_equal []
+            "Hello World!".span_of_all "o" . map .start . should_equal [4, 7]
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
