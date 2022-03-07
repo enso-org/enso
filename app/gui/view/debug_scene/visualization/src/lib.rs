@@ -11,6 +11,7 @@
 
 use ensogl::prelude::*;
 
+use ensogl::animation;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
@@ -21,6 +22,8 @@ use ide_view::graph_editor::component::visualization::Registry;
 use js_sys::Math::sin;
 use nalgebra::Vector2;
 use wasm_bindgen::prelude::*;
+
+
 
 fn generate_data(seconds: f64) -> Vec<Vector2<f32>> {
     let mut data = Vec::new();
@@ -89,10 +92,8 @@ fn constructor_graph() -> visualization::java_script::Definition {
 #[wasm_bindgen]
 #[allow(dead_code, missing_docs)]
 pub fn entry_point_visualization() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let app = Application::new("root");
         init(&app);
         std::mem::forget(app);
     });
@@ -100,7 +101,7 @@ pub fn entry_point_visualization() {
 
 fn init(app: &Application) {
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
     let registry = Registry::new();
@@ -124,7 +125,9 @@ fn init(app: &Application) {
     let mut was_rendered = false;
     let mut loader_hidden = false;
     world
-        .on_frame(move |time_info| {
+        .on
+        .before_frame
+        .add(move |time_info: animation::TimeInfo| {
             let _keep_alive = &navigator;
 
             let data = generate_data((time_info.local / 1000.0).into());
@@ -137,9 +140,9 @@ fn init(app: &Application) {
             // Temporary code removing the web-loader instance.
             // To be changed in the future.
             if was_rendered && !loader_hidden {
-                web::get_element_by_id("loader")
-                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
-                    .ok();
+                web::document
+                    .get_element_by_id("loader")
+                    .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
                 loader_hidden = true;
             }
             was_rendered = true;

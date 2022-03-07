@@ -158,7 +158,7 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("StatusBar");
         let display_object = display::object::Instance::new(&logger);
         let root = display::object::Instance::new(&logger);
@@ -174,7 +174,7 @@ impl Model {
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         let text_color_path = theme::application::status_bar::text;
-        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = style.get_color(text_color_path);
         label.frp.set_color_all.emit(text_color);
         label.frp.set_default_color.emit(text_color);
@@ -279,7 +279,7 @@ impl View {
         let frp = Frp::new();
         let model = Model::new(app);
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
 
         enso_frp::extend! { network
             event_added       <- frp.add_event.map(f!((label) model.add_event(label)));

@@ -268,7 +268,6 @@ pub struct Symbol {
     surface_dirty:     GeometryDirty,
     shader_dirty:      ShaderDirty,
     variables:         UniformScope,
-    global_variables:  UniformScope,
     /// Please note that changing the uniform type to `u32` breaks node ID encoding in GLSL, as the
     /// functions are declared to work on `int`s, not `uint`s. This might be improved one day.
     symbol_id_uniform: Uniform<i32>,
@@ -281,13 +280,8 @@ pub struct Symbol {
 
 impl Symbol {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut: Fn() + Clone + 'static>(
-        logger: Logger,
-        stats: &Stats,
-        id: SymbolId,
-        global_variables: &UniformScope,
-        on_mut: OnMut,
-    ) -> Self {
+    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, id: SymbolId, on_mut: OnMut) -> Self {
+        let logger = Logger::new(format!("symbol_{}", id));
         let init_logger = logger.clone();
         debug!(init_logger, "Initializing.", || {
             let on_mut2 = on_mut.clone();
@@ -302,7 +296,6 @@ impl Symbol {
             let shader = Shader::new(shader_logger, stats, shader_on_mut);
             let surface = Mesh::new(surface_logger, stats, surface_on_mut);
             let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
-            let global_variables = global_variables.clone_ref();
             let bindings = default();
             let stats = SymbolStats::new(stats);
             let context = default();
@@ -317,7 +310,6 @@ impl Symbol {
                 surface_dirty,
                 shader_dirty,
                 variables,
-                global_variables,
                 symbol_id_uniform,
                 context,
                 logger,
@@ -352,27 +344,33 @@ impl Symbol {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&self) {
-        debug!(self.logger, "Updating.", || {
-            if self.surface_dirty.check() {
-                self.surface.update();
-                self.surface_dirty.unset();
-            }
-            if self.shader_dirty.check() {
-                let var_bindings = self.discover_variable_bindings();
-                self.shader.update(&var_bindings);
-                self.init_variable_bindings(&var_bindings);
-                self.shader_dirty.unset();
-            }
-        })
+    pub fn update(&self, global_variables: &UniformScope) {
+        if self.context.borrow().is_some() {
+            debug!(self.logger, "Updating.", || {
+                if self.surface_dirty.check() {
+                    self.surface.update();
+                    self.surface_dirty.unset();
+                }
+                if self.shader_dirty.check() {
+                    let var_bindings = self.discover_variable_bindings(global_variables);
+                    self.shader.update(&var_bindings);
+                    self.init_variable_bindings(&var_bindings, global_variables);
+                    self.shader_dirty.unset();
+                }
+            })
+        }
     }
 
-    pub fn lookup_variable<S: Str>(&self, name: S) -> Option<ScopeType> {
+    pub fn lookup_variable<S: Str>(
+        &self,
+        name: S,
+        global_variables: &UniformScope,
+    ) -> Option<ScopeType> {
         let name = name.as_ref();
         self.surface.lookup_variable(name).map(ScopeType::Mesh).or_else(|| {
             if self.variables.contains(name) {
                 Some(ScopeType::Symbol)
-            } else if self.global_variables.contains(name) {
+            } else if global_variables.contains(name) {
                 Some(ScopeType::Global)
             } else {
                 None
@@ -484,7 +482,11 @@ impl Symbol {
 impl Symbol {
     /// Creates a new VertexArrayObject, discovers all variable bindings from shader to geometry,
     /// and initializes the VAO with the bindings.
-    fn init_variable_bindings(&self, var_bindings: &[shader::VarBinding]) {
+    fn init_variable_bindings(
+        &self,
+        var_bindings: &[shader::VarBinding],
+        global_variables: &UniformScope,
+    ) {
         if let Some(context) = &*self.context.borrow() {
             let max_texture_units = context.get_parameter(Context::MAX_TEXTURE_IMAGE_UNITS);
             let max_texture_units = max_texture_units.unwrap_or_else(|num| {
@@ -511,6 +513,7 @@ impl Symbol {
                             program,
                             binding,
                             &mut texture_unit_iter,
+                            global_variables,
                         ),
                         None => {}
                     }
@@ -548,6 +551,7 @@ impl Symbol {
         program: &WebGlProgram,
         binding: &shader::VarBinding,
         texture_unit_iter: &mut dyn Iterator<Item = TextureUnit>,
+        global_variables: &UniformScope,
     ) {
         let name = &binding.name;
         let uni_name = shader::builder::mk_uniform_name(name);
@@ -556,7 +560,7 @@ impl Symbol {
         opt_location.map(|location| {
             let uniform = match &binding.scope {
                 Some(ScopeType::Symbol) => self.variables.get(name),
-                Some(ScopeType::Global) => self.global_variables.get(name),
+                Some(ScopeType::Global) => global_variables.get(name),
                 _ => todo!(),
             };
             let uniform = uniform.unwrap_or_else(|| {
@@ -588,12 +592,15 @@ impl Symbol {
     }
 
     /// For each variable from the shader definition, looks up its position in geometry scopes.
-    fn discover_variable_bindings(&self) -> Vec<shader::VarBinding> {
+    fn discover_variable_bindings(
+        &self,
+        global_variables: &UniformScope,
+    ) -> Vec<shader::VarBinding> {
         let var_decls = self.shader.collect_variables();
         var_decls
             .into_iter()
             .map(|(var_name, var_decl)| {
-                let target = self.lookup_variable(&var_name);
+                let target = self.lookup_variable(&var_name, global_variables);
                 if target.is_none() {
                     warning!(
                         self.logger,

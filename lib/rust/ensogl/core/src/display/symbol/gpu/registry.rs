@@ -11,7 +11,7 @@ use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::gpu::shader::Context;
+use crate::system::Context;
 
 use data::opt_vec::OptVec;
 
@@ -69,14 +69,11 @@ impl SymbolRegistry {
     /// Creates a new `Symbol` instance and returns its id.
     pub fn new_get_id(&self) -> SymbolId {
         let symbol_dirty = self.symbol_dirty.clone();
-        let variables = &self.variables;
-        let logger = &self.logger;
         let stats = &self.stats;
         let index = self.symbols.borrow_mut().insert_with_ix_(|ix| {
             let id = SymbolId::new(ix as u32);
             let on_mut = move || symbol_dirty.set(id);
-            let logger = Logger::new_sub(logger, format!("symbol_{}", ix));
-            let symbol = Symbol::new(logger, stats, id, variables, on_mut);
+            let symbol = Symbol::new(stats, id, on_mut);
             symbol.set_context(self.context.borrow().as_ref());
             symbol
         });
@@ -107,7 +104,7 @@ impl SymbolRegistry {
     pub fn update(&self) {
         debug!(self.logger, "Updating.", || {
             for id in self.symbol_dirty.take().iter() {
-                self.symbols.borrow()[(**id) as usize].update()
+                self.symbols.borrow()[(**id) as usize].update(&self.variables)
             }
             self.symbol_dirty.unset_all();
         })

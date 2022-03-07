@@ -9,7 +9,7 @@ use crate::system::web;
 use crate::system::web::resize_observer::ResizeObserver;
 
 use nalgebra::Vector2;
-use wasm_bindgen::prelude::Closure;
+use web::Closure;
 
 
 
@@ -65,7 +65,7 @@ impl Default for Shape {
     fn default() -> Self {
         let width = 100.0;
         let height = 100.0;
-        let pixel_ratio = web::device_pixel_ratio() as f32;
+        let pixel_ratio = web::window.device_pixel_ratio() as f32;
         Self { width, height, pixel_ratio }
     }
 }
@@ -93,7 +93,7 @@ impl From<&Shape> for Vector2<f32> {
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 #[clone_ref(bound = "T:CloneRef")]
 #[allow(missing_docs)]
-pub struct WithKnownShape<T = web_sys::HtmlElement> {
+pub struct WithKnownShape<T = web::HtmlElement> {
     #[shrinkwrap(main_field)]
     dom:          T,
     network:      frp::Network,
@@ -105,7 +105,7 @@ pub struct WithKnownShape<T = web_sys::HtmlElement> {
 impl<T> WithKnownShape<T> {
     /// Constructor.
     pub fn new(dom: &T) -> Self
-    where T: Clone + AsRef<web::JsValue> + Into<web_sys::HtmlElement> {
+    where T: Clone + AsRef<web::JsValue> + Into<web::HtmlElement> {
         let dom = dom.clone();
         let element = dom.clone().into();
         frp::new_network! { network
@@ -125,7 +125,7 @@ impl<T> WithKnownShape<T> {
 
     /// Recompute the shape. Note that this function causes reflow.
     pub fn recompute_shape_with_reflow(&self)
-    where T: Clone + Into<web_sys::HtmlElement> {
+    where T: Clone + Into<web::HtmlElement> {
         self.shape_source.emit(Shape::new_from_element_with_reflow(&self.dom.clone().into()))
     }
 }

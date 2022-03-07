@@ -8,12 +8,8 @@ members = [
     "build/rust-scripts",
     "lib/rust/*",
     "lib/rust/profiler/data",
-    "lib/rust/not-used/*",
     "integration-test"
 ]
-
-# This directory is not a crate
-exclude = ["lib/rust/not-used"]
 
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]

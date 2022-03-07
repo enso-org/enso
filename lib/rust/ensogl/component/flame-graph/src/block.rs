@@ -112,7 +112,7 @@ impl component::Model for Model {
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
         let label = app.new_view::<text::Area>();
         let background = background::View::new(&logger);

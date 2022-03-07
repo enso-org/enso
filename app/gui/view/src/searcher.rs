@@ -113,7 +113,7 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let app = app.clone_ref();
         let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new(&logger);
@@ -126,7 +126,7 @@ impl Model {
 
         // FIXME: StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //  system (#795)
-        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let action_list_gap_path = ensogl_hardcoded_theme::application::searcher::action_list_gap;
         let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
         list.set_label_layer(scene.layers.above_nodes_text.id());

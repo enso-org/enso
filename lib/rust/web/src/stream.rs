@@ -2,9 +2,10 @@
 
 use crate::prelude::*;
 
-use crate::Error;
-
 use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+
+use wasm_bindgen::prelude::wasm_bindgen;
 
 
 
@@ -39,27 +40,29 @@ extern "C" {
 pub trait BlobExt {
     /// Returns a ReadableStream which upon reading returns the data contained within the Blob.
     /// See https://developer.mozilla.org/en-US/docs/Web/API/Blob/stream.
-    fn stream(&self) -> Result<web_sys::ReadableStream, Error>;
+    fn stream(&self) -> Result<web_sys::ReadableStream, JsValue>;
 
     /// Returns a Reader of the Blob data. It assumes that the reader is of
     /// [`ReadableStreamDefaultReader`] type. See also
     /// https://developer.mozilla.org/en-US/docs/Web/API/Blob/stream and
     /// https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/getReader
-    fn stream_reader(&self) -> Result<ReadableStreamDefaultReader, Error>;
+    fn stream_reader(&self) -> Result<ReadableStreamDefaultReader, JsValue>;
 }
 
 impl BlobExt for web_sys::Blob {
-    fn stream(&self) -> Result<web_sys::ReadableStream, Error> {
+    #[allow(unused_qualifications)]
+    fn stream(&self) -> Result<web_sys::ReadableStream, JsValue> {
         let this = self.as_ref();
         let method_as_value = js_sys::Reflect::get(this, &"stream".into())?;
         let method = method_as_value.dyn_into::<js_sys::Function>()?;
-        Ok(method.call0(this)?.dyn_into()?)
+        method.call0(this)?.dyn_into()
     }
 
-    fn stream_reader(&self) -> Result<ReadableStreamDefaultReader, Error> {
+    #[allow(unused_qualifications)]
+    fn stream_reader(&self) -> Result<ReadableStreamDefaultReader, JsValue> {
         let stream = self.stream();
         let method_as_value = js_sys::Reflect::get(&stream, &"getReader".into())?;
         let method = method_as_value.dyn_into::<js_sys::Function>()?;
-        Ok(method.call0(&stream)?.dyn_into()?)
+        method.call0(&stream)?.dyn_into()
     }
 }
