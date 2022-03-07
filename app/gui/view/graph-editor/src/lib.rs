@@ -1431,7 +1431,7 @@ impl GraphEditorModelWithNetwork {
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { edge_id } => self
-                .new_node_position_at_mouse_aligned_if_close_to_source_node(
+                .new_node_position_at_mouse_aligned_to_source_node(
                     edge_id,
                     mouse_position,
                 ),
@@ -1763,7 +1763,7 @@ impl GraphEditorModel {
     /// node at the source of the specified edge if the mouse position is close to the node.
     ///
     /// See [`new_node_position_aligned_if_close_to_node`] for details on what "close to" means.
-    pub fn new_node_position_at_mouse_aligned_if_close_to_source_node(
+    pub fn new_node_position_at_mouse_aligned_to_source_node(
         &self,
         edge_id: EdgeId,
         mouse_position: Vector2,
