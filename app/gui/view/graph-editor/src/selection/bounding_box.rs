@@ -142,8 +142,6 @@ impl PartialSemigroup<BoundingBox> for BoundingBox {
 mod tests {
     use super::*;
 
-    use assert_approx_eq::assert_approx_eq;
-
 
     #[test]
     fn test_intersection() {
