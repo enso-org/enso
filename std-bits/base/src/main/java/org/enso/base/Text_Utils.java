@@ -9,6 +9,7 @@ import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -319,7 +320,7 @@ public class Text_Utils {
     }
 
     int grapheme_end = breakIterator.next();
-    int grapheme_index = 0;
+    long grapheme_index = 0;
 
     while (grapheme_end <= codepoint_index && grapheme_end != -1) {
       grapheme_index++;
@@ -331,16 +332,32 @@ public class Text_Utils {
   /**
    * Converts a series of codepoint indices to indices of graphemes that these codepoints belong to.
    *
+   * <p>For performance, it assumes that the provided indices are sorted in a non-decreasing order
+   * (duplicate entries are permitted). Behaviour is unspecified if an unsorted list is provided.
+   *
    * @param text the text associated with the indices
-   * @param codepoint_indices the array of codepoint indices
+   * @param codepoint_indices the array of codepoint indices, sorted in non-decreasing order
    * @return an array of grapheme indices corresponding to the codepoints from the input
    */
   public static List<Long> codepoint_indices_to_grapheme_indices(
       String text, List<Long> codepoint_indices) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
-    // TODO
-    return new ArrayList<>();
+
+    int grapheme_end = breakIterator.next();
+    long grapheme_index = 0;
+
+    ArrayList<Long> result = new ArrayList<>(codepoint_indices.size());
+
+    for (long codepoint_index : codepoint_indices) {
+      while (grapheme_end <= codepoint_index && grapheme_end != -1) {
+        grapheme_index++;
+        grapheme_end = breakIterator.next();
+      }
+      result.add(grapheme_index);
+    }
+
+    return result;
   }
 
   /**
