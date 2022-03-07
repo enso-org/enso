@@ -81,3 +81,26 @@ impl Collector {
         drop(std::mem::take(&mut garbage.before_mouse_events));
     }
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn garbage_lifetime() {
+        let collector = Collector::new();
+        let garbage = Rc::new(());
+        let garbage_weak = Rc::downgrade(&garbage);
+
+        collector.collect(garbage);
+        assert!(garbage_weak.upgrade().is_some());
+        collector.pixel_synced();
+        assert!(garbage_weak.upgrade().is_some());
+        collector.pixel_updated();
+        assert!(garbage_weak.upgrade().is_some());
+        collector.mouse_events_handled();
+        assert!(garbage_weak.upgrade().is_none());
+    }
+}
