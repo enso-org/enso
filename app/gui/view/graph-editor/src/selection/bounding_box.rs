@@ -179,23 +179,32 @@ mod tests {
         assert_eq!(bb2.intersects(&bb1), expected_to_intersect);
     }
 
+    macro_rules! assert_concat {
+        ( $( $bbox1:tt + $bbox2:tt == $bbox3:tt ; )+ ) => {
+            $( assert_concat!{$bbox1 + $bbox2 == $bbox3}; )+
+        };
+
+        ( $bbox1:tt + $bbox2:tt == $bbox3:tt ) => {
+            let bbox1 = bounding_box($bbox1.0, $bbox1.1);
+            let bbox2 = bounding_box($bbox2.0, $bbox2.1);
+            let bbox3 = bounding_box($bbox3.0, $bbox3.1);
+            let result = bbox1.concat(bbox2);
+            let assert_msg = iformat!(
+                "Concat result was expected to be: " bbox3;? " but got: " result;? " instead.");
+            assert_eq!(result.left, bbox3.left, "{}", assert_msg);
+            assert_eq!(result.right, bbox3.right, "{}", assert_msg);
+            assert_eq!(result.top, bbox3.top, "{}", assert_msg);
+            assert_eq!(result.bottom, bbox3.bottom, "{}", assert_msg);
+        };
+    }
+
     #[test]
     fn test_concat() {
-        assert_concat(
-            bounding_box((0.0, 0.0), (2.0, 3.0)),
-            bounding_box((2.0, 3.0), (4.0, 5.0)),
-            bounding_box((0.0, 0.0), (4.0, 5.0)),
-        );
-        assert_concat(
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-            bounding_box((-1.0, -1.0), (0.5, 0.5)),
-            bounding_box((-1.0, -1.0), (1.0, 1.0)),
-        );
-        assert_concat(
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-            bounding_box((0.3, 0.3), (0.6, 0.6)),
-            bounding_box((0.0, 0.0), (1.0, 1.0)),
-        );
+        assert_concat!{
+            ((0.0, 0.0), (2.0, 3.0)) + (( 2.0,  3.0), (4.0, 5.0)) == ((0.0,   0.0), (4.0, 5.0));
+            ((0.0, 0.0), (1.0, 1.0)) + ((-1.0, -1.0), (0.5, 0.5)) == ((-1.0, -1.0), (1.0, 1.0));
+            ((0.0, 0.0), (1.0, 1.0)) + (( 0.3,  0.3), (0.6, 0.6)) == ((0.0,   0.0), (1.0, 1.0));
+        };
     }
 
     fn bounding_box(bottom_left: (f32, f32), top_right: (f32, f32)) -> BoundingBox {
@@ -203,14 +212,6 @@ mod tests {
             Vector2(bottom_left.0, bottom_left.1),
             Vector2(top_right.0, top_right.1),
         )
-    }
-
-    fn assert_concat(bb1: BoundingBox, bb2: BoundingBox, expected_result: BoundingBox) {
-        let result = bb1.concat(bb2);
-        assert_eq!(result.left, expected_result.left);
-        assert_eq!(result.right, expected_result.right);
-        assert_eq!(result.top, expected_result.top);
-        assert_eq!(result.bottom, expected_result.bottom);
     }
 
     fn assert_squared_distance_to_point(
