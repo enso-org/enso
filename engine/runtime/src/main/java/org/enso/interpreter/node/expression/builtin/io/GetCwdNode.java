@@ -20,9 +20,9 @@ public abstract class GetCwdNode extends Node {
 
   @Specialization
   Object doExecute(Object _this) {
-    var env= Context.get(this).getEnvironment();
-    TruffleFile file = env.getCurrentWorkingDirectory();
+    Context context = Context.get(this);
+    TruffleFile file = context.getEnvironment().getCurrentWorkingDirectory();
     EnsoFile ensoFile = new EnsoFile(file);
-    return env.asGuestValue(ensoFile);
+    return context.getEnvironment().asGuestValue(ensoFile);
   }
 }
