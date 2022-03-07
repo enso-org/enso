@@ -574,7 +574,8 @@ impl NodeModel {
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
-            t.x = width + CORNER_RADIUS + action_bar_width / 2.0;
+            t.x = view_pos.x + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0;
+            t.y = view_pos.y;
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
