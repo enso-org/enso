@@ -143,10 +143,19 @@ mod tests {
     use super::*;
 
 
+    impl From<((f32, f32), (f32, f32))> for BoundingBox {
+        fn from(corners: ((f32, f32), (f32, f32))) -> BoundingBox {
+            BoundingBox::from_corners(
+                Vector2(corners.0 .0, corners.0 .1),
+                Vector2(corners.1 .0, corners.1 .1),
+            )
+        }
+    }
+
     macro_rules! assert_intersect {
         ( $bbox1:tt *? $bbox2:tt == $expected_result:literal ) => {
-            let bbox1 = bounding_box($bbox1.0, $bbox1.1);
-            let bbox2 = bounding_box($bbox2.0, $bbox2.1);
+            let bbox1: BoundingBox = $bbox1.into();
+            let bbox2: BoundingBox = $bbox2.into();
             assert_eq!(bbox1.intersects(&bbox2), $expected_result);
             assert_eq!(bbox2.intersects(&bbox1), $expected_result);
         };
@@ -169,9 +178,9 @@ mod tests {
         };
 
         ( $bbox1:tt + $bbox2:tt == $bbox3:tt ) => {
-            let bbox1 = bounding_box($bbox1.0, $bbox1.1);
-            let bbox2 = bounding_box($bbox2.0, $bbox2.1);
-            let bbox3 = bounding_box($bbox3.0, $bbox3.1);
+            let bbox1: BoundingBox = $bbox1.into();
+            let bbox2: BoundingBox = $bbox2.into();
+            let bbox3: BoundingBox = $bbox3.into();
             let result = bbox1.concat(bbox2);
             let assert_msg = iformat!(
                 "Concat result was expected to be: " bbox3;? " but got: " result;? " instead.");
@@ -191,13 +200,6 @@ mod tests {
         };
     }
 
-    fn bounding_box(bottom_left: (f32, f32), top_right: (f32, f32)) -> BoundingBox {
-        BoundingBox::from_corners(
-            Vector2(bottom_left.0, bottom_left.1),
-            Vector2(top_right.0, top_right.1),
-        )
-    }
-
     const SQUARED_DISTANCE_COMPARISON_PRECISION: f32 = 0.001;
 
     macro_rules! assert_squared_distance_to_point {
@@ -208,7 +210,7 @@ mod tests {
         };
 
         ($bbox:tt <-sq-> $point:tt =~ $expected_sq_distance:expr) => {
-            let bbox = bounding_box($bbox.0, $bbox.1);
+            let bbox: BoundingBox = $bbox.into();
             let point = Vector2($point.0, $point.1);
             let result = bbox.squared_distance_to_point(point);
             let result_deviation = (result - $expected_sq_distance).abs();
