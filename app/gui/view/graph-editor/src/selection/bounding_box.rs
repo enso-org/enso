@@ -147,10 +147,9 @@ mod tests {
 
     impl From<((f32, f32), (f32, f32))> for BoundingBox {
         fn from(corners: ((f32, f32), (f32, f32))) -> BoundingBox {
-            BoundingBox::from_corners(
-                Vector2(corners.0 .0, corners.0 .1),
-                Vector2(corners.1 .0, corners.1 .1),
-            )
+            let corner0 = corners.0;
+            let corner1 = corners.1;
+            BoundingBox::from_corners(Vector2(corner0.0, corner0.1), Vector2(corner1.0, corner1.1))
         }
     }
 
