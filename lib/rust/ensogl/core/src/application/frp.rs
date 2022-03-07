@@ -662,11 +662,12 @@ macro_rules! define_endpoints_2 {
                     }
                 }
 
+                #[allow(unused_parens)]
                 #[derive(Debug, CloneRef, Derivative)]
                 #[derivative(Clone(bound = ""))]
                 pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
-                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<$($in_field_type)*>,)*
-                     _phantom_type_args : $($(PhantomData<$param>),*)?,
+                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+                    _phantom_type_args : ($($(PhantomData<$param>),*)?),
                 }
 
 
@@ -711,14 +712,13 @@ macro_rules! define_endpoints_2 {
 
                 #[derive(Debug)]
                 pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
-                    $(
-                    $(#[doc=$($out_doc)*])*
-                    pub $out_field : $crate::frp::Sampler<$($out_field_type)*>,
+                    $($(#[doc=$($out_doc)*])*
+                        pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
                     )*
 
                     pub status_map    : Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
                     pub command_map   : Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
-                    _phantom_type_args : $($(PhantomData<$param>),*)?,
+                    _phantom_type_args : ($($(PhantomData<$param>),*)?),
                 }
 
                 impl $(<$($param $(:$($constraints)*)?),*>)?  OutputData $(<$($param),*>)?  {
@@ -757,15 +757,13 @@ macro_rules! define_endpoints_2 {
                     }
                 }
 
+                #[allow(unused_parens)]
                 #[derive(Debug)]
                 pub struct CombinedData $(<$($param $(:$($constraints)*)?),*>)? {
-                    $(
-                    $(#[doc=$($in_doc)*])*
-                    pub $in_field : $crate::frp::Any<$($in_field_type)*>,
-                    )*
-                    $(
-                    $(#[doc=$($out_doc)*])*
-                    pub $out_field : $crate::frp::Sampler<$($out_field_type)*>,
+                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+
+                    $($(#[doc=$($out_doc)*])*
+                        pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
                     )*
                 }
 
@@ -827,8 +825,10 @@ macro_rules! define_endpoints_2 {
 
                 #[derive(Debug)]
                 pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
-                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Stream<$($in_field_type)*>,)*
-                     _phantom_type_args : $($(PhantomData<$param>),*)?,
+                     $($(#[doc=$($in_doc)*])*
+                         pub $in_field  : $crate::frp::Stream<($($in_field_type)*)>,
+                     )*
+                     _phantom_type_args : ($($(PhantomData<$param>),*)?),
                 }
 
                 impl $(<$($param $(:$($constraints)*)?),*>)?  InputData $(<$($param),*>)? {
@@ -869,11 +869,11 @@ macro_rules! define_endpoints_2 {
 
                 #[derive(Debug)]
                 pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
-                    $(
-                    $(#[doc=$($out_doc)*])*
-                    pub $out_field : $crate::frp::Any<$($out_field_type)*>,
+                    $($(#[doc=$($out_doc)*])*
+                    pub $out_field  : $crate::frp::Any<($($out_field_type)*)>,
                     )*
-                    _phantom_type_args : $($(PhantomData<$param>),*)?,
+
+                    _phantom_type_args : ($($(PhantomData<$param>),*)?),
                 }
 
                 impl $(<$($param $(:$($constraints)*)?),*>)? OutputData$(<$($param),*>)? {
@@ -903,6 +903,31 @@ mod tests {
 
     use crate::application::command::FrpNetworkProvider;
     use crate::frp;
+
+    // Check compilation of macro output.
+    mod empty_api {
+        use super::*;
+
+        define_endpoints_2! {
+            Input{}
+            Output{}
+        }
+    }
+
+
+    // Check compilation of macro output.
+    mod tuple_type {
+        use super::*;
+
+        define_endpoints_2! {
+            Input{
+                set_tuple(f32,f32)
+            }
+            Output{
+                tuple(f32,f32)
+            }
+        }
+    }
 
 
     // Check compilation of macro output.
