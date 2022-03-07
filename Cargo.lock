@@ -2175,7 +2175,6 @@ name = "ide-view-graph-editor"
 version = "0.1.0"
 dependencies = [
  "analytics",
- "assert_approx_eq",
  "ast",
  "base64 0.13.0",
  "bimap",

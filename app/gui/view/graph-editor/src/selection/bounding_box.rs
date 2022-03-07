@@ -143,38 +143,24 @@ mod tests {
     use super::*;
 
 
-    #[test]
-    fn test_intersection() {
-        assert_intersect(
-            bounding_box((0.5, 0.5), (1.0, 1.0)),
-            bounding_box((0.0, 0.0), (2.0, 2.0)),
-            true,
-        );
-        assert_intersect(
-            bounding_box((3.0, 3.0), (4.0, 4.0)),
-            bounding_box((0.0, 0.0), (2.0, 2.0)),
-            false,
-        );
-        assert_intersect(
-            bounding_box((0.0, 0.0), (4.0, 4.0)),
-            bounding_box((0.0, 0.0), (-2.0, -2.0)),
-            true,
-        );
-        assert_intersect(
-            bounding_box((0.0, 0.0), (4.0, 4.0)),
-            bounding_box((2.0, 2.0), (200.0, 200.0)),
-            true,
-        );
-        assert_intersect(
-            bounding_box((-50.0, -50.0), (25.0, 25.0)),
-            bounding_box((5.00, 50.0), (100.0, 100.0)),
-            false,
-        );
+    macro_rules! assert_intersect {
+        ( $bbox1:tt *? $bbox2:tt == $expected_result:literal ) => {
+            let bbox1 = bounding_box($bbox1.0, $bbox1.1);
+            let bbox2 = bounding_box($bbox2.0, $bbox2.1);
+            assert_eq!(bbox1.intersects(&bbox2), $expected_result);
+            assert_eq!(bbox2.intersects(&bbox1), $expected_result);
+        };
     }
 
-    fn assert_intersect(bb1: BoundingBox, bb2: BoundingBox, expected_to_intersect: bool) {
-        assert_eq!(bb1.intersects(&bb2), expected_to_intersect);
-        assert_eq!(bb2.intersects(&bb1), expected_to_intersect);
+    #[test]
+    fn test_intersection() {
+        assert_intersect!{ ((0.5, 0.5), (1.0, 1.0))  *?  ((0.0, 0.0), (  2.0,   2.0))  ==  true };
+        assert_intersect!{ ((3.0, 3.0), (4.0, 4.0))  *?  ((0.0, 0.0), (  2.0,   2.0))  ==  false };
+        assert_intersect!{ ((0.0, 0.0), (4.0, 4.0))  *?  ((0.0, 0.0), ( -2.0,  -2.0))  ==  true };
+        assert_intersect!{ ((0.0, 0.0), (4.0, 4.0))  *?  ((2.0, 2.0), (200.0, 200.0))  ==  true };
+        assert_intersect!{
+            ((-50.0, -50.0), (25.0, 25.0))  *?  ((5.00, 50.0), (100.0, 100.0))  ==  false
+        };
     }
 
     macro_rules! assert_concat {
