@@ -565,11 +565,12 @@ impl NodeModel {
         self.drag_area.size.set(padded_size);
         self.error_indicator.size.set(padded_size);
         self.vcs_indicator.set_size(padded_size);
-        self.backdrop.mod_position(|t| t.x = width / 2.0);
-        self.background.mod_position(|t| t.x = width / 2.0);
-        self.drag_area.mod_position(|t| t.x = width / 2.0);
-        self.error_indicator.set_position_x(width / 2.0);
-        self.vcs_indicator.set_position_x(width / 2.0);
+        let view_pos = view_position_of_node_with_size(size);
+        self.backdrop.set_position_xy(view_pos);
+        self.background.set_position_xy(view_pos);
+        self.drag_area.set_position_xy(view_pos);
+        self.error_indicator.set_position_xy(view_pos);
+        self.vcs_indicator.set_position_xy(view_pos);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
@@ -959,4 +960,11 @@ impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
     }
+}
+
+
+// === Positioning ===
+
+fn view_position_of_node_with_size(size: Vector2) -> Vector2 {
+    Vector2(size.x / 2.0, 0.0)
 }
