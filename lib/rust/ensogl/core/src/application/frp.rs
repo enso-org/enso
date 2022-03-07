@@ -619,8 +619,8 @@ macro_rules! define_endpoints_2 {
             }
         }
 
-
-
+        #[allow(missing_docs)]
+        #[allow(clippy::manual_non_exhaustive)]
         pub mod api {
             use super::*;
 
@@ -662,7 +662,6 @@ macro_rules! define_endpoints_2 {
                     }
                 }
 
-
                 impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Input $(<$($param),*>)? {
                     type Target = InputData $(<$($param),*>)?;
                     fn deref(&self) -> &Self::Target {
@@ -677,7 +676,6 @@ macro_rules! define_endpoints_2 {
                     $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
                     _phantom_type_args : ($($(PhantomData<$param>),*)?),
                 }
-
 
                 #[allow(unused_parens)]
                 impl $(<$($param $(:$($constraints)*)?),*>)?  InputData $(<$($param),*>)? {
@@ -751,6 +749,7 @@ macro_rules! define_endpoints_2 {
                     }
                 }
 
+
                 // === Combined ===
 
                 #[derive(Debug, CloneRef, Clone)]
@@ -774,7 +773,6 @@ macro_rules! define_endpoints_2 {
                         &self.data
                     }
                 }
-
 
                 #[allow(unused_parens)]
                 #[derive(Debug)]
@@ -820,6 +818,7 @@ macro_rules! define_endpoints_2 {
 
             pub mod private {
                 use super::*;
+
 
                 // === Input ===
 
