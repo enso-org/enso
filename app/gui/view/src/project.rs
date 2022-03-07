@@ -22,6 +22,7 @@ use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::system::web;
 use ensogl::system::web::dom;
+use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
@@ -145,7 +146,7 @@ struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("project::View");
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
         let searcher = app.new_view::<searcher::View>();
         let graph_editor = app.new_view::<GraphEditor>();
@@ -213,7 +214,7 @@ impl Model {
     }
 
     fn set_html_style(&self, style: &'static str) {
-        web::with_element_by_id_or_warn(&self.logger, "root", |root| root.set_class_name(style));
+        web::document.with_element_by_id_or_warn("root", |root| root.set_class_name(style));
     }
 
     fn searcher_left_top_position_when_under_node_at(position: Vector2<f32>) -> Vector2<f32> {
@@ -369,7 +370,7 @@ impl View {
 
         display::style::javascript::expose_to_window(&app.themes);
 
-        let scene = app.display.scene().clone_ref();
+        let scene = app.display.default_scene.clone_ref();
         let model = Model::new(app);
         let frp = Frp::new();
         let searcher = &model.searcher.frp;

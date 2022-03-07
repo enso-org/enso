@@ -11,7 +11,7 @@ use web_sys::WebGlUniformLocation;
 
 use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::texture::*;
-use crate::system::gpu::shader::Context;
+use crate::system::Context;
 
 use web_sys::WebGlTexture;
 

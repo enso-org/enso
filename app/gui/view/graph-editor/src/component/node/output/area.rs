@@ -175,8 +175,8 @@ impl Model {
         let id_crumbs_map = default();
         let expression = default();
         let port_count = default();
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
-        let styles_frp = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
+        let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
@@ -199,7 +199,7 @@ impl Model {
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
-        let scene = self.app.display.scene();
+        let scene = &self.app.display.default_scene;
         self.label.remove_from_scene_layer(&scene.layers.main);
         self.label.add_to_scene_layer(&scene.layers.label);
 

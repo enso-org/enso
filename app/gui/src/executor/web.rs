@@ -13,6 +13,9 @@ use futures::task::LocalFutureObj;
 use futures::task::LocalSpawn;
 use futures::task::SpawnError;
 
+/// An alias for a main animation loop.
+pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
+
 /// Executor. Uses a single-threaded `LocalPool` underneath, relying on ensogl's
 /// `animation::DynamicLoop` to do as much progress as possible on every animation frame.
 #[derive(Debug)]
@@ -22,7 +25,7 @@ pub struct EventLoopExecutor {
     /// Executor's spawner handle.
     pub spawner: LocalSpawner,
     /// Event loop that calls us on each frame.
-    event_loop:  Option<animation::DynamicLoop>,
+    event_loop:  Option<MainLoop>,
     /// Handle to the callback - if dropped, loop would have stopped calling us.
     /// Also owns a shared handle to the `executor`.
     cb_handle:   Option<callback::Handle>,
@@ -44,14 +47,14 @@ impl EventLoopExecutor {
     ///loop will live as long as this executor.
     pub fn new_running() -> EventLoopExecutor {
         let mut executor = EventLoopExecutor::new();
-        executor.start_running(animation::DynamicLoop::new());
+        executor.start_running();
         executor
     }
 
     /// Returns a callback compatible with `animation::DynamicLoop` that once called shall
     /// attempt achieving as much progress on this executor's tasks as possible
     /// without stalling.
-    pub fn runner(&self) -> impl animation::DynamicLoopCallback {
+    pub fn runner(&self) -> impl FnMut(animation::TimeInfo) {
         let executor = self.executor.clone();
         move |_| {
             // Safe, because this is the only place borrowing executor and loop
@@ -67,11 +70,8 @@ impl EventLoopExecutor {
     ///
     /// The executor will keep copy of this loop handle, so caller is not
     /// required to keep it alive.
-    pub fn start_running(&mut self, event_loop: animation::DynamicLoop) {
-        let cb = self.runner();
-
-        self.cb_handle = Some(event_loop.on_frame(cb));
-        self.event_loop = Some(event_loop);
+    fn start_running(&mut self) {
+        self.event_loop = Some(MainLoop::new(Box::new(self.runner())));
     }
 
     /// Stops event loop (previously assigned by `run` method) from calling this

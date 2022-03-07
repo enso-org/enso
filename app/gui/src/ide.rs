@@ -62,7 +62,7 @@ impl Ide {
 
     fn alive_log_sending_loop(&self) -> impl Future<Output = ()> + 'static {
         let network = &self.network;
-        let scene = self.ensogl_app.display.scene();
+        let scene = &self.ensogl_app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
 

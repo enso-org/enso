@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 enso-prelude = { path = "../../../../prelude"}
 js-sys = { version = "0.3" }
 nalgebra = { version = "0.26.1" }
-wasm-bindgen = { version = "0.2.58" }
+wasm-bindgen = { version = "0.2.78" }
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }
