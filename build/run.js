@@ -494,13 +494,13 @@ function defaultConfig() {
             name: 'Enso Team',
             email: 'contact@enso.org',
         },
-        homepage: 'https://github.com/enso-org/ide',
+        homepage: 'https://github.com/enso-org/enso',
         repository: {
             type: 'git',
-            url: 'git@github.com:enso-org/ide.git',
+            url: 'git@github.com:enso-org/enso.git',
         },
         bugs: {
-            url: 'https://github.com/enso-org/ide/issues',
+            url: 'https://github.com/enso-org/enso/issues',
         },
     }
 }

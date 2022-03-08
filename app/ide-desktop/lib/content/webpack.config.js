@@ -58,7 +58,6 @@ module.exports = {
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
-            FIREBASE_API_KEY: JSON.stringify(process.env.FIREBASE_API_KEY),
         }),
     ],
     devtool: 'eval-source-map',

@@ -154,7 +154,6 @@ let buildPackage = {
         CSC_IDENTITY_AUTO_DISCOVERY: true,
         APPLEID: '${{secrets.APPLE_NOTARIZATION_USERNAME}}',
         APPLEIDPASS: '${{secrets.APPLE_NOTARIZATION_PASSWORD}}',
-        FIREBASE_API_KEY: '${{secrets.FIREBASE_API_KEY}}',
         WIN_CSC_LINK: '${{secrets.MICROSOFT_CODE_SIGNING_CERT}}',
         WIN_CSC_KEY_PASSWORD: '${{secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD}}',
     },

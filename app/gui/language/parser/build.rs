@@ -156,5 +156,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         provider.run().await;
     }
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed={}", PARSER_PATH);
+
     Ok(())
 }

@@ -1,16 +1,14 @@
 'use strict'
 
-import cfg from '../../../config'
-import * as assert from 'assert'
-import * as buildCfg from '../../../../../dist/build.json'
-import * as Electron from 'electron'
-import * as isDev from 'electron-is-dev'
-import * as path from 'path'
-import * as pkg from '../package.json'
-import * as rootCfg from '../../../package.json'
+import {defaultLogServerHost} from '../../../config'
+import assert from 'assert'
+import buildCfg from '../../../../../dist/build.json'
+import Electron from 'electron'
+import isDev from 'electron-is-dev'
+import path from 'path'
 import * as Server from 'enso-studio-common/src/server'
-import * as util from 'util'
-import * as yargs from 'yargs'
+import util from 'util'
+import yargs from 'yargs'
 
 import paths from '../../../../../build/paths'
 
@@ -60,9 +58,9 @@ const trustedHosts = [
 // =====================
 
 let usage = `
-${pkg.build.productName} ${rootCfg.version} command line interface.
+${buildCfg.name} ${buildCfg.version} command line interface.
 
-Usage: ${pkg.build.productName} [options] [--] [backend args]...
+Usage: ${buildCfg.name} [options] [--] [backend args]...
 `
 
 let epilogue = `
@@ -199,7 +197,7 @@ optParser.options('crash-report-host', {
         'The address of the server that will receive crash reports. ' +
         'Consists of a hostname, optionally followed by a ":" and a port number',
     requiresArg: true,
-    default: cfg.defaultLogServerHost,
+    default: defaultLogServerHost,
 })
 
 optParser.options('data-gathering', {
@@ -246,8 +244,8 @@ if (args.windowSize) {
 // ==================
 
 let versionInfo = {
-    version: rootCfg.version,
-    build: buildCfg.buildVersion,
+    version: buildCfg.version,
+    build: buildCfg.commit,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
 }

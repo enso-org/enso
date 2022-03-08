@@ -56,5 +56,6 @@ ensogl::read_args! {
         authentication_enabled : bool,
         email                  : String,
         application_config_url : String,
+        skip_min_version_check : bool,
     }
 }

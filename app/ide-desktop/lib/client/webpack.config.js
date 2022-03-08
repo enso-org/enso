@@ -4,6 +4,9 @@ const paths = require('../../../../build/paths')
 
 const thisPath = path.resolve(__dirname)
 
+const dist = path.resolve(process.env.ENSO_IDE_DIST ?? '../../../../dist')
+const distContent = path.join(dist, 'content')
+
 module.exports = {
     entry: {
         index: path.resolve(thisPath, 'src', 'index.js'),
@@ -18,11 +21,11 @@ module.exports = {
         new Copy([
             {
                 from: path.resolve(thisPath, 'package.json'),
-                to: paths.dist.packageJson,
+                to: path.join(distContent, 'package.json')
             },
             {
                 from: path.resolve(thisPath, 'src', 'preload.js'),
-                to: paths.dist.preload,
+                to: path.join(distContent, 'preload.js'),
             },
         ]),
     ],

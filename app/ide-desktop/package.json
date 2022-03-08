@@ -1,0 +1,32 @@
+{
+    "version": "1.0.0",
+    "author": {
+        "name": "Enso Team",
+        "email": "contact@enso.org"
+    },
+    "homepage": "https://github.com/enso-org/enso",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:enso-org/enso.git"
+    },
+    "bugs": {
+        "url": "https://github.com/enso-org/enso/issues"
+    },
+    "name": "root",
+    "private": true,
+    "devDependencies": {
+        "lerna": "^3.22.1",
+        "webpack": "^4.42.1",
+        "webpack-cli": "^3.3.11",
+        "webpack-dev-server": "^3.1.5"
+    },
+    "scripts": {
+        "bootstrap": "npx lerna bootstrap",
+        "build": "npx lerna run build --stream",
+        "clean": "npx lerna clean -y && rm -Rf node_modules",
+        "dist": "npx lerna run build --stream && npx lerna run dist --stream",
+        "install": "npm install lerna && npx lerna bootstrap",
+        "start": "npm run build && npx lerna run start --stream -- -- ",
+        "watch": "npx lerna run watch --stream"
+    }
+}
