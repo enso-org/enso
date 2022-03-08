@@ -11,52 +11,17 @@
 
 // === Non-Standard Linter Configuration ===
 
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-//
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-standard linter configuration ===
-
-
-
-// === Standard linter configuration ===
-#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
-// === Non-standard linter configuration ===
-
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_web as web;
-use enso_shortcuts as shortcuts;
-use enso_shortcuts::Registry;
 use enso_frp as frp;
-use frp::io::keyboard;
-use frp::io::keyboard::Keyboard;
 use enso_logger::AnyLogger;
 use enso_logger::WarningLogger as Logger;
+use enso_shortcuts as shortcuts;
+use enso_shortcuts::Registry;
+use enso_web as web;
+use frp::io::keyboard;
+use frp::io::keyboard::Keyboard;
 
 
 

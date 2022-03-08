@@ -42,41 +42,6 @@
 
 // === Non-Standard Linter Configuration ===
 
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-//
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-standard linter configuration ===
-
-
-
-// === Standard linter configuration ===
-#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
-// === Non-standard linter configuration ===
-
 // === Features ===
 #![feature(arbitrary_self_types)]
 #![feature(async_closure)]
@@ -94,11 +59,11 @@
 #![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
 
-use wasm_bindgen::prelude::*;
 #[allow(unused_imports)]
 use enso_debug_scene::*;
 #[allow(unused_imports)]
 use ensogl_examples::*;
+use wasm_bindgen::prelude::*;
 
 
 // ==============

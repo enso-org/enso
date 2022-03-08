@@ -15,41 +15,6 @@
 
 // === Non-Standard Linter Configuration ===
 
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-//
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-standard linter configuration ===
-
-
-
-// === Standard linter configuration ===
-#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
-// === Non-standard linter configuration ===
-
 // === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
@@ -58,8 +23,8 @@
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 
-use ensogl_core::prelude::*;
 use ensogl_core::animation::easing::*;
+use ensogl_core::prelude::*;
 use ensogl_core::system::web::traits::*;
 
 use ensogl_core::animation;

@@ -11,47 +11,12 @@
 
 // === Non-Standard Linter Configuration ===
 
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-//
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-standard linter configuration ===
-
-
-
-// === Standard linter configuration ===
-#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
-// === Non-standard linter configuration ===
-
-use enso_prelude::*;
-use wasm_bindgen::prelude::*;
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
+use enso_prelude::*;
 use enso_text::traits::*;
 use span_tree::*;
+use wasm_bindgen::prelude::*;
 
 use enso_web as web;
 use span_tree::builder::Builder;

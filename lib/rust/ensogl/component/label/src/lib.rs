@@ -15,56 +15,21 @@
 
 // === Non-Standard Linter Configuration ===
 
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-//
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-Standard Linter Configuration ===
-
-
-
-// === Non-standard linter configuration ===
-
-
-
-// === Standard linter configuration ===
-#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
-// === Non-standard linter configuration ===
-
 // === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 
-use ensogl_core::prelude::*;
 use ensogl_core::display::shape::*;
+use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_hardcoded_theme::component::label as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
-use ensogl_hardcoded_theme::component::label as theme;
 
 
 
