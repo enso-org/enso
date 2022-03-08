@@ -244,7 +244,7 @@ impl WorldData {
                     display_mode.set(2)
                 } else if key == "KeyP" {
                     let log = profiler::internal::take_log();
-                    error!(Logger::new("raw_profiling_data"), log);
+                    web_sys::console::log_1(&log.into());
                 }
             }
         });
