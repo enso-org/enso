@@ -71,16 +71,22 @@ spec =
             grouped.columns.at 7 . name . should_equal "Standard Deviation ValueWithNothing_1"
             grouped.columns.at 7 . at 0 . should_equal 58.575554 epsilon=0.000001
 
-        Test.specify "should be able to create median values" <|
-            grouped = table.group_by grouping [Median "Index", Median "Value", Median "ValueWithNothing"]
+        Test.specify "should be able to create median, mode and percentile values" <|
+            grouped = table.group_by grouping [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 3
+            grouped.columns.length . should_equal 6
             grouped.columns.at 0 . name . should_equal "Median Index"
             grouped.columns.at 0 . at 0 . should_equal 5 epsilon=0.000001
             grouped.columns.at 1 . name . should_equal "Median Value"
             grouped.columns.at 1 . at 0 . should_equal 1.298375 epsilon=0.000001
             grouped.columns.at 2 . name . should_equal "Median ValueWithNothing"
             grouped.columns.at 2 . at 0 . should_equal 2.235 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Mode Index"
+            grouped.columns.at 3 . at 0 . should_equal 7
+            grouped.columns.at 4 . name . should_equal "25%-ile Value"
+            grouped.columns.at 4 . at 0 . should_equal -49.962710 epsilon=0.000001
+            grouped.columns.at 5 . name . should_equal "40%-ile ValueWithNothing"
+            grouped.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" <|
             grouped = table.group_by grouping [First "Index", Last "Value"]
@@ -157,12 +163,16 @@ spec =
             grouped.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing"
             grouped.columns.at 3 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to create median values" <|
-            grouped = empty_table.group_by grouping [Median "Index"]
+        Test.specify "should be able to create median, mode and percentile values" <|
+            grouped = empty_table.group_by grouping [Median "Index", Mode "Index", Percentile 0.25 "Value"]
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 1
+            grouped.columns.length . should_equal 3
             grouped.columns.at 0 . name . should_equal "Median Index"
             grouped.columns.at 0 . at 0 . should_equal Nothing
+            grouped.columns.at 1 . name . should_equal "Mode Index"
+            grouped.columns.at 1 . at 0 . should_equal Nothing
+            grouped.columns.at 2 . name . should_equal "25%-ile Value"
+            grouped.columns.at 2 . at 0 . should_equal Nothing
 
         Test.specify "should be able to get first and last values" <|
             grouped = empty_table.group_by grouping [First "Index", Last "Value"]
@@ -230,11 +240,13 @@ spec =
             grouped.columns.at 4 . name . should_equal "Standard Deviation ValueWithNothing"
 
         Test.specify "should be able to create median values" <|
-            grouped = empty_table.group_by grouping [Median "Index"]
+            grouped = empty_table.group_by grouping [Median "Index", Mode "Index", Percentile 0.25 "Value"]
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 2
+            grouped.columns.length . should_equal 4
             grouped.columns.at 0 . name . should_equal "Code"
             grouped.columns.at 1 . name . should_equal "Median Index"
+            grouped.columns.at 2 . name . should_equal "Mode Index"
+            grouped.columns.at 3 . name . should_equal "25%-ile Value"
 
         Test.specify "should be able to get first and last values" <|
             grouped = empty_table.group_by grouping [First "Index", Last "Value"]
@@ -330,9 +342,9 @@ spec =
             grouped.columns.at 8 . at idx . should_equal 56.677714 epsilon=0.000001
 
         Test.specify "should be able to create median values" <|
-            grouped = table.group_by grouping [Median "Index", Median "Value", Median "ValueWithNothing"]
+            grouped = table.group_by grouping [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 4
+            grouped.columns.length . should_equal 7
             grouped.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] grouped
             idx.is_nothing . should_be_false
@@ -342,6 +354,12 @@ spec =
             grouped.columns.at 2 . at idx . should_equal 2.041150 epsilon=0.000001
             grouped.columns.at 3 . name . should_equal "Median ValueWithNothing"
             grouped.columns.at 3 . at idx . should_equal 1.38 epsilon=0.000001
+            grouped.columns.at 4 . name . should_equal "Mode Index"
+            grouped.columns.at 4 . at idx . should_equal 6
+            grouped.columns.at 5 . name . should_equal "25%-ile Value"
+            grouped.columns.at 5 . at idx . should_equal -56.019100 epsilon=0.000001
+            grouped.columns.at 6 . name . should_equal "40%-ile ValueWithNothing"
+            grouped.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" <|
             grouped = table.group_by grouping [First "TextWithNothing", Last "Value"]
