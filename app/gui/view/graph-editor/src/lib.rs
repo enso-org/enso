@@ -2598,9 +2598,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // === Edited node growth/shrink animation ===
 
-    let searcher_cam = model.app.display.scene().layers.node_searcher.camera();
-    let edited_node_cam = model.app.display.scene().layers.edited_node.camera();
-    let main_cam = model.app.display.scene().layers.main.camera();
+    let searcher_cam = model.app.display.default_scene.layers.node_searcher.camera();
+    let edited_node_cam = model.app.display.default_scene.layers.edited_node.camera();
+    let main_cam = model.app.display.default_scene.layers.main.camera();
 
     let growth_animation = Animation::new(network);
     let animation_blending = Easing::new(network);
@@ -2793,7 +2793,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         eval freeze_edges (((edge_id,is_frozen)) model.set_edge_freeze(edge_id,*is_frozen) );
     }
-
 
     // === Edge Connect ===
 

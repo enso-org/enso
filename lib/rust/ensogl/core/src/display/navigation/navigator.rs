@@ -140,6 +140,7 @@ impl NavigatorModel {
                 1.0
             };
             position += translation * z_axis_movement_limiting_factor;
+            DEBUG!("{position}");
             simulator.set_target_value(position);
         });
         (

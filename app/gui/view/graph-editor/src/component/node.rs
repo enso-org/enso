@@ -548,7 +548,7 @@ impl NodeModel {
     /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
     pub fn move_to_edited_node_layer(&self) {
-        let scene = self.app.display.scene();
+        let scene = &self.app.display.default_scene;
         let layer = &scene.layers.edited_node;
         let text_layer = &scene.layers.edited_node_text;
         let action_bar_layer = &scene.layers.edited_node;
@@ -560,7 +560,7 @@ impl NodeModel {
     /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
     pub fn move_to_main_layer(&self) {
-        let scene = self.app.display.scene();
+        let scene = &self.app.display.default_scene;
         let layer = &scene.layers.main;
         let text_layer = &scene.layers.label;
         let action_bar_layer = &scene.layers.above_nodes;

@@ -449,8 +449,8 @@ impl View {
         }
 
         let shape = scene.shape().clone_ref();
-        let main_cam = app.display.scene().layers.main.camera();
-        let searcher_cam = app.display.scene().layers.node_searcher.camera();
+        let main_cam = app.display.default_scene.layers.main.camera();
+        let searcher_cam = app.display.default_scene.layers.node_searcher.camera();
 
         frp::extend! { network
             eval shape ((shape) model.on_dom_shape_changed(shape));
