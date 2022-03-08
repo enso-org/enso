@@ -1,0 +1,14 @@
+[package]
+name = "enso-formatter"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+regex = "1"
+lazy_static = "1.4.0"
+anyhow = "1.0"
+
+[dependencies.rustfmt]
+package = "rustfmt-nightly"
+git = "https://github.com/rust-lang/rustfmt"
