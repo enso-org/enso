@@ -1,14 +1,11 @@
 //! The close button in the Top Button panel.
+
+use crate::window_control_buttons::common::prelude::*;
+
 pub use ensogl_hardcoded_theme::application::window_control_buttons::close as theme;
 
-use ensogl_component::button::prelude::*;
-
-
-
-// =============
-// === Shape ===
-// =============
-
+/// The view component with the close button.
+pub type View = common::View<shape::DynamicShape>;
 
 /// The shape for "close" button. It places X-lie cross on a circle.
 pub mod shape {
@@ -58,16 +55,3 @@ impl ButtonShape for shape::DynamicShape {
         &self.icon_color
     }
 }
-
-
-
-// ============
-// === View ===
-// ============
-
-/// The view component with the close button.
-///
-/// The button styled after macOS, i.e. consists of an icon shape placed on top of a circle.
-/// The icon is visible when button or its neighborhood (as provided by `mouse_nearby` input) is
-/// hovered.
-pub type View = ensogl_component::button::View<shape::DynamicShape>;
