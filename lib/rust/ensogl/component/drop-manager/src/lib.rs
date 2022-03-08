@@ -21,12 +21,16 @@ pub mod prelude {
 use crate::prelude::*;
 
 use enso_frp as frp;
+use enso_web as web;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
-use enso_web::Error;
+use enso_web::Closure;
+
+#[cfg(target_arch = "wasm32")]
+use enso_web::JsCast;
+#[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::JsFuture;
 
 
@@ -54,7 +58,7 @@ pub struct File {
 
 impl File {
     /// Constructor from the [`web_sys::File`].
-    pub fn from_js_file(file: &web_sys::File) -> Result<Self, Error> {
+    pub fn from_js_file(file: &web_sys::File) -> Result<Self, web::JsValue> {
         let name = ImString::new(file.name());
         let size = file.size() as u64;
         let mime_type = ImString::new(file.type_());
@@ -64,6 +68,7 @@ impl File {
         Ok(File { name, mime_type, size, reader })
     }
 
+    #[cfg(target_arch = "wasm32")]
     /// Read the next chunk of file content.
     ///
     /// If there is no more data, it returns [`None`].
@@ -71,7 +76,7 @@ impl File {
     /// The chunk size depend on the browser implementation, but it is assumed to be reasonable.
     /// See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read and
     /// https://github.com/w3c/FileAPI/issues/144#issuecomment-570982732.
-    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, Error> {
+    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, web::JsValue> {
         if let Some(reader) = &*self.reader {
             let js_result = JsFuture::from(reader.read()).await?;
             let is_done = js_sys::Reflect::get(&js_result, &"done".into())?.as_bool().unwrap();
@@ -85,6 +90,12 @@ impl File {
         } else {
             Ok(None)
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    /// Read the next chunk of file content.
+    pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, web::JsValue> {
+        Ok(None)
     }
 }
 
@@ -105,44 +116,40 @@ type DragOverClosure = Closure<dyn Fn(web_sys::DragEvent) -> bool>;
 #[derive(Clone, CloneRef, Debug)]
 pub struct Manager {
     #[allow(dead_code)]
-    network:            frp::Network,
-    files_received:     frp::Source<Vec<File>>,
+    network:          frp::Network,
+    files_received:   frp::Source<Vec<File>>,
     #[allow(dead_code)]
-    drop_callback:      Rc<DropClosure>,
+    drop_handle:      web::EventListenerHandle,
     #[allow(dead_code)]
-    drag_over_callback: Rc<DragOverClosure>,
+    drag_over_handle: web::EventListenerHandle,
 }
 
 impl Manager {
     /// Constructor, adding listener to the given target.
-    pub fn new(target: &web_sys::EventTarget) -> Self {
+    pub fn new(target: &enso_web::EventTarget) -> Self {
         let logger = Logger::new("DropFileManager");
-        debug!(logger, "Creating DropFileManager");
+        debug!(logger, "Creating");
         let network = frp::Network::new("DropFileManager");
         frp::extend! { network
             files_received <- source();
         }
 
         let drop: DropClosure =
-            Closure::wrap(Box::new(f!([logger,files_received](event:web_sys::DragEvent) {
+            Closure::new(f!([logger,files_received](event:web_sys::DragEvent) {
                 debug!(logger, "Dropped files.");
                 event.prevent_default();
                 Self::handle_drop_event(&logger,event,&files_received)
-            })));
+            }));
         // To mark element as a valid drop target, the `dragover` event handler should return
         // `false`. See
         // https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop#define_the_drop_zone
-        let drag_over: DragOverClosure = Closure::wrap(Box::new(|event: web_sys::DragEvent| {
+        let drag_over: DragOverClosure = Closure::new(|event: web_sys::DragEvent| {
             event.prevent_default();
             false
-        }));
-        let drop_js = drop.as_ref().unchecked_ref();
-        let drag_over_js = drag_over.as_ref().unchecked_ref();
-        target.add_event_listener_with_callback("drop", drop_js).unwrap();
-        target.add_event_listener_with_callback("dragover", drag_over_js).unwrap();
-        let drop_callback = Rc::new(drop);
-        let drag_over_callback = Rc::new(drag_over);
-        Self { network, files_received, drop_callback, drag_over_callback }
+        });
+        let drop_handle = web::add_event_listener(target, "drop", drop);
+        let drag_over_handle = web::add_event_listener(target, "dragover", drag_over);
+        Self { network, files_received, drop_handle, drag_over_handle }
     }
 
     /// The frp endpoint emitting signal when a file is dropped.
@@ -161,7 +168,7 @@ impl Manager {
             let files_iter = js_files_iter.filter_map(|f| match File::from_js_file(&f) {
                 Ok(file) => Some(file),
                 Err(err) => {
-                    error!(logger, "Error when processing dropped file: {err:?}");
+                    error!(logger, "Error when processing dropped file: {err:?}.");
                     None
                 }
             });

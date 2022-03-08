@@ -20,7 +20,7 @@ use ensogl_core::display::shape::*;
 use ensogl_core::display::style;
 use ensogl_core::display::DomSymbol;
 use ensogl_core::frp;
-use ensogl_core::system::web::StyleSetter;
+use ensogl_core::system::web::traits::*;
 use ensogl_hardcoded_theme as theme;
 
 
@@ -112,14 +112,14 @@ pub fn from_shape_with_parameters_and_alpha(
 }
 
 /// Add a theme defined box shadow to the given `DomSymbol`.
-pub fn add_to_dom_element(element: &DomSymbol, style: &StyleWatch, logger: &Logger) {
+pub fn add_to_dom_element(element: &DomSymbol, style: &StyleWatch) {
     let off_x = style.get_number(theme::shadow::offset_x);
     let off_y = -style.get_number(theme::shadow::offset_y);
     let alpha = style.get_number(ensogl_hardcoded_theme::shadow::html::alpha);
     let blur = style.get_number(ensogl_hardcoded_theme::shadow::html::blur);
     let spread = style.get_number(ensogl_hardcoded_theme::shadow::html::spread);
     let shadow = format!("{}px {}px {}px {}px rgba(0,0,0,{})", off_x, off_y, blur, spread, alpha);
-    element.dom().set_style_or_warn("box-shadow", shadow, logger);
+    element.dom().set_style_or_warn("box-shadow", shadow);
 }
 
 

@@ -63,9 +63,9 @@ impl Initializer {
         let executor = setup_global_executor();
         executor::global::spawn(async move {
             let ide = self.start().await;
-            web::get_element_by_id("loader")
-                .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
-                .ok();
+            web::document
+                .get_element_by_id("loader")
+                .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
             std::mem::forget(ide);
         });
         std::mem::forget(executor);
@@ -75,8 +75,7 @@ impl Initializer {
     pub async fn start(self) -> Result<Ide, FailedIde> {
         info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
-        let root_element = web::get_html_element_by_id("root").unwrap();
-        let ensogl_app = ensogl::application::Application::new(&root_element);
+        let ensogl_app = ensogl::application::Application::new("root");
         Initializer::register_views(&ensogl_app);
         let view = ensogl_app.new_view::<ide_view::root::View>();
 

@@ -4,6 +4,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
+import org.enso.librarymanager.resolved.LibraryRoot
 
 import java.nio.file.Path
 
@@ -18,7 +19,10 @@ trait PublishedLibraryCache {
   def isLibraryCached(libraryName: LibraryName, version: SemVer): Boolean
 
   /** Tries to locate a cached version of the requested library. */
-  def findCachedLibrary(libraryName: LibraryName, version: SemVer): Option[Path]
+  def findCachedLibrary(
+    libraryName: LibraryName,
+    version: SemVer
+  ): Option[LibraryRoot]
 }
 
 object PublishedLibraryCache {

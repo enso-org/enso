@@ -116,73 +116,82 @@ impl ArgReader for bool {
 #[macro_export]
 macro_rules! read_args {
     ([$($($path:tt)*).*] { $($field:ident : $field_type:ty),* $(,)? }) => {
+        mod _READ_ARGS {
+            use super::*;
+            use $crate::prelude::*;
+            use $crate::system::web::traits::*;
 
-        /// Reflection mechanism containing string representation of option names.
-        #[derive(Clone,Copy,Debug,Default)]
-        pub struct ArgNames;
-        impl ArgNames {
-            $(
-                /// Name of the field.
-                pub fn $field(&self) -> &'static str {
-                    stringify!{$field}
-                }
-            )*
-        }
-
-        /// The structure containing application configs.
-        #[derive(Clone,Debug,Default)]
-        #[allow(missing_docs)]
-        pub struct Args {
-            $(pub $field : Option<$field_type>),*
-        }
-
-        impl Args {
-            /// Constructor.
-            fn new() -> Self {
-                let logger = Logger::new(stringify!{Args});
-                let window = web::window();
-                let path   = vec![$($($path)*),*];
-                match web::reflect_get_nested_object(&window,&path).ok() {
-                    None => {
-                        let path = path.join(".");
-                        error!(&logger,"The config path '{path}' is invalid.");
-                        default()
+            /// Reflection mechanism containing string representation of option names.
+            #[derive(Clone,Copy,Debug,Default)]
+            pub struct ArgNames;
+            impl ArgNames {
+                $(
+                    /// Name of the field.
+                    pub fn $field(&self) -> &'static str {
+                        stringify!{$field}
                     }
-                    Some(cfg) => {
-                        let keys      = web::object_keys(&cfg);
-                        let mut keys  = keys.into_iter().collect::<HashSet<String>>();
-                        $(
-                            let name   = stringify!{$field};
-                            let tp     = stringify!{$field_type};
-                            let $field = web::reflect_get_nested_string(&cfg,&[name]).ok();
-                            let $field = $field.map($crate::application::args::ArgReader::read_arg);
-                            if $field == Some(None) {
-                                warning!(&logger,"Failed to convert the argument '{name}' value \
-                                                  to the '{tp}' type.");
-                            }
-                            let $field = $field.flatten();
-                            keys.remove(name);
-                        )*
-                        for key in keys {
-                            warning!(&logger,"Unknown config option provided '{key}'.");
-                        }
-                        Self {$($field),*}
-                    }
-                }
+                )*
             }
 
-            /// This is a dummy function which initializes the arg reading process. This function
-            /// does nothing, however, in order to call it, the user would need to access a field in
-            /// the lazy static variable `ARGS`, which would trigger argument parsing process.
-            pub fn init(&self) {}
+            /// The structure containing application configs.
+            #[derive(Clone,Debug,Default)]
+            #[allow(missing_docs)]
+            pub struct Args {
+                $(pub $field : Option<$field_type>),*
+            }
 
-            /// Reflection mechanism to get string representation of argument names.
-            pub fn names(&self) -> ArgNames { ArgNames }
-        }
+            impl Args {
+                /// Constructor.
+                fn new() -> Self {
+                    let logger = Logger::new(stringify!{Args});
+                    let path   = vec![$($($path)*),*];
+                    match ensogl::system::web::Reflect::get_nested_object
+                    (&ensogl::system::web::window,&path).ok() {
+                        None => {
+                            let path = path.join(".");
+                            error!(&logger,"The config path '{path}' is invalid.");
+                            default()
+                        }
+                        Some(cfg) => {
+                            let keys      = ensogl::system::web::Object::keys_vec(&cfg);
+                            let mut keys  = keys.into_iter().collect::<HashSet<String>>();
+                            $(
+                                let name   = stringify!{$field};
+                                let tp     = stringify!{$field_type};
+                                let $field = ensogl::system::web::Reflect::
+                                    get_nested_object_printed_as_string(&cfg,&[name]).ok();
+                                let $field = $field.map
+                                    ($crate::application::args::ArgReader::read_arg);
+                                if $field == Some(None) {
+                                    warning!(&logger,"Failed to convert the argument '{name}' \
+                                                      value to the '{tp}' type.");
+                                }
+                                let $field = $field.flatten();
+                                keys.remove(name);
+                            )*
+                            for key in keys {
+                                warning!(&logger,"Unknown config option provided '{key}'.");
+                            }
+                            Self {$($field),*}
+                        }
+                    }
+                }
 
-        lazy_static! {
-            /// Application arguments initialized in a lazy way (on first read).
-            pub static ref ARGS : Args = Args::new();
+                /// This is a dummy function which initializes the arg reading process. This
+                /// function does nothing, however, in order to call it, the user would need to
+                /// access a field in the lazy static variable `ARGS`, which would trigger argument
+                /// parsing process.
+                pub fn init(&self) {}
+
+                /// Reflection mechanism to get string representation of argument names.
+                pub fn names(&self) -> ArgNames { ArgNames }
+            }
+
+            lazy_static! {
+                /// Application arguments initialized in a lazy way (on first read).
+                pub static ref ARGS : Args = Args::new();
+            }
         }
+        pub use _READ_ARGS::*;
     };
 }

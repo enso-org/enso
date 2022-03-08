@@ -41,13 +41,14 @@ class LibraryDownloadTest
               )
               .get
           }
-          val pkg = PackageManager.Default.loadPackage(libPath.toFile).get
+          val pkg =
+            PackageManager.Default.loadPackage(libPath.location.toFile).get
           pkg.name shouldEqual "Bar"
           val sources = pkg.listSources
           sources should have size 1
           sources.head.file.getName shouldEqual "Main.enso"
           assert(
-            Files.notExists(libPath.resolve("LICENSE.md")),
+            Files.notExists(libPath / "LICENSE.md"),
             "The license file should not exist as it was not provided " +
             "in the repository."
           )

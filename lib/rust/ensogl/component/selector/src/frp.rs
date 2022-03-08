@@ -75,24 +75,20 @@ impl Frp {
         size: frp::Stream<Vector2>,
         mouse: &Mouse,
     ) -> Frp {
+        let net = &network;
+        let scene = &model.app.display.default_scene;
         let shadow = shadow::frp_from_style(style, theme::shadow);
         let text_size = style.get_number(theme::text::size);
 
-        let is_dragging_left_overflow =
-            shape_is_dragged(network, &model.left_overflow.events, mouse);
-        let is_dragging_right_overflow =
-            shape_is_dragged(network, &model.right_overflow.events, mouse);
-        let is_dragging_track = shape_is_dragged(network, &model.track.events, mouse);
-        let is_dragging_background = shape_is_dragged(network, &model.background.events, mouse);
-        let is_dragging_left_handle =
-            shape_is_dragged(network, &model.track_handle_left.events, mouse);
+        let is_dragging_left_overflow = shape_is_dragged(net, &model.left_overflow.events, mouse);
+        let is_dragging_right_overflow = shape_is_dragged(net, &model.right_overflow.events, mouse);
+        let is_dragging_track = shape_is_dragged(net, &model.track.events, mouse);
+        let is_dragging_background = shape_is_dragged(net, &model.background.events, mouse);
+        let is_dragging_left_handle = shape_is_dragged(net, &model.track_handle_left.events, mouse);
         let is_dragging_right_handle =
-            shape_is_dragged(network, &model.track_handle_right.events, mouse);
-
-        let background_click =
-            relative_shape_down_position(network, model.app.display.scene(), &model.background);
-        let track_click =
-            relative_shape_down_position(network, model.app.display.scene(), &model.track);
+            shape_is_dragged(net, &model.track_handle_right.events, mouse);
+        let background_click = relative_shape_down_position(net, scene, &model.background);
+        let track_click = relative_shape_down_position(net, scene, &model.track);
 
         // Initialisation of components. Required for correct layout on startup.
         model.label_right.set_position_y(text_size.value() / 2.0);

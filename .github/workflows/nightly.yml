@@ -52,7 +52,6 @@ jobs:
       - uses: enso-org/ci-build/actions/install@deployed
       - name: Prepare release
         run: enso-build enso --kind nightly publish-release
-        working-directory: ${{ github.workspace }}/ci-build
         env:
           GITHUB_TOKEN: ${{ github.token }}
           AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}

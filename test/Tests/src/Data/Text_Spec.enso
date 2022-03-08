@@ -4,6 +4,7 @@ from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
+from Standard.Base.Data.Text.Text_Sub_Range import all
 import Standard.Test
 
 type Auto a
@@ -77,7 +78,7 @@ spec =
             "abc" . equals_ignore_case "abd" . should_be_false
             "" . equals_ignore_case "" . should_be_true
             "aaaa" . equals_ignore_case "" . should_be_false
-            "I" . equals_ignore_case "i" . should_be_true
+
             'e\u0301' . equals_ignore_case 'é' . should_be_true
             'E\u0301' . equals_ignore_case 'É' . should_be_true
             'e\u0301' . equals_ignore_case 'É' . should_be_true
@@ -85,11 +86,14 @@ spec =
             'a\u0321\u0302' . equals_ignore_case 'A\u0302\u0321' . should_be_true
             'e\u0301' . equals_ignore_case 'e\u0303' . should_be_false
 
-            ## By default the special Turkish variants of the letter 'i' are not
-               treated as equal - treating them as equal would require not
-               treating `I` and `i` as equal.
+            "I" . equals_ignore_case "i" . should_be_true
+            "I" . equals_ignore_case "ı" . should_be_true
             "İ" . equals_ignore_case "i" . should_be_false
-            "I" . equals_ignore_case "ı" . should_be_false
+            "İ" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_true
+            "I" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_false
+
+            "Kongressstraße"=="Kongressstrasse" . should_be_false
+            "Kongressstraße" . equals_ignore_case "Kongressstrasse" . should_be_true
 
         Test.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -152,18 +156,180 @@ spec =
 
         Test.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
-            txt.take_first 2 . should_equal (kshi + facepalm)
-            txt.drop_first 2 . should_equal (accent_1 + accent_2)
-            txt.take_last  2 . should_equal (accent_1 + accent_2)
-            txt.drop_last  2 . should_equal (kshi + facepalm)
+            txt.take (First 2) . should_equal (kshi + facepalm)
+            txt.drop (First 2) . should_equal (accent_1 + accent_2)
+            txt.take (Last 2) . should_equal (accent_1 + accent_2)
+            txt.drop (Last 2) . should_equal (kshi + facepalm)
+
+        Test.specify "take should work as in the examples" <|
+            "Hello World!".take First.new . should_equal "H"
+            "Hello World!".take (First 5) . should_equal "Hello"
+            "Hello World!".take (First 100) . should_equal "Hello World!"
+            "Hello World!".take (First 0) . should_equal ""
+            "Hello World!".take Last.new . should_equal "!"
+            "Hello World!".take (Last 6) . should_equal "World!"
+            "Hello World!".take (Last 0) . should_equal ""
+            "Hello World!".take (Last 100) . should_equal "Hello World!"
+            "Hello World!".take (Before " ") . should_equal "Hello"
+            "Hello World!".take (Before "z") . should_equal "Hello World!"
+            "Hello World!".take (Before_Last "o") . should_equal "Hello W"
+            "Hello World!".take (Before_Last "z") . should_equal "Hello World!"
+            "Hello World!".take (After " ") . should_equal "World!"
+            "Hello World!".take (After "z") . should_equal ""
+            "Hello World!".take (After_Last "o") . should_equal "rld!"
+            "Hello World!".take (After_Last "z") . should_equal ""
+            "Hello World!".take (While c->c!=" ") . should_equal "Hello"
+            "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
+            "Hello World!".take (Range 3 5) . should_equal "lo"
+            "Hello World!".take (Range -3 -1) . should_equal "ld"
+            "Hello World!".take (Range -3 Nothing) . should_equal "ld!"
+            "Hello World!".take (Range 5 Nothing) . should_equal " World!"
+            "Hello World!".take (Range 5 12) . should_equal " World!"
+            "Hello World!".take (Range 12 12) . should_equal ""
+
+        Test.specify "take should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+            "Hello World!".take (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "take should work on grapheme clusters" <|
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 2) . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 5) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 6) . should_equal 'Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 5) . should_equal 'o\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{308}') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o\u{308}') . should_equal 'rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal 'lo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal 'ld'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 Nothing) . should_equal 'ld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 Nothing) . should_equal ' Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 12 12) . should_equal ''
+
+        Test.specify "take should work on emojis" <|
+            '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'
+            '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
+            '✨🚀🚧😍😃😎😙😉☺'.take Last.new . should_equal '☺'
+            '✨🚀🚧😍😃😎😙😉☺'.take (Last 0) . should_equal ''
+            '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before '😍') . should_equal '✨🚀🚧'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Before_Last '😍') . should_equal '✨🚀🚧😍😃'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (After '😍') . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (After_Last '😍') . should_equal '😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 6) . should_equal '😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 Nothing) . should_equal '😍😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 Nothing) . should_equal '😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 -1) . should_equal '😙😉'
+
+        Test.specify "drop should work as in the examples" <|
+            "Hello World!".drop First.new . should_equal "ello World!"
+            "Hello World!".drop (First 5) . should_equal " World!"
+            "Hello World!".drop (First 100) . should_equal ""
+            "Hello World!".drop (First 0) . should_equal "Hello World!"
+            "Hello World!".drop Last.new . should_equal "Hello World"
+            "Hello World!".drop (Last 6) . should_equal "Hello "
+            "Hello World!".drop (Last 100) . should_equal ""
+            "Hello World!".drop (Before " ") . should_equal " World!"
+            "Hello World!".drop (Before "z") . should_equal ""
+            "Hello World!".drop (Before_Last "o") . should_equal "orld!"
+            "Hello World!".drop (Before_Last "z") . should_equal ""
+            "Hello World!".drop (After " ") . should_equal "Hello "
+            "Hello World!".drop (After "z") . should_equal "Hello World!"
+            "Hello World!".drop (After_Last "o") . should_equal "Hello Wo"
+            "Hello World!".drop (After_Last "z") . should_equal "Hello World!"
+            "Hello World!".drop (While c->c!=" ") . should_equal " World!"
+            "Hello World!".drop (While c->c!="z") . should_equal ""
+            "Hello World!".drop (Range 3 5) . should_equal "Hel World!"
+            "Hello World!".drop (Range -3 -1) . should_equal "Hello Wor!"
+            "Hello World!".drop (Range -3 Nothing) . should_equal "Hello Wor"
+            "Hello World!".drop (Range 5 Nothing) . should_equal "Hello"
+            "Hello World!".drop (Range 5 12) . should_equal "Hello"
+            "Hello World!".drop (Range 12 12) . should_equal "Hello World!"
+
+        Test.specify "drop should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+            "Hello World!".drop (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "drop should work on grapheme clusters" <|
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 5) . should_equal ' Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{302}') . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e') . should_equal ''
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 -1) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 Nothing) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 Nothing) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 12) . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 12 12) . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+
+        Test.specify "drop should work on emojis" <|
+            '✨🚀🚧😍😃😎😙😉☺'.drop First.new . should_equal '🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop Last.new . should_equal '✨🚀🚧😍😃😎😙😉'
+            '✨🚀🚧😍😃😎😙😉☺'.drop (Last 3) . should_equal '✨🚀🚧😍😃😎'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before '😍') . should_equal '😍😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before_Last '😍') . should_equal '😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After '😍') . should_equal '✨🚀🚧😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 6) . should_equal '✨🚀🚧😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 Nothing) . should_equal '✨🚀🚧'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 Nothing) . should_equal '✨🚀🚧😍😃😍😎'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
 
         Test.specify "should correctly convert character case" <|
-            "FooBar Baz".to_lower_case.should_equal "foobar baz"
-            "FooBar Baz".to_upper_case.should_equal "FOOBAR BAZ"
-            "i".to_upper_case . should_equal "I"
-            "I".to_lower_case . should_equal "i"
-            "i".to_upper_case (Locale.new "tr") . should_equal "İ"
-            "I".to_lower_case (Locale.new "tr") . should_equal "ı"
+            "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
+            "FooBar Baz".to_case Case.Upper . should_equal "FOOBAR BAZ"
+
+            "foo bar baz".to_case Case.Title . should_equal "Foo Bar Baz"
+            "foo-bar, baz.baz foo_foo".to_case Case.Title . should_equal "Foo-Bar, Baz.baz Foo_foo"
+            "jAck the rippER".to_case Case.Title (Locale.uk) . should_equal "Jack The Ripper"
+
+            "i".to_case Case.Upper . should_equal "I"
+            "I".to_case Case.Lower . should_equal "i"
+            "i".to_case Case.Upper (Locale.new "tr") . should_equal "İ"
+            "I".to_case Case.Lower (Locale.new "tr") . should_equal "ı"
+            "İ".to_case Case.Lower . should_equal "i̇"
+            "ı".to_case Case.Upper . should_equal "I"
+
+            "Straße".to_case Case.Upper . should_equal "STRASSE"
+            "STRASSE".to_case Case.Lower . should_equal "strasse"
+            "et cætera".to_case Case.Upper . should_equal "ET CÆTERA"
+            ("β".to_case Case.Upper == "B") . should_be_false
+            "δλφξ".to_case Case.Upper . should_equal "ΔΛΦΞ"
+            "ΔΛΦΞ".to_case Case.Lower . should_equal "δλφξ"
+            "δλ φξ".to_case Case.Title . should_equal "Δλ Φξ"
+
+            '✨🚀🚧😍😃😎😙😉☺'.to_case Case.Upper . should_equal '✨🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.to_case Case.Lower . should_equal '✨🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.to_case Case.Title . should_equal '✨🚀🚧😍😃😎😙😉☺'
+
+            "123".to_case Case.Upper . should_equal "123"
+            "abc123".to_case Case.Upper . should_equal "ABC123"
 
         Test.specify "should dump utf-16 characters to a vector" <|
             kshi_chars = kshi.utf_16
@@ -173,6 +339,35 @@ spec =
             kshi_chars = [2325, 2381, 2359, 2367]
             Text.from_utf_16 kshi_chars . should_equal kshi
 
+        Test.specify "should insert text at a non-negative index position" <|
+            "Hello World!".insert 0 " Cruel" . should_equal " CruelHello World!"
+            "Hello World!".insert 5 " Cruel" . should_equal "Hello Cruel World!"
+            "Hello World!".insert ("Hello World!".length - 1) " Cruel" . should_equal "Hello World Cruel!"
+            "Hello World!".insert "Hello World!".length " Cruel" . should_equal "Hello World! Cruel"
+            txt = kshi + facepalm + accent_1
+            txt.insert 0 " Cruel" . should_equal (" Cruel" + kshi + facepalm + accent_1)
+            txt.insert 1 " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
+            txt.insert 2 " Cruel" . should_equal (kshi + facepalm + " Cruel" + accent_1)
+            txt.insert 3 " Cruel" . should_equal (kshi + facepalm + accent_1 + " Cruel")
+
+        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid non-negative index position" <|
+            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds_Error
+            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should insert text at a negative index position" <|
+            "Hello World!".insert -1 " Cruel" . should_equal "Hello World! Cruel"
+            "Hello World!".insert -5 " Cruel" . should_equal "Hello Wo Cruelrld!"
+            "Hello World!".insert -("Hello World!".length) " Cruel" . should_equal "H Cruelello World!"
+            "Hello World!".insert -("Hello World!".length + 1) " Cruel" . should_equal " CruelHello World!"
+            txt = kshi + facepalm + accent_1
+            txt.insert -1 " Cruel" . should_equal (txt + " Cruel")
+            txt.insert -(txt.length) " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
+
+        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid negative index position" <|
+            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
+            txt = kshi + facepalm + accent_1
+            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
+
         Test.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
             str.is_digit . should_be_false
@@ -180,6 +375,7 @@ spec =
             str.is_digit 2 . should_be_true
             str.is_digit 3 . should_be_true
             str.is_digit 4 . should_be_false
+            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to check by negative index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -188,6 +384,16 @@ spec =
             str.is_digit -3 . should_be_true
             str.is_digit -4 . should_be_false
             str.is_digit -5 . should_be_false
+            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should be able to check if a text consists only of whitespace" <|
+            '  \t\n'.is_whitespace . should_be_true
+            'AB'.is_whitespace . should_be_false
+            '  A   '.is_whitespace . should_be_false
+
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.is_whitespace . should_be_true
+            # The Unicode Zero Width Space is not considered whitespace
+            '\u{200b}'.is_whitespace . should_be_false
 
         Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
@@ -203,6 +409,363 @@ spec =
             builder2 = Vector.new_builder
             'a'.each builder2.append
             builder2.to_vector . should_equal ['a']
+
+        Test.specify "should check for contains using Unicode normalization" <|
+            "Hello".contains "ell" . should_be_true
+
+            "Cześć".contains 's\u{301}' . should_be_true
+            "Cześć".contains 'c\u{301}' . should_be_true
+            "Cześć".contains 'ść' . should_be_true
+            'Czes\u{301}c\u{301}'.contains 'ś' . should_be_true
+            'Czes\u{301}c\u{301}'.contains 'ć' . should_be_true
+            'Czes\u{301}c\u{301}'.contains 'ść' . should_be_true
+            "Cześć".contains 'sc' . should_be_false
+            'Czes\u{301}c\u{301}'.contains 'sc' . should_be_false
+            "Cześć".contains 's' . should_be_false
+            "Cześć".contains 'c' . should_be_false
+            'Czes\u{301}c\u{301}'.contains 's' . should_be_false
+
+            "ABC" . contains "a" . should_be_false
+            "" . contains "foo" . should_be_false
+            "abc" . contains "" . should_be_true
+            "" . contains "" . should_be_true
+            "foo foo foo" . contains "foo" . should_be_true
+
+            "Hello!".contains "lo" . should_be_true
+            "Hello!".contains "Lo" . should_be_false
+
+        Test.specify "should allow for case-insensitive contains checks" <|
+            "Hello!".contains 'LO' (Text_Matcher Case_Insensitive.new) . should_be_true
+            "FoObar" . contains "foo" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "aaaIAAA" . contains "i" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Foo" . contains "bar" (Text_Matcher Case_Insensitive.new) . should_be_false
+            "Ściana" . contains "ś" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Ściana" . contains "s" (Text_Matcher Case_Insensitive.new) . should_be_false
+
+            "Straße" . contains "ss" . should_be_false
+            "Strasse" . contains "ß" . should_be_false
+            "Straße" . contains "ss" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Strasse" . contains "ß" (Text_Matcher Case_Insensitive.new) . should_be_true
+
+        Test.specify "should allow for Regex contains checks" <|
+            "Hello!".contains "[a-z]" Regex_Matcher.new . should_be_true
+            "foobar" . contains "b.." Regex_Matcher.new . should_be_true
+            "foob" . contains "b.." Regex_Matcher.new . should_be_false
+
+            "123 meters and 4 centimeters" . contains "[0-9]+" Regex_Matcher.new . should_be_true
+            "foo" . contains "[0-9]+" Regex_Matcher.new . should_be_false
+
+            'ś' . contains 's' . should_be_false
+            's\u{301}' . contains 's' . should_be_false
+            's\u{301}' . contains 'ś' . should_be_true
+            'ś' . contains 's\u{301}' . should_be_true
+
+            ## These first two cases are not really desirable, but we are
+               documenting here what is the current behaviour.
+            ## This shows what regex is doing by default and we cannot easily fix
+               that.
+            's\u{301}' . contains 's' (Regex_Matcher.new) . should_be_true
+            ## This would normally be false, but we perform input normalization
+               to get results that are consistent regardless of if the input was
+               normalized or not.
+            'ś' . contains 's' (Regex_Matcher.new) . should_be_true
+            's\u{301}' . contains 'ś' (Regex_Matcher.new) . should_be_true
+            'ś' . contains 's\u{301}' (Regex_Matcher.new) . should_be_true
+
+            "Cześć" . contains "ś" Regex_Matcher.new . should_be_true
+            "Cześć" . contains 's\u{301}' Regex_Matcher.new . should_be_true
+            'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher.new . should_be_true
+            'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher.new . should_be_true
+            ## These two tests below are disabled due to how regex is handling
+               letters with accents. See the tests above for explanation.
+            #"Cześć" . contains "s" Regex_Matcher.new . should_be_false
+            #'Czes\u{301}c\u{301}' . contains 's' Regex_Matcher.new . should_be_false
+
+            "fooBar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
+            "foar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+
+            long_text = """
+                Hello from a long text. EOL
+                SOL Hmm...
+            long_text . contains "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
+            long_text . contains "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+
+        Test.specify "should check for starts_with using Unicode normalization" <|
+            "Hello".starts_with "He" . should_be_true
+
+            "Ściana".starts_with 'S\u{301}' . should_be_true
+            "Ściana".starts_with 'Ś' . should_be_true
+            "Ściana".starts_with 'S' . should_be_false
+            'S\u{301}ciana'.starts_with 'Ś' . should_be_true
+            'S\u{301}ciana'.starts_with 'S\u{301}' . should_be_true
+            'S\u{301}ciana'.starts_with 'S' . should_be_false
+
+            "ABC" . starts_with "A" . should_be_true
+            "ABC" . starts_with "a" . should_be_false
+            "" . starts_with "foo" . should_be_false
+            "abc" . starts_with "" . should_be_true
+            "" . starts_with "" . should_be_true
+            "foo foo foo" . starts_with "foo" . should_be_true
+
+            "Hello!".starts_with "he" . should_be_false
+
+        Test.specify "starts_with should work as shown in the examples" <|
+            "Hello!".starts_with "Hello" . should_be_true
+            "Hello!".starts_with "hello" . should_be_false
+            "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Hello!".starts_with "[a-z]" Regex_Matcher.new . should_be_false
+            "Hello!".starts_with "[A-Z]" Regex_Matcher.new . should_be_true
+
+        Test.specify "should allow for case-insensitive starts_with checks" <|
+            "Hello".starts_with "he" (Text_Matcher Case_Insensitive.new) . should_be_true
+
+            "Ściana".starts_with 's\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Ściana".starts_with 's' (Text_Matcher Case_Insensitive.new) . should_be_false
+            'S\u{301}ciana'.starts_with 'ś' (Text_Matcher Case_Insensitive.new) . should_be_true
+            'S\u{301}ciana'.starts_with 's\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
+            'S\u{301}ciana'.starts_with 's' (Text_Matcher Case_Insensitive.new) . should_be_false
+
+            "ABC" . starts_with "A" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "ABC" . starts_with "a" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "ABC" . starts_with "C" (Text_Matcher Case_Insensitive.new) . should_be_false
+            "" . starts_with "foo" (Text_Matcher Case_Insensitive.new) . should_be_false
+            "abc" . starts_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "" . starts_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "fOo FOO foo" . starts_with "FoO" (Text_Matcher Case_Insensitive.new) . should_be_true
+
+            "Hello!".starts_with "he" (Text_Matcher Case_Insensitive.new) . should_be_true
+
+        Test.specify "should allow for Regex starts_with checks" <|
+            "Hello!".starts_with "[A-Z]" Regex_Matcher.new . should_be_true
+            "foobar" . starts_with ".o." Regex_Matcher.new . should_be_true
+            "foob" . starts_with ".f." Regex_Matcher.new . should_be_false
+
+            "123 meters and 4 centimeters" . starts_with "[0-9]+" Regex_Matcher.new . should_be_true
+            "foo 123" . starts_with "[0-9]+" Regex_Matcher.new . should_be_false
+
+            # Correct non-regex behaviour for reference.
+            'ś' . starts_with 's' == False
+            's\u{301}' . starts_with 's' == False
+            's\u{301}' . starts_with 'ś' == True
+            'ś' . starts_with 's\u{301}' == True
+
+            # These two behave as expected.
+            's\u{301}' . starts_with 'ś' (Regex_Matcher.new) == True
+            'ś' . starts_with 's\u{301}' (Regex_Matcher.new) == True
+
+            ## These two are included to document the current behaviour
+               (even though ideally, we would want them to return False).
+            'ś' . starts_with 's' (Regex_Matcher.new) == True
+            's\u{301}' . starts_with 's' (Regex_Matcher.new) == True
+
+            "ściana" . starts_with "ś" Regex_Matcher.new . should_be_true
+            "ściana" . starts_with 's\u{301}' Regex_Matcher.new . should_be_true
+            's\u{301}ciana' . starts_with 's\u{301}' Regex_Matcher.new . should_be_true
+            's\u{301}ciana' . starts_with 'ś' Regex_Matcher.new . should_be_true
+
+            ## These two tests below are disabled due to how regex is handling
+               letters with accents. See the tests above for explanation.
+            #"ściana" . starts_with "s" Regex_Matcher.new . should_be_false
+            # 's\u{301}ciana' . starts_with 's' Regex_Matcher.new . should_be_false
+
+            "fOOBar" . starts_with ".o." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
+            "faaaar" . starts_with ".o." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+
+            long_text = """
+                EOL
+                SOL Hmm...
+            long_text . starts_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
+            long_text . starts_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+
+            "aaazzz" . starts_with "a|b" Regex_Matcher.new . should_be_true
+            "bbbzzz" . starts_with "a|b" Regex_Matcher.new . should_be_true
+            "zzzaaa" . starts_with "a|b" Regex_Matcher.new . should_be_false
+            "zzzbbb" . starts_with "a|b" Regex_Matcher.new . should_be_false
+            "aaazzz" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "bbbzzz" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "zzzaaa" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_false
+            "ABC" . starts_with "\AA" Regex_Matcher.new . should_be_true
+            "ABC" . starts_with "\AA\z" Regex_Matcher.new . should_be_false
+            "foobar" . starts_with "" Regex_Matcher.new . should_be_true
+            "" . starts_with "" Regex_Matcher.new . should_be_true
+
+        Test.specify "should check for ends_with using Unicode normalization" <|
+            "Hello".ends_with "lo" . should_be_true
+            "Hello".ends_with "LO" . should_be_false
+
+            "rzeczywistość".ends_with 'c\u{301}' . should_be_true
+            "rzeczywistość".ends_with 'ć' . should_be_true
+            "rzeczywistość".ends_with 'c' . should_be_false
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'ć' . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'c\u{301}' . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'c' . should_be_false
+
+            "ABC" . ends_with "C" . should_be_true
+            "ABC" . ends_with "c" . should_be_false
+            "" . ends_with "foo" . should_be_false
+            "abc" . ends_with "" . should_be_true
+            "" . ends_with "" . should_be_true
+            "foo foo foo" . ends_with "foo" . should_be_true
+
+        Test.specify "ends_with should work as shown in the examples" <|
+            "Hello World".ends_with "World" . should_be_true
+            "Hello World".ends_with "world" . should_be_false
+            "Hello World".ends_with "world" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher.new . should_be_true
+
+        Test.specify "should allow for case-insensitive ends_with checks" <|
+            "Hello".ends_with "LO" (Text_Matcher Case_Insensitive.new) . should_be_true
+
+            "rzeczywistość".ends_with 'C\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
+            "rzeczywistość".ends_with 'C' (Text_Matcher Case_Insensitive.new) . should_be_false
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'Ć' (Text_Matcher Case_Insensitive.new) . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'C\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'C' (Text_Matcher Case_Insensitive.new) . should_be_false
+
+            "ABC" . ends_with "C" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "ABC" . ends_with "c" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "ABC" . ends_with "A" (Text_Matcher Case_Insensitive.new) . should_be_false
+            "" . ends_with "foo" (Text_Matcher Case_Insensitive.new) . should_be_false
+            "abc" . ends_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "" . ends_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "fOo FOO fOo" . ends_with "FoO" (Text_Matcher Case_Insensitive.new) . should_be_true
+
+        Test.specify "should allow for Regex ends_with checks" <|
+            "Hello".ends_with "[a-z]" Regex_Matcher.new . should_be_true
+            "Hello!".ends_with "[a-z]" Regex_Matcher.new . should_be_false
+
+            "foobar" . ends_with ".o." Regex_Matcher.new . should_be_false
+            "foobar" . ends_with ".a." Regex_Matcher.new . should_be_true
+
+            "123 meters and 4 centimeters" . ends_with "[0-9]+" Regex_Matcher.new . should_be_false
+            "foo 123" . ends_with "[0-9]+" Regex_Matcher.new . should_be_true
+
+            "rzeczywistość" . ends_with "ć" Regex_Matcher.new . should_be_true
+            "rzeczywistość" . ends_with 'c\u{301}' Regex_Matcher.new . should_be_true
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'c\u{301}' Regex_Matcher.new . should_be_true
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'ć' Regex_Matcher.new . should_be_true
+            "rzeczywistość" . ends_with "c" Regex_Matcher.new . should_be_false
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'c' Regex_Matcher.new . should_be_false
+
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'Ć' (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
+            "fOOBar" . ends_with ".A." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
+            "faaaar" . ends_with ".o." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+
+            long_text = """
+                Hnnnn EOL
+                SOL
+            long_text . ends_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
+            long_text . ends_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+
+            "zzzaaa" . ends_with "a|b" Regex_Matcher.new . should_be_true
+            "zzzbbb" . ends_with "a|b" Regex_Matcher.new . should_be_true
+            "aaazzz" . ends_with "a|b" Regex_Matcher.new . should_be_false
+            "bbbzzz" . ends_with "a|b" Regex_Matcher.new . should_be_false
+            "zzzaaa" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "zzzbbb" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_true
+            "aaazzz" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_false
+            "ABC" . ends_with "C\z" Regex_Matcher.new . should_be_true
+            "ABC" . ends_with "\AC\z" Regex_Matcher.new . should_be_false
+            "foobar" . ends_with "" Regex_Matcher.new . should_be_true
+            "" . ends_with "" Regex_Matcher.new . should_be_true
+
+        Test.specify "should allow to pad a text" <|
+            "Hello World!".pad 15 . should_equal "Hello World!   "
+            "HELLO".pad 9 "AB" . should_equal "HELLOABAB"
+            "HELLO".pad 8 "AB" . should_equal "HELLOABA"
+            "HELLO".pad 8 "AB" Location.Start . should_equal "BABHELLO"
+            "".pad 4 . should_equal "    "
+            "A".pad 3 "" . should_fail_with Illegal_Argument_Error
+            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument_Error
+            "".pad 0 "" . should_fail_with Illegal_Argument_Error
+
+            "".pad 0 . should_equal ""
+            "ABC".pad 3 . should_equal "ABC"
+            "AB".pad -1 . should_equal "AB"
+            "ABC".pad -100 . should_equal "ABC"
+
+            'a\u{301}'.pad 2 . should_equal 'a\u{301} '
+            "".pad 2 'a\u{302}' . should_equal 'a\u{302}a\u{302}'
+            'XX'.pad 5 'yy\u{301}' . should_equal 'XXyy\u{301}y'
+            'XX'.pad 5 'y\u{301}y' . should_equal 'XXy\u{301}yy\u{301}'
+            'XX'.pad 4 'yy\u{301}Z' . should_equal 'XXyy\u{301}'
+
+            '🚀'.pad 3 'B' Location.End . should_equal '🚀BB'
+            '🚀'.pad 3 'B' Location.Start . should_equal 'BB🚀'
+
+            ## It is technically possible to use a combining diacritical mark as
+               the padding, then the actual length of the text will not increase
+               because all padding will still constitute a single grapheme
+               cluster.
+            'e'.pad 7 '\u{301}' . length . should_equal 1
+
+        Test.specify "should allow to trim a text" <|
+            " Hello! ".trim . should_equal  "Hello!"
+            " Hello! ".trim Location.Start . should_equal  "Hello! "
+            " Hello! ".trim Location.End . should_equal  " Hello!"
+            "ABC123".trim Location.Start "ABC" . should_equal  "123"
+            "ABBA123".trim Location.Start "ABC" . should_equal  "123"
+            "ABCZ-]".trim Location.Both "[A-Z]" . should_equal "BC"
+
+            "   ".trim . should_equal ""
+            "  Hello World!   ".trim . should_equal  "Hello World!"
+            "  Hello World!   ".trim Location.Start . should_equal  "Hello World!   "
+            "  Hello World!   ".trim Location.End . should_equal  "  Hello World!"
+            "ABCD".trim Location.Start "ABCDEF" . should_equal ""
+            "ABCD".trim Location.End "ABCDEF" . should_equal ""
+            "ABCD".trim Location.Both "ABCDEF" . should_equal ""
+
+            "".trim . should_equal ""
+            "A".trim . should_equal "A"
+            " A ".trim . should_equal "A"
+            '   A\u{301} \n   '.trim . should_equal 'A\u{301}'
+            "🚧".trim . should_equal "🚧"
+            "  🚧  🚧  ".trim . should_equal "🚧  🚧"
+            "  🚧  🚧  ".trim Location.End . should_equal "  🚧  🚧"
+
+            "ABCD".trim Location.Start (_ -> True) . should_equal ""
+            "ABCD".trim Location.Both (_ -> True) . should_equal ""
+            "ABCD".trim Location.Both (_ -> False) . should_equal "ABCD"
+            "123AB98".trim Location.Both _.is_digit . should_equal "AB"
+
+            ' \t\n\r'.trim . should_equal ''
+            '\t\t  Test\nFoo\r\n'.trim . should_equal 'Test\nFoo'
+            # Check various kinds of Unicode whitespace
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.trim . should_equal ''
+
+            # A whitespace with an accent is not treated as whitespace anymore
+            '      \u{301}   '.trim . should_equal ' \u{301}'
+            ' \u{301}'.trim . should_equal ' \u{301}'
+
+        Test.specify "should allow repeating as in the examples" <|
+            "ABBA".repeat 5 . should_equal "ABBAABBAABBAABBAABBA"
+            "A".repeat 5 . should_equal "AAAAA"
+            "Hello ".repeat 2 . should_equal "Hello Hello "
+
+        Test.specify "should allow more general repeating" <|
+            'He\u{302}llo\u{308}'.repeat 1 . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'.repeat 3 . should_equal 'He\u{302}llo\u{308}He\u{302}llo\u{308}He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'.repeat 0 . should_equal ''
+            'He\u{302}llo\u{308}'.repeat -5 . should_equal ''
+
+            ''.repeat 100 . should_equal ''
+
+            '✨🚀🚧'.repeat 2 . should_equal '✨🚀🚧✨🚀🚧'
+
+        Test.specify "should allow repeating using * as in the examples" <|
+            "ABBA"*5 . should_equal "ABBAABBAABBAABBAABBA"
+            "A"*5 . should_equal "AAAAA"
+            "Hello "*2 . should_equal "Hello Hello "
+
+        Test.specify "should allow more general repeating using *" <|
+            'He\u{302}llo\u{308}'*1 . should_equal 'He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'*3 . should_equal 'He\u{302}llo\u{308}He\u{302}llo\u{308}He\u{302}llo\u{308}'
+            'He\u{302}llo\u{308}'*0 . should_equal ''
+            'He\u{302}llo\u{308}'*(-5) . should_equal ''
+
+            ''*100 . should_equal ''
+
+            '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|

@@ -41,11 +41,12 @@ const LABEL_PADDING_TOP: f32 = 50.0;
 
 /// Text label that disappears after a predefined delay.
 #[derive(Debug, Clone, CloneRef)]
-struct PopupLabel {
+pub struct PopupLabel {
     label:           Label,
     network:         frp::Network,
     delay_animation: DelayedAnimation,
-    show:            frp::Source<String>,
+    /// Show the Popup with the given message.
+    pub show:        frp::Source<String>,
 }
 
 impl display::Object for PopupLabel {
@@ -60,8 +61,8 @@ impl PopupLabel {
         let network = frp::Network::new("PopupLabel");
         let label = Label::new(app);
         label.set_opacity(0.0);
-        let background_layer = &app.display.scene().layers.panel;
-        let text_layer = &app.display.scene().layers.panel_text;
+        let background_layer = &app.display.default_scene.layers.panel;
+        let text_layer = &app.display.default_scene.layers.panel_text;
         label.set_layers(background_layer, text_layer);
 
         let opacity_animation = Animation::new(&network);
@@ -174,7 +175,7 @@ impl View {
 
         frp::extend! { network
             init <- source_();
-            let shape  = app.display.scene().shape();
+            let shape  = app.display.default_scene.shape();
             _eval <- all_with(shape, &init, f!([model](scene_size, _init) {
                 let half_height = scene_size.height / 2.0;
                 let label_height = model.label_height();
@@ -188,6 +189,11 @@ impl View {
         init.emit(());
 
         Self { frp, model }
+    }
+
+    /// Get the label of the popup.
+    pub fn label(&self) -> &PopupLabel {
+        &self.model.label
     }
 }
 

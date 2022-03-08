@@ -1,27 +1,24 @@
 package org.enso.librarymanager.published
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.editions.{Editions, LibraryName}
-import org.enso.librarymanager.LibraryResolutionError
+import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.cache.ReadOnlyLibraryCache
+import org.enso.librarymanager.resolved.LibraryRoot
 
-import java.nio.file.Path
 import scala.annotation.tailrec
-import scala.util.Try
 
-/** A [[PublishedLibraryProvider]] that just provides libraries which are
+/** A [[PublishedLibraryCache]] that just provides libraries which are
   * already available in the cache.
   */
 class CachedLibraryProvider(caches: List[ReadOnlyLibraryCache])
-    extends PublishedLibraryProvider
-    with PublishedLibraryCache {
+    extends PublishedLibraryCache {
 
   @tailrec
   private def findCachedHelper(
     libraryName: LibraryName,
     version: SemVer,
     caches: List[ReadOnlyLibraryCache]
-  ): Option[Path] = caches match {
+  ): Option[LibraryRoot] = caches match {
     case head :: tail =>
       head.findCachedLibrary(libraryName, version) match {
         case Some(found) => Some(found)
@@ -34,21 +31,8 @@ class CachedLibraryProvider(caches: List[ReadOnlyLibraryCache])
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[Path] = findCachedHelper(libraryName, version, caches)
-
-  /** @inheritdoc */
-  override def findLibrary(
-    libraryName: LibraryName,
-    version: SemVer,
-    recommendedRepository: Editions.Repository
-  ): Try[Path] =
-    findCachedLibrary(libraryName, version)
-      .toRight(
-        LibraryResolutionError(
-          s"Library [$libraryName:$version] was not found in the cache."
-        )
-      )
-      .toTry
+  ): Option[LibraryRoot] =
+    findCachedHelper(libraryName, version, caches)
 
   /** @inheritdoc */
   override def isLibraryCached(

@@ -33,6 +33,7 @@ use ensogl_hardcoded_theme as theme;
 // === Constants ===
 // =================
 
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const TEXT_OFFSET: f32 = 10.0;
 
 /// Width of a single glyph
@@ -76,6 +77,7 @@ pub type PortRefMut<'a> = span_tree::node::RefMut<'a, port::Model>;
 
 /// Specialized version of `node::Expression`, containing the port information.
 #[derive(Clone, Default)]
+#[allow(missing_docs)]
 pub struct Expression {
     /// Visual code representation. It can contain names of missing arguments, and thus can differ
     /// from `code`.
@@ -243,8 +245,8 @@ impl Model {
         let label = app.new_view::<text::Area>();
         let id_crumbs_map = default();
         let expression = default();
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
-        let styles_frp = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
+        let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
@@ -266,7 +268,7 @@ impl Model {
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
-        let scene = self.app.display.scene();
+        let scene = &self.app.display.default_scene;
         self.label.remove_from_scene_layer(&scene.layers.main);
         self.label.add_to_scene_layer(&scene.layers.label);
 
@@ -287,7 +289,7 @@ impl Model {
     }
 
     fn scene(&self) -> &Scene {
-        self.app.display.scene()
+        &self.app.display.default_scene
     }
 
     /// Run the provided function on the target port if exists.
@@ -329,6 +331,7 @@ fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct Area {
+    #[allow(missing_docs)]
     pub frp: Frp,
     model:   Rc<Model>,
 }
@@ -341,6 +344,7 @@ impl Deref for Area {
 }
 
 impl Area {
+    /// Constructor.
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let model = Rc::new(Model::new(logger, app));
         let frp = Frp::new();
@@ -444,6 +448,7 @@ impl Area {
         Self { frp, model }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
@@ -457,15 +462,18 @@ impl Area {
         })
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn label(&self) -> &text::Area {
         &self.model.label
     }
@@ -606,7 +614,7 @@ impl Area {
 
                 // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
                 // shape system (#795)
-                let style_sheet = &self.model.app.display.scene().style_sheet;
+                let style_sheet = &self.model.app.display.default_scene.style_sheet;
                 let styles = StyleWatch::new(style_sheet);
                 let styles_frp = &self.model.styles_frp;
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);

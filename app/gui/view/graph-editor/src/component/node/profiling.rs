@@ -196,7 +196,7 @@ impl Deref for ProfilingLabel {
 impl ProfilingLabel {
     /// Constructs a `ProfilingLabel` for the given application.
     pub fn new(app: &Application) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let root = display::object::Instance::new(Logger::new("ProfilingIndicator"));
 
         let label = text::Area::new(app);

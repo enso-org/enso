@@ -1161,7 +1161,7 @@ impl Edge {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let network = frp::Network::new("node_edge");
-        let data = Rc::new(EdgeModelData::new(app.display.scene(), &network));
+        let data = Rc::new(EdgeModelData::new(&app.display.default_scene, &network));
         let model = Rc::new(EdgeModel { data });
         Self { model, network }.init(app)
     }
@@ -1182,7 +1182,7 @@ impl Edge {
         let shape_events = &self.frp.shape_events;
         let edge_color = color::Animation::new(network);
         let edge_focus_color = color::Animation::new(network);
-        let _style = StyleWatch::new(&app.display.scene().style_sheet);
+        let _style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
         model.data.front.register_proxy_frp(network, &input.shape_events);
         model.data.back.register_proxy_frp(network, &input.shape_events);

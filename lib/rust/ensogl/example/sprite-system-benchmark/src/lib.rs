@@ -22,8 +22,6 @@ use ensogl_core::display::symbol::geometry::Sprite;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use ensogl_core::system::web;
-use ensogl_core::system::web::forward_panic_hook_to_console;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use wasm_bindgen::prelude::*;
@@ -32,10 +30,8 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_sprite_system_benchmark() {
-    forward_panic_hook_to_console();
-
-    let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let scene = world.scene();
+    let world = World::new().displayed_in("root");
+    let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
     let sprite_system = SpriteSystem::new(&world);
@@ -59,7 +55,9 @@ pub fn entry_point_sprite_system_benchmark() {
     let mut iter: i32 = 0;
     let mut i = 0;
     world
-        .on_frame(move |time| {
+        .on
+        .before_frame
+        .add(move |time| {
             i += 1;
             if i <= 100 {
                 sprite1.mod_position(|p| p.x += 1.0);
