@@ -368,18 +368,21 @@ fn process_file(path: impl AsRef<Path>, action: Action, is_main_file: bool) -> u
     let path = path.as_ref();
     let (hash, input) = read_file(path).unwrap();
 
-    let out = process_file_content(input, is_main_file);
-
-    if action == Action::Preview {
-        println!("{}", out)
-    } else if action == Action::Format || action == Action::FormatAndCheck {
-        fs::write(path, out).expect("Unable to write back to the source file.")
+    match process_file_content(input, is_main_file) {
+        Err(e) => panic!("{:?}: {}", path, e),
+        Ok(out) => {
+            if action == Action::Preview {
+                println!("{}", out)
+            } else if action == Action::Format || action == Action::FormatAndCheck {
+                fs::write(path, out).expect("Unable to write back to the source file.")
+            }
+            hash
+        }
     }
-    hash
 }
 
 /// Process a single source file.
-fn process_file_content(input: String, is_main_file: bool) -> String {
+fn process_file_content(input: String, is_main_file: bool) -> Result<String, String> {
     let mut str_ptr: &str = &input;
     let mut attrs = vec![];
     let mut header = vec![];
@@ -412,6 +415,12 @@ fn process_file_content(input: String, is_main_file: bool) -> String {
     let incorrect_ending_len = ending.into_iter().skip_while(|t| t.token == EmptyLine).count();
     header.truncate(header.len() - incorrect_ending_len);
     let total_len: usize = header.iter().map(|t| t.len()).sum();
+
+    let contains_comments =
+        header.iter().any(|t| t.token == Comment && !t.reg_match.starts_with("// ==="));
+    if contains_comments {
+        Err("File contains comments in the import section. This is not allowed.".to_string())?;
+    }
 
     // Build a mapping between tokens and registered entries.
     let mut map = HashMap::<HeaderToken, Vec<String>>::new();
@@ -470,7 +479,7 @@ fn process_file_content(input: String, is_main_file: bool) -> String {
     print_section(&mut out, &mut map, &[CratePubUseStar, PubUseStar, CratePubUse, PubUse]);
     out.push_str("\n\n");
     out.push_str(&input[total_len..]);
-    out
+    Ok(out)
 }
 
 fn main() {

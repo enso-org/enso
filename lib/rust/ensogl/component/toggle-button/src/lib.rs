@@ -29,9 +29,9 @@ use ensogl_core::gui::component::ShapeView;
 // =================
 
 /// A shape that can have a single color.
-/// 
-/// The [`DynamicShapeInternals`] is used to allow manual creation of [`ShapeView`]. Normally, this 
-/// is automatically used by the [`define_shape_system!`] macro, and it's not exposed to the 
+///
+/// The [`DynamicShapeInternals`] is used to allow manual creation of [`ShapeView`]. Normally, this
+/// is automatically used by the [`define_shape_system!`] macro, and it's not exposed to the
 /// developer.
 pub trait ColorableShape: DynamicShapeInternals {
     /// Set the color of the shape.

@@ -6,7 +6,6 @@
 //! FIXME: We need to review the structures' names in Enso Protocol specification
 //! https://github.com/enso-org/enso/issues/708
 
-
 use crate::prelude::*;
 
 use crate::types::UTCDateTime;
