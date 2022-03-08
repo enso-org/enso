@@ -1277,6 +1277,7 @@ struct NodeCreationContext<'a> {
 }
 
 impl GraphEditorModelWithNetwork {
+    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
         let model = GraphEditorModel::new(app, cursor, frp);
@@ -1442,6 +1443,7 @@ impl GraphEditorModelWithNetwork {
         false
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
     pub fn get_node_position(&self, node_id: NodeId) -> Option<Vector3<f32>> {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
     }
