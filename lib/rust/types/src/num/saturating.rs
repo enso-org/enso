@@ -2,6 +2,8 @@
 
 use crate::algebra::*;
 
+
+
 macro_rules! def_saturating_unsigned_int {
     ($($name:ident($prim:ident)),* $(,)?) => {$(
         /// Saturating version of $prim.

@@ -1,12 +1,12 @@
 //! Definition of commands, labeled FPR endpoints useful when implementing actions which can be
 //! altered at runtime, like a keyboard shortcut management.
 
-use crate::frp;
 use crate::prelude::*;
 
 use crate::application::shortcut;
 use crate::application::shortcut::Shortcut;
 use crate::application::Application;
+use crate::frp;
 
 
 

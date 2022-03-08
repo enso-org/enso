@@ -1,8 +1,10 @@
 //! In this module the File Browser component will be implemented in the future. Currently it
 //! contains only an API description.
 
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
+#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -11,9 +13,18 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod model;
+
+
 
 /// Commonly used utilities.
 pub mod prelude {

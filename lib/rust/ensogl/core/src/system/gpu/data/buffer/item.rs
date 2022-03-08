@@ -1,16 +1,14 @@
 //! This module defines abstraction for items in buffers stored on GPU.
 
 use crate::prelude::*;
+use crate::system::gpu::data::gl_enum::traits::*;
+use nalgebra::*;
 
 use crate::system::gpu::data::gl_enum::GlEnum;
 use crate::system::gpu::data::sized::GpuKnownSize;
 use crate::system::gpu::data::GpuDefault;
 use crate::system::gpu::shader::glsl;
 use crate::system::gpu::shader::glsl::Glsl;
-
-use crate::system::gpu::data::gl_enum::traits::*;
-
-use nalgebra::*;
 
 
 

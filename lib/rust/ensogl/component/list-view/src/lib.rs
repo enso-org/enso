@@ -3,8 +3,10 @@
 //! ListView a displayed list of entries with possibility of selecting one and "choosing" by
 //! clicking or pressing enter - similar to the HTML `<select>`.
 
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
+#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -13,9 +15,18 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod entry;
+
+
 
 /// Commonly used types and functions.
 pub mod prelude {

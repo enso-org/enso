@@ -1,11 +1,9 @@
 //! An example showing usage of GlyphSystem.
 
-#![feature(associated_type_defaults)]
-#![feature(drain_filter)]
-#![feature(fn_traits)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
+#![recursion_limit = "1024"]
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -14,15 +12,21 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
+// === Features ===
+#![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(fn_traits)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
 
+use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
+use ensogl_text::typeface::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
-use ensogl_core::display::world::*;
-use ensogl_text::typeface::*;
 use ensogl_text_msdf_sys::run_once_initialized;
-use wasm_bindgen::prelude::*;
 
 
 

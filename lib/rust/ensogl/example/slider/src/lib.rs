@@ -1,11 +1,9 @@
 //! A debug scene which shows the number and range selector.
 
-#![feature(associated_type_defaults)]
-#![feature(drain_filter)]
-#![feature(fn_traits)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
+#![recursion_limit = "1024"]
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -14,7 +12,13 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
+// === Features ===
+#![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(fn_traits)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
 
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;

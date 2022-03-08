@@ -10,8 +10,8 @@ use crate::controller::ide::StatusNotificationPublisher;
 use crate::controller::ide::API;
 use crate::ide::initializer;
 use crate::notification;
-use double_representation::identifier::ReferentName;
 
+use double_representation::identifier::ReferentName;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;

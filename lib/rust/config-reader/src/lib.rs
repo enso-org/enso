@@ -57,9 +57,13 @@
 //!     println!("Foo parameter: {}", generated::CONFIG.foo);
 //! }
 
+// === Standard Linter Configuration ===
+
 use inflector::*;
+
 use serde_yaml::Value;
 use std::fs;
+
 
 
 /// Generate module with constants read from given configuration file in YAML format.

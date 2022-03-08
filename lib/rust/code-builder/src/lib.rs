@@ -2,6 +2,9 @@
 //! generic, it mainly targets code which uses indentation and uses `;` as terminator, but it is
 //! easily extendable in case other targets will be needed in the future.
 
+// === Standard Linter Configuration ===
+
+// === Features ===
 #![feature(specialization)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![allow(missing_docs)]

@@ -1,10 +1,19 @@
 //! This library contains the implementation of the Enso parser.
 
+// === Standard Linter Configuration ===
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod macros;
 pub mod operator;
 pub mod parser;
 
 pub use crate::parser::*;
+
+
 
 /// The prelude for the parser.
 pub mod prelude {

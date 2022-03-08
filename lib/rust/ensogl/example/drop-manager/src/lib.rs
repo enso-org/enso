@@ -1,12 +1,10 @@
 //! An example of [`deop::Manager`] usage. The dropped files metadata and content is printed to
 //! the console.
 
-#![feature(associated_type_defaults)]
-#![feature(drain_filter)]
-#![feature(fn_traits)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
+#![recursion_limit = "1024"]
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -15,14 +13,22 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
+// === Features ===
+#![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(fn_traits)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
 
 use enso_prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::display::world::World;
 use ensogl_core::frp::web;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
+
+
 
 fn download_file(file: ensogl_drop_manager::File) {
     spawn_local(async move {

@@ -1,5 +1,12 @@
 //! A crate gathering all useful component crates.
 
+// === Standard Linter Configuration ===
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub use ensogl_button as button;
 pub use ensogl_drop_down_menu as drop_down_menu;
 pub use ensogl_drop_manager as drop_manager;

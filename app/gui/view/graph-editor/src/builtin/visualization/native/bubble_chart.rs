@@ -1,9 +1,9 @@
 //! Bubble Chart visualisation implemented using the native shape system.
 
+use crate::component::visualization::*;
 use crate::prelude::*;
 
 use crate::component::visualization;
-use crate::component::visualization::*;
 
 use enso_frp as frp;
 use ensogl::data::color::Rgba;

@@ -1,6 +1,8 @@
 //! This module contains manually expanded macros that should be defined by `define_debug_macros`.
 //! See [Clippy ICE workaround] in [crate::debug::logging].
 
+
+
 /// Special logging macro that prints to the Web Console on wasm targets and stdout
 /// otherwise. It is supposed to be used only for development purposes and shouldn't be
 /// present in a production-ready code.

@@ -1,9 +1,8 @@
 //! A crate with all functions used to synchronize different representations of our language
 
-#![feature(associated_type_bounds)]
-#![feature(drain_filter)]
-#![feature(iter_order_by)]
-#![feature(option_result_contains)]
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -12,6 +11,11 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+// === Features ===
+#![feature(associated_type_bounds)]
+#![feature(drain_filter)]
+#![feature(iter_order_by)]
+#![feature(option_result_contains)]
 
 use crate::prelude::*;
 
@@ -26,6 +30,11 @@ use ast::opr;
 use ast::prefix;
 use ast::Ast;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod alias_analysis;
 pub mod connection;
 pub mod definition;
@@ -35,11 +44,10 @@ pub mod module;
 pub mod node;
 pub mod project;
 pub mod refactorings;
-pub mod text;
-pub mod tp;
-
 #[cfg(test)]
 pub mod test_utils;
+pub mod text;
+pub mod tp;
 
 
 

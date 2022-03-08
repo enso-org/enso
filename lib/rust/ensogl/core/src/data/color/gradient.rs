@@ -1,8 +1,8 @@
 //! This module defines color structures and associated modifiers.
 
 use crate::prelude::*;
-
 use crate::system::gpu::shader::glsl::traits::*;
+
 use crate::system::gpu::shader::glsl::Glsl;
 
 

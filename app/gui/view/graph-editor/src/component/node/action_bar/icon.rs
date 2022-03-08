@@ -1,9 +1,11 @@
 //! Icons to be used of the action bar of a node.
+
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use ensogl::data::color;
-use ensogl::display::shape::*;
 use ensogl_component::toggle_button::ColorableShape;
+
 
 
 /// Icon for the visibility button. Looks like an open eye.

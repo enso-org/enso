@@ -1,4 +1,6 @@
-#![feature(test)]
+//! This file contains tests for the generated lexer.
+
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -8,7 +10,8 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This file contains tests for the generated lexer.
+// === Features ===
+#![feature(test)]
 
 use enso_flexer::prelude::*;
 

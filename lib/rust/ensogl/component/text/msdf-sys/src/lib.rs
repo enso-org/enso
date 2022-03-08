@@ -1,7 +1,12 @@
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+
+
 
 mod binding;
 pub mod emscripten_data;

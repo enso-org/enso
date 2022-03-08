@@ -1,5 +1,8 @@
 //! Keyboard shortcut manager implementation.
 
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -8,8 +11,11 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+// === Features ===
 #![feature(test)]
 #![feature(trait_alias)]
+
+
 
 extern crate test;
 

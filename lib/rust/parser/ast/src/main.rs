@@ -1,5 +1,6 @@
-use ast_new::generation::ScalaGenerator;
+// === Standard Linter Configuration ===
 
+use ast_new::generation::ScalaGenerator;
 use std::fs::File;
 use std::io::Write;
 

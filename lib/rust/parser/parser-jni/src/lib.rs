@@ -1,4 +1,8 @@
-#![feature(test)]
+//! This module exports the implementation of parser for the Enso language.
+
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -8,7 +12,10 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This module exports the implementation of parser for the Enso language.
+// === Features ===
+#![feature(test)]
+
+
 
 mod jni;
 

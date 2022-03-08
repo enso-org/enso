@@ -1,4 +1,8 @@
-#![feature(test)]
+//! This module exports a reader that is able to process large textual inputs in constant memory.
+
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -7,16 +11,22 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
-
-//! This module exports a reader that is able to process large textual inputs in constant memory.
-
-pub mod decoder;
+// === Features ===
+#![feature(test)]
 
 use enso_prelude::*;
 
 use crate::decoder::Char;
 use crate::decoder::InvalidChar;
+
 use decoder::Decoder;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod decoder;
 
 
 

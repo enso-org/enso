@@ -27,6 +27,19 @@
 //! - **Presenter** (the [`presenter`] module): Synchronizes the state of the engine entities with
 //!   the view, and passes the user interations to the controllers.
 
+#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+// === Features ===
 #![feature(arbitrary_self_types)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
@@ -42,15 +55,17 @@
 #![feature(assert_matches)]
 #![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
-#![recursion_limit = "512"]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+
+#[allow(unused_imports)]
+use enso_debug_scene::*;
+#[allow(unused_imports)]
+use ensogl_examples::*;
+use wasm_bindgen::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod config;
 pub mod constants;
@@ -67,13 +82,7 @@ pub mod transport;
 pub use crate::ide::*;
 pub use ide_view as view;
 
-use wasm_bindgen::prelude::*;
 
-// Those imports are required to have all EnsoGL examples entry points visible in IDE.
-#[allow(unused_imports)]
-use enso_debug_scene::*;
-#[allow(unused_imports)]
-use ensogl_examples::*;
 
 #[cfg(test)]
 mod tests;

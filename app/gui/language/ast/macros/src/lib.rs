@@ -1,6 +1,11 @@
 //! Helper macros used when defining AST structures.
 
+// === Standard Linter Configuration ===
+
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
+
+
 
 extern crate proc_macro;
 

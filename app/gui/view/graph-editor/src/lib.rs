@@ -2,6 +2,9 @@
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
+// === Standard Linter Configuration ===
+
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]

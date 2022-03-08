@@ -1,5 +1,7 @@
 //! This file contains the time-based benchmarks for the Enso lexer.
 
+
+
 mod lexer_bench_sources;
 
 use criterion::black_box;

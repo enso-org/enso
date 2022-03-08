@@ -143,6 +143,8 @@
 //! with `true` and not `false` (`Default` for `bool`).
 //! ```
 
+// === Standard Linter Configuration ===
+
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

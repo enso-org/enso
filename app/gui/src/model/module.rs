@@ -1,12 +1,5 @@
 //! This module contains all structures which describes Module state (code, ast, metadata).
 
-pub mod plain;
-pub mod synchronized;
-
-pub use double_representation::module::Id;
-pub use double_representation::module::QualifiedName;
-pub use double_representation::tp::QualifiedName as TypeQualifiedName;
-
 use crate::prelude::*;
 
 use crate::controller::FilePath;
@@ -23,6 +16,18 @@ use parser::api::SourceFile;
 use parser::Parser;
 use serde::Deserialize;
 use serde::Serialize;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod plain;
+pub mod synchronized;
+
+pub use double_representation::module::Id;
+pub use double_representation::module::QualifiedName;
+pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
 
 

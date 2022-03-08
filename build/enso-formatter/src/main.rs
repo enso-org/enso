@@ -9,7 +9,7 @@
 //! - Sections are automatically keeping spacing.
 
 // === Standard Linter Configuration ===
-#![warn(missing_docs)]
+
 // === Non-Standard Linter Configuration ===
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
@@ -18,6 +18,7 @@
 #![deny(pointer_structural_match)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(unconditional_recursion)]
+#![warn(missing_docs)]
 #![warn(absolute_paths_not_starting_with_crate)]
 #![warn(elided_lifetimes_in_paths)]
 #![warn(explicit_outlives_requirements)]
@@ -58,6 +59,9 @@ use std::process::Stdio;
 // === Constants ===
 // =================
 
+// TODO: The below lints should be uncommented, one-by-one, and the existing code should be
+//       adjusted.
+
 /// Standard linter configuration. It will be used in every `main.rs` and `lib.rs` file in the
 /// codebase.
 const STD_LINTER_ATTRIBS: &[&str] = &[
@@ -70,7 +74,7 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // "deny(missing_abi)",
     // "warn(missing_copy_implementations)",
     // "warn(missing_debug_implementations)",
-    "warn(missing_docs)",
+    // "warn(missing_docs)",
     // "deny(non_ascii_idents)",
     // "warn(noop_method_call)",
     // "deny(pointer_structural_match)",

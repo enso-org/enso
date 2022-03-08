@@ -1,5 +1,7 @@
 //! Project Manager tests.
 
+
+
 #[cfg(test)]
 mod tests {
     use enso_gui::prelude::*;
