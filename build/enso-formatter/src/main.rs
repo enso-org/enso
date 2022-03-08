@@ -3,9 +3,10 @@
 //! - Sorting imports into groups (e.g. local imports, pub imports, etc.).
 //! - Sorting module attributes into groups.
 //! - Adding standard lint configuration to `lib.rs` and `main.rs` files.
+//! - (Currently disabled) Emitting warnings about star imports that are not ending with `traits::*`
+//!   nor `prelude::*`.
 //!
-//! Possible extensions not yet implemented:
-//! - Emitting warnings about star imports that are not ending with `traits::*` nor `prelude::*`.
+//! Possible extensions, not implemented yet:
 //! - Sections are automatically keeping spacing.
 
 // === Non-Standard Linter Configuration ===
@@ -34,7 +35,6 @@
 #![warn(unused_qualifications)]
 #![warn(variant_size_differences)]
 #![warn(unreachable_pub)]
-#![warn(box_pointers)]
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -45,7 +45,6 @@ use std::fmt::Debug;
 use std::fs;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -87,9 +86,26 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // "warn(unused_lifetimes)",
     // "warn(unused_qualifications)",
     // "warn(variant_size_differences)",
-    // // Rustc lints that emit a warning by default:
+    // Rustc lints that emit a warning by default:
     // "deny(unconditional_recursion)",
 ];
+
+
+
+// =============
+// === Utils ===
+// =============
+
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
+fn read_file_with_hash(path: impl AsRef<Path>) -> std::io::Result<(u64, String)> {
+    fs::read_to_string(path).map(|t| (calculate_hash(&t), t))
+}
+
 
 
 // ===================
@@ -286,11 +302,38 @@ fn print_single(
 }
 
 
-// =============
-// === Logic ===
-// =============
+
+// ==============
+// === Action ===
+// ==============
+
+/// Possible commands this formatter can evaluate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum Action {
+    Format,
+    Preview,
+    FormatAndCheck,
+}
+
+
+
+// ==================
+// === Processing ===
+// ==================
 
 /// Process all files of the given path recursively.
+///
+/// Please note that the [`hash_map`] variable contains hashes of all files before processing. After
+/// the processing is done by this formatter, `rustfmt` is run on the whole codebase, and the hashes
+/// are compared with new files. This allows checking if running the formatting changed the files.
+/// An alternative design is possible – we could run this formatter and pass its output to stdin of
+/// `rustfmt`, run it in memory, and get the results without affecting files on the disk.
+/// Unfortunately, such solution requires either running a separate `rustfmt` process per file, or
+/// using its API. The former solution is very slow (16 seconds for the whole codebase), the second
+/// uses non-documented API and is slow as well (8 seconds for the whole codebase). It should be
+/// possible to improve the latter solution to get good performance, but it seems way harder than it
+/// should be.
 fn process_path(path: impl AsRef<Path>, action: Action) {
     let paths = discover_paths(path);
     let total = paths.len();
@@ -316,7 +359,7 @@ fn process_path(path: impl AsRef<Path>, action: Action) {
     if action == Action::FormatAndCheck {
         let mut changed = Vec::new();
         for sub_path in &paths {
-            let (hash, _) = read_file(sub_path).unwrap();
+            let (hash, _) = read_file_with_hash(sub_path).unwrap();
             if hash_map.get(sub_path) != Some(&hash) {
                 changed.push(sub_path.clone());
             }
@@ -347,26 +390,9 @@ fn discover_paths_internal(vec: &mut Vec<PathBuf>, path: impl AsRef<Path>) {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Action {
-    Format,
-    Preview,
-    FormatAndCheck,
-}
-
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
-
-fn read_file(path: impl AsRef<Path>) -> std::io::Result<(u64, String)> {
-    fs::read_to_string(path).map(|t| (calculate_hash(&t), t))
-}
-
 fn process_file(path: impl AsRef<Path>, action: Action, is_main_file: bool) -> u64 {
     let path = path.as_ref();
-    let (hash, input) = read_file(path).unwrap();
+    let (hash, input) = read_file_with_hash(path).unwrap();
 
     match process_file_content(input, is_main_file) {
         Err(e) => panic!("{:?}: {}", path, e),
@@ -416,11 +442,25 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     header.truncate(header.len() - incorrect_ending_len);
     let total_len: usize = header.iter().map(|t| t.len()).sum();
 
+    // Error if the import section contains comments.
     let contains_comments =
         header.iter().any(|t| t.token == Comment && !t.reg_match.starts_with("// ==="));
     if contains_comments {
         Err("File contains comments in the import section. This is not allowed.".to_string())?;
     }
+
+    // Error if the star import is used for non prelude- or traits-like imports.
+    // TODO: This is commented for now because it requires several non-trival changes in the code.
+    // let invalid_star_import = header.iter().any(|t| {
+    //     t.token == UseStar
+    //         && !t.reg_match.contains("prelude::*")
+    //         && !t.reg_match.contains("traits::*")
+    //         && !t.reg_match.contains("super::*")
+    // });
+    //
+    // if invalid_star_import {
+    //     Err("Star imports only allowed for `prelude`, `traits`, and `super`
+    // modules.".to_string())?; }
 
     // Build a mapping between tokens and registered entries.
     let mut map = HashMap::<HeaderToken, Vec<String>>::new();
@@ -458,7 +498,7 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     print_section(&mut out, &mut map, &[ModuleAttrib]);
     print_h2(&mut out, &map, &[ModuleAttribFeature2, ModuleAttribFeature], "Features");
     print_section(&mut out, &mut map, &[ModuleAttribFeature2, ModuleAttribFeature]);
-    if (!STD_LINTER_ATTRIBS.is_empty()) {
+    if !STD_LINTER_ATTRIBS.is_empty() {
         print_h2(&mut out, &map, &[StandardLinterConfig], "Standard Linter Configuration");
         print_section(&mut out, &mut map, &[StandardLinterConfig]);
     }
@@ -483,9 +523,59 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
 }
 
 fn main() {
-    // println!(
-    //     "{:?}",
-    //     process_file("./app/gui/language/span-tree/example/src/lib.rs", Action::Check, false)
-    // );
-    process_path(".", Action::FormatAndCheck);
+    process_path(".", Action::Format);
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[test]
+fn test_formatting() {
+    let input = r#"//! Module-level documentation
+//! written in two lines.
+
+pub use lib_f::item_1;
+pub mod mod1;
+use crate::prelude::*;
+use crate::lib_b;
+use lib_c;
+pub use crate::lib_e;
+use crate::lib_a;
+use lib_d::item_1;
+use logger::traits::*;
+pub mod mod2;
+pub struct Struct1 {}
+"#;
+
+    let output = r#"//! Module-level documentation
+//! written in two lines.
+
+use crate::prelude::*;
+use logger::traits::*;
+
+use crate::lib_b;
+use crate::lib_a;
+
+use lib_c;
+use lib_d::item_1;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod mod1;
+pub mod mod2;
+
+pub use crate::lib_e;
+pub use lib_f::item_1;
+
+
+
+pub struct Struct1 {}
+"#;
+    assert_eq!(process_file_content(input.into(), true), Ok(output.into()));
 }
