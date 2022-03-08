@@ -2,6 +2,13 @@
 //! high-level features and bug-fixes. It also provides a mock API version allowing the native
 //! compilation in order to run native tests of code which uses this API.
 
+// === Features ===
+#![allow(incomplete_features)]
+#![feature(trait_alias)]
+#![feature(negative_impls)]
+#![feature(specialization)]
+#![feature(auto_traits)]
+#![feature(unsize)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -11,13 +18,6 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-// === Features ===
-#![allow(incomplete_features)]
-#![feature(trait_alias)]
-#![feature(negative_impls)]
-#![feature(specialization)]
-#![feature(auto_traits)]
-#![feature(unsize)]
 
 use crate::prelude::*;
 

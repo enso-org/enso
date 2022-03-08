@@ -6,6 +6,12 @@
 //! and provides interface for AST operations like set node to a new AST or add new element to
 //! operator chain.
 
+// === Features ===
+#![feature(associated_type_bounds)]
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
+#![feature(type_ascription)]
+#![feature(exact_size_is_empty)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -15,12 +21,6 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// === Features ===
-#![feature(associated_type_bounds)]
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
-#![feature(type_ascription)]
-#![feature(exact_size_is_empty)]
 
 
 // ==============

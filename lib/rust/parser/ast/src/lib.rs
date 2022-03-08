@@ -1,5 +1,8 @@
 //! This module exports the implementation of the enso abstract syntax tree.
 
+// === Features ===
+#![feature(test)]
+
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -9,9 +12,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
-
-// === Features ===
-#![feature(test)]
 
 
 

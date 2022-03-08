@@ -447,6 +447,8 @@ fn process_file_content(input: String, is_main_file: bool) -> String {
     let mut out = String::new();
     print_section(&mut out, &mut map, &[ModuleDoc]);
     print_section(&mut out, &mut map, &[ModuleAttrib]);
+    print_h2(&mut out, &map, &[ModuleAttribFeature2, ModuleAttribFeature], "Features");
+    print_section(&mut out, &mut map, &[ModuleAttribFeature2, ModuleAttribFeature]);
     if (!STD_LINTER_ATTRIBS.is_empty()) {
         print_h2(&mut out, &map, &[StandardLinterConfig], "Standard Linter Configuration");
         print_section(&mut out, &mut map, &[StandardLinterConfig]);
@@ -458,8 +460,6 @@ fn process_file_content(input: String, is_main_file: bool) -> String {
         "Non-Standard Linter Configuration",
     );
     print_section(&mut out, &mut map, &[ModuleAttribAllow, ModuleAttribDeny, ModuleAttribWarn]);
-    print_h2(&mut out, &map, &[ModuleAttribFeature2, ModuleAttribFeature], "Features");
-    print_section(&mut out, &mut map, &[ModuleAttribFeature2, ModuleAttribFeature]);
 
     print_section(&mut out, &mut map, &[CrateUseStar, UseStar]);
     print_section(&mut out, &mut map, &[CrateUse]);

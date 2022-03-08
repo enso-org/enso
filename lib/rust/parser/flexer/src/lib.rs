@@ -1006,6 +1006,8 @@
 //! The flexer allows its clients to define highly optimised lexer implementations that are capable
 //! of lexing languages of a high complexity.
 
+// === Features ===
+#![feature(test)]
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -1015,8 +1017,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
-// === Features ===
-#![feature(test)]
 
 use crate::prelude::*;
 use prelude::logger::*;

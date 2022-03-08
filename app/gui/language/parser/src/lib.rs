@@ -4,6 +4,8 @@
 //! this parser: one for local parser which binds scala parser compiled to WebAssembly to the Rust
 //! crate. The second is calling a Parser running remotely using WebSockets.
 
+// === Features ===
+#![feature(trait_alias)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -13,8 +15,6 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// === Features ===
-#![feature(trait_alias)]
 
 
 // ==============

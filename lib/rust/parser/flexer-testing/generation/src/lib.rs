@@ -6,6 +6,9 @@
 //! This separation enables generation of the enso lexer source code with `build.rs` during
 //! compilation. Its output is then stored in a new file `engine.rs`and exported by `lexer.rs`.
 
+// === Features ===
+#![feature(test)]
+
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -15,9 +18,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
-
-// === Features ===
-#![feature(test)]
 
 
 // ==============

@@ -1,5 +1,10 @@
 //! Definitions of a callback registry – utility allowing attaching and running attached functions.
 
+// === Features ===
+#![feature(trait_alias)]
+#![feature(unboxed_closures)]
+#![feature(fn_traits)]
+#![feature(unsize)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -9,11 +14,6 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-// === Features ===
-#![feature(trait_alias)]
-#![feature(unboxed_closures)]
-#![feature(fn_traits)]
-#![feature(unsize)]
 
 use enso_prelude::*;
 

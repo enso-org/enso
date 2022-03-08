@@ -1,5 +1,7 @@
 //! This file contains tests for lexing comments in the Enso lexer.
 
+// === Features ===
+#![feature(test)]
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -9,8 +11,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
-// === Features ===
-#![feature(test)]
 
 
 

@@ -2,6 +2,12 @@
 //!
 //! See https://enso.org/docs/developer/enso/language-server/protocol-architecture.html.
 
+// === Features ===
+#![feature(associated_type_bounds)]
+#![feature(associated_type_defaults)]
+#![feature(coerce_unsized)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -11,12 +17,6 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// === Features ===
-#![feature(associated_type_bounds)]
-#![feature(associated_type_defaults)]
-#![feature(coerce_unsized)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
 
 
 // ==============

@@ -28,15 +28,6 @@
 //!   the view, and passes the user interations to the controllers.
 
 #![recursion_limit = "512"]
-// === Non-Standard Linter Configuration ===
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 // === Features ===
 #![feature(arbitrary_self_types)]
 #![feature(async_closure)]
@@ -53,6 +44,15 @@
 #![feature(assert_matches)]
 #![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 #[allow(unused_imports)]
 use enso_debug_scene::*;

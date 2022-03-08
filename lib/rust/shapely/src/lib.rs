@@ -1,11 +1,11 @@
-// === Non-Standard Linter Configuration ===
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 // === Features ===
 #![feature(generators, generator_trait)]
 #![feature(type_ascription)]
 #![feature(marker_trait_attr)]
+// === Non-Standard Linter Configuration ===
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 
 // ==============

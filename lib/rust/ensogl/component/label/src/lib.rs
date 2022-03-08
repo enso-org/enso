@@ -1,6 +1,9 @@
 //! Label component. Appears as text with background.
 
 #![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -10,9 +13,6 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-// === Features ===
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;

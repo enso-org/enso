@@ -1,5 +1,10 @@
 //! A crate with all functions used to synchronize different representations of our language
 
+// === Features ===
+#![feature(associated_type_bounds)]
+#![feature(drain_filter)]
+#![feature(iter_order_by)]
+#![feature(option_result_contains)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -9,11 +14,6 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// === Features ===
-#![feature(associated_type_bounds)]
-#![feature(drain_filter)]
-#![feature(iter_order_by)]
-#![feature(option_result_contains)]
 
 use crate::prelude::*;
 
