@@ -258,14 +258,13 @@ type Aggregate_Column
             Count_Distinct _ _ _ -> value.size
             Median _ _ -> percentile 0.5 value
             Percentile _ _ p -> percentile p value
-            Mode _ _ -> value.fold_with_key (Pair 0 Nothing) k->v->p-> if v>p.first then (Pair v k) else p . second
+            Mode _ _ -> (value.fold_with_key (Pair 0 Nothing) p->k->v-> if v>(p.first) then (Pair v k) else p) . second
             Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
             Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
                 f = if p then 1 else (value.first / (value.first - 1)).sqrt
                 ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
             Concatenate _ _ _ s p _ -> if value.is_nothing then value else (s + value + p)
             _ -> value
-
 
 ## Occurs when cannot aggregate a column
 type Invalid_Aggregation_Method (column : Text) (message : Text)
