@@ -93,7 +93,7 @@ public class Parser {
   }
 
   private String handleNa(String raw) {
-    if (raw == null || raw.length() == 0) {
+    if (raw == null || raw.isEmpty()) {
       return null;
     }
     return raw;
