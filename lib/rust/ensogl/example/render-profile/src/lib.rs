@@ -41,7 +41,7 @@ pub async fn entry_point_render_profile() {
     let navigator = navigator::Navigator::new(scene, &camera);
     init_theme(scene);
     let data = get_data().await;
-    let mut measurements: profiler_data::Measurement<profiler_data::OpaqueMetadata> =
+    let measurements: profiler_data::Measurement<profiler_data::OpaqueMetadata> =
         data.parse().unwrap();
     let flame_graph = flame_graph::FlameGraph::from_data(measurements.into(), &app);
     world.add_child(&flame_graph);
@@ -67,7 +67,7 @@ async fn get_data() -> String {
     let mut opts = web_sys::RequestInit::new();
     opts.method("GET");
     opts.mode(web_sys::RequestMode::Cors);
-    let request = web_sys::Request::new_with_str_and_init(&url, &opts).unwrap();
+    let request = web_sys::Request::new_with_str_and_init(url, &opts).unwrap();
     request.headers().set("Accept", "application/json").unwrap();
     let window = web_sys::window().unwrap();
     let resp_value =
