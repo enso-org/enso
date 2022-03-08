@@ -378,11 +378,16 @@ public class Text_Utils {
   }
 
   public static GraphemeSpan span_of_case_insensitive(
-      String haystack, String needle, Locale locale) {
+      String haystack, String needle, Locale locale, boolean searchForLast) {
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
     String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
     StringSearch search = new StringSearch(foldedNeedle, foldedHaystack.getFoldedString());
-    int pos = search.first();
+    int pos;
+    if (searchForLast) {
+      pos = search.last();
+    } else {
+      pos = search.first();
+    }
     if (pos == StringSearch.DONE) {
       return null;
     } else {
@@ -390,6 +395,24 @@ public class Text_Utils {
       int end = foldedHaystack.codeUnitToGraphemeIndex(pos + search.getMatchLength());
       return new GraphemeSpan(start, end);
     }
+  }
+
+  public static List<GraphemeSpan> span_of_all_case_insensitive(
+      String haystack, String needle, Locale locale) {
+    CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
+    String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
+
+    StringSearch search = new StringSearch(foldedNeedle, foldedHaystack.getFoldedString());
+    ArrayList<GraphemeSpan> result = new ArrayList<>();
+
+    int pos;
+    while ((pos = search.next()) != StringSearch.DONE) {
+      int start = foldedHaystack.codeUnitToGraphemeIndex(pos);
+      int end = foldedHaystack.codeUnitToGraphemeIndex(pos + search.getMatchLength());
+      result.add(new GraphemeSpan(start, end));
+    }
+
+    return result;
   }
 
   /**

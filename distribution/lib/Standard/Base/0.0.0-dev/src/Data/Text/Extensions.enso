@@ -1167,7 +1167,7 @@ Text.trim where=Location.Both what=_.is_whitespace =
     if start_index >= end_index then "" else
         Text_Utils.substring this start_index end_index
 
-## ALIAS find, index_of, position_of
+## ALIAS find, index_of, position_of, span_of
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1194,25 +1194,35 @@ Text.trim where=Location.Both what=_.is_whitespace =
    > Example
      TODO
 
-         "Hello World!".span_of "J" == Nothing
-         "Hello World!".span_of "o" == Span (Range 4 5) "Hello World!"
-         "Hello World!".span_of "o" mode=Last == Span (Range 4 5) "Hello World!"
-Text.span_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
-Text.span_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
+         "Hello World!".location_of "J" == Nothing
+         "Hello World!".location_of "o" == Span (Range 4 5) "Hello World!"
+         "Hello World!".location_of "o" mode=Last == Span (Range 4 5) "Hello World!"
+Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
+Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
         True ->
-            codepoint_ix = Text_Utils.index_of this term
+            codepoint_ix = case mode of
+                Matching_Mode.First -> Text_Utils.index_of this term
+                Matching_Mode.Last -> Text_Utils.last_index_of this term
             if codepoint_ix < 0 then Nothing else
                 start = Text_Utils.utf16_index_to_grapheme_index this codepoint_ix
                 end = start + term.length
                 Span (Range start end) this
-        Case_Insensitive locale -> Error.throw "TODO"
+        Case_Insensitive locale ->
+            search_for_last = case mode of
+                Matching_Mode.First -> False
+                Matching_Mode.Last -> True
+            case Text_Utils.span_of_case_insensitive this term locale.java_locale search_for_last of
+                Nothing -> Nothing
+                grapheme_span ->
+                    Span (Range grapheme_span.start grapheme_span.end) this
     Regex_Matcher _ _ _ _ _ ->
+        # TODO mode!
         case matcher.compile term . match this Mode.First of
             Nothing -> Nothing
             match -> match.span 0 . to_grapheme_span
 
-## ALIAS
+## ALIAS find_all, index_of_all, position_of_all, span_of_all
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
@@ -1235,10 +1245,10 @@ Text.span_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case ma
    > Example
      TODO
 
-         "Hello World!".span_of_all "J" == []
-         "Hello World!".span_of_all "o" . map .start == [4, 7]
-Text.span_of_all : Text -> Matcher -> [Span]
-Text.span_of_all term="" matcher=Text_Matcher.new = case matcher of
+         "Hello World!".location_of_all "J" == []
+         "Hello World!".location_of_all "o" . map .start == [4, 7]
+Text.location_of_all : Text -> Matcher -> [Span]
+Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
         True ->
             codepoint_ixes = Text_Utils.index_of_all this term
@@ -1247,7 +1257,10 @@ Text.span_of_all term="" matcher=Text_Matcher.new = case matcher of
             grahpeme_ixes . map start->
                 end = start+offset
                 Span (Range start end) this
-        Case_Insensitive locale -> Error.throw "TODO"
+        Case_Insensitive locale ->
+            grapheme_spans = Text_Utils.span_of_all_case_insensitive this term locale.java_locale
+            grapheme_spans.map grapheme_span->
+                Span (Range grapheme_span.start grapheme_span.end) this
     Regex_Matcher _ _ _ _ _ ->
         case matcher.compile term . match this Mode.All of
             Nothing -> []

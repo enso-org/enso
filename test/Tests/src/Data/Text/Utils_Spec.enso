@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.text.CaseFoldedString
+
 import Standard.Test
 
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -42,5 +44,15 @@ spec =
             translate_indices 'ą' [0, 1] . should_equal [0, 1]
             translate_indices "aB" [0, 1, 2] . should_equal [0, 1, 2]
             translate_indices 'a\u{301}' [0, 1, 2] . should_equal [0, 0, 1]
+
+        Test.specify "should correctly case-fold a string and translate codeunits to graphemes" <|
+            text = 'a\u{301}AZßﬃą'
+            folded = CaseFoldedString.fold text Locale.default.java_locale
+            folded.getFoldedString . should_equal 'a\u{301}azssffią'
+
+            codeunits = Vector.new folded.getFoldedString.utf_16.length ix->ix
+            grapheme_ixes = codeunits.map ix->
+                folded.codeUnitToGraphemeIndex ix
+            grapheme_ixes . should_equal [0, 0, 1, 2, 3, 3, 4, 4, 4, 5]
 
 main = Test.Suite.run_main here.spec

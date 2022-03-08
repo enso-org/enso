@@ -7,6 +7,7 @@ import Standard.Base.Data.Text.Split_Kind
 from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Text.Text_Sub_Range import all
 import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Matching_Mode
 import Standard.Test
 
 type Auto a
@@ -768,31 +769,56 @@ spec =
 
             '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
 
-        Test.specify "should allow to find span_of occurrences within a text" <|
+        Test.specify "should allow to find location_of occurrences within a text" <|
             hello = "Hello World!"
-            hello.span_of "J" . should_equal Nothing
-            hello.span_of "o" . should_equal (Span (Range 4 5) hello)
-            hello.span_of "o" mode=Last . should_equal (Span (Range 4 5) hello)
+            hello.location_of "J" . should_equal Nothing
+            hello.location_of "o" . should_equal (Span (Range 4 5) hello)
+            hello.location_of "o" mode=Matching_Mode.Last . should_equal (Span (Range 4 5) hello)
 
-            hello.span_of_all "J" . should_equal []
-            hello.span_of_all "o" . map .start . should_equal [4, 7]
+            hello.location_of_all "J" . should_equal []
+            hello.location_of_all "o" . map .start . should_equal [4, 7]
 
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.span_of accent_1 . should_equal (Span (Range 1 2) accents)
+            accents.location_of accent_1 . should_equal (Span (Range 1 2) accents)
 
-        Test.specify "should allow regexes in span_of" <|
+        Test.specify "should allow case insensitive matching in location_of" <|
+            hello = "Hello WORLD!"
+            hello.location_of "world" . should_equal Nothing
+            hello.location_of "world" matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 6 11) hello)
+
+            hello.location_of "o" mode=Mode.First matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 4 5) hello)
+            hello.location_of "o" mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 7 8) hello)
+
+            accents = 'A\u{301}E\u{301}O\u{301}'
+            accents.location_of accent_1 matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 1 2) accents)
+
+            "Strasse".location_of "ß" matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 4 6) "Strasse")
+            "Monumentenstraße 42".location_of "STRASSE" matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 10 16) "Monumentenstraße 42")
+
+            '\u0390'.location_of '\u03B9\u0308\u0301' matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 0 1) '\u0390')
+            'ԵՒ'.location_of 'և' . should_equal Nothing
+            'ԵՒ'.location_of 'և' matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 0 2) 'ԵՒ')
+
+            ligatures = 'FFAﬀﬁﬂﬃﬄﬅﬆZ'
+            ligatures.location_of_all 'FF' . should_equal [Span (Range 0 2) ligatures]
+            ligatures.location_of_all 'FF' . should_equal [Span (Range 0 2) ligatures, Span (Range 3 4) ligatures, Span (Range 6 7) ligatures, Span (Range 7 8) ligatures]
+            'FFFI'.location_of_all 'ﬀ' . should_equal [Span (Range 0 2) 'FFFI']
+            'FFFI'.location_of_all 'ﬃ' . should_equal [Span (Range 1 4) 'FFFI']
+
+        Test.specify "should allow regexes in location_of" <|
             hello = "Hello World!"
-            hello.span_of ".o" Mode.First Regex_Matcher.new . should_equal (Span (Range 3 5) hello)
-            hello.span_of_all ".o" Regex_Matcher.new . map .start . should_equal [3, 6]
+            hello.location_of ".o" Matching_Mode.First Regex_Matcher.new . should_equal (Span (Range 3 5) hello)
+            hello.location_of ".o" Matching_Mode.Last Regex_Matcher.new . should_equal (Span (Range 6 8) hello)
+            hello.location_of_all ".o" Regex_Matcher.new . map .start . should_equal [3, 6]
 
-            "foobar".span_of "BAR" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal (Span (Range 3 6) "foobar")
+            "foobar".location_of "BAR" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal (Span (Range 3 6) "foobar")
 
             ## Regex matching does not do case folding
-            "Strasse".span_of "ß" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal Nothing
+            "Strasse".location_of "ß" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal Nothing
 
             ## But it should handle the Unicode normalization
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.span_of accent_1 Mode.First Regex_Matcher.new . should_equal (Span (Range 1 2) accents)
+            accents.location_of accent_1 Mode.First Regex_Matcher.new . should_equal (Span (Range 1 2) accents)
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
