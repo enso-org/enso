@@ -2,11 +2,10 @@
 //! implementations.
 
 use crate::prelude::*;
-
 use enso_generics::*;
+use super::component::*;
 
 use super::component::HasComponents;
-use super::component::*;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 

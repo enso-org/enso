@@ -7,7 +7,8 @@
 //!
 //! The metrics used for scoring may be adjusted by implementing `Metric` trait, or by customizing
 //! parameters of metrics defined in `metric` module.
-#![feature(option_result_contains)]
+
+// === Linter configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -16,6 +17,14 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+
+// === Features ===
+#![feature(option_result_contains)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod metric;
 pub mod score;
@@ -27,3 +36,6 @@ pub use score::find_best_subsequence;
 pub use score::matches;
 pub use score::Subsequence;
 pub use subsequence_graph::Graph as SubsequenceGraph;
+
+
+

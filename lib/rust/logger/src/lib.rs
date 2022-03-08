@@ -69,7 +69,6 @@
 //! or `expanded` just before `||` to print the group collapsed or expanded by default,
 //! respectively. If not provided, the [`warning`] and [`error`] group macros are collapsed by
 //! default, while all other group macros are expanded by default.
-
 //! #### Compile-time Log Level Filtering
 //!
 //! The crate provides a set of predefined loggers that can be used together with reexport
@@ -101,6 +100,9 @@
 //! log processing pipelines (see [`processor`]).
 
 #![deny(unconditional_recursion)]
+
+
+
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

@@ -9,6 +9,8 @@
 
 #![cfg_attr(feature = "lineno", feature(proc_macro_span))]
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

@@ -1,5 +1,6 @@
 //! Remote analytics logging.
 
+// === Linter configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -8,6 +9,8 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+
+
 
 mod data;
 mod remote_log;

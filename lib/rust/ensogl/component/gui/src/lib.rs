@@ -2,8 +2,9 @@
 //!
 //! A collection of utilities for easy implementing new GUI components.
 
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
+#![recursion_limit = "512"]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -12,9 +13,19 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod component;
+
+
 
 /// Commonly used types and functions.
 pub mod prelude {

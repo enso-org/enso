@@ -1,5 +1,6 @@
 //! Startup arguments definition.
 
+// === Linter configuration ===
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
@@ -8,9 +9,10 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
 use enso_prelude::*;
+
+use enso_logger::DefaultWarningLogger as Logger;
 use ensogl::system::web;
 
 

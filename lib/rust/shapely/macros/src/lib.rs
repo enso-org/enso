@@ -2,8 +2,7 @@
 //! directly, but only through `enso-shapely` crate, as it provides utilities
 //! necessary for the generated code to compile.
 
-#![feature(bool_to_option)]
-#![feature(exact_size_is_empty)]
+// === Linter configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -12,6 +11,12 @@
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+
+// === Features ===
+#![feature(bool_to_option)]
+#![feature(exact_size_is_empty)]
+
+
 
 extern crate proc_macro;
 

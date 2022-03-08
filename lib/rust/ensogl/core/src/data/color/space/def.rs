@@ -1,8 +1,8 @@
 //! This module contains definitions of various color spaces, including `Rgb`, `Hsl`, `Lch`, etc.
 
+use crate::prelude::*;
 use super::super::component::*;
 use super::super::data::*;
-use crate::prelude::*;
 
 
 

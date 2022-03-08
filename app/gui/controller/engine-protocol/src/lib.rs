@@ -2,11 +2,7 @@
 //!
 //! See https://enso.org/docs/developer/enso/language-server/protocol-architecture.html.
 
-#![feature(associated_type_bounds)]
-#![feature(associated_type_defaults)]
-#![feature(coerce_unsized)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
+// === Linter configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -16,6 +12,18 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+// === Features ===
+#![feature(associated_type_bounds)]
+#![feature(associated_type_defaults)]
+#![feature(coerce_unsized)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod binary;
 pub mod common;
 pub mod generated;
@@ -23,6 +31,8 @@ pub mod handler;
 pub mod language_server;
 pub mod project_manager;
 pub mod types;
+
+
 
 #[allow(missing_docs)]
 pub mod prelude {

@@ -3,7 +3,10 @@
 //! It is opened when the IDE launches without any project or entry point selected. It
 //! displays a list of available projects, template cards and "new project" button.
 
+// === Linter configuration ===
 #![warn(missing_docs)]
+
+
 
 mod side_menu;
 mod template_cards;

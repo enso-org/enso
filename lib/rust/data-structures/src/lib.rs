@@ -1,9 +1,8 @@
 //! Library of general data structures.
 
-#![feature(associated_type_bounds)]
-#![feature(test)]
-#![feature(trait_alias)]
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -12,6 +11,16 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+// === Features ===
+#![feature(associated_type_bounds)]
+#![feature(test)]
+#![feature(trait_alias)]
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod dependency_graph;
 pub mod diet;
 pub mod hash_map_tree;
@@ -19,3 +28,6 @@ pub mod index;
 pub mod opt_vec;
 
 pub use enso_prelude as prelude;
+
+
+

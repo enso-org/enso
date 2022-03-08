@@ -1,26 +1,31 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
-pub mod call_stack;
-pub mod state;
-pub mod visualization;
-
-pub use call_stack::CallStack;
-pub use visualization::Visualization;
-
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
 use enso_frp as frp;
-use enso_web::traits::*;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod call_stack;
+pub mod state;
+pub mod visualization;
+
+pub use call_stack::CallStack;
+pub use visualization::Visualization;
 
 
 

@@ -2,17 +2,15 @@ use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_web as web;
-
 use enso_shortcuts as shortcuts;
 use enso_shortcuts::Registry;
-
 use enso_frp as frp;
-
 use frp::io::keyboard;
 use frp::io::keyboard::Keyboard;
-
 use enso_logger::AnyLogger;
 use enso_logger::WarningLogger as Logger;
+
+
 
 #[wasm_bindgen]
 #[allow(dead_code)]

@@ -6,8 +6,9 @@
 //! This separation enables generation of the enso lexer source code with `build.rs` during
 //! compilation. Its output is then stored in a new file `engine.rs`and exported by `lexer.rs`.
 
-#![feature(test)]
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -16,5 +17,16 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+// === Features ===
+#![feature(test)]
+
+
+// ==============
+// === Export ===
+// ==============
+
 #[rustfmt::skip]
 pub mod generated;
+
+
+

@@ -1,5 +1,8 @@
-#![feature(test)]
+//! This module exports the interface to the generated Enso lexer.
+
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -8,13 +11,21 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This module exports the interface to the generated Enso lexer.
+// === Features ===
+#![feature(test)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 #[rustfmt::skip]
 pub mod generated;
 pub mod lexer;
 
 pub use crate::lexer::*;
+
+
 
 /// Support libraries for the lexer definition.
 ///

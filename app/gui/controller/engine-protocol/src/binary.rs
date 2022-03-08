@@ -1,5 +1,10 @@
 //! Crate containing the Engine Services binary protocol interface.
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod client;
 pub mod connection;
 pub mod message;
@@ -12,3 +17,6 @@ pub use client::MockAPI as MockClient;
 pub use client::Notification;
 pub use client::API;
 pub use connection::Connection;
+
+
+

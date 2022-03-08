@@ -1,8 +1,10 @@
+// === Linter configuration ===
 #![allow(missing_docs)]
+
+use crate::prelude::*;
 
 use crate::data::function::traits::FnMut0;
 use crate::data::function::traits::FnMut1;
-use crate::prelude::*;
 
 
 

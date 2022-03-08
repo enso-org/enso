@@ -1,5 +1,8 @@
-#![feature(test)]
+//! This library defines the lexer for the syntax of the Enso language.
+
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -8,13 +11,21 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This library defines the lexer for the syntax of the Enso language.
+// === Features ===
+#![feature(test)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod escape;
 pub mod lexeme;
 pub mod lexer;
 pub mod rule;
 pub mod token;
+
+
 
 /// A module that can be re-exported under the same name in the generation crate.
 ///

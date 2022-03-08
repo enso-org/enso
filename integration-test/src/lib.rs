@@ -6,6 +6,7 @@
 //!
 //! These tests require the Project Manager for working.
 
+// === Linter configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -16,14 +17,16 @@
 #![warn(missing_debug_implementations)]
 
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use enso_frp::future::EventOutputExt;
 use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
-use enso_web::traits::*;
 use enso_web::HtmlDivElement;
 use ensogl::application::Application;
+
+
 
 /// Reexports of commonly-used structures, methods and traits.
 pub mod prelude {

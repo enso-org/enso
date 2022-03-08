@@ -11,6 +11,8 @@ use ast::Ast;
 use ast::HasRepr;
 use ast::Shape;
 
+
+
 /// Additional methods for parser to ease writing tests.
 pub trait ParserTestExts {
     /// Program is expected to be a module with a single non-emty line. Its AST

@@ -1,5 +1,8 @@
-#![feature(test)]
+//! This file contains tests for lexing operators in the Enso lexer.
+
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -8,7 +11,10 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This file contains tests for lexing operators in the Enso lexer.
+// === Features ===
+#![feature(test)]
+
+
 
 mod test_utils;
 

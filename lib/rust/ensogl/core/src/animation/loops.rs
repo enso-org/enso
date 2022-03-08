@@ -1,9 +1,9 @@
 //! This module contains implementation of loops mainly used for per-frame callbacks firing.
 
 use crate::prelude::*;
+use crate::system::web::traits::*;
 
 use crate::system::web;
-use crate::system::web::traits::*;
 
 use web::Closure;
 

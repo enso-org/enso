@@ -134,8 +134,9 @@
 //! set of constructors create profilers that inherit their start time from the specified parent,
 //! e.g. [`objective_with_same_start!`] in the example above.
 
-#![feature(test)]
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -144,8 +145,18 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+// === Features ===
+#![feature(test)]
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod internal;
 pub mod log;
+
+
 
 extern crate test;
 

@@ -1,13 +1,13 @@
-#![allow(missing_docs)]
-
 //! This module contains implementation of various dirty flags. A dirty flag is a structure which
 //! remembers that something was changed, but not updated yet. For example, dirty flags are useful
 //! when defining OpenGL buffer management. When a data in CPU-buffer changes, dirty flags can keep
 //! a set of changed indexes and bulk-update the GPU-buffers every animation frame. You can think
 //! of dirty flags like about a way to introduce laziness to the program evaluation mechanisms.
 
-use crate::prelude::*;
+// === Linter configuration ===
+#![allow(missing_docs)]
 
+use crate::prelude::*;
 use crate::data::function::traits::*;
 
 use rustc_hash::FxHashSet;

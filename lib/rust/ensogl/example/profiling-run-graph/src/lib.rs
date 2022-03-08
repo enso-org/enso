@@ -1,5 +1,6 @@
 //! Demo scene showing a sample flame graph.
 
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

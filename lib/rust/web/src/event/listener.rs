@@ -1,9 +1,10 @@
+// === Linter configuration ===
 #![allow(missing_docs)]
+
+use crate::prelude::*;
 
 use crate::closure::storage::ClosureFn;
 use crate::closure::storage::OptionalFmMutClosure;
-
-use crate::prelude::*;
 
 
 

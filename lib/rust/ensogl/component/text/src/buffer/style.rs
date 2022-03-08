@@ -1,6 +1,7 @@
 //! Text style definition (color, bold, italics, etc.).
 
 use super::*;
+
 use crate::buffer::Range;
 use crate::data::color;
 

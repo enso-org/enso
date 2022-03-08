@@ -2,12 +2,17 @@
 
 use enso_prelude::*;
 
+
+// ==============
+// === Export ===
+// ==============
+
+pub use wasm_bindgen::prelude::*;
 pub use js_sys::Error;
 pub use js_sys::Function;
 pub use js_sys::JsString;
 pub use js_sys::Object;
 pub use wasm_bindgen::prelude::Closure;
-pub use wasm_bindgen::prelude::*;
 pub use wasm_bindgen::JsCast;
 pub use wasm_bindgen::JsValue;
 pub use web_sys::console;
@@ -28,7 +33,6 @@ pub use web_sys::Performance;
 pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::WheelEvent;
 pub use web_sys::Window;
-
 pub use std::time::Duration;
 pub use std::time::Instant;
 

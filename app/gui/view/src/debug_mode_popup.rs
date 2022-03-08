@@ -2,13 +2,13 @@
 //! Editor.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use enso_frp as frp;
 use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
 use ensogl::Animation;
 use ensogl_component::label::Label;
 

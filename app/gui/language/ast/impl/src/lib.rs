@@ -1,8 +1,14 @@
+// === Features ===
 #![feature(associated_type_bounds)]
 #![feature(bool_to_option)]
 #![feature(generators, generator_trait)]
 #![feature(trivial_bounds)]
 #![feature(type_alias_impl_trait)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 #[warn(missing_docs)]
 pub mod assoc;
@@ -27,6 +33,7 @@ pub mod repr;
 pub mod test_utils;
 #[warn(missing_docs)]
 pub mod traits;
+
 
 
 pub mod prelude {

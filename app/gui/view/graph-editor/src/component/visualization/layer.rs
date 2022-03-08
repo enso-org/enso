@@ -1,4 +1,5 @@
 //! Functionality that allows one to manage occlusion/layers of visualisations in the scene.
+
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 

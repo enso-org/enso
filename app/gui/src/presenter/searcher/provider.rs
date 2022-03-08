@@ -10,6 +10,7 @@ use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 
 
+
 // ============================
 // === Any Provider Helpers ===
 // ============================

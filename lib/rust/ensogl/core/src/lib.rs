@@ -2,7 +2,12 @@
 //! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
 //! of the `ensogl` crate to learn more.
 
+#![deny(unconditional_recursion)]
+#![recursion_limit = "512"]
+
 // === Linter configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(dead_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -11,9 +16,9 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
 // === Features ===
 #![allow(incomplete_features)]
-#![deny(unconditional_recursion)]
 #![feature(associated_type_defaults)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]
@@ -25,26 +30,12 @@
 #![feature(marker_trait_attr)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
-// === Macro expansion ===
-#![recursion_limit = "512"]
-// To be removed after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
-#![allow(clippy::option_map_unit_fn)]
-// FIXME: this should be removed:
-#![allow(dead_code)]
 
 
+// ==============
+// === Export ===
+// ==============
 
-// ===================
-// === Macro Debug ===
-// ===================
-
-/// Uncomment the following lines in order to enable macro-expansion debugging during compilation.
-//#![feature(trace_macros)]
-//trace_macros!(true);
-
-// =================================
-// === Module Structure Reexport ===
-// =================================
 pub mod animation;
 pub mod application;
 pub mod control;
@@ -56,11 +47,12 @@ pub mod system;
 
 pub use enso_frp as frp;
 pub use enso_types as types;
-
 pub use animation::Animation;
 pub use animation::DEPRECATED_Animation;
 pub use animation::DEPRECATED_Tween;
 pub use animation::Easing;
+
+
 
 /// Commonly used utilities.
 pub mod prelude {

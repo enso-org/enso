@@ -1,7 +1,7 @@
+// === Linter configuration ===
 #![allow(missing_docs)]
 
 use crate::prelude::*;
-
 use crate::data::dirty::traits::*;
 
 use crate::data::dirty;

@@ -1,10 +1,15 @@
 //! Color mixing utilities.
 
-use super::*;
 use crate::prelude::*;
+use super::*;
 
 use crate::data::mix;
 use crate::data::mix::Mixable;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use crate::data::mix::mix;
 

@@ -1,6 +1,8 @@
 //! Drop Down Menu Component.
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
+
+#![recursion_limit = "512"]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -9,21 +11,25 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
 
 use ensogl_core::prelude::*;
+use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::primitive::StyleWatch;
-use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::ModelProvider;
 use ensogl_text as text;
+
 
 
 // =================

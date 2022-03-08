@@ -3,12 +3,11 @@
 //! discontinuities of the polar coordinates of Lcha (i.e., a transition from hue 1 to 359 would go
 //! through all hues instead of taking the shorter trip "backwards").
 
-use super::*;
 use crate::prelude::*;
+use crate::display::shape::*;
+use super::*;
 
 use enso_frp as frp;
-
-use crate::display::shape::*;
 
 
 

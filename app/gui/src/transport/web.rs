@@ -1,9 +1,9 @@
 //! web_sys::WebSocket-based `Transport` implementation.
 
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use enso_web::event::listener::Slot;
-use enso_web::traits::*;
 use failure::Error;
 use futures::channel::mpsc;
 use json_rpc::Transport;

@@ -21,7 +21,10 @@
 //! handle data for visualizations. This allows the `Visualization` struct to be without type
 //! parameters and simplifies the FRP communication and complexity of the node system.
 
-// FIXME: please update the above docs.
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod container;
 pub mod data;
@@ -37,8 +40,11 @@ pub use container::*;
 pub use data::*;
 pub use definition::*;
 pub use foreign::*;
-pub use instance::Instance;
 pub use layer::*;
 pub use metadata::*;
 pub use path::*;
 pub use registry::*;
+pub use instance::Instance;
+
+
+

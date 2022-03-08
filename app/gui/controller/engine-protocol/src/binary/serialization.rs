@@ -2,7 +2,6 @@
 //! messages and their parts.
 
 use crate::prelude::*;
-
 use crate::generated::binary_protocol_generated::org::enso::languageserver::protocol::binary::*;
 
 use crate::binary::message;

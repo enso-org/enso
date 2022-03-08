@@ -1,3 +1,5 @@
+
+
 #![allow(clippy::ptr_arg)] // workaround for https://github.com/asomers/mockall/issues/58
 
 //! Project controller.

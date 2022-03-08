@@ -2,6 +2,8 @@
 //! it notifies about new files, and their metadata and with methods for reading them.
 
 #![deny(unconditional_recursion)]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -10,6 +12,8 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
+
 
 /// Commonly used utilities.
 pub mod prelude {

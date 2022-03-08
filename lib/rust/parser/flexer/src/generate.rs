@@ -12,14 +12,13 @@ use crate::automata::state::State;
 use crate::group;
 use crate::group::AutomatonData;
 use crate::group::Group;
+use crate as flexer;
 
 use enso_macro_utils::repr;
 use proc_macro2::Literal;
 use std::fmt;
 use std::hash::BuildHasher;
 use std::result::Result;
-
-use crate as flexer;
 
 
 

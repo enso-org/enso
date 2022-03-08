@@ -1,7 +1,10 @@
 //! A number of helper functions meant to be used in the procedural enso-shapely-macros
 //! definitions.
 
+// === Linter configuration ===
 #![warn(missing_docs)]
+
+// === Features ===
 #![feature(trait_alias)]
 
 use proc_macro2::TokenStream;

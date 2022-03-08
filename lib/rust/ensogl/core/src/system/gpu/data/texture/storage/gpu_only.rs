@@ -2,11 +2,11 @@
 //! to GPU texture of a given size.
 
 use crate::prelude::*;
-
-use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
+
+use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::Context;
 
 

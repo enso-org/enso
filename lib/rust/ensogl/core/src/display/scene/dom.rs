@@ -1,19 +1,19 @@
 //! This module defines a DOM management utilities.
 
 use crate::prelude::*;
+use crate::display::object::traits::*;
 use web::traits::*;
 
 use crate::display::camera::camera2d::Projection;
 use crate::display::camera::Camera2d;
-use crate::display::object::traits::*;
 use crate::display::symbol::dom::eps;
 use crate::display::symbol::dom::inverse_y_translation;
 use crate::display::symbol::DomSymbol;
 use crate::system::web;
-use web::HtmlDivElement;
-
 #[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
+
+use web::HtmlDivElement;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
 

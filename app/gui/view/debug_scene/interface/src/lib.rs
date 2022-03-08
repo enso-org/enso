@@ -2,6 +2,7 @@
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(trivial_casts)]
@@ -11,9 +12,11 @@
 #![warn(unused_qualifications)]
 
 use ensogl::prelude::*;
-
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
+use span_tree::traits::*;
+use wasm_bindgen::prelude::*;
+
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
@@ -33,9 +36,7 @@ use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
 use parser::Parser;
-use span_tree::traits::*;
 use uuid::Uuid;
-use wasm_bindgen::prelude::*;
 
 
 

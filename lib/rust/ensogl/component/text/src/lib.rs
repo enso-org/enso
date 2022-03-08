@@ -3,9 +3,9 @@
 //! To properly understand the implementation and its assumptions, please read the documentation
 //! of [`enso_text`] crate carefully.
 
-#![feature(trait_alias)]
-#![feature(type_ascription)]
-#![feature(option_zip)]
+#![recursion_limit = "1024"]
+
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -14,11 +14,22 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
+
+// === Features ===
+#![feature(trait_alias)]
+#![feature(type_ascription)]
+#![feature(option_zip)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod buffer;
 pub mod component;
 pub mod typeface;
+
+
 
 /// Commonly used types and functions.
 pub mod prelude {

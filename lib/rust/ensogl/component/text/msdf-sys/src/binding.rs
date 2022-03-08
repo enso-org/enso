@@ -1,7 +1,10 @@
+// === Linter configuration ===
 #![allow(unsafe_code)]
 
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+
+
 
 #[wasm_bindgen(module = "/msdfgen_wasm.js")]
 extern "C" {

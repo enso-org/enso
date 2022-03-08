@@ -5,6 +5,8 @@ use crate::prelude::*;
 use crate::component::type_coloring;
 use crate::component::visualization::foreign::java_script::PreprocessorCallback;
 use crate::Type;
+#[cfg(target_arch = "wasm32")]
+use crate::component::visualization::instance::PreprocessorConfiguration;
 
 use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
@@ -15,9 +17,6 @@ use ensogl::system::web::JsValue;
 use ensogl_hardcoded_theme;
 use fmt::Formatter;
 use wasm_bindgen::prelude::wasm_bindgen;
-
-#[cfg(target_arch = "wasm32")]
-use crate::component::visualization::instance::PreprocessorConfiguration;
 
 
 

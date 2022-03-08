@@ -11,6 +11,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(trait_alias)]
@@ -19,13 +20,14 @@
 #![feature(auto_traits)]
 #![feature(unsize)]
 
-
 use crate::prelude::*;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-pub use std::time::Duration;
-pub use std::time::Instant;
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod binding;
 pub mod clipboard;
@@ -34,6 +36,11 @@ pub mod event;
 pub mod platform;
 pub mod resize_observer;
 pub mod stream;
+
+pub use std::time::Duration;
+pub use std::time::Instant;
+
+
 
 /// Common types that should be visible across the whole crate.
 pub mod prelude {

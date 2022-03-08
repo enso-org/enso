@@ -1,10 +1,7 @@
 //! The component with buttons in the top left corner. See [[View]].
 
-pub mod close;
-pub mod fullscreen;
-
-
 use ensogl::prelude::*;
+use ensogl::display::shape::*;
 
 use ensogl::application;
 use ensogl::application::Application;
@@ -12,10 +9,16 @@ use ensogl::data::color;
 use ensogl::define_shape_system;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl_hardcoded_theme::application::window_control_buttons as theme;
-
 use enso_frp as frp;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod close;
+pub mod fullscreen;
 
 
 

@@ -3,8 +3,8 @@
 //! Sprites are very fast to render. You can expect even millions of sprites to be rendered 60 FPS.
 
 use crate::prelude::*;
-
 use crate::display::traits::*;
+use crate::system::gpu::types::*;
 
 use crate::debug::Stats;
 use crate::display;
@@ -14,7 +14,6 @@ use crate::display::scene::Scene;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
-use crate::system::gpu::types::*;
 
 
 

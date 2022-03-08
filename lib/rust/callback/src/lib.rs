@@ -9,6 +9,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
 // === Features ===
 #![feature(trait_alias)]
 #![feature(unboxed_closures)]
@@ -21,12 +22,13 @@ use std::any::TypeId;
 use std::marker::Unsize;
 
 
-
-// ==============================
-// === Popular Callback Types ===
-// ==============================
+// ==============
+// === Export ===
+// ==============
 
 pub use callback_types::*;
+
+
 
 /// Popular callback types. These are aliases for static [`Fn`] and [`FnMut`] with different amount
 /// of arguments. The names directly correspond to the [`::registry`] namespace. For example,

@@ -1,7 +1,6 @@
 //! This module defines the class of all shapes.
 
 use crate::prelude::*;
-
 use super::modifier::*;
 use super::unit::*;
 

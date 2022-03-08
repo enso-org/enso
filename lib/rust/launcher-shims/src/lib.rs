@@ -1,7 +1,8 @@
+use std::io::prelude::*;
+
 use std::env;
 use std::fs::OpenOptions;
 use std::io;
-use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::exit;
 use std::process::Command;
