@@ -216,9 +216,9 @@ impl Model {
         self
     }
 
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+    fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
-    } 
+    }
 
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };

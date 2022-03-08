@@ -460,7 +460,7 @@ impl View {
             let main_cam_frp = &main_cam.frp();
             searcher_cam_pos <- all_with3(&main_cam_frp.position,
                                           &main_cam_frp.zoom,
-                                          &searcher_left_top_position.value, 
+                                          &searcher_left_top_position.value,
                                           |main_cam_pos, zoom, searcher_pos| {
                 let main_cam_space_to_searcher_cam_space = (*main_cam_pos * *zoom).xy();
                 let translate_in_searcher_cam_space = *searcher_pos * (1.0 - *zoom);

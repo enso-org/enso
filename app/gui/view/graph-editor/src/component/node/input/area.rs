@@ -288,7 +288,7 @@ impl Model {
         self
     }
 
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+    fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
     }
 
@@ -486,7 +486,6 @@ impl Area {
     pub fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.model.set_label_layer(layer);
     }
-
 }
 
 

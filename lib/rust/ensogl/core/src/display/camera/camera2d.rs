@@ -162,11 +162,11 @@ impl Default for Matrix {
 /// Frp outputs of the Camera2d.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Frp {
-    network: frp::Network,
+    network:      frp::Network,
     /// Camera position.
     pub position: frp::Source<Vector3<f32>>,
     /// Camera zoom factor.
-    pub zoom: frp::Source<f32>,
+    pub zoom:     frp::Source<f32>,
 }
 
 /// Function used to return the updated screen dimensions.
@@ -188,7 +188,7 @@ struct Camera2dData {
     dirty:                  Dirty,
     zoom_update_registry:   callback::registry::CopyMut1<f32>,
     screen_update_registry: callback::registry::CopyMut1<Vector2<f32>>,
-    frp: Frp,
+    frp:                    Frp,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
@@ -214,11 +214,7 @@ impl Camera2dData {
             frp_position <- source();
             frp_zoom <- source();
         }
-        let frp = Frp {
-            network,
-            position: frp_position,
-            zoom: frp_zoom,
-        };
+        let frp = Frp { network, position: frp_position, zoom: frp_zoom };
         Self {
             frp,
             display_object,

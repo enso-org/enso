@@ -488,9 +488,9 @@ pub struct DomLayers {
     pub front:          DomScene,
     /// DOM scene layer for Node Searcher DOM elements. This layer should probably be removed once
     /// all parts of Node Searcher will use ensogl primitives instead of DOM objects for rendering.
-    pub node_searcher: DomScene,
+    pub node_searcher:  DomScene,
     /// The WebGL scene layer.
-    pub canvas:            web_sys::HtmlCanvasElement,
+    pub canvas:         web::HtmlCanvasElement,
 }
 
 impl DomLayers {
