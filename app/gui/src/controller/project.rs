@@ -149,8 +149,7 @@ impl Project {
         let main_graph = controller::ExecutedGraph::new(&self.logger, project, method).await?;
 
         self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
-        let execution_ready = main_graph.when_ready();
-        executor::global::spawn(self.clone_ref().notify_about_compiling_process(execution_ready));
+        self.notify_about_compiling_process(&main_graph);
         self.display_warning_on_unsupported_engine_version();
 
         Ok(InitializationResult { main_module_text, main_module_model, main_graph })
@@ -215,15 +214,18 @@ impl Project {
         }
     }
 
-    #[profile(Detail)]
-    async fn notify_about_compiling_process(self, execution_ready: StaticBoxFuture<Option<()>>) {
-        if execution_ready.await.is_some() {
-            let status_notifier = &self.status_notifications;
-            let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);
-            status_notifier.published_background_task_finished(compiling_process);
-        } else {
-            warning!(self.logger, "Executed graph dropped before first successful execution!");
-        }
+    fn notify_about_compiling_process(&self, graph: &controller::ExecutedGraph) {
+        let status_notifier = self.status_notifications.clone_ref();
+        let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);
+        let execution_ready = graph.when_ready();
+        let logger = self.logger.clone_ref();
+        executor::global::spawn(async move {
+            if execution_ready.await.is_some() {
+                status_notifier.published_background_task_finished(compiling_process);
+            } else {
+                warning!(logger, "Executed graph dropped before first successful execution!")
+            }
+        });
     }
 
     fn display_warning_on_unsupported_engine_version(&self) {

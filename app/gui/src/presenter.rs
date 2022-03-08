@@ -38,7 +38,7 @@ struct Model {
 impl Model {
     /// Instantiate a new project presenter, which will display current project in the view.
     #[profile(Task)]
-    async fn setup_and_display_new_project(self: Rc<Self>) {
+    fn setup_and_display_new_project(self: Rc<Self>) {
         // Remove the old integration first. We want to be sure the old and new integrations will
         // not race for the view.
         *self.current_project.borrow_mut() = None;
@@ -63,16 +63,18 @@ impl Model {
             project_view,
             status_bar,
         );
-        match project_presenter.await {
-            Ok(project) => {
-                *self.current_project.borrow_mut() = Some(project);
+        crate::executor::global::spawn(async move {
+            match project_presenter.await {
+                Ok(project) => {
+                    *self.current_project.borrow_mut() = Some(project);
+                }
+                Err(err) => {
+                    let err_msg = format!("Failed to initialize project: {}", err);
+                    error!(self.logger, "{err_msg}");
+                    self.controller.status_notifications().publish_event(err_msg);
+                }
             }
-            Err(err) => {
-                let err_msg = format!("Failed to initialize project: {}", err);
-                error!(self.logger, "{err_msg}");
-                self.controller.status_notifications().publish_event(err_msg);
-            }
-        }
+        });
     }
 
     /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
@@ -160,8 +162,8 @@ impl Presenter {
     fn init(self) -> Self {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
+        self.model.clone_ref().setup_and_display_new_project();
         executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
-        executor::global::spawn(self.model.clone_ref().setup_and_display_new_project());
         self
     }
 
@@ -203,7 +205,7 @@ impl Presenter {
             match notification {
                 controller::ide::Notification::NewProjectCreated
                 | controller::ide::Notification::ProjectOpened =>
-                    executor::global::spawn(model.setup_and_display_new_project()),
+                    model.setup_and_display_new_project(),
             }
             futures::future::ready(())
         });
