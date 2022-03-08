@@ -752,6 +752,7 @@ macro_rules! define_endpoints_2 {
                     }
                 }
 
+                #[allow(unused_parens)]
                 #[derive(Debug)]
                 pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
                     $($(#[doc=$($out_doc)*])*
@@ -793,6 +794,7 @@ macro_rules! define_endpoints_2 {
                     data: Rc<CombinedData$(<$($param),*>)?,> // deref
                 }
 
+                #[allow(unused_parens)]
                 impl $(<$($param $(:$($constraints)*)?),*>)? Combined $(<$($param),*>)? {
                     pub fn new(input:&InputData$(<$($param),*>)?, output:&OutputData$(<$($param),*>)?) -> Self {
                         let data = Rc::new(CombinedData::new(input,output));
@@ -877,6 +879,7 @@ macro_rules! define_endpoints_2 {
                     }
                 }
 
+                #[allow(unused_parens)]
                 #[derive(Debug)]
                 pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
                      $($(#[doc=$($in_doc)*])*
@@ -921,6 +924,7 @@ macro_rules! define_endpoints_2 {
                     }
                 }
 
+                #[allow(unused_parens)]
                 #[derive(Debug)]
                 pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
                     $($(#[doc=$($out_doc)*])*
@@ -985,12 +989,14 @@ mod tests {
 
     // Check compilation of doc example.
     mod doc_example {
-        define_endpoints_2! { [GLOBAL_OPTS] <GENERIC_PARAMETERS>
-            Input { [INPUT_OPTS]
+        use super::*;
+
+        define_endpoints_2! {
+            Input {
                 input1 (f32),
                 input2 (),
             }
-            Output { [OUTPUT_OPTS]
+            Output {
                 output1 (String),
                 output2 (bool),
                 output3 (),
