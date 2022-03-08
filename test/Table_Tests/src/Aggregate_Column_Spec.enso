@@ -134,9 +134,13 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator simple_table (Count_Distinct "count" test_name) test_name 4
         test_aggregator simple_table (Count_Distinct int_col test_name) test_name 4
         test_aggregator empty_table (Count_Distinct 0 test_name) test_name 0
+        test_aggregator simple_table (Count_Distinct float_col test_name ignore_nothing=False) test_name 5
+        test_aggregator simple_table (Count_Distinct float_col test_name ignore_nothing=True) test_name 4
 
     Test.specify "should be able to count distinct items on a multiple sets of values" <|
         test_aggregator simple_table (Count_Distinct [0, 1]) "Count Distinct count is_valid" 5
+        test_aggregator simple_table (Count_Distinct ["is_valid", "float"]) "Count Distinct is_valid float" 5
+        test_aggregator simple_table (Count_Distinct ["is_valid", "float"] ignore_nothing=True) "Count Distinct is_valid float" 4
 
     Test.specify "should be able to get the minimum of a set of values" <|
         test_aggregator simple_table (Minimum -2) "Minimum float" 1
