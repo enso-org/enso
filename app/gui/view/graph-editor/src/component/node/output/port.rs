@@ -1,4 +1,4 @@
-//! FIXME[everyone] Modules should be documented
+//! FIXME[everyone] Modules should be documented.
 
 use crate::prelude::*;
 
@@ -446,7 +446,7 @@ ensogl::define_endpoints! {
 }
 
 #[derive(Clone, Debug, Default)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Model {
     pub frp:            Option<Frp>,
     pub shape:          Option<PortShapeView>,
@@ -459,7 +459,7 @@ pub struct Model {
 }
 
 impl Model {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn init_shape(
         &mut self,
         logger: impl AnyLogger,
@@ -624,7 +624,7 @@ impl Model {
         self.frp = Some(frp);
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn set_size(&self, size: Vector2) {
         if let Some(frp) = &self.frp {
             frp.set_size(size);

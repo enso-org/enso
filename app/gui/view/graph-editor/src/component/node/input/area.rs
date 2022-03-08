@@ -33,7 +33,7 @@ use ensogl_hardcoded_theme as theme;
 // === Constants ===
 // =================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const TEXT_OFFSET: f32 = 10.0;
 
 /// Width of a single glyph
@@ -448,7 +448,7 @@ impl Area {
         Self { frp, model }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
@@ -462,18 +462,18 @@ impl Area {
         })
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn label(&self) -> &text::Area {
         &self.model.label
     }
