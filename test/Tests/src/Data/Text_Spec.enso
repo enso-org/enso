@@ -769,21 +769,30 @@ spec =
             '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
 
         Test.specify "should allow to find span_of occurrences within a text" <|
-            "Hello World!".span_of "J" . should_equal Nothing
-            "Hello World!".span_of "o" . should_equal <| Span (Range 4 5) "Hello World!"
-            "Hello World!".span_of "o" mode=Last . should_equal <| Span (Range 4 5) "Hello World!"
+            hello = "Hello World!"
+            hello.span_of "J" . should_equal Nothing
+            hello.span_of "o" . should_equal (Span (Range 4 5) hello)
+            hello.span_of "o" mode=Last . should_equal (Span (Range 4 5) hello)
 
-            "Hello World!".span_of_all "J" . should_equal []
-            "Hello World!".span_of_all "o" . map .start . should_equal [4, 7]
+            hello.span_of_all "J" . should_equal []
+            hello.span_of_all "o" . map .start . should_equal [4, 7]
+
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            accents.span_of accent_1 . should_equal (Span (Range 1 2) accents)
 
         Test.specify "should allow regexes in span_of" <|
-            "Hello world".span_of ".o" Mode.First Regex_Matcher.new . should_equal (Span (Range 3 5) "Hello world")
-            "Hello world".span_of_all ".o" Regex_Matcher.new . map .start . should_equal [3, 6]
+            hello = "Hello World!"
+            hello.span_of ".o" Mode.First Regex_Matcher.new . should_equal (Span (Range 3 5) hello)
+            hello.span_of_all ".o" Regex_Matcher.new . map .start . should_equal [3, 6]
 
             "foobar".span_of "BAR" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal (Span (Range 3 6) "foobar")
 
-            ## Regex matching does not do folding
+            ## Regex matching does not do case folding
             "Strasse".span_of "ß" Mode.First (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_equal Nothing
+
+            ## But it should handle the Unicode normalization
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            accents.span_of accent_1 Mode.First Regex_Matcher.new . should_equal (Span (Range 1 2) accents)
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
