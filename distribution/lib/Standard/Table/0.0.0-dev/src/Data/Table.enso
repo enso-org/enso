@@ -527,7 +527,7 @@ type Table
         add_row key =
             idx = new_table.at 0 . at 1 . length
             0.up_to key_length . each i->
-                new_table.at i . at 1 . append (key.values.at i)
+                new_table.at i . at 1 . append (key.values.at i).value
             0.up_to (columns.length) . each i->
                 column = columns.at i
                 new_table.at (i + key_length) . at 1 . append (column.initial_value)
