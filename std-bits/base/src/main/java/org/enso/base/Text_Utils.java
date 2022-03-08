@@ -2,7 +2,6 @@ package org.enso.base;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.BreakIterator;
-import com.ibm.icu.text.CaseMap;
 import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import org.enso.base.text.CaseFoldedString;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
@@ -133,7 +133,7 @@ public class Text_Utils {
    */
   public static boolean equals_ignore_case(String str1, Object str2, Locale locale) {
     if (str2 instanceof String) {
-      Fold fold = case_fold_algorithm_for_locale(locale);
+      Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
       return compare_normalized(fold.apply(str1), fold.apply((String) str2)) == 0;
     } else {
       return false;
@@ -212,7 +212,7 @@ public class Text_Utils {
     if (substring.length() == 0) return true;
     if (string.length() == 0) return false;
 
-    Fold fold = case_fold_algorithm_for_locale(locale);
+    Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
     StringSearch searcher = new StringSearch(fold.apply(substring), fold.apply(string));
     return searcher.first() != StringSearch.DONE;
   }
@@ -226,19 +226,7 @@ public class Text_Utils {
    * @return a transformed string that can be used for case insensitive comparisons
    */
   public static String case_insensitive_key(String string, Locale locale) {
-    Fold fold = case_fold_algorithm_for_locale(locale);
-    return fold.apply(string);
-  }
-
-  private static final Locale AZ_LOCALE = new Locale("az");
-  private static final Locale TR_LOCALE = new Locale("tr");
-
-  /** Returns a case folding algorithm appropriate for the given locale. */
-  public static Fold case_fold_algorithm_for_locale(Locale locale) {
-    if (locale.equals(AZ_LOCALE) || locale.equals(TR_LOCALE)) {
-      return CaseMap.fold().turkic();
-    }
-    return CaseMap.fold();
+    return CaseFoldedString.simpleFold(string, locale);
   }
 
   /**
@@ -330,7 +318,7 @@ public class Text_Utils {
     int grapheme_end = breakIterator.next();
     long grapheme_index = 0;
 
-    while (grapheme_end <= codepoint_index && grapheme_end != -1) {
+    while (grapheme_end <= codepoint_index && grapheme_end != BreakIterator.DONE) {
       grapheme_index++;
       grapheme_end = breakIterator.next();
     }
@@ -362,7 +350,7 @@ public class Text_Utils {
     int result_ix = 0;
 
     for (long codepoint_index : codepoint_indices) {
-      while (grapheme_end <= codepoint_index && grapheme_end != -1) {
+      while (grapheme_end <= codepoint_index && grapheme_end != BreakIterator.DONE) {
         grapheme_index++;
         grapheme_end = breakIterator.next();
       }
@@ -370,6 +358,38 @@ public class Text_Utils {
     }
 
     return result;
+  }
+
+  /**
+   * Represents a span of characters within a Text.
+   *
+   * <p>The indices are stored in grapheme cluster space.
+   *
+   * <p>The start index indicates the first grapheme of the span and the end index indicates the
+   * first grapheme after the end of the span.
+   */
+  public static class GraphemeSpan {
+    public final long start, end;
+
+    public GraphemeSpan(long start, long end) {
+      this.start = start;
+      this.end = end;
+    }
+  }
+
+  public static GraphemeSpan span_of_case_insensitive(
+      String haystack, String needle, Locale locale) {
+    CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
+    String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
+    StringSearch search = new StringSearch(foldedNeedle, foldedHaystack.getFoldedString());
+    int pos = search.first();
+    if (pos == StringSearch.DONE) {
+      return null;
+    } else {
+      int start = foldedHaystack.codeUnitToGraphemeIndex(pos);
+      int end = foldedHaystack.codeUnitToGraphemeIndex(pos + search.getMatchLength());
+      return new GraphemeSpan(start, end);
+    }
   }
 
   /**
