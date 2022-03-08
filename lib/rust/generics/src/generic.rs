@@ -1,6 +1,6 @@
 //! Generic representation of data types. Refer to the crate documentation to learn more.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
 use super::hlist;

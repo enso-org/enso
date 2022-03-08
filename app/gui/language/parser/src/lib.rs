@@ -4,15 +4,53 @@
 //! this parser: one for local parser which binds scala parser compiled to WebAssembly to the Rust
 //! crate. The second is calling a Parser running remotely using WebSockets.
 
-// === Linter configuration ===
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+//
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-standard linter configuration ===
+
+
+
+// === Standard linter configuration ===
+#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
+// === Non-standard linter configuration ===
 
 // === Features ===
 #![feature(trait_alias)]

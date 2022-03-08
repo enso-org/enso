@@ -22,7 +22,7 @@
 //! free indexes for the needs of efficient attribute memory management in EnsoGL. Read the docs of
 //! [`ensogl::AttributeScopeData`] to learn more.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::field_reassign_with_default)]
 
 use crate::prelude::*;

@@ -1,7 +1,7 @@
 //! This module defines all primitive Signed Distance Field (SDF) shapes such as circle or
 //! rectangle. Learn more about SDFs: https://en.wikipedia.org/wiki/Signed_distance_function
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 

@@ -1,6 +1,6 @@
 //! This module exports scala ast generator.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(unused_must_use)]
 
 use std::io::prelude::*;

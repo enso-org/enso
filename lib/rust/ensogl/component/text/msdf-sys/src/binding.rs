@@ -1,4 +1,4 @@
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(unsafe_code)]
 
 use wasm_bindgen::prelude::wasm_bindgen;

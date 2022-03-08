@@ -1,8 +1,6 @@
 //! This file contains tests for the generated lexer.
 
-#![deny(unconditional_recursion)]
-
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

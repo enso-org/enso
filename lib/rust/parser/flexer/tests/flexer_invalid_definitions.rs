@@ -3,7 +3,7 @@
 //! This file includes quite a bit of duplicated code, but this is known and intentional as it
 //! allows for increased clarity in the testing.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
 

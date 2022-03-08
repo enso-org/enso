@@ -1,6 +1,6 @@
 //! This module gathers common math types which are widely used in this project.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(non_snake_case)]
 
 use nalgebra;

@@ -8,9 +8,9 @@
 //! - To implement the [`#[profile]`](macro@profile) attribute macro.
 
 #![cfg_attr(feature = "lineno", feature(proc_macro_span))]
-#![deny(unconditional_recursion)]
 
-// === Linter configuration ===
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -18,6 +18,44 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+//
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-standard linter configuration ===
+
+
+
+// === Standard linter configuration ===
+#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
+// === Non-standard linter configuration ===
 
 use inflector::Inflector;
 use quote::ToTokens;

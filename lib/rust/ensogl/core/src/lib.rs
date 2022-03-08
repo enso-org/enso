@@ -1,13 +1,11 @@
 //! The core vector rendering engine for EnsoGL, a blazing fast 2D drawing library. This crate
-//! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
+//! contains the core utilities necessary for the rendering engine to run correctly. See the docs
 //! of the `ensogl` crate to learn more.
 
-#![deny(unconditional_recursion)]
 #![recursion_limit = "512"]
 
-// === Linter configuration ===
-#![allow(clippy::option_map_unit_fn)]
-#![allow(dead_code)]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -16,6 +14,10 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
+// === Non-Standard Linter Configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(dead_code)]
 
 // === Features ===
 #![allow(incomplete_features)]
@@ -45,12 +47,12 @@ pub mod display;
 pub mod gui;
 pub mod system;
 
-pub use enso_frp as frp;
-pub use enso_types as types;
 pub use animation::Animation;
 pub use animation::DEPRECATED_Animation;
 pub use animation::DEPRECATED_Tween;
 pub use animation::Easing;
+pub use enso_frp as frp;
+pub use enso_types as types;
 
 
 

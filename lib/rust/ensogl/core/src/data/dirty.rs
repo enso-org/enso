@@ -4,7 +4,7 @@
 //! a set of changed indexes and bulk-update the GPU-buffers every animation frame. You can think
 //! of dirty flags like about a way to introduce laziness to the program evaluation mechanisms.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
 use crate::prelude::*;

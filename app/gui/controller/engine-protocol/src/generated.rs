@@ -1,6 +1,6 @@
 //! Despite the name, this file is NOT generated. It just re-exports all generated submodules.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(warnings)]
 
 

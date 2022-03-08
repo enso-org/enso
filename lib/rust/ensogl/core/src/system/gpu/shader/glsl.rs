@@ -1,7 +1,7 @@
 //! A lightweight GLSL implementation. Based on section the GLSL ES Spec docs:
 //! https://www.khronos.org/registry/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
 use crate::prelude::*;

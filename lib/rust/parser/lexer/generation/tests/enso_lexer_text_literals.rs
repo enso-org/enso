@@ -1,8 +1,6 @@
 //! This file contains tests for lexing text literals in the Enso lexer.
 
-#![deny(unconditional_recursion)]
-
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

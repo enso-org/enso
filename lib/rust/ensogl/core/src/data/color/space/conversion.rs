@@ -11,7 +11,7 @@
 //! make them more pleasant to work, however, the equations you will find here will probably work on
 //! different value ranges. Read documentation for each color space very carefully.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::excessive_precision)]
 

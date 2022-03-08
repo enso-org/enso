@@ -3,7 +3,7 @@
 //! WARNING
 //! THIS MODULE IS IN A VERY WORK-IN-PROGRESS STATE. IT WILL BE CHANGED SOON.
 
-// === Linter configuration ===
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 #![allow(dead_code)]
 

@@ -2,7 +2,8 @@
 //! high-level features and bug-fixes. It also provides a mock API version allowing the native
 //! compilation in order to run native tests of code which uses this API.
 
-// === Linter configuration ===
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -11,6 +12,43 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+//
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-Standard Linter Configuration ===
+
+
+
+// === Non-standard linter configuration ===
+
+
+
+// === Standard linter configuration ===
+#![warn(missing_copy_implementations)]#![warn(missing_debug_implementations)]#![warn(missing_docs)]#![warn(trivial_casts)]#![warn(trivial_numeric_casts)]#![warn(unsafe_code)]#![warn(unused_import_braces)]#![warn(unused_qualifications)]
+// === Non-standard linter configuration ===
 
 // === Features ===
 #![allow(incomplete_features)]

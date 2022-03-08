@@ -1,3 +1,16 @@
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+
+// === Non-Standard Linter Configuration ===
+
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
@@ -15,6 +28,7 @@ pub enum HeaderToken {
     ModuleAttrib,
     ModuleAttribWarn,
     ModuleAttribAllow,
+    ModuleAttribDeny,
     ModuleAttribFeature,
     ModuleAttribFeature2,
     EmptyLine,
@@ -29,6 +43,8 @@ pub enum HeaderToken {
     PubUse,
     PubUseStar,
     PubMod,
+
+    StandardLinterConfig,
 }
 
 use HeaderToken::*;
@@ -78,6 +94,17 @@ fn re(input: &str) -> Regex {
     Regex::new(&str).unwrap()
 }
 
+const STD_LINTER_ATTRIBS: &[&str] = &[
+    "deny(unconditional_recursion)",
+    "warn(missing_copy_implementations)",
+    "warn(missing_debug_implementations)",
+    "warn(missing_docs)",
+    "warn(trivial_casts)",
+    "warn(trivial_numeric_casts)",
+    "warn(unsafe_code)",
+    "warn(unused_import_braces)",
+    "warn(unused_qualifications)",
+];
 
 #[rustfmt::skip]
 lazy_static! {
@@ -96,6 +123,7 @@ lazy_static! {
     static ref r_module_attrib_feature2: Regex = re(r"#!\[allow\(incomplete_features\)\]");
     static ref r_module_attrib_warn: Regex     = re(r"#!\[warn[^\]]*\]");
     static ref r_module_attrib_allow: Regex    = re(r"#!\[allow[^\]]*\]");
+    static ref r_module_attrib_deny: Regex     = re(r"#!\[deny[^\]]*\]");
     static ref r_module_attrib: Regex          = re(r"#!\[[^\]]*\]");
     static ref r_attrib: Regex                 = re(r"#\[[^\]]*\]");
     static ref r_pub_mod: Regex                = re(r"pub +mod +[\w]+");
@@ -121,6 +149,7 @@ fn match_header_internal(input: &str) -> Result<(), HeaderElement> {
     find_with(input, &r_module_attrib_feature2, |t| HeaderElement::new(ModuleAttribFeature2, t))?;
     find_with(input, &r_module_attrib_warn, |t| HeaderElement::new(ModuleAttribWarn, t))?;
     find_with(input, &r_module_attrib_allow, |t| HeaderElement::new(ModuleAttribAllow, t))?;
+    find_with(input, &r_module_attrib_deny, |t| HeaderElement::new(ModuleAttribDeny, t))?;
     find_with(input, &r_module_attrib, |t| HeaderElement::new(ModuleAttrib, t))?;
 
     find_with(input, &r_attrib, |t| HeaderElement::new(Attrib, t))?;
@@ -136,7 +165,7 @@ fn match_header(input: &str) -> Option<HeaderElement> {
 }
 
 fn main() {
-    // process_file("./lib/rust/web/src/lib.rs", false);
+    // process_file("./lib/rust/ensogl/core/src/lib.rs", false, true);
     process_path(".");
 }
 
@@ -144,8 +173,11 @@ fn process_path(path: impl AsRef<Path>) {
     let paths = discover_paths(path);
     let total = paths.len();
     for (i, sub_path) in paths.iter().enumerate() {
-        println!("[{}/{}] Processing {:?}.", i + 1, total, sub_path);
-        process_file(sub_path, false);
+        let file_name = sub_path.file_name().map(|s| s.to_str()).flatten();
+        let is_main_file = file_name == Some("lib.rs") || file_name == Some("main.rs");
+        let dbg_msg = if is_main_file { " [main]" } else { "" };
+        println!("[{}/{}] Processing {:?}{}.", i + 1, total, sub_path, dbg_msg);
+        process_file(sub_path, false, is_main_file);
     }
 }
 
@@ -168,7 +200,7 @@ fn discover_paths_internal(vec: &mut Vec<PathBuf>, path: impl AsRef<Path>) {
     }
 }
 
-fn process_file(path: impl AsRef<Path>, preview: bool) {
+fn process_file(path: impl AsRef<Path>, preview: bool, is_main_file: bool) {
     let path = path.as_ref();
     let str = fs::read_to_string(path).unwrap();
 
@@ -216,12 +248,34 @@ fn process_file(path: impl AsRef<Path>, preview: bool) {
         header_map.entry(elem.token).or_default().push(elem.to_string());
     }
 
+    if is_main_file {
+        let vec = header_map.entry(ModuleAttribAllow).or_default();
+        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().map(|s| t.contains(s)).any(|b| b));
+
+        let vec = header_map.entry(ModuleAttribDeny).or_default();
+        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().map(|s| t.contains(s)).any(|b| b));
+
+        let vec = header_map.entry(ModuleAttribWarn).or_default();
+        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().map(|s| t.contains(s)).any(|b| b));
+
+
+        let std_linter_attribs = STD_LINTER_ATTRIBS.iter().map(|t| format!("#![{}]\n", t));
+        header_map.entry(StandardLinterConfig).or_default().extend(std_linter_attribs);
+    }
+
 
     let mut out = String::new();
     print(&mut out, &mut header_map, &[ModuleDoc]);
     print(&mut out, &mut header_map, &[ModuleAttrib]);
-    print_h2(&mut out, &header_map, &[ModuleAttribAllow, ModuleAttribWarn], "Linter configuration");
-    print(&mut out, &mut header_map, &[ModuleAttribAllow, ModuleAttribWarn]);
+    print_h2(&mut out, &header_map, &[StandardLinterConfig], "Standard Linter Configuration");
+    print(&mut out, &mut header_map, &[StandardLinterConfig]);
+    print_h2(
+        &mut out,
+        &header_map,
+        &[ModuleAttribAllow, ModuleAttribDeny, ModuleAttribWarn],
+        "Non-Standard Linter Configuration",
+    );
+    print(&mut out, &mut header_map, &[ModuleAttribAllow, ModuleAttribDeny, ModuleAttribWarn]);
     print_h2(&mut out, &header_map, &[ModuleAttribFeature2, ModuleAttribFeature], "Features");
     print(&mut out, &mut header_map, &[ModuleAttribFeature2, ModuleAttribFeature]);
 
