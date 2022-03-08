@@ -507,6 +507,24 @@ macro_rules! define_endpoints_emit_alias {
     };
 }
 
+/// Trait that describes the structure of the FRP API in terms of its public and private parts. This
+/// trait allows the `Component` (`lib/rust/ensogl/component/gui/src/component.rs`) to distinguish
+/// between public and private APIs for any API generated through the `define_endpoints_2` macro.
+pub trait API {
+    /// Public part of this API. To be used when sending events into the API and receiving
+    /// events from the API.
+    type Public: crate::application::command::CommandApi;
+    /// Private part of this API. To be used when receiving events sent into the public API and
+    /// creating events to the public API outputs.
+    type Private;
+
+    /// Getter for `Self::Private`.
+    fn private(&self) -> &Self::Private;
+    /// Getter for `Self::Public`
+    fn public(&self) -> &Self::Public;
+}
+
+
 /// Generate a set of structures allowing for nice management of FRP inputs, outputs, and commands.
 /// Supersedes `define_endpoints`, which should no longer be used.
 ///
@@ -633,17 +651,6 @@ macro_rules! define_endpoints_2 {
             }
         }
 
-          impl $(<$($param $(:$($constraints)*)?),*>)?  $crate::application::command::CommandApi for Frp $(<$($param),*>)?  {
-            fn command_api(&self)
-            -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
-                self.public.output.command_map.clone()
-            }
-
-            fn status_api(&self) -> Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>> {
-                self.public.output.status_map.clone()
-            }
-        }
-
         impl $(<$($param $(:$($constraints)*)?),*>)?  $crate::application::command::FrpNetworkProvider for Frp $(<$($param),*>)?  {
             fn network(&self) -> &$crate::frp::Network { &self.private.network }
         }
@@ -651,6 +658,19 @@ macro_rules! define_endpoints_2 {
         impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Frp $(<$($param),*>)? {
                     type Target = api::Public $(<$($param),*>)?;
             fn deref(&self) -> &Self::Target {
+                &self.public
+            }
+        }
+
+        impl $crate::application::frp::API for Frp {
+            type Public=api::Public;
+            type Private=api::Private;
+
+            fn private(&self) -> &Self::Private{
+                &self.private
+            }
+
+            fn public(&self) -> &Self::Public{
                 &self.public
             }
         }
@@ -680,6 +700,17 @@ macro_rules! define_endpoints_2 {
                 }
             }
 
+
+            impl $(<$($param $(:$($constraints)*)?),*>)?  $crate::application::command::CommandApi for Public $(<$($param),*>)?  {
+                fn command_api(&self)
+                    -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
+                    self.output.command_map.clone()
+                }
+
+                fn status_api(&self) -> Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>> {
+                    self.output.status_map.clone()
+                }
+            }
 
             pub mod public {
                 use super::*;
@@ -743,7 +774,6 @@ macro_rules! define_endpoints_2 {
                         Self { data }
                     }
                 }
-
 
                 impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Output $(<$($param),*>)? {
                     type Target = OutputData $(<$($param),*>)?;
