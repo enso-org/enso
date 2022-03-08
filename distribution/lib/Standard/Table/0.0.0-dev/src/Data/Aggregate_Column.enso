@@ -52,7 +52,7 @@ type Aggregate_Column
 
        Arguments:
        - percentile: Percentage to compute from 0-1 inclusive.
-    type Percentile (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (percentile:Decimal=0.25)
+    type Percentile (percentile:Decimal) (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the mode of values (ignoring missing values)
        of the specified column within each group.
@@ -123,7 +123,7 @@ type Aggregate_Column
                 Sum c _ -> "Sum " + (get_name c)
                 Average c _ -> "Average " + (get_name c)
                 Median c _ -> "Median " + (get_name c)
-                Percentile c _ p -> (p*100).floor.to_text + "%-ile" + (get_name c)
+                Percentile p c _ -> (p*100).floor.to_text + "%-ile" + (get_name c)
                 Mode c _ -> "Mode " + (get_name c)
                 Standard_Deviation c _ _ -> "Standard Deviation " + (get_name c)
                 Concatenate c _ _ _ _ _ -> "Concatenate " + (get_name c)
@@ -221,7 +221,7 @@ type Aggregate_Column
             Median c _ -> create_closure c col->map->i->
                 val = col.at i
                 if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
-            Percentile c _ _ -> create_closure c col->map->i->
+            Percentile p c _ -> create_closure c col->map->i->
                 val = col.at i
                 if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
             Mode c _ -> create_closure c col->map->i->
@@ -257,7 +257,7 @@ type Aggregate_Column
         case this of
             Count_Distinct _ _ _ -> value.size
             Median _ _ -> percentile 0.5 value
-            Percentile _ _ p -> percentile p value
+            Percentile p _ _ -> percentile p value
             Mode _ _ -> (value.fold_with_key (Pair 0 Nothing) p->k->v-> if v>(p.first) then (Pair v k) else p) . second
             Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
             Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
