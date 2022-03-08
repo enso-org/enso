@@ -1258,7 +1258,7 @@ Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
                 end = start+offset
                 Span (Range start end) this
         Case_Insensitive locale ->
-            grapheme_spans = Text_Utils.span_of_all_case_insensitive this term locale.java_locale
+            grapheme_spans = Vector.from_array <| Text_Utils.span_of_all_case_insensitive this term locale.java_locale
             grapheme_spans.map grapheme_span->
                 Span (Range grapheme_span.start grapheme_span.end) this
     Regex_Matcher _ _ _ _ _ ->

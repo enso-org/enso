@@ -831,7 +831,7 @@ spec =
             hello = "Hello World!"
             hello.location_of "J" . should_equal Nothing
             hello.location_of "o" . should_equal (Span (Range 4 5) hello)
-            hello.location_of "o" mode=Matching_Mode.Last . should_equal (Span (Range 4 5) hello)
+            hello.location_of "o" mode=Matching_Mode.Last . should_equal (Span (Range 7 8) hello)
 
             hello.location_of_all "J" . should_equal []
             hello.location_of_all "o" . map .start . should_equal [4, 7]
@@ -858,10 +858,16 @@ spec =
             'ԵՒ'.location_of 'և' matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 0 2) 'ԵՒ')
 
             ligatures = 'FFAﬀﬁﬂﬃﬄﬅﬆZ'
+            ligatures.location_of 'FF' matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 0 2) ligatures)
+            ligatures.location_of 'FF' matcher=(Text_Matcher Case_Insensitive.new) mode=Matching_Mode.Last . should_equal (Span (Range 7 8) ligatures)
+            ligatures.location_of 'FFI' matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 6 7) ligatures)
             ligatures.location_of_all 'FF' . should_equal [Span (Range 0 2) ligatures]
-            ligatures.location_of_all 'FF' . should_equal [Span (Range 0 2) ligatures, Span (Range 3 4) ligatures, Span (Range 6 7) ligatures, Span (Range 7 8) ligatures]
-            'FFFI'.location_of_all 'ﬀ' . should_equal [Span (Range 0 2) 'FFFI']
-            'FFFI'.location_of_all 'ﬃ' . should_equal [Span (Range 1 4) 'FFFI']
+            ligatures.location_of_all 'FF' matcher=(Text_Matcher Case_Insensitive.new) . should_equal [Span (Range 0 2) ligatures, Span (Range 3 4) ligatures, Span (Range 6 7) ligatures, Span (Range 7 8) ligatures]
+            ligatures.location_of_all 'FFI' matcher=(Text_Matcher Case_Insensitive.new) . should_equal [Span (Range 6 7) ligatures]
+            'FFFI'.location_of_all 'ﬀ' matcher=(Text_Matcher Case_Insensitive.new) . should_equal [Span (Range 0 2) 'FFFI']
+            'FFFI'.location_of_all 'ﬃ' . should_equal []
+            'FFFI'.location_of_all 'ﬃ' matcher=(Text_Matcher Case_Insensitive.new) . should_equal [Span (Range 1 4) 'FFFI']
+            'FFFI'.location_of 'ﬃ' matcher=(Text_Matcher Case_Insensitive.new) . should_equal (Span (Range 1 4) 'FFFI')
 
         Test.specify "should allow regexes in location_of" <|
             hello = "Hello World!"

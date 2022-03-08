@@ -260,6 +260,9 @@ public class Text_Utils {
    * @return index of the first needle or -1 if not found.
    */
   public static long index_of(String haystack, String needle) {
+    if (needle.isEmpty()) return 0;
+    if (haystack.isEmpty()) return -1;
+
     StringSearch search = new StringSearch(needle, haystack);
     int pos = search.first();
     return pos == StringSearch.DONE ? -1 : pos;
@@ -275,6 +278,9 @@ public class Text_Utils {
    * @return index of the last needle or -1 if not found.
    */
   public static long last_index_of(String haystack, String needle) {
+    if (needle.isEmpty()) return haystack.length();
+    if (haystack.isEmpty()) return -1;
+
     StringSearch search = new StringSearch(needle, haystack);
     int pos = search.last();
     if (pos == StringSearch.DONE) {
@@ -291,6 +297,9 @@ public class Text_Utils {
    * @return a list of indices at which the needle occurs in the haystack
    */
   public static List<Long> index_of_all(String haystack, String needle) {
+    if (needle.isEmpty()) throw new IllegalArgumentException("The operation `index_of_all` does not support searching for an empty term.");
+    if (haystack.isEmpty()) return List.of();
+
     StringSearch search = new StringSearch(needle, haystack);
     ArrayList<Long> occurrences = new ArrayList<>();
     long ix;
@@ -379,6 +388,9 @@ public class Text_Utils {
 
   public static GraphemeSpan span_of_case_insensitive(
       String haystack, String needle, Locale locale, boolean searchForLast) {
+    if (needle.isEmpty()) throw new IllegalArgumentException("The operation `span_of_case_insensitive` does not support searching for an empty term.");
+    if (haystack.isEmpty()) return null;
+
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
     String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
     StringSearch search = new StringSearch(foldedNeedle, foldedHaystack.getFoldedString());
@@ -399,6 +411,9 @@ public class Text_Utils {
 
   public static List<GraphemeSpan> span_of_all_case_insensitive(
       String haystack, String needle, Locale locale) {
+    if (needle.isEmpty()) throw new IllegalArgumentException("The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
+    if (haystack.isEmpty()) return null;
+
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
     String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
 
