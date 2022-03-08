@@ -2,7 +2,8 @@
 //! high-level features and bug-fixes. It also provides a mock API version allowing the native
 //! compilation in order to run native tests of code which uses this API.
 
-// === Linter configuration ===
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -19,13 +20,14 @@
 #![feature(auto_traits)]
 #![feature(unsize)]
 
-
 use crate::prelude::*;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-pub use std::time::Duration;
-pub use std::time::Instant;
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod binding;
 pub mod clipboard;
@@ -34,6 +36,11 @@ pub mod event;
 pub mod platform;
 pub mod resize_observer;
 pub mod stream;
+
+pub use std::time::Duration;
+pub use std::time::Instant;
+
+
 
 /// Common types that should be visible across the whole crate.
 pub mod prelude {

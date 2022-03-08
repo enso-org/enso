@@ -1,11 +1,8 @@
 //! An example showing usage of Text Area.
 
-#![feature(associated_type_defaults)]
-#![feature(drain_filter)]
-#![feature(fn_traits)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
+#![recursion_limit = "1024"]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -14,15 +11,22 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
+// === Features ===
+#![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(fn_traits)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
 
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_text::Area;
 use ensogl_text_msdf_sys::run_once_initialized;
-use wasm_bindgen::prelude::*;
+
 
 
 /// Main example runner.

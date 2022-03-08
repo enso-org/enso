@@ -1,18 +1,9 @@
 //! This module defines the `Container` struct and related functionality.
 
-// FIXME There is a serious performance problem in this implementation. It assumes that the
-// FIXME visualization is a child of the container. However, this is very inefficient. Consider a
-// FIXME visualization containing 1M of points. When moving a node (and thus moving a container),
-// FIXME this would iterate over 1M of display objects and update their positions. Instead of that,
-// FIXME each visualization should be positioned by some wise uniform management, maybe by a
-// FIXME separate camera (view?) per visualization? This is also connected to a question how to
-// FIXME create efficient dashboard view.
-
-pub mod action_bar;
-pub mod fullscreen;
-pub mod visualization_chooser;
-
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
+use ensogl::system::web::traits::*;
 
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::data::enso;
@@ -25,14 +16,19 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::display::DomSymbol;
-use ensogl::Animation;
-
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
+use ensogl::Animation;
 use ensogl_component::shadow;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod action_bar;
+pub mod fullscreen;
+pub mod visualization_chooser;
 
 
 

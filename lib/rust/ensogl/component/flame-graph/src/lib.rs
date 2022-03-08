@@ -1,5 +1,7 @@
 //! An EnsoGL implementation of a basic flame graph.
 
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -14,6 +16,8 @@ use ensogl_core::prelude::*;
 use enso_profiler_flame_graph as profiler_flame_graph;
 use ensogl_core::application::Application;
 use ensogl_core::display;
+
+
 
 mod block;
 

@@ -1,6 +1,4 @@
 //! The module contains all structures for representing suggestions and their database.
-pub mod entry;
-pub mod example;
 
 use crate::prelude::*;
 
@@ -15,6 +13,14 @@ use enso_text::Location;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod entry;
+pub mod example;
 
 pub use entry::Entry;
 pub use example::Example;

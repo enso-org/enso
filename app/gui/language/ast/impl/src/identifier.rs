@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use crate::Shape;
 
+
+
 /// Checks if given Ast node can be used to represent identifier being part of definition name.
 pub fn is_identifier(ast: &Ast) -> bool {
     name(ast).is_some()

@@ -68,6 +68,9 @@
 //! pub type View = ensogl_button::View<shape::DynamicShape>;
 //! ```
 
+#![recursion_limit = "256"]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -76,9 +79,9 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "256"]
 
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
 use ensogl_core::application;
@@ -87,7 +90,6 @@ use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::*;
 use ensogl_core::gui::component::ShapeView;
 
 

@@ -1,15 +1,16 @@
 //! The data hold by the text buffer. Under the hood it is implemented as an efficient string rope.
 
 use crate::prelude::*;
+use crate::unit::*;
 
+use crate::prelude::fmt::Formatter;
 use crate::range::Range;
 use crate::range::RangeBounds;
 use crate::rope;
 use crate::rope::Rope;
-use crate::unit::*;
 
-use crate::prelude::fmt::Formatter;
 use enso_types::min;
+
 
 
 // ============

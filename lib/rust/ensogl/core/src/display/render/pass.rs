@@ -1,9 +1,9 @@
 //! Render pass definition trait and render pass instance definition.
 
 use crate::prelude::*;
+use crate::system::gpu::*;
 
 use crate::system::gpu::data::texture::class::TextureOps;
-use crate::system::gpu::*;
 
 
 

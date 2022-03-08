@@ -1,6 +1,7 @@
 //! Math utilities with focus on computer graphics.
 
-#![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -9,6 +10,13 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+// === Features ===
+#![feature(trait_alias)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod algebra;
 pub mod num;
@@ -17,6 +25,8 @@ pub mod unit;
 
 pub use algebra::*;
 pub use topology::*;
+
+
 
 /// Common traits.
 pub mod traits {

@@ -9,8 +9,9 @@
 //! The only things exposed form this module are the `NumberPicker`, `NumberRangePicker`, their
 //! FRPs and the `Bounds` struct.
 
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
+#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -19,10 +20,19 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod bounds;
 pub mod model;
+
+
 
 mod decimal_aligned;
 mod frp;

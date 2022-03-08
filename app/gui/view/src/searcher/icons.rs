@@ -1,19 +1,21 @@
 //! All icons that are used in the searcher.
 
+use ensogl::display::shape::*;
 use ensogl::prelude::*;
+use ensogl::system::web::traits::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::compound::path::path;
-use ensogl::display::shape::*;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl_hardcoded_theme::application::searcher::icons as theme;
 use std::f32::consts::PI;
-use wasm_bindgen::prelude::*;
+
+
 
 /// The width and height of all icons.
 const ICON_SIZE: f32 = 16.0;

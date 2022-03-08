@@ -9,6 +9,8 @@ use syn::GenericArgument;
 use syn::PathSegment;
 use syn::Token;
 
+
+
 /// Generates `HasTokens` implementations for spaceless AST that panics when used.
 pub fn spaceless_ast(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let target = syn::parse::<PathSegment>(input).unwrap();

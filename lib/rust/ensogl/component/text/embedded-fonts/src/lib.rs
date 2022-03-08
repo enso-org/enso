@@ -1,5 +1,7 @@
 //! Implementation of embedded fonts loading.
 
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

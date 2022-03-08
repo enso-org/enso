@@ -1,6 +1,14 @@
-#![warn(unsafe_code)]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+// === Non-Standard Linter Configuration ===
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
@@ -8,6 +16,8 @@
 #![allow(clippy::option_map_unit_fn)]
 
 use enso_prelude::*;
+
+
 
 // ================
 // === TypeList ===

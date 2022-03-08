@@ -16,6 +16,7 @@
 //! the time the cursor is between icons is less than the `end_delay_duration`. Instead, the hiding
 //! will only start iof the cursos has left any icon triggering the pop-up for longer than the
 //! `end_delay_duration`.
+
 use crate::prelude::*;
 
 use crate::Animation;

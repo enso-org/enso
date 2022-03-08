@@ -1,15 +1,26 @@
 //! Example scene showing simple usage of a shape system.
 
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+
+use ensogl_core::display::shape::*;
+use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::style::theme;
-use ensogl_core::display::world::*;
-use wasm_bindgen::prelude::*;
 
 
 

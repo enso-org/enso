@@ -4,12 +4,12 @@
 //! card.
 
 use ensogl::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::ClickableElement;
 
 use enso_frp as frp;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use web::Element;
 use web::HtmlDivElement;
 use web::JsCast;

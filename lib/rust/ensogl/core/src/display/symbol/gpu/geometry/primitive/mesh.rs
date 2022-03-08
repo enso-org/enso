@@ -1,16 +1,15 @@
 //! This module defines a [polygon mesh](https://en.wikipedia.org/wiki/Polygon_mesh).
 
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
 use crate::control::callback;
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
 use crate::system::Context;
 
-use num_enum::IntoPrimitive;
-
 use enso_shapely::shared;
+use num_enum::IntoPrimitive;
 
 
 

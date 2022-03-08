@@ -1,5 +1,4 @@
 //! A single entry in [`crate::list_view::ListView`].
-pub mod list;
 
 use crate::prelude::*;
 
@@ -9,6 +8,13 @@ use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod list;
 
 
 

@@ -1,7 +1,10 @@
+// === Features ===
 #![feature(option_result_contains)]
 
 use std::path::Path;
 use std::path::PathBuf;
+
+
 
 /// List of crates that should not be tested by wasm-pack test.
 const PACKAGE_BLACKLIST: [&str; 1] = ["integration-test"];

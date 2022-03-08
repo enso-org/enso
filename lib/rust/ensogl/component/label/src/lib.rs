@@ -1,7 +1,8 @@
 //! Label component. Appears as text with background.
 
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
+#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -10,8 +11,11 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -19,11 +23,9 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::shape::*;
+use ensogl_hardcoded_theme::component::label as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
-
-use ensogl_hardcoded_theme::component::label as theme;
 
 
 

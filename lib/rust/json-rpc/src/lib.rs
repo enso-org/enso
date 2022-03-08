@@ -1,16 +1,23 @@
 //! This is a library aimed to facilitate implementing JSON-RPC protocol
 //! clients. The main type is `Handler` that a client should build upon.
 
-#![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+// === Features ===
+#![feature(trait_alias)]
 
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod api;
 pub mod error;
@@ -29,6 +36,8 @@ pub use handler::Event;
 pub use handler::Handler;
 pub use transport::Transport;
 pub use transport::TransportEvent;
+
+
 
 #[allow(missing_docs)]
 pub mod constants {

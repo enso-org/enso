@@ -6,19 +6,27 @@
 //! and provides interface for AST operations like set node to a new AST or add new element to
 //! operator chain.
 
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+// === Features ===
 #![feature(associated_type_bounds)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(type_ascription)]
 #![feature(exact_size_is_empty)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod action;
 pub mod builder;
@@ -30,6 +38,8 @@ pub use node::Crumb;
 pub use node::Crumbs;
 pub use node::Node;
 pub use node::Payload;
+
+
 
 /// Module gathering all commonly used traits for massive importing.
 pub mod traits {

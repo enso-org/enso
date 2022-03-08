@@ -1,8 +1,24 @@
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+// === Features ===
 #![feature(associated_type_bounds)]
 #![feature(bool_to_option)]
 #![feature(generators, generator_trait)]
 #![feature(trivial_bounds)]
 #![feature(type_alias_impl_trait)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 #[warn(missing_docs)]
 pub mod assoc;
@@ -27,6 +43,7 @@ pub mod repr;
 pub mod test_utils;
 #[warn(missing_docs)]
 pub mod traits;
+
 
 
 pub mod prelude {

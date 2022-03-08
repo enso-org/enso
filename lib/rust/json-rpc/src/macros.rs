@@ -1,5 +1,7 @@
 //! Helper macros to generate RemoteClient and MockClient.
 
+
+
 // TODO[dg]: Make it possible to create an API which accepts pass both references and ownership.
 /// This macro reads a `trait API` item and generates asynchronous methods for RPCs. Each method
 /// should be signed with `MethodInput`, `rpc_name`, `result` and `set_result` attributes. e.g.:

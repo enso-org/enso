@@ -2,12 +2,11 @@
 //!
 //! This controller provides access to a specific graph. It lives under a module controller, as
 //! each graph belongs to some module.
-pub mod executed;
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::model::module::NodeMetadata;
-use crate::model::traits::*;
 
 use ast::crumbs::InfixCrumb;
 use ast::macros::DocumentationCommentInfo;
@@ -30,6 +29,13 @@ use span_tree::action::Actions;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::Context as SpanTreeContext;
 use span_tree::SpanTree;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod executed;
 
 pub use double_representation::graph::Id;
 pub use double_representation::graph::LocationHint;

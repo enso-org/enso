@@ -1,7 +1,8 @@
 //! Utilities to create consistent shadows for UI components.
 
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
+#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -10,18 +11,21 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
+use ensogl_core::system::web::traits::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::shape::AnyShape;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::style;
 use ensogl_core::display::DomSymbol;
 use ensogl_core::frp;
-use ensogl_core::system::web::traits::*;
 use ensogl_hardcoded_theme as theme;
+
 
 
 /// Defines the appearance of a shadow

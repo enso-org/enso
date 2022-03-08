@@ -1,6 +1,7 @@
 //! The handlers for the files dropped on the web scene. The main object is [`Manager`]:
 //! it notifies about new files, and their metadata and with methods for reading them.
 
+// === Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -10,6 +11,8 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
+
 
 /// Commonly used utilities.
 pub mod prelude {

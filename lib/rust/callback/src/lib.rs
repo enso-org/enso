@@ -1,6 +1,7 @@
 //! Definitions of a callback registry – utility allowing attaching and running attached functions.
 
-// === Linter configuration ===
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -21,12 +22,13 @@ use std::any::TypeId;
 use std::marker::Unsize;
 
 
-
-// ==============================
-// === Popular Callback Types ===
-// ==============================
+// ==============
+// === Export ===
+// ==============
 
 pub use callback_types::*;
+
+
 
 /// Popular callback types. These are aliases for static [`Fn`] and [`FnMut`] with different amount
 /// of arguments. The names directly correspond to the [`::registry`] namespace. For example,

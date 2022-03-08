@@ -1,16 +1,27 @@
+// === Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
-
-use enso_web as web;
-
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
 use enso_text::traits::*;
+use span_tree::*;
+
+use enso_web as web;
 use span_tree::builder::Builder;
 use span_tree::node;
 use span_tree::node::InsertionPointType;
-use span_tree::*;
 use uuid::Uuid;
+
 
 
 #[wasm_bindgen]

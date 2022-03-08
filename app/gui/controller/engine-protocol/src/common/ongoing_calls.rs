@@ -2,9 +2,11 @@
 
 use crate::prelude::*;
 
+use crate::common::error::NoSuchRequest;
+
 use futures::channel::oneshot;
 
-use crate::common::error::NoSuchRequest;
+
 
 /// Stores active requests, i.e. the requests that were sent to the peer but are still awaiting
 /// their answer.

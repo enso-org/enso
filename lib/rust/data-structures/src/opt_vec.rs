@@ -1,6 +1,7 @@
 //! A sparse vector implementation.
 
 use crate::prelude::*;
+
 use std::iter::FilterMap;
 use std::slice;
 

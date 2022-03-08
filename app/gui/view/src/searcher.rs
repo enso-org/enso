@@ -2,9 +2,9 @@
 //!
 //! This component wraps the plain ListView in some searcher-specific logic, like committing
 //! editing, or picking suggestion with Tab.
-pub mod icons;
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::documentation;
 
@@ -13,10 +13,16 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::list_view;
 use ensogl_component::list_view::ListView;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod icons;
 
 pub use ensogl_component::list_view::entry;
 
