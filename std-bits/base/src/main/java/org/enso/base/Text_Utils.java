@@ -209,8 +209,8 @@ public class Text_Utils {
   public static boolean contains_case_insensitive(String string, String substring, Locale locale) {
     // {@code StringSearch} does not handle empty strings as we would want, so we need these special
     // cases.
-    if (substring.length() == 0) return true;
-    if (string.length() == 0) return false;
+    if (substring.isEmpty()) return true;
+    if (string.isEmpty()) return false;
 
     Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
     StringSearch searcher = new StringSearch(fold.apply(substring), fold.apply(string));

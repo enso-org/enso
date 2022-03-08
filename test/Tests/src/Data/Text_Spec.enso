@@ -201,15 +201,20 @@ spec =
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 6) . should_equal 'Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 5) . should_equal 'o\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'ê') . should_equal 'H'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'ö') . should_equal 'He\u{302}llo\u{308} W'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'ê') . should_equal 'llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{308}') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o\u{308}') . should_equal 'rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'ö') . should_equal 'rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='ê') . should_equal 'H'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal 'lo\u{308}'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal 'ld'
@@ -233,6 +238,30 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 Nothing) . should_equal '😍😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 Nothing) . should_equal '😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 -1) . should_equal '😙😉'
+
+        Test.specify "take should correctly handle edge cases" <|
+            "".take First.new . should_equal ""
+            "".take Last.new . should_equal ""
+
+            "".take (After "a") . should_equal ""
+            "".take (After_Last "a") . should_equal ""
+            "".take (Before "a") . should_equal ""
+            "".take (Before_Last "a") . should_equal ""
+
+            "".take (After "") . should_equal ""
+            "".take (After_Last "") . should_equal ""
+            "".take (Before "") . should_equal ""
+            "".take (Before_Last "") . should_equal ""
+
+            "".take (While _->True) . should_equal ""
+
+            "".take (Range 0 0) . should_equal ""
+            'ABC\u{301}'.take (Range 0 0) . should_equal ""
+
+            'ABC\u{301}'.take (After "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.take (After_Last "") . should_equal ""
+            'ABC\u{301}'.take (Before "") . should_equal ""
+            'ABC\u{301}'.take (Before_Last "") . should_equal 'ABC\u{301}'
 
         Test.specify "drop should work as in the examples" <|
             "Hello World!".drop First.new . should_equal "ello World!"
@@ -271,15 +300,20 @@ spec =
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'ê') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'ö') . should_equal 'o\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{302}') . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'ê') . should_equal 'He\u{302}'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'ö') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 -1) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r!'
@@ -302,6 +336,30 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 Nothing) . should_equal '✨🚀🚧'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 Nothing) . should_equal '✨🚀🚧😍😃😍😎'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
+
+        Test.specify "drop should correctly handle edge cases" <|
+            "".drop First.new . should_equal ""
+            "".drop Last.new . should_equal ""
+
+            "".drop (After "a") . should_equal ""
+            "".drop (After_Last "a") . should_equal ""
+            "".drop (Before "a") . should_equal ""
+            "".drop (Before_Last "a") . should_equal ""
+
+            "".drop (After "") . should_equal ""
+            "".drop (After_Last "") . should_equal ""
+            "".drop (Before "") . should_equal ""
+            "".drop (Before_Last "") . should_equal ""
+
+            "".drop (While _->True) . should_equal ""
+
+            "".drop (Range 0 0) . should_equal ""
+            'ABC\u{301}'.drop (Range 0 0) . should_equal 'ABC\u{301}'
+
+            'ABC\u{301}'.drop (After "") . should_equal ''
+            'ABC\u{301}'.drop (After_Last "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.drop (Before "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.drop (Before_Last "") . should_equal ''
 
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"

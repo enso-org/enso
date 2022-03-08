@@ -15,6 +15,9 @@ public class CaseFoldedString {
   }
 
   public int codeUnitToGraphemeIndex(int codeunitIndex) {
+    if (codeunitIndex < 0 || codeunitIndex > this.string.length()) {
+      throw new IndexOutOfBoundsException(codeunitIndex);
+    }
     return grapheme_index_mapping[codeunitIndex];
   }
 
