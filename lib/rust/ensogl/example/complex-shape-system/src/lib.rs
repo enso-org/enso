@@ -1,7 +1,5 @@
 //! Example scene showing simple usage of a shape system.
 
-// === Standard Linter Configuration ===
-
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;

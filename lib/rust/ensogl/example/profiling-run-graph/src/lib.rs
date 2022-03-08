@@ -1,7 +1,5 @@
 //! Demo scene showing a sample flame graph.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

@@ -1,5 +1,3 @@
-// === Standard Linter Configuration ===
-
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 use ast::crumbs::PatternMatchCrumb::*;

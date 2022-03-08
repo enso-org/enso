@@ -1,8 +1,6 @@
 //! Label component. Appears as text with background.
 
 #![recursion_limit = "512"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

@@ -6,8 +6,6 @@
 //!
 //! These tests require the Project Manager for working.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

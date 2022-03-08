@@ -1,7 +1,5 @@
 //! Remote analytics logging.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

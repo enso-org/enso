@@ -57,8 +57,6 @@
 //!     println!("Foo parameter: {}", generated::CONFIG.foo);
 //! }
 
-// === Standard Linter Configuration ===
-
 use inflector::*;
 
 use serde_yaml::Value;

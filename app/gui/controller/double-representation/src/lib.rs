@@ -1,7 +1,5 @@
 //! A crate with all functions used to synchronize different representations of our language
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

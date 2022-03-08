@@ -1,5 +1,3 @@
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]

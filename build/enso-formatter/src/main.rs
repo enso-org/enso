@@ -8,8 +8,6 @@
 //! - Emitting warnings about star imports that are not ending with `traits::*` nor `prelude::*`.
 //! - Sections are automatically keeping spacing.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
@@ -449,8 +447,10 @@ fn process_file_content(input: String, is_main_file: bool) -> String {
     let mut out = String::new();
     print_section(&mut out, &mut map, &[ModuleDoc]);
     print_section(&mut out, &mut map, &[ModuleAttrib]);
-    print_h2(&mut out, &map, &[StandardLinterConfig], "Standard Linter Configuration");
-    print_section(&mut out, &mut map, &[StandardLinterConfig]);
+    if (!STD_LINTER_ATTRIBS.is_empty()) {
+        print_h2(&mut out, &map, &[StandardLinterConfig], "Standard Linter Configuration");
+        print_section(&mut out, &mut map, &[StandardLinterConfig]);
+    }
     print_h2(
         &mut out,
         &map,

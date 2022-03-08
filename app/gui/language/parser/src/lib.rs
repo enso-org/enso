@@ -4,8 +4,6 @@
 //! this parser: one for local parser which binds scala parser compiled to WebAssembly to the Rust
 //! crate. The second is calling a Parser running remotely using WebSockets.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

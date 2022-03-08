@@ -2,8 +2,6 @@
 //! contains only an API description.
 
 #![recursion_limit = "512"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

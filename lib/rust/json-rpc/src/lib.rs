@@ -1,8 +1,6 @@
 //! This is a library aimed to facilitate implementing JSON-RPC protocol
 //! clients. The main type is `Handler` that a client should build upon.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

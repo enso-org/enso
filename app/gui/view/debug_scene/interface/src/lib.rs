@@ -2,8 +2,6 @@
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

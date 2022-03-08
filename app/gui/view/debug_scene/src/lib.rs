@@ -3,8 +3,6 @@
 //! Those scenes are designated to test visual components of our application isolated from the
 //! controllers.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

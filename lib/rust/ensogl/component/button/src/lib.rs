@@ -69,8 +69,6 @@
 //! ```
 
 #![recursion_limit = "256"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

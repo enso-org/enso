@@ -1,8 +1,6 @@
 //! Implementation of Finite State Automata in both Nondeterministic and Deterministic forms,
 //! together with a set of conversions, processing, analysis, and visualization utilities.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

@@ -2,8 +2,6 @@
 //! high-level features and bug-fixes. It also provides a mock API version allowing the native
 //! compilation in order to run native tests of code which uses this API.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

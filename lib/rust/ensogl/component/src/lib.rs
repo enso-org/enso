@@ -1,7 +1,5 @@
 //! A crate gathering all useful component crates.
 
-// === Standard Linter Configuration ===
-
 
 // ==============
 // === Export ===

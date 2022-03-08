@@ -6,8 +6,6 @@
 //! and provides interface for AST operations like set node to a new AST or add new element to
 //! operator chain.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

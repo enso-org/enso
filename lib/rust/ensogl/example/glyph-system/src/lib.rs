@@ -1,8 +1,6 @@
 //! An example showing usage of GlyphSystem.
 
 #![recursion_limit = "1024"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

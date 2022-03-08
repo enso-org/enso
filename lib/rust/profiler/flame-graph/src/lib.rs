@@ -2,8 +2,6 @@
 //! generate the data required to render a flame graph. This means creating data for each block
 //! that is supposed to be rendered, with start time, end time and labels.
 
-// === Standard Linter Configuration ===
-
 use enso_profiler as profiler;
 use enso_profiler_data as data;
 use enso_profiler_data::Interval;

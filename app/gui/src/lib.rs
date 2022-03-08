@@ -28,8 +28,6 @@
 //!   the view, and passes the user interations to the controllers.
 
 #![recursion_limit = "512"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

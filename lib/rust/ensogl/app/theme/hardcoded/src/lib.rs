@@ -1,8 +1,6 @@
 //! Builtin themes definition and compile-time generated theme paths (allowing catching improper
 //! theme usage during IDE compilation time).
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

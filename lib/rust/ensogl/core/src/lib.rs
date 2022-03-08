@@ -3,8 +3,6 @@
 //! of the `ensogl` crate to learn more.
 
 #![recursion_limit = "512"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(dead_code)]

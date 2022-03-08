@@ -3,8 +3,6 @@
 //! It is opened when the IDE launches without any project or entry point selected. It
 //! displays a list of available projects, template cards and "new project" button.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 

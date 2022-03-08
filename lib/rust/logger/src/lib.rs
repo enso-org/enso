@@ -99,8 +99,6 @@
 //! [`define_compile_time_filtering_rules!`] macros), formatters (see [`processor::formatter`]), and
 //! log processing pipelines (see [`processor`]).
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559

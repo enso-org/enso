@@ -8,8 +8,6 @@
 //! The metrics used for scoring may be adjusted by implementing `Metric` trait, or by customizing
 //! parameters of metrics defined in `metric` module.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

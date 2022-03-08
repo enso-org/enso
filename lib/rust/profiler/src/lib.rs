@@ -134,8 +134,6 @@
 //! set of constructors create profilers that inherit their start time from the specified parent,
 //! e.g. [`objective_with_same_start!`] in the example above.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]

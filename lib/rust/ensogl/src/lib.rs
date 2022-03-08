@@ -1,8 +1,6 @@
 //! EnsoGL is a blazing fast vector rendering engine. To learn more about its features and
 //! architecture design, read the [`README.md`].
 
-// === Standard Linter Configuration ===
-
 
 // ==============
 // === Export ===

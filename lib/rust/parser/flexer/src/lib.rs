@@ -1006,8 +1006,6 @@
 //! The flexer allows its clients to define highly optimised lexer implementations that are capable
 //! of lexing languages of a high complexity.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]

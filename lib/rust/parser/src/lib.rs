@@ -1,7 +1,5 @@
 //! This library contains the implementation of the Enso parser.
 
-// === Standard Linter Configuration ===
-
 
 // ==============
 // === Export ===

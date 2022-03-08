@@ -1,5 +1,3 @@
-// === Standard Linter Configuration ===
-
 use enso_prelude::*;
 
 

@@ -4,8 +4,6 @@
 //! the FRP endpoints to communicate with controllers. It also have a mocked debug scenes of IDE.
 
 #![recursion_limit = "1024"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

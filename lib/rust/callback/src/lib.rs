@@ -1,7 +1,5 @@
 //! Definitions of a callback registry – utility allowing attaching and running attached functions.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

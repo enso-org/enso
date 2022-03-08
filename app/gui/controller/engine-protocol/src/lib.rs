@@ -2,8 +2,6 @@
 //!
 //! See https://enso.org/docs/developer/enso/language-server/protocol-architecture.html.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

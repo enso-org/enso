@@ -1,5 +1,3 @@
-// === Standard Linter Configuration ===
-
 // === Features ===
 #![feature(associated_type_bounds)]
 #![feature(bool_to_option)]

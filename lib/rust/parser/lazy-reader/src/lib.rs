@@ -1,7 +1,5 @@
 //! This module exports a reader that is able to process large textual inputs in constant memory.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]

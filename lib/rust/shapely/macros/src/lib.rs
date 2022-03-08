@@ -2,8 +2,6 @@
 //! directly, but only through `enso-shapely` crate, as it provides utilities
 //! necessary for the generated code to compile.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

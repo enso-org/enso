@@ -1,7 +1,5 @@
 //! Startup arguments definition.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]

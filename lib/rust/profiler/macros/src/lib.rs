@@ -8,8 +8,6 @@
 //! - To implement the [`#[profile]`](macro@profile) attribute macro.
 
 #![cfg_attr(feature = "lineno", feature(proc_macro_span))]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]

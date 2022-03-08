@@ -16,8 +16,6 @@
 //! `lexer_generated_api_test` file. This is to present the full view of what each portion of the
 //! process looks like.
 
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]

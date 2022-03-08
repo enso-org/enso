@@ -1,8 +1,6 @@
 //! A debug scene showing the bug described in https://github.com/enso-org/ide/issues/757
 
 #![recursion_limit = "1024"]
-// === Standard Linter Configuration ===
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

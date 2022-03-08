@@ -3,8 +3,6 @@
 //! defines several aliases and utils which may find their place in new
 //! libraries in the future.
 
-// === Standard Linter Configuration ===
-
 // === Features ===
 #![feature(concat_idents)]
 #![feature(specialization)]

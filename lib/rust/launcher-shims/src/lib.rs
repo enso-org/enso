@@ -1,5 +1,3 @@
-// === Standard Linter Configuration ===
-
 use std::io::prelude::*;
 
 use std::env;
