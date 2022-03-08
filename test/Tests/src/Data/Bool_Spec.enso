@@ -1,0 +1,18 @@
+from Standard.Base import all
+
+import Standard.Test
+from Standard.Base.Data.Ordering import Equal, Less, Greater
+
+spec =
+    Test.group "Booleans" <|
+        Test.specify "should allow converting Bools to Text values" <|
+            True.to_text . should_equal "True"
+            False.to_text . should_equal "False"
+
+        Test.specify "should allow for comparing Bools" <|
+            True.compare_to True . should_equal Equal
+            False.compare_to False . should_equal Equal
+            True.compare_to False . should_equal Greater
+            False.compare_to True . should_equal Less
+
+main = Test.Suite.run_main here.spec
