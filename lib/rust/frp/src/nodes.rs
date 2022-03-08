@@ -1623,9 +1623,15 @@ impl<T: EventOutput> OwnedProfile<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedProfile<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        let _label = self.label();
-        let _profiler = profiler::start_debug!(profiler::UNKNOWN, _label);
+        use profiler::internal::Profiler;
+
+        let label = profiler::internal::Label(self.label());
+        let parent = profiler::internal::EventId::implicit();
+        let now = Some(profiler::internal::Timestamp::now());
+        let profiler =
+            profiler::Debug::start(parent, label, now, profiler::internal::StartState::Active);
         self.emit_event(stack, event);
+        profiler.finish();
     }
 }
 
