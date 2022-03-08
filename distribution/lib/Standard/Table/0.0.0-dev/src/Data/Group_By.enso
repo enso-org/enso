@@ -37,10 +37,6 @@ type Comparable_Value
 
         case this.value of
             Nothing -> if value.is_nothing then Ordering.Equal else Ordering.Less
-            Boolean -> case value of
-                Boolean -> if this.value == value then Ordering.Equal else
-                    if this.value then Ordering.Greater else Ordering.Less
-                _ -> if value.is_nothing then Ordering.Greater else this.value.compare_to value
             _ -> if value.is_nothing then Ordering.Greater else this.value.compare_to value
 
     is_nothing : Boolean
