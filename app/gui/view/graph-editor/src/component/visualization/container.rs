@@ -1,4 +1,12 @@
 //! This module defines the `Container` struct and related functionality.
+//!
+//! FIXME There is a serious performance problem in this implementation. It assumes that the
+//!       visualization is a child of the container. However, this is very inefficient. Consider a
+//!       visualization containing 1M of points. When moving a node (and thus moving a container),
+//!       this would iterate over 1M of display objects and update their positions. Instead of that,
+//!       each visualization should be positioned by some wise uniform management, maybe by a
+//!       separate camera (view?) per visualization? This is also connected to a question how to
+//!       create efficient dashboard view.
 
 use crate::prelude::*;
 use ensogl::display::shape::*;
