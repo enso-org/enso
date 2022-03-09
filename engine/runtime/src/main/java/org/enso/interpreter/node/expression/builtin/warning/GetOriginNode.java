@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.error.Warning;
 
 @BuiltinMethod(
     type = "Prim_Warning",
-    name = "get_value",
+    name = "get_origin",
     description = "Gets the payload of the warning.")
 public class GetOriginNode extends Node {
   Object execute(Object _this, Warning warning) {

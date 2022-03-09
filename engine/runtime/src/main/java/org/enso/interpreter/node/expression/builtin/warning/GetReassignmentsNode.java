@@ -12,8 +12,8 @@ import java.util.Comparator;
 
 @BuiltinMethod(
     type = "Prim_Warning",
-    name = "get_value",
-    description = "Gets the payload of the warning.")
+    name = "get_reassignments",
+    description = "Gets the list of locations where the warnings was reassigned.")
 public class GetReassignmentsNode extends Node {
   Array execute(Object _this, Warning warning) {
     Warning.Reassignment[] reassignments =
