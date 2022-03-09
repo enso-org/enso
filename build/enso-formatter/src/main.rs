@@ -545,6 +545,9 @@ fn test_formatting() {
     let input = r#"//! Module-level documentation
 //! written in two lines.
 
+#![warn(missing_copy_implementations)]
+#![allow(incomplete_features)]
+#![recursion_limit = "512"]
 pub use lib_f::item_1;
 pub mod mod1;
 use crate::prelude::*;
@@ -560,6 +563,14 @@ pub struct Struct1 {}
 
     let output = r#"//! Module-level documentation
 //! written in two lines.
+
+#![recursion_limit = "512"]
+
+// === Features ===
+#![allow(incomplete_features)]
+
+// === Non-Standard Linter Configuration ===
+#![warn(missing_copy_implementations)]
 
 use crate::prelude::*;
 use logger::traits::*;
