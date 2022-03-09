@@ -525,10 +525,7 @@ spec =
             ## This shows what regex is doing by default and we cannot easily fix
                that.
             's\u{301}' . contains 's' (Regex_Matcher.new) . should_be_true
-            ## This would normally be false, but we perform input normalization
-               to get results that are consistent regardless of if the input was
-               normalized or not.
-            'ś' . contains 's' (Regex_Matcher.new) . should_be_true
+            'ś' . contains 's' (Regex_Matcher.new) . should_be_false
             's\u{301}' . contains 'ś' (Regex_Matcher.new) . should_be_true
             'ś' . contains 's\u{301}' (Regex_Matcher.new) . should_be_true
 
@@ -886,8 +883,9 @@ spec =
             'ﬃﬄ'.location_of 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span (Range 1 2) 'ﬃﬄ')
             'ﬃﬄ'.location_of_all 'F' matcher=case_insensitive . should_equal [Span (Range 0 1) 'ﬃﬄ', Span (Range 0 1) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ']
             'aaﬃbb'.location_of_all 'af' matcher=case_insensitive . should_equal [Span (Range 1 3) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'affi' matcher=case_insensitive . should_equal [Span (Range 1 3) 'aaﬃbb']
             'aaﬃbb'.location_of_all 'ib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
-            'aaﬃbb'.location_of_all 'ib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'ffib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
 
             "".location_of "foo" matcher=case_insensitive . should_equal Nothing
             "".location_of "foo" matcher=case_insensitive mode=Matching_Mode.Last . should_equal Nothing
@@ -916,7 +914,8 @@ spec =
             ## But it should handle the Unicode normalization
             accents = 'a\u{301}e\u{301}o\u{301}'
             accents.location_of accent_1 Mode.First matcher=regex . should_equal (Span (Range 1 2) accents)
-
+        Test.specify "should correctly handle regex edge cases in location_of" pending="Figure out how to make Regex correctly handle empty patterns." <|
+            regex = Regex_Matcher.new
             "".location_of "foo" matcher=regex . should_equal Nothing
             "".location_of "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
             "".location_of_all "foo" matcher=regex . should_equal []

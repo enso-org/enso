@@ -183,8 +183,10 @@ type Pattern
          on the encoding, we normalize all input.
     build_matcher : Text -> Integer -> Integer -> Java_Matcher
     build_matcher input start end =
-        normalized_input = if this.options.contains Global_Option.Ascii_Matching then input else
-            Text_Utils.normalize input
+        ## TODO [RW] Normalization had to be disabled - since start and end are in code unit space, normalization can shift these indices!
+        #normalized_input = if this.options.contains Global_Option.Ascii_Matching then input else
+        #    Text_Utils.normalize input
+        normalized_input = input
         internal_matcher = this.internal_pattern.matcher normalized_input . region start end
 
         if this.options.contains No_Anchoring_Bounds then
@@ -272,7 +274,7 @@ type Pattern
                 go : Integer -> Integer -> Nothing
                 go offset remaining_count =
                     should_continue = remaining_count > 0
-                    if should_continue.not || (offset > end) then Nothing else
+                    if should_continue.not || (offset >= end) then Nothing else
                         internal_matcher = this.build_matcher input start end
                         found = internal_matcher.find offset
 
@@ -291,7 +293,7 @@ type Pattern
 
                 go : Integer -> Nothing
                 go offset =
-                    if offset > end then Nothing else
+                    if offset >= end then Nothing else
                         internal_matcher = this.build_matcher input start end
                         found = internal_matcher.find offset
 
