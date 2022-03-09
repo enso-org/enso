@@ -888,8 +888,8 @@ impl Node {
             // Visualization can be enabled and not visible when the node has an error.
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input                        <- all4(
-                &new_size,&position,&visualization_enabled_and_visible,visualization_size);
-            out.source.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
+                &position,&new_size,&visualization_enabled_and_visible,visualization_size);
+            out.source.bounding_box           <+ bbox_input.map(bounding_box);
 
 
             // === VCS Handling ===
@@ -940,20 +940,22 @@ fn visualization_position_of_node_with_size(size: Vector2) -> Vector2 {
 }
 
 fn bounding_box(
-    node_size: Vector2,
-    node_position: Vector2,
-    visualization_enabled_and_visible: bool,
-    visualization_size: Vector2,
+    (node_position, node_size, visualization_enabled_and_visible, visualization_size): &(
+        Vector2,
+        Vector2,
+        bool,
+        Vector2,
+    ),
 ) -> BoundingBox {
-    let node_view_pos = node_position + view_position_of_node_with_size(node_size);
+    let node_view_pos = node_position + view_position_of_node_with_size(*node_size);
     let node_bbox_pos = node_view_pos - node_size / 2.0;
-    let mut node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
-    if visualization_enabled_and_visible {
-        let visualization_pos_of_node = visualization_position_of_node_with_size(node_size);
+    let mut node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, *node_size);
+    if *visualization_enabled_and_visible {
+        let visualization_pos_of_node = visualization_position_of_node_with_size(*node_size);
         let visualization_pos = node_position + visualization_pos_of_node;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
-            BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
+            BoundingBox::from_position_and_size(visualization_bbox_pos, *visualization_size);
         node_bbox.concat_mut(visualization_bbox);
     }
     node_bbox
