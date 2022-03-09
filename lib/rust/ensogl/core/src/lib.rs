@@ -67,13 +67,13 @@ pub mod prelude {
     pub use enso_logger::*;
     pub use enso_prelude::*;
     pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
     pub use enso_shapely::newtype_prim;
     pub use enso_shapely::newtype_prim_no_default;
     pub use enso_shapely::newtype_prim_no_default_no_display;
     pub use enso_shapely::newtype_prim_no_derives;
     pub use enso_shapely::shared;
     pub use enso_shapely::CloneRef;
-    pub use profiler::profile;
 }
 
 /// Common traits.

@@ -167,6 +167,17 @@ use internal::*;
 
 
 
+// ===============
+// === prelude ===
+// ===============
+
+/// Widely-used exports.
+pub mod prelude {
+    pub use crate::profile;
+}
+
+
+
 // ======================
 // === MetadataLogger ===
 // ======================

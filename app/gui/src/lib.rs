@@ -96,7 +96,7 @@ pub mod prelude {
     pub use crate::model::traits::*;
 
     pub use enso_profiler as profiler;
-    pub use enso_profiler::profile;
+    pub use enso_profiler::prelude::*;
 
     pub use engine_protocol::prelude::BoxFuture;
     pub use engine_protocol::prelude::StaticBoxFuture;
