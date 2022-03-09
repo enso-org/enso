@@ -1,94 +1,18 @@
-//! The EnsoGL Button Component
-//!
-//! This crate contains an abstraction of button component, allowing creating custom buttons
-//! quickly.
-//!
-//! # Usage
-//!
-//! ```
-//! // The prelude will import all structures from this crate and EnsoGL core which are needed
-//! // for defining custom button.
-//! use ensogl_button::prelude::*;
-//!
-//! // First, define our custom button shape. The shape should take two colors as a parameters:
-//! // one of the icon, and one of the background. In this example we will create "close" button.
-//!
-//! pub mod shape {
-//!     use super::*;
-//!
-//!     ensogl_core::define_shape_system! {
-//!         (background_color:Vector4<f32>, icon_color:Vector4<f32>) {
-//!             let size       = Var::canvas_size();
-//!             let radius     = Min::min(size.x(),size.y()) / 2.0;
-//!             let angle      = Radians::from(45.0.degrees());
-//!             let bar_length = &radius * 4.0 / 3.0;
-//!             let bar_width  = &bar_length / 6.5;
-//!             #[allow(clippy::blacklisted_name)] // The `bar` name here is totally legit.
-//!             let bar        = Rect((bar_length, &bar_width)).corners_radius(bar_width);
-//!             let cross      = (bar.rotate(angle) + bar.rotate(-angle)).into();
-//!             shape(background_color, icon_color, cross, radius)
-//!         }
-//!     }
-//! }
-//!
-//! // The defined shape should then implement the [`ButtonShape`] trait:
-//!
-//! impl ButtonShape for shape::DynamicShape {
-//!     fn debug_name() -> &'static str {
-//!         "CloseButton"
-//!     }
-//!
-//!     fn background_color_path(state: State) -> StaticPath {
-//!         match state {
-//!             State::Unconcerned => theme::normal::background_color,
-//!             State::Hovered => theme::hovered::background_color,
-//!             State::Pressed => theme::pressed::background_color,
-//!         }
-//!     }
-//!
-//!     fn icon_color_path(state: State) -> StaticPath {
-//!         match state {
-//!             State::Unconcerned => theme::normal::icon_color,
-//!             State::Hovered => theme::hovered::icon_color,
-//!             State::Pressed => theme::pressed::icon_color,
-//!         }
-//!     }
-//!
-//!     fn background_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
-//!         &self.background_color
-//!     }
-//!
-//!     fn icon_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
-//!         &self.icon_color
-//!     }
-//! }
-//!
-//! // Finally, we can create the full component by aliasing [`View`] structure.
-//!
-//! pub type View = ensogl_button::View<shape::DynamicShape>;
-//! ```
+//! The code shared between different buttons living in the Top Buttons panel.
 
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-#![recursion_limit = "256"]
-
-use crate::prelude::*;
+use prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::application;
-use ensogl_core::application::Application;
-use ensogl_core::data::color;
-use ensogl_core::data::color::Rgba;
-use ensogl_core::display;
-use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::*;
-use ensogl_core::gui::component::ShapeView;
+use ensogl::application;
+use ensogl::application::Application;
+use ensogl::data::color;
+use ensogl::data::color::Rgba;
+use ensogl::display;
+use ensogl::display::object::ObjectOps;
+use ensogl::display::shape::*;
+use ensogl::display::style;
+use ensogl::display::style::data::DataMatch;
+use ensogl::gui::component::ShapeView;
 
 
 
@@ -96,18 +20,19 @@ use ensogl_core::gui::component::ShapeView;
 // === Prelude ===
 // ===============
 
-/// Prelude meant to be used by the modules defining custom buttons.
+/// Prelude meant to be used by sibling modules that provide specific button implementations.
 pub mod prelude {
-    pub use ensogl_core::prelude::*;
+    pub use crate::prelude::*;
 
-    pub use crate::shape::shape;
-    pub use crate::ButtonShape;
-    pub use crate::State;
+    pub use crate::window_control_buttons::common;
+    pub use crate::window_control_buttons::common::shape::shape;
+    pub use crate::window_control_buttons::common::ButtonShape;
+    pub use crate::window_control_buttons::common::State;
 
-    pub use ensogl_core::display::shape::*;
-    pub use ensogl_core::display::style::StaticPath;
-    pub use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
-    pub use ensogl_core::system::gpu::Attribute;
+    pub use ensogl::display::shape::*;
+    pub use ensogl::display::style::StaticPath;
+    pub use ensogl::system::gpu::shader::glsl::traits::IntoGlsl;
+    pub use ensogl::system::gpu::Attribute;
 }
 
 
@@ -116,8 +41,8 @@ pub mod prelude {
 // === Constants ===
 // =================
 
-/// The default button's shape size.
-const DEFAULT_SIZE_XY: (f32, f32) = (12.0, 12.0);
+/// Button radius to be used if theme-provided value is not available.
+pub const RADIUS_FALLBACK: f32 = 12.0;
 
 
 
@@ -146,13 +71,13 @@ impl Default for State {
 /// Trait to be defined on a specific button's shape.
 pub trait ButtonShape:
     CloneRef + display::object::class::Object + DynamicShapeInternals + 'static {
-    /// The human-readable name of the button, for debug purposes.
+    /// The human readable name of the button, for debug purposes.
     fn debug_name() -> &'static str;
 
-    /// Path to the color of circular button background for a specific button's state.
+    /// Path to the color of circular button background for a specifc button's state.
     fn background_color_path(state: State) -> StaticPath;
 
-    /// Path to the color of an icon for a specific button's state.
+    /// Path to the color of an icon for a specifc button's state.
     fn icon_color_path(state: State) -> StaticPath;
 
     /// Access the shader parameter for the background color.
@@ -193,7 +118,7 @@ pub mod shape {
 // === Model ===
 // =============
 
-/// An internal model of the button component.
+/// An internal model of Top Buttons Panel button component
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "Shape:CloneRef")]
 #[allow(missing_docs)]
@@ -224,6 +149,26 @@ impl<Shape: ButtonShape> Model<Shape> {
     pub fn set_icon_color(&self, color: impl Into<Rgba>) {
         self.shape.icon_color().set(color.into().into());
     }
+
+    /// Retrieves circle radius value from an frp sampler event.
+    fn get_radius(radius: &Option<style::data::Data>) -> f32 {
+        radius.as_ref().and_then(DataMatch::number).unwrap_or(RADIUS_FALLBACK)
+    }
+
+    /// Set radius, updating the shape sizes and position.
+    pub fn set_radius(&self, radius: &Option<style::data::Data>) -> Vector2<f32> {
+        let radius = Self::get_radius(radius);
+        let size = Self::size_for_radius(radius);
+        self.shape.size().set(size);
+        self.shape.set_position_x(radius);
+        self.shape.set_position_y(-radius);
+        size
+    }
+
+    /// Calculate the size of button for a given radius value.
+    pub fn size_for_radius(radius: f32) -> Vector2<f32> {
+        Vector2(radius, radius) * 2.0
+    }
 }
 
 
@@ -232,11 +177,9 @@ impl<Shape: ButtonShape> Model<Shape> {
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints! {
+ensogl::define_endpoints! {
     Input {
-        set_size (Vector2),
         mouse_nearby (bool),
-        click (),
     }
     Output {
         clicked (),
@@ -252,7 +195,11 @@ ensogl_core::define_endpoints! {
 // === View ===
 // ============
 
-/// The Button component view.
+/// The Control Button component view.
+///
+/// This is a clickable button styled after macOS, i.e. consists of an icon shape placed on top of
+/// a circle. The icon is visible when button or its neighborhood (as provided by `mouse_nearby`
+/// input) is hovered.
 ///
 /// When clicked, it emits `clicked` frp event. The click requires the mouse to be both pressed and
 /// released on the button. It is allowed to temporarily move mouse out of the button while holding
@@ -272,7 +219,7 @@ impl<Shape: ButtonShape> View<Shape> {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::<Shape>::new(app);
+        let model = Model::new(app);
         let network = &frp.network;
         let scene = &app.display.default_scene;
         let style = StyleWatchFrp::new(&scene.style_sheet);
@@ -292,6 +239,10 @@ impl<Shape: ButtonShape> View<Shape> {
         background_color.target(color::Lcha::from(default_background_color));
         model.set_icon_color(default_background_color);
 
+        // Radius initialization
+        let radius_frp =
+            style.get(ensogl_hardcoded_theme::application::window_control_buttons::radius);
+
         // Style's relevant color FRP endpoints.
         let background_unconcerned_color =
             style.get_color(Shape::background_color_path(State::Unconcerned));
@@ -305,12 +256,12 @@ impl<Shape: ButtonShape> View<Shape> {
         let icon_pressed_color = style.get_color(Shape::icon_color_path(State::Pressed));
 
         model.set_background_color(background_unconcerned_color.value());
-        model.set_icon_color(icon_unconcerned_color.value());
         let events = &model.shape.events;
 
         frp::extend! { network
-            eval frp.set_size ((&size) model.shape.size().set(size));
-            frp.source.size <+ frp.set_size;
+
+            // Radius
+            frp.source.size <+ radius_frp.map(f!((radius) model.set_radius(radius)));
 
             // Mouse
             frp.source.is_hovered <+ bool(&events.mouse_out,&events.mouse_over);
@@ -319,12 +270,10 @@ impl<Shape: ButtonShape> View<Shape> {
             mouse_released_on_me  <- mouse.up_primary.gate(&frp.is_hovered);
             was_clicked           <- tracking_for_release.previous();
             frp.source.clicked    <+ mouse_released_on_me.gate(&was_clicked);
-            frp.source.clicked    <+ frp.click;
             state <- all_with3(&frp.is_hovered,&frp.mouse_nearby,&tracking_for_release,
                 |strict_hover,nearby_hover,clicked| {
                     match (strict_hover,nearby_hover,clicked)  {
                             (true , _    , true) => State::Pressed,
-                            (true , _    , _   ) => State::Hovered,
                             (_    , true , _   ) => State::Hovered,
                             (_    , _    , true) => State::Hovered,
                             _                    => State::Unconcerned,
@@ -332,6 +281,7 @@ impl<Shape: ButtonShape> View<Shape> {
                     });
 
             frp.source.state <+ state;
+
             // Color animations
             background_color.target <+ all_with4(&frp.source.state,&background_unconcerned_color,
                 &background_hovered_color,&background_pressed_color,
@@ -357,8 +307,7 @@ impl<Shape: ButtonShape> View<Shape> {
             eval icon_color.value       ((color) model.set_icon_color(color));
         }
 
-        let (size_x, size_y) = DEFAULT_SIZE_XY;
-        frp.set_size.emit(Vector2(size_x, size_y));
+        frp.source.size.emit(model.set_radius(&radius_frp.value()));
 
         Self { frp, model, style }
     }

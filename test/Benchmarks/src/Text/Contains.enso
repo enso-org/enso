@@ -11,7 +11,7 @@ check_all text_vector pattern_vector mode =
 
 main =
     bench_contains suite_prefix character_template =
-        gen = Faker.make_generator
+        faker = Faker.new
         ## Warning: this relies on the fact that Faker will treat the accent
            codepoint `\u{301}` as a separate code unit. We rely on this to add
            accents randomly to neighboring characters. If the implementation of
@@ -19,7 +19,7 @@ main =
         make_alpha_template length = Vector.new length _-> character_template
 
         big_template = make_alpha_template 10000
-        big_random = Vector.new 200 _-> Faker.make_string big_template gen
+        big_random = Vector.new 200 _-> faker.string_value big_template
 
         Bench.measure (here.check_all big_random ["AAAAAA"] Text_Matcher.new) suite_prefix+" exact" 10 10
         Bench.measure (here.check_all big_random ["AAAAAA"] (Text_Matcher.new Case_Insensitive.new)) suite_prefix+" case-insensitive" 10 10

@@ -2,9 +2,6 @@
 
 #### Visual Environment
 
-- [Nodes can be added to the graph by clicking (+) button on the screen][3278].
-  The button is in the bottom-left corner. Node is added at the center or pushed
-  down if the center is already occupied by nodes.
 - [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
 - [Debug Mode for Graph Editor can be activated/deactivated using a
   shortcut.][3264] It allows access to a set of restricted features. See
@@ -62,6 +59,10 @@
 - [Updated `Text.repeat` and added `*` operator shorthand][3310]
 - [General improved Vector performance and new `Vector.each_with_index`,
   `Vector.fold_with_index` and `Vector.take` methods.][3236]
+- [Implemented new `Text.insert` method][3311]
+- [Implemented `Bool.compare_to` method][3317]
+- [Implemented `Map.first`, `Map.last` functions. Expanded `Table.group_by` to
+  also compute mode, percentile, minimum, maximum.][3318]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -86,7 +87,6 @@
 [3259]: https://github.com/enso-org/enso/pull/3259
 [3273]: https://github.com/enso-org/enso/pull/3273
 [3276]: https://github.com/enso-org/enso/pull/3276
-[3278]: https://github.com/enso-org/enso/pull/3278
 [3283]: https://github.com/enso-org/enso/pull/3283
 [3282]: https://github.com/enso-org/enso/pull/3282
 [3285]: https://github.com/enso-org/enso/pull/3285
@@ -97,6 +97,9 @@
 [3309]: https://github.com/enso-org/enso/pull/3309
 [3310]: https://github.com/enso-org/enso/pull/3310
 [3236]: https://github.com/enso-org/enso/pull/3236
+[3311]: https://github.com/enso-org/enso/pull/3311
+[3317]: https://github.com/enso-org/enso/pull/3317
+[3317]: https://github.com/enso-org/enso/pull/3318
 
 #### Enso Compiler
 

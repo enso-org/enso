@@ -3,6 +3,7 @@
 //! This component wraps the plain ListView in some searcher-specific logic, like committing
 //! editing, or picking suggestion with Tab.
 pub mod icons;
+pub mod new;
 
 use crate::prelude::*;
 
@@ -107,6 +108,7 @@ struct Model {
     logger:         Logger,
     display_object: display::object::Instance,
     list:           ListView<Entry>,
+    new_view:       new::View<usize>,
     documentation:  documentation::View,
     doc_provider:   Rc<CloneRefCell<AnyDocumentationProvider>>,
 }
@@ -118,6 +120,7 @@ impl Model {
         let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new(&logger);
         let list = app.new_view::<ListView<Entry>>();
+        let new_view = new::View::new();
         let documentation = documentation::View::new(scene);
         let doc_provider = default();
         scene.layers.above_nodes.add_exclusive(&list);
@@ -134,7 +137,7 @@ impl Model {
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
         documentation.set_position_y(-action_list_gap);
-        Self { app, logger, display_object, list, documentation, doc_provider }
+        Self { app, logger, display_object, list, new_view, documentation, doc_provider }
     }
 
     fn docs_for(&self, id: Option<entry::Id>) -> String {
@@ -243,6 +246,14 @@ impl View {
             source.used_as_suggestion <+ opt_picked_entry.gate(&is_entry_enabled);
             source.editing_committed  <+ model.list.chosen_entry.gate(&is_entry_enabled);
 
+            // New searcher
+            let is_selected           =  model.new_view.focused.clone_ref();
+            selected_id               <- model.new_view.highlight.map(|id| id.last().copied());
+            opt_picked_entry          <- selected_id.sample(&frp.use_as_suggestion);
+            source.used_as_suggestion <+ opt_picked_entry.gate(&is_selected);
+            opt_chosen_id             <- model.new_view.entry_chosen.map(|id| id.last().copied());
+            source.editing_committed  <+ opt_chosen_id.gate(&is_selected);
+
             eval displayed_doc ((data) model.documentation.frp.display_documentation(data));
         };
 
@@ -268,6 +279,11 @@ impl View {
     pub fn clear_actions(&self) {
         let provider = Rc::new(list_view::entry::EmptyProvider);
         self.set_actions(provider);
+    }
+
+    /// The FRP interface of new searcher.
+    pub fn new_frp(&self) -> &new::Frp<usize> {
+        &self.model.new_view.frp
     }
 }
 

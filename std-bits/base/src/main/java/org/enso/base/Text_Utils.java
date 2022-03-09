@@ -170,8 +170,8 @@ public class Text_Utils {
   public static boolean contains(String string, String substring) {
     // {@code StringSearch} does not handle empty strings as we would want, so we need these special
     // cases.
-    if (substring.length() == 0) return true;
-    if (string.length() == 0) return false;
+    if (substring.isEmpty()) return true;
+    if (string.isEmpty()) return false;
     StringSearch searcher = new StringSearch(substring, string);
     return searcher.first() != StringSearch.DONE;
   }

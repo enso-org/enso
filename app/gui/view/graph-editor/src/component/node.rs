@@ -50,17 +50,17 @@ use crate::selection::BoundingBox;
 // === Constants ===
 // =================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const ACTION_BAR_WIDTH: f32 = 180.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const ACTION_BAR_HEIGHT: f32 = 15.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const CORNER_RADIUS: f32 = 14.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const HEIGHT: f32 = 28.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const PADDING: f32 = 40.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const RADIUS: f32 = 14.0;
 
 /// Space between the documentation comment and the node.
@@ -174,7 +174,7 @@ pub mod backdrop {
     }
 }
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub mod drag_area {
     use super::*;
 
@@ -200,7 +200,7 @@ pub mod drag_area {
 // === Error Indicator ===
 // =======================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub mod error_shape {
     use super::*;
 
@@ -241,27 +241,27 @@ pub mod error_shape {
 // ==============
 
 #[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub enum Endpoint {
     Input,
     Output,
 }
 
 #[derive(Clone, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Crumbs {
     pub endpoint: Endpoint,
     pub crumbs:   span_tree::Crumbs,
 }
 
 impl Crumbs {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn input(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Input;
         Self { endpoint, crumbs }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn output(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Output;
         Self { endpoint, crumbs }
@@ -522,7 +522,7 @@ impl NodeModel {
         .init()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
         input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
@@ -533,12 +533,12 @@ impl NodeModel {
         self
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn width(&self) -> f32 {
         self.input.width.value()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn height(&self) -> f32 {
         HEIGHT
     }
@@ -584,7 +584,7 @@ impl NodeModel {
         size
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn visualization(&self) -> &visualization::Container {
         &self.visualization
     }
@@ -612,7 +612,7 @@ impl NodeModel {
 }
 
 impl Node {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
         let network = &frp.network;
