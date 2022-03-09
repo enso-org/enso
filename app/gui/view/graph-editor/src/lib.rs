@@ -1418,6 +1418,7 @@ impl GraphEditorModelWithNetwork {
         ctx: &NodeCreationContext,
         way: WayOfCreatingNode,
         mouse_position: Vector2,
+        hover_out_port: Option<EdgeEndpoint>,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
         let should_edit = !matches!(way, AddNodeEvent);
@@ -1426,6 +1427,7 @@ impl GraphEditorModelWithNetwork {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
             DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
+            StartConnectedCreationEvent => hover_out_port.map(|e| e.node_id),
         };
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
@@ -2841,7 +2843,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
         add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &input_start_conn_creation_way, &add_with_button_way, &add_with_edge_drop_way);
 
-        new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
+        new_node <- add_node_way.map3(&cursor_pos_in_scene, &inputs.hover_node_output, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos, hover_out_port) {
             let ctx = NodeCreationContext {
                 pointer_style  : &node_pointer_style,
                 tooltip_update : &node_tooltip,
@@ -2849,7 +2851,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                 input_press    : &node_input_touch.down,
                 output         : &out,
             };
-            model.create_node(&ctx, *way, *mouse_pos)
+            model.create_node(&ctx, *way, *mouse_pos, hover_out_port.clone())
         }));
         out.source.node_added <+ new_node.map(|&(id, src, _)| (id, src));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
