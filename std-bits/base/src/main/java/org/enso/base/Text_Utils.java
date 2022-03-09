@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
+import org.enso.base.text.GraphemeSpan;
+import org.enso.base.text.Utf16Span;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
@@ -259,13 +261,14 @@ public class Text_Utils {
    * @param needle the substring that is searched for
    * @return index of the first needle or -1 if not found.
    */
-  public static long index_of(String haystack, String needle) {
-    if (needle.isEmpty()) return 0;
-    if (haystack.isEmpty()) return -1;
+  public static Utf16Span span_of(String haystack, String needle) {
+    if (needle.isEmpty()) return new Utf16Span(0, 0);
+    if (haystack.isEmpty()) return null;
 
     StringSearch search = new StringSearch(needle, haystack);
     int pos = search.first();
-    return pos == StringSearch.DONE ? -1 : pos;
+    if (pos == StringSearch.DONE) return null;
+    return new Utf16Span(pos, pos + search.getMatchLength());
   }
 
   /**
@@ -277,16 +280,17 @@ public class Text_Utils {
    * @param needle the substring that is searched for
    * @return index of the last needle or -1 if not found.
    */
-  public static long last_index_of(String haystack, String needle) {
-    if (needle.isEmpty()) return haystack.length();
-    if (haystack.isEmpty()) return -1;
+  public static Utf16Span last_span_of(String haystack, String needle) {
+    if (needle.isEmpty()) {
+      int afterLast = haystack.length();
+      return new Utf16Span(afterLast, afterLast);
+    }
+    if (haystack.isEmpty()) return null;
 
     StringSearch search = new StringSearch(needle, haystack);
     int pos = search.last();
-    if (pos == StringSearch.DONE) {
-      return -1;
-    }
-    return pos;
+    if (pos == StringSearch.DONE) return null;
+    return new Utf16Span(pos, pos + search.getMatchLength());
   }
 
   /**
@@ -296,15 +300,17 @@ public class Text_Utils {
    * @param needle the substring that is searched for
    * @return a list of indices at which the needle occurs in the haystack
    */
-  public static List<Long> index_of_all(String haystack, String needle) {
-    if (needle.isEmpty()) throw new IllegalArgumentException("The operation `index_of_all` does not support searching for an empty term.");
+  public static List<Utf16Span> span_of_all(String haystack, String needle) {
+    if (needle.isEmpty())
+      throw new IllegalArgumentException(
+          "The operation `index_of_all` does not support searching for an empty term.");
     if (haystack.isEmpty()) return List.of();
 
     StringSearch search = new StringSearch(needle, haystack);
-    ArrayList<Long> occurrences = new ArrayList<>();
+    ArrayList<Utf16Span> occurrences = new ArrayList<>();
     long ix;
     while ((ix = search.next()) != StringSearch.DONE) {
-      occurrences.add(ix);
+      occurrences.add(new Utf16Span(ix, ix + search.getMatchLength()));
     }
     return occurrences;
   }
@@ -369,26 +375,11 @@ public class Text_Utils {
     return result;
   }
 
-  /**
-   * Represents a span of characters within a Text.
-   *
-   * <p>The indices are stored in grapheme cluster space.
-   *
-   * <p>The start index indicates the first grapheme of the span and the end index indicates the
-   * first grapheme after the end of the span.
-   */
-  public static class GraphemeSpan {
-    public final long start, end;
-
-    public GraphemeSpan(long start, long end) {
-      this.start = start;
-      this.end = end;
-    }
-  }
-
   public static GraphemeSpan span_of_case_insensitive(
       String haystack, String needle, Locale locale, boolean searchForLast) {
-    if (needle.isEmpty()) throw new IllegalArgumentException("The operation `span_of_case_insensitive` does not support searching for an empty term.");
+    if (needle.isEmpty())
+      throw new IllegalArgumentException(
+          "The operation `span_of_case_insensitive` does not support searching for an empty term.");
     if (haystack.isEmpty()) return null;
 
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
@@ -411,7 +402,9 @@ public class Text_Utils {
 
   public static List<GraphemeSpan> span_of_all_case_insensitive(
       String haystack, String needle, Locale locale) {
-    if (needle.isEmpty()) throw new IllegalArgumentException("The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
+    if (needle.isEmpty())
+      throw new IllegalArgumentException(
+          "The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
     if (haystack.isEmpty()) return null;
 
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);

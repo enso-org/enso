@@ -1201,11 +1201,14 @@ Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher
 Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
         True ->
-            codepoint_ix = case mode of
-                Matching_Mode.First -> Text_Utils.index_of this term
-                Matching_Mode.Last -> Text_Utils.last_index_of this term
-            if codepoint_ix < 0 then Nothing else
-                start = Text_Utils.utf16_index_to_grapheme_index this codepoint_ix
+            codepoint_span = case mode of
+                Matching_Mode.First -> Text_Utils.span_of this term
+                Matching_Mode.Last -> Text_Utils.last_span_of this term
+            if codepoint_span.is_nothing then Nothing else
+                start = Text_Utils.utf16_index_to_grapheme_index this codepoint_span.start
+                ## While the codepoint_span may have different code unit length
+                   from our term, the `length` counted in grapheme clusters is
+                   guaranteed to be the same.
                 end = start + term.length
                 Span (Range start end) this
         Case_Insensitive locale ->
@@ -1249,10 +1252,13 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
          "Hello World!".location_of_all "o" . map .start == [4, 7]
 Text.location_of_all : Text -> Matcher -> [Span]
 Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
-    Text_Matcher case_sensitive -> case case_sensitive of
+    Text_Matcher case_sensitive -> if term.is_empty then Vector.new (this.length + 1) (ix -> Span (Range ix ix) this) else case case_sensitive of
         True ->
-            codepoint_ixes = Text_Utils.index_of_all this term
-            grahpeme_ixes = Vector.from_array <| Text_Utils.utf16_indices_to_grapheme_indices this codepoint_ixes
+            codepoint_spans = Vector.from_array <| Text_Utils.span_of_all this term
+            grahpeme_ixes = Vector.from_array <| Text_Utils.utf16_indices_to_grapheme_indices this (codepoint_spans.map .start).to_array
+            ## While the codepoint_spans may have different code unit lengths
+               from our term, the `length` counted in grapheme clusters is
+               guaranteed to be the same.
             offset = term.length
             grahpeme_ixes . map start->
                 end = start+offset

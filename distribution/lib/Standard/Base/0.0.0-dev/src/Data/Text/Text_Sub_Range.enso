@@ -79,24 +79,24 @@ type Text_Sub_Range
                     Range (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
             Before delimiter ->
                 if delimiter.is_empty then (Range 0 0) else
-                    index = Text_Utils.index_of text delimiter
-                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
-                        (Range 0 index)
+                    span = Text_Utils.span_of text delimiter
+                    if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
+                        (Range 0 span.start)
             Before_Last delimiter ->
                 if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
-                    index = Text_Utils.last_index_of text delimiter
-                    if index == -1 then (Range 0 (Text_Utils.char_length text)) else
-                        (Range 0 index)
+                    span = Text_Utils.last_span_of text delimiter
+                    if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
+                        (Range 0 span.start)
             After delimiter ->
                 if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
-                    index = Text_Utils.index_of text delimiter
-                    if index == -1 then (Range 0 0) else
-                        (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
+                    span = Text_Utils.span_of text delimiter
+                    if span.is_nothing then (Range 0 0) else
+                        (Range span.end (Text_Utils.char_length text))
             After_Last delimiter ->
                 if delimiter.is_empty then (Range 0 0) else
-                    index = Text_Utils.last_index_of text delimiter
-                    if index == -1 then (Range 0 0) else
-                        (Range (index + Text_Utils.char_length delimiter) (Text_Utils.char_length text))
+                    span = Text_Utils.last_span_of text delimiter
+                    if span.is_nothing then (Range 0 0) else
+                        (Range span.end (Text_Utils.char_length text))
             While predicate ->
                 indices = find_sub_range_end text _-> start-> end->
                     predicate (Text_Utils.substring text start end) . not
