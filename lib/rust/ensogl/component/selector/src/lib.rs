@@ -76,7 +76,7 @@ impl NumberPicker {
         let app = app.clone_ref();
         let model = Rc::new(Model::new(&app));
         let frp = number::Frp::default();
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         frp.init(&app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model, app }
@@ -146,7 +146,7 @@ impl NumberRangePicker {
         let app = app.clone_ref();
         let model = Rc::new(Model::new(&app));
         let frp = range::Frp::default();
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         frp.init(&app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model, app }

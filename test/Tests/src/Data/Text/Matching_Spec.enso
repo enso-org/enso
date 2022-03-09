@@ -1,0 +1,78 @@
+from Standard.Base import all
+
+from Standard.Table.Error as Error_Module import all
+import Standard.Base.Error.Problem_Behavior
+import Standard.Base.Error.Warnings
+import Standard.Base.Data.Text.Matching
+import Standard.Test
+import Standard.Test.Problems
+
+type Foo_Error
+
+spec = Test.group 'Matching Helper' <|
+    Test.specify 'should match a single name with a single Text_Matcher criterion' <|
+        Text_Matcher.new.match_single_criterion "foo" "foo" . should_be_true
+        Text_Matcher.new.match_single_criterion "foobar" "foo" . should_be_false
+        Text_Matcher.new.match_single_criterion "foo" "f.*" . should_be_false
+        Text_Matcher.new.match_single_criterion "foo" "Foo" . should_be_false
+
+    Test.specify 'should correctly handle Unicode folding with Text_Matcher matching' <|
+        Text_Matcher.new.match_single_criterion '\u00E9' '\u0065\u{301}' . should_be_true
+        Text_Matcher.new.match_single_criterion 'é' '\u00E9' . should_be_true
+        Text_Matcher.new.match_single_criterion 'é' 'ę' . should_be_false
+
+    Test.specify 'should match a single name with a single regex criterion' <|
+        Regex_Matcher.new.match_single_criterion "foo" "foo" . should_be_true
+        Regex_Matcher.new.match_single_criterion "foobar" "foo" . should_be_false
+        Regex_Matcher.new.match_single_criterion "foo" "f.*" . should_be_true
+        Regex_Matcher.new.match_single_criterion "foo" "foo.*" . should_be_true
+        Regex_Matcher.new.match_single_criterion "foo" "F.*" . should_be_false
+
+    Test.specify 'should support case-insensitive matching' <|
+        (Regex_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foo" "F.*" . should_be_true
+        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foO" "FOo" . should_be_true
+
+        (Regex_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foo" "fF.*" . should_be_false
+        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foo" "Foos" . should_be_false
+
+        # Small beta is equal to capital 'beta' which looks the same as capital 'b' but is a different symbol.
+        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "β" "Β" . should_be_true
+        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "β" "B" . should_be_false
+
+    Test.specify 'should match a list of names with a list of criteria, correctly handling reordering' <|
+        Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "foo"] reorder=True . should_equal ["baz", "foo"]
+        Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "foo"] reorder=False . should_equal ["foo", "baz"]
+
+    Test.specify 'should allow multiple matches to a single criterion (Regex)' <|
+        Regex_Matcher.new.match_criteria ["foo", "bar", "baz", "quux"] ["b.*"] reorder=True . should_equal ["bar", "baz"]
+        Regex_Matcher.new.match_criteria ["foo", "bar", "baz", "quux"] ["b.*", "foo"] reorder=False . should_equal ["foo", "bar", "baz"]
+
+    Test.specify 'should include the object only with the first criterion that matched it, avoiding duplication' <|
+        Regex_Matcher.new.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=True . should_equal ["baz", "zap", "bar"]
+        Regex_Matcher.new.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False . should_equal ["bar", "baz", "zap"]
+
+    Test.specify 'should correctly handle criteria which did not match anything' <|
+        action = Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True warnings=_ on_problems=_
+        tester = _.should_equal ["baz"]
+        problems = [Matching.No_Matches_Found ["unknown_column"]]
+        Problems.test_problem_handling action problems tester
+
+        action_2 = Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column_1", "unknown_column_2"] reorder=False warnings=_ on_problems=_
+        problems_2 = [Matching.No_Matches_Found ["unknown_column_1", "unknown_column_2"]]
+        Problems.test_problem_handling action_2 problems_2 tester
+
+    Test.specify 'should correctly work with complex object using a function extracting their names' <|
+        pairs = [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10]
+        selected = [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+        Text_Matcher.new.match_criteria pairs ["bar", "foo"] reorder=True name_mapper=_.first . should_equal selected
+
+        Text_Matcher.new.match_criteria [1, 2, 3] ["2"] name_mapper=_.to_text . should_equal [2]
+
+    Test.specify 'should correctly forward errors' <|
+        Text_Matcher.new.match_criteria (Error.throw Foo_Error) [] . should_fail_with Foo_Error
+        Text_Matcher.new.match_criteria [] (Error.throw Foo_Error) . should_fail_with Foo_Error
+        (Error.throw Foo_Error).match_criteria [] [] . should_fail_with Foo_Error
+        Text_Matcher.new.match_criteria [1, 2, 3] ["2"] name_mapper=(x-> if x == 3 then Error.throw Foo_Error else x.to_text) . should_fail_with Foo_Error
+        Text_Matcher.new.match_criteria ["a"] ["a"] name_mapper=_.nonexistent_function . should_fail_with No_Such_Method_Error
+
+main = Test.Suite.run_main here.spec

@@ -74,16 +74,16 @@ async function build_project_manager() {
 }
 
 /// Run the local project manager binary.
-function run_project_manager() {
+function run_project_manager(options = {}) {
     const bin_path = paths.get_project_manager_path(paths.dist.bin)
     console.log(`Starting the project manager from "${bin_path}".`)
-    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+    return child_process.execFile(bin_path, [], options, (error, stdout, stderr) => {
+        console.log(`Project manager finished.`)
         console.error(stderr)
-        if (error) {
+        if (error && !error.killed) {
             throw error
         }
         console.log(stdout)
-        console.log(`Project manager running.`)
     })
 }
 
@@ -115,7 +115,13 @@ commands.clean.rust = async function () {
 
 commands.check = command(`Fast check if project builds (only Rust target)`)
 commands.check.rust = async function () {
-    await run_cargo('cargo', ['check'])
+    await run_cargo('cargo', [
+        'check',
+        '--workspace',
+        ' -p',
+        'enso-integration-test',
+        '--all-targets',
+    ])
 }
 
 // === Build ===
@@ -167,7 +173,7 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const limitMb = 4.6
+        const limitMb = 4.62
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
     // Copy WASM files from temporary directory to Webpack's `dist` directory.
@@ -186,8 +192,11 @@ async function checkWasmSize(path, limitMb) {
 
 /// Workaround fix by wdanilo, see: https://github.com/rustwasm/wasm-pack/issues/790
 function js_workaround_patcher(code) {
-    code = code.replace(/if \(\(typeof URL.*}\);/gs, 'return imports')
-    code = code.replace(/if \(typeof module.*let result/gs, 'let result')
+    code = code.replace(/if \(typeof input === 'string'.*return wasm;/gs, 'return imports')
+    code = code.replace(
+        /if \(typeof input === 'undefined'.*const imports = {};/gs,
+        'const imports = {};'
+    )
     code = code.replace(/export default init;/gs, 'export default init')
     code += '\nexport function after_load(w,m) { wasm = w; init.__wbindgen_wasm_module = m;}'
     return code
@@ -244,7 +253,36 @@ commands.test.rust = async function (argv) {
             '--headless',
             '--chrome',
         ]
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 60
         await run_cargo('cargo', args)
+    }
+}
+
+// === Integration Test ===
+
+commands['integration-test'] = command('Run integration test suite')
+commands['integration-test'].rust = async function (argv) {
+    let pm_process = null
+    if (argv.backend !== 'false') {
+        let env = { ...process.env, PROJECTS_ROOT: path.resolve(os.tmpdir(), 'enso') }
+        pm_process = await build_project_manager().then(() => run_project_manager({ env: env }))
+    }
+    try {
+        console.log(`Running Rust WASM test suite.`)
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 120
+        let args = [
+            'test',
+            '--headless',
+            '--chrome',
+            'integration-test',
+            '--profile=integration-test',
+        ]
+        await run_cargo('wasm-pack', args)
+    } finally {
+        console.log(`Shutting down Project Manager`)
+        if (pm_process !== null) {
+            pm_process.kill()
+        }
     }
 }
 
@@ -252,7 +290,16 @@ commands.test.rust = async function (argv) {
 
 commands.lint = command(`Lint the codebase`)
 commands.lint.rust = async function () {
-    await run_cargo('cargo', ['clippy', '--', '-D', 'warnings'])
+    await run_cargo('cargo', [
+        'clippy',
+        '--workspace',
+        '-p',
+        'enso-integration-test',
+        '--all-targets',
+        '--',
+        '-D',
+        'warnings',
+    ])
     await run_cargo('cargo', ['fmt', '--', '--check'])
 }
 

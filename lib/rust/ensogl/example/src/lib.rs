@@ -5,7 +5,6 @@
 
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
@@ -28,6 +27,7 @@ pub use ensogl_example_easing_animator as easing_animator;
 pub use ensogl_example_glyph_system as glyph_system;
 pub use ensogl_example_list_view as list_view;
 pub use ensogl_example_mouse_events as mouse_events;
+pub use ensogl_example_profiling_run_graph as profiling_run_graph;
 pub use ensogl_example_scroll_area as scroll_area;
 pub use ensogl_example_shape_system as shape_system;
 pub use ensogl_example_slider as slider;

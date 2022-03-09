@@ -1,6 +1,6 @@
 # This is the new, in progress, Build Workflow for the Enso Engine.
 
-name: Engine CI V2
+name: Engine CI (new)
 
 on:
   push:
@@ -10,13 +10,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Engine builds are slow and our runners limited in capacity. Thus we cancel any workflow runs for older commits
+  # on this branch.
+  cancel:
+    name: Cancel previous runs
+    runs-on:
+      # We can run pretty much on any runner. The label below is the one present everywhere.
+      - X64
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
   test_and_publish:
     name: Engine
     runs-on:
       - ${{ matrix.os }}
       - self-hosted
       - engine
-    timeout-minutes: 180
+    timeout-minutes: 90
     strategy:
       matrix:
         # The macOS support is not yet done. For now, the GitHub-hosted runner
@@ -33,7 +46,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           path: enso
-      - run: cargo run --release --bin enso-build -- ${{ github.workspace }}/enso
+      - run: cargo run --release --bin enso-build -- ${{ github.workspace }}/enso build
         working-directory: ${{ github.workspace }}/ci-build
 
       #####################
@@ -43,7 +56,8 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ENGINE_DIST_NAME }}
-          path: ${{ env.ENGINE_DIST_ROOT }}/${{ env.ENGINE_DIST_NAME }}.zip
+          # Irregular, engine is pre-zipped to avoid long paths issues of nodejs.
+          path: ${{ env.ENGINE_DIST_ARCHIVE }}
       - name: Publish the Launcher
         uses: actions/upload-artifact@v2
         with:

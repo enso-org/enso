@@ -212,7 +212,7 @@ mod tests {
         let code = DocumentationCommentInfo::text_to_repr(main.indent(), &text);
         let ast2 = parser.parse_line(&code).unwrap();
         let doc2 = DocumentationCommentInfo::new(&ast2.as_ref(), main.indent())
-            .expect(&format!("Failed to parse `{}` as comment", code));
+            .unwrap_or_else(|| panic!("Failed to parse `{code}` as comment"));
         assert_eq!(doc.line().repr(), doc2.line().repr())
     }
 

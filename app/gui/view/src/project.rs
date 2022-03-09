@@ -3,9 +3,12 @@
 use crate::prelude::*;
 
 use crate::code_editor;
+use crate::debug_mode_popup;
+use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
+use crate::graph_editor::EdgeId;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::open_dialog::OpenDialog;
@@ -20,9 +23,49 @@ use ensogl::display;
 use ensogl::display::shape::*;
 use ensogl::system::web;
 use ensogl::system::web::dom;
+use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
+
+
+
+// ==================================
+// === ComponentBrowserOpenReason ===
+// ==================================
+
+/// An enum describing how the component browser was opened.
+#[derive(Clone, CloneRef, Copy, Debug, PartialEq)]
+pub enum ComponentBrowserOpenReason {
+    /// New node was created by opening the component browser or the node is being edited.
+    NodeEditing(NodeId),
+    /// New node was created by dropping a dragged connection on the scene.
+    EdgeDropped(NodeId, EdgeId),
+}
+
+impl ComponentBrowserOpenReason {
+    /// [`NodeId`] of the created/edited node.
+    pub fn node(&self) -> NodeId {
+        match self {
+            Self::NodeEditing(id) => *id,
+            Self::EdgeDropped(id, _) => *id,
+        }
+    }
+
+    /// [`EdgeId`] of the edge that was dropped to create a node.
+    pub fn edge(&self) -> Option<EdgeId> {
+        match self {
+            Self::NodeEditing(_) => None,
+            Self::EdgeDropped(_, id) => Some(*id),
+        }
+    }
+}
+
+impl Default for ComponentBrowserOpenReason {
+    fn default() -> Self {
+        Self::NodeEditing(default())
+    }
+}
 
 
 
@@ -52,12 +95,15 @@ ensogl::define_endpoints! {
         show_prompt(),
         /// Disable the prompt. It will be hidden if currently visible.
         disable_prompt(),
+        // Enable Debug Mode of Graph Editor.
+        enable_debug_mode(),
+        // Disable Debug Mode of Graph Editor.
+        disable_debug_mode(),
     }
 
     Output {
-        searcher_opened                     (NodeId),
+        searcher_opened                     (ComponentBrowserOpenReason),
         adding_new_node                     (bool),
-        searcher_input                      (Option<NodeId>),
         is_searcher_opened                  (bool),
         old_expression_of_edited_node       (Expression),
         editing_aborted                     (NodeId),
@@ -67,6 +113,7 @@ ensogl::define_endpoints! {
         style                               (Theme),
         fullscreen_visualization_shown      (bool),
         drop_files_enabled                  (bool),
+        debug_mode                          (bool),
     }
 }
 
@@ -114,12 +161,13 @@ struct Model {
     prompt_background:      prompt_background::View,
     prompt:                 ensogl_text::Area,
     open_dialog:            Rc<OpenDialog>,
+    debug_mode_popup:       debug_mode_popup::View,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("project::View");
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
         let searcher = app.new_view::<searcher::View>();
         let graph_editor = app.new_view::<GraphEditor>();
@@ -127,6 +175,7 @@ impl Model {
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new(&logger);
         let prompt = ensogl_text::Area::new(app);
+        let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
@@ -135,6 +184,7 @@ impl Model {
         });
         let window_control_buttons = Immutable(window_control_buttons);
         let open_dialog = Rc::new(OpenDialog::new(app));
+
         prompt_background.add_child(&prompt);
         prompt.set_content("Press the tab key to search for components.");
         scene.layers.panel.add_exclusive(&prompt_background);
@@ -145,6 +195,7 @@ impl Model {
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
         display_object.add_child(&prompt_background);
+        display_object.add_child(&debug_mode_popup);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -161,6 +212,7 @@ impl Model {
             prompt_background,
             prompt,
             open_dialog,
+            debug_mode_popup,
         }
     }
 
@@ -183,7 +235,7 @@ impl Model {
     }
 
     fn set_html_style(&self, style: &'static str) {
-        web::with_element_by_id_or_warn(&self.logger, "root", |root| root.set_class_name(style));
+        web::document.with_element_by_id_or_warn("root", |root| root.set_class_name(style));
     }
 
     fn searcher_left_top_position_when_under_node_at(position: Vector2<f32>) -> Vector2<f32> {
@@ -220,11 +272,12 @@ impl Model {
         }
     }
 
-    fn add_node_and_edit(&self) -> NodeId {
+    /// Add a new node and start editing it. Place it below `node_above` if provided, otherwise
+    /// place it under the cursor.
+    fn add_node_and_edit(&self, node_above: Option<NodeId>) -> NodeId {
         let graph_editor_inputs = &self.graph_editor.frp.input;
-        let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned()
-        {
-            self.graph_editor.add_node_below(selected)
+        let node_id = if let Some(node_above) = node_above {
+            self.graph_editor.add_node_below(node_above)
         } else {
             graph_editor_inputs.add_node_at_cursor.emit(());
             self.graph_editor.frp.output.node_added.value()
@@ -232,6 +285,17 @@ impl Model {
         graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
         node_id
+    }
+
+    fn add_node_by_opening_searcher(&self) -> ComponentBrowserOpenReason {
+        let node_above = self.graph_editor.model.nodes.selected.first_cloned();
+        let node_id = self.add_node_and_edit(node_above);
+        ComponentBrowserOpenReason::NodeEditing(node_id)
+    }
+
+    fn add_node_by_dropping_edge(&self, edge: EdgeId) -> ComponentBrowserOpenReason {
+        let node_id = self.add_node_and_edit(None);
+        ComponentBrowserOpenReason::EdgeDropped(node_id, edge)
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
@@ -353,7 +417,7 @@ impl View {
 
         display::style::javascript::expose_to_window(&app.themes);
 
-        let scene = app.display.scene().clone_ref();
+        let scene = app.display.default_scene.clone_ref();
         let model = Model::new(app);
         let frp = Frp::new();
         let searcher = &model.searcher.frp;
@@ -450,14 +514,22 @@ impl View {
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
             editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
-            frp.source.searcher_input     <+ graph.output.node_being_edited;
-            frp.source.is_searcher_opened <+ frp.searcher_input.map(|n| n.is_some());
+            frp.source.is_searcher_opened <+ graph.output.node_being_edited.map(|n| n.is_some());
 
 
             // === Adding Node ===
 
-            frp.source.adding_new_node <+ frp.open_searcher.constant(true);
-            frp.source.searcher_opened <+ frp.open_searcher.map(f!((_) model.add_node_and_edit()));
+            let adding_by_dropping_edge = graph.output.on_edge_drop_to_create_node.clone_ref();
+            let adding_by_opening_searcher = frp.open_searcher.clone_ref();
+            adding_by_dropping_edge_bool <- adding_by_dropping_edge.constant(true);
+            adding_by_opening_searcher_bool <- adding_by_opening_searcher.constant(true);
+            frp.source.adding_new_node <+ any(adding_by_dropping_edge_bool, adding_by_opening_searcher_bool);
+
+            node_being_edited <- graph.output.node_being_edited.on_change().filter_map(|n| *n);
+
+            frp.source.searcher_opened <+ node_being_edited.map(|id| ComponentBrowserOpenReason::NodeEditing(*id));
+            frp.source.searcher_opened <+ adding_by_dropping_edge.map(f!((e) model.add_node_by_dropping_edge(*e)));
+            frp.source.searcher_opened <+ adding_by_opening_searcher.map(f_!(model.add_node_by_opening_searcher()));
 
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
@@ -566,6 +638,14 @@ impl View {
 
             frp.source.drop_files_enabled <+ init.constant(true);
             frp.source.drop_files_enabled <+ frp.open_dialog_shown.map(|v| !v);
+
+            // === Debug Mode ===
+
+            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
+            graph.set_debug_mode <+ frp.source.debug_mode;
+
+            model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
+            model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
         }
         init.emit(());
         std::mem::forget(prompt_visibility);
@@ -596,6 +676,11 @@ impl View {
     /// Open File or Project Dialog
     pub fn open_dialog(&self) -> &OpenDialog {
         &self.model.open_dialog
+    }
+
+    /// Debug Mode Popup
+    pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
+        &self.model.debug_mode_popup
     }
 }
 
@@ -638,6 +723,8 @@ impl application::View for View {
             (Press, "", "cmd s", "save_module"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
+            (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
+            (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
         ])
             .iter()
             .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

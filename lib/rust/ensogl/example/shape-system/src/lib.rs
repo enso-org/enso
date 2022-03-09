@@ -2,7 +2,6 @@
 
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
@@ -25,7 +24,6 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::ShapeSystem;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
-use ensogl_core::system::web;
 use wasm_bindgen::prelude::*;
 
 
@@ -55,10 +53,8 @@ pub fn shape() -> AnyShape {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_shape_system() {
-    web::forward_panic_hook_to_console();
-
-    let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let scene = world.scene();
+    let world = World::new().displayed_in("root");
+    let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
     let sprite_system = ShapeSystem::new(&world, &shape());
@@ -71,7 +67,9 @@ pub fn entry_point_shape_system() {
     world.keep_alive_forever();
 
     world
-        .on_frame(move |_time| {
+        .on
+        .before_frame
+        .add(move |_time| {
             let _keep_alive = &sprite;
             let _keep_alive = &navigator;
         })

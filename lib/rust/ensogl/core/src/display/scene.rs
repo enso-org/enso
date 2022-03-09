@@ -10,6 +10,7 @@ pub use layer::Layer;
 pub use crate::system::web::dom::Shape;
 
 use crate::prelude::*;
+use web::traits::*;
 
 use crate::animation;
 use crate::control::callback;
@@ -30,20 +31,20 @@ use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
+use crate::system;
 use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::gpu::shader::Context;
 use crate::system::web;
-use crate::system::web::IgnoreContextMenuHandle;
-use crate::system::web::NodeInserter;
-use crate::system::web::StyleSetter;
+use crate::system::web::EventListenerHandle;
+use crate::system::Context;
+use crate::system::ContextLostHandler;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
-use web_sys::HtmlElement;
+use web::HtmlElement;
 
 
 pub trait MouseTarget: Debug + 'static {
@@ -326,7 +327,7 @@ impl Mouse {
         let position = variables.add_or_panic("mouse_position", Vector2::new(0, 0));
         let hover_ids = variables.add_or_panic("mouse_hover_ids", target.to_internal(&logger));
         let target = Rc::new(Cell::new(target));
-        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window());
+        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
             f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
@@ -414,10 +415,8 @@ pub struct Keyboard {
 
 impl Keyboard {
     pub fn new(current_event: &CurrentJsEvent) -> Self {
-        let logger = Logger::new("keyboard");
         let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings =
-            Rc::new(enso_frp::io::keyboard::DomBindings::new(&logger, &frp, current_event));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp, current_event));
         Self { frp, bindings }
     }
 }
@@ -440,12 +439,12 @@ pub struct Dom {
 impl Dom {
     /// Constructor.
     pub fn new(logger: &Logger) -> Self {
-        let root = web::create_div();
+        let root = web::document.create_div_or_panic();
         let layers = DomLayers::new(logger, &root);
         root.set_class_name("scene");
-        root.set_style_or_panic("height", "100vh");
-        root.set_style_or_panic("width", "100vw");
-        root.set_style_or_panic("display", "block");
+        root.set_style_or_warn("height", "100vh");
+        root.set_style_or_warn("width", "100vw");
+        root.set_style_or_warn("display", "block");
         let root = web::dom::WithKnownShape::new(&root);
         Self { root, layers }
     }
@@ -488,42 +487,42 @@ pub struct DomLayers {
     /// Front DOM scene layer.
     pub front:          DomScene,
     /// The WebGL scene layer.
-    pub canvas:         web_sys::HtmlCanvasElement,
+    pub canvas:         web::HtmlCanvasElement,
 }
 
 impl DomLayers {
     /// Constructor.
-    pub fn new(logger: &Logger, dom: &web_sys::HtmlDivElement) -> Self {
+    pub fn new(logger: &Logger, dom: &web::HtmlDivElement) -> Self {
         let welcome_screen = DomScene::new(logger);
         welcome_screen.dom.set_class_name("welcome_screen");
-        welcome_screen.dom.set_style_or_warn("z-index", "0", logger);
-        dom.append_or_panic(&welcome_screen.dom);
+        welcome_screen.dom.set_style_or_warn("z-index", "0");
+        dom.append_or_warn(&welcome_screen.dom);
 
         let back = DomScene::new(logger);
         back.dom.set_class_name("back");
-        back.dom.set_style_or_warn("z-index", "1", logger);
-        dom.append_or_panic(&back.dom);
+        back.dom.set_style_or_warn("z-index", "1");
+        dom.append_or_warn(&back.dom);
 
         let fullscreen_vis = DomScene::new(logger);
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
-        fullscreen_vis.dom.set_style_or_warn("z-index", "2", logger);
-        dom.append_or_panic(&fullscreen_vis.dom);
+        fullscreen_vis.dom.set_style_or_warn("z-index", "2");
+        dom.append_or_warn(&fullscreen_vis.dom);
 
-        let canvas = web::create_canvas();
-        canvas.set_style_or_warn("display", "block", logger);
-        canvas.set_style_or_warn("z-index", "3", logger);
+        let canvas = web::document.create_canvas_or_panic();
+        canvas.set_style_or_warn("display", "block");
+        canvas.set_style_or_warn("z-index", "3");
         // These properties are set by `DomScene::new` constuctor for other layers.
         // See its documentation for more info.
-        canvas.set_style_or_warn("position", "absolute", logger);
-        canvas.set_style_or_warn("height", "100vh", logger);
-        canvas.set_style_or_warn("width", "100vw", logger);
-        canvas.set_style_or_warn("pointer-events", "none", logger);
-        dom.append_or_panic(&canvas);
+        canvas.set_style_or_warn("position", "absolute");
+        canvas.set_style_or_warn("height", "100vh");
+        canvas.set_style_or_warn("width", "100vw");
+        canvas.set_style_or_warn("pointer-events", "none");
+        dom.append_or_warn(&canvas);
 
         let front = DomScene::new(logger);
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "4", logger);
-        dom.append_or_panic(&front.dom);
+        front.dom.set_style_or_warn("z-index", "4");
+        dom.append_or_warn(&front.dom);
 
         Self { back, welcome_screen, fullscreen_vis, front, canvas }
     }
@@ -565,74 +564,107 @@ pub struct Dirty {
     shape:   ShapeDirty,
 }
 
+impl Dirty {
+    pub fn new<OnMut: Fn() + Clone + 'static>(logger: &Logger, on_mut: OnMut) -> Self {
+        let sub_logger = Logger::new_sub(logger, "shape_dirty");
+        let shape = ShapeDirty::new(sub_logger, Box::new(on_mut.clone()));
+        let sub_logger = Logger::new_sub(logger, "symbols_dirty");
+        let symbols = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut));
+        Self { symbols, shape }
+    }
+}
+
 
 
 // ================
 // === Renderer ===
 // ================
 
+/// Scene renderer. Manages the initialization and lifetime of both [`render::Pipeline`] and the
+/// [`render::Composer`].
+///
+/// Please note that the composer can be empty if the context was either not provided yet or it was
+/// lost.
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct Renderer {
-    pub logger: Logger,
-    dom:        Dom,
-    context:    Context,
-    variables:  UniformScope,
-
+    pub logger:   Logger,
+    dom:          Dom,
+    variables:    UniformScope,
     pub pipeline: Rc<CloneCell<render::Pipeline>>,
-    pub composer: Rc<RefCell<render::Composer>>,
+    pub composer: Rc<RefCell<Option<render::Composer>>>,
 }
 
 impl Renderer {
-    fn new(logger: impl AnyLogger, dom: &Dom, context: &Context, variables: &UniformScope) -> Self {
+    fn new(logger: impl AnyLogger, dom: &Dom, variables: &UniformScope) -> Self {
         let logger = Logger::new_sub(logger, "renderer");
         let dom = dom.clone_ref();
-        let context = context.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
-        let shape = dom.shape().device_pixels();
-        let width = shape.width as i32;
-        let height = shape.height as i32;
-        let composer = render::Composer::new(&pipeline, &context, &variables, width, height);
-        let pipeline = Rc::new(CloneCell::new(pipeline));
-        let composer = Rc::new(RefCell::new(composer));
+        let composer = default();
+        Self { logger, dom, variables, pipeline, composer }
+    }
 
-        context.enable(Context::BLEND);
-        // To learn more about the blending equations used here, please see the following articles:
-        // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
-        // - https://www.khronos.org/opengl/wiki/Blending#Colors
-        context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
-        context.blend_func_separate(
-            Context::ONE,
-            Context::ONE_MINUS_SRC_ALPHA,
-            Context::ONE,
-            Context::ONE_MINUS_SRC_ALPHA,
-        );
+    fn set_context(&self, context: Option<&Context>) {
+        let composer = context.map(|context| {
+            // To learn more about the blending equations used here, please see the following
+            // articles:
+            // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
+            // - https://www.khronos.org/opengl/wiki/Blending#Colors
+            context.enable(Context::BLEND);
+            context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
+            context.blend_func_separate(
+                Context::ONE,
+                Context::ONE_MINUS_SRC_ALPHA,
+                Context::ONE,
+                Context::ONE_MINUS_SRC_ALPHA,
+            );
 
-        Self { logger, dom, context, variables, pipeline, composer }
+            let (width, height) = self.view_size();
+            let pipeline = self.pipeline.get();
+            render::Composer::new(&pipeline, context, &self.variables, width, height)
+        });
+        *self.composer.borrow_mut() = composer;
+        self.update_composer_pipeline();
     }
 
     /// Set the pipeline of this renderer.
-    pub fn set_pipeline<P: Into<render::Pipeline>>(&self, pipeline: P) {
-        let pipeline = pipeline.into();
-        self.composer.borrow_mut().set_pipeline(&pipeline);
+    pub fn set_pipeline(&self, pipeline: render::Pipeline) {
         self.pipeline.set(pipeline);
+        self.update_composer_pipeline()
+    }
+
+    /// Reload the composer pipeline.
+    fn update_composer_pipeline(&self) {
+        if let Some(composer) = &mut *self.composer.borrow_mut() {
+            composer.set_pipeline(&self.pipeline.get());
+        }
     }
 
     /// Reload the composer after scene shape change.
     fn resize_composer(&self) {
+        if let Some(composer) = &mut *self.composer.borrow_mut() {
+            let (width, height) = self.view_size();
+            composer.resize(width, height);
+        }
+    }
+
+    // The width and height in device pixels should be integers. If they are not then this is due to
+    // rounding errors. We round to the nearest integer to compensate for those errors.
+    fn view_size(&self) -> (i32, i32) {
         let shape = self.dom.shape().device_pixels();
-        // The width and height in device pixels should be integers. If they are not then this is
-        // due to rounding errors. We round to the nearest integer to compensate for those errors.
         let width = shape.width.round() as i32;
         let height = shape.height.round() as i32;
-        self.composer.borrow_mut().resize(width, height);
+        (width, height)
     }
 
     /// Run the renderer.
     pub fn run(&self) {
-        debug!(self.logger, "Running.", || {
-            self.composer.borrow_mut().run();
-        })
+        if let Some(composer) = &mut *self.composer.borrow_mut() {
+            debug!(self.logger, "Running.", || {
+                composer.run();
+            })
+        }
     }
 }
 
@@ -643,7 +675,7 @@ impl Renderer {
 // ==============
 
 /// Please note that currently the `Layers` structure is implemented in a hacky way. It assumes the
-/// existence of several layers, which are needed for the GUI to display shapes properly. This \
+/// existence of several layers, which are needed for the GUI to display shapes properly. This
 /// should be abstracted away in the future.
 #[derive(Clone, CloneRef, Debug)]
 pub struct HardcodedLayers {
@@ -801,33 +833,33 @@ impl Extensions {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
-    pub display_object:   display::object::Instance,
-    pub dom:              Dom,
-    pub context:          Context,
-    pub symbols:          SymbolRegistry,
-    pub variables:        UniformScope,
-    pub current_js_event: CurrentJsEvent,
-    pub mouse:            Mouse,
-    pub keyboard:         Keyboard,
-    pub uniforms:         Uniforms,
-    pub shapes:           ShapeRegistry,
-    pub stats:            Stats,
-    pub dirty:            Dirty,
-    pub logger:           Logger,
-    pub renderer:         Renderer,
-    pub layers:           HardcodedLayers,
-    pub style_sheet:      style::Sheet,
-    pub bg_color_var:     style::Var,
-    pub bg_color_change:  callback::Handle,
-    pub frp:              Frp,
-    extensions:           Extensions,
-    disable_context_menu: Rc<IgnoreContextMenuHandle>,
+    pub display_object:       display::object::Instance,
+    pub dom:                  Dom,
+    pub context:              Rc<RefCell<Option<Context>>>,
+    pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
+    pub symbols:              SymbolRegistry,
+    pub variables:            UniformScope,
+    pub current_js_event:     CurrentJsEvent,
+    pub mouse:                Mouse,
+    pub keyboard:             Keyboard,
+    pub uniforms:             Uniforms,
+    pub shapes:               ShapeRegistry,
+    pub stats:                Stats,
+    pub dirty:                Dirty,
+    pub logger:               Logger,
+    pub renderer:             Renderer,
+    pub layers:               HardcodedLayers,
+    pub style_sheet:          style::Sheet,
+    pub bg_color_var:         style::Var,
+    pub bg_color_change:      callback::Handle,
+    pub frp:                  Frp,
+    extensions:               Extensions,
+    disable_context_menu:     Rc<EventListenerHandle>,
 }
 
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        parent_dom: &HtmlElement,
         logger: Logger,
         stats: &Stats,
         on_mut: OnMut,
@@ -835,37 +867,24 @@ impl SceneData {
         debug!(logger, "Initializing.");
 
         let dom = Dom::new(&logger);
-        parent_dom.append_child(&dom.root).unwrap();
-        dom.recompute_shape_with_reflow();
-
         let display_object = display::object::Instance::new(&logger);
         display_object.force_set_visibility(true);
-        let context = web::get_webgl2_context(&dom.layers.canvas);
-        let sub_logger = Logger::new_sub(&logger, "shape_dirty");
-        let shape_dirty = ShapeDirty::new(sub_logger, Box::new(on_mut.clone()));
-        let sub_logger = Logger::new_sub(&logger, "symbols_dirty");
-        let dirty_flag = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut));
-        let on_change = enclose!((dirty_flag) move || dirty_flag.set());
         let var_logger = Logger::new_sub(&logger, "global_variables");
         let variables = UniformScope::new(var_logger);
-        let symbols = SymbolRegistry::mk(&variables, stats, &logger, on_change);
-        // FIXME: This should be abstracted away and should also handle context loss when Symbol
-        //        definition will be finally refactored in such way, that it would not require
-        //        Scene instance to be created.
-        symbols.set_context(Some(&context));
-        let symbols_dirty = dirty_flag;
+        let dirty = Dirty::new(&logger, on_mut);
+        let symbols_dirty = &dirty.symbols;
+        let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
         let shapes = ShapeRegistry::default();
         let uniforms = Uniforms::new(&variables);
-        let dirty = Dirty { symbols: symbols_dirty, shape: shape_dirty };
-        let renderer = Renderer::new(&logger, &dom, &context, &variables);
+        let renderer = Renderer::new(&logger, &dom, &variables);
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
         let mouse_logger = Logger::new_sub(&logger, "mouse");
         let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, mouse_logger);
-        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root).unwrap());
+        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&current_js_event);
         let network = &frp.network;
         let extensions = Extensions::default();
@@ -873,7 +892,7 @@ impl SceneData {
         let bg_color_change = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
                 let color = color.to_javascript_string();
-                dom.root.set_style_or_panic("background-color",color);
+                dom.root.set_style_or_warn("background-color",color);
             })
         }));
 
@@ -883,10 +902,13 @@ impl SceneData {
         }
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
+        let context = default();
+        let context_lost_handler = default();
         Self {
             display_object,
             dom,
             context,
+            context_lost_handler,
             symbols,
             variables,
             current_js_event,
@@ -906,6 +928,13 @@ impl SceneData {
             extensions,
             disable_context_menu,
         }
+    }
+
+    pub fn set_context(&self, context: Option<&Context>) {
+        self.symbols.set_context(context);
+        *self.context.borrow_mut() = context.cloned();
+        self.dirty.shape.set();
+        self.renderer.set_context(context);
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {
@@ -990,10 +1019,16 @@ impl SceneData {
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
         debug!(self.logger, "Resized to {screen.width}px x {screen.height}px.", || {
-            self.dom.layers.canvas.set_attribute("width", &width.to_string()).unwrap();
-            self.dom.layers.canvas.set_attribute("height", &height.to_string()).unwrap();
-            self.context.viewport(0, 0, width, height);
+            self.dom.layers.canvas.set_attribute_or_warn("width", &width.to_string());
+            self.dom.layers.canvas.set_attribute_or_warn("height", &height.to_string());
+            if let Some(context) = &*self.context.borrow() {
+                context.viewport(0, 0, width, height);
+            }
         });
+    }
+
+    pub fn render(&self) {
+        self.renderer.run()
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
@@ -1043,23 +1078,51 @@ pub struct Scene {
 
 impl Scene {
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        parent_dom: &HtmlElement,
         logger: impl AnyLogger,
         stats: &Stats,
         on_mut: OnMut,
     ) -> Self {
         let logger = Logger::new_sub(logger, "scene");
-        let no_mut_access = SceneData::new(parent_dom, logger, stats, on_mut);
+        let no_mut_access = SceneData::new(logger, stats, on_mut);
         let this = Self { no_mut_access };
 
-        // FIXME MEMORY LEAK in all lines below:
+        // FIXME MEMORY LEAK:
         this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
-
         this
+    }
+
+    pub fn display_in(&self, parent_dom: impl DomPath) {
+        match parent_dom.try_into_dom_element() {
+            None => error!(&self.logger, "The scene host element could not be found."),
+            Some(parent_dom) => {
+                parent_dom.append_or_warn(&self.dom.root);
+                self.dom.recompute_shape_with_reflow();
+                self.uniforms.pixel_ratio.set(self.dom.shape().pixel_ratio);
+                self.init();
+            }
+        }
+    }
+
+    fn init(&self) {
+        let context_loss_handler = crate::system::context::init_webgl_2_context(self);
+        match context_loss_handler {
+            Err(err) => error!(self.logger, "{err}"),
+            Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
+        }
     }
 
     pub fn extension<T: Extension>(&self) -> T {
         self.extensions.get(self)
+    }
+}
+
+impl system::context::Display for Scene {
+    fn device_context_handler(&self) -> &system::context::DeviceContextHandler {
+        &self.dom.layers.canvas
+    }
+
+    fn set_context(&self, context: Option<&Context>) {
+        self.no_mut_access.set_context(context)
     }
 }
 
@@ -1084,17 +1147,19 @@ impl Deref for Scene {
 
 impl Scene {
     pub fn update(&self, t: animation::TimeInfo) {
-        debug!(self.logger, "Updating.", || {
-            self.frp.frame_time_source.emit(t.local);
-            // Please note that `update_camera` is called first as it may trigger FRP events which
-            // may change display objects layout.
-            self.update_camera(self);
-            self.display_object.update(self);
-            self.layers.update();
-            self.update_shape();
-            self.update_symbols();
-            self.handle_mouse_events();
-        })
+        if self.context.borrow().is_some() {
+            debug!(self.logger, "Updating.", || {
+                self.frp.frame_time_source.emit(t.local);
+                // Please note that `update_camera` is called first as it may trigger FRP events
+                // which may change display objects layout.
+                self.update_camera(self);
+                self.display_object.update(self);
+                self.layers.update();
+                self.update_shape();
+                self.update_symbols();
+                self.handle_mouse_events();
+            })
+        }
     }
 }
 
@@ -1107,5 +1172,48 @@ impl AsRef<Scene> for Scene {
 impl display::Object for Scene {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+
+
+// ===============
+// === DomPath ===
+// ===============
+
+/// Abstraction for DOM path. It can be either a specific HTML element or a DOM id, a string used
+/// to query the DOM structure to find the corresponding HTML node.
+#[allow(missing_docs)]
+pub trait DomPath {
+    fn try_into_dom_element(self) -> Option<HtmlElement>;
+}
+
+impl DomPath for HtmlElement {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
+        Some(self)
+    }
+}
+
+impl<'t> DomPath for &'t HtmlElement {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
+        Some(self.clone())
+    }
+}
+
+impl DomPath for String {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
+        web::document.get_html_element_by_id(&self)
+    }
+}
+
+impl<'t> DomPath for &'t String {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
+        web::document.get_html_element_by_id(self)
+    }
+}
+
+impl<'t> DomPath for &'t str {
+    fn try_into_dom_element(self) -> Option<HtmlElement> {
+        web::document.get_html_element_by_id(self)
     }
 }

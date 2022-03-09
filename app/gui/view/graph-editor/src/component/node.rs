@@ -1,6 +1,5 @@
 //! Definition of the Node component.
 
-#![allow(missing_docs)]
 // WARNING! UNDER HEAVY DEVELOPMENT. EXPECT DRASTIC CHANGES.
 
 #[deny(missing_docs)]
@@ -51,11 +50,17 @@ use crate::selection::BoundingBox;
 // === Constants ===
 // =================
 
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const ACTION_BAR_WIDTH: f32 = 180.0;
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const ACTION_BAR_HEIGHT: f32 = 15.0;
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const CORNER_RADIUS: f32 = 14.0;
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const HEIGHT: f32 = 28.0;
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const PADDING: f32 = 40.0;
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const RADIUS: f32 = 14.0;
 
 /// Space between the documentation comment and the node.
@@ -169,6 +174,7 @@ pub mod backdrop {
     }
 }
 
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub mod drag_area {
     use super::*;
 
@@ -194,6 +200,7 @@ pub mod drag_area {
 // === Error Indicator ===
 // =======================
 
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub mod error_shape {
     use super::*;
 
@@ -234,23 +241,27 @@ pub mod error_shape {
 // ==============
 
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub enum Endpoint {
     Input,
     Output,
 }
 
 #[derive(Clone, Debug)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Crumbs {
     pub endpoint: Endpoint,
     pub crumbs:   span_tree::Crumbs,
 }
 
 impl Crumbs {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn input(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Input;
         Self { endpoint, crumbs }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn output(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Output;
         Self { endpoint, crumbs }
@@ -415,7 +426,7 @@ impl NodeModel {
     /// Constructor.
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
-            app.display.scene() => {
+            app.display.default_scene => {
                 //TODO[ao] The two lines below should not be needed - the ordering should be
                 //    transitive. But removing them causes a visual glitches described in
                 //    https://github.com/enso-org/ide/issues/1624
@@ -438,7 +449,7 @@ impl NodeModel {
             }
         }
 
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("node");
 
         let main_logger = Logger::new_sub(&logger, "main_area");
@@ -484,7 +495,7 @@ impl NodeModel {
         let output = output::Area::new(&logger, app);
         display_object.add_child(&output);
 
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
         let comment = text::Area::new(app);
         display_object.add_child(&comment);
@@ -511,6 +522,7 @@ impl NodeModel {
         .init()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
         input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
@@ -521,10 +533,12 @@ impl NodeModel {
         self
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn width(&self) -> f32 {
         self.input.width.value()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn height(&self) -> f32 {
         HEIGHT
     }
@@ -570,6 +584,7 @@ impl NodeModel {
         size
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn visualization(&self) -> &visualization::Container {
         &self.visualization
     }
@@ -597,6 +612,7 @@ impl NodeModel {
 }
 
 impl Node {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
         let network = &frp.network;
@@ -608,7 +624,7 @@ impl Node {
         //      in https://github.com/enso-org/ide/issues/1031
         // let comment_color    = color::Animation::new(network);
         let error_color_anim = color::Animation::new(network);
-        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let style_frp = &model.style;
         let action_bar = &model.action_bar.frp;
         // Hook up the display object position updates to the node's FRP. Required to calculate the

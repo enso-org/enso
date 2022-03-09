@@ -1,6 +1,9 @@
 package org.enso.base;
 
+import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
+import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
@@ -100,17 +103,6 @@ public class Text_Utils {
   }
 
   /**
-   * Checks if the provided string consists only of whitespace characters.
-   *
-   * @param str the string to check
-   * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
-   */
-  public static boolean is_whitespace(String str) {
-    var matcher = whitespace.matcher(str);
-    return matcher.matches();
-  }
-
-  /**
    * Checks whether two strings are equal up to Unicode canonicalization.
    *
    * @param str1 the first string
@@ -119,26 +111,10 @@ public class Text_Utils {
    */
   public static boolean equals(String str1, Object str2) {
     if (str2 instanceof String) {
-      return Normalizer2.getNFDInstance()
-          .normalize(str1)
-          .equals(Normalizer2.getNFDInstance().normalize((String) str2));
+      return compare_normalized(str1, (String) str2) == 0;
     } else {
       return false;
     }
-  }
-
-  /**
-   * Checks whether two strings are equal up to Unicode canonicalization ignoring case
-   * considerations.
-   *
-   * @param str1 the first string
-   * @param str2 the second string
-   * @return the result of comparison
-   */
-  public static boolean equals_ignore_case(String str1, String str2) {
-    return Normalizer2.getNFDInstance()
-        .normalize(str1)
-        .equalsIgnoreCase(Normalizer2.getNFDInstance().normalize(str2));
   }
 
   /**
@@ -172,36 +148,16 @@ public class Text_Utils {
   }
 
   /**
-   * Checks whether {@code prefix} is a prefix of {@code str}.
-   *
-   * @param str the string to check
-   * @param prefix the potential prefix
-   * @return whether {@code prefix} is a prefix of {@code str}
-   */
-  public static boolean starts_with(String str, String prefix) {
-    return str.startsWith(prefix);
-  }
-
-  /**
-   * Checks whether {@code suffix} is a suffix of {@code str}.
-   *
-   * @param str the string to check
-   * @param suffix the potential suffix
-   * @return whether {@code suffix} is a suffix of {@code str}
-   */
-  public static boolean ends_with(String str, String suffix) {
-    return str.endsWith(suffix);
-  }
-
-  /**
-   * Checks whether {@code a} is lexicographically before {@code b}.
+   * Compares {@code a} to {@code b} according to the lexicographical order, handling Unicode
+   * normalization.
    *
    * @param a the left operand
    * @param b the right operand
-   * @return whether {@code a} is before {@code b}.
+   * @return a negative value if {@code a} is before {@code b}, 0 if both values are equal and a
+   *     positive value if {@code a} is after {@code b}
    */
-  public static boolean lt(String a, String b) {
-    return a.compareTo(b) < 0;
+  public static int compare_normalized(String a, String b) {
+    return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
   }
 
   /**
@@ -212,7 +168,12 @@ public class Text_Utils {
    * @return whether {@code substring} is a substring of {@code string}.
    */
   public static boolean contains(String string, String substring) {
-    return string.contains(substring);
+    // {@code StringSearch} does not handle empty strings as we would want, so we need these special
+    // cases.
+    if (substring.isEmpty()) return true;
+    if (string.isEmpty()) return false;
+    StringSearch searcher = new StringSearch(substring, string);
+    return searcher.first() != StringSearch.DONE;
   }
 
   /**
@@ -226,5 +187,69 @@ public class Text_Utils {
    */
   public static String replace(String str, String oldSequence, String newSequence) {
     return str.replace(oldSequence, newSequence);
+  }
+
+  /**
+   * Gets the length of char array of a string
+   *
+   * @param str the string to measure
+   * @return length of the string
+   */
+  public static long char_length(String str) {
+    return str.length();
+  }
+
+  /**
+   * Find the first index of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return index of the first needle or -1 if not found.
+   */
+  public static long index_of(String haystack, String needle) {
+    StringSearch search = new StringSearch(needle, haystack);
+    int pos = search.first();
+    return pos == StringSearch.DONE ? -1 : pos;
+  }
+
+  /**
+   * Find the last index of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return index of the last needle or -1 if not found.
+   */
+  public static long last_index_of(String haystack, String needle) {
+    StringSearch search = new StringSearch(needle, haystack);
+    int pos = search.first();
+    if (pos == StringSearch.DONE) {
+      return -1;
+    }
+
+    for (int next = search.next(); next != StringSearch.DONE; next = search.next()) {
+      pos = next;
+    }
+
+    return pos;
+  }
+
+  /**
+   * Normalizes the string to its canonical Unicode form using NFD decomposition.
+   *
+   * <p>This is to ensure that things like accents are in a common format, i.e. `ś` gets decomposed
+   * into `s` and a separate codepoint for the accent etc.
+   */
+  public static String normalize(String str) {
+    return Normalizer2.getNFDInstance().normalize(str);
+  }
+
+  /**
+   * Checks if the given string consists only of whitespace characters.
+   *
+   * @param str the string to check
+   * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
+   */
+  public static boolean is_all_whitespace(String text) {
+    return text.codePoints().allMatch(UCharacter::isUWhiteSpace);
   }
 }

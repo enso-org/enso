@@ -4,6 +4,7 @@ import Standard.Test
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
+import project.Semantic.Conversion_Spec
 import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
@@ -33,12 +34,15 @@ import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
+import project.Data.Text.Matching_Spec
 import project.Data.Text.Span_Spec
 
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
 import project.Network.Uri_Spec
+
+import project.Runtime.Stack_Traces_Spec
 
 import project.System.File_Spec
 import project.System.Process_Spec
@@ -49,6 +53,7 @@ main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
     Case_Spec.spec
+    Conversion_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
     Examples_Spec.spec
@@ -77,8 +82,10 @@ main = Test.Suite.run_main <|
     Range_Spec.spec
     Default_Regex_Engine_Spec.spec
     Regex_Spec.spec
+    Matching_Spec.spec
     Runtime_Spec.spec
     Span_Spec.spec
+    Stack_Traces_Spec.spec
     Text_Spec.spec
     Time_Spec.spec
     Uri_Spec.spec

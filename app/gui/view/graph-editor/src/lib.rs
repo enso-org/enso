@@ -1,12 +1,9 @@
-#![allow(missing_docs)]
-
 //! NOTE
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
@@ -16,6 +13,7 @@
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
@@ -61,6 +59,7 @@ use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use ensogl::prelude::*;
 use ensogl::system::web;
+use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
@@ -93,6 +92,7 @@ const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
 const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
+const MAX_ZOOM: f32 = 1.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
@@ -113,6 +113,7 @@ fn traffic_lights_gap_width() -> f32 {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Default(bound = ""))]
 #[derivative(Clone(bound = ""))]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct SharedVec<T> {
     pub raw: Rc<RefCell<Vec<T>>>,
 }
@@ -183,6 +184,7 @@ impl<T: Clone> SharedVec<T> {
 
 #[derive(Derivative, CloneRef)]
 #[derivative(Debug(bound = "T:Eq+Hash+Debug, S:std::hash::BuildHasher"))]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct SharedHashSet<T, S = std::collections::hash_map::RandomState> {
     pub raw: Rc<RefCell<HashSet<T, S>>>,
 }
@@ -210,10 +212,12 @@ where
     T: Eq + Hash,
     S: Default + std::hash::BuildHasher,
 {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new() -> Self {
         default()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn mem_take(&self) -> HashSet<T, S> {
         mem::take(&mut *self.raw.borrow_mut())
     }
@@ -224,37 +228,45 @@ where
     T: Eq + Hash,
     S: std::hash::BuildHasher,
 {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn insert(&self, t: T) -> bool {
         self.raw.borrow_mut().insert(t)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn remove(&self, t: &T) -> bool {
         self.raw.borrow_mut().remove(t)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn contains(&self, value: &T) -> bool {
         self.raw.borrow().contains(value)
     }
 }
 
 impl<T, S> SharedHashSet<T, S> {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn is_empty(&self) -> bool {
         self.raw.borrow().is_empty()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn clear(&self) {
         self.raw.borrow_mut().clear()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn for_each<F>(&self, f: F)
     where F: FnMut(&T) {
         self.raw.borrow_mut().iter().for_each(f)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn replace_with(&self, t: HashSet<T, S>) {
         *self.raw.borrow_mut() = t;
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn keys(&self) -> Vec<T>
     where T: Clone {
         self.raw.borrow().iter().cloned().collect_vec()
@@ -269,6 +281,7 @@ impl<T, S> SharedHashSet<T, S> {
 
 #[derive(Derivative, CloneRef)]
 #[derivative(Debug(bound = "K:Eq+Hash+Debug, V:Debug, S:std::hash::BuildHasher"))]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct SharedHashMap<K, V, S = std::collections::hash_map::RandomState> {
     pub raw: Rc<RefCell<HashMap<K, V, S>>>,
 }
@@ -296,10 +309,12 @@ where
     K: Eq + Hash,
     S: Default + std::hash::BuildHasher,
 {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new() -> Self {
         default()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn mem_take(&self) -> HashMap<K, V, S> {
         mem::take(&mut *self.raw.borrow_mut())
     }
@@ -310,44 +325,63 @@ where
     K: Eq + Hash,
     S: std::hash::BuildHasher,
 {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn insert(&self, k: K, v: V) -> Option<V> {
         self.raw.borrow_mut().insert(k, v)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_copied(&self, k: &K) -> Option<V>
     where V: Copy {
         self.raw.borrow().get(k).copied()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_cloned(&self, k: &K) -> Option<V>
     where V: Clone {
         self.raw.borrow().get(k).cloned()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_cloned_ref(&self, k: &K) -> Option<V>
     where V: CloneRef {
         self.raw.borrow().get(k).map(|t| t.clone_ref())
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn remove(&self, k: &K) -> Option<V> {
         self.raw.borrow_mut().remove(k)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn contains_key(&self, key: &K) -> bool {
         self.raw.borrow().contains_key(key)
     }
 }
 
 impl<K, V, S> SharedHashMap<K, V, S> {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    pub fn len(&self) -> usize {
+        self.raw.borrow().len()
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    pub fn is_empty(&self) -> bool {
+        self.raw.borrow().is_empty()
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn clear(&self) {
         self.raw.borrow_mut().clear()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn for_each<F>(&self, f: F)
     where F: FnMut((&K, &V)) {
         self.raw.borrow_mut().iter().for_each(f)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn keys(&self) -> Vec<K>
     where K: Clone {
         self.raw.borrow().keys().cloned().collect_vec()
@@ -477,6 +511,9 @@ ensogl::define_endpoints! {
 
         // === Debug ===
 
+        /// Enable or disable debug-only features.
+        set_debug_mode(bool),
+
         /// Push a hardcoded breadcrumb without notifying the controller.
         debug_push_breadcrumb(),
         /// Pop a breadcrumb without notifying the controller.
@@ -528,14 +565,22 @@ ensogl::define_endpoints! {
         enable_quick_visualization_preview(),
         /// Show visualisation previews on nodes with delay.
         disable_quick_visualization_preview(),
+
+        /// Drop an edge that is being dragged.
+        drop_dragged_edge            (),
     }
 
     Output {
+        // === Debug Mode ===
+
+        debug_mode                             (bool),
 
         // === Edge ===
 
+        has_detached_edge                      (bool),
         on_edge_add                            (EdgeId),
         on_edge_drop                           (EdgeId),
+        on_edge_drop_to_create_node            (EdgeId),
         on_edge_source_set                     ((EdgeId,EdgeEndpoint)),
         on_edge_source_set_with_target_not_set ((EdgeId,EdgeEndpoint)),
         on_edge_target_set_with_source_not_set ((EdgeId,EdgeEndpoint)),
@@ -618,7 +663,6 @@ ensogl::define_endpoints! {
     }
 }
 
-
 impl application::command::FrpNetworkProvider for GraphEditor {
     fn network(&self) -> &frp::Network {
         &self.model.network
@@ -632,6 +676,7 @@ impl application::command::FrpNetworkProvider for GraphEditor {
 // ============
 
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Node {
     #[shrinkwrap(main_field)]
     pub view:      component::Node,
@@ -640,15 +685,18 @@ pub struct Node {
 }
 
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, From, Hash, Into, PartialEq, Ord, PartialOrd)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct NodeId(pub Id);
 
 impl Node {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(view: component::Node) -> Self {
         let in_edges = default();
         let out_edges = default();
         Self { view, in_edges, out_edges }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn id(&self) -> NodeId {
         self.view.id().into()
     }
@@ -678,6 +726,7 @@ impl Display for NodeId {
 // ============
 
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Edge {
     #[shrinkwrap(main_field)]
     pub view: component::Edge,
@@ -686,47 +735,58 @@ pub struct Edge {
 }
 
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, From, Hash, Into, PartialEq)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct EdgeId(pub Id);
 
 impl Edge {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(view: component::Edge) -> Self {
         let source = default();
         let target = default();
         Self { view, source, target }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn id(&self) -> EdgeId {
         self.view.id().into()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn target(&self) -> Option<EdgeEndpoint> {
         self.target.borrow().as_ref().map(|t| t.clone_ref())
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn source(&self) -> Option<EdgeEndpoint> {
         self.source.borrow().as_ref().map(|t| t.clone_ref())
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn has_source(&self) -> bool {
         self.source.borrow().is_some()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn has_target(&self) -> bool {
         self.target.borrow().is_some()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn set_source(&self, source: EdgeEndpoint) {
         *self.source.borrow_mut() = Some(source)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn set_target(&self, target: EdgeEndpoint) {
         *self.target.borrow_mut() = Some(target)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn take_source(&self) -> Option<EdgeEndpoint> {
         mem::take(&mut *self.source.borrow_mut())
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn take_target(&self) -> Option<EdgeEndpoint> {
         mem::take(&mut *self.target.borrow_mut())
     }
@@ -858,17 +918,20 @@ pub struct LocalCall {
 // ==================
 
 #[derive(Clone, CloneRef, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct EdgeEndpoint {
     pub node_id: NodeId,
     pub port:    span_tree::Crumbs,
 }
 
 impl EdgeEndpoint {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(node_id: impl Into<NodeId>, port: span_tree::Crumbs) -> Self {
         let node_id = node_id.into();
         Self { node_id, port }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn is_connected_to(&self, node_id: NodeId) -> bool {
         self.node_id == node_id
     }
@@ -934,6 +997,7 @@ impl Grid {
 // =============
 
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Nodes {
     pub logger:   Logger,
     pub all:      SharedHashMap<NodeId, Node>,
@@ -949,6 +1013,7 @@ impl Deref for Nodes {
 }
 
 impl Nodes {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "nodes");
         let all = default();
@@ -957,6 +1022,7 @@ impl Nodes {
         Self { logger, all, selected, grid }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn insert(&self, node_id: NodeId, node: Node) {
         self.all.insert(node_id, node);
         self.recompute_grid(default());
@@ -977,14 +1043,17 @@ impl Nodes {
         *self.grid.borrow_mut() = Grid { sorted_xs, sorted_ys };
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn check_grid_magnet(&self, position: Vector2<f32>) -> Vector2<Option<f32>> {
         self.grid.borrow().close_to(position, SNAP_DISTANCE_THRESHOLD)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn set_quick_preview(&self, quick: bool) {
         self.all.raw.borrow().values().for_each(|node| node.view.frp.quick_preview_vis.emit(quick))
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn show_quick_actions(&self, quick: bool) {
         self.all
             .raw
@@ -1050,6 +1119,7 @@ impl Nodes {
 // =============
 
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Edges {
     pub logger:          Logger,
     pub all:             SharedHashMap<EdgeId, Edge>,
@@ -1065,6 +1135,7 @@ impl Deref for Edges {
 }
 
 impl Edges {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "edges");
         let all = default();
@@ -1073,10 +1144,12 @@ impl Edges {
         Self { logger, all, detached_source, detached_target }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn insert(&self, edge: Edge) {
         self.all.insert(edge.id(), edge);
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn detached_edges_iter(&self) -> impl Iterator<Item = EdgeId> {
         let detached_target = self.detached_target.raw.borrow();
         let detached_source = self.detached_source.raw.borrow();
@@ -1106,6 +1179,7 @@ struct Visualisations {
 
 #[derive(Debug, CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct TouchNetwork<T: frp::Data> {
     pub down:     frp::Source<T>,
     pub up:       frp::Stream<T>,
@@ -1114,6 +1188,7 @@ pub struct TouchNetwork<T: frp::Data> {
 }
 
 impl<T: frp::Data> TouchNetwork<T> {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
         frp::extend! { network
             down          <- source::<T> ();
@@ -1136,12 +1211,14 @@ impl<T: frp::Data> TouchNetwork<T> {
 }
 
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct TouchState {
     pub nodes:      TouchNetwork<NodeId>,
     pub background: TouchNetwork<()>,
 }
 
 impl TouchState {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
         let nodes = TouchNetwork::<NodeId>::new(network, mouse);
         let background = TouchNetwork::<()>::new(network, mouse);
@@ -1151,6 +1228,7 @@ impl TouchState {
 
 
 
+#[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
 pub fn is_sub_crumb_of(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bool {
     if src.len() < tgt.len() {
         return false;
@@ -1163,6 +1241,7 @@ pub fn is_sub_crumb_of(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bo
     true
 }
 
+#[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
 pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bool {
     is_sub_crumb_of(src, tgt) || is_sub_crumb_of(tgt, src)
 }
@@ -1174,6 +1253,7 @@ pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> boo
 // ===================================
 
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModelWithNetwork {
     pub model:   GraphEditorModel,
     pub network: frp::Network,
@@ -1197,6 +1277,7 @@ struct NodeCreationContext<'a> {
 }
 
 impl GraphEditorModelWithNetwork {
+    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
         let model = GraphEditorModel::new(app, cursor, frp);
@@ -1362,6 +1443,7 @@ impl GraphEditorModelWithNetwork {
         false
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
     pub fn get_node_position(&self, node_id: NodeId) -> Option<Vector3<f32>> {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
     }
@@ -1426,6 +1508,7 @@ impl GraphEditorModelWithNetwork {
 // ========================
 
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
     pub logger:           Logger,
     pub display_object:   display::object::Instance,
@@ -1436,6 +1519,7 @@ pub struct GraphEditorModel {
     pub edges:            Edges,
     pub vis_registry:     visualization::Registry,
     pub drop_manager:     ensogl_drop_manager::Manager,
+    pub navigator:        Navigator,
     // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
     //  currently work, however, because the `Application` lives in enso-core, and the tooltip
     //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
@@ -1443,7 +1527,6 @@ pub struct GraphEditorModel {
     touch_state:          TouchState,
     visualisations:       Visualisations,
     frp:                  FrpEndpoints,
-    navigator:            Navigator,
     profiling_statuses:   profiling::Statuses,
     profiling_button:     component::profiling::Button,
     styles_frp:           StyleWatchFrp,
@@ -1454,9 +1537,10 @@ pub struct GraphEditorModel {
 // === Public ===
 
 impl GraphEditorModel {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("GraphEditor");
         let display_object = display::object::Instance::new(&logger);
         let nodes = Nodes::new(&logger);
@@ -1511,12 +1595,13 @@ impl GraphEditorModel {
         self
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn all_nodes(&self) -> Vec<NodeId> {
         self.nodes.all.keys()
     }
 
     fn scene(&self) -> &Scene {
-        self.app.display.scene()
+        &self.app.display.default_scene
     }
 }
 
@@ -1740,6 +1825,7 @@ impl GraphEditorModel {
         self.edges.detached_target.raw.borrow().clone()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn clear_all_detached_edges(&self) -> Vec<EdgeId> {
         let source_edges = self.edges.detached_source.mem_take();
         source_edges.iter().for_each(|edge| {
@@ -1792,6 +1878,7 @@ impl GraphEditorModel {
 // === Position ===
 
 impl GraphEditorModel {
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn set_node_position(&self, node_id: impl Into<NodeId>, position: Vector2) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
@@ -1832,11 +1919,13 @@ impl GraphEditorModel {
         self.nodes.recompute_grid(node_ids.iter().cloned().collect());
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn node_position(&self, node_id: impl Into<NodeId>) -> Vector2<f32> {
         let node_id = node_id.into();
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position().xy()).unwrap_or_default()
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn node_pos_mod(&self, node_id: impl Into<NodeId>, pos_diff: Vector2) -> (NodeId, Vector2) {
         let node_id = node_id.into();
         let new_position = if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
@@ -1847,11 +1936,13 @@ impl GraphEditorModel {
         (node_id, new_position)
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn refresh_edge_position(&self, edge_id: EdgeId) {
         self.refresh_edge_source_position(edge_id);
         self.refresh_edge_target_position(edge_id);
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn refresh_edge_source_size(&self, edge_id: EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
@@ -1864,6 +1955,7 @@ impl GraphEditorModel {
         };
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn refresh_edge_color(&self, edge_id: EdgeId, neutral_color: color::Lcha) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             let color = self.edge_color(edge_id, neutral_color);
@@ -1877,6 +1969,7 @@ impl GraphEditorModel {
         }
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn refresh_edge_source_position(&self, edge_id: EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
@@ -1890,6 +1983,7 @@ impl GraphEditorModel {
         };
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn refresh_edge_target_position(&self, edge_id: EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_target) = edge.target() {
@@ -2089,6 +2183,7 @@ impl GraphEditorModel {
         self.first_detached_edge().map(|t| self.edge_color(t, neutral_color))
     }
 
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn has_edges_with_detached_targets(&self, node_id: NodeId) -> bool {
         let mut found = false;
         self.with_node(node_id, |node| {
@@ -2116,6 +2211,7 @@ impl display::Object for GraphEditorModel {
 // ===================
 
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditor {
     pub model: GraphEditorModelWithNetwork,
     pub frp:   Frp,
@@ -2200,6 +2296,7 @@ impl application::View for GraphEditor {
             (Release, "", "left-mouse-button", "node_release"),
             (Press, "!node_editing", "backspace", "remove_selected_nodes"),
             (Press, "!node_editing", "delete", "remove_selected_nodes"),
+            (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
             (Press, "", "cmd g", "collapse_selected_nodes"), // === Visualization ===
             (Press, "!node_editing", "space", "press_visualization_visibility"),
             (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
@@ -2271,7 +2368,7 @@ pub fn enable_disable_toggle(
 #[allow(unused_parens)]
 fn new_graph_editor(app: &Application) -> GraphEditor {
     let world = &app.display;
-    let scene = world.scene();
+    let scene = &world.default_scene;
     let cursor = &app.cursor;
     let frp = Frp::new();
     let model = GraphEditorModelWithNetwork::new(app, cursor.clone_ref(), &frp);
@@ -2426,14 +2523,50 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
+    // === Add Node ===
+
+    frp::extend! { network
+
+        node_pointer_style <- source::<cursor::Style>();
+        node_tooltip       <- source::<tooltip::Style>();
+
+        let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
+        let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
+        node_expression_set <- source();
+        out.source.node_expression_set <+ node_expression_set;
+
+        on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
+        on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
+        on_input_connect_drag_mode    <- node_input_touch.down.constant(true);
+        on_input_connect_follow_mode  <- node_input_touch.selected.constant(false);
+
+        on_connect_drag_mode   <- any(on_output_connect_drag_mode,on_input_connect_drag_mode);
+        on_connect_follow_mode <- any(on_output_connect_follow_mode,on_input_connect_follow_mode);
+        connect_drag_mode      <- any(on_connect_drag_mode,on_connect_follow_mode);
+
+        on_detached_edge    <- any(&inputs.on_some_edges_targets_unset,&inputs.on_some_edges_sources_unset);
+        has_detached_edge   <- bool(&out.on_all_edges_endpoints_set,&on_detached_edge);
+        out.source.has_detached_edge <+ has_detached_edge;
+
+        eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
+        eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
+    }
+
+
     // === Node Editing ===
 
     frp::extend! { network
+        // Clicking on background either drops dragged edge or aborts node editing.
+        let background_selected = &touch.background.selected;
+        was_edge_detached_when_background_selected  <- has_detached_edge.sample(background_selected);
+        clicked_to_drop_edge  <- was_edge_detached_when_background_selected.on_true();
+        clicked_to_abort_edit <- was_edge_detached_when_background_selected.on_false();
+
         node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
         edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         node_to_edit          <- touch.nodes.down.gate(&edit_mode);
         edit_node             <- any(&node_to_edit,&inputs.edit_node);
-        stop_edit_on_bg_click <- touch.background.selected.gate(&node_in_edit_mode);
+        stop_edit_on_bg_click <- clicked_to_abort_edit.gate(&node_in_edit_mode);
         stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
         edit_switch           <- edit_node.gate(&node_in_edit_mode);
         node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
@@ -2462,35 +2595,10 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         });
     }
 
-    // === Add Node ===
-    frp::extend! { network
-
-    node_pointer_style <- source::<cursor::Style>();
-    node_tooltip       <- source::<tooltip::Style>();
-
-    let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-    let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-    node_expression_set <- source();
-    out.source.node_expression_set <+ node_expression_set;
-
-    on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
-    on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
-    on_input_connect_drag_mode    <- node_input_touch.down.constant(true);
-    on_input_connect_follow_mode  <- node_input_touch.selected.constant(false);
-
-    on_connect_drag_mode   <- any(on_output_connect_drag_mode,on_input_connect_drag_mode);
-    on_connect_follow_mode <- any(on_output_connect_follow_mode,on_input_connect_follow_mode);
-    connect_drag_mode      <- any(on_connect_drag_mode,on_connect_follow_mode);
-
-    on_detached_edge    <- any(&inputs.on_some_edges_targets_unset,&inputs.on_some_edges_sources_unset);
-    has_detached_edge   <- bool(&out.on_all_edges_endpoints_set,&on_detached_edge);
-
-    eval node_input_touch.down ((target)   model.frp.press_node_input.emit(target));
-    eval node_output_touch.down ((target)  model.frp.press_node_output.emit(target));
-
 
     // === Edge interactions  ===
 
+    frp::extend! { network
     edge_mouse_down <- source::<EdgeId>();
     edge_over       <- source::<EdgeId>();
     edge_out        <- source::<EdgeId>();
@@ -2672,11 +2780,16 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.source.on_edge_drop <+ overlapping_edges;
 
     drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
-    drop_edges     <- any (drop_on_bg_up,touch.background.down);
-    edge_to_drop_without_targets <= drop_edges.map(f_!(model.take_edges_with_detached_targets()));
-    edge_to_drop_without_sources <= drop_edges.map(f_!(model.take_edges_with_detached_sources()));
-    edge_to_drop <- any(edge_to_drop_without_targets,edge_to_drop_without_sources);
-    eval edge_to_drop ((id) model.remove_edge(id));
+    drop_edges     <- any (drop_on_bg_up,clicked_to_drop_edge);
+
+    edge_dropped_to_create_node <= drop_edges.map(f_!(model.edges_with_detached_targets()));
+    out.source.on_edge_drop_to_create_node <+ edge_dropped_to_create_node;
+
+    remove_all_detached_edges <- any (drop_edges, inputs.drop_dragged_edge);
+    edge_to_remove_without_targets <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_targets()));
+    edge_to_remove_without_sources <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_sources()));
+    edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
+    eval edge_to_remove ((id) model.remove_edge(id));
 
     }
 
@@ -3026,8 +3139,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_was_pressed      <- viz_pressed.previous();
     viz_press            <- viz_press_ev.gate_not(&viz_was_pressed);
     viz_release          <- viz_release_ev.gate(&viz_was_pressed);
-    viz_press_time       <- viz_press   . map(|_| web::performance().now() as f32);
-    viz_release_time     <- viz_release . map(|_| web::performance().now() as f32);
+    viz_press_time       <- viz_press   . map(|_| web::window.performance_or_panic().now() as f32);
+    viz_release_time     <- viz_release . map(|_| web::window.performance_or_panic().now() as f32);
     viz_press_time_diff  <- viz_release_time.map2(&viz_press_time,|t1,t0| t1-t0);
     viz_preview_mode     <- viz_press_time_diff.map(|t| *t > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS);
     viz_preview_mode_end <- viz_release.gate(&viz_preview_mode).gate_not(&out.is_fs_visualization_displayed);
@@ -3345,8 +3458,24 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp.source.default_y_gap_between_nodes.emit(default_y_gap.value());
     frp.source.min_x_spacing_for_new_nodes.emit(min_x_spacing.value());
 
+
+
+    // ==================
+    // === Debug Mode ===
+    // ==================
+
+    frp::extend! { network
+        out.source.debug_mode <+ frp.set_debug_mode;
+
+        limit_max_zoom <- frp.set_debug_mode.on_false();
+        unlimit_max_zoom <- frp.set_debug_mode.on_true();
+        eval_ limit_max_zoom (model.navigator.set_max_zoom(Some(MAX_ZOOM)));
+        eval_ unlimit_max_zoom (model.navigator.set_max_zoom(None));
+    }
+
     // Init defaults
     frp.edit_mode_off.emit(());
+    frp.set_debug_mode.emit(false);
 
     GraphEditor { model, frp }
 }

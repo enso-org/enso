@@ -97,7 +97,7 @@ impl Model {
         let padding = default();
 
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         scene.layers.add_global_shapes_order_dependency::<background::View, track::View>();
         scene.layers.add_global_shapes_order_dependency::<track::View, left_overflow::View>();
         scene.layers.add_global_shapes_order_dependency::<track::View, right_overflow::View>();

@@ -5,6 +5,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -43,7 +44,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
    */
   @Override
   public Stateful executeDispatch(
-      Object function, CallerInfo callerInfo, Object state, Object[] arguments) {
+      Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
     try {
       return executeCallNode.executeCall(function, callerInfo, state, arguments);
     } catch (TailCallException e) {

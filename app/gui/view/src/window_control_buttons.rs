@@ -151,7 +151,7 @@ impl Model {
         let display_object = display::object::Instance::new(&logger);
 
         ensogl::shapes_order_dependencies! {
-            app.display.scene() => {
+            app.display.default_scene => {
                 shape -> close::shape;
                 shape -> fullscreen::shape;
             }
@@ -231,7 +231,7 @@ impl View {
         let model = Model::new(app);
         let network = &frp.network;
 
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let style_frp = LayoutParams::from_theme(&style);
         let layout_style = style_frp.flatten(network);
 

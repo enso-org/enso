@@ -2,20 +2,7 @@
 //! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
 //! of the `ensogl` crate to learn more.
 
-#![allow(dead_code)]
-#![deny(unconditional_recursion)]
-#![feature(associated_type_defaults)]
-#![feature(cell_update)]
-#![feature(const_type_id)]
-#![feature(drain_filter)]
-#![feature(entry_insert)]
-#![feature(fn_traits)]
-#![feature(specialization)]
-#![feature(trait_alias)]
-#![feature(marker_trait_attr)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
-#![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
+// === Linter configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -24,9 +11,26 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+// === Features ===
+#![allow(incomplete_features)]
+#![deny(unconditional_recursion)]
+#![feature(associated_type_defaults)]
+#![feature(bool_to_option)]
+#![feature(cell_update)]
+#![feature(const_type_id)]
+#![feature(drain_filter)]
+#![feature(fn_traits)]
+#![feature(specialization)]
+#![feature(trait_alias)]
+#![feature(marker_trait_attr)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
+// === Macro expansion ===
 #![recursion_limit = "512"]
 // To be removed after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
 #![allow(clippy::option_map_unit_fn)]
+// FIXME: this should be removed:
+#![allow(dead_code)]
 
 
 

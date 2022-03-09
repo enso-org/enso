@@ -10,18 +10,34 @@ import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.librarymanager.{
   DefaultLibraryProvider,
   ResolvingLibraryProvider
 }
 import org.enso.logger.masking.MaskedPath
-import org.enso.pkg.{Package, PackageManager, QualifiedName}
+import org.enso.pkg.{
+  ComponentGroup,
+  ComponentGroups,
+  ExtendedComponentGroup,
+  Package,
+  PackageManager,
+  QualifiedName
+}
 
 import java.nio.file.Path
+
 import scala.util.Try
 
 /** Manages loaded packages and modules. */
 trait PackageRepository {
+
+  /** Initialize the package repository.
+    *
+    * @return `Right` if the package repository initialized successfully,
+    * and a `Left` containing an error otherwise.
+    */
+  def initialize(): Either[PackageRepository.Error, Unit]
 
   /** Informs the repository that it should populate the top scope with modules
     * belonging to a given package.
@@ -50,6 +66,9 @@ trait PackageRepository {
   /** Gets a frozen form of the module map that cannot be updated concurrently.
     */
   def freezeModuleMap: PackageRepository.FrozenModuleMap
+
+  /** Get the loaded library components. */
+  def getComponents: PackageRepository.ComponentsMap
 
   /** Get a loaded module by its qualified name. */
   def getLoadedModule(qualifiedName: String): Option[Module]
@@ -80,6 +99,7 @@ object PackageRepository {
 
   type ModuleMap       = collection.concurrent.Map[String, Module]
   type FrozenModuleMap = Map[String, Module]
+  type ComponentsMap   = Map[LibraryName, ComponentGroups]
 
   /** A trait representing errors reported by this system */
   sealed trait Error
@@ -143,7 +163,7 @@ object PackageRepository {
       * unsynchronized threads read this map, every element it contains is
       * already fully processed.
       */
-    val loadedPackages
+    private val loadedPackages
       : collection.concurrent.Map[LibraryName, Option[Package[TruffleFile]]] = {
       val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
       collection.concurrent.TrieMap(builtinsName -> None)
@@ -157,14 +177,29 @@ object PackageRepository {
       * Strings, and constantly converting them into [[QualifiedName]]s would
       * add more overhead than is probably necessary.
       */
-    val loadedModules: collection.concurrent.Map[String, Module] =
+    private val loadedModules: collection.concurrent.Map[String, Module] =
       collection.concurrent.TrieMap(Builtins.MODULE_NAME -> builtins.getModule)
+
+    /** The mapping containing loaded component groups.
+      *
+      * The component mapping is added to the collection after ensuring that the
+      * corresponding library was loaded.
+      */
+    private val loadedComponents
+      : collection.concurrent.TrieMap[LibraryName, ComponentGroups] = {
+      val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
+      collection.concurrent.TrieMap(builtinsName -> ComponentGroups.empty)
+    }
 
     /** @inheritdoc */
     override def getModuleMap: ModuleMap = loadedModules
 
     /** @inheritdoc */
     override def freezeModuleMap: FrozenModuleMap = loadedModules.toMap
+
+    /** @inheritdoc */
+    override def getComponents: ComponentsMap =
+      loadedComponents.readOnlySnapshot().toMap
 
     /** @inheritdoc */
     override def registerMainProjectPackage(
@@ -214,14 +249,14 @@ object PackageRepository {
     private def loadPackage(
       libraryName: LibraryName,
       libraryVersion: LibraryVersion,
-      root: Path
-    ): Either[Error, Unit] = Try {
+      root: LibraryRoot
+    ): Either[Error, Package[TruffleFile]] = Try {
       logger.debug(
         s"Loading library $libraryName from " +
-        s"[${MaskedPath(root).applyMasking()}]."
+        s"[${MaskedPath(root.location).applyMasking()}]."
       )
       val rootFile = context.getEnvironment.getInternalTruffleFile(
-        root.toAbsolutePath.normalize.toString
+        root.location.toAbsolutePath.normalize.toString
       )
       val pkg = packageManager.loadPackage(rootFile).get
       registerPackageInternal(
@@ -230,7 +265,90 @@ object PackageRepository {
         pkg            = pkg,
         isLibrary      = true
       )
+      pkg
     }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
+
+    /** @inheritdoc */
+    override def initialize(): Either[Error, Unit] = this.synchronized {
+      val unprocessedPackages =
+        loadedPackages.keySet
+          .diff(loadedComponents.keySet)
+          .flatMap(loadedPackages(_))
+      unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
+        (accumulator, pkg) =>
+          for {
+            _ <- accumulator
+            _ <- resolveComponentGroups(pkg)
+          } yield ()
+      }
+    }
+
+    private def resolveComponentGroups(
+      pkg: Package[TruffleFile]
+    ): Either[Error, Unit] = {
+      if (loadedComponents.contains(pkg.libraryName)) Right(())
+      else {
+        pkg.config.componentGroups match {
+          case Left(err) =>
+            Left(Error.PackageLoadingError(err.getMessage()))
+          case Right(componentGroups) =>
+            logger.debug(
+              s"Resolving component groups of package [${pkg.name}]."
+            )
+
+            registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
+            componentGroups.extendedGroups
+              .foldLeft[Either[Error, Unit]](Right(())) {
+                (accumulator, componentGroup) =>
+                  for {
+                    _ <- accumulator
+                    extendedLibraryName = componentGroup.module.libraryName
+                    _ <- ensurePackageIsLoaded(extendedLibraryName)
+                    pkgOpt = loadedPackages(extendedLibraryName)
+                    _ <- pkgOpt.fold[Either[Error, Unit]](Right(()))(
+                      resolveComponentGroups
+                    )
+                    _ = registerExtendedComponentGroup(
+                      pkg.libraryName,
+                      componentGroup
+                    )
+                  } yield ()
+              }
+        }
+      }
+    }
+
+    /** Register the list of component groups defined by a library.
+      *
+      * @param library the library name
+      * @param newGroups the list of component groups that the library defines
+      */
+    private def registerComponentGroups(
+      library: LibraryName,
+      newGroups: List[ComponentGroup]
+    ): Unit =
+      loadedComponents.updateWith(library) {
+        case Some(groups) =>
+          Some(groups.copy(newGroups = groups.newGroups ::: newGroups))
+        case None =>
+          Some(ComponentGroups(newGroups, List()))
+      }
+
+    /** Register a component group extended by a library.
+      *
+      * @param library the library name
+      * @param group the extended component group
+      */
+    private def registerExtendedComponentGroup(
+      library: LibraryName,
+      group: ExtendedComponentGroup
+    ): Unit =
+      loadedComponents.updateWith(library) {
+        case Some(groups) =>
+          Some(groups.copy(extendedGroups = groups.extendedGroups :+ group))
+        case None =>
+          Some(ComponentGroups(List(), List(group)))
+      }
 
     /** @inheritdoc */
     override def ensurePackageIsLoaded(
@@ -242,11 +360,11 @@ object PackageRepository {
         val resolvedLibrary = libraryProvider.findLibrary(libraryName)
         resolvedLibrary match {
           case Left(error) =>
-            logger.error(s"Resolution failed with [$error].", error)
+            logger.warn(s"Resolution failed with [$error].", error)
           case Right(resolved) =>
             logger.info(
               s"Found library ${resolved.name} @ ${resolved.version} " +
-              s"at [${MaskedPath(resolved.location).applyMasking()}]."
+              s"at [${MaskedPath(resolved.root.location).applyMasking()}]."
             )
         }
 
@@ -257,8 +375,9 @@ object PackageRepository {
           else
             resolvedLibrary
               .flatMap { library =>
-                loadPackage(library.name, library.version, library.location)
+                loadPackage(library.name, library.version, library.root)
               }
+              .flatMap(resolveComponentGroups)
               .left
               .map {
                 case ResolvingLibraryProvider.Error.NotResolved(details) =>

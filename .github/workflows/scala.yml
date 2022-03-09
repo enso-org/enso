@@ -1,4 +1,4 @@
-name: Engine CI
+name: Engine CI (legacy)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 21.1.0
+  graalVersion: 21.3.0
   # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
@@ -122,11 +122,6 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors bootstrap
-
-      - name: Verify the Stdlib Version
-        run: |
-          sleep 1
-          sbt --no-colors "stdlib-version-updater/run check"
 
       # Compile
       - name: Build Enso

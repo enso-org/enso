@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -19,7 +20,6 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
-import org.yaml.snakeyaml.scanner.Constant;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -41,6 +41,7 @@ import org.yaml.snakeyaml.scanner.Constant;
   AtomConstructor.class,
   Thunk.class,
   DataflowError.class,
+  UnresolvedConversion.class,
   UnresolvedSymbol.class,
   Array.class,
   EnsoBigInteger.class,
@@ -125,7 +126,7 @@ public class Types {
       return Constants.THUNK;
     } else if (TypesGen.isDataflowError(value)) {
       return Constants.ERROR;
-    } else if (TypesGen.isUnresolvedSymbol(value)) {
+    } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
       return Constants.MANAGED_RESOURCE;

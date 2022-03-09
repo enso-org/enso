@@ -615,7 +615,7 @@ mod tests {
                 ready(Ok(faux_vis.clone())).boxed_local()
             });
 
-            let sender = request_sender.clone();
+            let sender = request_sender;
             execution_context.expect_modify_visualization().returning_st(
                 move |id, expression, module| {
                     let request = ExecutionContextRequest::Modify { id, expression, module };
@@ -644,7 +644,7 @@ mod tests {
     ) -> bool {
         let PreprocessorConfiguration { module, code } = &metadata.preprocessor;
         visualization.preprocessor_code == code.to_string()
-            && visualization.context_module == manager.resolve_context_module(&module).unwrap()
+            && visualization.context_module == manager.resolve_context_module(module).unwrap()
     }
 
     #[wasm_bindgen_test]
@@ -678,7 +678,7 @@ mod tests {
         // Multiple detach-attach requests are collapsed into a single modify request.
         requests.expect_pending();
         manager.remove_visualization(node_id);
-        manager.request_visualization(node_id, desired_vis_2.clone());
+        manager.request_visualization(node_id, desired_vis_2);
         manager.remove_visualization(node_id);
         manager.remove_visualization(node_id);
         manager.request_visualization(node_id, desired_vis_1.clone());
@@ -701,7 +701,7 @@ mod tests {
         let desired_vis_3 = Desired {
             visualization_id: VisualizationId::from_u128(900),
             expression_id:    node_id,
-            metadata:         desired_vis_1.clone(),
+            metadata:         desired_vis_1,
         };
         let visualization_so_far = manager.get_cloned(node_id).unwrap().status.get_cloned();
         manager.write_new_desired(node_id, Some(desired_vis_3.clone()));

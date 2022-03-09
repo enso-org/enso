@@ -10,6 +10,7 @@ use std::convert::TryFrom;
 
 /// This enumeration lists all the supported platforms.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Platform {
     Android,
     FreeBSD,
@@ -46,6 +47,7 @@ impl Platform {
     }
 }
 
+/// An error indicating that the platform was not recognized.
 #[derive(Clone, Copy, Debug)]
 pub struct UnknownPlatform;
 
@@ -61,7 +63,7 @@ impl TryFrom<&str> for Platform {
         } else if name.contains("linux") {
             Ok(Linux)
         }
-        // CAREFUL: this matches also "darwin" (that's why its declared below):
+        // CAREFUL: this matches also "darwin" (that's why it's declared below the "darwin" match).
         else if name.contains("win") {
             Ok(Windows)
         } else if name.contains("ios") {
@@ -117,9 +119,9 @@ pub fn current() -> Option<Platform> {
 
 /// Queries which platform we are on.
 #[allow(clippy::if_same_then_else)]
+#[cfg(target_arch = "wasm32")]
 pub fn current_wasm() -> Option<Platform> {
     use super::window;
-    let window = window();
     let navigator = window.navigator();
     let platform = navigator.platform().unwrap_or_default().to_lowercase();
     let agent = navigator.user_agent().unwrap_or_default().to_lowercase();

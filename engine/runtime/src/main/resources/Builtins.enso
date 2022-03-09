@@ -334,6 +334,21 @@ type Invalid_Array_Index_Error array index
 @Builtin_Type
 type Not_Invokable_Error target
 
+## An error that occurs when arguments used in a function call are invalid
+   types for the function.
+
+   Arguments:
+     - arguments: The passed arguments.
+@Builtin_Type
+type Unsupported_Argument_Types arguments
+
+## An error that occurs when the specified module cannot be found.
+
+   Arguments:
+     - name: The module searched for.
+@Builtin_Type
+type Module_Does_Not_Exist name
+
 ## Panics.
 type Panic
 
@@ -478,6 +493,28 @@ type Polyglot
     invoke : Any -> Text -> Vector -> Any
     invoke target name arguments = @Builtin_Method "Polyglot.invoke"
 
+    ## ADVANCED
+       UNSTABLE
+
+       Checks if `value` defines a source location.
+
+       Source locations are typically exposed by functions, classes, sometimes
+       also other objects to specify their allocation sites.
+    has_source_location : Any -> Boolean
+    has_source_location value = @Builtin_Method "Polyglot.has_source_location"
+
+    ## ADVANCED
+       UNSTABLE
+
+       Gets the source location of `value`.
+
+       Source locations are typically exposed by functions, classes, sometimes
+       also other objects to specify their allocation sites.
+       This method will throw a polyglot exception if
+       `Polyglot.has_source_location value` returns `False`.
+    get_source_location : Any -> Source_Location
+    get_source_location value = @Builtin_Method "Polyglot.get_source_location"
+
 ## Utilities for working with Java polyglot objects.
 type Java
 
@@ -603,7 +640,7 @@ type Meta
        Arguments:
        - name: The name of the unresolved symbol.
        - scope: The scope in which the symbol name is unresolved.
-    create_unresolved_symbol : Text -> Module_Sope -> Unresolved_Symbol
+    create_unresolved_symbol : Text -> Module_Scope -> Unresolved_Symbol
     create_unresolved_symbol name scope =
         @Builtin_Method "Meta.create_unresolved_symbol"
 
@@ -766,8 +803,8 @@ type Meta
 
        Arguments:
        - value: the value to get the type of.
-   get_qualified_type_name : Any -> Text
-   get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
+    get_qualified_type_name : Any -> Text
+    get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
 
 ## Utilities for working with primitive arrays.
 type Array
@@ -874,6 +911,10 @@ type Array
        Arguments:
        - index: The index to get the element from.
 
+       ? Safety
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
+
        > Example
          Get the element at index 1.
 
@@ -892,8 +933,8 @@ type Array
        programming style in Enso.
 
        ? Safety
-         If index >= this.length, then this operation will result in an
-         Invalid_Array_Index_Error exception.
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
     set_at : Integer -> Any -> Array
     set_at index value = @Builtin_Method "Array.set_at"
 
@@ -1774,6 +1815,15 @@ type Runtime
              Runtime.no_inline_with_arg IO.println "Hi!"
     no_inline_with_arg : Any -> Any
     no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
+
+    ## PRIVATE
+
+       Returns a raw representation of the current execution stack trace.
+       You probably want `Runtime.get_stack_trace` instead.
+    primitive_get_stack_trace : Array
+    primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
+
+
 
 ## The runtime's integrated monadic state management.
 type State

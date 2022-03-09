@@ -152,6 +152,8 @@ The subdirectories of interests are:
     paradigm in rust.
 - `build`: All building scripts and utilities, mostly the logic of the `./run`
   script.
+- `integration-test`: A single crate with all integration tests of our
+  applications.
 
 Other directories are auto-generated `dist` and `target`, or (currently) are the
 Engine files, which will be moved to `app/engine` soon.
@@ -278,6 +280,17 @@ have prepared several scripts which maximally automate the process:
     [official source](https://chromedriver.chromium.org/downloads) and ensure it
     is in your `PATH`.
 
+- **Integration Tests** The integration tests are gathered in `integration-test`
+  crate. You can run them with `node ./run integration-test` command. The script
+  will spawn required Engine process.
+  - To run une test suite add `-- --test <suite-name>` at end of command
+    options. The `<suite-name>` is a name of the file in
+    `integration-test/tests` directory without extension, for example
+    `graph_editor`.
+  - The integration test can create and leave new Enso projects. **Keep it in
+    mind when running the script with your own backend (the `--no-backend`
+    option)**. The Engine spawned by the script will use a dedicated workspace
+    created in temporary directory, so the user workspace will not be affected.
 - **Linting** Please be sure to fix all errors reported by `node ./run lint`
   before creating a pull request to this repository.
 
@@ -285,7 +298,7 @@ have prepared several scripts which maximally automate the process:
 
 The following branches are used to develop the product:
 
-- **wip/[initials]/[feature]**  
+- **wip/[github_user_name]/[feature]**  
   Feature branches. These are temporary branches used by the team to develop a
   particular feature.
 - **develop**  

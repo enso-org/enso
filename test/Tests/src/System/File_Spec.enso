@@ -108,4 +108,3 @@ spec =
 
             filtered2 = Enso_Project.data.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
-

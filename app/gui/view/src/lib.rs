@@ -6,7 +6,6 @@
 #![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
@@ -26,6 +25,7 @@
 
 #[allow(clippy::option_map_unit_fn)]
 pub mod code_editor;
+pub mod debug_mode_popup;
 pub mod documentation;
 pub mod open_dialog;
 pub mod project;

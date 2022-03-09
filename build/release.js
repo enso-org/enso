@@ -14,7 +14,7 @@ const yaml = require('js-yaml')
 const config = yaml.load(fss.readFileSync(path.join(paths.gui.root, 'config.yaml'), 'utf-8'))
 
 const CHANGELOG_FILE_NAME = 'CHANGELOG.md'
-const CHANGELOG_FILE = path.join(paths.gui.root, CHANGELOG_FILE_NAME)
+const CHANGELOG_FILE = path.join(paths.root, CHANGELOG_FILE_NAME)
 const ENGINE_VERSION = config.engineVersionSupported
 
 // ===============

@@ -4,17 +4,21 @@ use crate::prelude::*;
 
 use crate::component::type_coloring;
 use crate::component::visualization::foreign::java_script::PreprocessorCallback;
-use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::Type;
 
 use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::style::data::DataMatch;
 use ensogl::display::DomSymbol;
+use ensogl::system::web::HtmlDivElement;
+use ensogl::system::web::JsValue;
 use ensogl_hardcoded_theme;
 use fmt::Formatter;
-use wasm_bindgen::prelude::*;
-use web_sys::HtmlDivElement;
+use wasm_bindgen::prelude::wasm_bindgen;
+
+#[cfg(target_arch = "wasm32")]
+use crate::component::visualization::instance::PreprocessorConfiguration;
+
 
 
 // =================
@@ -30,6 +34,10 @@ pub const JS_CLASS_NAME: &str = "Visualization";
 // === JavaScript Bindings ===
 // ===========================
 
+// TODO: Add docs to the WASM32 bindings below - esp. what is the difference between
+//       __Visualization__ and Visualization.
+
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "/src/component/visualization/foreign/java_script/visualization.js")]
 extern "C" {
     #[allow(unsafe_code)]
@@ -48,8 +56,32 @@ extern "C" {
     pub fn emitPreprocessorChange(this: &Visualization) -> Result<(), JsValue>;
 }
 
-/// Provides reference to the visualizations JavaScript base class.
-pub fn js_class() -> JsValue {
+#[allow(non_snake_case)]
+#[cfg(not(target_arch = "wasm32"))]
+fn __Visualization__() -> JsValue {
+    default()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Copy, Clone, Debug, Default)]
+#[allow(missing_docs)]
+pub struct Visualization {}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(missing_docs)]
+impl Visualization {
+    pub fn new() -> Self {
+        default()
+    }
+
+    #[allow(non_snake_case)]
+    pub fn emitPreprocessorChange(&self) -> Result<(), JsValue> {
+        Ok(())
+    }
+}
+
+/// Provides reference to the [`Visualization`] JavaScript base class.
+pub fn js_visualization_class() -> JsValue {
     __Visualization__()
 }
 
@@ -59,7 +91,7 @@ pub fn js_class() -> JsValue {
 // === Theme ===
 // =============
 
-/// The theming API that we expose to JS visualizations
+/// The theming API that we expose to JS visualizations.
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct JsTheme {
@@ -123,6 +155,7 @@ impl JsTheme {
 /// Data that is passed into the javascript Visualization baseclass.
 #[allow(missing_docs)]
 #[wasm_bindgen]
+#[allow(dead_code)] // Some fields are used by wasm32 target only.
 pub struct JsConsArgs {
     #[wasm_bindgen(skip)]
     pub root:             HtmlDivElement,
@@ -151,6 +184,7 @@ impl JsConsArgs {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 impl JsConsArgs {
     /// Getter for the root element for the visualization.

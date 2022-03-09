@@ -73,6 +73,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
 import java.util.UUID
+
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -506,18 +507,33 @@ class JsonConnectionController(
         .props(requestTimeout, projectSettingsManager),
       EditionsSetLocalLibrariesPreference -> EditionsSetProjectLocalLibrariesPreferenceHandler
         .props(requestTimeout, projectSettingsManager),
+      EditionsListDefinedComponents -> EditionsListDefinedComponentsHandler
+        .props(
+          libraryConfig.editionReferenceResolver,
+          libraryConfig.localLibraryProvider,
+          libraryConfig.publishedLibraryCache
+        ),
       LibraryCreate -> LibraryCreateHandler
         .props(requestTimeout, libraryConfig.localLibraryManager),
       LibraryListLocal -> LibraryListLocalHandler
         .props(requestTimeout, libraryConfig.localLibraryManager),
       LibraryGetMetadata -> LibraryGetMetadataHandler
-        .props(requestTimeout, libraryConfig.localLibraryManager),
+        .props(
+          requestTimeout,
+          libraryConfig.localLibraryManager,
+          libraryConfig.publishedLibraryCache
+        ),
       LibraryPreinstall -> LibraryPreinstallHandler
         .props(libraryConfig.editionReferenceResolver, libraryConfig),
       LibraryPublish -> LibraryPublishHandler
         .props(requestTimeout, libraryConfig.localLibraryManager),
       LibrarySetMetadata -> LibrarySetMetadataHandler
-        .props(requestTimeout, libraryConfig.localLibraryManager)
+        .props(requestTimeout, libraryConfig.localLibraryManager),
+      LibraryGetPackage -> LibraryGetPackageHandler.props(
+        requestTimeout,
+        libraryConfig.localLibraryManager,
+        libraryConfig.publishedLibraryCache
+      )
     )
   }
 
