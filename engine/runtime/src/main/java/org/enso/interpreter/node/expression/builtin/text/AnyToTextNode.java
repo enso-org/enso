@@ -13,9 +13,9 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
 public abstract class AnyToTextNode extends Node {
   private static final int DISPATCH_CACHE = 3;
-  private @Child InteropLibrary displays =
+  private @Child final InteropLibrary displays =
       InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
-  private @Child InteropLibrary strings =
+  private @Child final InteropLibrary strings =
       InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
 
   static AnyToTextNode build() {
@@ -23,6 +23,11 @@ public abstract class AnyToTextNode extends Node {
   }
 
   abstract Text execute(Object _this);
+
+  @Specialization
+  Text doText(Text text) {
+    return text;
+  }
 
   @Specialization
   Text doAtom(Atom at) {

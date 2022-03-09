@@ -275,9 +275,7 @@ type Aggregate_Column
             Concatenate c _ join _ _ quote -> create_closure c col->text->i->
                 v = col.at i
                 val=if v.is_nothing then "" else
-                    text = case v of
-                        Text -> v
-                        _ -> v.to_text
+                    text = v.to_text
                     if text == "" then (quote+quote) else
                         if text.contains join then (quote+text+quote) else text
                 if text.is_nothing then val else (text + join + val)
