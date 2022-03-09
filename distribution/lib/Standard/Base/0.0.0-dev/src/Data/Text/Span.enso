@@ -137,21 +137,37 @@ type Utf_16_Span
     ## Returns a span of extended grapheme clusters which is the closest
        approximation of this span of the code units.
 
-       The resulting span begins with the extended grapheme cluster which
-       contains the code unit from the start of this span. The end of the span is delimited by the extended grapheme cluster which contains the code unit associated with the end of the span. Note that the returned span may contain code units which did not appear in the original span and also may not contain some units which were contained in the original span.
+       The resulting span is extended in such a way that every code unit that
+       was contained by the original span is also contained in a new span. Since
+       some grapheme clusters consist of multiple code units, after the span was
+       extended it may also contain code units which were not contained inside
+       of the original span.
 
        > Example
          Convert a codepoint span to graphemes and back.
 
          text = 'a\u{301}e\u{302}o\u{303}'
-         span = Utf_16_Span (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o, \u{303}].
+         span = Utf_16_Span (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o].
          extended = span.to_grapheme_span
-         extended == Span (Range 0 2) text # The (exclusive) end of the span corresponds to the 'õ' grapheme, so the span itself corresponds to the substring 'áê'.
-         extended.to_utf_16_span == Utf_16_Span (Range 0 4) text
+         extended == Span (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
+         extended.to_utf_16_span == Utf_16_Span (Range 0 6) text
     to_grapheme_span : Span
-    to_grapheme_span =
-        grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices this.text [this.start, this.end].to_array
-        Span (Range (grapheme_ixes.at 0) (grapheme_ixes.at 1)) this.text
+    to_grapheme_span = if (this.start < 0) || (this.end > Text_Utils.char_length this.text) then Error.throw (Illegal_State_Error "Utf_16_Span indices are out of range of the associated text.") else
+        if this.end < this.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
+            case this.start == this.end of
+                True ->
+                    grapheme_ix = Text_Utils.utf16_index_to_grapheme_index this.text this.start
+                    Span (Range grapheme_ix grapheme_ix) this.text
+                False ->
+                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices this.text [this.start, this.end - 1].to_array
+                    grapheme_first = grapheme_ixes.at 0
+                    grapheme_last = grapheme_ixes.at 1
+                    ## We find the grapheme index of the last code unit actually contained within our span and set the
+                       end grapheme to the first grapheme after that. This ensures that if code units associated with
+                       only a part of a grapheme were contained in our original span, the resulting span will be
+                       extended to contain this whole grapheme.
+                    grapheme_end = grapheme_last + 1
+                    Span (Range grapheme_first grapheme_end) this.text
 
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting

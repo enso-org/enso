@@ -21,7 +21,17 @@ spec = Test.group "Text.Span" <|
         text = 'a\u{301}e\u{302}o\u{303}'
         span = Utf_16_Span (Range 1 5) text
         extended = span.to_grapheme_span
-        extended . should_equal (Span (Range 0 2) text)
-        extended.to_utf_16_span . should_equal (Utf_16_Span (Range 0 4) text)
+        extended . should_equal (Span (Range 0 3) text)
+        extended.to_utf_16_span . should_equal (Utf_16_Span (Range 0 6) text)
+
+        Utf_16_Span (Range 0 2) text . to_grapheme_span . should_equal (Span (Range 0 1) text)
+        Utf_16_Span (Range 0 1) text . to_grapheme_span . should_equal (Span (Range 0 1) text)
+        Utf_16_Span (Range 0 0) text . to_grapheme_span . should_equal (Span (Range 0 0) text)
+        Utf_16_Span (Range 1 1) text . to_grapheme_span . should_equal (Span (Range 0 0) text)
+        Utf_16_Span (Range 2 2) text . to_grapheme_span . should_equal (Span (Range 1 1) text)
+
+        Utf_16_Span (Range 0 4) text . to_grapheme_span . should_equal (Span (Range 0 2) text)
+        Utf_16_Span (Range 0 3) text . to_grapheme_span . should_equal (Span (Range 0 2) text)
+        Utf_16_Span (Range 0 2) text . to_grapheme_span . should_equal (Span (Range 0 1) text)
 
 main = Test.Suite.run_main here.spec

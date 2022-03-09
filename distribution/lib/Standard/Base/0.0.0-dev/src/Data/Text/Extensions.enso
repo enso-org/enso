@@ -1211,14 +1211,20 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
                    guaranteed to be the same.
                 end = start + term.length
                 Span (Range start end) this
-        Case_Insensitive locale ->
-            search_for_last = case mode of
-                Matching_Mode.First -> False
-                Matching_Mode.Last -> True
-            case Text_Utils.span_of_case_insensitive this term locale.java_locale search_for_last of
-                Nothing -> Nothing
-                grapheme_span ->
-                    Span (Range grapheme_span.start grapheme_span.end) this
+        Case_Insensitive locale -> case term.is_empty of
+            True -> case mode of
+                Matching_Mode.First -> Span (Range 0 0) this
+                Matching_Mode.Last ->
+                    end = this.length
+                    Span (Range end end) this
+            False ->
+                search_for_last = case mode of
+                    Matching_Mode.First -> False
+                    Matching_Mode.Last -> True
+                case Text_Utils.span_of_case_insensitive this term locale.java_locale search_for_last of
+                    Nothing -> Nothing
+                    grapheme_span ->
+                        Span (Range grapheme_span.start grapheme_span.end) this
     Regex_Matcher _ _ _ _ _ -> case mode of
         Matching_Mode.First ->
             case matcher.compile term . match this Mode.First of

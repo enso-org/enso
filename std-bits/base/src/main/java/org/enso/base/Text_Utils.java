@@ -394,9 +394,7 @@ public class Text_Utils {
     if (pos == StringSearch.DONE) {
       return null;
     } else {
-      int start = foldedHaystack.codeUnitToGraphemeIndex(pos);
-      int end = foldedHaystack.codeUnitToGraphemeIndex(pos + search.getMatchLength());
-      return new GraphemeSpan(start, end);
+      return findExtendedSpan(foldedHaystack, pos, search.getMatchLength());
     }
   }
 
@@ -405,7 +403,7 @@ public class Text_Utils {
     if (needle.isEmpty())
       throw new IllegalArgumentException(
           "The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
-    if (haystack.isEmpty()) return null;
+    if (haystack.isEmpty()) return List.of();
 
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
     String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
@@ -415,12 +413,41 @@ public class Text_Utils {
 
     int pos;
     while ((pos = search.next()) != StringSearch.DONE) {
-      int start = foldedHaystack.codeUnitToGraphemeIndex(pos);
-      int end = foldedHaystack.codeUnitToGraphemeIndex(pos + search.getMatchLength());
-      result.add(new GraphemeSpan(start, end));
+      result.add(findExtendedSpan(foldedHaystack, pos, search.getMatchLength()));
     }
 
     return result;
+  }
+
+  /**
+   * Finds the grapheme span corresponding to the found match indexed with code units.
+   *
+   * <p>It extends the found span to ensure that graphemes associated with all found code units are
+   * included in the resulting span. Thus, some additional code units which were not present in the
+   * original match may also be present due to the extension.
+   *
+   * <p>The extension to the left is trivial - we just find the grapheme associated with the first
+   * code unit and even if that code unit is not the first one of that grapheme, by returning it we
+   * correctly extend to the left. The extension to the right works by finding the index of the
+   * grapheme associated with the last code unit actually present in the span, then the end of the
+   * returned span is set to the next grapheme after it. This correctly handles the edge case where
+   * only a part of some grapheme was matched.
+   *
+   * @param string the folded string with which the positions are associated, containing a cache of
+   *     position mappings
+   * @param position the position of the match (in code units)
+   * @param length the length of the match (in code units)
+   * @return a minimal {@code GraphemeSpan} which contains all code units from the match
+   */
+  private static GraphemeSpan findExtendedSpan(CaseFoldedString string, int position, int length) {
+    int firstGrapheme = string.codeUnitToGraphemeIndex(position);
+    if (length == 0) {
+      return new GraphemeSpan(firstGrapheme, firstGrapheme);
+    } else {
+      int lastGrapheme = string.codeUnitToGraphemeIndex(position + length - 1);
+      int endGrapheme = lastGrapheme + 1;
+      return new GraphemeSpan(firstGrapheme, endGrapheme);
+    }
   }
 
   /**

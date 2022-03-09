@@ -868,18 +868,26 @@ spec =
             '\u0390'.location_of '\u03B9\u0308\u0301' matcher=case_insensitive . should_equal (Span (Range 0 1) '\u0390')
             'ԵՒ'.location_of 'և' . should_equal Nothing
             'ԵՒ'.location_of 'և' matcher=case_insensitive . should_equal (Span (Range 0 2) 'ԵՒ')
+            'և'.location_of 'ԵՒ' matcher=case_insensitive . should_equal (Span (Range 0 1) 'և')
 
-            ligatures = 'FFAﬀﬁﬂﬃﬄﬅﬆZ'
+            ligatures = 'ffaﬀﬁﬂﬃﬄﬅﬆZ'
+            ligatures.location_of 'FFI' matcher=case_insensitive . should_equal (Span (Range 3 5) ligatures)
             ligatures.location_of 'FF' matcher=case_insensitive . should_equal (Span (Range 0 2) ligatures)
-            ligatures.location_of 'FF' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 7 8) ligatures)
-            ligatures.location_of 'FFI' matcher=case_insensitive . should_equal (Span (Range 6 7) ligatures)
-            ligatures.location_of_all 'FF' . should_equal [Span (Range 0 2) ligatures]
+            ligatures.location_of 'ff' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 7 8) ligatures)
+            ligatures.location_of_all 'ff' . should_equal [Span (Range 0 2) ligatures]
             ligatures.location_of_all 'FF' matcher=case_insensitive . should_equal [Span (Range 0 2) ligatures, Span (Range 3 4) ligatures, Span (Range 6 7) ligatures, Span (Range 7 8) ligatures]
-            ligatures.location_of_all 'FFI' matcher=case_insensitive . should_equal [Span (Range 6 7) ligatures]
-            'FFFI'.location_of_all 'ﬀ' matcher=case_insensitive . should_equal [Span (Range 0 2) 'FFFI']
-            'FFFI'.location_of_all 'ﬃ' . should_equal []
-            'FFFI'.location_of_all 'ﬃ' matcher=case_insensitive . should_equal [Span (Range 1 4) 'FFFI']
+            ligatures.location_of_all 'ffi' matcher=case_insensitive . should_equal [Span (Range 3 5) ligatures, Span (Range 6 7) ligatures]
+            'fffi'.location_of_all 'ﬀ' matcher=case_insensitive . should_equal [Span (Range 0 2) 'fffi']
+            'fffi'.location_of_all 'ﬃ' . should_equal []
+            'fffi'.location_of_all 'ﬃ' matcher=case_insensitive . should_equal [Span (Range 1 4) 'fffi']
             'FFFI'.location_of 'ﬃ' matcher=case_insensitive . should_equal (Span (Range 1 4) 'FFFI')
+
+            'ﬃﬄ'.location_of 'IF' matcher=case_insensitive . should_equal (Span (Range 0 2) 'ﬃﬄ')
+            'ﬃﬄ'.location_of 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span (Range 1 2) 'ﬃﬄ')
+            'ﬃﬄ'.location_of_all 'F' matcher=case_insensitive . should_equal [Span (Range 0 1) 'ﬃﬄ', Span (Range 0 1) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ']
+            'aaﬃbb'.location_of_all 'af' matcher=case_insensitive . should_equal [Span (Range 1 3) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'ib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'ib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
 
             "".location_of "foo" matcher=case_insensitive . should_equal Nothing
             "".location_of "foo" matcher=case_insensitive mode=Matching_Mode.Last . should_equal Nothing
