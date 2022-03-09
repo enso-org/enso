@@ -5,6 +5,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
@@ -31,7 +32,15 @@ public class WithWarnings implements TruffleObject {
     return new WithWarnings(value, warnings.append(newWarnings));
   }
 
+  public WithWarnings append(ArrayRope<Warning> newWarnings) {
+    return new WithWarnings(value, warnings.append(newWarnings));
+  }
+
   public WithWarnings prepend(Warning... newWarnings) {
+    return new WithWarnings(value, warnings.prepend(newWarnings));
+  }
+
+  public WithWarnings prepend(ArrayRope<Warning> newWarnings) {
     return new WithWarnings(value, warnings.prepend(newWarnings));
   }
 
@@ -53,7 +62,7 @@ public class WithWarnings implements TruffleObject {
 
   public static WithWarnings appendTo(Object target, ArrayRope<Warning> warnings) {
     if (target instanceof WithWarnings) {
-      return new WithWarnings(((WithWarnings) target).warnings.append(warnings));
+      return ((WithWarnings) target).append(warnings);
     } else {
       return new WithWarnings(target, warnings);
     }
@@ -61,7 +70,7 @@ public class WithWarnings implements TruffleObject {
 
   public static WithWarnings prependTo(Object target, ArrayRope<Warning> warnings) {
     if (target instanceof WithWarnings) {
-      return new WithWarnings(((WithWarnings) target).warnings.prepend(warnings));
+      return ((WithWarnings) target).prepend(warnings);
     } else {
       return new WithWarnings(target, warnings);
     }
