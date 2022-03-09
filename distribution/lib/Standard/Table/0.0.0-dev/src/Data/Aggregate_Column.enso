@@ -6,12 +6,17 @@ import Standard.Table.Data.Group_By
 ## Defines an Aggregate Column
 type Aggregate_Column
     ## Creates a new column with the row count of each group
+
+       Arguments:
+       - name: name of new column.
     type Count (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of unique items in the selected
        column(s) within each group.
 
        Arguments:
+       - columns: either a single or set of columns (specified by name, index or Column object) to count across.
+       - name: name of new column.
        - ignore_nothing: if all values are Nothing won't be included.
     type Count_Distinct (columns:Column|Text|Integer|[(Column|Text|Integer)]) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
 
@@ -19,32 +24,60 @@ type Aggregate_Column
 
        Creates a new column with the count of not `Nothing` (null) values of the
        specified column within each group.
+
+       Arguments:
+       - columns: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Not_Nothing (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## ALIAS Count_Null, Count_Missing
 
        Creates a new column with the count of `Nothing` (null) values of the
        specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Nothing (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of not `Nothing` (null) and non-empty
        ("") values of the column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Not_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of `Nothing` (null) or empty ("")
        text values of the column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the sum of values (ignoring missing values) of
        the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to total.
+       - name: name of new column.
     type Sum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the mean of values (ignoring missing values) of
        the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to average.
+       - name: name of new column.
     type Average (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the median of values (ignoring missing values)
        of the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to calculate median on.
+       - name: name of new column.
     type Median (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the median of values (ignoring missing values)
@@ -52,22 +85,32 @@ type Aggregate_Column
 
        Arguments:
        - percentile: Percentage to compute from 0-1 inclusive.
+       - column: column (specified by name, index or Column object) to compute percentile.
+       - name: name of new column.
     type Percentile (percentile:Decimal) (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the mode of values (ignoring missing values)
        of the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find the most common value.
+       - name: name of new column.
     type Mode (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the standard deviation of values (ignoring
        missing values) of the column within each group.
 
        Arguments:
+       - column: column (specified by name, index or Column object) to compute standard deviation.
+       - name: name of new column.
        - population argument specifies if group is a sample or the population
     type Standard_Deviation (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (population:Boolean=False)
 
     ## Creates a new column with the values concatenated together. `Nothing` values will become an empty string.
 
        Arguments:
+       - column: column (specified by name, index or Column object) to concatenate values.
+       - name: name of new column.
        - separator: added between each value.
        - prefix: added at the start of the result.
        - suffix: added at the end of the result.
@@ -77,32 +120,52 @@ type Aggregate_Column
 
     ## Creates a new column with the first value in each group.
 
-        Arguments:
-        - ignore_nothing: if `True`, then missing values are ignored and first
-          not missing value returned.
-        - order_by: required for database tables. Specifies how to order the
-          results within the group.
+       Arguments:
+       - column: column (specified by name, index or Column object) to find first group entry.
+       - name: name of new column.
+       - ignore_nothing: if `True`, then missing values are ignored and first
+         not missing value returned.
+       - order_by: required for database tables. Specifies how to order the
+         results within the group.
     type First (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
 
     ## Creates a new column with the last value in each group.
 
-        Arguments:
-        - ignore_nothing: if `True`, then missing values are ignored and last
-          not missing value returned.
-        - order_by: required for database tables. Specifies how to order the
-          results within the group.
+       Arguments:
+       - column: column (specified by name, index or Column object) to find last group entry.
+       - name: name of new column.
+       - ignore_nothing: if `True`, then missing values are ignored and last
+         not missing value returned.
+       - order_by: required for database tables. Specifies how to order the
+         results within the group.
     type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
 
     ## Creates a new column with the maximum value in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find maximum.
+       - name: name of new column.
     type Maximum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the maximum value in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find minimum.
+       - name: name of new column.
     type Minimum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the shortest text in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find shortest value.
+       - name: name of new column.
     type Shortest (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the longest text in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find longest value.
+       - name: name of new column.
     type Longest (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Gets a column name to use for the aggregate column
@@ -240,7 +303,8 @@ type Aggregate_Column
 
     evaluate : Any->Any
     evaluate value =
-        percentile p value =
+        ## Given a map of values and counts, find the value at a specified percentile
+        percentile p:Decimal value:Map =
             count = value.fold 0 (+)
             if count == 0 then Nothing else
                 mid_value = (count - 1)*p + 1
