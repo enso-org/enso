@@ -579,9 +579,9 @@ impl NodeModel {
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_pos = visualization_offset(width);
-        self.error_visualization.set_position_xy(visualization_pos);
-        self.visualization.set_position_xy(visualization_pos);
+        let visualization_offset = visualization_offset(width);
+        self.error_visualization.set_position_xy(visualization_offset);
+        self.visualization.set_position_xy(visualization_offset);
 
         size
     }
