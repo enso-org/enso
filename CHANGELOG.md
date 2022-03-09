@@ -105,8 +105,10 @@
 
 - [Added overloaded `from` conversions.][3227]
 - [Upgraded to Graal VM 21.3.0][3258]
+- [Added the ability to decorate values with warnings.][3248]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
+[3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

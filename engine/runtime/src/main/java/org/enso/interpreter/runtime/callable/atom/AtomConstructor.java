@@ -82,7 +82,9 @@ public final class AtomConstructor implements TruffleObject {
       argumentReaders[i] = ReadArgumentNode.build(i, args[i].getDefaultValue().orElse(null));
     }
     ExpressionNode instantiateNode = InstantiateNode.build(this, argumentReaders);
-    RootNode rootNode = InstantiateAtomNode.build(null, name, instantiateNode);
+    RootNode rootNode =
+        InstantiateAtomNode.build(
+            null, definitionScope.getModule().getName().item() + "." + name, instantiateNode);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(callTarget, null, new FunctionSchema(args));
   }
@@ -303,7 +305,8 @@ public final class AtomConstructor implements TruffleObject {
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("target") AtomConstructor cachedTarget,
         @Cached("_this") AtomConstructor cachedConstructor,
-        @Cached("doResolve(context, cachedConstructor, cachedTarget, cachedConversion)") Function function) {
+        @Cached("doResolve(context, cachedConstructor, cachedTarget, cachedConversion)")
+            Function function) {
       return function;
     }
 

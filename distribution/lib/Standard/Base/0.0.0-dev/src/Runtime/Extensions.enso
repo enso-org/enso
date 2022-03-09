@@ -52,7 +52,7 @@ type Source_Location
                 end = this.end_column.to_text
                 row + ":" + start + "-" + end
             False ->
-                start_line + '-' + end_line
+                start_line.to_text + '-' + end_line.to_text
         cwd = File.current_directory
         file = this.file.absolute
         formatted_file = case file.is_child_of cwd of

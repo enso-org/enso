@@ -61,7 +61,8 @@ public abstract class InteropMethodCallNode extends Node {
     return InvokeMethodNode.build(
         args,
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        0);
   }
 
   @Specialization(
@@ -107,7 +108,8 @@ public abstract class InteropMethodCallNode extends Node {
             buildSchema(arguments.length),
             DefaultsExecutionMode.EXECUTE,
             ArgumentsExecutionMode.PRE_EXECUTED,
-            TailStatus.NOT_TAIL)
+            TailStatus.NOT_TAIL,
+            0)
         .getValue();
   }
 }

@@ -31,6 +31,7 @@ import scala.jdk.javaapi.OptionConverters;
 import java.io.*;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -62,6 +63,7 @@ public class Context {
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
+  private final AtomicLong clock = new AtomicLong();
 
   /**
    * Creates a new Enso context.
@@ -149,6 +151,10 @@ public class Context {
    */
   public static Context get(Node node) {
     return REFERENCE.get(node);
+  }
+
+  public static TruffleLanguage.ContextReference<Context> getReference() {
+    return REFERENCE;
   }
 
   /** Performs eventual cleanup before the context is disposed of. */
@@ -448,5 +454,9 @@ public class Context {
    */
   public TruffleLogger getLogger(Class<?> klass) {
     return TruffleLogger.getLogger(LanguageInfo.ID, klass);
+  }
+
+  public long clockTick() {
+    return clock.getAndIncrement();
   }
 }
