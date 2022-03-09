@@ -1049,7 +1049,7 @@ impl SceneData {
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = object.transform_matrix().try_inverse().unwrap();
 
-        let shape = camera.screen();
+        let shape = self.frp.shape.value();
         let clip_space_z = origin_clip_space.z;
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
