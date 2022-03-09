@@ -31,7 +31,7 @@ spec =
             건반(Korean).
         sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
 
-        Text.specify "should be an identity on to_text" <|
+        Text.specify "should be returned as-is by to_text" <|
             kshi.to_text . should_equal kshi
             facepalm.to_text . should_equal facepalm
             "".to_text . should_equal ""
