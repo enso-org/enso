@@ -91,4 +91,21 @@ spec = Test.group "Maps" <|
     Test.specify "should allow getting a vector of the values" <|
         m = Map.empty . insert 1 2 . insert 2 4
         m.values . should_equal [2, 4]
+    Test.specify "should be able to get the first key value pair" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        pair = m.first
+        pair.first . should_equal 1
+        pair.second . should_equal 2
+    Test.specify "should be able to get the first key value pair of an empty map" <|
+        m = Map.empty
+        m.first . should_equal Nothing
+    Test.specify "should be able to get the last key value pair" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        pair = m.last
+        pair.first . should_equal 2
+        pair.second . should_equal 4
+    Test.specify "should be able to get the last key value pair of an empty map" <|
+        m = Map.empty
+        m.last . should_equal Nothing
 
+main = Test.Suite.run_main here.spec

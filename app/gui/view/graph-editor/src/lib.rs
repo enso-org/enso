@@ -2611,6 +2611,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         });
     }
 
+
     // === Edited node growth/shrink animation ===
 
     let searcher_cam = model.app.display.default_scene.layers.node_searcher.camera();
@@ -2857,7 +2858,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     edge_to_remove_without_sources <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_sources()));
     edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
     eval edge_to_remove ((id) model.remove_edge(id));
-
     }
 
     //

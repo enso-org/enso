@@ -1,0 +1,49 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+import Standard.Test.Faker
+
+import Standard.Table.Data.Table
+import Standard.Table.Data.Column_Selector
+from Standard.Table.Data.Aggregate_Column import all
+
+## Bench Utilities ============================================================
+
+vector_size = 2500
+iter_size = 100
+num_iterations = 10
+
+create_table : Integer->Integer->Table
+create_table rows (seed=1646322139) =
+    faker = Faker.new seed
+    key1 = ["Code", 0.up_to rows . map _-> faker.alpha 3]
+    key2 = ["Index", 0.up_to rows . map _-> faker.integer 0 10]
+    key3 = ["Flag", 0.up_to rows . map _-> faker.boolean]
+    value1 = ["Value", 0.up_to rows . map _-> ((faker.decimal -100 100)*100000).floor/100000]
+    value2 = ["ValueWithNothing", 0.up_to rows . map _-> faker.make_some_nothing ((faker.decimal -100 100)*100).floor/100]
+    text1 = ["TextWithNothing", 0.up_to rows . map _-> faker.make_some_nothing (faker.alpha_numeric 10)]
+    text2 = ["Hexadecimal", 0.up_to rows . map _-> faker.make_some_nothing (faker.hexadecimal 8)]
+    Table.new [key1, key2, key3, value1, value2, text1, text2]
+
+# The Benchmarks ==============================================================
+main =
+    IO.println <| "Making table data..."
+    table = here.create_table here.vector_size
+
+    Bench.measure (table.group_by (Column_Selector.By_Index []) [Count Nothing]) "Count table" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Index []) [Count_Distinct "Index"]) "Count Distinct table" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Index []) [Standard_Deviation "Value"]) "StDev table" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Index []) [Median "Value"]) "Median table" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Index []) [Mode "Index"]) "Mode table" here.iter_size here.num_iterations
+
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index"]) [Count Nothing]) "Count grouped" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index"]) [Count_Distinct "Code"]) "Count Distinct grouped" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index"]) [Standard_Deviation "Value"]) "StDev grouped" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index"]) [Median "Value"]) "Median grouped" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index"]) [Mode "Index"]) "Mode grouped" here.iter_size here.num_iterations
+
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index", "Flag"]) [Count Nothing]) "Count 2 level groups" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index", "Flag"]) [Count_Distinct "Code"]) "Count Distinct 2 level groups" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index", "Flag"]) [Standard_Deviation "Value"]) "StDev 2 level groups" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index", "Flag"]) [Median "Value"]) "Median 2 level groups" here.iter_size here.num_iterations
+    Bench.measure (table.group_by (Column_Selector.By_Name.new ["Index", "Flag"]) [Mode "Index"]) "Mode 2 level groups" here.iter_size here.num_iterations
