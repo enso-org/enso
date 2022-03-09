@@ -913,12 +913,12 @@ spec =
             "".location_of "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
             "".location_of_all "foo" matcher=regex . should_equal []
             "".location_of "" matcher=regex . should_equal (Span (Range 0 0) "")
-            "".location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
             "".location_of_all "" matcher=regex . should_equal [Span (Range 0 0) ""]
+            "".location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
             abc = 'A\u{301}ßC'
             abc.location_of "" matcher=regex . should_equal (Span (Range 0 0) abc)
+            abc.location_of_all "" matcher=regex . should_equal [Span (Range 0 0) abc, Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
             abc.location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
-            abc.location_of_all "" matcher=regex . should_equal [Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|

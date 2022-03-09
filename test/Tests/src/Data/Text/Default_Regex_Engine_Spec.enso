@@ -182,6 +182,22 @@ spec =
             match.at 1 . group 0 . should_equal "ef"
             match.at 2 . group 0 . should_equal "gh"
 
+        Test.specify "should correctly handle empty patterns" <|
+           pattern = engine.compile "" []
+           match_1 = pattern.match "" mode=Mode.All
+           match_1.length . should_equal 1
+           match_1.at 0 . start 0 . should_equal 0
+           match_1.at 0 . end 0 . should_equal 0
+
+           match_2 = pattern.match "ABC" mode=Mode.All
+           match_2.length . should_equal 4
+           match_2.at 0 . start 0 . should_equal 0
+           match_2.at 0 . end 0 . should_equal 0
+           match_2.at 1 . start 0 . should_equal 1
+           match_2.at 1 . end 0 . should_equal 1
+           match_2.at 3 . start 0 . should_equal 3
+           match_2.at 3 . end 0 . should_equal 3
+
     Test.group "The default regex engine's Pattern.find" <|
         engine = Default_Engine.new
 

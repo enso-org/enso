@@ -1219,11 +1219,15 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
                 Nothing -> Nothing
                 grapheme_span ->
                     Span (Range grapheme_span.start grapheme_span.end) this
-    Regex_Matcher _ _ _ _ _ ->
-        # TODO mode!
-        case matcher.compile term . match this Mode.First of
-            Nothing -> Nothing
-            match -> match.span 0 . to_grapheme_span
+    Regex_Matcher _ _ _ _ _ -> case mode of
+        Matching_Mode.First ->
+            case matcher.compile term . match this Mode.First of
+                Nothing -> Nothing
+                match -> match.span 0 . to_grapheme_span
+        Matching_Mode.Last ->
+            case matcher.compile term . match this Mode.All of
+                Nothing -> Nothing
+                matches -> matches.last.span 0 . to_grapheme_span
 
 ## ALIAS find_all, index_of_all, position_of_all, span_of_all
    Finds all the locations of the `term` in the input.

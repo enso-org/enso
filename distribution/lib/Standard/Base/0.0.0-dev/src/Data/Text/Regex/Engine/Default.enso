@@ -278,7 +278,9 @@ type Pattern
 
                         if found.not then Nothing else
                             builder.append (Match internal_matcher start end input)
-                            @Tail_Call go (internal_matcher.end 0) remaining_count-1
+                            match_end = internal_matcher.end 0
+                            new_offset = if match_end > offset then match_end else offset+1
+                            @Tail_Call go new_offset remaining_count-1
 
                 go start mode
                 vector = builder.to_vector
@@ -289,13 +291,15 @@ type Pattern
 
                 go : Integer -> Nothing
                 go offset =
-                    if offset >= end then Nothing else
+                    if offset > end then Nothing else
                         internal_matcher = this.build_matcher input start end
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
                             builder.append (Match internal_matcher start end input)
-                            @Tail_Call go (internal_matcher.end 0)
+                            match_end = internal_matcher.end 0
+                            new_offset = if match_end > offset then match_end else offset+1
+                            @Tail_Call go new_offset
 
                 go start
                 vector = builder.to_vector
@@ -312,7 +316,7 @@ type Pattern
             Mode.Bounded start end sub_mode ->
                 if start < end then do_match_mode sub_mode start end else
                     Panic.throw Invalid_Bounds_Error
-            _ -> do_match_mode mode 0 input.length
+            _ -> do_match_mode mode 0 (Text_Utils.char_length input)
 
     ## ADVANCED
 
@@ -556,7 +560,7 @@ type Pattern
         case mode of
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Bounded replacements are not well-formed."
-            _ -> do_replace_mode mode 0 input.length
+            _ -> do_replace_mode mode 0 (Text_Utils.char_length input)
 
 ## The default implementation of the `Data.Text.Regex.Engine.Match` interface.
 type Match
