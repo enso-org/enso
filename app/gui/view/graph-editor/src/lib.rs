@@ -1727,7 +1727,12 @@ impl GraphEditorModel {
         self.find_free_place_for_node(starting_point, direction).unwrap()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Return the first point when going along the ray starting from the `starting_from` point and
+    /// parallel to the `direction` vector where a node can be placed keeping required gaps between
+    /// nodes.
+    ///
+    /// Returns [`None`] if the `direction` does not go clearly at any direction (both
+    /// `direction.x` and `direction.y` are smaller than [`f32::EPSILON`]).
     pub fn find_free_place_for_node(
         &self,
         starting_from: Vector2,
