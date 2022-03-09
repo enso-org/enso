@@ -479,8 +479,11 @@ impl<M> LogVisitor<M> {
 impl str::FromStr for crate::Label {
     type Err = Expected;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (name, pos) = s.rsplit_once(' ').ok_or(Expected(" "))?;
-        Ok(Self { name: name.to_owned(), pos: crate::CodePos::parse(pos)? })
+        if let Some((name, pos)) = s.rsplit_once(' ') {
+            Ok(Self { name: name.to_owned(), pos: crate::CodePos::parse(pos)? })
+        } else {
+            Ok(Self { name: s.to_owned(), pos: None })
+        }
     }
 }
 
