@@ -2,14 +2,11 @@ package org.enso.interpreter.runtime.number;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
-
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
@@ -62,7 +59,8 @@ public class EnsoBigInteger implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, UnresolvedSymbol symbol) {
+    static Function doResolve(UnresolvedSymbol symbol) {
+      Context context = getContext();
       Number number = context.getBuiltins().number();
       return symbol.resolveFor(
           number.getBigInteger(),
@@ -71,9 +69,13 @@ public class EnsoBigInteger implements TruffleObject {
           context.getBuiltins().any());
     }
 
+    static Context getContext() {
+      return Context.get(null);
+    }
+
     @Specialization(
         guards = {
-          "!context.isInlineCachingDisabled()",
+          "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
           "function != null"
         },
@@ -81,19 +83,17 @@ public class EnsoBigInteger implements TruffleObject {
     static Function resolveCached(
         EnsoBigInteger _this,
         UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(context, cachedSymbol)") Function function) {
+        @Cached("doResolve(cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
         EnsoBigInteger _this,
-        UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context)
+        UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(context, symbol);
+      Function function = doResolve(symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }
@@ -112,8 +112,8 @@ public class EnsoBigInteger implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        Context context, AtomConstructor target, UnresolvedConversion conversion) {
+    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+      Context context = getContext();
       Number number = context.getBuiltins().number();
       return conversion.resolveFor(
           target,
@@ -123,9 +123,13 @@ public class EnsoBigInteger implements TruffleObject {
           context.getBuiltins().any());
     }
 
+    static Context getContext() {
+      return Context.get(null);
+    }
+
     @Specialization(
         guards = {
-          "!context.isInlineCachingDisabled()",
+          "!getContext().isInlineCachingDisabled()",
           "cachedTarget == target",
           "cachedConversion == conversion",
           "function != null"
@@ -135,10 +139,9 @@ public class EnsoBigInteger implements TruffleObject {
         EnsoBigInteger _this,
         AtomConstructor target,
         UnresolvedConversion conversion,
-        @CachedContext(Language.class) Context context,
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("target") AtomConstructor cachedTarget,
-        @Cached("doResolve(context, cachedTarget, cachedConversion)") Function function) {
+        @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
@@ -146,10 +149,9 @@ public class EnsoBigInteger implements TruffleObject {
     static Function resolve(
         EnsoBigInteger _this,
         AtomConstructor target,
-        UnresolvedConversion conversion,
-        @CachedContext(Language.class) Context context)
+        UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(context, target, conversion);
+      Function function = doResolve(target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }

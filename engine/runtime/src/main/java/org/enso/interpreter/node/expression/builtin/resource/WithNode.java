@@ -1,14 +1,13 @@
 package org.enso.interpreter.node.expression.builtin.resource;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.ResourceManager;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -43,14 +42,14 @@ public abstract class WithNode extends Node {
       VirtualFrame frame,
       Object _this,
       ManagedResource resource,
-      Object action,
-      @CachedContext(Language.class) Context context) {
-    context.getResourceManager().park(resource);
+      Object action) {
+    ResourceManager resourceManager = Context.get(this).getResourceManager();
+    resourceManager.park(resource);
     try {
       return invokeCallableNode.execute(
           action, frame, state, new Object[] {resource.getResource()});
     } finally {
-      context.getResourceManager().unpark(resource);
+      resourceManager.unpark(resource);
     }
   }
 }

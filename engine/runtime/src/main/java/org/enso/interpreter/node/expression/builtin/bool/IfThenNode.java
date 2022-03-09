@@ -1,10 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.bool;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
@@ -29,11 +27,11 @@ public abstract class IfThenNode extends Node {
 
   @Specialization
   Stateful doExecute(
-      Object state, boolean _this, Object if_true, @CachedContext(Language.class) Context context) {
+      Object state, boolean _this, Object if_true) {
     if (condProfile.profile(_this)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {
-      return new Stateful(state, context.getNothing().newInstance());
+      return new Stateful(state, Context.get(this).getNothing().newInstance());
     }
   }
 }

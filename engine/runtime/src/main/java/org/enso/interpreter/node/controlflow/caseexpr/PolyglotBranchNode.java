@@ -1,13 +1,11 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -41,13 +39,12 @@ public abstract class PolyglotBranchNode extends BranchNode {
     }
   }
 
-  @Specialization(guards = "isPolyglotObject(context,obj)")
+  @Specialization(guards = "isPolyglotObject(obj)")
   void doLiteral(
       VirtualFrame frame,
       Object state,
-      Object obj,
-      @CachedContext(Language.class) Context context) {
-    if (polyglotProfile.profile(isPolyglotObject(context, obj))) {
+      Object obj) {
+    if (polyglotProfile.profile(isPolyglotObject(obj))) {
       accept(frame, state, new Object[0]);
     }
   }
@@ -55,7 +52,7 @@ public abstract class PolyglotBranchNode extends BranchNode {
   @Fallback
   void doFallback(VirtualFrame frame, Object state, Object target) {}
 
-  boolean isPolyglotObject(Context context, Object o) {
-    return context.getEnvironment().isHostObject(o);
+  boolean isPolyglotObject(Object o) {
+    return Context.get(this).getEnvironment().isHostObject(o);
   }
 }

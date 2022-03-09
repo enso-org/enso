@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.io;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -10,7 +9,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
@@ -39,8 +37,8 @@ public abstract class PrintlnNode extends Node {
       Object state,
       Object self,
       Object message,
-      @CachedContext(Language.class) Context ctx,
       @CachedLibrary(limit = "10") InteropLibrary strings) {
+    Context ctx = Context.get(this);
     try {
       print(ctx.getOut(), strings.asString(message));
     } catch (UnsupportedMessageException e) {
@@ -55,12 +53,12 @@ public abstract class PrintlnNode extends Node {
       Object state,
       Object self,
       Object message,
-      @CachedContext(Language.class) Context ctx,
       @CachedLibrary(limit = "10") InteropLibrary strings,
-      @Cached("buildSymbol(ctx)") UnresolvedSymbol symbol,
+      @Cached("buildSymbol()") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached ExpectStringNode expectStringNode) {
     Stateful str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
+    Context ctx = Context.get(this);
     print(ctx.getOut(), expectStringNode.execute(str.getValue()));
     return new Stateful(str.getState(), ctx.getNothing().newInstance());
   }
@@ -74,8 +72,8 @@ public abstract class PrintlnNode extends Node {
     out.println(str);
   }
 
-  UnresolvedSymbol buildSymbol(Context ctx) {
-    return UnresolvedSymbol.build("to_text", ctx.getBuiltins().getScope());
+  UnresolvedSymbol buildSymbol() {
+    return UnresolvedSymbol.build("to_text", Context.get(this).getBuiltins().getScope());
   }
 
   InvokeCallableNode buildInvokeCallableNode() {
