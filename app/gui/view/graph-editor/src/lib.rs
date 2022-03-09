@@ -489,6 +489,8 @@ ensogl::define_endpoints! {
         /// mode. The node position may vary, depending on what is the best for the UX - for details
         /// see [`GraphEditorModel::create_node`] implementation.
         start_node_creation(),
+        /// FIXME documentation
+        start_connected_node_creation(),
 
 
 
@@ -2440,6 +2442,8 @@ impl application::View for GraphEditor {
             (DoublePress, "", "left-mouse-button", "mcdbg2"),
             (Press, "", "left-mouse-button", "mcdbg1"),
             (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
+            (DoublePress, "", "left-mouse-button", "start_connected_node_creation"),
+            (Press, "", "right-mouse-button", "start_connected_node_creation"),
             (Press, "!node_editing", "enter", "enter_selected_node"),
             (Press, "", "alt enter", "exit_node"), // === Node Editing ===
             (Press, "", "cmd", "edit_mode_on"),
