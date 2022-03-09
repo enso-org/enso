@@ -1,12 +1,20 @@
 package org.enso.docs.generator
 
-import java.io.File
 import org.enso.syntax.text.{DocParser, Parser}
 import org.enso.syntax.text.docparser._
+
+import java.io.File
 
 /** Defines useful wrappers for Doc Parser.
   */
 object DocParserWrapper {
+
+  final val docSections = new DocSectionsGenerator
+
+  def generateSections(comment: String): DocSections = {
+    val doc = DocParser.runMatched(comment)
+    docSections.generate(doc)
+  }
 
   /** Generates HTML of docs from Enso program.
     */
