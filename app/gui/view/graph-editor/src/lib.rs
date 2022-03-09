@@ -1427,7 +1427,7 @@ impl GraphEditorModelWithNetwork {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
             DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
-            StartConnectedCreationEvent => hover_out_port.map(|e| e.node_id),
+            StartConnectedCreationEvent => hover_out_port.clone().map(|e| e.node_id),
         };
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
@@ -1440,6 +1440,18 @@ impl GraphEditorModelWithNetwork {
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { .. } => mouse_position,
+            StartConnectedCreationEvent => {
+                match hover_out_port {
+                    // TODO[LATER]: properly ignore None cases
+                    None => mouse_position,
+                    Some(edge_end) => {
+                        // TODO: find node position for new node
+                        self.find_free_place_under(source_node.unwrap())
+                        // TODO: create new edge from the port
+                        // TODO: connect the nodes
+                    },
+                }
+            },
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
