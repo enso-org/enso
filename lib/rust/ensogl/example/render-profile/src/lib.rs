@@ -1,4 +1,4 @@
-//! Demo scene showing a sample flame graph.
+//! Renders profiling data, obtained from a file, as a flame graph.
 
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -60,6 +60,8 @@ pub async fn entry_point_render_profile() {
         .forget();
 }
 
+/// Read profile data from a file. The file must be located at `/profile.json` in the root of the
+/// directory that will be made available by the webserver, i.e. `enso/dist/content`.
 async fn get_data() -> String {
     use wasm_bindgen::JsCast;
 
