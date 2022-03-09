@@ -79,7 +79,7 @@ public abstract class InteropMethodCallNode extends Node {
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    if (arguments.length == 0) throw ArityException.create(1, 1, 0);
+    if (arguments.length == 0) throw ArityException.create(1, -1, 0);
     return sorterNode.execute(null, state, method, args[0], args).getValue();
   }
 
@@ -95,7 +95,7 @@ public abstract class InteropMethodCallNode extends Node {
     for (int i = 0; i < arguments.length; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    if (arguments.length == 0) throw ArityException.create(1, 1, 0);
+    if (arguments.length == 0) throw ArityException.create(1, -1, 0);
     return indirectInvokeMethodNode
         .execute(
             null,
