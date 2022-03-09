@@ -1031,7 +1031,6 @@ dependencies = [
  "enso-prelude",
  "enso-web",
  "ensogl",
- "ordered-float 2.10.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -1236,18 +1235,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-button"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
-]
-
-[[package]]
 name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
- "ensogl-button",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
