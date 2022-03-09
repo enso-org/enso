@@ -440,6 +440,24 @@ type Map
         to_vector_with_builder this
         builder.to_vector
 
+    ## Get a key value pair of the lowest key in the map.
+       If the map is empty, returns Nothing.
+    first : Pair
+    first =
+        first p m = case m of
+            Bin _ k v l _ -> @Tail_Call first (Pair k v) l
+            Tip -> p
+        first Nothing this
+
+    ## Get a key value pair of the highest key in the map.
+       If the map is empty, returns Nothing.
+    last : Pair
+    last =
+        last p m = case m of
+            Bin _ k v _ r -> @Tail_Call last (Pair k v) r
+            Tip -> p
+        last Nothing this
+
 ## UNSTABLE
 
    An error for getting a missing value from a map.

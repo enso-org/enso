@@ -21,8 +21,10 @@ main =
 
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
-    random_generator = Faker.make_generator fixed_random_seed
+    faker = Faker.new fixed_random_seed
 
-    unsorted = 0.up_to here.vector_size . map _->(Faker.make_string template random_generator)
+    IO.println <| "Creating unsorted vector"
+    unsorted = 0.up_to here.vector_size . map _->(faker.string_value template)
 
+    IO.println <| "Benchmarking..."
     Bench.measure (unsorted.sort by=Natural_Order.compare) "Natural Order" here.iter_size here.num_iterations

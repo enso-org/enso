@@ -8,6 +8,7 @@ import Standard.Base.Data.Time.Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
+import Standard.Table.Internal.Unique_Name_Strategy
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
@@ -516,16 +517,17 @@ type Table
     group_by selector columns (on_problems=Report_Warning) (warnings=Warnings.default) =
         # Grouping Key
         key_columns = if selector.is_nothing then [] else
-            Table_Helpers.select_columns internal_columns=this.columns selector=selector reorder=True on_problems=on_problems warnings=warnings
+            Table_Helpers.select_columns_helper internal_columns=this.columns selector=selector reorder=True on_problems=on_problems warnings=warnings
         key_length = key_columns.length
         make_key = if (key_length == 0) then _->(Group_By.key [1]) else i->(Group_By.key (key_columns.map v->(v.at i)))
 
         # New Table Accumulator
-        new_table = (key_columns.map c->c.name)+(columns.map c->(c.column_name this)) . map n->[n, Vector.new_builder]
+        name_strategy = Unique_Name_Strategy.new
+        new_table = (key_columns.map c->c.name)+(columns.map c->(c.column_name this)) . map n->[name_strategy.make_unique n, Vector.new_builder]
         add_row key =
             idx = new_table.at 0 . at 1 . length
             0.up_to key_length . each i->
-                new_table.at i . at 1 . append (key.values.at i)
+                new_table.at i . at 1 . append (key.values.at i).value
             0.up_to (columns.length) . each i->
                 column = columns.at i
                 new_table.at (i + key_length) . at 1 . append (column.initial_value)
