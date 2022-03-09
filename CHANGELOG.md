@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [Node Searcher preserves its zoom factor.][3327]
 - [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
 - [Debug Mode for Graph Editor can be activated/deactivated using a
   shortcut.][3264] It allows access to a set of restricted features. See
@@ -99,7 +100,8 @@
 [3236]: https://github.com/enso-org/enso/pull/3236
 [3311]: https://github.com/enso-org/enso/pull/3311
 [3317]: https://github.com/enso-org/enso/pull/3317
-[3317]: https://github.com/enso-org/enso/pull/3318
+[3318]: https://github.com/enso-org/enso/pull/3318
+[3327]: https://github.com/enso-org/enso/pull/3327
 
 #### Enso Compiler
 
