@@ -1,4 +1,4 @@
-//! FIXME[everyone] Modules should be documented
+//! FIXME[everyone] Modules should be documented.
 
 
 
@@ -30,7 +30,7 @@ pub mod enso {
             "Any".into()
         }
 
-        #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+        #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
         pub fn alternatives(&self) -> impl Iterator<Item = Type> + '_ {
             self.content.split('|').map(str::trim).map(Type::new)
         }
