@@ -421,6 +421,10 @@ ensogl::define_endpoints! {
 
         // === Node Selection ===
 
+        /// FIXME
+        mcdbg1(),
+        /// FIXME
+        mcdbg2(),
         /// Node press event
         node_press(),
         /// Node press event
@@ -2433,6 +2437,8 @@ impl application::View for GraphEditor {
                 "ctrl space",
                 "cycle_visualization_for_selected_node",
             ),
+            (DoublePress, "", "left-mouse-button", "mcdbg2"),
+            (Press, "", "left-mouse-button", "mcdbg1"),
             (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
             (Press, "!node_editing", "enter", "enter_selected_node"),
             (Press, "", "alt enter", "exit_node"), // === Node Editing ===
@@ -2506,6 +2512,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ========================
 
     frp::extend! { network
+        eval inputs.mcdbg1 ([](_){ DEBUG!("MCDBG one"); });
+        eval inputs.mcdbg2 ([](_){ DEBUG!("MCDBG two"); });
         no_vis_selected   <- out.some_visualisation_selected.on_false();
         some_vis_selected <- out.some_visualisation_selected.on_true();
 
@@ -2553,6 +2561,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
 
         target_to_enter <- inputs.enter_hovered_node.map(f_!(scene.mouse.target.get()));
+        eval inputs.enter_hovered_node ([](_){ DEBUG!("MCDBG enter_hovered_node"); });
 
         // Go level up on background click.
         enter_on_background    <= target_to_enter.map(|target| target.is_background().as_some(()));
@@ -2729,6 +2738,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     port_input_mouse_up  <- inputs.hover_node_input.sample(&mouse.up_primary).unwrap();
     port_output_mouse_up <- inputs.hover_node_output.sample(&mouse.up_primary).unwrap();
+    trace inputs.hover_node_output;
 
     attach_all_edge_inputs  <- any (port_input_mouse_up, inputs.press_node_input, inputs.set_detached_edge_targets);
     attach_all_edge_outputs <- any (port_output_mouse_up, inputs.press_node_output, inputs.set_detached_edge_sources);
