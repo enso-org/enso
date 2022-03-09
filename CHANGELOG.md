@@ -64,6 +64,8 @@
   `Vector.fold_with_index` and `Vector.take` methods.][3236]
 - [Implemented new `Text.insert` method][3311]
 - [Implemented `Bool.compare_to` method][3317]
+- [Implemented `Map.first`, `Map.last` functions. Expanded `Table.group_by` to
+  also compute mode, percentile, minimum, maximum.][3318]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -101,6 +103,7 @@
 [3236]: https://github.com/enso-org/enso/pull/3236
 [3311]: https://github.com/enso-org/enso/pull/3311
 [3317]: https://github.com/enso-org/enso/pull/3317
+[3317]: https://github.com/enso-org/enso/pull/3318
 
 #### Enso Compiler
 

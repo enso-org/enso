@@ -5,24 +5,6 @@ import Standard.Test.Faker
 
 ## Bench Utilities ============================================================
 
-make_double_strings : Integer -> Any -> Integer -> Integer -> Vector
-make_double_strings count generator (min = -1000000000) (max = 1000000000) =
-    range = max - min
-    output = Array.new count
-    0.up_to count . each i->
-        v = generator.nextDouble * range - min
-        output.set_at i v.to_text
-    Vector.Vector output
-
-make_integer_strings : Integer -> Any -> Integer -> Integer -> Vector
-make_integer_strings count generator (min = -1000000000) (max = 1000000000) =
-    range = max - min
-    output = Array.new count
-    0.up_to count . each i->
-        v = (generator.nextInt range - min)
-        output.set_at i v.to_text
-    Vector.Vector output
-
 vector_size = 1000000
 iter_size = 100
 num_iterations = 10
@@ -32,10 +14,14 @@ num_iterations = 10
 main =
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
-    random_generator = Faker.make_generator fixed_random_seed
+    faker = Faker.new fixed_random_seed
 
-    double_string = here.make_double_strings here.vector_size random_generator
-    Bench.measure (double_string.map Decimal.parse) "Decimal.parse" here.iter_size here.num_iterations
+    IO.println <| "Creating decimal strings"
+    decimal_strings = Vector.new here.vector_size _->(faker.decimal -1000000000 1000000000).to_text
+    IO.println <| "Benchmarking Decimal.parse"
+    Bench.measure (decimal_strings.map Decimal.parse) "Decimal.parse" here.iter_size here.num_iterations
 
-    int_strings = here.make_integer_strings here.vector_size random_generator
+    IO.println <| "Creating integer strings"
+    int_strings = Vector.new here.vector_size _->(faker.integer -1000000000 1000000000).to_text
+    IO.println <| "Benchmarking Integer.parse"
     Bench.measure (int_strings.map Integer.parse) "Integer.parse" here.iter_size here.num_iterations
