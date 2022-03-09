@@ -955,8 +955,8 @@ fn bounding_box(
         Vector2,
     ),
 ) -> BoundingBox {
-    let node_background_offset = node_position + background_offset(node_size.x);
-    let node_bbox_pos = node_background_offset - node_size / 2.0;
+    let node_background_pos = node_position + background_offset(node_size.x);
+    let node_bbox_pos = node_background_pos - node_size / 2.0;
     let mut node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, *node_size);
     if *visualization_enabled_and_visible {
         let visualization_offset = visualization_offset(node_size.x);
