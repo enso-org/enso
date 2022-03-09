@@ -732,12 +732,12 @@ impl HardcodedLayers {
         let panel_text = Layer::new(logger.sub("panel_text"));
         let node_searcher = Layer::new(logger.sub("node_searcher"));
         let node_searcher_cam = node_searcher.camera();
-        let node_searcher_text =
-            Layer::new_with_cam(logger.sub("node_searcher_text"), &node_searcher_cam);
+        let searcher_text_logger = logger.sub("node_searcher_text");
+        let node_searcher_text = Layer::new_with_cam(searcher_text_logger, &node_searcher_cam);
         let edited_node = Layer::new(logger.sub("edited_node"));
         let edited_node_cam = edited_node.camera();
-        let edited_node_text =
-            Layer::new_with_cam(logger.sub("edited_node_text"), &edited_node_cam);
+        let edited_node_text_logger = logger.sub("edited_node_text");
+        let edited_node_text = Layer::new_with_cam(edited_node_text_logger, &edited_node_cam);
         let node_searcher_mask = Layer::new(logger.sub("node_searcher_mask"));
         let tooltip = Layer::new_with_cam(logger.sub("tooltip"), main_cam);
         let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
