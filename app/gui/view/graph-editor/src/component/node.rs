@@ -565,21 +565,21 @@ impl NodeModel {
         self.drag_area.size.set(padded_size);
         self.error_indicator.size.set(padded_size);
         self.vcs_indicator.set_size(padded_size);
-        let view_pos = view_position_of_node_with_size(size);
-        self.backdrop.set_position_xy(view_pos);
-        self.background.set_position_xy(view_pos);
-        self.drag_area.set_position_xy(view_pos);
-        self.error_indicator.set_position_xy(view_pos);
-        self.vcs_indicator.set_position_xy(view_pos);
+        let background_offset = background_offset(width);
+        self.backdrop.set_position_xy(background_offset);
+        self.background.set_position_xy(background_offset);
+        self.drag_area.set_position_xy(background_offset);
+        self.error_indicator.set_position_xy(background_offset);
+        self.vcs_indicator.set_position_xy(background_offset);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
-            t.x = view_pos.x + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0;
-            t.y = view_pos.y;
+            t.x = background_offset.x + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0;
+            t.y = background_offset.y;
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_pos = visualization_position_of_node_with_size(size);
+        let visualization_pos = visualization_offset(width);
         self.error_visualization.set_position_xy(visualization_pos);
         self.visualization.set_position_xy(visualization_pos);
 
@@ -931,12 +931,20 @@ impl display::Object for Node {
 
 // === Positioning ===
 
-fn view_position_of_node_with_size(size: Vector2) -> Vector2 {
-    Vector2(size.x / 2.0, 0.0)
+/// Calculate a position where to render the [`background::View`] of a node, relative to the node's
+/// origin.
+///
+/// See the [`Node`] documentation for more details.
+fn background_offset(node_width: f32) -> Vector2 {
+    Vector2(node_width / 2.0, 0.0)
 }
 
-fn visualization_position_of_node_with_size(size: Vector2) -> Vector2 {
-    view_position_of_node_with_size(size) + Vector2(0.0, VISUALIZATION_OFFSET_Y)
+/// Calculate a position where to render the [`visualization::Container`] of a node, relative to
+/// the node's origin.
+///
+/// See the [`Node`] documentation for more details.
+fn visualization_offset(node_width: f32) -> Vector2 {
+    background_offset(node_width) + Vector2(0.0, VISUALIZATION_OFFSET_Y)
 }
 
 fn bounding_box(
@@ -947,12 +955,12 @@ fn bounding_box(
         Vector2,
     ),
 ) -> BoundingBox {
-    let node_view_pos = node_position + view_position_of_node_with_size(*node_size);
-    let node_bbox_pos = node_view_pos - node_size / 2.0;
+    let node_background_offset = node_position + background_offset(node_size.x);
+    let node_bbox_pos = node_background_offset - node_size / 2.0;
     let mut node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, *node_size);
     if *visualization_enabled_and_visible {
-        let visualization_pos_of_node = visualization_position_of_node_with_size(*node_size);
-        let visualization_pos = node_position + visualization_pos_of_node;
+        let visualization_offset = visualization_offset(node_size.x);
+        let visualization_pos = node_position + visualization_offset;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
             BoundingBox::from_position_and_size(visualization_bbox_pos, *visualization_size);
