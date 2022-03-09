@@ -1,6 +1,5 @@
 //! This module defines remote image texture storage. It is used to download image from a given URL.
 
-use crate::prelude::*;
 use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;

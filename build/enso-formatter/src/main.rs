@@ -162,6 +162,11 @@ impl HeaderElement {
         Self { attrs, token, reg_match }
     }
 
+    /// Check whether the element is empty.
+    pub fn is_empty(&self) -> bool {
+        self.reg_match.is_empty()
+    }
+
     /// Length of the splice. Includes the length of the matched string and all attached attributes.
     pub fn len(&self) -> usize {
         let args_len: usize = self.attrs.iter().map(|t| t.len()).sum();
@@ -169,6 +174,7 @@ impl HeaderElement {
     }
 
     /// Convert the element to a string representation.
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         format!("{}{}", self.attrs.join(""), self.reg_match)
     }
@@ -251,11 +257,11 @@ fn print_h1(
     str: &str,
 ) {
     if tokens.iter().map(|tok| map.contains_key(tok)).any(|t| t) {
-        out.push_str("\n");
+        out.push('\n');
         out.push_str(&format!("// ===={}====\n", "=".repeat(str.len())));
         out.push_str(&format!("// === {} ===\n", str));
         out.push_str(&format!("// ===={}====\n", "=".repeat(str.len())));
-        out.push_str("\n");
+        out.push('\n');
     }
 }
 
@@ -282,7 +288,7 @@ fn print(out: &mut String, map: &mut HashMap<HeaderToken, Vec<String>>, t: &[Hea
 /// an empty line will be added in the end.
 fn print_section(out: &mut String, map: &mut HashMap<HeaderToken, Vec<String>>, t: &[HeaderToken]) {
     if print(out, map, t) {
-        out.push_str("\n");
+        out.push('\n');
     }
 }
 
@@ -339,7 +345,7 @@ fn process_path(path: impl AsRef<Path>, action: Action) {
     let total = paths.len();
     let mut hash_map = HashMap::<PathBuf, u64>::new();
     for (i, sub_path) in paths.iter().enumerate() {
-        let file_name = sub_path.file_name().map(|s| s.to_str()).flatten();
+        let file_name = sub_path.file_name().and_then(|s| s.to_str());
         let is_main_file = file_name == Some("lib.rs") || file_name == Some("main.rs");
         let dbg_msg = if is_main_file { " [main]" } else { "" };
         println!("[{}/{}] Processing {:?}{}.", i + 1, total, sub_path, dbg_msg);
@@ -446,7 +452,9 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     let contains_comments =
         header.iter().any(|t| t.token == Comment && !t.reg_match.starts_with("// ==="));
     if contains_comments {
-        Err("File contains comments in the import section. This is not allowed.".to_string())?;
+        return Err(
+            "File contains comments in the import section. This is not allowed.".to_string()
+        );
     }
 
     // Error if the star import is used for non prelude- or traits-like imports.

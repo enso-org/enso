@@ -17,7 +17,6 @@
 
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use ensogl_core::traits::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::animation;
