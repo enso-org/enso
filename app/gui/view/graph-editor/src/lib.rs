@@ -2818,6 +2818,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         eval freeze_edges (((edge_id,is_frozen)) model.set_edge_freeze(edge_id,*is_frozen) );
     }
 
+
     // === Edge Connect ===
 
     frp::extend! { network
@@ -2858,6 +2859,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     edge_to_remove_without_sources <= remove_all_detached_edges.map(f_!(model.take_edges_with_detached_sources()));
     edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
     eval edge_to_remove ((id) model.remove_edge(id));
+
     }
 
     //
