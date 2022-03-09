@@ -2850,7 +2850,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
         input_start_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartCreationEvent);
-        input_start_conn_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartConnectedCreationEvent);
+        input_start_conn_creation_way <- inputs.start_connected_node_creation.constant(WayOfCreatingNode::StartConnectedCreationEvent);
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
         add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &input_start_conn_creation_way, &add_with_button_way, &add_with_edge_drop_way);
