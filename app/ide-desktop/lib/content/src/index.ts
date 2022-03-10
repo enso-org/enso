@@ -13,7 +13,7 @@ import {defaultLogServerHost} from '../../../config'
 // @ts-ignore
 import assert from 'assert'
 // @ts-ignore
-import buildCfg from '../../../../../dist/build.json'
+import buildCfg from '../../../build.json'
 
 // @ts-ignore
 import firebase from 'firebase/app'

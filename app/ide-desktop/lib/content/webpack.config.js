@@ -77,7 +77,6 @@ module.exports = {
         hints: false,
     },
     mode: 'none',
-    stats: 'minimal',
     module: {
         rules: [
             {

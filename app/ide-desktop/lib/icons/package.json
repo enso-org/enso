@@ -1,4 +1,5 @@
 {
+    "name": "enso-studio-icons",
     "version": "1.0.0",
     "author": {
         "name": "Enso Team",
@@ -12,7 +13,6 @@
     "bugs": {
         "url": "https://github.com/enso-org/ide/issues"
     },
-    "name": "enso-studio-icons",
     "scripts": {
         "build": "node src/index.js"
     },
