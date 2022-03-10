@@ -525,7 +525,7 @@ pub trait API {
 }
 
 
-/// Generate a set of structures allowing for nice management of FRP inputs, outputs, and commands.
+/// Generate a set of structures allowing for management of FRP inputs, outputs, and commands.
 /// Supersedes `define_endpoints`, which should no longer be used.
 ///
 /// Given the definition:
@@ -553,15 +553,264 @@ pub trait API {
 /// struct declarations, _except_ that all bounds must be in parenthesis; for example:
 /// `<Foo:(Clone+Debug), Bar:(Debug+'static)>`.
 ///
-/// The macro will create two sets of API: a public API and an private API. The public API is
+/// The macro will create two sets of API: a public API and a private API. The public API is
 /// intended to be used to send events into the API and receive events from the API, while the
 /// private API is intended to process the events sent in through the public API and generate
 /// the events going out though the public API.
 ///
-/// Please note that additional fields are added automatically to the API. In particular, an
+/// The output of the macro will look similar to the following code.
+/// Note that this example only shows the structs generated, not methods and traits, and it
+/// simplifies some of the struct contents. This makes it easier to get a basic understanding of
+/// the transformation that happens.
+///
+/// ```compile_fail
+/// 
+///
+/// #[derive(Debug, Derivative)]
+/// #[derive(CloneRef, Clone)]
+/// pub struct Frp {
+///     public: api::Public,
+///     private: Rc<api::Private>,
+/// }
+///
+/// pub mod api {
+///     use super::*;
+///
+///     #[derive(Debug, CloneRef, Clone)]
+///     pub struct Public {
+///         pub input: public::Input,
+///         pub output: public::Output,
+///         pub(crate) combined: public::Combined,
+///     }
+///     
+///     pub mod public {
+///         use super::*;
+///
+///
+///         #[derive(Debug, CloneRef, Clone)]
+///         pub struct Input {
+///             data: Rc<InputData>,
+///         }
+///
+///         #[derive(Debug, CloneRef, Derivative)]
+///         pub struct InputData {
+///             pub input1: frp::Any<f32>,
+///             pub input2: frp::Any<()>,
+///         }
+///         
+///         #[derive(Debug, CloneRef, Clone)]
+///         pub struct Output {
+///             data: Rc<OutputData>,
+///         }
+///         
+///
+///         #[derive(Debug)]
+///         pub struct OutputData {
+///             pub output1: frp::Sampler<(f32,f32)>,
+///             pub output2: frp::Sampler<bool>,
+///             pub output3: frp::Sampler<()>,
+///         }
+///
+///         #[derive(Debug, CloneRef, Clone)]
+///         pub struct Combined {
+///             data: Rc<CombinedData>,
+///         }
+///
+///         #[derive(Debug)]
+///         pub struct CombinedData {
+///             pub input1: frp::Any<f32>,
+///             pub input2: frp::Any<()>,
+///             
+///             pub output1: frp::Sampler<(f32,f32)>,
+///             pub output2: frp::Sampler<bool>,
+///             pub output3: frp::Sampler<()>,
+///         }
+///     }
+///
+///
+///     #[derive(Debug)]
+///     pub struct Private {
+///         pub network: frp::Network,
+///         pub input: private::Input,
+///         pub output: private::Output,
+///     }
+///
+///     pub mod private {
+///         use super::*;
+///         
+///         #[derive(Debug)]
+///         pub struct Input {
+///             data: Rc<InputData>,
+///         }
+///
+///         #[derive(Debug)]
+///         pub struct InputData {
+///             pub input1: frp::Stream<f32>,
+///             pub input2: frp::Stream<()>,
+///         }
+///
+///         #[derive(Debug)]
+///         pub struct Output {
+///             data: Rc<OutputData>,
+///         }
+///         
+///         #[derive(Debug)]
+///         pub struct OutputData {
+///             pub output1: frp::Any<(f32, f32)>,
+///             pub output2: frp::Any<bool>,
+///             pub output3: frp::Any<()>,
+///         }
+///     }
+/// }
+/// ```
+///
+///  Public API
+///  -----------
+///
+/// The public API contains a `Input` struct that allows access to an `Any` node for each
+/// item in the `Input` definition of the macro input. These allow sending events into the API.
+/// It also contains an `Output` struct that allows access to a `Sampler` for each item defined
+/// in the `Output` section of the macro input. These provide the output from the API.
+///
+/// For convenience there is also a `Combined` struct that holds both the input and output nodes.
+/// This struct is exposed on the `Input` struct through a `Deref` implementation.
+///
+/// ```compile_fail
+///     #[derive(Debug, CloneRef, Clone)]
+///     pub struct Public {
+///         pub input: public::Input,
+///         pub output: public::Output,
+///         pub(crate) combined: public::Combined,
+///     }
+///
+///     pub mod public {
+///         use super::*;
+///
+///         #[derive(Debug, CloneRef, Clone)]
+///         pub struct Input {
+///             data: Rc<InputData>,
+///         }
+///
+///         #[derive(Debug, CloneRef, Derivative)]
+///         pub struct InputData {
+///             pub input1: frp::Any<f32>,
+///             pub input2: frp::Any<()>,
+///         }
+///         
+///         #[derive(Debug, CloneRef, Clone)]
+///         pub struct Output {
+///             data: Rc<OutputData>,
+///         }
+///         
+///
+///         #[derive(Debug)]
+///         pub struct OutputData {
+///             pub output1: frp::Sampler<(f32,f32)>,
+///             pub output2: frp::Sampler<bool>,
+///             pub output3: frp::Sampler<()>,
+///         }
+///
+///         #[derive(Debug, CloneRef, Clone)]
+///         pub struct Combined {
+///             data: Rc<CombinedData>,
+///         }
+///
+///         #[derive(Debug)]
+///         pub struct CombinedData {
+///             pub input1: frp::Any<f32>,
+///             pub input2: frp::Any<()>,
+///             
+///             pub output1: frp::Sampler<(f32,f32)>,
+///             pub output2: frp::Sampler<bool>,
+///             pub output3: frp::Sampler<()>,
+///         }
+///     }
+/// ```
+///
+///  Private API
+/// ------------
+///
+/// The private API provides facilities to consume the events from the inputs of public API and
+/// create events for its outputs. This the relationships are inverted: the `Input` struct of the
+/// private API allows access to a `Stream` for each item defined in the `Input` section of the
+/// macro input and the `Output` struct allows access to a `Any` node for each item defined in the
+/// `Output` section of the macro call. The private input streams receive the events generated from
+/// the public input and the private output nodes propagate events to the public outputs.     
+///
+///```compile_fail
+/// 
+///     #[derive(Debug)]
+///     pub struct Private {
+///         pub network: frp::Network,
+///         pub input: private::Input,
+///         pub output: private::Output,
+///     }
+///
+///     pub mod private {
+///         use super::*;
+///         
+///         #[derive(Debug)]
+///         pub struct Input {
+///             data: Rc<InputData>,
+///         }
+///
+///         #[derive(Debug)]
+///         pub struct InputData {
+///             pub input1: frp::Stream<f32>,
+///             pub input2: frp::Stream<()>,
+///         }
+///
+///         #[derive(Debug)]
+///         pub struct Output {
+///             data: Rc<OutputData>,
+///         }
+///         
+///         #[derive(Debug)]
+///         pub struct OutputData {
+///             pub output1: frp::Any<(f32, f32)>,
+///             pub output2: frp::Any<bool>,
+///             pub output3: frp::Any<()>,
+///         }
+///     }
+/// ```
+///
+/// Convenience methods
+/// -------------------
+///
+/// To make working with the API easier, the `public::Input` and `public::Combined` structs also
+/// generate convenience methods for the inputs that simplify emitting events.
+/// For each `Any` nod there is an equivalent method that can be called and accepts the node
+/// input as an argument and can be called directly. So in the above example, instead of writing
+/// `api.input.input1.emit(64)` it is possible to write `api.input.input1(64)`.
+///
+/// The code generated for the example looks similar to this
+/// ```compile_fail
+/// impl InputData {
+///     pub fn input1(&self, t1: impl IntoParam<f32>) {
+///         self.input1.emit(t1);
+///     }
+///     pub fn input2(&self) {
+///         self.input2.emit(());
+///     }
+/// }
+/// ```
+///
+///
+/// Additional Implementations
+/// ---------------------------
+///
+/// In addition to the structures described above there also also some important traits implemented
+/// for the API.
+/// * The `Frp` implements: `application::command::FrpNetworkProvider `, `application::frp::API`.
+/// * The `api::Public` implements: `application::command::CommandApi`.
+///
+/// Also note that additional fields are added automatically to the API. In particular, an
 /// output `focused(bool)`, and inputs `focus()`, `defocus()`, and `set_focus(bool)` are always
 /// defined and connected. They are mainly used for the shortcut manager to send commands only
 /// to focused GUI elements.
+///
+/// Also all inputs to the API are instrumented with profiling that is available when running the
+/// application with profiling at the `debug` level.
 #[macro_export]
 macro_rules! define_endpoints_2 {
     (
@@ -621,12 +870,13 @@ macro_rules! define_endpoints_2 {
     ) => {
         use $crate::frp::IntoParam;
 
-        /// Frp network and endpoints.
+        /// Frp API consisting of a public and private API. See the documentation of
+        /// [define_endpoints_2] for full documentation.
         #[derive(Debug,Derivative)]
         #[derive(CloneRef, Clone)]
         #[allow(missing_docs)]
         pub struct Frp $(<$($param $(:$($constraints)*)?),*>)? {
-            public: api::Public $(<$($param),*>)?,// deref
+            public: api::Public $(<$($param),*>)?,
             private: Rc<api::Private $(<$($param),*>)?>,
         }
 
@@ -637,10 +887,13 @@ macro_rules! define_endpoints_2 {
                 let public_input = api::public::Input::new(&network);
                 let private_input = api::private::Input::new(&network, &public_input);
                 let private_output = api::private::Output::new(&network);
-                let public_output = api::public::Output::new(&network, &private_output, &public_input);
-                let combined = api::public::Combined::new(&public_input,&public_output);
-                let public  = api::Public{ input: public_input, output: public_output, combined };
-                let private  = Rc::new(api::Private{ network, input: private_input, output: private_output});
+                let public_output = api::public::Output::new(
+                    &network, &private_output, &public_input);
+                let combined = api::public::Combined::new(
+                    &public_input,&public_output);
+                let public = api::Public{ input: public_input, output: public_output, combined };
+                let private = Rc::new(
+                    api::Private{ network, input: private_input, output: private_output});
                 Self {public,private}
             }
         }
@@ -651,7 +904,8 @@ macro_rules! define_endpoints_2 {
             }
         }
 
-        impl $(<$($param $(:$($constraints)*)?),*>)?  $crate::application::command::FrpNetworkProvider for Frp $(<$($param),*>)?  {
+        impl $(<$($param $(:$($constraints)*)?),*>)?
+        $crate::application::command::FrpNetworkProvider for Frp $(<$($param),*>)?  {
             fn network(&self) -> &$crate::frp::Network { &self.private.network }
         }
 
@@ -675,6 +929,8 @@ macro_rules! define_endpoints_2 {
             }
         }
 
+        /// Module containing the implementations of the structs that make up the public
+        /// (`api::Public`) and private (`api::Private`) part of the FRP API.
         #[allow(missing_docs)]
         #[allow(clippy::manual_non_exhaustive)]
         pub mod api {
@@ -686,6 +942,11 @@ macro_rules! define_endpoints_2 {
             // === Public ===
             // ==============
 
+            /// Public FRP Api. Contains FRP nodes for sending FRP events into the API collected
+            ///in the `public::Input` and nodes for receiving events from the API in the
+            /// `public::Output` struct. For convenience there is also a `public::Combined` struct
+            /// that contains both input and output nodes and which is accessible via a `Deref`
+            /// implementation on `Public`.
             #[derive(Debug, CloneRef, Clone)]
             pub struct Public $(<$($param $(:$($constraints)*)?),*>)? {
                 pub input: public::Input $(<$($param),*>)?,
@@ -700,8 +961,8 @@ macro_rules! define_endpoints_2 {
                 }
             }
 
-
-            impl $(<$($param $(:$($constraints)*)?),*>)?  $crate::application::command::CommandApi for Public $(<$($param),*>)?  {
+            impl $(<$($param $(:$($constraints)*)?),*>)?
+            $crate::application::command::CommandApi for Public $(<$($param),*>)?  {
                 fn command_api(&self)
                     -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
                     self.output.command_map.clone()
@@ -740,7 +1001,8 @@ macro_rules! define_endpoints_2 {
                 #[derive(Debug, CloneRef, Derivative)]
                 #[derivative(Clone(bound = ""))]
                 pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
-                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+                    $( $(#[doc=$($in_doc)*])*
+                    pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
                     _phantom_type_args : ($($(PhantomData<$param>),*)?),
                 }
 
@@ -748,9 +1010,7 @@ macro_rules! define_endpoints_2 {
                 impl $(<$($param $(:$($constraints)*)?),*>)?  InputData $(<$($param),*>)? {
                     pub fn new(network: &$crate::frp::Network) -> Self {
                         $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
-                            $(
-                            $in_field <- any_mut();
-                            )*
+                            $($in_field <- any_mut();)*
                         }
                         let _phantom_type_args = default();
                         Self { $($in_field),*, _phantom_type_args }
@@ -769,7 +1029,10 @@ macro_rules! define_endpoints_2 {
                 }
 
                  impl $(<$($param $(:$($constraints)*)?),*>)?  Output $(<$($param),*>)? {
-                    pub fn new(network: &$crate::frp::Network, private_output: &api::private::Output$(<$($param),*>)?, public_input: &Input$(<$($param),*>)?) -> Self {
+                    pub fn new(
+                        network: &$crate::frp::Network,
+                        private_output: &api::private::Output$(<$($param),*>)?,
+                        public_input: &Input$(<$($param),*>)?) -> Self {
                         let data = Rc::new(OutputData::new(network, private_output, public_input));
                         Self { data }
                     }
@@ -789,20 +1052,23 @@ macro_rules! define_endpoints_2 {
                         pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
                     )*
 
-                    pub status_map    : Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
-                    pub command_map   : Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
-                    _phantom_type_args : ($($(PhantomData<$param>),*)?),
+                    pub status_map: Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
+                    pub command_map: Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
+                    _phantom_type_args: ($($(PhantomData<$param>),*)?),
                 }
 
                 impl $(<$($param $(:$($constraints)*)?),*>)?  OutputData $(<$($param),*>)?  {
-                    fn new(network: &$crate::frp::Network, private_output: &api::private::Output$(<$($param),*>)?, public_input: &Input$(<$($param),*>)?) -> Self {
+                    fn new(
+                        network: &$crate::frp::Network,
+                        private_output: &api::private::Output$(<$($param),*>)?,
+                        public_input: &Input$(<$($param),*>)?) -> Self {
                         use $crate::application::command::*;
 
                         $crate::frp::extend! { $($($global_opts)*)? $($($output_opts)*)? network
                             $($out_field <- private_output.$out_field.sampler();)*
                         }
 
-                        let mut status_map  : HashMap<String,$crate::frp::Sampler<bool>> = default();
+                        let mut status_map : HashMap<String,$crate::frp::Sampler<bool>> = default();
                         let mut command_map : HashMap<String,Command> = default();
                         $($crate::build_status_map!
                             {status_map $out_field ($($out_field_type)*) $out_field })*
@@ -826,7 +1092,9 @@ macro_rules! define_endpoints_2 {
 
                 #[allow(unused_parens)]
                 impl $(<$($param $(:$($constraints)*)?),*>)? Combined $(<$($param),*>)? {
-                    pub fn new(input:&InputData$(<$($param),*>)?, output:&OutputData$(<$($param),*>)?) -> Self {
+                    pub fn new(
+                        input:&InputData$(<$($param),*>)?,
+                        output:&OutputData$(<$($param),*>)?) -> Self {
                         let data = Rc::new(CombinedData::new(input,output));
                         Self { data }
                     }
@@ -845,7 +1113,8 @@ macro_rules! define_endpoints_2 {
                 #[allow(unused_parens)]
                 #[derive(Debug)]
                 pub struct CombinedData $(<$($param $(:$($constraints)*)?),*>)? {
-                    $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+                    $( $(#[doc=$($in_doc)*])*
+                    pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
 
                     $($(#[doc=$($out_doc)*])*
                         pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
@@ -853,7 +1122,9 @@ macro_rules! define_endpoints_2 {
                 }
 
                 impl $(<$($param $(:$($constraints)*)?),*>)? CombinedData $(<$($param),*>)? {
-                    pub fn new(input:&InputData$(<$($param),*>)?, output:&OutputData$(<$($param),*>)?) -> Self {
+                    pub fn new(
+                        input:&InputData$(<$($param),*>)?,
+                        output:&OutputData$(<$($param),*>)?) -> Self {
                         $(let $in_field = input.$in_field.clone_ref();)*
                         $(let $out_field = output.$out_field.clone_ref();)*
 
@@ -877,13 +1148,6 @@ macro_rules! define_endpoints_2 {
                 pub output: private::Output$(<$($param),*>)?,
             }
 
-
-            impl $(<$($param $(:$($constraints)*)?),*>)?  Private $(<$($param),*>)? {
-                pub fn new() -> Self {
-                    unimplemented!()
-                }
-            }
-
             pub mod private {
                 use super::*;
 
@@ -896,7 +1160,9 @@ macro_rules! define_endpoints_2 {
                 }
 
                 impl  $(<$($param $(:$($constraints)*)?),*>)? Input $(<$($param),*>)? {
-                    pub fn new(network: &$crate::frp::Network, public_input: &api::public::Input$(<$($param),*>)?) -> Self {
+                    pub fn new(
+                        network: &$crate::frp::Network,
+                        public_input: &api::public::Input$(<$($param),*>)?) -> Self {
                         let data = Rc::new(InputData::new(network, public_input));
                         Self { data }
                     }
@@ -919,7 +1185,9 @@ macro_rules! define_endpoints_2 {
                 }
 
                 impl $(<$($param $(:$($constraints)*)?),*>)?  InputData $(<$($param),*>)? {
-                    fn new(network: &$crate::frp::Network, public_input: &api::public::Input$(<$($param),*>)?) -> Self {
+                    fn new(
+                        network: &$crate::frp::Network,
+                        public_input: &api::public::Input$(<$($param),*>)?) -> Self {
                         // Enable profiling for all inputs.
                         $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
                             $(
@@ -1027,7 +1295,7 @@ mod tests {
                 input2 (),
             }
             Output {
-                output1 (String),
+                output1 ((f32,f32)),
                 output2 (bool),
                 output3 (),
             }
