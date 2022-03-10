@@ -1,6 +1,10 @@
 //! Tests for cases where parser currently fails. They are ignored, should be removed and placed
 //! elsewhere, as the parser gets fixed.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 

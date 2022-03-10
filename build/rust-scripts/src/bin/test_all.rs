@@ -1,5 +1,8 @@
 // === Features ===
 #![feature(option_result_contains)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use std::path::Path;
 use std::path::PathBuf;

@@ -1,3 +1,7 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use enso_integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;

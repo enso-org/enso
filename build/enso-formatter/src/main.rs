@@ -125,7 +125,7 @@ pub enum HeaderToken {
     ModuleAttribAllow,
     ModuleAttribDeny,
     ModuleAttribFeature,
-    ModuleAttribFeature2,
+    ModuleAttribAllowIncFeat,
     EmptyLine,
     ModuleDoc,
     Comment,
@@ -182,18 +182,9 @@ impl HeaderElement {
     }
 }
 
-/// Wrappers for [`Regex::find`] which returns [`Result::Err`] on element found. It allows combining
-/// multiple calls to this function with the Rust `?` syntax.
-fn find_with<T>(input: &str, regex: &Regex, f: impl FnOnce(String) -> T) -> Result<(), T> {
-    match regex.find(input) {
-        Some(t) => Err(f(t.as_str().into())),
-        None => Ok(()),
-    }
-}
-
 /// Regex constructor that starts on the beginning of a line, can be surrounded by whitespaces and
 /// ends with a line break.
-fn re(input: &str) -> Regex {
+fn header_line_regex(input: &str) -> Regex {
     let str = format!(r"^ *{} *(; *)?((\r\n?)|\n)", input);
     Regex::new(&str).unwrap()
 }
@@ -205,46 +196,44 @@ macro_rules! define_rules {
             use super::*;
             lazy_static! {
                 $(
-                    pub static ref $name: Regex = re($re);
+                    pub static ref $name: Regex = header_line_regex($re);
                 )*
             }
         }
 
-        fn match_header_internal(input: &str) -> Result<(), HeaderElement> {
-            $( find_with(input, &static_re::$name, |t| HeaderElement::new($name, t))?; )*
-            Ok(())
+        fn match_header(input: &str) -> Option<HeaderElement> {
+            $(
+                if let Some(str) = static_re::$name.find(input) {
+                    return Some(HeaderElement::new($name, str.as_str().into()));
+                }
+            )*
+            None
         }
     };
 }
 
 define_rules! {
-    EmptyLine            = r"";
-    ModuleDoc            = r"//![^\n\r]*";
-    Comment              = r"//[^\n\r]*";
-    CrateUse             = r"use +crate( *:: *[\w]+)*( +as +[\w]+)?";
-    CrateUseStar         = r"use +crate( *:: *[\w*]+)*";
-    CratePubUse          = r"pub +use +crate( *:: *[\w]+)*( +as +[\w]+)?";
-    CratePubUseStar      = r"pub +use +crate( *:: *[\w*]+)*";
-    Use                  = r"use +[\w]+( *:: *[\w]+)*( +as +[\w]+)?";
-    UseStar              = r"use +[\w]+( *:: *[\w*]+)*";
-    PubUse               = r"pub +use +[\w]+( *:: *[\w]+)*( +as +[\w]+)?";
-    PubUseStar           = r"pub +use +[\w]+( *:: *[\w*]+)*";
-    ModuleAttribFeature  = r"#!\[feature[^\]]*\]";
-    ModuleAttribFeature2 = r"#!\[allow\(incomplete_features\)\]";
-    ModuleAttribWarn     = r"#!\[warn[^\]]*\]";
-    ModuleAttribAllow    = r"#!\[allow[^\]]*\]";
-    ModuleAttribDeny     = r"#!\[deny[^\]]*\]";
-    ModuleAttrib         = r"#!\[[^\]]*\]";
-    Attrib               = r"#\[[^\]]*\]";
-    PubMod               = r"pub +mod +[\w]+";
+    EmptyLine                = r"";
+    ModuleDoc                = r"//![^\n\r]*";
+    Comment                  = r"//[^\n\r]*";
+    CrateUse                 = r"use +crate( *:: *[\w]+)*( +as +[\w]+)?";
+    CrateUseStar             = r"use +crate( *:: *[\w*]+)*";
+    CratePubUse              = r"pub +use +crate( *:: *[\w]+)*( +as +[\w]+)?";
+    CratePubUseStar          = r"pub +use +crate( *:: *[\w*]+)*";
+    Use                      = r"use +[\w]+( *:: *[\w]+)*( +as +[\w]+)?";
+    UseStar                  = r"use +[\w]+( *:: *[\w*]+)*";
+    PubUse                   = r"pub +use +[\w]+( *:: *[\w]+)*( +as +[\w]+)?";
+    PubUseStar               = r"pub +use +[\w]+( *:: *[\w*]+)*";
+    ModuleAttribFeature      = r"#!\[feature[^\]]*\]";
+    ModuleAttribAllowIncFeat = r"#!\[allow\(incomplete_features\)\]";
+    ModuleAttribWarn         = r"#!\[warn[^\]]*\]";
+    ModuleAttribAllow        = r"#!\[allow[^\]]*\]";
+    ModuleAttribDeny         = r"#!\[deny[^\]]*\]";
+    ModuleAttrib             = r"#!\[[^\]]*\]";
+    Attrib                   = r"#\[[^\]]*\]";
+    PubMod                   = r"pub +mod +[\w]+";
 }
 
-fn match_header(input: &str) -> Option<HeaderElement> {
-    match match_header_internal(input) {
-        Err(t) => Some(t),
-        Ok(_) => None,
-    }
-}
 
 
 // =======================
@@ -258,7 +247,7 @@ fn print_h1(
     tokens: &[HeaderToken],
     str: &str,
 ) {
-    if tokens.iter().map(|tok| map.contains_key(tok)).any(|t| t) {
+    if tokens.iter().any(|tok| map.contains_key(tok)) {
         out.push('\n');
         out.push_str(&format!("// ===={}====\n", "=".repeat(str.len())));
         out.push_str(&format!("// === {} ===\n", str));
@@ -282,6 +271,7 @@ fn print_h2(
 /// Prints all the entries associated with the provided tokens. If at least one entry was printed,
 /// an empty line will be added in the end.
 fn print(out: &mut String, map: &mut HashMap<HeaderToken, Vec<String>>, t: &[HeaderToken]) -> bool {
+    // We collect the results because we want all tokens to be printed.
     let sub_results: Vec<bool> = t.iter().map(|t| print_single(out, map, *t)).collect();
     sub_results.iter().any(|t| *t)
 }
@@ -320,7 +310,7 @@ fn print_single(
 #[allow(missing_docs)]
 pub enum Action {
     Format,
-    Preview,
+    DryRun,
     FormatAndCheck,
 }
 
@@ -329,6 +319,15 @@ pub enum Action {
 // ==================
 // === Processing ===
 // ==================
+
+/// A path to rust source annottated with information whether it is a main or a library main source
+/// file.
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub struct RustSourcePath {
+    path:    PathBuf,
+    is_main: bool,
+}
 
 /// Process all files of the given path recursively.
 ///
@@ -347,12 +346,10 @@ fn process_path(path: impl AsRef<Path>, action: Action) {
     let total = paths.len();
     let mut hash_map = HashMap::<PathBuf, u64>::new();
     for (i, sub_path) in paths.iter().enumerate() {
-        let file_name = sub_path.file_name().and_then(|s| s.to_str());
-        let is_main_file = file_name == Some("lib.rs") || file_name == Some("main.rs");
-        let dbg_msg = if is_main_file { " [main]" } else { "" };
-        println!("[{}/{}] Processing {:?}{}.", i + 1, total, sub_path, dbg_msg);
-        let hash = process_file(sub_path, action, is_main_file);
-        hash_map.insert(sub_path.into(), hash);
+        let dbg_msg = if sub_path.is_main { " [main]" } else { "" };
+        println!("[{}/{}] Processing {:?}{}.", i + 1, total, sub_path.path, dbg_msg);
+        let hash = process_file(&sub_path.path, action, sub_path.is_main);
+        hash_map.insert((&sub_path.path).into(), hash);
     }
     if action == Action::Format || action == Action::FormatAndCheck {
         let mut child = Command::new("cargo")
@@ -367,9 +364,9 @@ fn process_path(path: impl AsRef<Path>, action: Action) {
     if action == Action::FormatAndCheck {
         let mut changed = Vec::new();
         for sub_path in &paths {
-            let (hash, _) = read_file_with_hash(sub_path).unwrap();
-            if hash_map.get(sub_path) != Some(&hash) {
-                changed.push(sub_path.clone());
+            let (hash, _) = read_file_with_hash(&sub_path.path).unwrap();
+            if hash_map.get(&sub_path.path) != Some(&hash) {
+                changed.push(sub_path.path.clone());
             }
         }
         if !changed.is_empty() {
@@ -379,22 +376,33 @@ fn process_path(path: impl AsRef<Path>, action: Action) {
 }
 
 /// Discover all paths containing Rust sources, recursively.
-fn discover_paths(path: impl AsRef<Path>) -> Vec<PathBuf> {
+fn discover_paths(path: impl AsRef<Path>) -> Vec<RustSourcePath> {
     let mut vec = Vec::default();
-    discover_paths_internal(&mut vec, path);
+    discover_paths_internal(&mut vec, path, false);
     vec
 }
 
-fn discover_paths_internal(vec: &mut Vec<PathBuf>, path: impl AsRef<Path>) {
+fn discover_paths_internal(
+    vec: &mut Vec<RustSourcePath>,
+    path: impl AsRef<Path>,
+    is_main_dir: bool,
+) {
     let path = path.as_ref();
     let md = fs::metadata(path).unwrap();
     if md.is_dir() && path.file_name() != Some(OsStr::new("target")) {
+        let dir_name = path.file_name();
+        let is_main_dir =
+            dir_name == Some(OsStr::new("bin")) || dir_name == Some(OsStr::new("tests"));
         let sub_paths = fs::read_dir(path).unwrap();
         for sub_path in sub_paths {
-            discover_paths_internal(vec, &sub_path.unwrap().path())
+            discover_paths_internal(vec, &sub_path.unwrap().path(), is_main_dir)
         }
     } else if md.is_file() && path.extension() == Some(OsStr::new("rs")) {
-        vec.push(path.into());
+        let file_name = path.file_name().and_then(|s| s.to_str());
+        let is_main_file = file_name == Some("lib.rs") || file_name == Some("main.rs");
+        let is_main = is_main_file || is_main_dir;
+        let path = path.into();
+        vec.push(RustSourcePath { path, is_main });
     }
 }
 
@@ -405,7 +413,7 @@ fn process_file(path: impl AsRef<Path>, action: Action, is_main_file: bool) -> u
     match process_file_content(input, is_main_file) {
         Err(e) => panic!("{:?}: {}", path, e),
         Ok(out) => {
-            if action == Action::Preview {
+            if action == Action::DryRun {
                 println!("{}", out)
             } else if action == Action::Format || action == Action::FormatAndCheck {
                 fs::write(path, out).expect("Unable to write back to the source file.")
@@ -519,8 +527,8 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     print_section(&mut out, &mut map, &[ModuleDoc]);
     print_section(&mut out, &mut map, &[ModuleComment]);
     print_section(&mut out, &mut map, &[ModuleAttrib]);
-    print_h2(&mut out, &map, &[ModuleAttribFeature2, ModuleAttribFeature], "Features");
-    print_section(&mut out, &mut map, &[ModuleAttribFeature2, ModuleAttribFeature]);
+    print_h2(&mut out, &map, &[ModuleAttribAllowIncFeat, ModuleAttribFeature], "Features");
+    print_section(&mut out, &mut map, &[ModuleAttribAllowIncFeat, ModuleAttribFeature]);
     if !STD_LINTER_ATTRIBS.is_empty() {
         print_h2(&mut out, &map, &[StandardLinterConfig], "Standard Linter Configuration");
         print_section(&mut out, &mut map, &[StandardLinterConfig]);

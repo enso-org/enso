@@ -1,5 +1,9 @@
 //! Project Manager tests.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 
 
 #[cfg(test)]

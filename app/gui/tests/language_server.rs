@@ -10,6 +10,10 @@
 //! sbt "runner/run --server --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 --path $HOME/ensotmp --rpc-port 30616"
 //! ```
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use engine_protocol::language_server::*;
 use engine_protocol::types::*;
 use enso_gui::prelude::*;

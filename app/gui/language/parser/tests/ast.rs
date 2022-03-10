@@ -6,6 +6,10 @@
 //  separate `ast_ops` crate that depends on both. Now it is better to tests here than none but
 //  a decision should be made as to which way we want to go.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use parser::prelude::*;
 
 use ast::opr;
