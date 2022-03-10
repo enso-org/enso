@@ -15,7 +15,7 @@ final class DocSectionsGenerator {
       tags        = doc.tags.map(tags => tags.elems.toList.map(TagRender.render)),
       description = doc.synopsis.map(SynopsisRender.render),
       arguments   = doc.body.flatMap(buildArguments),
-      examples    = None,
+      examples    = doc.body.flatMap(buildExamples),
       icon        = None,
       aliases     = None
     )
@@ -42,6 +42,34 @@ final class DocSectionsGenerator {
     Option.when(text.nonEmpty) {
       DocArgument(name.trim, text.tail.trim)
     }
+  }
+
+  private def buildExamples(body: Doc.Body): Option[DocExamples] = {
+    val examplesSections = body.elems.toList.collect {
+      case m @ Doc.Section.Marked(_, _, Doc.Section.Marked.Example, _) =>
+        m
+    }
+    val docExamples = examplesSections.map { section =>
+      val text = section.elems
+        .collect { case Doc.Elem.Text(text) =>
+          text
+        }
+        .mkString(" ")
+      val code = section.elems.collect { case block: Doc.Elem.CodeBlock =>
+        normalizeCodeBlock(block).repr.build()
+      }.mkString
+      DocExample(text, code)
+    }
+    Option.unless(docExamples.isEmpty)(DocExamples(docExamples))
+  }
+
+  private def normalizeCodeBlock(
+    block: Doc.Elem.CodeBlock
+  ): Doc.Elem.CodeBlock = {
+    val minIndent = block.elems.map(_.indent).toList.min
+    val normalized =
+      block.elems.map(elem => elem.copy(indent = elem.indent - minIndent))
+    block.copy(elems = normalized)
   }
 }
 object DocSectionsGenerator {

@@ -91,7 +91,39 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
 
-    "generate examples" in {
+    "generate single example single line" in {
+      val comment =
+        """ Synopsis
+          |
+          | > Example
+          | First line
+          |     example =
+          |         1
+          |""".stripMargin
+      val expected =
+        DocSections(
+          None,
+          Some("<p>Synopsis </p>"),
+          None,
+          Some(
+            DocExamples(
+              Seq(
+                DocExample(
+                  "First line",
+                  """example =
+                    |    1""".stripMargin
+                )
+              )
+            )
+          ),
+          None,
+          None
+        )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
+
+    "generate single example multiline" in {
       val comment =
         """ Synopsis
           |
@@ -106,10 +138,74 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
           |         2
           |""".stripMargin
       val expected =
-        DocSections(None, Some("<p>Synopsis </p>"), None, None, None, None)
+        DocSections(
+          None,
+          Some("<p>Synopsis </p>"),
+          None,
+          Some(
+            DocExamples(
+              Seq(
+                DocExample(
+                  "First line Second line",
+                  """import Standard.Table
+                    |example =
+                    |    1
+                    |    2""".stripMargin
+                )
+              )
+            )
+          ),
+          None,
+          None
+        )
 
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
 
+    "generate multiple examples" in {
+      val comment =
+        """ Synopsis
+          |
+          | > Example
+          | First line
+          |     example =
+          |         1
+          |
+          | > Example
+          |   Second example
+          |
+          |       import Standard.Base
+          |
+          |       main =
+          |           IO.println "Hello World!"
+          |""".stripMargin
+      val expected =
+        DocSections(
+          None,
+          Some("<p>Synopsis </p>"),
+          None,
+          Some(
+            DocExamples(
+              Seq(
+                DocExample(
+                  "First line",
+                  """example =
+                    |    1""".stripMargin
+                ),
+                DocExample(
+                  "Second example",
+                  """import Standard.Base
+                    |main =
+                    |    IO.println "Hello World!"""".stripMargin
+                )
+              )
+            )
+          ),
+          None,
+          None
+        )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
   }
 }
