@@ -2,7 +2,7 @@
 
 import {defaultLogServerHost} from '../../../config'
 import assert from 'assert'
-import buildCfg from '../../../../../dist/build.json'
+import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'path'
@@ -621,9 +621,9 @@ Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) =
         let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
         let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
         let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
-        let quit_on_mac = process.platform == 'darwin' && (cmd_q || alt_f4)
-        let quit_on_win = process.platform == 'win32' && (alt_f4 || ctrl_w)
-        let quit_on_lin = process.platform == 'linux' && (alt_f4 || ctrl_q || ctrl_w)
+        let quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
+        let quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
+        let quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
         let quit = quit_on_mac || quit_on_win || quit_on_lin
         if (quit) {
             Electron.app.quit()

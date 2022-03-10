@@ -3,6 +3,7 @@ const CompressionPlugin = require('compression-webpack-plugin')
 const path = require('path')
 const webpack = require('webpack')
 const paths = require('../../../../build/paths')
+const BUILD_INFO = require('../../build.json')
 
 const thisPath = path.resolve(__dirname)
 
@@ -10,8 +11,6 @@ const child_process = require('child_process')
 function git(command) {
     return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
-
-const BUILD_INFO = JSON.parse(require('fs').readFileSync(paths.dist.buildInfo, 'utf8'))
 
 // scala-parser.js is compiled from Scala code, so no source map is available for it.
 const IGNORE_SOURCE_MAPS = [/scala-parser\.js/]
