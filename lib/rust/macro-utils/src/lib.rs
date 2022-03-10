@@ -3,6 +3,9 @@
 
 // === Features ===
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 

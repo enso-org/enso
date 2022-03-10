@@ -9,11 +9,13 @@
 //! Possible extensions, not implemented yet:
 //! - Sections are automatically keeping spacing.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
 #![deny(missing_abi)]
-#![deny(non_ascii_idents)]
 #![deny(pointer_structural_match)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(unconditional_recursion)]
@@ -27,7 +29,6 @@
 #![warn(single_use_lifetimes)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_crate_dependencies)]
 #![warn(unused_extern_crates)]
 #![warn(unused_import_braces)]
@@ -72,13 +73,13 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // "warn(missing_copy_implementations)",
     // "warn(missing_debug_implementations)",
     // "warn(missing_docs)",
-    // "deny(non_ascii_idents)",
+    "deny(non_ascii_idents)",
     // "warn(noop_method_call)",
     // "deny(pointer_structural_match)",
     // "warn(single_use_lifetimes)",
     // "warn(trivial_casts)",
     // "warn(trivial_numeric_casts)",
-    // "warn(unsafe_code)",
+    "warn(unsafe_code)",
     // "deny(unsafe_op_in_unsafe_fn)",
     // "warn(unused_crate_dependencies)",
     // "warn(unused_extern_crates)",

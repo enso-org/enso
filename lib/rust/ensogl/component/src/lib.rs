@@ -1,5 +1,9 @@
 //! A crate gathering all useful component crates.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 
 // ==============
 // === Export ===

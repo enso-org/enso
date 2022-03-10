@@ -1,5 +1,9 @@
 //! This library contains the implementation of the Enso parser.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 
 // ==============
 // === Export ===

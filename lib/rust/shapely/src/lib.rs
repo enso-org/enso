@@ -2,8 +2,10 @@
 #![feature(generators, generator_trait)]
 #![feature(type_ascription)]
 #![feature(marker_trait_attr)]
-// === Non-Standard Linter Configuration ===
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 

@@ -1,3 +1,7 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use std::io::prelude::*;
 
 use std::env;
