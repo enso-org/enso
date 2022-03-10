@@ -1183,20 +1183,66 @@ Text.trim where=Location.Both what=_.is_whitespace =
      - If a `Regex_Matcher`, the `term` is used as a regular expression and
        matched using the associated options.
 
-   ! Match Length
-     TODO describe the peculiarity of case insenitive matching
-
    ! What is a Character?
-     TODO note on indexing of regexes
-     TODO [RW] This should be ensured to be consistent as part of:
-     https://www.pivotaltracker.com/n/projects/2539304/stories/181463278
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
 
    > Example
-     TODO
+     Finding location of a substring.
 
          "Hello World!".location_of "J" == Nothing
          "Hello World!".location_of "o" == Span (Range 4 5) "Hello World!"
-         "Hello World!".location_of "o" mode=Last == Span (Range 4 5) "Hello World!"
+         "Hello World!".location_of "o" mode=Matching_Mode.Last == Span (Range 7 8) "Hello World!"
+
+   ! Match Length
+     The  function returns not only the index of the match but a `Span` instance
+     which contains both the start and end indices, allowing to determine the
+     length of the match. This is useful not only with regex matches (where a
+     regular expression can have matches of various lengths) but also for case
+     insensitive matching. In case insensitive mode, a single character can
+     match multiple characters, for example `ß` will match `ss` and `SS`, and
+     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case insensitive
+     mode, the length of the match can be shorter or longer than the term that
+     was being matched, so it is extremely important to not rely on the length
+     of the matched term when analysing the matches as they may have different
+     lengths.
+
+   > Example
+     Match length differences in case insensitive matching.
+
+         term = "straße"
+         text = "MONUMENTENSTRASSE 42"
+         match = text . location_of term matcher=(Text_Matcher Case_Insensitive.new)
+         term.length == 6
+         match.length == 7
+
+   ! Matching Grapheme Clusters
+     In case insensitive mode, a single character can match multiple characters,
+     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+     `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
+     match only a part of some single grapheme cluster, for example in the text
+     `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
+     Since we do not have the resolution to distinguish such partial matches
+     (as that would require non-integer indices), so a match which matched just
+     a part of some grapheme cluster is extended and treated as if it matched
+     the whole grapheme cluster.
+
+   > Example
+     Extending matches to full grapheme clusters.
+
+         ligatures = "ﬃﬄ"
+         ligatures.length == 2
+         term_1 = "IFF"
+         match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive.new)
+         term_1.length == 3
+         match_1.length == 2
+         term_2 = "ffiffl"
+         match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive.new)
+         term_2.length == 6
+         match_2.length == 2
+         # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
+         match_1 == match_2
 Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
 Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
@@ -1247,19 +1293,60 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
      - If a `Regex_Matcher`, the `term` is used as a regular expression and
        matched using the associated options.
 
-   ! Match Length
-     TODO describe the peculiarity of case insenitive matching
 
    ! What is a Character?
-     TODO note on indexing of regexes
-     TODO [RW] This should be ensured to be consistent as part of:
-     https://www.pivotaltracker.com/n/projects/2539304/stories/181463278
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
 
    > Example
-     TODO
+     Finding locations of all occurrences of a substring.
 
          "Hello World!".location_of_all "J" == []
          "Hello World!".location_of_all "o" . map .start == [4, 7]
+
+   ! Match Length
+     The  function returns not only the index of the match but a `Span` instance
+     which contains both the start and end indices, allowing to determine the
+     length of the match. This is useful not only with regex matches (where a
+     regular expression can have matches of various lengths) but also for case
+     insensitive matching. In case insensitive mode, a single character can
+     match multiple characters, for example `ß` will match `ss` and `SS`, and
+     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case insensitive
+     mode, the length of the match can be shorter or longer than the term that
+     was being matched, so it is extremely important to not rely on the length
+     of the matched term when analysing the matches as they may have different
+     lengths.
+
+   > Example
+     Match length differences in case insensitive matching.
+
+         term = "strasse"
+         text = "MONUMENTENSTRASSE ist eine große Straße."
+         match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive.new)
+         term.length == 7
+         match . map .length == [7, 6]
+
+   ! Matching Grapheme Clusters
+     In case insensitive mode, a single character can match multiple characters,
+     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+     `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
+     match only a part of some single grapheme cluster, for example in the text
+     `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
+     Since we do not have the resolution to distinguish such partial matches
+     (as that would require non-integer indices), so a match which matched just
+     a part of some grapheme cluster is extended and treated as if it matched
+     the whole grapheme cluster.
+
+   > Example
+     Extending matches to full grapheme clusters.
+
+         ligatures = "ﬃﬄFFIFF"
+         ligatures.length == 7
+         match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive.new)
+         match_1 . map .length == [2, 3]
+         match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive.new)
+         match_2 . map .length == [2, 5]
 Text.location_of_all : Text -> Matcher -> [Span]
 Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> if term.is_empty then Vector.new (this.length + 1) (ix -> Span (Range ix ix) this) else case case_sensitive of

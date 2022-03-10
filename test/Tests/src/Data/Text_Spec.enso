@@ -824,14 +824,62 @@ spec =
 
             '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
 
-        Test.specify "should allow to find location_of occurrences within a text" <|
-            hello = "Hello World!"
-            hello.location_of "J" . should_equal Nothing
-            hello.location_of "o" . should_equal (Span (Range 4 5) hello)
-            hello.location_of "o" mode=Matching_Mode.Last . should_equal (Span (Range 7 8) hello)
+        Test.specify "location_of should work as shown in examples" <|
+            example_1 =
+                "Hello World!".location_of "J" == Nothing
+                "Hello World!".location_of "o" == Span (Range 4 5) "Hello World!"
+                "Hello World!".location_of "o" mode=Matching_Mode.Last == Span (Range 4 5) "Hello World!"
 
-            hello.location_of_all "J" . should_equal []
-            hello.location_of_all "o" . map .start . should_equal [4, 7]
+            example_2 =
+                term = "straße"
+                text = "MONUMENTENSTRASSE 42"
+                match = text . location_of term matcher=(Text_Matcher Case_Insensitive.new)
+                term.length . should_equal 6
+                match.length . should_equal 7
+
+            example_3 =
+                ligatures = "ﬃﬄ"
+                ligatures.length . should_equal 2
+                term_1 = "IFF"
+                match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive.new)
+                term_1.length . should_equal 3
+                match_1.length . should_equal 2
+                term_2 = "ffiffl"
+                match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive.new)
+                term_2.length . should_equal 6
+                match_2.length . should_equal 2
+                match_1 . should_equal match_2
+
+            example_4 =
+                "Hello World!".location_of_all "J" . should_equal []
+                "Hello World!".location_of_all "o" . map .start . should_equal [4, 7]
+
+            example_5 =
+                term = "strasse"
+                text = "MONUMENTENSTRASSE ist eine große Straße."
+                match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive.new)
+                term.length . should_equal 7
+                match . map .length . should_equal [7, 6]
+
+            example_6 =
+                ligatures = "ﬃﬄFFIFF"
+                ligatures.length . should_equal 7
+                match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive.new)
+                match_1 . map .length . should_equal [2, 3]
+                match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive.new)
+                match_2 . map .length . should_equal [2, 5]
+
+            # Put them in blocks to avoid name clashes.
+            example_1
+            example_2
+            example_3
+            example_4
+            example_5
+            example_6
+
+        Test.specify "should allow to find location_of occurrences within a text" <|
+            "Hello World!".location_of_all "J" . should_equal []
+            "Hello World!".location_of_all "o" . map .start . should_equal [4, 7]
 
             accents = 'a\u{301}e\u{301}o\u{301}'
             accents.location_of accent_1 . should_equal (Span (Range 1 2) accents)
