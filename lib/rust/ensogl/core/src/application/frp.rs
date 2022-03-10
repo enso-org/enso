@@ -837,10 +837,9 @@ macro_rules! define_endpoints_2 {
         })?
     ) => {
         $crate::define_endpoints_2_normalized! {
-            $([$($global_opts)*])?
             <$($($param $(:($($constraints)*))?),*)?>
 
-            Input { $($([$($input_opts)*])?)?
+            Input { [$($($global_opts)*)? $($($($input_opts)*)?)?]
                 /// Focus the element. Focused elements are meant to receive shortcut events.
                 focus(),
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
@@ -854,7 +853,7 @@ macro_rules! define_endpoints_2 {
                 ),*)?
             }
 
-            Output { $($([$($output_opts)*])?)?
+            Output { [$($($global_opts)*)? $($($($output_opts)*)?)?]
                 /// Focus state checker.
                 focused(bool),
                 $($(
@@ -869,15 +868,14 @@ macro_rules! define_endpoints_2 {
 #[macro_export]
 macro_rules! define_endpoints_2_normalized {
     (
-        $([$($global_opts:tt)*])?
         <$($param:ident $(:($($constraints:tt)*))?),*>
 
-        Input { $([$($input_opts:tt)*])?
+        Input { $input_opts:tt
             $($(#[doc=$($in_doc :tt)*])*
             $in_field : ident ($($in_field_type : tt)*)),* $(,)?
         }
 
-        Output { $([$($output_opts:tt)*])?
+        Output { $output_opts:tt
             $($(#[doc=$($out_doc:tt)*])*
             $out_field : ident ($($out_field_type : tt)*)),* $(,)?
         }
@@ -1024,7 +1022,7 @@ macro_rules! define_endpoints_2_normalized {
                 #[allow(unused_parens)]
                 impl <$($param $(:$($constraints)*)?),*>  InputData <$($param),*> {
                     pub fn new(network: &$crate::frp::Network) -> Self {
-                        $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
+                        $crate::frp::extend! { $input_opts network
                             $($in_field <- any_mut();)*
                         }
                         let _phantom_type_args = default();
@@ -1079,7 +1077,7 @@ macro_rules! define_endpoints_2_normalized {
                         public_input: &Input<$($param),*>) -> Self {
                         use $crate::application::command::*;
 
-                        $crate::frp::extend! { $($($global_opts)*)? $($($output_opts)*)? network
+                        $crate::frp::extend! { $output_opts network
                             $($out_field <- private_output.$out_field.sampler();)*
                         }
 
@@ -1204,7 +1202,7 @@ macro_rules! define_endpoints_2_normalized {
                         network: &$crate::frp::Network,
                         public_input: &api::public::Input<$($param),*>) -> Self {
                         // Enable profiling for all inputs.
-                        $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
+                        $crate::frp::extend! { $input_opts network
                             $(
                             $in_field <- public_input.$in_field.profile();
                             )*
@@ -1249,7 +1247,7 @@ macro_rules! define_endpoints_2_normalized {
 
                 impl <$($param $(:$($constraints)*)?),*> OutputData <$($param),*> {
                     fn new(network: &$crate::frp::Network) -> Self {
-                         $crate::frp::extend! { $($($global_opts)*)? $($($output_opts)*)? network
+                         $crate::frp::extend! { $output_opts network
                             $($out_field <- any_mut();)*
                         }
                         let _phantom_type_args = default();
