@@ -248,8 +248,8 @@ type Prim_Warning
     type Prim_Warning
 
     ## PRIVATE
-    attach : Any -> Any -> Any
-    attach value warning = @Builtin_Method "Prim_Warning.attach"
+    attach : Any -> Any -> Any -> Any
+    attach value warning origin = @Builtin_Method "Prim_Warning.attach"
 
     ## PRIVATE
     get_all : Any -> Array Prim_Warning
