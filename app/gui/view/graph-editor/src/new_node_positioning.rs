@@ -1,3 +1,4 @@
+//! This module provides functions for calculating positions of newly created nodes.
 
 use crate::prelude::*;
 
@@ -14,10 +15,12 @@ use ensogl_hardcoded_theme as theme;
 
 
 
-/// Calculate a position for a new node, starting from the mouse position and aligning to the
-/// node closest to the mouse position if it is close enough.
+/// Return a position for a newly created node, such that the node will not overlap with existing
+/// ones. The position is calculated by taking the mouse position and aligning it to an existing
+/// node closest to it if the existing node is close enough to the mouse position.
 ///
-/// See [`new_node_position_aligned_if_close_to_node`] for details on what is close enough.
+/// To learn more about the align algorithm, see the docs of
+/// [`new_node_position_aligned_if_close_to_node`].
 pub fn new_node_position_at_mouse_aligned_to_close_nodes(
     graph_editor: &GraphEditorModel,
     mouse_position: Vector2,
@@ -25,6 +28,14 @@ pub fn new_node_position_at_mouse_aligned_to_close_nodes(
     let nearest_node = node_nearest_to_point(graph_editor, mouse_position);
     new_node_position_aligned_if_close_to_node(graph_editor, mouse_position, nearest_node)
 }
+
+/// Return a position for a newly created node, such that the node will not overlap with existing
+/// ones. The position is calculated by taking the mouse position and aligning it to the source
+/// node (the node at the source of the [`edge_id`] edge) if the source node is close to the mouse
+/// position.
+///
+/// To learn more about the align algorithm, see the docs of
+/// [`new_node_position_aligned_if_close_to_node`].
 
 /// Calculate a position for a new node, starting from the mouse position and aligning to the
 /// node at the source of the specified edge if the mouse position is close to the node.
@@ -89,7 +100,6 @@ pub fn new_node_position_aligned_if_close_to_node(
     }
 }
 
-#[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
 pub fn find_free_place_under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     let above_pos = graph_editor.node_position(node_above);
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
