@@ -4,11 +4,10 @@
 //! through all hues instead of taking the shorter trip "backwards").
 
 use super::*;
+use crate::display::shape::*;
 use crate::prelude::*;
 
 use enso_frp as frp;
-
-use crate::display::shape::*;
 
 
 

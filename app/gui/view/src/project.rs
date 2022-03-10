@@ -1,6 +1,8 @@
 //! The main view of single project opened in IDE.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::system::web::traits::*;
 
 use crate::code_editor;
 use crate::debug_mode_popup;
@@ -20,10 +22,8 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl::system::web;
 use ensogl::system::web::dom;
-use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;

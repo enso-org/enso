@@ -1,5 +1,6 @@
-#![cfg(test)]
 //! Module for support code for writing tests.
+
+#![cfg(test)]
 
 use crate::prelude::*;
 
@@ -16,6 +17,8 @@ use engine_protocol::types::Sha3_224;
 use enso_frp::data::bitfield::BitField;
 use enso_frp::data::bitfield::BitField32;
 use json_rpc::expect_call;
+
+
 
 /// Utilities for mocking IDE components.
 pub mod mock {

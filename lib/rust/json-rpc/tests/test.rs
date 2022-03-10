@@ -1,4 +1,5 @@
 use json_rpc::prelude::*;
+use json_rpc::*;
 
 use enso_web::Duration;
 use futures::task::LocalSpawnExt;
@@ -12,12 +13,13 @@ use json_rpc::messages::Id;
 use json_rpc::messages::Message;
 use json_rpc::messages::Version;
 use json_rpc::test_util::transport::mock::MockTransport;
-use json_rpc::*;
 use serde::Deserialize;
 use serde::Serialize;
 use std::future::Future;
 use std::pin::Pin;
 use std::thread::sleep;
+
+
 
 type MockEvent = json_rpc::handler::Event<MockNotification>;
 

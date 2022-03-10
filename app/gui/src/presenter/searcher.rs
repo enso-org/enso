@@ -1,8 +1,6 @@
 //! The module containing [`Searcher`] presenter. See [`crate::presenter`] documentation to know
 //! more about presenters in general.
 
-pub mod provider;
-
 use crate::prelude::*;
 
 use crate::controller::searcher::Notification;
@@ -16,6 +14,13 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::project::ComponentBrowserOpenReason;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod provider;
 
 
 

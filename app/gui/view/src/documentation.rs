@@ -2,10 +2,9 @@
 //! the documented node.
 
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::graph_editor::component::visualization;
-
-pub use visualization::container::overlay;
 
 use enso_frp as frp;
 use ensogl::display;
@@ -15,12 +14,18 @@ use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::clipboard;
-use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 use web::Closure;
 use web::HtmlElement;
 use web::JsCast;
 use web::MouseEvent;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use visualization::container::overlay;
 
 
 

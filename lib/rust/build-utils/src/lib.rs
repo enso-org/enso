@@ -1,11 +1,17 @@
 //! A crate with many utilities for build scripts, for example downloading packages form GitHub or
 //! easier management of env vars and paths.
 
+// === Features ===
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use std::fmt::Display;
 use std::io::ErrorKind;
 use std::path;
+
+
 
 /// Types that can yield a reference to std::path::Path.
 pub trait PathRef = AsRef<path::Path>;

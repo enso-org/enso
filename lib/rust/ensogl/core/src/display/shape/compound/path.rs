@@ -1,8 +1,9 @@
 //! This module provides the [`path`] function for the construction of path shapes.
 
+use crate::display::shape::*;
 use crate::prelude::*;
 
-use crate::display::shape::*;
+
 
 /// A path following the given points. All joints and endpoints are rounded.
 pub fn path(width: f32, points: &[(f32, f32)]) -> AnyShape {

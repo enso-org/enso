@@ -139,6 +139,7 @@ pub enum HeaderToken {
     PubUseStar,
     PubMod,
     /// Special header token that is never parsed, but can be injected by the code.
+    ModuleComment,
     StandardLinterConfig,
 }
 
@@ -438,7 +439,7 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
         }
     }
 
-    // Do not consume the leading comments.
+    // Do not consume the trailing comments.
     let mut ending: Vec<&HeaderElement> = header
         .iter()
         .rev()
@@ -449,13 +450,25 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     header.truncate(header.len() - incorrect_ending_len);
     let total_len: usize = header.iter().map(|t| t.len()).sum();
 
+    // Mark comments before any definitions as module comments.
+    header
+        .iter_mut()
+        .take_while(|t| (t.token == Comment) || (t.token == EmptyLine) || (t.token == ModuleDoc))
+        .map(|t| {
+            if t.token == Comment && !t.reg_match.starts_with("// ===") {
+                t.token = ModuleComment;
+            }
+        })
+        .for_each(drop);
+
     // Error if the import section contains comments.
     let contains_comments =
-        header.iter().any(|t| t.token == Comment && !t.reg_match.starts_with("// ==="));
-    if contains_comments {
-        return Err(
-            "File contains comments in the import section. This is not allowed.".to_string()
-        );
+        header.iter().find(|t| t.token == Comment && !t.reg_match.starts_with("// ==="));
+    if let Some(comment) = contains_comments {
+        return Err(format!(
+            "File contains comments in the import section. This is not allowed:\n{}",
+            comment.reg_match
+        ));
     }
 
     // Error if the star import is used for non prelude- or traits-like imports.
@@ -504,6 +517,7 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     // Print the results.
     let mut out = String::new();
     print_section(&mut out, &mut map, &[ModuleDoc]);
+    print_section(&mut out, &mut map, &[ModuleComment]);
     print_section(&mut out, &mut map, &[ModuleAttrib]);
     print_h2(&mut out, &map, &[ModuleAttribFeature2, ModuleAttribFeature], "Features");
     print_section(&mut out, &mut map, &[ModuleAttribFeature2, ModuleAttribFeature]);

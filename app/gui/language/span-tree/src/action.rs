@@ -1,11 +1,12 @@
 //! A module containing all actions provided by SpanTree.
 //!
 //! The actions are in WIP state - they will be implemented along connection operations.
+
 use crate::prelude::*;
+use ast::crumbs::*;
 
 use crate::node;
 
-use ast::crumbs::*;
 use ast::opr::ArgWithOffset;
 use ast::Ast;
 use ast::Shifted;

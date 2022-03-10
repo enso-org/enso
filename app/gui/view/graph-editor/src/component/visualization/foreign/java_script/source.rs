@@ -1,4 +1,5 @@
 //! Contains [`Sources`] definition, a set of JS source code files with attached source map.
+
 use crate::prelude::*;
 
 use crate::visualization::Project;

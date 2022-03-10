@@ -1,5 +1,14 @@
 //! A crate gathering all useful component crates.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub use ensogl_drop_down_menu as drop_down_menu;
 pub use ensogl_drop_manager as drop_manager;
 pub use ensogl_file_browser as file_browser;

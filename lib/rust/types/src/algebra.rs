@@ -1,25 +1,7 @@
 //! This module gathers common math types which are widely used in this project.
 
+// === Non-Standard Linter Configuration ===
 #![allow(non_snake_case)]
-
-
-pub use nalgebra::Matrix2;
-pub use nalgebra::Matrix3;
-pub use nalgebra::Matrix4;
-
-pub use nalgebra::Matrix2x3;
-pub use nalgebra::Matrix2x4;
-pub use nalgebra::Matrix3x2;
-pub use nalgebra::Matrix3x4;
-pub use nalgebra::Matrix4x2;
-pub use nalgebra::Matrix4x3;
-pub use nalgebra::OMatrix;
-
-pub use std::ops::Add;
-pub use std::ops::Div;
-pub use std::ops::Mul;
-pub use std::ops::Neg;
-pub use std::ops::Sub;
 
 use nalgebra;
 use nalgebra::storage::Storage;
@@ -27,6 +9,27 @@ use nalgebra::ComplexField;
 use nalgebra::Dim;
 use nalgebra::Matrix;
 use nalgebra::Scalar;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use nalgebra::Matrix2;
+pub use nalgebra::Matrix2x3;
+pub use nalgebra::Matrix2x4;
+pub use nalgebra::Matrix3;
+pub use nalgebra::Matrix3x2;
+pub use nalgebra::Matrix3x4;
+pub use nalgebra::Matrix4;
+pub use nalgebra::Matrix4x2;
+pub use nalgebra::Matrix4x3;
+pub use nalgebra::OMatrix;
+pub use std::ops::Add;
+pub use std::ops::Div;
+pub use std::ops::Mul;
+pub use std::ops::Neg;
+pub use std::ops::Sub;
 
 
 

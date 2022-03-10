@@ -1,8 +1,8 @@
 //! FIXME[everyone] Modules should be documented.
 
 use crate::prelude::*;
-
 use span_tree::traits::*;
+
 use span_tree::SpanTree;
 
 

@@ -1,14 +1,7 @@
 //! Application top-level structure definition. Handles views, keyboard shortcuts and more.
 
-pub mod args;
-pub mod command;
-pub mod frp;
-pub mod shortcut;
-pub mod view;
-
-pub use view::View;
-
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use crate::control::callback;
 use crate::display;
@@ -17,7 +10,19 @@ use crate::display::style::theme;
 use crate::display::world::World;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
-use enso_web::traits::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod args;
+pub mod command;
+pub mod frp;
+pub mod shortcut;
+pub mod view;
+
+pub use view::View;
 
 
 

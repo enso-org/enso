@@ -1,10 +1,9 @@
 //! Text cursor transform implementation.
 
-use crate::buffer::view::selection;
-use crate::buffer::view::word::WordCursor;
 use crate::buffer::view::*;
 
-use enso_text::unit::*;
+use crate::buffer::view::selection;
+use crate::buffer::view::word::WordCursor;
 
 
 

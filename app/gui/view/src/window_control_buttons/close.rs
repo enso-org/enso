@@ -2,7 +2,14 @@
 
 use crate::window_control_buttons::common::prelude::*;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub use ensogl_hardcoded_theme::application::window_control_buttons::close as theme;
+
+
 
 /// The view component with the close button.
 pub type View = common::View<shape::DynamicShape>;

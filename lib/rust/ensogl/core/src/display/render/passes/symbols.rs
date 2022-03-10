@@ -1,6 +1,7 @@
 //! Pass for rendering all symbols.
 
 use crate::prelude::*;
+use crate::system::gpu::*;
 
 use crate::display::render::pass;
 use crate::display::scene;
@@ -8,7 +9,6 @@ use crate::display::scene::layer;
 use crate::display::scene::Scene;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::MaskComposer;
-use crate::system::gpu::*;
 
 
 

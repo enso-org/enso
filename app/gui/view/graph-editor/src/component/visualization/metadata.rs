@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use crate::component::visualization;
 
+
+
 /// Description of the visualization state, emitted with visualization_shown event in GraphEditor.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Metadata {

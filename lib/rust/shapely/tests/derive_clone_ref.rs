@@ -1,7 +1,11 @@
 // This module contains dead code. Its purpose is making sure that it compiles
+
+// === Non-Standard Linter Configuration ===
 #![allow(dead_code)]
 
 use enso_prelude::*;
+
+
 
 #[derive(Clone, CloneRef)]
 struct StructUnit;

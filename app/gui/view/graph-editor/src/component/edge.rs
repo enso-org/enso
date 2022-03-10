@@ -1,6 +1,8 @@
 //! Definition of the Edge component.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
 
 use crate::component::node;
 
@@ -10,8 +12,6 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::gui::component::ShapeViewEvents;
 use ensogl_hardcoded_theme as theme;
 use nalgebra::Rotation2;

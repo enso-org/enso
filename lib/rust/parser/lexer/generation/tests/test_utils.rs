@@ -1,5 +1,6 @@
 //! Utilities for testing the Enso lexer.
 
+// === Non-Standard Linter Configuration ===
 #![allow(dead_code)]
 
 use enso_flexer::*;

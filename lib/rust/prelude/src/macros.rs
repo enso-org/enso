@@ -1,6 +1,7 @@
 //! This macro defines set of common macros which are useful across different projects.
 
 
+
 /// Allows for nicer definition of impls, similar to what Haskell or Scala does. Reduces the needed
 /// boilerplate. For example, the following usage:
 ///

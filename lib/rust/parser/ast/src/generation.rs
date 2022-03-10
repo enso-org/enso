@@ -1,13 +1,15 @@
 //! This module exports scala ast generator.
 
+// === Non-Standard Linter Configuration ===
 #![allow(unused_must_use)]
+
+use std::io::prelude::*;
 
 use itertools::Itertools;
 use proc_macro2::Span;
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::fs::File;
-use std::io::prelude::*;
 use syn;
 use syn::Ident;
 

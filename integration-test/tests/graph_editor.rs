@@ -6,6 +6,7 @@ use ensogl::display::navigation::navigator::ZoomEvent;
 use std::time::Duration;
 
 
+
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]

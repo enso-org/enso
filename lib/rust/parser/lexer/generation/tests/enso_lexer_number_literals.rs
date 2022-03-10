@@ -1,4 +1,8 @@
+//! This file contains tests for lexing number literals in the Enso lexer.
+
+// === Features ===
 #![feature(test)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -8,7 +12,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This file contains tests for lexing number literals in the Enso lexer.
+
 
 mod test_utils;
 
