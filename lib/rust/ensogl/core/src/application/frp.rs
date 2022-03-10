@@ -976,7 +976,8 @@ macro_rules! define_endpoints_2_normalized_public {
                 pub fn new(
                     network: &$crate::frp::Network,
                     private_output: &api::private::Output<$($param)*>,
-                    public_input: &Input<$($param)*>) -> Self {
+                    public_input: &Input<$($param)*>
+                ) -> Self {
                     let data = Rc::new(OutputData::new(network, private_output, public_input));
                     Self { data }
                 }
@@ -992,8 +993,9 @@ macro_rules! define_endpoints_2_normalized_public {
             #[allow(unused_parens)]
             #[derive(Debug)]
             pub struct OutputData $($ctx)* {
-                $($(#$out_attr)*
-                    pub $out_field  : $crate::frp::Sampler<$out_field_type>,
+                $(
+                    $(#$out_attr)*
+                    pub $out_field: $crate::frp::Sampler<$out_field_type>,
                 )*
 
                 pub status_map: Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
@@ -1001,24 +1003,25 @@ macro_rules! define_endpoints_2_normalized_public {
                 _phantom_type_args: PhantomData<($($param)*)>,
             }
 
-            impl $($ctx)*  OutputData <$($param)*>  {
+            impl $($ctx)* OutputData <$($param)*>  {
                 fn new(
                     network: &$crate::frp::Network,
                     private_output: &api::private::Output<$($param)*>,
-                    public_input: &Input<$($param)*>) -> Self {
+                    public_input: &Input<$($param)*>
+                ) -> Self {
                     use $crate::application::command::*;
 
                     $crate::frp::extend! { $output_opts network
-                        $($out_field <- private_output.$out_field.sampler();)*
+                        $( $out_field <- private_output.$out_field.sampler(); )*
                     }
 
                     let mut status_map : HashMap<String,$crate::frp::Sampler<bool>> = default();
                     let mut command_map : HashMap<String,Command> = default();
                     $($crate::build_status_map!
-                        {status_map $out_field $out_field_type $out_field })*
+                    {status_map $out_field $out_field_type $out_field })*
                     $($crate::build_command_map!
                         {command_map $in_field $in_field_type public_input.$in_field })*
-                    let status_map  = Rc::new(RefCell::new(status_map));
+                    let status_map = Rc::new(RefCell::new(status_map));
                     let command_map = Rc::new(RefCell::new(command_map));
 
                     let _phantom_type_args = default();
@@ -1124,7 +1127,8 @@ macro_rules! define_endpoints_2_normalized_private {
             impl  $($ctx)* Input <$($param)*> {
                 pub fn new(
                     network: &$crate::frp::Network,
-                    public_input: &api::public::Input<$($param)*>) -> Self {
+                    public_input: &api::public::Input<$($param)*>
+                ) -> Self {
                     let data = Rc::new(InputData::new(network, public_input));
                     Self { data }
                 }
@@ -1140,21 +1144,20 @@ macro_rules! define_endpoints_2_normalized_private {
             #[allow(unused_parens)]
             #[derive(Debug)]
             pub struct InputData $($ctx)* {
-                 $($(#$in_attr)*
-                     pub $in_field  : $crate::frp::Stream<$in_field_type>,
+                 $(
+                     $(#$in_attr)*
+                     pub $in_field: $crate::frp::Stream<$in_field_type>,
                  )*
-                 _phantom_type_args : PhantomData<($($param)*)>,
+                 _phantom_type_args: PhantomData<($($param)*)>,
             }
 
-            impl $($ctx)*  InputData <$($param)*> {
+            impl $($ctx)* InputData <$($param)*> {
                 fn new(
                     network: &$crate::frp::Network,
-                    public_input: &api::public::Input<$($param)*>) -> Self {
-                    // Enable profiling for all inputs.
+                    public_input: &api::public::Input<$($param)*>
+                ) -> Self {
                     $crate::frp::extend! { $input_opts network
-                        $(
-                        $in_field <- public_input.$in_field.profile();
-                        )*
+                        $( $in_field <- public_input.$in_field.profile(); )*
                     }
 
                     $(let $in_field = $in_field.clone_ref().into();)*
