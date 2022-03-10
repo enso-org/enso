@@ -127,6 +127,9 @@ mod examples {
 #[allow(unused_imports)]
 use examples::*;
 
+use prelude::profiler;
+use prelude::profiler::prelude::*;
+
 /// IDE startup function.
 #[profile(Objective)]
 #[wasm_bindgen]
