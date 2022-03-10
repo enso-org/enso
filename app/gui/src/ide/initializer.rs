@@ -63,14 +63,14 @@ impl Initializer {
     pub fn start_and_forget(self) {
         let executor = setup_global_executor();
         #[profile(Task)]
-        async fn start_and_forget(self_: Initializer) {
+        async fn start_and_forget_internal(self_: Initializer) {
             let ide = self_.start().await;
             web::document
                 .get_element_by_id("loader")
                 .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
             std::mem::forget(ide);
         }
-        executor::global::spawn(start_and_forget(self));
+        executor::global::spawn(start_and_forget_internal(self));
         std::mem::forget(executor);
     }
 

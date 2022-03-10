@@ -120,21 +120,21 @@ impl API for Handle {
 
 impl ManagingProjectAPI for Handle {
     fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult> {
-        self.create_new_project(template).boxed_local()
+        self.create_new_project_internal(template).boxed_local()
     }
 
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>> {
-        self.list_projects().boxed_local()
+        self.list_projects_internal().boxed_local()
     }
 
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult> {
-        self.open_project(id).boxed_local()
+        self.open_project_internal(id).boxed_local()
     }
 }
 
 impl Handle {
     #[profile(Objective)]
-    async fn create_new_project(&self, template: Option<String>) -> FallibleResult {
+    async fn create_new_project_internal(&self, template: Option<String>) -> FallibleResult {
         use model::project::Synchronized as Project;
 
         let list = self.project_manager.list_projects(&None).await?;
@@ -157,12 +157,12 @@ impl Handle {
     }
 
     #[profile(Task)]
-    async fn list_projects(&self) -> FallibleResult<Vec<ProjectMetadata>> {
+    async fn list_projects_internal(&self) -> FallibleResult<Vec<ProjectMetadata>> {
         Ok(self.project_manager.list_projects(&None).await?.projects)
     }
 
     #[profile(Task)]
-    async fn open_project(&self, id: Uuid) -> FallibleResult {
+    async fn open_project_internal(&self, id: Uuid) -> FallibleResult {
         let logger = &self.logger;
         let project_mgr = self.project_manager.clone_ref();
         let new_project = model::project::Synchronized::new_opened(logger, project_mgr, id);
