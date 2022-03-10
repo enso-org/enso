@@ -811,26 +811,34 @@ pub trait API {
 ///
 /// Also all inputs to the API are instrumented with profiling that is available when running the
 /// application with profiling at the `debug` level.
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! define_endpoints_2 {
     (
         $([$($global_opts:tt)*])?
         $(<$($param:ident $(:($($constraints:tt)*))?),*>)?
 
-        $(Input { $([$($input_opts:tt)*])?
-            $($(#[doc=$($in_doc:tt)*])*
-            $in_field : ident ($($in_field_type : tt)*)),* $(,)?
-        })?
+        $(
+            Input {
+                $([$($input_opts:tt)*])?
+                $(
+                    $(#$in_attr:tt)*
+                    $in_field : ident ($($in_field_type : tt)*)
+                ),* $(,)?
+            }
+        )?
 
-        $(Output { $([$($output_opts:tt)*])?
-            $($(#[doc=$($out_doc:tt)*])*
-            $out_field : ident ($($out_field_type : tt)*)),* $(,)?
+        $(
+            Output {
+                $([$($output_opts:tt)*])?
+                $(
+                    $(#$out_attr:tt)*
+                    $out_field : ident ($($out_field_type : tt)*)
+                ),* $(,)?
         })?
     ) => {
-        $crate::define_endpoints_2! {
-            NORMALIZED
+        $crate::define_endpoints_2_normalized! {
             $([$($global_opts)*])?
-            $(<$($param $(:($($constraints)*))?),*>)?
+            <$($($param $(:($($constraints)*))?),*)?>
 
             Input { $($([$($input_opts)*])?)?
                 /// Focus the element. Focused elements are meant to receive shortcut events.
@@ -840,23 +848,29 @@ macro_rules! define_endpoints_2 {
                 defocus(),
                 /// Wrapper for `focus` and `defocus`.
                 set_focus(bool),
-                $($($(#[doc=$($in_doc )*])*
-                $in_field ($($in_field_type )*)),*)?
+                $($(
+                    $(#$in_attr)*
+                    $in_field ($($in_field_type)*)
+                ),*)?
             }
 
             Output { $($([$($output_opts)*])?)?
                 /// Focus state checker.
                 focused(bool),
-                $($($(#[doc=$($out_doc)*])*
-                $out_field ($($out_field_type)*)),*)?
+                $($(
+                    $(#$out_attr)*
+                    $out_field ($($out_field_type)*)
+                ),*)?
             }
         }
     };
+}
 
+#[macro_export]
+macro_rules! define_endpoints_2_normalized {
     (
-        NORMALIZED
         $([$($global_opts:tt)*])?
-        $(<$($param:ident $(:($($constraints:tt)*))?),*>)?
+        <$($param:ident $(:($($constraints:tt)*))?),*>
 
         Input { $([$($input_opts:tt)*])?
             $($(#[doc=$($in_doc :tt)*])*
@@ -875,12 +889,12 @@ macro_rules! define_endpoints_2 {
         #[derive(Debug,Derivative)]
         #[derive(CloneRef, Clone)]
         #[allow(missing_docs)]
-        pub struct Frp $(<$($param $(:$($constraints)*)?),*>)? {
-            public: api::Public $(<$($param),*>)?,
-            private: Rc<api::Private $(<$($param),*>)?>,
+        pub struct Frp <$($param $(:$($constraints)*)?),*> {
+            public: api::Public <$($param),*>,
+            private: Rc<api::Private <$($param),*>>,
         }
 
-         impl $(<$($param $(:$($constraints)*)?),*>)? Frp $(<$($param),*>)? {
+         impl <$($param $(:$($constraints)*)?),*> Frp <$($param),*> {
             /// Create Frp endpoints within and the associated network.
             pub fn new() -> Self {
                 let network = $crate::frp::Network::new(file!());
@@ -898,33 +912,34 @@ macro_rules! define_endpoints_2 {
             }
         }
 
-        impl $(<$($param $(:$($constraints)*)?),*>)? Default for Frp $(<$($param),*>)? {
+        impl <$($param $(:$($constraints)*)?),*> Default for Frp <$($param),*> {
             fn default() -> Self {
                 Self::new()
             }
         }
 
-        impl $(<$($param $(:$($constraints)*)?),*>)?
-        $crate::application::command::FrpNetworkProvider for Frp $(<$($param),*>)?  {
+        impl <$($param $(:$($constraints)*)?),*>
+        $crate::application::command::FrpNetworkProvider for Frp <$($param),*>  {
             fn network(&self) -> &$crate::frp::Network { &self.private.network }
         }
 
-        impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Frp $(<$($param),*>)? {
-                    type Target = api::Public $(<$($param),*>)?;
+        impl <$($param $(:$($constraints)*)?),*> Deref for Frp <$($param),*> {
+                    type Target = api::Public <$($param),*>;
             fn deref(&self) -> &Self::Target {
                 &self.public
             }
         }
 
-        impl $crate::application::frp::API for Frp {
-            type Public=api::Public;
-            type Private=api::Private;
+        impl <$($param $(:$($constraints)*)?),*>
+        $crate::application::frp::API for Frp <$($param),*> {
+            type Public=api::Public <$($param),*>;
+            type Private=api::Private <$($param),*>;
 
-            fn private(&self) -> &Self::Private{
+            fn private(&self) -> &Self::Private {
                 &self.private
             }
 
-            fn public(&self) -> &Self::Public{
+            fn public(&self) -> &Self::Public {
                 &self.public
             }
         }
@@ -948,21 +963,21 @@ macro_rules! define_endpoints_2 {
             /// that contains both input and output nodes and which is accessible via a `Deref`
             /// implementation on `Public`.
             #[derive(Debug, CloneRef, Clone)]
-            pub struct Public $(<$($param $(:$($constraints)*)?),*>)? {
-                pub input: public::Input $(<$($param),*>)?,
-                pub output: public::Output $(<$($param),*>)?,
-                pub (crate) combined: public::Combined $(<$($param),*>)?,
+            pub struct Public <$($param $(:$($constraints)*)?),*> {
+                pub input: public::Input <$($param),*>,
+                pub output: public::Output <$($param),*>,
+                pub (crate) combined: public::Combined <$($param),*>,
             }
 
-            impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Public $(<$($param),*>)? {
-                type Target = public::Combined $(<$($param),*>)?;
+            impl <$($param $(:$($constraints)*)?),*> Deref for Public <$($param),*> {
+                type Target = public::Combined <$($param),*>;
                 fn deref(&self) -> &Self::Target {
                     &self.combined
                 }
             }
 
-            impl $(<$($param $(:$($constraints)*)?),*>)?
-            $crate::application::command::CommandApi for Public $(<$($param),*>)?  {
+            impl <$($param $(:$($constraints)*)?),*>
+            $crate::application::command::CommandApi for Public <$($param),*>  {
                 fn command_api(&self)
                     -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
                     self.output.command_map.clone()
@@ -979,19 +994,19 @@ macro_rules! define_endpoints_2 {
                 // === Input ===
 
                 #[derive(Debug, CloneRef, Clone)]
-                pub struct Input $(<$($param $(:$($constraints)*)?),*>)?  {
-                    data: Rc<InputData$(<$($param),*>)?,>
+                pub struct Input <$($param $(:$($constraints)*)?),*>  {
+                    data: Rc<InputData<$($param),*>,>
                 }
 
-                impl$(<$($param $(:$($constraints)*)?),*>)?  Input $(<$($param),*>)? {
+                impl<$($param $(:$($constraints)*)?),*>  Input <$($param),*> {
                     pub fn new(network: &$crate::frp::Network) -> Self {
                         let data = Rc::new(InputData::new(network));
                         Self { data }
                     }
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Input $(<$($param),*>)? {
-                    type Target = InputData $(<$($param),*>)?;
+                impl <$($param $(:$($constraints)*)?),*> Deref for Input <$($param),*> {
+                    type Target = InputData <$($param),*>;
                     fn deref(&self) -> &Self::Target {
                         &self.data
                     }
@@ -1000,14 +1015,14 @@ macro_rules! define_endpoints_2 {
                 #[allow(unused_parens)]
                 #[derive(Debug, CloneRef, Derivative)]
                 #[derivative(Clone(bound = ""))]
-                pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
+                pub struct InputData <$($param $(:$($constraints)*)?),*> {
                     $( $(#[doc=$($in_doc)*])*
                     pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
-                    _phantom_type_args : ($($(PhantomData<$param>),*)?),
+                    _phantom_type_args : PhantomData<($($param),*)>,
                 }
 
                 #[allow(unused_parens)]
-                impl $(<$($param $(:$($constraints)*)?),*>)?  InputData $(<$($param),*>)? {
+                impl <$($param $(:$($constraints)*)?),*>  InputData <$($param),*> {
                     pub fn new(network: &$crate::frp::Network) -> Self {
                         $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
                             $($in_field <- any_mut();)*
@@ -1024,22 +1039,22 @@ macro_rules! define_endpoints_2 {
                 // === Output ===
 
                 #[derive(Debug, CloneRef, Clone)]
-                pub struct Output $(<$($param $(:$($constraints)*)?),*>)? {
-                    data: Rc<OutputData$(<$($param),*>)?,>
+                pub struct Output <$($param $(:$($constraints)*)?),*> {
+                    data: Rc<OutputData<$($param),*>,>
                 }
 
-                 impl $(<$($param $(:$($constraints)*)?),*>)?  Output $(<$($param),*>)? {
+                 impl <$($param $(:$($constraints)*)?),*>  Output <$($param),*> {
                     pub fn new(
                         network: &$crate::frp::Network,
-                        private_output: &api::private::Output$(<$($param),*>)?,
-                        public_input: &Input$(<$($param),*>)?) -> Self {
+                        private_output: &api::private::Output<$($param),*>,
+                        public_input: &Input<$($param),*>) -> Self {
                         let data = Rc::new(OutputData::new(network, private_output, public_input));
                         Self { data }
                     }
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Output $(<$($param),*>)? {
-                    type Target = OutputData $(<$($param),*>)?;
+                impl <$($param $(:$($constraints)*)?),*> Deref for Output <$($param),*> {
+                    type Target = OutputData <$($param),*>;
                     fn deref(&self) -> &Self::Target {
                         &self.data
                     }
@@ -1047,21 +1062,21 @@ macro_rules! define_endpoints_2 {
 
                 #[allow(unused_parens)]
                 #[derive(Debug)]
-                pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
+                pub struct OutputData <$($param $(:$($constraints)*)?),*> {
                     $($(#[doc=$($out_doc)*])*
                         pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
                     )*
 
                     pub status_map: Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
                     pub command_map: Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
-                    _phantom_type_args: ($($(PhantomData<$param>),*)?),
+                    _phantom_type_args: PhantomData<($($param),*)>,
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)?  OutputData $(<$($param),*>)?  {
+                impl <$($param $(:$($constraints)*)?),*>  OutputData <$($param),*>  {
                     fn new(
                         network: &$crate::frp::Network,
-                        private_output: &api::private::Output$(<$($param),*>)?,
-                        public_input: &Input$(<$($param),*>)?) -> Self {
+                        private_output: &api::private::Output<$($param),*>,
+                        public_input: &Input<$($param),*>) -> Self {
                         use $crate::application::command::*;
 
                         $crate::frp::extend! { $($($global_opts)*)? $($($output_opts)*)? network
@@ -1086,15 +1101,15 @@ macro_rules! define_endpoints_2 {
                 // === Combined ===
 
                 #[derive(Debug, CloneRef, Clone)]
-                pub struct Combined $(<$($param $(:$($constraints)*)?),*>)? {
-                    data: Rc<CombinedData$(<$($param),*>)?,> // deref
+                pub struct Combined <$($param $(:$($constraints)*)?),*> {
+                    data: Rc<CombinedData<$($param),*>,> // deref
                 }
 
                 #[allow(unused_parens)]
-                impl $(<$($param $(:$($constraints)*)?),*>)? Combined $(<$($param),*>)? {
+                impl <$($param $(:$($constraints)*)?),*> Combined <$($param),*> {
                     pub fn new(
-                        input:&InputData$(<$($param),*>)?,
-                        output:&OutputData$(<$($param),*>)?) -> Self {
+                        input:&InputData<$($param),*>,
+                        output:&OutputData<$($param),*>) -> Self {
                         let data = Rc::new(CombinedData::new(input,output));
                         Self { data }
                     }
@@ -1103,8 +1118,8 @@ macro_rules! define_endpoints_2 {
 
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Combined $(<$($param),*>)? {
-                    type Target = CombinedData $(<$($param),*>)?;
+                impl <$($param $(:$($constraints)*)?),*> Deref for Combined <$($param),*> {
+                    type Target = CombinedData <$($param),*>;
                     fn deref(&self) -> &Self::Target {
                         &self.data
                     }
@@ -1112,7 +1127,7 @@ macro_rules! define_endpoints_2 {
 
                 #[allow(unused_parens)]
                 #[derive(Debug)]
-                pub struct CombinedData $(<$($param $(:$($constraints)*)?),*>)? {
+                pub struct CombinedData <$($param $(:$($constraints)*)?),*> {
                     $( $(#[doc=$($in_doc)*])*
                     pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
 
@@ -1121,10 +1136,10 @@ macro_rules! define_endpoints_2 {
                     )*
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? CombinedData $(<$($param),*>)? {
+                impl <$($param $(:$($constraints)*)?),*> CombinedData <$($param),*> {
                     pub fn new(
-                        input:&InputData$(<$($param),*>)?,
-                        output:&OutputData$(<$($param),*>)?) -> Self {
+                        input:&InputData<$($param),*>,
+                        output:&OutputData<$($param),*>) -> Self {
                         $(let $in_field = input.$in_field.clone_ref();)*
                         $(let $out_field = output.$out_field.clone_ref();)*
 
@@ -1142,10 +1157,10 @@ macro_rules! define_endpoints_2 {
 
             // No Clone. We do not want `network` to be cloned easily in the future.
             #[derive(Debug)]
-            pub struct Private $(<$($param $(:$($constraints)*)?),*>)? {
+            pub struct Private <$($param $(:$($constraints)*)?),*> {
                 pub network: $crate::frp::Network,
-                pub input: private::Input$(<$($param),*>)?,
-                pub output: private::Output$(<$($param),*>)?,
+                pub input: private::Input<$($param),*>,
+                pub output: private::Output<$($param),*>,
             }
 
             pub mod private {
@@ -1155,21 +1170,21 @@ macro_rules! define_endpoints_2 {
                 // === Input ===
 
                 #[derive(Debug)]
-                pub struct Input  $(<$($param $(:$($constraints)*)?),*>)? {
-                    data: Rc<InputData$(<$($param),*>)?>
+                pub struct Input  <$($param $(:$($constraints)*)?),*> {
+                    data: Rc<InputData<$($param),*>>
                 }
 
-                impl  $(<$($param $(:$($constraints)*)?),*>)? Input $(<$($param),*>)? {
+                impl  <$($param $(:$($constraints)*)?),*> Input <$($param),*> {
                     pub fn new(
                         network: &$crate::frp::Network,
-                        public_input: &api::public::Input$(<$($param),*>)?) -> Self {
+                        public_input: &api::public::Input<$($param),*>) -> Self {
                         let data = Rc::new(InputData::new(network, public_input));
                         Self { data }
                     }
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Input $(<$($param),*>)? {
-                    type Target = InputData $(<$($param),*>)?;
+                impl <$($param $(:$($constraints)*)?),*> Deref for Input <$($param),*> {
+                    type Target = InputData <$($param),*>;
                     fn deref(&self) -> &Self::Target {
                         &self.data
                     }
@@ -1177,17 +1192,17 @@ macro_rules! define_endpoints_2 {
 
                 #[allow(unused_parens)]
                 #[derive(Debug)]
-                pub struct InputData $(<$($param $(:$($constraints)*)?),*>)? {
+                pub struct InputData <$($param $(:$($constraints)*)?),*> {
                      $($(#[doc=$($in_doc)*])*
                          pub $in_field  : $crate::frp::Stream<($($in_field_type)*)>,
                      )*
-                     _phantom_type_args : ($($(PhantomData<$param>),*)?),
+                     _phantom_type_args : PhantomData<($($param),*)>,
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)?  InputData $(<$($param),*>)? {
+                impl <$($param $(:$($constraints)*)?),*>  InputData <$($param),*> {
                     fn new(
                         network: &$crate::frp::Network,
-                        public_input: &api::public::Input$(<$($param),*>)?) -> Self {
+                        public_input: &api::public::Input<$($param),*>) -> Self {
                         // Enable profiling for all inputs.
                         $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
                             $(
@@ -1204,19 +1219,19 @@ macro_rules! define_endpoints_2 {
                 // === Output ===
 
                 #[derive(Debug)]
-                pub struct Output $(<$($param $(:$($constraints)*)?),*>)? {
-                    data: Rc<OutputData$(<$($param),*>)?>
+                pub struct Output <$($param $(:$($constraints)*)?),*> {
+                    data: Rc<OutputData<$($param),*>>
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? Output $(<$($param),*>)? {
+                impl <$($param $(:$($constraints)*)?),*> Output <$($param),*> {
                     pub fn new(network: &$crate::frp::Network) -> Self {
                         let data = Rc::new(OutputData::new(network));
                         Self { data }
                     }
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? Deref for Output $(<$($param),*>)? {
-                    type Target = OutputData $(<$($param),*>)?;
+                impl <$($param $(:$($constraints)*)?),*> Deref for Output <$($param),*> {
+                    type Target = OutputData <$($param),*>;
                     fn deref(&self) -> &Self::Target {
                         &self.data
                     }
@@ -1224,15 +1239,15 @@ macro_rules! define_endpoints_2 {
 
                 #[allow(unused_parens)]
                 #[derive(Debug)]
-                pub struct OutputData $(<$($param $(:$($constraints)*)?),*>)? {
+                pub struct OutputData <$($param $(:$($constraints)*)?),*> {
                     $($(#[doc=$($out_doc)*])*
                     pub $out_field  : $crate::frp::Any<($($out_field_type)*)>,
                     )*
 
-                    _phantom_type_args : ($($(PhantomData<$param>),*)?),
+                    _phantom_type_args : PhantomData<($($param),*)>,
                 }
 
-                impl $(<$($param $(:$($constraints)*)?),*>)? OutputData$(<$($param),*>)? {
+                impl <$($param $(:$($constraints)*)?),*> OutputData <$($param),*> {
                     fn new(network: &$crate::frp::Network) -> Self {
                          $crate::frp::extend! { $($($global_opts)*)? $($($output_opts)*)? network
                             $($out_field <- any_mut();)*
