@@ -1,9 +1,5 @@
 
 
-// === Standard Linter Configuration ===
-
-
-
 #[cfg(test)]
 mod tests {
     #[test]

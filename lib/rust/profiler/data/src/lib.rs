@@ -1,7 +1,3 @@
-// === Standard Linter Configuration ===
-
-
-
 #![allow(rustdoc::private_intra_doc_links)] // check_no_async_tasks_active
 //! Interface to profile data.
 //!
