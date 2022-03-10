@@ -883,12 +883,12 @@ impl Node {
 
             // === Bounding Box ===
 
-            let visualization_size             = &model.visualization.frp.size;
+            let visualization_size = &model.visualization.frp.size;
             // Visualization can be enabled and not visible when the node has an error.
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
-            bbox_input                        <- all4(
+            bbox_input <- all4(
                 &position,&new_size,&visualization_enabled_and_visible,visualization_size);
-            out.source.bounding_box           <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
+            out.source.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
 
 
             // === VCS Handling ===
