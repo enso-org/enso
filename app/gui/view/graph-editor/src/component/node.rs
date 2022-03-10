@@ -936,8 +936,6 @@ fn x_offset_to_node_center(node_width: f32) -> f32 {
 
 /// Calculate a position where to render the [`visualization::Container`] of a node, relative to
 /// the node's origin.
-///
-/// See the [`Node`] documentation for more details.
 fn visualization_offset(node_width: f32) -> Vector2 {
     Vector2(x_offset_to_node_center(node_width), VISUALIZATION_OFFSET_Y)
 }
