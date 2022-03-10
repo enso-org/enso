@@ -28,6 +28,7 @@ pub mod builtin;
 pub mod data;
 #[warn(missing_docs)]
 pub mod free_place_finder;
+pub mod new_node_positioning;
 #[warn(missing_docs)]
 pub mod profiling;
 #[warn(missing_docs)]
