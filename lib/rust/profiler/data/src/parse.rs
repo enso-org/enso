@@ -1,7 +1,6 @@
 //! Parsing implementation. `pub` contents are low-level error details.
 
 use enso_profiler as profiler;
-
 use std::collections;
 use std::error;
 use std::fmt;

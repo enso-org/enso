@@ -8,6 +8,7 @@ use crate::display::symbol::material::Material;
 use crate::system::gpu::data::texture;
 
 
+
 /// A geometry which always covers the whole screen which when rendered outputs an image by
 /// composing three input textures: mask, color, and id.
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]

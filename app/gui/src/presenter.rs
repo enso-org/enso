@@ -1,15 +1,6 @@
 //! The Presenter is a layer between logical part of the IDE (controllers, engine models) and the
 //! views (the P letter in MVP pattern). The presenter reacts to changes in the controllers, and
 //! actively updates the view. It also passes all user interactions from view to controllers.
-pub mod code;
-pub mod graph;
-pub mod project;
-pub mod searcher;
-
-pub use code::Code;
-pub use graph::Graph;
-pub use project::Project;
-pub use searcher::Searcher;
 
 use crate::prelude::*;
 
@@ -20,6 +11,21 @@ use crate::presenter;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod code;
+pub mod graph;
+pub mod project;
+pub mod searcher;
+
+pub use code::Code;
+pub use graph::Graph;
+pub use project::Project;
+pub use searcher::Searcher;
 
 
 

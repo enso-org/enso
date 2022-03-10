@@ -1,18 +1,10 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
-#[warn(missing_docs)]
-pub mod geometry;
-#[warn(missing_docs)]
-pub mod material;
-#[warn(missing_docs)]
-pub mod registry;
-#[warn(missing_docs)]
-pub mod shader;
-
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::symbol::geometry::primitive::mesh;
@@ -29,6 +21,20 @@ use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;
 use web_sys::WebGlUniformLocation;
 use web_sys::WebGlVertexArrayObject;
+
+
+// ==============
+// === Export ===
+// ==============
+
+#[warn(missing_docs)]
+pub mod geometry;
+#[warn(missing_docs)]
+pub mod material;
+#[warn(missing_docs)]
+pub mod registry;
+#[warn(missing_docs)]
+pub mod shader;
 
 
 

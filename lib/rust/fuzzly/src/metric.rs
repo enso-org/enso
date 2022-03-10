@@ -1,4 +1,5 @@
 //! The Metric trait definition and standard implementations.
+
 use crate::prelude::*;
 
 use crate::subsequence_graph;

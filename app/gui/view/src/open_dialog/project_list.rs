@@ -1,11 +1,11 @@
 //! A module containing [`ProjectList`] component and all related structures.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::list_view;
 use ensogl_component::shadow;
 use ensogl_hardcoded_theme::application::project_list as theme;

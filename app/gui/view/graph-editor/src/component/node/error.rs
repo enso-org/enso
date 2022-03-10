@@ -1,5 +1,7 @@
 //! Contains a struct definition for error information on nodes.
+
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::builtin::visualization::native::error as error_visualization;
 use crate::component::visualization;
@@ -9,7 +11,6 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 use serde::Deserialize;
 use serde::Serialize;

@@ -1,5 +1,8 @@
-use ast_new::generation::ScalaGenerator;
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
+use ast_new::generation::ScalaGenerator;
 use std::fs::File;
 use std::io::Write;
 

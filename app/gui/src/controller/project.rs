@@ -1,10 +1,10 @@
 //! A Project Controller.
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::ide::StatusNotificationPublisher;
 use crate::model::module::QualifiedName;
-use crate::model::traits::*;
 
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;

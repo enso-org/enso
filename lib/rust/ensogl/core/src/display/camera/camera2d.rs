@@ -1,12 +1,12 @@
 //! Camera implementation which is specialized for 2D view (it computes some additional parameters,
 //! like the zoom to the canvas).
 
+use crate::control::callback::traits::*;
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
 use crate::control::callback;
-use crate::control::callback::traits::*;
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::display;
 use crate::display::scene::Scene;
 
