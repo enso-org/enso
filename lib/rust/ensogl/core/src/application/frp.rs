@@ -820,21 +820,16 @@ macro_rules! define_endpoints_2 {
         $(
             Input {
                 $([$($input_opts:tt)*])?
-                $(
-                    $(#$in_attr:tt)*
-                    $in_field:ident $in_field_type:tt
-                ),* $(,)?
+                $( $(#$in_attr:tt)* $in_field:ident $in_field_type:tt ),* $(,)?
             }
         )?
 
         $(
             Output {
                 $([$($output_opts:tt)*])?
-                $(
-                    $(#$out_attr:tt)*
-                    $out_field:ident $out_field_type:tt
-                ),* $(,)?
-        })?
+                $( $(#$out_attr:tt)* $out_field:ident $out_field_type:tt ),* $(,)?
+            }
+        )?
     ) => {
         $crate::define_endpoints_2_normalized! {{
             [<$($($param $(:$($constraints)*)?),*)?>] [$($($param),*)?]
@@ -847,19 +842,13 @@ macro_rules! define_endpoints_2 {
                 defocus(),
                 /// Wrapper for `focus` and `defocus`.
                 set_focus(bool)
-                $($(,
-                    $(#$in_attr)*
-                    $in_field $in_field_type
-                )*)?
+                $($(, $(#$in_attr)* $in_field $in_field_type )*)?
             }
 
             Output { [$($($global_opts)*)? $($($($output_opts)*)?)?]
                 /// Focus state checker.
                 focused(bool)
-                $($(,
-                    $(#$out_attr)*
-                    $out_field $out_field_type
-                )*)?
+                $($(, $(#$out_attr)* $out_field $out_field_type )*)?
             }
         }}
     };
@@ -868,7 +857,8 @@ macro_rules! define_endpoints_2 {
 #[macro_export]
 macro_rules! test_1 {
     (
-        [$($ctx:tt)*] [$($param:tt)*] $name:tt $data_name:tt {$($field:tt)*}
+        [$($ctx:tt)*] [$($param:tt)*]
+        $name:tt $data_name:tt {$($field:tt)*}
     ) => {
         #[derive(Debug, CloneRef)]
         pub struct $name $($ctx)* {
@@ -898,23 +888,64 @@ macro_rules! test_1 {
     };
 }
 
+
+#[macro_export]
+macro_rules! test_2 {
+    (
+        [$($ctx:tt)*] [$($param:tt)*]
+        $name:tt $data_name:tt {$($field:tt)*}
+
+        pub fn new($($arg:ident : $arg_tp:tt),*) {
+
+        }
+
+    ) => {
+        #[derive(Debug, CloneRef)]
+        pub struct $name $($ctx)* {
+            data: Rc<$data_name<$($param)*>>
+        }
+
+        impl $($ctx)* Deref for $name <$($param)*> {
+            type Target = $data_name <$($param)*>;
+            fn deref(&self) -> &Self::Target {
+                &self.data
+            }
+        }
+
+        impl $($ctx)* Clone for $name <$($param)*> {
+            fn clone(&self) -> Self {
+                let data = Rc::clone(&self.data);
+                Self {data}
+            }
+        }
+
+        #[allow(unused_parens)]
+        #[derive(Debug)]
+        pub struct $data_name $($ctx)* {
+            _phantom_type_args: PhantomData<($($param)*)>,
+             $($field)*
+        }
+
+        impl$($ctx)* $name <$($param)*> {
+            pub fn new(network: &$crate::frp::Network, $($arg: $arg_tp),*) -> Self {
+                let data = Rc::new($data_name::new(network, $($arg),*));
+                Self { data }
+            }
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_public {
     ({
         [$($ctx:tt)*] [$($param:tt)*]
 
         Input { $input_opts:tt
-            $(
-                $(#$in_attr:tt)*
-                $in_field:ident $in_field_type:tt
-            ),*
+            $( $(#$in_attr:tt)* $in_field:ident $in_field_type:tt ),*
         }
 
         Output { $output_opts:tt
-            $(
-                $(#$out_attr:tt)*
-                $out_field:ident $out_field_type:tt
-            ),*
+            $( $(#$out_attr:tt)* $out_field:ident $out_field_type:tt ),*
         }
     }) => {
         /// Public FRP Api. Contains FRP nodes for sending FRP events into the API collected
@@ -953,19 +984,16 @@ macro_rules! define_endpoints_2_normalized_public {
 
             // === Input ===
 
-            $crate::test_1! {
+            $crate::test_2! {
                 [$($ctx)*] [$($param)*] Input InputData {
                     $(
                         $(#$in_attr)*
                         pub $in_field : $crate::frp::Any<$in_field_type>,
                     )*
                 }
-            }
 
-            impl$($ctx)* Input <$($param)*> {
-                pub fn new(network: &$crate::frp::Network) -> Self {
-                    let data = Rc::new(InputData::new(network));
-                    Self { data }
+                pub fn new() {
+
                 }
             }
 
@@ -978,6 +1006,10 @@ macro_rules! define_endpoints_2_normalized_public {
                     }
                     Self { _phantom_type_args, $($in_field),* }
                 }
+            }
+
+            #[allow(unused_parens)]
+            impl $($ctx)* InputData <$($param)*> {
                 $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
             }
 
@@ -1095,17 +1127,11 @@ macro_rules! define_endpoints_2_normalized_private {
         [$($ctx:tt)*] [$($param:tt)*]
 
         Input { $input_opts:tt
-            $(
-                $(#$in_attr:tt)*
-                $in_field:ident $in_field_type:tt
-            ),*
+            $( $(#$in_attr:tt)* $in_field:ident $in_field_type:tt ),*
         }
 
         Output { $output_opts:tt
-            $(
-                $(#$out_attr:tt)*
-                $out_field:ident $out_field_type:tt
-            ),*
+            $( $(#$out_attr:tt)* $out_field:ident $out_field_type:tt ),*
         }
     }) => {
         // No Clone. We do not want `network` to be cloned easily in the future.
@@ -1134,7 +1160,7 @@ macro_rules! define_endpoints_2_normalized_private {
             impl  $($ctx)* Input <$($param)*> {
                 pub fn new(
                     network: &$crate::frp::Network,
-                    public_input: &api::public::Input<$($param)*>
+                    public_input: (&api::public::Input<$($param)*>)
                 ) -> Self {
                     let data = Rc::new(InputData::new(network, public_input));
                     Self { data }
