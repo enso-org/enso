@@ -893,11 +893,11 @@ macro_rules! test_1 {
 macro_rules! test_2 {
     (
         [$($ctx:tt)*] [$($param:tt)*]
-        $name:tt $data_name:tt {$($field:tt)*}
-
-        pub fn new($($arg:ident : $arg_tp:tt),*) {
-
+        $name:tt $data_name:tt {
+            $( $(#$field_attr:tt)* $field:ident : $field_type:tt ),*
         }
+
+        pub fn new($net:ident $(,$arg:ident : $arg_tp:tt)*) $body:tt
 
     ) => {
         #[derive(Debug, CloneRef)]
@@ -923,13 +923,28 @@ macro_rules! test_2 {
         #[derive(Debug)]
         pub struct $data_name $($ctx)* {
             _phantom_type_args: PhantomData<($($param)*)>,
-             $($field)*
+            $( $(#$field_attr)* pub $field : $field_type ),*
+        }
+
+        impl$($ctx)* $data_name <$($param)*> {
+            fn new_from_tuple(tuple:($($field_type,)*)) -> Self {
+                let _phantom_type_args = default();
+                let ($($field,)*) = tuple;
+                Self { _phantom_type_args, $($field),* }
+            }
         }
 
         impl$($ctx)* $name <$($param)*> {
             pub fn new(network: &$crate::frp::Network, $($arg: $arg_tp),*) -> Self {
                 let data = Rc::new($data_name::new(network, $($arg),*));
                 Self { data }
+            }
+        }
+
+        #[allow(unused_parens)]
+        impl $($ctx)* $data_name <$($param)*> {
+            pub fn new($net: &$crate::frp::Network) -> Self {
+                Self::new_from_tuple($body)
             }
         }
     };
@@ -988,25 +1003,28 @@ macro_rules! define_endpoints_2_normalized_public {
                 [$($ctx)*] [$($param)*] Input InputData {
                     $(
                         $(#$in_attr)*
-                        pub $in_field : $crate::frp::Any<$in_field_type>,
-                    )*
+                        $in_field : ($crate::frp::Any<$in_field_type>)
+                    ),*
                 }
 
-                pub fn new() {
-
-                }
-            }
-
-            #[allow(unused_parens)]
-            impl $($ctx)* InputData <$($param)*> {
-                pub fn new(network: &$crate::frp::Network) -> Self {
-                    let _phantom_type_args = default();
+                pub fn new(network) {
                     $crate::frp::extend! { $input_opts network
                         $($in_field <- any_mut();)*
                     }
-                    Self { _phantom_type_args, $($in_field),* }
+                    ($($in_field,)*)
                 }
             }
+
+            // #[allow(unused_parens)]
+            // impl $($ctx)* InputData <$($param)*> {
+            //     pub fn new(network: &$crate::frp::Network) -> Self {
+            //         let _phantom_type_args = default();
+            //         $crate::frp::extend! { $input_opts network
+            //             $($in_field <- any_mut();)*
+            //         }
+            //         Self { _phantom_type_args, $($in_field),* }
+            //     }
+            // }
 
             #[allow(unused_parens)]
             impl $($ctx)* InputData <$($param)*> {
