@@ -873,14 +873,14 @@ macro_rules! define_endpoints_2_normalized {
         Input { $input_opts:tt
             $(
                 $(#$in_attr:tt)*
-                $in_field:ident ($($in_field_type:tt)*)
+                $in_field:ident $in_field_type:tt
             ),*
         }
 
         Output { $output_opts:tt
             $(
                 $(#$out_attr:tt)*
-                $out_field:ident ($($out_field_type:tt)*)
+                $out_field:ident $out_field_type:tt
             ),*
         }
     ) => {
@@ -1019,7 +1019,7 @@ macro_rules! define_endpoints_2_normalized {
                 #[derivative(Clone(bound = ""))]
                 pub struct InputData $($ctx)* {
                     $( $(#$in_attr)*
-                    pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+                    pub $in_field : $crate::frp::Any<$in_field_type>,)*
                     _phantom_type_args : PhantomData<($($param)*)>,
                 }
 
@@ -1033,7 +1033,7 @@ macro_rules! define_endpoints_2_normalized {
                         Self { $($in_field),*, _phantom_type_args }
                     }
 
-                    $($crate::define_endpoints_emit_alias!{$in_field ($($in_field_type)*)})*
+                    $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
 
                 }
 
@@ -1066,7 +1066,7 @@ macro_rules! define_endpoints_2_normalized {
                 #[derive(Debug)]
                 pub struct OutputData $($ctx)* {
                     $($(#$out_attr)*
-                        pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
+                        pub $out_field  : $crate::frp::Sampler<$out_field_type>,
                     )*
 
                     pub status_map: Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
@@ -1088,9 +1088,9 @@ macro_rules! define_endpoints_2_normalized {
                         let mut status_map : HashMap<String,$crate::frp::Sampler<bool>> = default();
                         let mut command_map : HashMap<String,Command> = default();
                         $($crate::build_status_map!
-                            {status_map $out_field ($($out_field_type)*) $out_field })*
+                            {status_map $out_field $out_field_type $out_field })*
                         $($crate::build_command_map!
-                            {command_map $in_field ($($in_field_type)*) public_input.$in_field })*
+                            {command_map $in_field $in_field_type public_input.$in_field })*
                         let status_map  = Rc::new(RefCell::new(status_map));
                         let command_map = Rc::new(RefCell::new(command_map));
 
@@ -1116,7 +1116,7 @@ macro_rules! define_endpoints_2_normalized {
                         Self { data }
                     }
 
-                    $($crate::define_endpoints_emit_alias!{$in_field ($($in_field_type)*)})*
+                    $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
 
                 }
 
@@ -1131,10 +1131,10 @@ macro_rules! define_endpoints_2_normalized {
                 #[derive(Debug)]
                 pub struct CombinedData $($ctx)* {
                     $( $(#$in_attr)*
-                    pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+                    pub $in_field : $crate::frp::Any<$in_field_type>,)*
 
                     $($(#$out_attr)*
-                        pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
+                        pub $out_field  : $crate::frp::Sampler<$out_field_type>,
                     )*
                 }
 
@@ -1196,7 +1196,7 @@ macro_rules! define_endpoints_2_normalized {
                 #[derive(Debug)]
                 pub struct InputData $($ctx)* {
                      $($(#$in_attr)*
-                         pub $in_field  : $crate::frp::Stream<($($in_field_type)*)>,
+                         pub $in_field  : $crate::frp::Stream<$in_field_type>,
                      )*
                      _phantom_type_args : PhantomData<($($param)*)>,
                 }
@@ -1242,8 +1242,9 @@ macro_rules! define_endpoints_2_normalized {
                 #[allow(unused_parens)]
                 #[derive(Debug)]
                 pub struct OutputData $($ctx)* {
-                    $($(#$out_attr)*
-                    pub $out_field  : $crate::frp::Any<($($out_field_type)*)>,
+                    $(
+                        $(#$out_attr)*
+                        pub $out_field  : $crate::frp::Any<$out_field_type>,
                     )*
 
                     _phantom_type_args : PhantomData<($($param)*)>,
