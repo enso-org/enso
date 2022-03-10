@@ -369,7 +369,7 @@ function setupCrashDetection() {
     // (https://v8.dev/docs/stack-trace-api#compatibility)
     Error.stackTraceLimit = 100
 
-    window.addEventListener('error', function (event) {
+    window.addEventListener('error', function(event) {
         // We prefer stack traces over plain error messages but not all browsers produce traces.
         if (ok(event.error) && ok(event.error.stack)) {
             handleCrash(event.error.stack)
@@ -377,7 +377,7 @@ function setupCrashDetection() {
             handleCrash(event.message)
         }
     })
-    window.addEventListener('unhandledrejection', function (event) {
+    window.addEventListener('unhandledrejection', function(event) {
         // As above, we prefer stack traces.
         // But here, `event.reason` is not even guaranteed to be an `Error`.
         handleCrash(event.reason.stack || event.reason.message || 'Unhandled rejection')
@@ -965,7 +965,7 @@ async function runEntryPoint(config: Config) {
     }
 }
 
-API.main = async function (inputConfig: any) {
+API.main = async function(inputConfig: any) {
     const urlParams = new URLSearchParams(window.location.search)
     // @ts-ignore
     const urlConfig = Object.fromEntries(urlParams.entries())
@@ -975,8 +975,8 @@ API.main = async function (inputConfig: any) {
     config.updateFromObject(urlConfig)
 
     if (await checkMinSupportedVersion(config)) {
-        if (config.authentication_enabled && !Versions.isDevVersion()) {
-            new FirebaseAuthentication(function (user: any) {
+        if (config.authentication_enabled) {
+            new FirebaseAuthentication(function(user: any) {
                 config.email = user.email
                 runEntryPoint(config)
             })
