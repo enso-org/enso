@@ -1,13 +1,14 @@
 //! Functionality related to visualising the version control system status of a node.
 
-use crate::component::node;
 use crate::prelude::*;
+use ensogl::display::shape::*;
+
+use crate::component::node;
 
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::*;
 
 
 
@@ -158,7 +159,7 @@ impl StatusIndicator {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
 
         frp::extend! { network
             frp.source.status <+ frp.input.set_status;

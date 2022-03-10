@@ -4,13 +4,11 @@ use crate::prelude::*;
 
 use crate as frp;
 use crate::io::js::CurrentJsEvent;
-use crate::io::js::EventCallback;
-use crate::io::js::KeyboardEventCallback;
 use crate::io::js::Listener;
 
+use enso_web::KeyboardEvent;
 use inflector::Inflector;
 use unicode_segmentation::UnicodeSegmentation;
-use web_sys::KeyboardEvent;
 
 
 
@@ -417,34 +415,23 @@ impl Default for Keyboard {
 #[derive(Debug)]
 pub struct DomBindings {
     #[allow(dead_code)]
-    key_down: Listener<dyn KeyboardEventCallback>,
+    key_down: Listener,
     #[allow(dead_code)]
-    key_up:   Listener<dyn KeyboardEventCallback>,
+    key_up:   Listener,
     #[allow(dead_code)]
-    blur:     Listener<dyn EventCallback>,
+    blur:     Listener,
 }
 
 impl DomBindings {
     /// Create new Keyboard and Frp bindings.
-    pub fn new(
-        logger: impl AnyLogger,
-        keyboard: &Keyboard,
-        current_event: &CurrentJsEvent,
-    ) -> Self {
-        let key_down = Listener::new_key_down(
-            &logger,
-            current_event.make_event_handler(
-                f!((event:&KeyboardEvent) keyboard.source.down.emit(KeyWithCode::from(event))),
-            ),
-        );
-        let key_up = Listener::new_key_up(
-            &logger,
-            current_event.make_event_handler(
-                f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event))),
-            ),
-        );
+    pub fn new(keyboard: &Keyboard, current_event: &CurrentJsEvent) -> Self {
+        let key_down = Listener::new_key_down(current_event.make_event_handler(
+            f!((event:&KeyboardEvent) keyboard.source.down.emit(KeyWithCode::from(event))),
+        ));
+        let key_up = Listener::new_key_up(current_event.make_event_handler(
+            f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event))),
+        ));
         let blur = Listener::new_blur(
-            &logger,
             current_event.make_event_handler(f_!(keyboard.source.window_defocused.emit(()))),
         );
         Self { key_down, key_up, blur }

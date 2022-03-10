@@ -10,6 +10,7 @@ use ensogl::display;
 use ensogl_hardcoded_theme::graph_editor::add_node_button as theme;
 
 
+
 // =============
 // === Shape ===
 // =============
@@ -97,7 +98,7 @@ impl AddNodeButton {
     pub fn new(app: &Application) -> Self {
         let view = ensogl_component::button::View::new(app);
         let network = frp::Network::new("AddNodeButton");
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let camera = scene.camera();
         let style_watch = StyleWatchFrp::new(&scene.style_sheet);
 

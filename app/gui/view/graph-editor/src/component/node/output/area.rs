@@ -1,8 +1,16 @@
 //! Implements the segmented output port area.
-use crate::prelude::*;
 
+use crate::prelude::*;
 use ensogl::display::traits::*;
 
+use crate::component::node;
+use crate::component::node::input;
+use crate::component::node::output::port;
+use crate::tooltip;
+use crate::view;
+use crate::Type;
+
+use enso_config::ARGS;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::hysteretic::HystereticAnimation;
@@ -14,14 +22,6 @@ use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 use span_tree;
-
-use crate::component::node;
-use crate::component::node::input;
-use crate::component::node::output::port;
-use crate::tooltip;
-use crate::view;
-use crate::Type;
-use enso_config::ARGS;
 
 
 
@@ -70,7 +70,7 @@ pub struct Expression {
 }
 
 impl Expression {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn code(&self) -> String {
         self.code.clone().unwrap_or_default()
     }
@@ -175,8 +175,8 @@ impl Model {
         let id_crumbs_map = default();
         let expression = default();
         let port_count = default();
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
-        let styles_frp = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
+        let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
@@ -199,7 +199,7 @@ impl Model {
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
-        let scene = self.app.display.scene();
+        let scene = &self.app.display.default_scene;
         self.label.remove_from_scene_layer(&scene.layers.main);
         self.label.add_to_scene_layer(&scene.layers.label);
 
@@ -432,7 +432,7 @@ impl Deref for Area {
 
 
 impl Area {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(logger, app, &frp));
@@ -493,7 +493,7 @@ impl Area {
         Self { frp, model }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression
@@ -504,12 +504,12 @@ impl Area {
             .and_then(|t| t.frp.as_ref().and_then(|frp| frp.tp.value()))
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {
         self.model.expression.borrow().whole_expr_id
     }

@@ -1,15 +1,14 @@
 //! This module defines attributes and related utilities.
 
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::gpu::types::*;
 
-use crate::control::callback::CallbackFn;
+use crate::control::callback;
 use crate::data::dirty;
 use crate::data::OptVec;
 use crate::debug::Stats;
 use crate::system::gpu::Context;
-
-use crate::data::dirty::traits::*;
-use crate::system::gpu::types::*;
 
 use enso_shapely::newtype_prim;
 use std::collections::BTreeSet;
@@ -102,7 +101,7 @@ pub struct AttributeScopeData {
 
 impl {
     /// Create a new scope with the provided dirty callback.
-    pub fn new<OnMut:CallbackFn+Clone>
+    pub fn new<OnMut:callback::NoArgs+Clone>
     (lgr:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         info!(lgr,"Initializing.",|| {
             let logger          = lgr.clone();

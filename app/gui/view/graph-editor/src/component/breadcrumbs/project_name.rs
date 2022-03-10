@@ -1,6 +1,7 @@
 //! This module provides a view for project's name which can be used to edit it.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::component::breadcrumbs::breadcrumb;
 use crate::component::breadcrumbs::GLYPH_WIDTH;
@@ -14,7 +15,6 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
@@ -134,7 +134,7 @@ impl ProjectNameModel {
     /// Constructor.
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("ProjectName");
         let display_object = display::object::Instance::new(&logger);
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -251,7 +251,7 @@ impl ProjectName {
         let frp = Frp::new();
         let model = Rc::new(ProjectNameModel::new(app));
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let text = &model.text_field.frp;
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)

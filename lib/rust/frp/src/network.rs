@@ -1,8 +1,9 @@
 //! Definition of FRP Network – set of FRP nodes with a common lifetime.
 
-use crate::debug;
 use crate::node::*;
 use crate::prelude::*;
+
+use crate::debug;
 use crate::stream;
 use crate::stream::Stream;
 

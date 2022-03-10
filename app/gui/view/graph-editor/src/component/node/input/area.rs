@@ -1,7 +1,10 @@
 //! Definition of the node input port component.
 
-
 use crate::prelude::*;
+use enso_text::traits::*;
+use enso_text::unit::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
 
 use crate::component::type_coloring;
 use crate::node;
@@ -10,18 +13,13 @@ use crate::node::profiling;
 use crate::view;
 use crate::Type;
 
-
 use enso_frp as frp;
 use enso_frp;
 use enso_text::text::Text;
-use enso_text::traits::*;
-use enso_text::unit::*;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;
@@ -33,7 +31,7 @@ use ensogl_hardcoded_theme as theme;
 // === Constants ===
 // =================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const TEXT_OFFSET: f32 = 10.0;
 
 /// Width of a single glyph
@@ -245,8 +243,8 @@ impl Model {
         let label = app.new_view::<text::Area>();
         let id_crumbs_map = default();
         let expression = default();
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
-        let styles_frp = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
+        let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
@@ -268,7 +266,7 @@ impl Model {
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
-        let scene = self.app.display.scene();
+        let scene = &self.app.display.default_scene;
         self.label.remove_from_scene_layer(&scene.layers.main);
         self.label.add_to_scene_layer(&scene.layers.label);
 
@@ -289,7 +287,7 @@ impl Model {
     }
 
     fn scene(&self) -> &Scene {
-        self.app.display.scene()
+        &self.app.display.default_scene
     }
 
     /// Run the provided function on the target port if exists.
@@ -448,7 +446,7 @@ impl Area {
         Self { frp, model }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
@@ -462,18 +460,18 @@ impl Area {
         })
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn label(&self) -> &text::Area {
         &self.model.label
     }
@@ -614,7 +612,7 @@ impl Area {
 
                 // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
                 // shape system (#795)
-                let style_sheet = &self.model.app.display.scene().style_sheet;
+                let style_sheet = &self.model.app.display.default_scene.style_sheet;
                 let styles = StyleWatch::new(style_sheet);
                 let styles_frp = &self.model.styles_frp;
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);

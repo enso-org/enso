@@ -1,13 +1,18 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+// === Non-Standard Linter Configuration ===
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
 #![allow(clippy::option_map_unit_fn)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 use enso_prelude::*;
+
+
 
 // ================
 // === TypeList ===

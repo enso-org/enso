@@ -1,6 +1,10 @@
 //! Helper structures wrapping RPC method result types.
+
 use super::*;
+
 use crate::language_server::SuggestionsDatabaseEntry;
+
+
 
 /// Response of `init_protocol_connection` method.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

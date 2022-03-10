@@ -7,7 +7,7 @@ authors = ["Enso Team <contact@enso.org>"]
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.59", features = ["raw_value"] }
-wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 enso-profiler-macros = { path = "macros" }
 enso-web = { path = "../web" }
 

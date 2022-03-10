@@ -1,17 +1,22 @@
 //! Label component. Appears as text with background.
 
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -19,11 +24,9 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::shape::*;
+use ensogl_hardcoded_theme::component::label as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
-
-use ensogl_hardcoded_theme::component::label as theme;
 
 
 
@@ -86,7 +89,7 @@ struct Model {
 impl Model {
     fn new(app: Application) -> Self {
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("TextLabel");
         let display_object = display::object::Instance::new(&logger);
         let label = app.new_view::<text::Area>();
@@ -95,7 +98,7 @@ impl Model {
         display_object.add_child(&background);
         display_object.add_child(&label);
 
-        let style = StyleWatch::new(&app.display.scene().style_sheet);
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
         let model = Model { background, label, display_object, style };
         model.set_layers(&scene.layers.tooltip, &scene.layers.tooltip_text);

@@ -1,17 +1,18 @@
 //! Defines `Theme`, a smart style manager on top of style sheets.
 
+use crate::control::callback::traits::*;
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
+use crate::control::callback;
 use crate::data::color;
+use crate::data::dirty;
 use crate::data::HashMapTree;
 
 use super::sheet as style;
 use super::sheet::Change;
 use super::sheet::Path;
 use super::sheet::Value;
-use crate::control::callback;
-use crate::data::dirty;
-use crate::data::dirty::traits::*;
 
 
 
@@ -25,7 +26,7 @@ use crate::data::dirty::traits::*;
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct Theme {
     tree:   Rc<RefCell<HashMapTree<String, Option<Value>>>>,
-    on_mut: callback::SharedRegistryMut,
+    on_mut: callback::registry::MutNoArgs,
 }
 
 impl Theme {
@@ -60,7 +61,7 @@ impl Theme {
     }
 
     /// Add a new callback which will be triggered everytime this theme is modified.
-    pub fn on_mut(&self, callback: impl callback::CallbackMutFn) -> callback::Handle {
+    pub fn on_mut(&self, callback: impl callback::MutNoArgs) -> callback::Handle {
         self.on_mut.add(callback)
     }
 

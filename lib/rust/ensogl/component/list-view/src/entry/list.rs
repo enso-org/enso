@@ -78,7 +78,7 @@ where E::Model: Default
         let entries_range = Rc::new(CloneCell::new(default()..default()));
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
-        let label_layer = Rc::new(Cell::new(app.display.scene().layers.label.id()));
+        let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
         List { logger, app, display_object, entries, entries_range, provider, label_layer }
     }
 
@@ -183,7 +183,9 @@ where E::Model: Default
 
     /// Sets the scene layer where the labels will be placed.
     pub fn set_label_layer(&self, label_layer: LayerId) {
-        if let Some(layer) = self.app.display.scene().layers.get_sublayer(self.label_layer.get()) {
+        if let Some(layer) =
+            self.app.display.default_scene.layers.get_sublayer(self.label_layer.get())
+        {
             for entry in &*self.entries.borrow() {
                 entry.entry.set_label_layer(&layer);
             }
@@ -198,7 +200,7 @@ where E::Model: Default
     }
 
     fn create_new_entry(&self) -> DisplayedEntry<E> {
-        let layers = &self.app.display.scene().layers;
+        let layers = &self.app.display.default_scene.layers;
         let layer = layers.get_sublayer(self.label_layer.get()).unwrap_or_else(|| {
             error!(
                 self.logger,

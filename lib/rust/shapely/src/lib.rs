@@ -1,16 +1,24 @@
 // README README README README README README README README README README README
 // README README README README README README README README README README README
 // README README README README README README README README README README README
-
 // This library is in a very early stage. It will be refactored and improved
 // soon. It should not be reviewed now.
 
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+// === Features ===
 #![feature(generators, generator_trait)]
 #![feature(type_ascription)]
 #![feature(marker_trait_attr)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod cartesian;
 pub mod generator;
@@ -19,6 +27,8 @@ pub mod singleton;
 
 pub use enso_shapely_macros::*;
 pub use generator::GeneratingIterator;
+
+
 
 /// Replaces the first argument with the second one. It is useful when creating macros which match
 /// a pattern and you want to generate as many repetitions of a token as there was matches. For

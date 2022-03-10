@@ -1,45 +1,45 @@
 //! An example showing usage of Text Area.
 
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::system::web;
 use ensogl_text::Area;
 use ensogl_text_msdf_sys::run_once_initialized;
-use wasm_bindgen::prelude::*;
+
 
 
 /// Main example runner.
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_text_area() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
-        init(&app);
-        mem::forget(app);
+        init(Application::new("root"));
     });
 }
 
-fn init(app: &Application) {
+fn init(app: Application) {
     let area = app.new_view::<Area>();
     area.set_position_x(-100.0);
     area.set_content(
@@ -49,15 +49,18 @@ fn init(app: &Application) {
     area.hover();
     area.set_cursor_at_end();
 
-    let scene = app.display.scene();
+    let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
 
-    app.display.scene().add_child(&area);
+    app.display.default_scene.add_child(&area);
     let keep = Some(area);
     app.display
-        .on_frame(move |_frame| {
+        .on
+        .before_frame
+        .add(move |_frame| {
             let _ = &keep;
         })
         .forget();
-    std::mem::forget(navigator);
+    mem::forget(navigator);
+    mem::forget(app);
 }

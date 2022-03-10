@@ -1,41 +1,41 @@
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
-use ensogl_core::traits::*;
+use ensogl_core::display::world::*;
+use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::Sprite;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
-use ensogl_core::display::world::*;
-use ensogl_core::prelude::*;
-use ensogl_core::system::web;
-use ensogl_core::system::web::forward_panic_hook_to_console;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
-use wasm_bindgen::prelude::*;
+
 
 
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_sprite_system_benchmark() {
-    forward_panic_hook_to_console();
-
-    let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let scene = world.scene();
+    let world = World::new().displayed_in("root");
+    let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
     let sprite_system = SpriteSystem::new(&world);
@@ -59,7 +59,9 @@ pub fn entry_point_sprite_system_benchmark() {
     let mut iter: i32 = 0;
     let mut i = 0;
     world
-        .on_frame(move |time| {
+        .on
+        .before_frame
+        .add(move |time| {
             i += 1;
             if i <= 100 {
                 sprite1.mod_position(|p| p.x += 1.0);

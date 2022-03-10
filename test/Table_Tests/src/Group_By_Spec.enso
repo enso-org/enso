@@ -1,0 +1,406 @@
+from Standard.Base import all
+
+import Standard.Table
+import Standard.Table.Data.Column_Selector
+from Standard.Table.Data.Aggregate_Column import all
+
+import Standard.Test
+
+spec =
+    file_contents = (Enso_Project.data / "data.csv") . read
+    table = Table.from_csv file_contents
+    empty_table = Table.new <| table.columns.map c->[c.name, []]
+
+    find_row key table =
+        0.up_to table.row_count . find i->
+            0.up_to key.length . all j-> (table.columns.at j . at i)==(key.at j)
+
+    Test.group "Table.group_by should summarize whole table " <|
+        grouping = Column_Selector.By_Index []
+        Test.specify "should be able to count" <|
+            grouped = table.group_by grouping [Count Nothing]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 1
+            grouped.columns.at 0 . name . should_equal "Count"
+            grouped.columns.at 0 . at 0 . should_equal 2500
+
+        Test.specify "should be able to count missing values" <|
+            grouped = table.group_by grouping [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
+            grouped.columns.at 0 . at 0 . should_equal 236
+            grouped.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
+            grouped.columns.at 1 . at 0 . should_equal 2264
+            grouped.columns.at 2 . name . should_equal "Count Empty TextWithNothing"
+            grouped.columns.at 2 . at 0 . should_equal 249
+            grouped.columns.at 3 . name . should_equal "Count Not Empty TextWithNothing"
+            grouped.columns.at 3 . at 0 . should_equal 2251
+
+        Test.specify "should be able to count distinct values" <|
+            grouped = table.group_by grouping [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag", Count_Distinct ["Index", "Flag"]]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Count Distinct Code"
+            grouped.columns.at 0 . at 0 . should_equal 2333
+            grouped.columns.at 1 . name . should_equal "Count Distinct Index"
+            grouped.columns.at 1 . at 0 . should_equal 10
+            grouped.columns.at 2 . name . should_equal "Count Distinct Flag"
+            grouped.columns.at 2 . at 0 . should_equal 2
+            grouped.columns.at 3 . name . should_equal "Count Distinct Index Flag"
+            grouped.columns.at 3 . at 0 . should_equal 20
+
+        Test.specify "should be able to sum, average and standard deviation of values" <|
+            grouped = table.group_by grouping [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 8
+            grouped.columns.at 0 . name . should_equal "Sum Value"
+            grouped.columns.at 0 . at 0 . should_equal -932.411550 epsilon=0.000001
+            grouped.columns.at 1 . name . should_equal "Sum ValueWithNothing"
+            grouped.columns.at 1 . at 0 . should_equal 2757.09 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Average Value"
+            grouped.columns.at 2 . at 0 . should_equal -0.372965 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Average ValueWithNothing"
+            grouped.columns.at 3 . at 0 . should_equal 1.228650 epsilon=0.000001
+            grouped.columns.at 4 . name . should_equal "Standard Deviation Value"
+            grouped.columns.at 4 . at 0 . should_equal 56.708660 epsilon=0.000001
+            grouped.columns.at 5 . name . should_equal "Standard Deviation ValueWithNothing"
+            grouped.columns.at 5 . at 0 . should_equal 58.588610 epsilon=0.000001
+            grouped.columns.at 6 . name . should_equal "Standard Deviation Value_1"
+            grouped.columns.at 6 . at 0 . should_equal 56.697317 epsilon=0.000001
+            grouped.columns.at 7 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            grouped.columns.at 7 . at 0 . should_equal 58.575554 epsilon=0.000001
+
+        Test.specify "should be able to create median, mode and percentile values" <|
+            grouped = table.group_by grouping [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 6
+            grouped.columns.at 0 . name . should_equal "Median Index"
+            grouped.columns.at 0 . at 0 . should_equal 5 epsilon=0.000001
+            grouped.columns.at 1 . name . should_equal "Median Value"
+            grouped.columns.at 1 . at 0 . should_equal 1.298375 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Median ValueWithNothing"
+            grouped.columns.at 2 . at 0 . should_equal 2.235 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Mode Index"
+            grouped.columns.at 3 . at 0 . should_equal 7
+            grouped.columns.at 4 . name . should_equal "25%-ile Value"
+            grouped.columns.at 4 . at 0 . should_equal -49.962710 epsilon=0.000001
+            grouped.columns.at 5 . name . should_equal "40%-ile ValueWithNothing"
+            grouped.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
+
+        Test.specify "should be able to get first and last values" <|
+            grouped = table.group_by grouping [First "Index", Last "Value"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 2
+            grouped.columns.at 0 . name . should_equal "First Index"
+            grouped.columns.at 0 . at 0 . should_equal 7
+            grouped.columns.at 1 . name . should_equal "Last Value"
+            grouped.columns.at 1 . at 0 . should_equal 70.99931 epsilon=0.000001
+
+        Test.specify "should be able to get minimum and maximum values" <|
+            grouped = table.group_by grouping [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Minimum Value"
+            grouped.columns.at 0 . at 0 . should_equal -99.964200 epsilon=0.000001
+            grouped.columns.at 1 . name . should_equal "Maximum Value"
+            grouped.columns.at 1 . at 0 . should_equal 99.977480 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Minimum ValueWithNothing"
+            grouped.columns.at 2 . at 0 . should_equal -99.99 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Maximum ValueWithNothing"
+            grouped.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
+
+        Test.specify "should be able to get shortest, longest and concatenated values" <|
+            grouped = table.group_by grouping [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 3
+            grouped.columns.at 0 . name . should_equal "Shortest TextWithNothing"
+            grouped.columns.at 0 . at 0 . should_equal "f5"
+            grouped.columns.at 1 . name . should_equal "Longest TextWithNothing"
+            grouped.columns.at 1 . at 0 . should_equal "setp295gjvbanana"
+            grouped.columns.at 2 . name . should_equal "Concatenate Code"
+            grouped.columns.at 2 . at 0 . length . should_equal 7500
+
+    Test.group "Table.group_by should summarize empty table " <|
+        grouping = Column_Selector.By_Index []
+        Test.specify "should be able to count" <|
+            grouped = empty_table.group_by grouping [Count Nothing]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 1
+            grouped.columns.at 0 . name . should_equal "Count"
+            grouped.columns.at 0 . at 0 . should_equal 0
+
+        Test.specify "should be able to count missing values" <|
+            grouped = empty_table.group_by grouping [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
+            grouped.columns.at 0 . at 0 . should_equal 0
+            grouped.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
+            grouped.columns.at 1 . at 0 . should_equal 0
+            grouped.columns.at 2 . name . should_equal "Count Empty TextWithNothing"
+            grouped.columns.at 2 . at 0 . should_equal 0
+            grouped.columns.at 3 . name . should_equal "Count Not Empty TextWithNothing"
+            grouped.columns.at 3 . at 0 . should_equal 0
+
+        Test.specify "should be able to count distinct values" <|
+            grouped = empty_table.group_by grouping [Count_Distinct "Code"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 1
+            grouped.columns.at 0 . name . should_equal "Count Distinct Code"
+            grouped.columns.at 0 . at 0 . should_equal 0
+
+        Test.specify "should be able to sum, average and standard deviation of values" <|
+            grouped = empty_table.group_by grouping [Sum "Value", Average "ValueWithNothing", Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Sum Value"
+            grouped.columns.at 0 . at 0 . should_equal Nothing
+            grouped.columns.at 1 . name . should_equal "Average ValueWithNothing"
+            grouped.columns.at 1 . at 0 . should_equal Nothing
+            grouped.columns.at 2 . name . should_equal "Standard Deviation Value"
+            grouped.columns.at 2 . at 0 . should_equal Nothing
+            grouped.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing"
+            grouped.columns.at 3 . at 0 . should_equal Nothing
+
+        Test.specify "should be able to create median, mode and percentile values" <|
+            grouped = empty_table.group_by grouping [Median "Index", Mode "Index", Percentile 0.25 "Value"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 3
+            grouped.columns.at 0 . name . should_equal "Median Index"
+            grouped.columns.at 0 . at 0 . should_equal Nothing
+            grouped.columns.at 1 . name . should_equal "Mode Index"
+            grouped.columns.at 1 . at 0 . should_equal Nothing
+            grouped.columns.at 2 . name . should_equal "25%-ile Value"
+            grouped.columns.at 2 . at 0 . should_equal Nothing
+
+        Test.specify "should be able to get first and last values" <|
+            grouped = empty_table.group_by grouping [First "Index", Last "Value"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 2
+            grouped.columns.at 0 . name . should_equal "First Index"
+            grouped.columns.at 0 . at 0 . should_equal Nothing
+            grouped.columns.at 1 . name . should_equal "Last Value"
+            grouped.columns.at 1 . at 0 . should_equal Nothing
+
+        Test.specify "should be able to get minimum and maximum values" <|
+            grouped = empty_table.group_by grouping [Minimum "Value", Maximum "ValueWithNothing"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 2
+            grouped.columns.at 0 . name . should_equal "Minimum Value"
+            grouped.columns.at 0 . at 0 . should_equal Nothing
+            grouped.columns.at 1 . name . should_equal "Maximum ValueWithNothing"
+            grouped.columns.at 1 . at 0 . should_equal Nothing
+
+        Test.specify "should be able to get shortest, longest and concatenated values" <|
+            grouped = empty_table.group_by grouping [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            grouped.row_count . should_equal 1
+            grouped.columns.length . should_equal 3
+            grouped.columns.at 0 . name . should_equal "Shortest TextWithNothing"
+            grouped.columns.at 0 . at 0 . should_equal Nothing
+            grouped.columns.at 1 . name . should_equal "Longest TextWithNothing"
+            grouped.columns.at 1 . at 0 . should_equal Nothing
+            grouped.columns.at 2 . name . should_equal "Concatenate Code"
+            grouped.columns.at 2 . at 0 . should_equal Nothing
+
+    Test.group "Table.group_by should not summarize empty table when grouped " <|
+        grouping = Column_Selector.By_Index [0]
+        Test.specify "should be able to count" <|
+            grouped = empty_table.group_by grouping [Count Nothing]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 2
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "Count"
+
+        Test.specify "should be able to count missing values" <|
+            grouped = empty_table.group_by grouping [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 5
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "Count Nothing Hexadecimal"
+            grouped.columns.at 2 . name . should_equal "Count Not Nothing Hexadecimal"
+            grouped.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
+            grouped.columns.at 4 . name . should_equal "Count Not Empty TextWithNothing"
+
+        Test.specify "should be able to count distinct values" <|
+            grouped = empty_table.group_by grouping [Count_Distinct "Code"]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 2
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "Count Distinct Code"
+
+        Test.specify "should be able to sum, average and standard deviation of values" <|
+            grouped = empty_table.group_by grouping [Sum "Value", Average "ValueWithNothing", Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 5
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "Sum Value"
+            grouped.columns.at 2 . name . should_equal "Average ValueWithNothing"
+            grouped.columns.at 3 . name . should_equal "Standard Deviation Value"
+            grouped.columns.at 4 . name . should_equal "Standard Deviation ValueWithNothing"
+
+        Test.specify "should be able to create median values" <|
+            grouped = empty_table.group_by grouping [Median "Index", Mode "Index", Percentile 0.25 "Value"]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "Median Index"
+            grouped.columns.at 2 . name . should_equal "Mode Index"
+            grouped.columns.at 3 . name . should_equal "25%-ile Value"
+
+        Test.specify "should be able to get first and last values" <|
+            grouped = empty_table.group_by grouping [First "Index", Last "Value"]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 3
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "First Index"
+            grouped.columns.at 2 . name . should_equal "Last Value"
+
+        Test.specify "should be able to get minimum and maximum values" <|
+            grouped = empty_table.group_by grouping [Minimum "Value", Maximum "ValueWithNothing"]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 3
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "Minimum Value"
+            grouped.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
+
+        Test.specify "should be able to get shortest, longest and concatenated values" <|
+            grouped = empty_table.group_by grouping [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            grouped.row_count . should_equal 0
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Code"
+            grouped.columns.at 1 . name . should_equal "Shortest TextWithNothing"
+            grouped.columns.at 2 . name . should_equal "Longest TextWithNothing"
+            grouped.columns.at 3 . name . should_equal "Concatenate Code"
+
+    Test.group "Table.group_by should be able to group on single field " <|
+        grouping = Column_Selector.By_name.new ["Index"]
+        Test.specify "should be able to count" <|
+            grouped = table.group_by grouping [Count Nothing]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 2
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "Count"
+            grouped.columns.at 1 . at idx . should_equal 261
+
+        Test.specify "should be able to count missing values" <|
+            grouped = table.group_by grouping [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 5
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "Count Nothing Hexadecimal"
+            grouped.columns.at 1 . at idx . should_equal 24
+            grouped.columns.at 2 . name . should_equal "Count Not Nothing Hexadecimal"
+            grouped.columns.at 2 . at idx . should_equal 237
+            grouped.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
+            grouped.columns.at 3 . at idx . should_equal 31
+            grouped.columns.at 4 . name . should_equal "Count Not Empty TextWithNothing"
+            grouped.columns.at 4 . at idx . should_equal 230
+
+        Test.specify "should be able to count distinct values" <|
+            grouped = table.group_by grouping [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag", Count_Distinct ["Index", "Flag"]]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 5
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "Count Distinct Code"
+            grouped.columns.at 1 . at idx . should_equal 260
+            grouped.columns.at 2 . name . should_equal "Count Distinct Index"
+            grouped.columns.at 2 . at idx . should_equal 1
+            grouped.columns.at 3 . name . should_equal "Count Distinct Flag"
+            grouped.columns.at 3 . at idx . should_equal 2
+            grouped.columns.at 4 . name . should_equal "Count Distinct Index Flag"
+            grouped.columns.at 4 . at idx . should_equal 2
+
+        Test.specify "should be able to sum, average and standard deviation of values" <|
+            grouped = table.group_by grouping [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 9
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "Sum Value"
+            grouped.columns.at 1 . at idx . should_equal -447.847390 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Sum ValueWithNothing"
+            grouped.columns.at 2 . at idx . should_equal 151.86 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Average Value"
+            grouped.columns.at 3 . at idx . should_equal -1.715890 epsilon=0.000001
+            grouped.columns.at 4 . name . should_equal "Average ValueWithNothing"
+            grouped.columns.at 4 . at idx . should_equal 0.646213 epsilon=0.000001
+            grouped.columns.at 5 . name . should_equal "Standard Deviation Value"
+            grouped.columns.at 5 . at idx . should_equal 60.272158 epsilon=0.000001
+            grouped.columns.at 6 . name . should_equal "Standard Deviation ValueWithNothing"
+            grouped.columns.at 6 . at idx . should_equal 56.798691 epsilon=0.000001
+            grouped.columns.at 7 . name . should_equal "Standard Deviation Value_1"
+            grouped.columns.at 7 . at idx . should_equal 60.156583 epsilon=0.000001
+            grouped.columns.at 8 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            grouped.columns.at 8 . at idx . should_equal 56.677714 epsilon=0.000001
+
+        Test.specify "should be able to create median values" <|
+            grouped = table.group_by grouping [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 7
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "Median Index"
+            grouped.columns.at 1 . at idx . should_equal 6 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Median Value"
+            grouped.columns.at 2 . at idx . should_equal 2.041150 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Median ValueWithNothing"
+            grouped.columns.at 3 . at idx . should_equal 1.38 epsilon=0.000001
+            grouped.columns.at 4 . name . should_equal "Mode Index"
+            grouped.columns.at 4 . at idx . should_equal 6
+            grouped.columns.at 5 . name . should_equal "25%-ile Value"
+            grouped.columns.at 5 . at idx . should_equal -56.019100 epsilon=0.000001
+            grouped.columns.at 6 . name . should_equal "40%-ile ValueWithNothing"
+            grouped.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
+
+        Test.specify "should be able to get first and last values" <|
+            grouped = table.group_by grouping [First "TextWithNothing", Last "Value"]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 3
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "First TextWithNothing"
+            grouped.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
+            grouped.columns.at 2 . name . should_equal "Last Value"
+            grouped.columns.at 2 . at idx . should_equal 56.15916 epsilon=0.000001
+
+        Test.specify "should be able to get minimum and maximum values" <|
+            grouped = table.group_by grouping [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 5
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "Minimum Value"
+            grouped.columns.at 1 . at idx . should_equal -99.605880 epsilon=0.000001
+            grouped.columns.at 2 . name . should_equal "Maximum Value"
+            grouped.columns.at 2 . at idx . should_equal 99.12739 epsilon=0.000001
+            grouped.columns.at 3 . name . should_equal "Minimum ValueWithNothing"
+            grouped.columns.at 3 . at idx . should_equal -99.99 epsilon=0.000001
+            grouped.columns.at 4 . name . should_equal "Maximum ValueWithNothing"
+            grouped.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
+
+        Test.specify "should be able to get shortest, longest and concatenated values" <|
+            grouped = table.group_by grouping [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            grouped.row_count . should_equal 10
+            grouped.columns.length . should_equal 4
+            grouped.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] grouped
+            idx.is_nothing . should_be_false
+            grouped.columns.at 1 . name . should_equal "Shortest TextWithNothing"
+            grouped.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
+            grouped.columns.at 2 . name . should_equal "Longest TextWithNothing"
+            grouped.columns.at 2 . at idx . should_equal "kmqxqkl6qx"
+            grouped.columns.at 3 . name . should_equal "Concatenate Code"
+            grouped.columns.at 3 . at idx . length . should_equal 783
+
+main = Test.Suite.run_main here.spec

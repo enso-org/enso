@@ -2,12 +2,7 @@
 //! edited belongs to and navigating through them.
 
 use crate::prelude::*;
-
-pub mod breadcrumb;
-pub mod project_name;
-
-pub use breadcrumb::Breadcrumb;
-pub use project_name::ProjectName;
+use ensogl::display::shape::*;
 
 use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::LocalCall;
@@ -18,11 +13,21 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use std::cmp::Ordering;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod breadcrumb;
+pub mod project_name;
+
+pub use breadcrumb::Breadcrumb;
+pub use project_name::ProjectName;
 
 
 
@@ -185,7 +190,7 @@ impl BreadcrumbsModel {
     /// The `gap_width` describes an empty space on the left of all the content. This space will be
     /// covered by the background and is intended to make room for windows control buttons.
     pub fn new(app: Application, frp: &Frp) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let project_name = app.new_view();
         let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new(&logger);
@@ -450,7 +455,7 @@ pub struct Breadcrumbs {
 impl Breadcrumbs {
     /// Constructor.
     pub fn new(app: Application) -> Self {
-        let scene = app.display.scene().clone_ref();
+        let scene = app.display.default_scene.clone_ref();
         let frp = Frp::new();
         let model = Rc::new(BreadcrumbsModel::new(app, &frp));
         let network = &frp.network;

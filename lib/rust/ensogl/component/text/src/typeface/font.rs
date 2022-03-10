@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-pub mod msdf;
-
 use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
@@ -12,6 +10,13 @@ use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
 use std::collections::hash_map::Entry;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod msdf;
 
 
 

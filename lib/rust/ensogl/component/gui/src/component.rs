@@ -7,6 +7,7 @@
 //! functionality for constructing / initialising the components.
 
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
 use ensogl_core::application;
@@ -15,7 +16,6 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 
 
 
@@ -83,7 +83,7 @@ impl<M: Model, F: Frp<M>> Component<M, F> {
         let logger = Logger::new(M::label());
         let model = Rc::new(M::new(&app, &logger));
         let frp = F::default();
-        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         frp.init(&app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model, app, logger }

@@ -2,20 +2,19 @@
 //! but can differ in all other aspects.
 
 use crate::prelude::*;
+use ensogl_core::display::world::*;
 
 use super::font;
-use font::Font;
-use font::GlyphRenderInfo;
-
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
-use ensogl_core::display::world::*;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
+use font::Font;
+use font::GlyphRenderInfo;
 
 
 
@@ -102,7 +101,9 @@ impl System {
         let logger = Logger::new("glyph_system");
         let size = font::msdf::Texture::size();
         let scene = scene.as_ref();
-        let context = scene.context.clone_ref();
+        // FIXME: The following line is unsafe. It can fail if the context was lost before calling
+        //        this function. Also, the texture will not be restored after context restoration.
+        let context = scene.context.borrow().as_ref().unwrap().clone_ref();
         let sprite_system = SpriteSystem::new(scene);
         let symbol = sprite_system.symbol();
         let texture = Texture::new(&context, (0, 0));

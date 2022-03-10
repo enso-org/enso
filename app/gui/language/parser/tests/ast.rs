@@ -1,9 +1,14 @@
 //! Tests specific to Ast rather than parser itself but placed here because they depend on parser
 //! to easily generate test input.
+
 // TODO: [mwu]
 //  That means that likely either `parser` should be merged with `ast` or that we should have a
 //  separate `ast_ops` crate that depends on both. Now it is better to tests here than none but
 //  a decision should be made as to which way we want to go.
+
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use parser::prelude::*;
 
@@ -13,6 +18,8 @@ use ast::prefix;
 use ast::test_utils::expect_single_line;
 use ast::HasRepr;
 use wasm_bindgen_test::wasm_bindgen_test;
+
+
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 

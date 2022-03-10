@@ -116,7 +116,7 @@ class TextTest extends InterpreterTest {
           |    IO.println (Arithmetic_Error "cannot frobnicate quaternions").to_display_text
           |    IO.println ((Panic.recover (1 + "foo")).catch_primitive .to_display_text)
           |    IO.println ((Panic.recover (7 1)).catch_primitive .to_display_text)
-          |    IO.println (Arity_Error 10 20).to_display_text
+          |    IO.println (Arity_Error 10 10 20).to_display_text
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(

@@ -11,6 +11,7 @@ import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
 import project.Semantic.Names_Spec
 import project.Semantic.Runtime_Spec
+import project.Semantic.Warnings_Spec
 
 import project.Semantic.Java_Interop_Spec
 import project.Semantic.Js_Interop_Spec
@@ -90,3 +91,4 @@ main = Test.Suite.run_main <|
     Time_Spec.spec
     Uri_Spec.spec
     Vector_Spec.spec
+    Warnings_Spec.spec

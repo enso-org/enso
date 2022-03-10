@@ -1,14 +1,8 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
-pub mod call_stack;
-pub mod state;
-pub mod visualization;
-
-pub use call_stack::CallStack;
-pub use visualization::Visualization;
-
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
@@ -20,6 +14,19 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod call_stack;
+pub mod state;
+pub mod visualization;
+
+pub use call_stack::CallStack;
+pub use visualization::Visualization;
+
 
 
 // ===============
@@ -498,7 +505,7 @@ impl Graph {
             view.disable_visualization <+ disable_vis;
 
             view.add_node <+ update_data.map(|update| update.count_nodes_to_add()).repeat();
-            added_node_update <- view.node_added.filter_map(f!(((view_id,_))
+            added_node_update <- view.node_added.filter_map(f!((view_id)
                 model.state.assign_node_view(*view_id)
             ));
             init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));
@@ -609,6 +616,30 @@ impl Graph {
 
 impl controller::upload::DataProvider for ensogl_drop_manager::File {
     fn next_chunk(&mut self) -> LocalBoxFuture<FallibleResult<Option<Vec<u8>>>> {
-        self.read_chunk().map(|f| f.map_err(|e| e.into())).boxed_local()
+        self.read_chunk()
+            .map(|f| f.map_err(|e| StringError::new(e.print_to_string()).into()))
+            .boxed_local()
+    }
+}
+
+
+
+// =============
+// === Error ===
+// =============
+
+/// Generic error representation. This is used only once in the lines above. Probably should be
+/// removed in the future.
+#[derive(Debug, Fail)]
+#[fail(display = "{}", message)]
+pub struct StringError {
+    message: String,
+}
+
+impl StringError {
+    /// Constructor.
+    pub fn new(message: impl Into<String>) -> StringError {
+        let message = message.into();
+        StringError { message }
     }
 }

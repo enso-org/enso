@@ -2,6 +2,7 @@
 //! that status as a color and [`ProfilingLabel`] to display a node's execution status.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::view;
 
@@ -9,7 +10,6 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl::gui::text;
 
 
@@ -196,7 +196,7 @@ impl Deref for ProfilingLabel {
 impl ProfilingLabel {
     /// Constructs a `ProfilingLabel` for the given application.
     pub fn new(app: &Application) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let root = display::object::Instance::new(Logger::new("ProfilingIndicator"));
 
         let label = text::Area::new(app);

@@ -1,9 +1,11 @@
 //! This module exports State implementation for Nondeterministic Finite Automata.
 
+use crate::prelude::*;
+
 use crate::alphabet;
 use crate::symbol::Symbol;
 
-use crate::prelude::*;
+
 
 use crate::nfa::Nfa; // FIXME
 

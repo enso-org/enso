@@ -27,6 +27,8 @@
 //! - **Presenter** (the [`presenter`] module): Synchronizes the state of the engine entities with
 //!   the view, and passes the user interations to the controllers.
 
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(arbitrary_self_types)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
@@ -42,15 +44,24 @@
 #![feature(assert_matches)]
 #![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
-#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+
+use wasm_bindgen::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod config;
 pub mod constants;
@@ -67,14 +78,7 @@ pub mod transport;
 pub use crate::ide::*;
 pub use ide_view as view;
 
-use ensogl::system::web;
-use wasm_bindgen::prelude::*;
 
-// Those imports are required to have all EnsoGL examples entry points visible in IDE.
-#[allow(unused_imports)]
-use enso_debug_scene::*;
-#[allow(unused_imports)]
-use ensogl_examples::*;
 
 #[cfg(test)]
 mod tests;
@@ -84,7 +88,6 @@ pub mod prelude {
     pub use ast::prelude::*;
     pub use enso_prelude::*;
     pub use ensogl::prelude::*;
-    pub use wasm_bindgen::prelude::*;
 
     pub use crate::constants;
     pub use crate::controller;
@@ -112,12 +115,19 @@ pub mod prelude {
     pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
+// Those imports are required to have all examples entry points visible in IDE.
+#[allow(unused_imports)]
+mod examples {
+    use enso_debug_scene::*;
+    use ensogl_examples::*;
+}
+#[allow(unused_imports)]
+use examples::*;
+
 /// IDE startup function.
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_ide() {
-    web::forward_panic_hook_to_error();
-
     ensogl_text_msdf_sys::run_once_initialized(|| {
         // Logging of build information.
         #[cfg(debug_assertions)]

@@ -5,6 +5,7 @@ use crate::prelude::*;
 use quote::*;
 use syn::*;
 
+use crate as flexer;
 use crate::automata::dfa;
 use crate::automata::dfa::Dfa;
 use crate::automata::nfa;
@@ -18,8 +19,6 @@ use proc_macro2::Literal;
 use std::fmt;
 use std::hash::BuildHasher;
 use std::result::Result;
-
-use crate as flexer;
 
 
 

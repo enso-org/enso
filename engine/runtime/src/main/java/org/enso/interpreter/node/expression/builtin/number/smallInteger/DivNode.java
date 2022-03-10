@@ -1,11 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.TruffleLanguage.ContextReference;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -23,13 +20,12 @@ public abstract class DivNode extends Node {
   }
 
   @Specialization
-  Object doLong(
-      long _this, long that, @CachedContext(Language.class) ContextReference<Context> ctxRef) {
+  Object doLong(long _this, long that) {
     try {
       return _this / that;
     } catch (ArithmeticException e) {
       return DataflowError.withoutTrace(
-          ctxRef.get().getBuiltins().error().getDivideByZeroError(), this);
+          Context.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }
 
@@ -41,7 +37,7 @@ public abstract class DivNode extends Node {
 
   @Fallback
   Object doOther(long _this, Object that) {
-    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }

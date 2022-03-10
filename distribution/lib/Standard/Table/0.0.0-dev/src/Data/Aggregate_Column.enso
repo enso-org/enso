@@ -6,54 +6,111 @@ import Standard.Table.Data.Group_By
 ## Defines an Aggregate Column
 type Aggregate_Column
     ## Creates a new column with the row count of each group
+
+       Arguments:
+       - name: name of new column.
     type Count (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of unique items in the selected
        column(s) within each group.
-    type Count_Distinct (columns:Column|Text|Integer|[(Column|Text|Integer)]) (name:Text|Nothing=Nothing)
+
+       Arguments:
+       - columns: either a single or set of columns (specified by name, index or Column object) to count across.
+       - name: name of new column.
+       - ignore_nothing: if all values are Nothing won't be included.
+    type Count_Distinct (columns:Column|Text|Integer|[(Column|Text|Integer)]) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
 
     ## ALIAS Count_Not_Null
 
        Creates a new column with the count of not `Nothing` (null) values of the
        specified column within each group.
+
+       Arguments:
+       - columns: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Not_Nothing (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## ALIAS Count_Null, Count_Missing
 
        Creates a new column with the count of `Nothing` (null) values of the
        specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Nothing (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of not `Nothing` (null) and non-empty
        ("") values of the column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Not_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the count of `Nothing` (null) or empty ("")
        text values of the column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to count.
+       - name: name of new column.
     type Count_Empty (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the sum of values (ignoring missing values) of
        the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to total.
+       - name: name of new column.
     type Sum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the mean of values (ignoring missing values) of
        the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to average.
+       - name: name of new column.
     type Average (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the median of values (ignoring missing values)
        of the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to calculate median on.
+       - name: name of new column.
     type Median (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the median of values (ignoring missing values)
+       of the specified column within each group.
+
+       Arguments:
+       - percentile: Percentage to compute from 0-1 inclusive.
+       - column: column (specified by name, index or Column object) to compute percentile.
+       - name: name of new column.
+    type Percentile (percentile:Decimal) (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the mode of values (ignoring missing values)
+       of the specified column within each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find the most common value.
+       - name: name of new column.
+    type Mode (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Creates a new column with the standard deviation of values (ignoring
        missing values) of the column within each group.
 
        Arguments:
+       - column: column (specified by name, index or Column object) to compute standard deviation.
+       - name: name of new column.
        - population argument specifies if group is a sample or the population
     type Standard_Deviation (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (population:Boolean=False)
 
     ## Creates a new column with the values concatenated together. `Nothing` values will become an empty string.
 
        Arguments:
+       - column: column (specified by name, index or Column object) to concatenate values.
+       - name: name of new column.
        - separator: added between each value.
        - prefix: added at the start of the result.
        - suffix: added at the end of the result.
@@ -63,21 +120,53 @@ type Aggregate_Column
 
     ## Creates a new column with the first value in each group.
 
-        Arguments:
-        - ignore_nothing: if `True`, then missing values are ignored and first
-          not missing value returned.
-        - order_by: required for database tables. Specifies how to order the
-          results within the group.
+       Arguments:
+       - column: column (specified by name, index or Column object) to find first group entry.
+       - name: name of new column.
+       - ignore_nothing: if `True`, then missing values are ignored and first
+         not missing value returned.
+       - order_by: required for database tables. Specifies how to order the
+         results within the group.
     type First (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
 
     ## Creates a new column with the last value in each group.
 
-        Arguments:
-        - ignore_nothing: if `True`, then missing values are ignored and last
-          not missing value returned.
-        - order_by: required for database tables. Specifies how to order the
-          results within the group.
+       Arguments:
+       - column: column (specified by name, index or Column object) to find last group entry.
+       - name: name of new column.
+       - ignore_nothing: if `True`, then missing values are ignored and last
+         not missing value returned.
+       - order_by: required for database tables. Specifies how to order the
+         results within the group.
     type Last (column:Column|Text|Integer) (name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
+
+    ## Creates a new column with the maximum value in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find maximum.
+       - name: name of new column.
+    type Maximum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the maximum value in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find minimum.
+       - name: name of new column.
+    type Minimum (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the shortest text in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find shortest value.
+       - name: name of new column.
+    type Shortest (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
+    ## Creates a new column with the longest text in each group.
+
+       Arguments:
+       - column: column (specified by name, index or Column object) to find longest value.
+       - name: name of new column.
+    type Longest (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
 
     ## Gets a column name to use for the aggregate column
     column_name : Table->Text
@@ -86,7 +175,7 @@ type Aggregate_Column
             get_name c = (this.resolve_column table c).name
             case this of
                 Count _ -> "Count"
-                Count_Distinct c _ ->
+                Count_Distinct c _ _ ->
                     case c of
                         Vector.Vector _ -> "Count Distinct " + ((c.map get_name).join " ")
                         _ -> "Count Distinct " + (get_name c)
@@ -97,10 +186,16 @@ type Aggregate_Column
                 Sum c _ -> "Sum " + (get_name c)
                 Average c _ -> "Average " + (get_name c)
                 Median c _ -> "Median " + (get_name c)
+                Percentile p c _ -> (p*100).floor.to_text + "%-ile " + (get_name c)
+                Mode c _ -> "Mode " + (get_name c)
                 Standard_Deviation c _ _ -> "Standard Deviation " + (get_name c)
                 Concatenate c _ _ _ _ _ -> "Concatenate " + (get_name c)
                 First c _ _ _ -> "First " + (get_name c)
                 Last c _ _ _ -> "Last " + (get_name c)
+                Maximum c _ -> "Maximum " + (get_name c)
+                Minimum c _ -> "Minimum " + (get_name c)
+                Shortest c _ -> "Shortest " + (get_name c)
+                Longest c _ -> "Longest " + (get_name c)
 
     ## PRIVATE
        Given a column reference resolve to the underlying column
@@ -113,14 +208,20 @@ type Aggregate_Column
 
     initial_value : Any
     initial_value = case this of
-        Count_Distinct _ _ -> Map.empty
+        Count_Distinct _ _ _ -> Map.empty
         Median _ _ -> Map.empty
+        Percentile _ _ _ -> Map.empty
+        Mode _ _ -> Map.empty
         Average _ _ -> [0, 0]
         Standard_Deviation _ _ _ -> [0, 0, 0]
         Concatenate _ _ _ _ _ _ -> Nothing
         First _ _ _ _ -> Nothing
         Last _ _ _ _ -> Nothing
         Sum _ _ -> Nothing
+        Maximum _ _ -> Nothing
+        Minimum _ _ -> Nothing
+        Shortest _ _ -> Nothing
+        Longest _ _ -> Nothing
         _ -> 0
 
     make_aggregator : Table->(Any->Integer->Any)
@@ -139,16 +240,28 @@ type Aggregate_Column
             Count_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
             Count_Not_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 0 else 1)
             Count_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 1 else 0)
-            First c _ i _ ->
-                case i of
+            First c _ ignore_nothing _ ->
+                case ignore_nothing of
                     False -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
                     True -> create_closure c col->current->i->if current.is_nothing then (col.at i) else current
-            Last c _ i _ ->
-                case i of
+            Last c _ ignore_nothing _ ->
+                case ignore_nothing of
                     False -> create_closure c col->_->i->(col.at i)
                     True -> create_closure c col->current->i->
                         v = (col.at i)
                         if v.is_nothing then current else v
+            Maximum c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else m.max v
+            Minimum c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else m.min v
+            Shortest c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else if m.length <= v.length then m else v
+            Longest c _ -> create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else if m.length >= v.length then m else v
             Sum c _ -> create_closure c col->total->i->
                 v = col.at i
                 if v.is_nothing then total else
@@ -159,53 +272,63 @@ type Aggregate_Column
             Standard_Deviation c _ _ -> create_closure c col->a->i->
                 v = col.at i
                 if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v]
-            Concatenate c _ j _ _ q -> create_closure c col->text->i->
+            Concatenate c _ join _ _ quote -> create_closure c col->text->i->
                 v = col.at i
                 val=if v.is_nothing then "" else
                     text = case v of
                         Text -> v
                         _ -> v.to_text
-                    if text == "" then (q+q) else
-                        if text.contains j then (q+text+q) else text
-                if i==0 then val else (text + j + val)
+                    if text == "" then (quote+quote) else
+                        if text.contains join then (quote+text+quote) else text
+                if text.is_nothing then val else (text + join + val)
             Median c _ -> create_closure c col->map->i->
                 val = col.at i
                 if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
-            Count_Distinct columns _ ->
+            Percentile _ c _ -> create_closure c col->map->i->
+                val = col.at i
+                if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
+            Mode c _ -> create_closure c col->map->i->
+                val = col.at i
+                if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
+            Count_Distinct columns _ ignore_nothing ->
                 resolved = case columns of
                     Vector.Vector _ -> columns.map c->(this.resolve_column table c)
                     _ -> [this.resolve_column table columns]
                 key_maker i = Group_By.key (resolved.map c->(c.at i))
-                map->i->(map.insert (key_maker i) 1)
+                case ignore_nothing of
+                    False-> map->i->(map.insert (key_maker i) 1)
+                    True-> map->i->
+                        key = key_maker i
+                        if key.values.all .is_nothing then map else (map.insert key 1)
 
     evaluate : Any->Any
-    evaluate value = case this of
-        Count_Distinct _ _ -> value.size
-        Median _ _ ->
+    evaluate value =
+        ## Given a map of values and counts, find the value at a specified percentile
+        percentile p:Decimal value:Map =
             count = value.fold 0 (+)
             if count == 0 then Nothing else
-                case count%2 == 1 of
-                    True ->
-                        mid = (count-1) / 2
-                        output = value.fold_with_key [0, Nothing] c->k->v->
-                            new_v = c.first + v
-                            [new_v, if c.first.up_to new_v . contains mid then k else c.second]
-                        output.second
-                    False ->
-                        mid = count / 2
+                mid_value = (count - 1)*p + 1
+                if mid_value <= 1 then value.first.first else
+                    if mid_value >= count then value.last.first else
+                        mid = mid_value.floor
                         output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
                             new_v = c.first + v
-                            new_s = if c.first.up_to new_v . contains mid then k else c.second
-                            new_t = if c.first.up_to new_v . contains (mid-1) then k else (c.at 2)
+                            new_s = if c.first.up_to new_v . contains (mid-1) then k else c.second
+                            new_t = if c.first.up_to new_v . contains mid then k else (c.at 2)
                             [new_v, new_s, new_t]
-                        (output.second + (output.at 2)) / 2
-        Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
-        Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
-            f = if p then 1 else (value.first / (value.first - 1)).sqrt
-            ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
-        Concatenate _ _ _ s p _ -> if value.is_nothing then value else (s + value + p)
-        _ -> value
+                        (output.second + (output.at 2 - output.second) * (mid_value - mid))
 
+        case this of
+            Count_Distinct _ _ _ -> value.size
+            Median _ _ -> percentile 0.5 value
+            Percentile p _ _ -> percentile p value
+            Mode _ _ -> (value.fold_with_key (Pair 0 Nothing) p->k->v-> if v>(p.first) then (Pair v k) else p) . second
+            Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
+            Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
+                f = if p then 1 else (value.first / (value.first - 1)).sqrt
+                ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
+            Concatenate _ _ _ s p _ -> if value.is_nothing then value else (s + value + p)
+            _ -> value
 
 ## Occurs when cannot aggregate a column
 type Invalid_Aggregation_Method (column : Text) (message : Text)

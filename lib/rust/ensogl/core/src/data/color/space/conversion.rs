@@ -11,14 +11,16 @@
 //! make them more pleasant to work, however, the equations you will find here will probably work on
 //! different value ranges. Read documentation for each color space very carefully.
 
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::excessive_precision)]
 
 use super::super::component::*;
 use super::super::data::*;
 use super::def::*;
-use super::white_point;
 use super::white_point::traits::*;
+
+use super::white_point;
 
 
 

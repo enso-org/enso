@@ -1,27 +1,32 @@
 //! Utilities to create consistent shadows for UI components.
 
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
+use ensogl_core::system::web::traits::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::shape::AnyShape;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::style;
 use ensogl_core::display::DomSymbol;
 use ensogl_core::frp;
-use ensogl_core::system::web::StyleSetter;
 use ensogl_hardcoded_theme as theme;
+
 
 
 /// Defines the appearance of a shadow
@@ -112,14 +117,14 @@ pub fn from_shape_with_parameters_and_alpha(
 }
 
 /// Add a theme defined box shadow to the given `DomSymbol`.
-pub fn add_to_dom_element(element: &DomSymbol, style: &StyleWatch, logger: &Logger) {
+pub fn add_to_dom_element(element: &DomSymbol, style: &StyleWatch) {
     let off_x = style.get_number(theme::shadow::offset_x);
     let off_y = -style.get_number(theme::shadow::offset_y);
     let alpha = style.get_number(ensogl_hardcoded_theme::shadow::html::alpha);
     let blur = style.get_number(ensogl_hardcoded_theme::shadow::html::blur);
     let spread = style.get_number(ensogl_hardcoded_theme::shadow::html::spread);
     let shadow = format!("{}px {}px {}px {}px rgba(0,0,0,{})", off_x, off_y, blur, spread, alpha);
-    element.dom().set_style_or_warn("box-shadow", shadow, logger);
+    element.dom().set_style_or_warn("box-shadow", shadow);
 }
 
 

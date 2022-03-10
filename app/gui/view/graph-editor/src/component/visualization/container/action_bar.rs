@@ -1,6 +1,8 @@
 //! Definition of the `ActionBar` component for the `visualization::Container`.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
 
 use crate::component::node;
 use crate::component::visualization;
@@ -12,8 +14,6 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::system::DynamicShape;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::gui::component::ShapeView;
 use ensogl_component::drop_down_menu;
 use ensogl_hardcoded_theme as theme;
@@ -271,9 +271,9 @@ impl Model {
         let icons = Icons::new(logger);
         let shapes = compound::events::MouseEvents::default();
 
-        app.display.scene().layers.below_main.add_exclusive(&hover_area);
-        app.display.scene().layers.below_main.add_exclusive(&background);
-        app.display.scene().layers.above_nodes.add_exclusive(&icons);
+        app.display.default_scene.layers.below_main.add_exclusive(&hover_area);
+        app.display.default_scene.layers.below_main.add_exclusive(&background);
+        app.display.default_scene.layers.above_nodes.add_exclusive(&icons);
 
         shapes.add_sub_shape(&hover_area);
         shapes.add_sub_shape(&background);
@@ -359,7 +359,7 @@ impl ActionBar {
         let network = &self.frp.network;
         let frp = &self.frp;
         let model = &self.model;
-        let mouse = &app.display.scene().mouse.frp;
+        let mouse = &app.display.default_scene.mouse.frp;
         let visualization_chooser = &model.visualization_chooser.frp;
 
         frp::extend! { network

@@ -1,21 +1,21 @@
 //! This module provides a clickable view for a single breadcrumb.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+
+use crate::component::breadcrumbs;
+use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
+use crate::MethodPointer;
 
 use super::RelativePosition;
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
 use super::TEXT_SIZE;
-use crate::component::breadcrumbs;
-use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
-use crate::MethodPointer;
-
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
@@ -279,7 +279,7 @@ impl BreadcrumbModel {
         method_pointer: &MethodPointer,
         expression_id: &ast::Id,
     ) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new(&logger);
         let view_logger = Logger::new_sub(&logger, "view_logger");
@@ -492,7 +492,7 @@ impl Breadcrumb {
         let frp = Frp::new();
         let model = Rc::new(BreadcrumbModel::new(app, &frp, method_pointer, expression_id));
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)

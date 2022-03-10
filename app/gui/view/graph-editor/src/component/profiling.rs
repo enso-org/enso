@@ -1,6 +1,7 @@
 //! Provides a button that can be used to toggle the editor's profiling mode.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::view;
 
@@ -8,7 +9,6 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ToggleButton;
 
@@ -143,7 +143,7 @@ impl Deref for Button {
 impl Button {
     /// Constructs a new button for toggling the editor's view mode.
     pub fn new(app: &Application) -> Button {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let styles = StyleWatchFrp::new(&scene.style_sheet);
         let frp = Frp::new();
         let network = &frp.network;

@@ -319,7 +319,8 @@ impl Default for Timestamp {
 #[cfg(target_arch = "wasm32")]
 fn now() -> f64 {
     use enso_web as web;
-    web::performance().now()
+    use enso_web::traits::*;
+    web::window.performance_or_panic().now()
 }
 #[cfg(not(target_arch = "wasm32"))]
 fn now() -> f64 {

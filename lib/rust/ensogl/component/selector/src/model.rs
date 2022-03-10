@@ -2,15 +2,15 @@
 //! both selectors and can be configured to suit the needs of both.
 
 use crate::prelude::*;
+use crate::shape::*;
+use ensogl_core::display::shape::*;
 
 use crate::decimal_aligned::FloatLabel;
-use crate::shape::*;
 use crate::Bounds;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_text as text;
 
 
@@ -97,7 +97,7 @@ impl Model {
         let padding = default();
 
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         scene.layers.add_global_shapes_order_dependency::<background::View, track::View>();
         scene.layers.add_global_shapes_order_dependency::<track::View, left_overflow::View>();
         scene.layers.add_global_shapes_order_dependency::<track::View, right_overflow::View>();

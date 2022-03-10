@@ -2,6 +2,8 @@
 //! text editors.
 
 use crate::prelude::*;
+use enso_text::unit::*;
+use ensogl_core::display::shape::*;
 
 use crate::buffer;
 use crate::buffer::style;
@@ -16,13 +18,11 @@ use crate::typeface::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
-use enso_text::unit::*;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
@@ -304,7 +304,7 @@ impl Area {
     fn init(self) -> Self {
         let network = &self.frp.network;
         let model = &self.data;
-        let scene = model.app.display.scene();
+        let scene = &model.app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let input = &self.frp.input;
         let out = &self.frp.output;
@@ -532,7 +532,7 @@ impl Area {
 
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
         let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
-        let shapes = &self.data.app.display.scene().shapes;
+        let shapes = &self.data.app.display.default_scene.shapes;
         let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
         //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
@@ -568,7 +568,7 @@ impl AreaModel {
     /// Constructor.
     pub fn new(app: &Application, frp_endpoints: &FrpEndpoints) -> Self {
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
         let fonts = scene.extension::<typeface::font::Registry>();
@@ -703,7 +703,7 @@ impl AreaModel {
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
 
-        let shape = self.app.display.scene().frp.shape.value();
+        let shape = self.app.display.default_scene.frp.shape.value();
         let clip_space_z = origin_clip_space.z;
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;

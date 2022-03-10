@@ -1,7 +1,4 @@
 //! This module contains the IDE object implementation.
-pub mod initializer;
-
-pub use initializer::Initializer;
 
 use crate::prelude::*;
 
@@ -12,6 +9,15 @@ use analytics::AnonymousData;
 use enso_frp as frp;
 use ensogl::system::web::sleep;
 use std::time::Duration;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod initializer;
+
+pub use initializer::Initializer;
 
 
 
@@ -62,7 +68,7 @@ impl Ide {
 
     fn alive_log_sending_loop(&self) -> impl Future<Output = ()> + 'static {
         let network = &self.network;
-        let scene = self.ensogl_app.display.scene();
+        let scene = &self.ensogl_app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
 

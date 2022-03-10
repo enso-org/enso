@@ -1,5 +1,6 @@
 //! A single block component that is used to build up a flame graph.
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use ensogl::frp;
@@ -8,7 +9,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::shape::*;
 use ensogl_core::Animation;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;
@@ -112,7 +112,7 @@ impl component::Model for Model {
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
         let label = app.new_view::<text::Area>();
         let background = background::View::new(&logger);

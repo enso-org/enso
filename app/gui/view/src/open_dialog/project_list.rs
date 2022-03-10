@@ -1,11 +1,11 @@
 //! A module containing [`ProjectList`] component and all related structures.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::list_view;
 use ensogl_component::shadow;
 use ensogl_hardcoded_theme::application::project_list as theme;
@@ -94,19 +94,19 @@ impl ProjectList {
         display_object.add_child(&background);
         display_object.add_child(&caption);
         display_object.add_child(&list);
-        app.display.scene().layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add_exclusive(&display_object);
         caption.set_content("Open Project");
-        caption.add_to_scene_layer(&app.display.scene().layers.panel_text);
-        list.set_label_layer(app.display.scene().layers.panel_text.id());
+        caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
+        list.set_label_layer(app.display.default_scene.layers.panel_text.id());
 
         ensogl::shapes_order_dependencies! {
-            app.display.scene() => {
+            app.display.default_scene => {
                 background            -> list_view::selection;
                 list_view::background -> background;
             }
         }
 
-        let style_watch = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let width = style_watch.get_number(theme::width);
         let height = style_watch.get_number(theme::height);
         let bar_height = style_watch.get_number(theme::bar::height);
