@@ -393,8 +393,9 @@ fn discover_paths_internal(
     let md = fs::metadata(path).unwrap();
     if md.is_dir() && path.file_name() != Some(OsStr::new("target")) {
         let dir_name = path.file_name();
-        let is_main_dir =
-            dir_name == Some(OsStr::new("bin")) || dir_name == Some(OsStr::new("tests"));
+        // FIXME: This should cover 'tests' folder also, but only the files that contain actual
+        //        tests. Otherwise, not all attributes are allowed there.
+        let is_main_dir = dir_name == Some(OsStr::new("bin")); // || dir_name == Some(OsStr::new("tests"));
         let sub_paths = fs::read_dir(path).unwrap();
         for sub_path in sub_paths {
             discover_paths_internal(vec, &sub_path.unwrap().path(), is_main_dir)

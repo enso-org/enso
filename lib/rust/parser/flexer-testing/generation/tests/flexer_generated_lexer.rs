@@ -3,12 +3,10 @@
 // === Features ===
 #![feature(test)]
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-
 // === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
 #![deny(unconditional_recursion)]
+#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

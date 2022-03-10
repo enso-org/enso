@@ -1,10 +1,9 @@
 // This module contains dead code. Its purpose is making sure that it compiles
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![allow(dead_code)]
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use enso_prelude::*;
 

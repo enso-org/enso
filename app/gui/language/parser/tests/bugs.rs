@@ -1,7 +1,7 @@
 //! Tests for cases where parser currently fails. They are ignored, should be removed and placed
 //! elsewhere, as the parser gets fixed.
 
-// === Standard Linter Configuration ===
+// === Non-Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 

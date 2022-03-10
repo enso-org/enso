@@ -3,11 +3,10 @@
 //! This file includes quite a bit of duplicated code, but this is known and intentional as it
 //! allows for increased clarity in the testing.
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 #![allow(clippy::blacklisted_name)] // `foo` is fine here.
 #![allow(clippy::new_without_default)] // No need for boilerplate in throwaway test code.
 
