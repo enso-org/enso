@@ -928,7 +928,10 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     |      import Standard.Base.System.File
     |      import Standard.Examples
     |
-    |      example_new = File.new Examples.csv_path
+    |      example_new =
+    |          path =
+    |              Examples.csv_path
+    |          File.new path
     |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?== Doc(
     Tags(Tags.Tag(0, Tags.Tag.Type.Alias, " New File")),
     Synopsis(Section.Raw(0, Newline)),
@@ -951,7 +954,10 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         CodeBlock(
           CodeBlock.Line(6, "import Standard.Base.System.File"),
           CodeBlock.Line(6, "import Standard.Examples"),
-          CodeBlock.Line(6, "example_new = File.new Examples.csv_path")
+          CodeBlock.Line(6, "example_new ="),
+          CodeBlock.Line(10, "path ="),
+          CodeBlock.Line(14, "Examples.csv_path"),
+          CodeBlock.Line(10, "File.new path")
         )
       )
     )

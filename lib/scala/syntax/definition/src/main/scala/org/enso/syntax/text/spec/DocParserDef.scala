@@ -866,10 +866,15 @@ case class DocParserDef() extends Parser[Doc] {
             }
           }
           stackOfCodeSections = stackOfCodeSections :+ current
-          val codeLines = stackOfCodeSections.flatMap(s => {
-            val inLines = s.repr.build().split("\n").map(_.trim)
-            inLines.map(Doc.Elem.CodeBlock.Line(s.indent, _))
-          })
+          val codeLines = stackOfCodeSections.flatMap {
+            _.repr
+              .build()
+              .split("\n")
+              .map { line =>
+                val (indent, text) = line.span(_ == ' ')
+                Doc.Elem.CodeBlock.Line(indent.length, text)
+              }
+          }
           if (codeLines.nonEmpty) {
             val l1CodeLines = List1(codeLines.head, codeLines.tail)
             val codeBlock   = Doc.Elem.CodeBlock(l1CodeLines)
