@@ -9,6 +9,8 @@
 //! Possible extensions, not implemented yet:
 //! - Sections are automatically keeping spacing.
 
+// === Features ===
+#![feature(exit_status_error)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -347,18 +349,18 @@ fn process_path(path: impl AsRef<Path>, action: Action) {
     let mut hash_map = HashMap::<PathBuf, u64>::new();
     for (i, sub_path) in paths.iter().enumerate() {
         let dbg_msg = if sub_path.is_main { " [main]" } else { "" };
-        println!("[{}/{}] Processing {:?}{}.", i + 1, total, sub_path.path, dbg_msg);
+        println!("[{}/{}] Processing {}{}.", i + 1, total, sub_path.path.display(), dbg_msg);
         let hash = process_file(&sub_path.path, action, sub_path.is_main);
         hash_map.insert((&sub_path.path).into(), hash);
     }
     if action == Action::Format || action == Action::FormatAndCheck {
-        let mut child = Command::new("cargo")
-            .args(["fmt"])
+        Command::new("cargo")
+            .arg("fmt")
             .stdin(Stdio::null())
-            .stdout(Stdio::inherit())
-            .spawn()
-            .expect("'cargo fmt' failed to start.");
-        child.wait().unwrap();
+            .status()
+            .expect("'cargo fmt' failed to start.")
+            .exit_ok()
+            .unwrap();
     }
 
     if action == Action::FormatAndCheck {
