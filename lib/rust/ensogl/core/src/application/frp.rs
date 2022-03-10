@@ -1189,7 +1189,9 @@ macro_rules! define_endpoints_2_normalized_glue {
 
         impl $($ctx)*
         $crate::application::command::FrpNetworkProvider for Frp <$($param)*>  {
-            fn network(&self) -> &$crate::frp::Network { &self.private.network }
+            fn network(&self) -> &$crate::frp::Network {
+                &self.private.network
+            }
         }
 
         impl $($ctx)*
