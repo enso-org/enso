@@ -822,7 +822,7 @@ macro_rules! define_endpoints_2 {
                 $([$($input_opts:tt)*])?
                 $(
                     $(#$in_attr:tt)*
-                    $in_field : ident ($($in_field_type : tt)*)
+                    $in_field:ident $in_field_type:tt
                 ),* $(,)?
             }
         )?
@@ -832,7 +832,7 @@ macro_rules! define_endpoints_2 {
                 $([$($output_opts:tt)*])?
                 $(
                     $(#$out_attr:tt)*
-                    $out_field : ident ($($out_field_type : tt)*)
+                    $out_field:ident $out_field_type:tt
                 ),* $(,)?
         })?
     ) => {
@@ -849,7 +849,7 @@ macro_rules! define_endpoints_2 {
                 set_focus(bool)
                 $($(,
                     $(#$in_attr)*
-                    $in_field ($($in_field_type)*)
+                    $in_field $in_field_type
                 )*)?
             }
 
@@ -858,7 +858,7 @@ macro_rules! define_endpoints_2 {
                 focused(bool)
                 $($(,
                     $(#$out_attr)*
-                    $out_field ($($out_field_type)*)
+                    $out_field $out_field_type
                 )*)?
             }
         }
@@ -873,14 +873,14 @@ macro_rules! define_endpoints_2_normalized {
         Input { $input_opts:tt
             $(
                 $(#$in_attr:tt)*
-                $in_field : ident ($($in_field_type : tt)*)
+                $in_field:ident ($($in_field_type:tt)*)
             ),*
         }
 
         Output { $output_opts:tt
             $(
                 $(#$out_attr:tt)*
-                $out_field : ident ($($out_field_type : tt)*)
+                $out_field:ident ($($out_field_type:tt)*)
             ),*
         }
     ) => {
@@ -895,7 +895,6 @@ macro_rules! define_endpoints_2_normalized {
             public: api::Public <$($param)*>,
             private: Rc<api::Private <$($param)*>>,
         }
-
 
          impl $($ctx)* Frp <$($param)*> {
             /// Create Frp endpoints within and the associated network.
