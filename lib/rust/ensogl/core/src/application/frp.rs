@@ -836,7 +836,7 @@ macro_rules! define_endpoints_2 {
                 ),* $(,)?
         })?
     ) => {
-        $crate::define_endpoints_2_normalized! {
+        $crate::define_endpoints_2_normalized! {{
             [<$($($param $(:$($constraints)*)?),*)?>] [$($($param),*)?]
 
             Input { [$($($global_opts)*)? $($($($input_opts)*)?)?]
@@ -861,7 +861,7 @@ macro_rules! define_endpoints_2 {
                     $out_field $out_field_type
                 )*)?
             }
-        }
+        }}
     };
 }
 
@@ -869,7 +869,7 @@ macro_rules! define_endpoints_2 {
 
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_public {
-    (
+    ({
         [$($ctx:tt)*] [$($param:tt)*]
 
         Input { $input_opts:tt
@@ -885,7 +885,7 @@ macro_rules! define_endpoints_2_normalized_public {
                 $out_field:ident $out_field_type:tt
             ),*
         }
-    ) => {
+    }) => {
         /// Public FRP Api. Contains FRP nodes for sending FRP events into the API collected
         ///in the `public::Input` and nodes for receiving events from the API in the
         /// `public::Output` struct. For convenience there is also a `public::Combined` struct
@@ -1085,7 +1085,7 @@ macro_rules! define_endpoints_2_normalized_public {
 
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_private {
-    (
+    ({
         [$($ctx:tt)*] [$($param:tt)*]
 
         Input { $input_opts:tt
@@ -1101,7 +1101,7 @@ macro_rules! define_endpoints_2_normalized_private {
                 $out_field:ident $out_field_type:tt
             ),*
         }
-    ) => {
+    }) => {
         // No Clone. We do not want `network` to be cloned easily in the future.
         #[derive(Debug)]
         pub struct Private $($ctx)* {
@@ -1212,7 +1212,7 @@ macro_rules! define_endpoints_2_normalized_private {
 
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_glue {
-    (
+    ({
         [$($ctx:tt)*] [$($param:tt)*]
 
         Input { $input_opts:tt
@@ -1228,7 +1228,7 @@ macro_rules! define_endpoints_2_normalized_glue {
                 $out_field:ident $out_field_type:tt
             ),*
         }
-    ) => {
+    }) => {
         /// Frp API consisting of a public and private API. See the documentation of
         /// [define_endpoints_2] for full documentation.
         #[derive(Debug,Derivative)]
@@ -1294,96 +1294,17 @@ macro_rules! define_endpoints_2_normalized_glue {
 
 #[macro_export]
 macro_rules! define_endpoints_2_normalized {
-    (
-        [$($ctx:tt)*] [$($param:tt)*]
-
-        Input { $input_opts:tt
-            $(
-                $(#$in_attr:tt)*
-                $in_field:ident $in_field_type:tt
-            ),*
-        }
-
-        Output { $output_opts:tt
-            $(
-                $(#$out_attr:tt)*
-                $out_field:ident $out_field_type:tt
-            ),*
-        }
-    ) => {
+    ($def:tt) => {
         use $crate::frp::IntoParam;
-
-        $crate::define_endpoints_2_normalized_glue! {
-            [$($ctx)*] [$($param)*]
-
-            Input { $input_opts
-                $(
-                    $(#$in_attr)*
-                    $in_field $in_field_type
-                ),*
-            }
-
-            Output { $output_opts
-                $(
-                    $(#$out_attr)*
-                    $out_field $out_field_type
-                ),*
-            }
-        }
-
+        $crate::define_endpoints_2_normalized_glue! {$def}
         /// Module containing the implementations of the structs that make up the public
         /// (`api::Public`) and private (`api::Private`) part of the FRP API.
         #[allow(missing_docs)]
         #[allow(clippy::manual_non_exhaustive)]
         pub mod api {
             use super::*;
-
-
-
-            // ==============
-            // === Public ===
-            // ==============
-
-            $crate::define_endpoints_2_normalized_public! {
-
-                [$($ctx)*] [$($param)*]
-
-                Input { $input_opts
-                    $(
-                        $(#$in_attr)*
-                        $in_field $in_field_type
-                    ),*
-                }
-
-                Output { $output_opts
-                    $(
-                        $(#$out_attr)*
-                        $out_field $out_field_type
-                    ),*
-                }
-            }
-
-
-            $crate::define_endpoints_2_normalized_private! {
-                [$($ctx)*] [$($param)*]
-
-                Input { $input_opts
-                    $(
-                        $(#$in_attr)*
-                        $in_field $in_field_type
-                    ),*
-                }
-
-                Output { $output_opts
-                    $(
-                        $(#$out_attr)*
-                        $out_field $out_field_type
-                    ),*
-                }
-            }
-
-
-
+            $crate::define_endpoints_2_normalized_public! {$def}
+            $crate::define_endpoints_2_normalized_private! {$def}
         }
     };
 }
