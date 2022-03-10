@@ -22,7 +22,7 @@ type Span
 
        Arguments:
        - range: The range of characters over which the span exists.
-       - text: The text over which the span exists. This is _optional_.
+       - text: The text over which the span exists.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -82,60 +82,37 @@ type Span
 
 type Utf_16_Span
 
-    ## A representation of a span of UTF-16 characters in Enso's `Text` type.
+    ## A representation of a span of UTF-16 code units in Enso's `Text` type.
 
        Arguments:
-       - range: The range of characters over which the span exists.
-       - text: The text over which the span exists. This is _optional_.
-
-       ! What is a Character?
-         In the context of this type, a character is defined as a single UTF-16
-         code unit. This is a different notion from extended grapheme clusters
-         on which most Enso functions are based. You can call `to_grapheme_span`
-         to convert this span into a `Span` whose indices are based on extended
-         grapheme clusters and are compatible with most Enso's text operations.
+       - range: The range of code units over which the span exists.
+       - text: The text over which the span exists.
 
        > Example
-         Creating a span over the first three characters of the text "hello!".
+         Creating a span over the first three code units of the text 'a\u{301}bc'.
 
              import Standard.Base.Data.Text.Span
 
              example_span =
-                 text = "Hello!"
-                 range = 0.up_to 3
-                 Span.Utf_16_Span range text
+                 text = 'a\u{301}bc'
+                 Span.Utf_16_Span (Range 0 3) text
     type Utf_16_Span (range : Range.Range) (text : Text)
 
-    ## The index of the first character included in the span.
-
-       ! What is a Character?
-         In the context of this type, a character is defined as a single UTF-16
-         code unit. This is a different notion from extended grapheme clusters
-         on which most Enso functions are based.
+    ## The index of the first code unit included in the span.
     start : Integer
     start = this.range.start
 
-    ## The index of the first character after `start` that is _not_ included in
+    ## The index of the first code unit after `start` that is _not_ included in
        the span.
-
-       ! What is a Character?
-         In the context of this type, a character is defined as a single UTF-16
-         code unit. This is a different notion from extended grapheme clusters
-         on which most Enso functions are based.
     end : Integer
     end = this.range.end
 
     ## The length of the span in UTF-16 code units.
-
-       ! What is a Character?
-         In the context of this type, a character is defined as a single UTF-16
-         code unit. This is a different notion from extended grapheme clusters
-         on which most Enso functions are based.
     length : Integer
     length = this.range.length
 
     ## Returns a span of extended grapheme clusters which is the closest
-       approximation of this span of the code units.
+       approximation of this span of code units.
 
        The resulting span is extended in such a way that every code unit that
        was contained by the original span is also contained in a new span. Since

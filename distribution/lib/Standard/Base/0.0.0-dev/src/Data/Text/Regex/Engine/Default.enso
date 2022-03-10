@@ -183,7 +183,10 @@ type Pattern
          on the encoding, we normalize all input.
     build_matcher : Text -> Integer -> Integer -> Java_Matcher
     build_matcher input start end =
-        ## TODO [RW] Normalization had to be disabled - since start and end are in code unit space, normalization can shift these indices!
+        ## TODO [RW] Normalization had to be disabled - since start and end are
+           in code unit space, normalization could shift these indices!
+           This should be addressed when reviewing
+           See: https://www.pivotaltracker.com/story/show/181524498
         #normalized_input = if this.options.contains Global_Option.Ascii_Matching then input else
         #    Text_Utils.normalize input
         normalized_input = input
@@ -281,6 +284,7 @@ type Pattern
                         if found.not then Nothing else
                             builder.append (Match internal_matcher start end input)
                             match_end = internal_matcher.end 0
+                            # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
                             @Tail_Call go new_offset remaining_count-1
 
@@ -300,6 +304,7 @@ type Pattern
                         if found.not then Nothing else
                             builder.append (Match internal_matcher start end input)
                             match_end = internal_matcher.end 0
+                            # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
                             @Tail_Call go new_offset
 

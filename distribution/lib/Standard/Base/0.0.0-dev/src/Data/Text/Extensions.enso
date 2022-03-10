@@ -1293,7 +1293,6 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
      - If a `Regex_Matcher`, the `term` is used as a regular expression and
        matched using the associated options.
 
-
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
      Standard Annex 29. This is the smallest unit that still has semantic
