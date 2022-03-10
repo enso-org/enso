@@ -1,9 +1,11 @@
 package org.enso.base.text;
 
+/** A char sequence which allows to access a slice of another char sequence without copying. */
 class StringSlice implements CharSequence {
   private final CharSequence text;
   private final int subStart, subEnd;
 
+  /** Constructs a slice of the given text. */
   public StringSlice(CharSequence text, int start, int end) {
     this.text = text;
     this.subStart = start;

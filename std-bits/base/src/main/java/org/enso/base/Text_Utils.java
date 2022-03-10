@@ -255,11 +255,11 @@ public class Text_Utils {
   }
 
   /**
-   * Find the first index of needle in the haystack
+   * Find the first occurrence of needle in the haystack
    *
    * @param haystack the string to search
    * @param needle the substring that is searched for
-   * @return index of the first needle or -1 if not found.
+   * @return a UTF-16 code unit span of the first needle or null if not found.
    */
   public static Utf16Span span_of(String haystack, String needle) {
     if (needle.isEmpty()) return new Utf16Span(0, 0);
@@ -272,13 +272,11 @@ public class Text_Utils {
   }
 
   /**
-   * Find the last index of needle in the haystack
-   *
-   * <p>The index is in codepoint space and not grapheme space.
+   * Find the last occurrence of needle in the haystack
    *
    * @param haystack the string to search
    * @param needle the substring that is searched for
-   * @return index of the last needle or -1 if not found.
+   * @return a UTF-16 code unit span of the last needle or null if not found.
    */
   public static Utf16Span last_span_of(String haystack, String needle) {
     if (needle.isEmpty()) {
@@ -294,11 +292,11 @@ public class Text_Utils {
   }
 
   /**
-   * Find indices of all occurrences of the needle within the haystack.
+   * Find spans of all occurrences of the needle within the haystack.
    *
    * @param haystack the string to search
    * @param needle the substring that is searched for
-   * @return a list of indices at which the needle occurs in the haystack
+   * @return a list of UTF-16 code unit spans at which the needle occurs in the haystack
    */
   public static List<Utf16Span> span_of_all(String haystack, String needle) {
     if (needle.isEmpty())
@@ -316,24 +314,24 @@ public class Text_Utils {
   }
 
   /**
-   * Converts a UTF-16 index to index of the grapheme that this codepoint belongs to.
+   * Converts a UTF-16 code unit index to index of the grapheme that this code unit belongs to.
    *
    * @param text the text associated with the index
-   * @param codepoint_indices the UTF-16 index
+   * @param codeunit_index the UTF-16 index
    * @return an index of an extended grapheme cluster that contains the code unit from the input
    */
-  public static long utf16_index_to_grapheme_index(String text, long codepoint_index) {
+  public static long utf16_index_to_grapheme_index(String text, long codeunit_index) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
-    if (codepoint_index < 0 || codepoint_index > text.length()) {
+    if (codeunit_index < 0 || codeunit_index > text.length()) {
       throw new IndexOutOfBoundsException(
-          "Index " + codepoint_index + " is outside of the provided text.");
+          "Index " + codeunit_index + " is outside of the provided text.");
     }
 
     int grapheme_end = breakIterator.next();
     long grapheme_index = 0;
 
-    while (grapheme_end <= codepoint_index && grapheme_end != BreakIterator.DONE) {
+    while (grapheme_end <= codeunit_index && grapheme_end != BreakIterator.DONE) {
       grapheme_index++;
       grapheme_end = breakIterator.next();
     }
@@ -341,7 +339,8 @@ public class Text_Utils {
   }
 
   /**
-   * Converts a series of UTF-16 indices to indices of graphemes that these codepoints belong to.
+   * Converts a series of UTF-16 code unit indices to indices of graphemes that these code units
+   * belong to.
    *
    * <p>For performance, it assumes that the provided indices are sorted in a non-decreasing order
    * (duplicate entries are permitted). Behaviour is unspecified if an unsorted list is provided.
@@ -350,22 +349,21 @@ public class Text_Utils {
    * text.length()].
    *
    * @param text the text associated with the indices
-   * @param codepoint_indices the array of UTF-16 code unit indices, sorted in non-decreasing order
+   * @param codeunit_indices the array of UTF-16 code unit indices, sorted in non-decreasing order
    * @return an array of grapheme indices corresponding to the UTF-16 units from the input
    */
-  public static long[] utf16_indices_to_grapheme_indices(
-      String text, List<Long> codepoint_indices) {
+  public static long[] utf16_indices_to_grapheme_indices(String text, List<Long> codeunit_indices) {
     BreakIterator breakIterator = BreakIterator.getCharacterInstance();
     breakIterator.setText(text);
 
     int grapheme_end = breakIterator.next();
     long grapheme_index = 0;
 
-    long[] result = new long[codepoint_indices.size()];
+    long[] result = new long[codeunit_indices.size()];
     int result_ix = 0;
 
-    for (long codepoint_index : codepoint_indices) {
-      while (grapheme_end <= codepoint_index && grapheme_end != BreakIterator.DONE) {
+    for (long codeunit_index : codeunit_indices) {
+      while (grapheme_end <= codeunit_index && grapheme_end != BreakIterator.DONE) {
         grapheme_index++;
         grapheme_end = breakIterator.next();
       }
@@ -375,6 +373,16 @@ public class Text_Utils {
     return result;
   }
 
+  /**
+   * Find the first or last occurrence of needle in the haystack.
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @param locale the locale used for case-insensitive comparisons
+   * @param searchForLast if set to true, will search for the last occurrence; otherwise searches
+   *     for the first one
+   * @return an extended-grapheme-cluster span of the first or last needle, or null if none found.
+   */
   public static GraphemeSpan span_of_case_insensitive(
       String haystack, String needle, Locale locale, boolean searchForLast) {
     if (needle.isEmpty())
@@ -398,6 +406,14 @@ public class Text_Utils {
     }
   }
 
+  /**
+   * Find all occurrences of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @param locale the locale used for case-insensitive comparisons
+   * @return a list of extended-grapheme-cluster spans at which the needle occurs in the haystack
+   */
   public static List<GraphemeSpan> span_of_all_case_insensitive(
       String haystack, String needle, Locale locale) {
     if (needle.isEmpty())
