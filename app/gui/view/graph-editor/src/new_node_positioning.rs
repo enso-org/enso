@@ -16,8 +16,8 @@ use ensogl_hardcoded_theme as theme;
 
 
 /// Return a position for a newly created node, such that the node will not overlap with existing
-/// ones. The position is calculated by taking the mouse position and aligning it to an existing
-/// node closest to it if the existing node is close enough to the mouse position.
+/// ones. The position is calculated by taking the mouse position and aligning it to the closest
+/// existing node if it is close enough to the node.
 ///
 /// To learn more about the align algorithm, see the docs of
 /// [`new_node_position_aligned_if_close_to_node`].
