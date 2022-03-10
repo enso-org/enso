@@ -888,7 +888,7 @@ impl Node {
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input                        <- all4(
                 &position,&new_size,&visualization_enabled_and_visible,visualization_size);
-            out.source.bounding_box           <+ bbox_input.map(bounding_box);
+            out.source.bounding_box           <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
 
 
             // === VCS Handling ===
@@ -943,22 +943,20 @@ fn visualization_offset(node_width: f32) -> Vector2 {
 }
 
 fn bounding_box(
-    (node_position, node_size, visualization_enabled_and_visible, visualization_size): &(
-        Vector2,
-        Vector2,
-        bool,
-        Vector2,
-    ),
+    node_position: Vector2,
+    node_size: Vector2,
+    visualization_enabled_and_visible: bool,
+    visualization_size: Vector2,
 ) -> BoundingBox {
     let x_offset_to_node_center = x_offset_to_node_center(node_size.x);
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
-    let mut node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, *node_size);
-    if *visualization_enabled_and_visible {
+    let mut node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
+    if visualization_enabled_and_visible {
         let visualization_offset = visualization_offset(node_size.x);
         let visualization_pos = node_position + visualization_offset;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
-            BoundingBox::from_position_and_size(visualization_bbox_pos, *visualization_size);
+            BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
         node_bbox.concat_mut(visualization_bbox);
     }
     node_bbox
