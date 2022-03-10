@@ -63,7 +63,7 @@ mod background {
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints! {
+ensogl_core::define_endpoints_2! {
     Input {
         set_content(String),
         set_position(Vector2),
@@ -73,14 +73,14 @@ ensogl_core::define_endpoints! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(&self, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
-        let network = &self.network;
+    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+        let network = &api.network;
 
         let label_opacity = Animation::<f32>::new(network);
 
         frp::extend! { network
-           eval self.set_content((t) model.set_content(t));
-           eval self.set_size((size) model.set_size(*size));
+           eval api.input.set_content((t) model.set_content(t));
+           eval api.input.set_size((size) model.set_size(*size));
 
             label_opacity.target <+ model.background.events.mouse_over.constant(1.0);
             label_opacity.target <+ model.background.events.mouse_out.constant(0.0);
