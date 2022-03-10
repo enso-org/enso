@@ -1211,7 +1211,7 @@ macro_rules! define_endpoints_2_normalized_private {
 
 
 #[macro_export]
-macro_rules! define_endpoints_2_normalized {
+macro_rules! define_endpoints_2_normalized_glue {
     (
         [$($ctx:tt)*] [$($param:tt)*]
 
@@ -1229,8 +1229,6 @@ macro_rules! define_endpoints_2_normalized {
             ),*
         }
     ) => {
-        use $crate::frp::IntoParam;
-
         /// Frp API consisting of a public and private API. See the documentation of
         /// [define_endpoints_2] for full documentation.
         #[derive(Debug,Derivative)]
@@ -1288,6 +1286,48 @@ macro_rules! define_endpoints_2_normalized {
 
             fn public(&self) -> &Self::Public {
                 &self.public
+            }
+        }
+    };
+}
+
+
+#[macro_export]
+macro_rules! define_endpoints_2_normalized {
+    (
+        [$($ctx:tt)*] [$($param:tt)*]
+
+        Input { $input_opts:tt
+            $(
+                $(#$in_attr:tt)*
+                $in_field:ident $in_field_type:tt
+            ),*
+        }
+
+        Output { $output_opts:tt
+            $(
+                $(#$out_attr:tt)*
+                $out_field:ident $out_field_type:tt
+            ),*
+        }
+    ) => {
+        use $crate::frp::IntoParam;
+
+        $crate::define_endpoints_2_normalized_glue! {
+            [$($ctx)*] [$($param)*]
+
+            Input { $input_opts
+                $(
+                    $(#$in_attr)*
+                    $in_field $in_field_type
+                ),*
+            }
+
+            Output { $output_opts
+                $(
+                    $(#$out_attr)*
+                    $out_field $out_field_type
+                ),*
             }
         }
 
