@@ -67,3 +67,21 @@ get_all value =
    in `value` will be lost.
 set warnings value =
     Prim_Warning.set value (warnings.map .prim_warning).to_array
+
+## UNSTABLE
+   Maps warnings attached to a value.
+map_attached_warnings : (Any -> Any) -> Any -> Any
+map_attached_warnings mapper value =
+    #warnings = here.get_all value
+    #here.set (warnings.map mapper) value
+    # TODO figure out what to do here
+    _ = mapper
+    value
+
+
+## UNSTABLE
+   An utility function which applies the mapping function both to any attached
+   warnings and dataflow errors.
+map_warnings_and_errors : (Any -> Any) -> Any -> Any
+map_warnings_and_errors mapper value =
+    (here.map_attached_warnings mapper value) . map_error mapper

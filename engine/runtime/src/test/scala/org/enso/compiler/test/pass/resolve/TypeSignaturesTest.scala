@@ -87,6 +87,7 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
+      println(ir.bindings.head.getMetadata(TypeSignatures))
       ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
     }
 
@@ -98,6 +99,7 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
+      println(ir.bindings.head.getMetadata(TypeSignatures))
       ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
     }
 
