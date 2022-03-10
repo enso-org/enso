@@ -12,7 +12,14 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
         """ UNSTABLE
           |""".stripMargin
       val expected =
-        DocSections(Some(Seq("UNSTABLE")), None, None, None, None, None)
+        DocSections(
+          Some(DocTags(Seq(DocTag("UNSTABLE", None)))),
+          None,
+          None,
+          None,
+          None,
+          None
+        )
 
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
@@ -24,7 +31,26 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
           |""".stripMargin
       val expected =
         DocSections(
-          Some(Seq("UNSTABLE", "DEPRECATED")),
+          Some(
+            DocTags(Seq(DocTag("UNSTABLE", None), DocTag("DEPRECATED", None)))
+          ),
+          None,
+          None,
+          None,
+          None,
+          None
+        )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
+
+    "generate tag with description" in {
+      val comment =
+        """ ALIAS Check Matches
+          |""".stripMargin
+      val expected =
+        DocSections(
+          Some(DocTags(Seq(DocTag("ALIAS", Some("Check Matches"))))),
           None,
           None,
           None,

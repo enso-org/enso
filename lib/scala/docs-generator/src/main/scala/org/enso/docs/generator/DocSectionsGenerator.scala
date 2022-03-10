@@ -12,13 +12,20 @@ final class DocSectionsGenerator {
   def generate(doc: Doc): DocSections = {
     println(doc.body)
     DocSections(
-      tags        = doc.tags.map(tags => tags.elems.toList.map(TagRender.render)),
+      tags        = doc.tags.map(buildTags),
       description = doc.synopsis.map(SynopsisRender.render),
       arguments   = doc.body.flatMap(buildArguments),
       examples    = doc.body.flatMap(buildExamples),
       icon        = None,
       aliases     = None
     )
+  }
+
+  private def buildTags(tags: Doc.Tags): DocTags = {
+    val docTags = tags.elems.toList.map { tag =>
+      DocTag(tag.name, tag.details.map(_.trim))
+    }
+    DocTags(docTags)
   }
 
   private def buildArguments(body: Doc.Body): Option[DocArguments] = {
@@ -110,13 +117,17 @@ object DocSectionsGenerator {
 }
 
 case class DocSections(
-  tags: Option[Seq[String]],
+  tags: Option[DocTags],
   description: Option[String],
   arguments: Option[DocArguments],
   examples: Option[DocExamples],
   icon: Option[String],
   aliases: Option[DocAliases]
 )
+
+case class DocTags(tags: Seq[DocTag])
+
+case class DocTag(name: String, description: Option[String])
 
 case class DocArguments(arguments: Seq[DocArgument])
 
