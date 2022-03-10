@@ -57,9 +57,15 @@
 //!     println!("Foo parameter: {}", generated::CONFIG.foo);
 //! }
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use inflector::*;
+
 use serde_yaml::Value;
 use std::fs;
+
 
 
 /// Generate module with constants read from given configuration file in YAML format.

@@ -1,16 +1,20 @@
 //! Startup arguments definition.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
 use enso_prelude::*;
+
+use enso_logger::DefaultWarningLogger as Logger;
 use ensogl::system::web;
 
 

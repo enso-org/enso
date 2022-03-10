@@ -1,7 +1,6 @@
 //! Utilities for dealing with macro-related parts of AST and language, including `Match` shape and
 //! such constructs as lambda expressions.
 
-
 use crate::prelude::*;
 
 use crate::crumbs::AmbiguousCrumb;

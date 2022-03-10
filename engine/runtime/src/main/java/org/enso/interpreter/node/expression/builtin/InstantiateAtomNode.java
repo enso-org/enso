@@ -40,7 +40,7 @@ public class InstantiateAtomNode extends RootNode {
    */
   @Override
   public String getName() {
-    return "constructor::" + name;
+    return name;
   }
 
   /**

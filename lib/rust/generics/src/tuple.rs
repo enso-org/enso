@@ -1,7 +1,8 @@
 //! This module contains implementations of generic operations on tuples.
 
-use crate as hlist;
 use nalgebra::base::dimension::*;
+
+use crate as hlist;
 
 
 

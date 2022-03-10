@@ -1,10 +1,11 @@
 //! Canvas for drawing vector graphics. See the documentation of `Canvas` to learn more.
 
+use crate::prelude::*;
+use crate::system::gpu::types::*;
+
 use crate::data::color;
 use crate::display::shape::primitive::def::var::Var;
-use crate::prelude::*;
 use crate::system::gpu::shader::glsl::Glsl;
-use crate::system::gpu::types::*;
 
 
 

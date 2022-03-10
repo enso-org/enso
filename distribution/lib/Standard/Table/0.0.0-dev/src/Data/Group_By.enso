@@ -4,11 +4,7 @@ import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 ## Create a key structure for grouping operations
 key : Vector -> Group_By_Key
 key values =
-    mapper c = case c of
-        Boolean -> Comparable_Boolean c
-        Nothing -> Comparable_Nothing
-        _ -> c
-
+    mapper c = Comparable_Value c
     Group_By_Key <| values.map mapper
 
 ## PRIVATE
@@ -26,29 +22,22 @@ type Group_By_Key
         Vector_Lexicographic_Order.compare this.values that.values
 
 ## PRIVATE
-   Temporary workaround until Boolean compare_to completed
-type Comparable_Boolean
-    type Comparable_Boolean value
-
-    == : Comparable_Boolean->Boolean
-    == that = (this.compare_to that) == Ordering.Equal
-
-    compare_to : Any->Ordering
-    compare_to that =
-        if this.value == that.value then Ordering.Equal else
-            if this.value then Ordering.Greater else Ordering.Less
-
-## PRIVATE
    Temporary workaround allowing Nothing to be in a Group_By
-type Comparable_Nothing
-    type Comparable_Nothing
+type Comparable_Value
+    type Comparable_Value value
 
     == : Comparable_Nothing->Boolean
     == that = (this.compare_to that) == Ordering.Equal
 
     compare_to : Any->Ordering
     compare_to that =
-        case that of
-            Comparable_Nothing -> Ordering.Equal
-            Nothing -> Ordering.Equal
-            _ -> Ordering.Less
+        value = case that of
+            Comparable_Value v -> v
+            _ -> that
+
+        case this.value of
+            Nothing -> if value.is_nothing then Ordering.Equal else Ordering.Less
+            _ -> if value.is_nothing then Ordering.Greater else this.value.compare_to value
+
+    is_nothing : Boolean
+    is_nothing = this.value.is_nothing

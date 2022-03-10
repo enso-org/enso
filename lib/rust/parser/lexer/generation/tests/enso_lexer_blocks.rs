@@ -1,14 +1,19 @@
+//! This file contains tests for lexing blocks in the Enso lexer.
+
+// === Features ===
 #![feature(test)]
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
 #![deny(unconditional_recursion)]
+#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This file contains tests for lexing blocks in the Enso lexer.
+
 
 mod test_utils;
 

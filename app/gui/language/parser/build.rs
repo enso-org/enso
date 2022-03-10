@@ -2,16 +2,17 @@
 //! the JS Parser package is available at the expected location for
 //! `wasm_bindgen` tool.
 
+// === Features ===
 #![feature(option_result_contains)]
+
+use std::io::prelude::*;
 
 use enso_build_utilities::absolute_path;
 use enso_build_utilities::targeting_wasm;
 use enso_build_utilities::PathRef;
-
 use std::fs;
 use std::fs::create_dir_all;
 use std::fs::File;
-use std::io::prelude::*;
 use std::path::PathBuf;
 
 

@@ -2,8 +2,7 @@
 //! the required default material parameters.
 
 use crate::prelude::*;
-
-use super::def;
+use crate::system::gpu::types::*;
 
 use crate::display;
 use crate::display::scene::Scene;
@@ -15,7 +14,8 @@ use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
 use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::buffer::item::Storable;
-use crate::system::gpu::types::*;
+
+use super::def;
 
 
 

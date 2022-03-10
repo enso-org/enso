@@ -5,6 +5,11 @@
 //! To learn more about these concepts, follow the link:
 //! https://www.khronos.org/opengl/wiki/Type_Qualifier_(GLSL)
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod attribute;
 pub mod buffer;
 pub mod default;
@@ -14,15 +19,12 @@ pub mod sized;
 pub mod texture;
 pub mod uniform;
 
-
-// =================
-// === Reexports ===
-// =================
-
 pub use attribute::*;
 pub use buffer::item::*;
 pub use default::*;
 pub use uniform::*;
+
+
 
 /// Common types.
 pub mod types {

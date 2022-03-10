@@ -3,11 +3,12 @@
 
 use crate::prelude::*;
 
-use super::canvas;
-use super::canvas::Canvas;
 use crate::display::shape::primitive::def::primitive;
 use crate::display::shape::primitive::shader::overload;
 use crate::display::symbol::shader::builder::CodeTemplate;
+
+use super::canvas;
+use super::canvas::Canvas;
 
 
 

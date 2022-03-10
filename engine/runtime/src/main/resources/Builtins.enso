@@ -243,6 +243,30 @@ type Error
     to_text : Text
     to_text = @Builtin_Method "Error.to_text"
 
+@Builtin_Type
+type Prim_Warning
+    type Prim_Warning
+
+    ## PRIVATE
+    attach : Any -> Any -> Any
+    attach value warning = @Builtin_Method "Prim_Warning.attach"
+
+    ## PRIVATE
+    get_all : Any -> Array Prim_Warning
+    get_all value = @Builtin_Method "Prim_Warning.get_all"
+
+    ## PRIVATE
+    get_origin : Prim_Warning -> Any
+    get_origin warn = @Builtin_Method "Prim_Warning.get_origin"
+
+    ## PRIVATE
+    get_value : Prim_Warning -> Any
+    get_value warn = @Builtin_Method "Prim_Warning.get_value"
+
+    ## PRIVATE
+    get_reassignments : Prim_Warning -> Any
+    get_reassignments warn = @Builtin_Method "Prim_Warning.get_reassignments"
+
 ## The runtime representation of a syntax error.
 
    Arguments:

@@ -269,7 +269,7 @@ commands['integration-test'].rust = async function (argv) {
     }
     try {
         console.log(`Running Rust WASM test suite.`)
-        process.env.WASM_BINDGEN_TEST_TIMEOUT = 180
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 120
         let args = [
             'test',
             '--headless',

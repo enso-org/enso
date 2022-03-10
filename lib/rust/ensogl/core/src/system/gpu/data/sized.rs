@@ -1,7 +1,8 @@
 //! This module implements type-level utils for checking the size of values for a given type.
 
-use crate::system::gpu::data::buffer::item::MatrixCtx;
 use nalgebra::*;
+
+use crate::system::gpu::data::buffer::item::MatrixCtx;
 
 
 

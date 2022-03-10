@@ -1,12 +1,12 @@
 //! Module with the Enso Procol RPC handler.
 
 use crate::prelude::*;
+use enso_logger::*;
 
 use crate::common::event::Event;
 use crate::common::ongoing_calls::OngoingCalls;
 
 use enso_logger::WarningLogger as Logger;
-use enso_logger::*;
 use futures::channel::mpsc::UnboundedSender;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;

@@ -1,4 +1,5 @@
 //! A module with structures related to examples found in Suggestion Database.
+
 use crate::prelude::*;
 
 use double_representation::definition;

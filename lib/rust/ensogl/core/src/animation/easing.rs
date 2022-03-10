@@ -3,10 +3,15 @@
 
 use crate::prelude::*;
 
-use core::f32::consts::PI;
-
 use crate::animation;
 use crate::data::function::Fn1;
+
+use core::f32::consts::PI;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use crate::animation::physics::inertia::EndStatus;
 

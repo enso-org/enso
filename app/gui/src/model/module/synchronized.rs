@@ -1,6 +1,7 @@
 //! A Wrapper for module which synchronizes opening/closing and all changes with Language Server.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::model::module::Content;
 use crate::model::module::NodeMetadata;
@@ -17,7 +18,6 @@ use double_representation::graph::Id;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
-use enso_text::unit::*;
 use enso_text::Location;
 use enso_text::Range;
 use enso_text::Text;

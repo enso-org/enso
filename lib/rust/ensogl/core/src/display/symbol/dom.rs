@@ -1,17 +1,14 @@
 //! This module contains the implementation of `DomSymbol`, a struct used to represent DOM
 //! elements on the scene.
 
+use crate::display::object::traits::*;
 use crate::prelude::*;
 use web::traits::*;
 
 use crate::display;
-use crate::display::object::traits::*;
 #[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
-
-// #[cfg(target_arch = "wasm32")]
-// use crate::system::web::traits::*;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;

@@ -21,9 +21,13 @@ import Standard.Builtins
                      2*3 . should_equal 6
 Suite.run_main : Any -> Nothing
 Suite.run_main ~specs =
-    r = this.run specs
+    r = this.run specs here.config_from_env
     code = if r.is_fail then 1 else 0
     System.exit code
+
+config_from_env =
+    only_group_regexp = Environment.get "TEST_ONLY_GROUP"
+    Suite_Config only_group_regexp
 
 ## Creates a new test group, desribing properties of the object
    described by `this`.
@@ -42,9 +46,9 @@ Suite.run_main ~specs =
                      2+3 . should_equal 5
                  Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
-Suite.run : Any -> Any
-Suite.run ~specs =
-    r = State.run Suite (Suite Nil) <|
+Suite.run : Any -> Suite_Config -> Any
+Suite.run ~specs config =
+    r = State.run Suite (Suite config Nil) <|
         specs
         State.get Suite
     r
@@ -67,18 +71,20 @@ Suite.run ~specs =
              Test.group "Number" <| Nothing
 group : Text -> Any -> (Text | Nothing) -> Nothing
 group name ~behaviors pending=Nothing =
-    case pending of
-        Nothing ->
-            r = State.run Spec (Spec name  Nil) <|
-                behaviors
-                State.get Spec
-            r.print_report
-            suite = State.get Suite
-            new_suite = Suite (Cons r suite.specs)
-            State.put Suite new_suite
-        reason ->
-            IO.print_err ("[PENDING] " + name)
-            IO.print_err ("    Reason: " + reason)
+    config = State.get Suite . config
+    if config.should_run_group name then
+        case pending of
+            Nothing ->
+                r = State.run Spec (Spec name  Nil) <|
+                    behaviors
+                    State.get Spec
+                r.print_report
+                suite = State.get Suite
+                new_suite = Suite suite.config (Cons r suite.specs)
+                State.put Suite new_suite
+            reason ->
+                IO.print_err ("[PENDING] " + name)
+                IO.print_err ("    Reason: " + reason)
 
 ## Specifies a single behavior, described by `this`.
 
@@ -435,13 +441,24 @@ Spec.print_report =
                 IO.print_err ("    - [PENDING] " + behavior.name)
                 IO.print_err ("        Reason: " + reason)
 
+## PRVATE
+type Suite_Config
+    type Suite_Config only_group_regexp
+
+    should_run_group name =
+        regexp = this.only_group_regexp
+        case regexp of
+            Text -> name.matches regexp . catch (_->True)
+            _ -> True
+
+
 ## PRIVATE
 
    The top-level entry point for a test suite.
 
    Arguments:
    - specs: The specs contained within the test suite.
-type Suite specs
+type Suite config specs
 
 ## PRIVATE
 

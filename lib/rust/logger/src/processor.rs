@@ -1,12 +1,18 @@
 //! Logger processor implementation.
 
-pub mod consumer;
-pub mod formatter;
+use crate::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use crate::entry::level::DefaultLevels;
 use crate::entry::Entry;
-use crate::prelude::*;
-use wasm_bindgen::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod consumer;
+pub mod formatter;
 
 
 
