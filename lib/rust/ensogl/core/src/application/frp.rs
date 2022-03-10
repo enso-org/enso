@@ -943,7 +943,7 @@ macro_rules! test_2 {
 
         #[allow(unused_parens)]
         impl $($ctx)* $data_name <$($param)*> {
-            pub fn new($net: &$crate::frp::Network) -> Self {
+            pub fn new($net: &$crate::frp::Network, $($arg: $arg_tp),*) -> Self {
                 Self::new_from_tuple($body)
             }
         }
@@ -1015,17 +1015,6 @@ macro_rules! define_endpoints_2_normalized_public {
                 }
             }
 
-            // #[allow(unused_parens)]
-            // impl $($ctx)* InputData <$($param)*> {
-            //     pub fn new(network: &$crate::frp::Network) -> Self {
-            //         let _phantom_type_args = default();
-            //         $crate::frp::extend! { $input_opts network
-            //             $($in_field <- any_mut();)*
-            //         }
-            //         Self { _phantom_type_args, $($in_field),* }
-            //     }
-            // }
-
             #[allow(unused_parens)]
             impl $($ctx)* InputData <$($param)*> {
                 $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
@@ -1034,38 +1023,23 @@ macro_rules! define_endpoints_2_normalized_public {
 
             // === Output ===
 
-            $crate::test_1! {
+            $crate::test_2! {
                 [$($ctx)*] [$($param)*] Output OutputData {
-                    $(
+                    status_map: (Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>),
+                    command_map: (Rc<RefCell<HashMap<String,$crate::application::command::Command>>>)
+                    $(,
                         $(#$out_attr)*
-                        pub $out_field: $crate::frp::Sampler<$out_field_type>,
+                        $out_field: ($crate::frp::Sampler<$out_field_type>)
                     )*
-
-                    pub status_map: Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
-                    pub command_map: Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
                 }
-            }
 
-             impl $($ctx)* Output <$($param)*> {
                 pub fn new(
-                    network: &$crate::frp::Network,
-                    private_output: &api::private::Output<$($param)*>,
-                    public_input: &Input<$($param)*>
-                ) -> Self {
-                    let data = Rc::new(OutputData::new(network, private_output, public_input));
-                    Self { data }
-                }
-            }
-
-            impl $($ctx)* OutputData <$($param)*>  {
-                fn new(
-                    network: &$crate::frp::Network,
-                    private_output: &api::private::Output<$($param)*>,
-                    public_input: &Input<$($param)*>
-                ) -> Self {
+                    network,
+                    private_output: (&api::private::Output<$($param)*>),
+                    public_input: (&Input<$($param)*>)
+                ) {
                     use $crate::application::command::*;
 
-                    let _phantom_type_args = default();
                     $crate::frp::extend! { $output_opts network
                         $( $out_field <- private_output.$out_field.sampler(); )*
                     }
@@ -1078,9 +1052,10 @@ macro_rules! define_endpoints_2_normalized_public {
                     let status_map = Rc::new(RefCell::new(status_map));
                     let command_map = Rc::new(RefCell::new(command_map));
 
-                    Self {_phantom_type_args,status_map,command_map,$($out_field),*}
+                    (status_map,command_map,$($out_field),*)
                 }
             }
+
 
 
             // === Combined ===
@@ -1094,7 +1069,8 @@ macro_rules! define_endpoints_2_normalized_public {
             impl $($ctx)* Combined <$($param)*> {
                 pub fn new(
                     input:&InputData<$($param)*>,
-                    output:&OutputData<$($param)*>) -> Self {
+                    output:&OutputData<$($param)*>
+                ) -> Self {
                     let data = Rc::new(CombinedData::new(input,output));
                     Self { data }
                 }
@@ -1166,66 +1142,58 @@ macro_rules! define_endpoints_2_normalized_private {
 
             // === Input ===
 
-            $crate::test_1! {
+            $crate::test_2! {
                 [$($ctx)*] [$($param)*] Input InputData {
                     $(
                         $(#$in_attr)*
-                        pub $in_field: $crate::frp::Stream<$in_field_type>,
-                    )*
+                        $in_field: ($crate::frp::Stream<$in_field_type>)
+                    ),*
                 }
-            }
 
-            impl  $($ctx)* Input <$($param)*> {
-                pub fn new(
-                    network: &$crate::frp::Network,
-                    public_input: (&api::public::Input<$($param)*>)
-                ) -> Self {
-                    let data = Rc::new(InputData::new(network, public_input));
-                    Self { data }
-                }
-            }
-
-            impl $($ctx)* InputData <$($param)*> {
-                fn new(
-                    network: &$crate::frp::Network,
-                    public_input: &api::public::Input<$($param)*>
-                ) -> Self {
-                    let _phantom_type_args = default();
+                pub fn new(network, public_input: (&api::public::Input<$($param)*>)) {
                     $crate::frp::extend! { $input_opts network
                         $( $in_field <- public_input.$in_field.profile(); )*
                     }
                     $(let $in_field = $in_field.clone_ref().into();)*
-                    Self { _phantom_type_args, $($in_field),* }
+                    ($($in_field,)*)
                 }
             }
+
 
             // === Output ===
 
-            $crate::test_1! {
+            $crate::test_2! {
                 [$($ctx)*] [$($param)*] Output OutputData {
                     $(
                         $(#$out_attr)*
-                        pub $out_field : $crate::frp::Any<$out_field_type>,
-                    )*
+                        $out_field: ($crate::frp::Any<$out_field_type>)
+                    ),*
                 }
-            }
 
-            impl $($ctx)* Output <$($param)*> {
-                pub fn new(network: &$crate::frp::Network) -> Self {
-                    let data = Rc::new(OutputData::new(network));
-                    Self { data }
-                }
-            }
-
-            impl $($ctx)* OutputData <$($param)*> {
-                fn new(network: &$crate::frp::Network) -> Self {
-                    let _phantom_type_args = default();
+                pub fn new(network) {
                     $crate::frp::extend! { $output_opts network
                         $($out_field <- any_mut();)*
                     }
-                    Self { _phantom_type_args, $($out_field),* }
+                    ($($out_field,)*)
                 }
             }
+
+            // impl $($ctx)* Output <$($param)*> {
+            //     pub fn new(network: &$crate::frp::Network) -> Self {
+            //         let data = Rc::new(OutputData::new(network));
+            //         Self { data }
+            //     }
+            // }
+            //
+            // impl $($ctx)* OutputData <$($param)*> {
+            //     fn new(network: &$crate::frp::Network) -> Self {
+            //         let _phantom_type_args = default();
+            //         $crate::frp::extend! { $output_opts network
+            //             $($out_field <- any_mut();)*
+            //         }
+            //         Self { _phantom_type_args, $($out_field),* }
+            //     }
+            // }
         }
     };
 }
