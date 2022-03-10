@@ -16,8 +16,8 @@ final class DocSectionsGenerator {
       description = doc.synopsis.map(SynopsisRender.render),
       arguments   = doc.body.flatMap(buildArguments),
       examples    = doc.body.flatMap(buildExamples),
-      icon        = None,
-      aliases     = None
+      icon        = doc.body.flatMap(buildIcon),
+      aliases     = doc.body.flatMap(buildAliases)
     )
   }
 
@@ -78,6 +78,31 @@ final class DocSectionsGenerator {
       block.elems.map(elem => elem.copy(indent = elem.indent - minIndent))
     block.copy(elems = normalized)
   }
+
+  private def buildIcon(body: Doc.Body): Option[String] = {
+    val iconSection = body.elems.toList.find { section =>
+      section.elems.head.repr.build().startsWith("Icon:")
+    }
+    iconSection.map { section =>
+      HtmlRender.render(section.html).stripPrefix("Icon:").trim
+    }
+  }
+
+  private def buildAliases(body: Doc.Body): Option[DocAliases] = {
+    val aliasesSection = body.elems.toList.find { section =>
+      section.elems.head.repr.build().startsWith("Aliases:")
+    }
+    aliasesSection
+      .map { section =>
+        val list = HtmlRender
+          .render(section.html)
+          .stripPrefix("Aliases:")
+          .trim
+          .split(", ")
+        DocAliases(list.toSeq)
+      }
+  }
+
 }
 object DocSectionsGenerator {
 
@@ -91,6 +116,8 @@ object DocSectionsGenerator {
   implicit object HtmlRender extends Render[Doc.HTML] {
     final val DivOpenLength  = 5
     final val DivCloseLength = 6
+    final val POpenTag       = "<p>"
+    final val PCloseTag      = "</p>"
 
     override def render(o: HTML): String =
       HTML
@@ -98,6 +125,9 @@ object DocSectionsGenerator {
         .toString
         .drop(DivOpenLength)
         .dropRight(DivCloseLength)
+        .stripPrefix(POpenTag)
+        .stripSuffix(PCloseTag)
+        .trim
   }
 
   implicit object TagRender extends Render[Doc.Tags.Tag] {

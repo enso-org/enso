@@ -66,19 +66,19 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
         """ hello world
           |""".stripMargin
       val expected =
-        DocSections(None, Some("<p>hello world</p>"), None, None, None, None)
+        DocSections(None, Some("hello world"), None, None, None, None)
 
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
 
-    "generate synopsis multiline" in {
+    "generate description multiline" in {
       val comment =
         """ hello world
           | multiline
           |""".stripMargin
       val expected = DocSections(
         None,
-        Some("<p>hello world multiline</p>"),
+        Some("hello world multiline"),
         None,
         None,
         None,
@@ -88,9 +88,25 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
 
-    "generate arguments" in {
+    "generate description with markdown" in {
       val comment =
-        """ Synopsis
+        """ hello world `foo` _bar_
+          |""".stripMargin
+      val expected = DocSections(
+        None,
+        Some("hello world <code>foo</code> <i>bar</i>"),
+        None,
+        None,
+        None,
+        None
+      )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
+
+    "generate arguments simple" in {
+      val comment =
+        """ Description
           |
           | Arguments:
           | - one: The first
@@ -100,7 +116,7 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       val expected =
         DocSections(
           None,
-          Some("<p>Synopsis </p>"),
+          Some("Description"),
           Some(
             DocArguments(
               Seq(
@@ -117,9 +133,42 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
 
+    "generate arguments with markdown" in {
+      // TODO: parser does not support markdown in lists
+      pending
+      val comment =
+        """ Description
+          |
+          | Arguments:
+          | - pattern: The pattern to match `this` against _raw text_
+          |   - sublist item
+          | - two: bar
+          |""".stripMargin
+      val expected =
+        DocSections(
+          None,
+          Some("Description"),
+          Some(
+            DocArguments(
+              Seq(
+                DocArgument(
+                  "pattern",
+                  "This pattern to match <code>this</code> against <i>raw text</i><ul><li>sublist item</li></ul>"
+                )
+              )
+            )
+          ),
+          None,
+          None,
+          None
+        )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
+
     "generate single example single line" in {
       val comment =
-        """ Synopsis
+        """ Description
           |
           | > Example
           | First line
@@ -129,7 +178,7 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       val expected =
         DocSections(
           None,
-          Some("<p>Synopsis </p>"),
+          Some("Description"),
           None,
           Some(
             DocExamples(
@@ -151,7 +200,7 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
 
     "generate single example multiline" in {
       val comment =
-        """ Synopsis
+        """ Description
           |
           | > Example
           | First line
@@ -166,7 +215,7 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       val expected =
         DocSections(
           None,
-          Some("<p>Synopsis </p>"),
+          Some("Description"),
           None,
           Some(
             DocExamples(
@@ -208,7 +257,7 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       val expected =
         DocSections(
           None,
-          Some("<p>Synopsis </p>"),
+          Some("Synopsis"),
           None,
           Some(
             DocExamples(
@@ -233,5 +282,42 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
 
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
+
+    "generate icon section" in {
+      val comment =
+        """ Description
+          |
+          | Icon: table-from-rows
+          |""".stripMargin
+      val expected = DocSections(
+        None,
+        Some("Description"),
+        None,
+        None,
+        Some("table-from-rows"),
+        None
+      )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
+
+    "generate aliases section" in {
+      val comment =
+        """ Description
+          |
+          | Aliases: foo, bar baz, redshift®
+          |""".stripMargin
+      val expected = DocSections(
+        None,
+        Some("Description"),
+        None,
+        None,
+        None,
+        Some(DocAliases(Seq("foo", "bar baz", "redshift®")))
+      )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
+
   }
 }
