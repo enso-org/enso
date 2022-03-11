@@ -914,6 +914,8 @@ macro_rules! find_me_a_name_and_docs {
     };
 }
 
+// TODO: of course, this function can be merged with `find_me_a_name_and_docs` after anglify will be
+// used everywhere. This is just a simple showcase.
 #[macro_export]
 macro_rules! find_me_a_name_and_docs_anglify_showcase {
     (
