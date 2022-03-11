@@ -32,7 +32,7 @@ pub trait CloneableFnEasing = 'static + Clone + Fn(f32) -> f32;
 
 macro_rules! define_in_out_easing_fn {
     (fn $tname:ident $name:ident $lambda:expr) => {
-        paste::item! {
+        paste! {
             /// A $name-in function type.
             pub type [<$tname In>]    = impl Clone + Fn(f32) -> f32;
             /// A $name-out function type.
