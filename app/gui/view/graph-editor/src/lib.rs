@@ -28,7 +28,7 @@ pub mod builtin;
 pub mod data;
 #[warn(missing_docs)]
 pub mod free_place_finder;
-pub mod new_node_positioning;
+pub mod new_node_position;
 #[warn(missing_docs)]
 pub mod profiling;
 #[warn(missing_docs)]
@@ -45,7 +45,6 @@ use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
-use crate::new_node_positioning::*;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
 use enso_config::ARGS;
@@ -1425,13 +1424,13 @@ impl GraphEditorModelWithNetwork {
         let position: Vector2 = match way {
             AddNodeEvent => default(),
             StartCreationEvent | ClickingButton if selection.is_some() =>
-                find_free_place_under(self, selection.unwrap()),
+                new_node_position::under(self, selection.unwrap()),
             StartCreationEvent =>
-                new_node_position_at_mouse_aligned_to_close_nodes(self, mouse_position),
+                new_node_position::at_mouse_aligned_to_close_nodes(self, mouse_position),
             ClickingButton =>
-                find_free_place_for_node(self, screen_center, Vector2(0.0, -1.0)).unwrap(),
+                new_node_position::on_ray(self, screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { edge_id } =>
-                new_node_position_at_mouse_aligned_to_source_node(self, edge_id, mouse_position),
+                new_node_position::at_mouse_aligned_to_source_node(self, edge_id, mouse_position),
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
@@ -1706,7 +1705,7 @@ impl GraphEditorModel {
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn add_node_below(&self, above: NodeId) -> NodeId {
-        let pos = find_free_place_under(self, above);
+        let pos = new_node_position::under(self, above);
         self.add_node_at(pos)
     }
 

@@ -20,13 +20,13 @@ use ensogl_hardcoded_theme as theme;
 /// existing node if the mouse position is close enough to the node.
 ///
 /// To learn more about the align algorithm, see the docs of
-/// [`new_node_position_aligned_if_close_to_node`].
-pub fn new_node_position_at_mouse_aligned_to_close_nodes(
+/// [`aligned_if_close_to_node`].
+pub fn at_mouse_aligned_to_close_nodes(
     graph_editor: &GraphEditorModel,
     mouse_position: Vector2,
 ) -> Vector2 {
     let nearest_node = node_nearest_to_point(graph_editor, mouse_position);
-    new_node_position_aligned_if_close_to_node(graph_editor, mouse_position, nearest_node)
+    aligned_if_close_to_node(graph_editor, mouse_position, nearest_node)
 }
 
 /// Return a position for a newly created node, such that the node will not overlap with existing
@@ -35,15 +35,15 @@ pub fn new_node_position_at_mouse_aligned_to_close_nodes(
 /// position.
 ///
 /// To learn more about the align algorithm, see the docs of
-/// [`new_node_position_aligned_if_close_to_node`].
-pub fn new_node_position_at_mouse_aligned_to_source_node(
+/// [`aligned_if_close_to_node`].
+pub fn at_mouse_aligned_to_source_node(
     graph_editor: &GraphEditorModel,
     edge_id: EdgeId,
     mouse_position: Vector2,
 ) -> Vector2 {
     let source_node_id = graph_editor.edge_source_node_id(edge_id);
     let source_node = source_node_id.and_then(|id| graph_editor.nodes.get_cloned_ref(&id));
-    new_node_position_aligned_if_close_to_node(graph_editor, mouse_position, source_node)
+    aligned_if_close_to_node(graph_editor, mouse_position, source_node)
 }
 
 /// Calculates a position for a new node, aligning it to the specified reference node if the
@@ -66,7 +66,7 @@ pub fn new_node_position_at_mouse_aligned_to_source_node(
 /// ┆               ▼               ┆
 /// └┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┘
 /// ```
-pub fn new_node_position_aligned_if_close_to_node(
+pub fn aligned_if_close_to_node(
     graph_editor: &GraphEditorModel,
     proposed_position: Vector2,
     alignment_node: Option<Node>,
@@ -90,25 +90,25 @@ pub fn new_node_position_aligned_if_close_to_node(
         alignment_area.contains(proposed_position)
     });
     match alignment_node {
-        Some(node) => find_free_place_under(graph_editor, node.id()),
+        Some(node) => under(graph_editor, node.id()),
         None => proposed_position,
     }
 }
 
-pub fn find_free_place_under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
+pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     let above_pos = graph_editor.node_position(node_above);
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
     let y_offset = y_gap + node::HEIGHT;
     let starting_point = above_pos - Vector2(0.0, y_offset);
     let direction = Vector2(-1.0, 0.0);
-    new_node_position_on_ray(graph_editor, starting_point, direction).unwrap()
+    on_ray(graph_editor, starting_point, direction).unwrap()
 }
 
 /// Returns a position for a newly created node, such that the node will not overlap with existing
 /// ones. Returns the first such point on a ray extending from `starting_point` in the `direction`,
 /// or [`None`] if the magnitude of each coordinate of `direction` is smaller than
 /// [`f32::EPSILON`].
-pub fn new_node_position_on_ray(
+pub fn on_ray(
     graph_editor: &GraphEditorModel,
     starting_point: Vector2,
     direction: Vector2,
