@@ -100,10 +100,10 @@ pub fn aligned_if_close_to_node(
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
-/// if available, or a first available point on a ray extending to the left of that position.
+/// if the position is available, or a first available point on a ray extending to the left of that
+/// position.
 ///
-/// The returned position is guaranteed to fulfill the constraints described in the docs of
-/// [`on_ray`].
+/// Availability of a position is defined in the docs of [`on_ray`].
 pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     let above_pos = graph_editor.node_position(node_above);
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
