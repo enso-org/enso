@@ -16,7 +16,7 @@ use crate::symbol::Symbol;
 // =============
 
 /// Specialized DFA state type.
-pub type State = state::State<Dfa>;
+pub type State = state::StateId<Dfa>;
 
 
 
@@ -54,7 +54,7 @@ pub struct Dfa {
     /// | 1 | - | 0 |
     pub links:    Matrix<State>,
     /// For each DFA state contains a list of NFA states it was constructed from.
-    pub sources:  Vec<Vec<nfa::State>>,
+    pub sources:  Vec<Vec<nfa::StateId>>,
 }
 
 impl Dfa {
@@ -131,7 +131,7 @@ impl From<&Nfa> for Dfa {
                 let mut eps_set = nfa::StateSetId::new();
                 for &eps_ix in &dfa_eps_ixs[i] {
                     let tgt = nfa_mat[(eps_ix.id(), voc_ix)];
-                    if tgt != nfa::State::INVALID {
+                    if tgt != nfa::StateId::INVALID {
                         eps_set.extend(eps_mat[tgt.id()].iter());
                     }
                 }
@@ -224,15 +224,16 @@ pub mod tests {
 
         let pattern = pattern.many();
 
-        let pattern = Pattern::never().many();
+        // let pattern = Pattern::never().many();
 
         // let pattern = Pattern::or(Pattern::range('x'..='x'), Pattern::range('y'..='y'));
 
         // let pattern = Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]);
 
         nfa.new_pattern(start_state_id, pattern);
+        let dfa = Dfa::from(&nfa);
 
-        println!("{}", nfa.as_graphviz_code());
+        println!("{}", dfa.as_graphviz_code());
     }
 
     #[test]

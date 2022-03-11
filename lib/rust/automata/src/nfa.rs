@@ -6,7 +6,6 @@ use crate::alphabet;
 use crate::data::matrix::Matrix;
 use crate::pattern::Pattern;
 use crate::state;
-use crate::state::Transition;
 use crate::symbol::Symbol;
 
 use std::collections::BTreeSet;
@@ -19,14 +18,96 @@ use std::ops::RangeInclusive;
 // =============
 
 /// Specialized NFA state type.
-pub type State = state::State<Nfa>;
+pub type StateId = state::StateId<Nfa>;
 
 /// A state identifier based on a set of states.
 ///
 /// This is used during the NFA -> Dfa transformation, where multiple states can merge together due
 /// to the collapsing of epsilon transitions.
-pub type StateSetId = BTreeSet<State>;
+pub type StateSetId = BTreeSet<StateId>;
 
+
+
+// ==================
+// === Transition ===
+// ==================
+
+/// A transition between states in a finite automaton that must consume a symbol to trigger.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Transition {
+    /// The range of symbols on which this transition will trigger.
+    pub symbols: RangeInclusive<Symbol>,
+    /// The state that is entered after the transition has triggered.
+    pub target:  StateId,
+}
+
+impl Transition {
+    /// Constructor.
+    pub fn new(symbols: RangeInclusive<Symbol>, target: StateId) -> Self {
+        Self { symbols, target }
+    }
+
+    /// Display the symbols range of this tansition.
+    pub fn display_symbols(&self) -> String {
+        if self.symbols.start() == self.symbols.end() {
+            format!("{}", self.symbols.start())
+        } else {
+            format!("{} .. {}", self.symbols.start(), self.symbols.end())
+        }
+    }
+}
+
+
+
+// ==========
+// == State ==
+// ==========
+
+/// A named state for a [`super::nfa::Nfa`].
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct State {
+    /// A set of transitions that can trigger without consuming a symbol (ε-transitions).
+    pub epsilon_links: Vec<StateId>,
+    /// The set of transitions that trigger while consuming a specific symbol.
+    ///
+    /// When triggered, the automaton will transition to the [`Transition::target`].
+    pub links:         Vec<Transition>,
+    /// Information whether the state should be exported and marked as a "source" state in the DFA
+    /// representation. Non exported states are considered "transitive" states and are used as
+    /// helpers to design the NFA network. All user defined states are marked to be exported.
+    pub export:        bool,
+}
+
+impl State {
+    /// Get a reference to the links in this state.
+    pub fn links(&self) -> &Vec<Transition> {
+        &self.links
+    }
+
+    /// Get a reference to the epsilon links in this state.
+    pub fn epsilon_links(&self) -> &Vec<StateId> {
+        &self.epsilon_links
+    }
+
+    /// Returns the transition (next state) for each symbol in the alphabet.
+    pub fn targets(&self, alphabet: &alphabet::Segmentation) -> Vec<StateId> {
+        let mut targets = vec![];
+        let mut index = 0;
+        let mut links = self.links.clone();
+        links.sort_by_key(|link| link.symbols.start().clone());
+        for symbol in &alphabet.divisions {
+            while links.len() > index && links[index].symbols.end() < symbol {
+                index += 1;
+            }
+            if links.len() <= index || links[index].symbols.start() > symbol {
+                targets.push(StateId::INVALID);
+            } else {
+                targets.push(links[index].target);
+            }
+        }
+        targets
+    }
+}
 
 
 // =========================================
@@ -47,9 +128,9 @@ pub type StateSetId = BTreeSet<State>;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct Nfa {
-    pub start:           State,
+    pub start:           StateId,
     pub(crate) alphabet: alphabet::Segmentation,
-    pub(crate) states:   Vec<state::Data>,
+    pub(crate) states:   Vec<State>,
 }
 
 impl Nfa {
@@ -70,21 +151,21 @@ impl Nfa {
     }
 
     /// Adds a new state to the NFA and returns its identifier.
-    pub fn new_state(&mut self) -> State {
+    pub fn new_state(&mut self) -> StateId {
         let id = self.states.len();
         self.states.push(default());
-        State::new(id)
+        StateId::new(id)
     }
 
     /// Adds a new state to the NFA, marks it as an exported state, and returns its identifier.
-    pub fn new_state_exported(&mut self) -> State {
+    pub fn new_state_exported(&mut self) -> StateId {
         let state = self.new_state();
         self[state].export = true;
         state
     }
 
     /// Get a reference to the states for this automaton.
-    pub fn states(&self) -> &Vec<state::Data> {
+    pub fn states(&self) -> &Vec<State> {
         &self.states
     }
 
@@ -98,8 +179,8 @@ impl Nfa {
     /// freely transitioning between the states without consuming any input.
     pub fn connect(
         &mut self,
-        source: State,
-        target: State,
+        source: StateId,
+        target: StateId,
         symbols: Option<&RangeInclusive<Symbol>>,
     ) {
         match symbols {
@@ -115,8 +196,8 @@ impl Nfa {
     // ///
     // /// If any symbol from such range happens to be the input when the automaton is in the
     // `source` /// state, it will immediately transition to the `target` state.
-    // pub fn connect_via(&mut self, source: State, target: State, symbols: &RangeInclusive<Symbol>)
-    // {     self.alphabet.insert(symbols.clone());
+    // pub fn connect_via(&mut self, source: StateId, target: StateId, symbols:
+    // &RangeInclusive<Symbol>) {     self.alphabet.insert(symbols.clone());
     //     self[source].links.push(Transition::new(symbols.clone(), target));
     // }
 
@@ -126,17 +207,17 @@ impl Nfa {
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI). Please note that the video contains
     /// error in the explanation of [`Pattern::Many`]. The correct solution is presented and
     /// implemented below.
-    pub fn new_pattern(&mut self, source: State, pattern: impl AsRef<Pattern>) -> State {
+    pub fn new_pattern(&mut self, source: StateId, pattern: impl AsRef<Pattern>) -> StateId {
         self.new_pattern_to(source, pattern, None)
     }
 
-    /// Just like [`new_pattern`], but the target [`State`] can be provided as an argument.
+    /// Just like [`new_pattern`], but the target [`StateId`] can be provided as an argument.
     pub fn new_pattern_to(
         &mut self,
-        source: State,
+        source: StateId,
         pattern: impl AsRef<Pattern>,
-        target: Option<State>,
-    ) -> State {
+        target: Option<StateId>,
+    ) -> StateId {
         let output_state = match pattern.as_ref() {
             // source ──<range>──▶ target
             Pattern::Range(range) => {
@@ -207,7 +288,7 @@ impl Nfa {
             nfa: &Nfa,
             states: &mut Vec<StateSetId>,
             visited: &mut Vec<bool>,
-            state: State,
+            state: StateId,
         ) {
             let mut state_set = StateSetId::new();
             visited[state.id()] = true;
@@ -225,13 +306,13 @@ impl Nfa {
         let mut states = vec![StateSetId::new(); self.states.len()];
         for id in 0..self.states.len() {
             let mut visited = vec![false; states.len()];
-            fill_eps_matrix(self, &mut states, &mut visited, State::new(id));
+            fill_eps_matrix(self, &mut states, &mut visited, StateId::new(id));
         }
         states
     }
 
     /// Computes a transition matrix `(state, symbol) => state` for the Nfa, ignoring epsilon links.
-    pub fn nfa_matrix(&self) -> Matrix<State> {
+    pub fn nfa_matrix(&self) -> Matrix<StateId> {
         let mut matrix = Matrix::new(self.states.len(), self.alphabet.divisions.len());
 
         for (state_ix, source) in self.states.iter().enumerate() {
@@ -274,15 +355,15 @@ impl Default for Nfa {
     }
 }
 
-impl Index<State> for Nfa {
-    type Output = state::Data;
-    fn index(&self, state: State) -> &Self::Output {
+impl Index<StateId> for Nfa {
+    type Output = State;
+    fn index(&self, state: StateId) -> &Self::Output {
         &self.states[state.id()]
     }
 }
 
-impl IndexMut<State> for Nfa {
-    fn index_mut(&mut self, state: State) -> &mut Self::Output {
+impl IndexMut<StateId> for Nfa {
+    fn index_mut(&mut self, state: StateId) -> &mut Self::Output {
         &mut self.states[state.id()]
     }
 }
@@ -303,11 +384,11 @@ pub mod tests {
     #[derive(Clone, Debug, Default, PartialEq)]
     pub struct NfaTest {
         pub nfa:               Nfa,
-        pub start_state_id:    State,
-        pub pattern_state_ids: Vec<State>,
-        pub end_state_id:      State,
-        pub callbacks:         HashMap<State, String>,
-        pub names:             HashMap<State, String>,
+        pub start_state_id:    StateId,
+        pub pattern_state_ids: Vec<StateId>,
+        pub end_state_id:      StateId,
+        pub callbacks:         HashMap<StateId, String>,
+        pub names:             HashMap<StateId, String>,
     }
     #[allow(missing_docs)]
     impl NfaTest {
@@ -343,19 +424,19 @@ pub mod tests {
             Self { nfa, start_state_id, pattern_state_ids, end_state_id, callbacks, names }
         }
 
-        pub fn callback(&self, state: State) -> Option<&String> {
+        pub fn callback(&self, state: StateId) -> Option<&String> {
             self.callbacks.get(&state)
         }
 
-        pub fn name(&self, state: State) -> Option<&String> {
+        pub fn name(&self, state: StateId) -> Option<&String> {
             self.names.get(&state)
         }
 
-        pub fn id(id: usize) -> State {
-            State::new(id)
+        pub fn id(id: usize) -> StateId {
+            StateId::new(id)
         }
 
-        pub fn has_transition(&self, trigger: RangeInclusive<Symbol>, target: State) -> bool {
+        pub fn has_transition(&self, trigger: RangeInclusive<Symbol>, target: StateId) -> bool {
             self.states.iter().any(|r| {
                 r.links().iter().any(|transition| {
                     (transition.symbols == trigger) && transition.target == target
@@ -363,7 +444,7 @@ pub mod tests {
             })
         }
 
-        pub fn has_epsilon(&self, from: State, to: State) -> bool {
+        pub fn has_epsilon(&self, from: StateId, to: StateId) -> bool {
             self.states.iter().enumerate().fold(false, |l, (ix, r)| {
                 let state_has =
                     ix == from.id() && r.epsilon_links().iter().any(|ident| *ident == to);
@@ -626,7 +707,7 @@ pub mod tests {
 
         assert_eq!(nfa.states.len(), 18);
         for (ix, _) in nfa.states.iter().enumerate() {
-            let state_id = State::new(ix);
+            let state_id = StateId::new(ix);
             if nfa.pattern_state_ids.contains(&state_id) {
                 assert!(nfa.name(state_id).is_some());
                 assert!(nfa.callback(state_id).is_some());
