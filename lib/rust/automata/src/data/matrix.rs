@@ -74,19 +74,23 @@ impl<T: Default> Matrix<T> {
     }
 }
 
-// FIXME: Wrong indexing order!
+
 // === Trait Impls ===
 
 impl<T> Index<(usize, usize)> for Matrix<T> {
     type Output = T;
     fn index(&self, index: (usize, usize)) -> &T {
-        &self.matrix[index.0 * self.columns + index.1]
+        let row = index.0;
+        let column = index.1;
+        &self.matrix[row * self.columns + column]
     }
 }
 
 impl<T> IndexMut<(usize, usize)> for Matrix<T> {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut T {
-        &mut self.matrix[index.0 * self.columns + index.1]
+        let row = index.0;
+        let column = index.1;
+        &mut self.matrix[row * self.columns + column]
     }
 }
 
