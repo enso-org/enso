@@ -10,10 +10,16 @@ import java.io.File
 object DocParserWrapper {
 
   final val docSections = new DocSectionsGenerator
+  final val b           = new DocSectionsBuilder
 
   def generateSections(comment: String): DocSections = {
     val doc = DocParser.runMatched(comment)
     docSections.generate(doc)
+  }
+
+  def buildSections(comment: String): List[DocSection] = {
+    val doc = DocParser.runMatched(comment)
+    b.build(doc)
   }
 
   /** Generates HTML of docs from Enso program.

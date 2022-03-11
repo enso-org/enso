@@ -10,7 +10,6 @@ final class DocSectionsGenerator {
   import DocSectionsGenerator._
 
   def generate(doc: Doc): DocSections = {
-    println(doc.body)
     DocSections(
       tags        = doc.tags.map(buildTags),
       description = doc.synopsis.map(SynopsisRender.render),
@@ -158,6 +157,10 @@ case class DocSections(
 case class DocTags(tags: Seq[DocTag])
 
 case class DocTag(name: String, description: Option[String])
+
+case class DocInfo(header: String, text: String)
+
+case class DocImportant(header: String, text: String)
 
 case class DocArguments(arguments: Seq[DocArgument])
 

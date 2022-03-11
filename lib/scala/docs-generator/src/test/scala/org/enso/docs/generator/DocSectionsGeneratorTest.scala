@@ -61,7 +61,7 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       DocParserWrapper.generateSections(comment) shouldEqual expected
     }
 
-    "generate synopsis single line" in {
+    "generate description single line" in {
       val comment =
         """ hello world
           |""".stripMargin
@@ -95,6 +95,39 @@ class DocSectionsGeneratorTest extends AnyWordSpec with Matchers {
       val expected = DocSections(
         None,
         Some("hello world <code>foo</code> <i>bar</i>"),
+        None,
+        None,
+        None,
+        None
+      )
+
+      DocParserWrapper.generateSections(comment) shouldEqual expected
+    }
+
+    "generate description with important sections" in {
+      val comment =
+        """ Description
+          |
+          | Some text
+          | Second line
+          |
+          | Arguments:
+          | - one: one
+          |
+          | > Example
+          |   Example1
+          |       main = 42
+          |
+          | ! Bang
+          |   `here` or ~there~
+          |
+          | Some other text
+          |
+          | Icon: my-icon
+          |""".stripMargin
+      val expected = DocSections(
+        None,
+        Some("Description"),
         None,
         None,
         None,

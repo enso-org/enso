@@ -258,6 +258,90 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         .Marked(1, 4, Section.Marked.Important, Section.Header("Important"))
     )
   )
+  """ ! Important
+    |   This is important.""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important."
+      )
+    )
+  )
+  // TODO[DB] line with the exclamation mark is missing in the parser output
+  //          It happens with symbols: !,?,>
+  //  """ ! Important
+  //    |   This is important!""".stripMargin.replaceAll(
+  //    System.lineSeparator(),
+  //    "\n"
+  //  ) ?= Doc(
+  //    Synopsis(
+  //      Section.Marked(
+  //        3, <-- |
+  //        0, <-- | numbers are also wrong
+  //        Section.Marked.Important,
+  //        Section.Header("Important"),
+  //        Doc.Elem.Newline,
+  //        "This is important!" <-- this one
+  //      )
+  //    )
+  //  )
+  // TODO[DB] line with the exclamation mark is missing in the parser output
+  //          It happens with symbols: !,?,>
+  """ Synopsis
+    |
+    | ! Important
+    |   This is important.""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important."
+      )
+    )
+  )
+  // TODO[DB] Marked section can not be split into two.
+  //          The second paragraph is parsed as code block.
+  //  """ Synopsis
+  //    |
+  //    | ! Important
+  //    |   This is important.
+  //    |
+  //    |   And this""".stripMargin.replaceAll(
+  //    System.lineSeparator(),
+  //    "\n"
+  //  ) ?= Doc(
+  //    Synopsis(
+  //      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+  //    ),
+  //    Body(
+  //      Section.Marked(
+  //        1,
+  //        1,
+  //        Section.Marked.Important,
+  //        Section.Header("Important"),
+  //        Doc.Elem.Newline,
+  //        "This is important.",
+  //        Doc.Elem.Newline,
+  //        CodeBlock(CodeBlock.Line(3, "And this"))
+  //      )
+  //    )
+  //  )
   "?Info" ?= Doc(
     Synopsis(Section.Marked(Section.Marked.Info, Section.Header("Info")))
   )
