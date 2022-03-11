@@ -119,10 +119,12 @@ pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
 ///
 /// ## Available position
 ///
-/// The returned position represents an origin of a newly created [`Node`]. The solid rectangle in
-/// the picture below represents the dimensions that the new node is assumed to have. The dashed
-/// rectangle represents an area around the new node that is guaranteed to not intersect with
-/// bounding boxes of existing nodes. The captions are used as variables in the code.
+/// An available position is a position such that a newly created [`Node`] with origin at this
+/// position does not overlap existing nodes. A node is said to overlap another node if an "overlap
+/// area" (represented by the dashed border in the picture below) around the former intersects with
+/// the bounding box of the latter. A newly created node is assumed to have a fixed size
+/// (represented by the solid border in the picture below). The captions in the picture below are
+/// used as variables in the code.
 /// ```text
 /// ┌┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┐
 /// ┆                 ▲                    ┆
