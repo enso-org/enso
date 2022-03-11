@@ -26,7 +26,7 @@ type Warning
        A list of locations where the warning was reassigned in the order of
        latest-first.
 
-       Warnings are reassigned whenever they interract with specific language
+       Warnings are reassigned whenever they interact with specific language
        elements:
        - When pattern matching, the warnings of the scrutinee will be reassigned
          to the `case` expression result.
@@ -70,14 +70,14 @@ set warnings value =
 
 ## UNSTABLE
    Maps warnings attached to a value.
+
+   TODO [RW] this will likely lose reattachments metadata, but I guess this is acceptable? ideally we should have a notion of a partial function and make this affect only warnings that actually matched and were changed
 map_attached_warnings : (Any -> Any) -> Any -> Any
 map_attached_warnings mapper value =
-    #warnings = here.get_all value
-    #here.set (warnings.map mapper) value
-    # TODO figure out what to do here
-    _ = mapper
-    value
-
+    warnings = here.get_all value
+    cleared_value = here.set [] value
+    warnings.fold cleared_value acc-> warning->
+        Prim_Warning.attach acc (mapper warning.value) warning.origin
 
 ## UNSTABLE
    An utility function which applies the mapping function both to any attached

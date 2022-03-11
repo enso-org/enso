@@ -234,8 +234,6 @@ select_columns_helper internal_columns selector reorder on_problems = case selec
     By_Index indices ->
         validation  = here.validate_indices internal_columns.length indices
         good_indices = validation.valid.map p->(p.at 0)
-
-        IO.println "select_columns found problems: "+validation.problems.to_text
         on_problems.attach_problems_before validation.problems <| case reorder of
             True ->
                 here.select_indices_reordering internal_columns good_indices
