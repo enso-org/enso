@@ -1,4 +1,4 @@
-//! This module provides functions for calculating positions of newly created nodes.
+//! This module provides functions returning positions for newly created nodes.
 //!
 //! The returned positions are such that the new nodes will not overlap with existing ones.
 
@@ -45,11 +45,12 @@ pub fn at_mouse_aligned_to_source_node(
     aligned_if_close_to_node(graph_editor, mouse_position, source_node)
 }
 
-/// Return a position for a new node, aligning it to the specified reference node if the proposed
+/// Return a position for a newly created node, aligning it to the `alignment_node` if the proposed
 /// position is close enough to it.
 ///
 /// A point is close enough to a node if it is located in an alignment area around a node,
 /// defined in the current theme ([`theme::graph_editor::alignment_area_around_node`]).
+/// The alignment algorithm is described in the docs of [`under`].
 ///
 /// In the picture below, the solid border represents the node, while the dashed border
 /// represents the alignment area. The captions are used as the variables in the code.
@@ -94,11 +95,10 @@ pub fn aligned_if_close_to_node(
     }
 }
 
-/// Returns a position for a newly created node, such that the node will not overlap with existing
-/// ones. Returns a position closely below the `node_id` node, or a first available point on a ray
-/// extending to the left of that position.
+/// Return a position for a newly created node. Returns a position closely below the `node_id` node
+/// if available, or a first available point on a ray extending to the left of that position.
 ///
-/// To learn more about the constraints guaranteed for the returned position, see the docs of
+/// The returned position is guaranteed to fulfill the constraints described in the docs of
 /// [`on_ray`].
 pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     let above_pos = graph_editor.node_position(node_above);
@@ -109,15 +109,14 @@ pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     on_ray(graph_editor, starting_point, direction).unwrap()
 }
 
-/// Return a position for a newly created node. Returns the first such position on a ray extending
-/// from `starting_point` in the `direction`, or [`None`] if the magnitude of each coordinate of
-/// `direction` is smaller than [`f32::EPSILON`].
+/// Return a position for a newly created node. Return the first available position on a ray
+/// extending from `starting_point` in the `direction`, or [`None`] if the magnitude of each
+/// coordinate of `direction` is smaller than [`f32::EPSILON`].
 ///
-/// The returned position is the node's origin (as described in the documentation of [`Node`]). The
-/// solid rectangle in the picture below represents the dimensions that the newly created node is
-/// assumed to have. The dashed rectangle represents an area around the node that is guaranteed to
-/// not intersect with the bounding boxes of existing nodes. The captions are used as variables in
-/// the code.
+/// The returned position represents an origin of a newly created [`Node`]. The solid rectangle in
+/// the picture below represents the dimensions that the new node is assumed to have. The dashed
+/// rectangle represents an area around the new node that is guaranteed to not intersect with
+/// bounding boxes of existing nodes. The captions are used as variables in the code.
 /// ```text
 /// ┌┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┐
 /// ┆                 ▲                    ┆
