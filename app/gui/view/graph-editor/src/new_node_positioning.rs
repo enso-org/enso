@@ -104,15 +104,13 @@ pub fn find_free_place_under(graph_editor: &GraphEditorModel, node_above: NodeId
     find_free_place_for_node(graph_editor, starting_point, direction).unwrap()
 }
 
-/// Return the first point when going along the ray starting from the `starting_from` point and
-/// parallel to the `direction` vector where a node can be placed keeping required gaps between
-/// nodes.
-///
-/// Returns [`None`] if the `direction` does not go clearly at any direction (both
-/// `direction.x` and `direction.y` are smaller than [`f32::EPSILON`]).
+/// Returns a position for a newly created node, such that the node will not overlap with existing
+/// ones. Returns the nearest such point on a ray extending from `starting_point` in the
+/// `direction`, or [`None`] if the magnitude of each coordinate of `direction` is smaller than
+/// [`f32::EPSILON`].
 pub fn find_free_place_for_node(
     graph_editor: &GraphEditorModel,
-    starting_from: Vector2,
+    starting_point: Vector2,
     direction: Vector2,
 ) -> Option<Vector2> {
     let x_gap = graph_editor.frp.default_x_gap_between_nodes.value();
@@ -135,7 +133,7 @@ pub fn find_free_place_for_node(
         let bottom = bounding_box.bottom() - node::HEIGHT / 2.0 - y_gap;
         OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
     });
-    find_free_place(starting_from, direction, node_areas)
+    find_free_place(starting_point, direction, node_areas)
 }
 
 /// Return a node nearest to the specified point.
