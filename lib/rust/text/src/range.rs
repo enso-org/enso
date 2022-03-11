@@ -2,9 +2,9 @@
 //! for text manipulation.
 
 use crate::prelude::*;
+use crate::unit::*;
 
 use crate::rope;
-use crate::unit::*;
 
 
 

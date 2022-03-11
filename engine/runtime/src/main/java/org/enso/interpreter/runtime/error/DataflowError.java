@@ -1,9 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -11,9 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -115,13 +111,18 @@ public class DataflowError extends AbstractTruffleException {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, AtomConstructor target, UnresolvedConversion conversion) {
+    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+      Context context = getContext();
       return conversion.resolveFor(target, context.getBuiltins().dataflowError().constructor());
+    }
+
+    static Context getContext() {
+      return Context.get(null);
     }
 
     @Specialization(
             guards = {
-                    "!context.isInlineCachingDisabled()",
+                    "!getContext().isInlineCachingDisabled()",
                     "cachedTarget == target",
                     "cachedConversion == conversion",
                     "function != null"
@@ -131,10 +132,9 @@ public class DataflowError extends AbstractTruffleException {
             DataflowError _this,
             AtomConstructor target,
             UnresolvedConversion conversion,
-            @CachedContext(Language.class) Context context,
             @Cached("conversion") UnresolvedConversion cachedConversion,
             @Cached("target") AtomConstructor cachedTarget,
-            @Cached("doResolve(context, cachedTarget, cachedConversion)") Function function) {
+            @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
@@ -142,10 +142,9 @@ public class DataflowError extends AbstractTruffleException {
     static Function resolve(
             DataflowError _this,
             AtomConstructor target,
-            UnresolvedConversion conversion,
-            @CachedContext(Language.class) Context context)
+            UnresolvedConversion conversion)
             throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(context, target, conversion);
+      Function function = doResolve(target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }

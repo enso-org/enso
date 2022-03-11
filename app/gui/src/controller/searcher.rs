@@ -1,16 +1,14 @@
 //! This module contains all structures related to Searcher Controller.
-pub mod action;
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
-
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
 use crate::model::suggestion_database::entry::CodeToInsert;
-use crate::model::traits::*;
 use crate::notification;
 
 use double_representation::graph::GraphInfo;
@@ -23,6 +21,13 @@ use engine_protocol::language_server;
 use enso_text::Location;
 use flo_stream::Subscriber;
 use parser::Parser;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod action;
 
 pub use action::Action;
 

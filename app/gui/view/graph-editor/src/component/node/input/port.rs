@@ -1,15 +1,15 @@
 //! FIXME[everyone] Modules should be documented.
 
 use crate::prelude::*;
-
 use enso_text::unit::*;
-use ensogl::data::color;
-use ensogl::display;
-use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 
 use crate::node::input::area;
 use crate::Type;
+
+use ensogl::data::color;
+use ensogl::display;
+use ensogl::display::scene::Scene;
 
 
 

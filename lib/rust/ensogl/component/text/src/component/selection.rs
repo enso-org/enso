@@ -1,11 +1,11 @@
 //! Provides a text cursor and selection component.
 
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 use ensogl_core::DEPRECATED_Animation;
 

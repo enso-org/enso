@@ -1,6 +1,7 @@
 //! Code for module-level double representation processing.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::alias_analysis;
 use crate::definition;
@@ -19,7 +20,6 @@ use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
 use engine_protocol::language_server;
-use enso_text::unit::*;
 use serde::Deserialize;
 use serde::Serialize;
 

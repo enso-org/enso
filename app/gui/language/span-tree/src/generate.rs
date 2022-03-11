@@ -1,8 +1,7 @@
 //! A module containing code related to SpanTree generation.
-pub mod context;
-pub mod macros;
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
@@ -19,7 +18,14 @@ use ast::Ast;
 use ast::HasRepr;
 use ast::MacroAmbiguousSegment;
 use ast::MacroMatchSegment;
-use enso_text::unit::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod context;
+pub mod macros;
 
 pub use context::Context;
 

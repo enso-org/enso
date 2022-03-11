@@ -5,7 +5,6 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -101,7 +100,6 @@ public abstract class HostMethodCallNode extends Node {
       Object _this,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
-      @CachedContext(Language.class) Context context,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       return hostValueToEnsoNode.execute(members.invokeMember(_this, symbol, args));
@@ -110,11 +108,11 @@ public abstract class HostMethodCallNode extends Node {
           "Impossible to reach here. The member is checked to be invocable.");
     } catch (ArityException e) {
       throw new PanicException(
-          context.getBuiltins().error().makeArityError(e.getExpectedArity(), e.getActualArity()),
+          Context.get(this).getBuiltins().error().makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
           this);
     } catch (UnsupportedTypeException e) {
       throw new PanicException(
-          context.getBuiltins().error().makeUnsupportedArgumentsError(e.getSuppliedValues()), this);
+          Context.get(this).getBuiltins().error().makeUnsupportedArgumentsError(e.getSuppliedValues()), this);
     }
   }
 
@@ -125,12 +123,11 @@ public abstract class HostMethodCallNode extends Node {
       Object _this,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
-      @CachedContext(Language.class) Context context,
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
       @Cached BranchProfile errorProfile) {
     if (args.length != 0) {
       errorProfile.enter();
-      throw new PanicException(context.getBuiltins().error().makeArityError(0, args.length), this);
+      throw new PanicException(Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
     }
     try {
       return hostValueToEnsoNode.execute(members.readMember(_this, symbol));
@@ -147,7 +144,6 @@ public abstract class HostMethodCallNode extends Node {
       Object _this,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary instances,
-      @CachedContext(Language.class) Context context,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       return hostValueToEnsoNode.execute(instances.instantiate(_this, args));
@@ -156,11 +152,11 @@ public abstract class HostMethodCallNode extends Node {
           "Impossible to reach here. The member is checked to be instantiable.");
     } catch (ArityException e) {
       throw new PanicException(
-          context.getBuiltins().error().makeArityError(e.getExpectedArity(), e.getActualArity()),
+          Context.get(this).getBuiltins().error().makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
           this);
     } catch (UnsupportedTypeException e) {
       throw new PanicException(
-          context.getBuiltins().error().makeUnsupportedArgumentsError(e.getSuppliedValues()), this);
+          Context.get(this).getBuiltins().error().makeUnsupportedArgumentsError(e.getSuppliedValues()), this);
     }
   }
 
@@ -171,12 +167,11 @@ public abstract class HostMethodCallNode extends Node {
       Object _this,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
-      @CachedContext(Language.class) Context ctx,
       @Cached BranchProfile errorProfile,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     if (args.length != 0) {
       errorProfile.enter();
-      throw new PanicException(ctx.getBuiltins().error().makeArityError(0, args.length), this);
+      throw new PanicException(Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
     }
     try {
       return hostValueToEnsoNode.execute(arrays.getArraySize(_this));
@@ -194,16 +189,15 @@ public abstract class HostMethodCallNode extends Node {
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
       @Cached BranchProfile arityErrorProfile,
       @Cached BranchProfile typeErrorProfile,
-      @CachedContext(Language.class) Context ctx,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     if (args.length != 1) {
       arityErrorProfile.enter();
-      throw new PanicException(ctx.getBuiltins().error().makeArityError(1, args.length), this);
+      throw new PanicException(Context.get(this).getBuiltins().error().makeArityError(1, 1, args.length), this);
     }
     if (!(args[0] instanceof Long)) {
       typeErrorProfile.enter();
       throw new PanicException(
-          ctx.getBuiltins().error().makeInvalidArrayIndexError(_this, args[0]), this);
+          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(_this, args[0]), this);
     }
     long idx = (Long) args[0];
     try {
@@ -212,7 +206,7 @@ public abstract class HostMethodCallNode extends Node {
       throw new IllegalStateException("Impossible to reach here, _this is checked to be an array");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
-          ctx.getBuiltins().error().makeInvalidArrayIndexError(_this, idx), this);
+          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(_this, idx), this);
     }
   }
 }

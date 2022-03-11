@@ -1,11 +1,16 @@
 //! Helper code meant to be used by the code generated through usage of macros
 //! from `enso-shapely-macros` crate.
 
-pub use enso_shapely_macros::*;
-
 use std::ops::Generator;
 use std::ops::GeneratorState;
 use std::pin::Pin;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use enso_shapely_macros::*;
 
 
 

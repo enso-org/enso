@@ -2,6 +2,37 @@
 
 // WARNING! UNDER HEAVY DEVELOPMENT. EXPECT DRASTIC CHANGES.
 
+use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
+
+use crate::component::node::profiling::ProfilingLabel;
+use crate::component::visualization;
+use crate::selection::BoundingBox;
+use crate::tooltip;
+use crate::view;
+use crate::Type;
+
+use super::edge;
+use enso_frp as frp;
+use enso_frp;
+use ensogl::animation::delayed::DelayedAnimation;
+use ensogl::application::Application;
+use ensogl::data::color;
+use ensogl::display;
+use ensogl::Animation;
+use ensogl_component::shadow;
+use ensogl_component::text;
+use ensogl_component::text::Text;
+use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme;
+use std::f32::EPSILON;
+
+
+// ==============
+// === Export ===
+// ==============
+
 #[deny(missing_docs)]
 pub mod action_bar;
 #[warn(missing_docs)]
@@ -16,33 +47,6 @@ pub mod vcs;
 
 pub use error::Error;
 pub use expression::Expression;
-
-use crate::prelude::*;
-
-use crate::component::node::profiling::ProfilingLabel;
-use crate::component::visualization;
-use crate::tooltip;
-use crate::view;
-use crate::Type;
-
-use enso_frp as frp;
-use enso_frp;
-use ensogl::animation::delayed::DelayedAnimation;
-use ensogl::application::Application;
-use ensogl::data::color;
-use ensogl::display;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
-use ensogl::Animation;
-use ensogl_component::shadow;
-use ensogl_component::text;
-use ensogl_component::text::Text;
-use ensogl_hardcoded_theme as theme;
-use ensogl_hardcoded_theme;
-use std::f32::EPSILON;
-
-use super::edge;
-use crate::selection::BoundingBox;
 
 
 

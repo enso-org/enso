@@ -1,10 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.special;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
@@ -22,7 +20,8 @@ public abstract class RunThreadNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Thread doExecute(Object state, Object th, @CachedContext(Language.class) Context ctx) {
+  Thread doExecute(Object state, Object th) {
+    Context ctx = Context.get(this);
     Thread thread =
         ctx.getEnvironment()
             .createThread(

@@ -1,10 +1,10 @@
 //! This module implements the stats monitor view, which can be visible on the screen in debug mode.
 
 use crate::prelude::*;
+use crate::system::web::traits::*;
 
 use crate::debug::stats::StatsData;
 use crate::system::web;
-use crate::system::web::traits::*;
 use crate::system::web::JsValue;
 
 use num_traits::cast::AsPrimitive;

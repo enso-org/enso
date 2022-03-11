@@ -1,27 +1,28 @@
 //! Toggle Button implementation.
 
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
 
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::gui::component::ShapeView;
-
-// The 'internals' import is used to allow manual creation of [`ShapeView`]. Normally, this is
-// automatically used by the [`define_shape_system!`] macro, and it's not exposed to the developer.
 use ensogl_core::display::shape::system::DynamicShapeInternals;
+use ensogl_core::gui::component::ShapeView;
 
 
 
@@ -30,6 +31,10 @@ use ensogl_core::display::shape::system::DynamicShapeInternals;
 // =================
 
 /// A shape that can have a single color.
+///
+/// The [`DynamicShapeInternals`] is used to allow manual creation of [`ShapeView`]. Normally, this
+/// is automatically used by the [`define_shape_system!`] macro, and it's not exposed to the
+/// developer.
 pub trait ColorableShape: DynamicShapeInternals {
     /// Set the color of the shape.
     fn set_color(&self, color: color::Rgba);

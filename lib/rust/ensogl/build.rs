@@ -1,6 +1,8 @@
 use std::env;
 use std::path;
 
+
+
 /// A module with functions generating huge chunk of texts for text component benchmarks.
 mod huge_text_generator {
     use std::collections::hash_map::DefaultHasher;

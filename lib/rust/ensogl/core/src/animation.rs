@@ -1,8 +1,15 @@
 //! This module provides different kind of animation utilities, such as physics based animation and
 //! animation with easing functions.
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod easing;
 pub mod physics;
+
+
 
 mod frp;
 mod loops;

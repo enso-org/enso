@@ -1,15 +1,19 @@
 //! Keyboard and mouse shortcut management.
 
 use crate::prelude::*;
-
-use super::command;
+use enso_shortcuts::traits::*;
 
 use crate::frp;
 use crate::frp::io::keyboard;
 use crate::frp::io::mouse::Mouse;
 
+use super::command;
 use enso_shortcuts as shortcuts;
-use enso_shortcuts::traits::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use shortcuts::ActionType;
 

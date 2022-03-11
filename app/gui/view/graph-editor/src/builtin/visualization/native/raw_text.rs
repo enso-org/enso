@@ -1,9 +1,10 @@
 //! Example visualisation showing the provided data as text.
 
+use crate::component::visualization::*;
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::component::visualization;
-use crate::component::visualization::*;
 
 use enso_frp as frp;
 use ensogl::display;
@@ -11,7 +12,6 @@ use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl_hardcoded_theme;
 
 

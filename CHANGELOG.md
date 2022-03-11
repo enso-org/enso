@@ -2,9 +2,6 @@
 
 #### Visual Environment
 
-- [Nodes can be added to the graph by clicking (+) button on the screen][3278].
-  The button is in the bottom-left corner. Node is added at the center or pushed
-  down if the center is already occupied by nodes.
 - [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
 - [Debug Mode for Graph Editor can be activated/deactivated using a
   shortcut.][3264] It allows access to a set of restricted features. See
@@ -90,7 +87,6 @@
 [3259]: https://github.com/enso-org/enso/pull/3259
 [3273]: https://github.com/enso-org/enso/pull/3273
 [3276]: https://github.com/enso-org/enso/pull/3276
-[3278]: https://github.com/enso-org/enso/pull/3278
 [3283]: https://github.com/enso-org/enso/pull/3283
 [3282]: https://github.com/enso-org/enso/pull/3282
 [3285]: https://github.com/enso-org/enso/pull/3285
@@ -100,6 +96,7 @@
 [3305]: https://github.com/enso-org/enso/pull/3305
 [3309]: https://github.com/enso-org/enso/pull/3309
 [3310]: https://github.com/enso-org/enso/pull/3310
+[3316]: https://github.com/enso-org/enso/pull/3316
 [3236]: https://github.com/enso-org/enso/pull/3236
 [3311]: https://github.com/enso-org/enso/pull/3311
 [3317]: https://github.com/enso-org/enso/pull/3317
@@ -109,8 +106,10 @@
 
 - [Added overloaded `from` conversions.][3227]
 - [Upgraded to Graal VM 21.3.0][3258]
+- [Added the ability to decorate values with warnings.][3248]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
+[3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
