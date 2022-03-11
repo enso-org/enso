@@ -872,6 +872,7 @@ pub type PhantomData2<T = ()> = PhantomData<T>;
 
 
 // TODO: add docs and move it to some library exported in prelude. This is insanely useful.
+// It basically transforms tokens of form `foo [[bar]] baz` to `foo <bar> baz`.
 #[macro_export]
 macro_rules! anglify {
     ($($ts:tt)*) => {
@@ -882,8 +883,26 @@ macro_rules! anglify {
 #[macro_export(local_inner_macros)]
 macro_rules! anglify_internal {
     ([$($out:tt)*])                           => { $($out)* };
-    ([$($out:tt)*] [[$($xs:tt)*]] $($ts:tt)*) => { anglify_internal!{ [$($out)* <$($xs)*>] $($ts)*} };
-    ([$($out:tt)*] $t:tt          $($ts:tt)*) => { anglify_internal!{ [$($out)* $t]        $($ts)*} };
+    ([$($out:tt)*] [[$($xs:tt)*]] $($ts:tt)*) => { anglify_internal!{ [$($out)* <] $($xs)* > $($ts)*} };
+    ([$($out:tt)*] $t:tt          $($ts:tt)*) => { anglify_internal!{ [$($out)* $t]          $($ts)*} };
+}
+
+// TODO: add docs and move it to some library exported in prelude. This is insanely useful.
+// this is an optimized version, which does not support nested transformations, like
+// `[[foo [[bar]]]] baz`. This will be translated to `<foo [[bar]]> baz`, while the normal version
+// will transform it to `<foo <bar>> baz`.
+#[macro_export]
+macro_rules! anglify_shallow {
+    ($($ts:tt)*) => {
+        $crate::anglify_shallow_internal!{[] $($ts)*}
+    };
+}
+
+#[macro_export(local_inner_macros)]
+macro_rules! anglify_shallow_internal {
+    ([$($out:tt)*])                           => { $($out)* };
+    ([$($out:tt)*] [[$($xs:tt)*]] $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* <$($xs)*>] $($ts)*} };
+    ([$($out:tt)*] $t:tt          $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* $t]        $($ts)*} };
 }
 
 #[macro_export]
@@ -929,7 +948,7 @@ macro_rules! find_me_a_name_and_docs_anglify_showcase {
 
         pub fn new($($arg:ident : $arg_tp:tt),*) $body:tt
 
-    ) => {$crate::anglify!{
+    ) => {$crate::anglify_shallow!{
         #[derive(Debug, CloneRef)]
         pub struct $name $ctx {
             data: Rc<$data_name $($param)*>
