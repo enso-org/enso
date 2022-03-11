@@ -1,4 +1,6 @@
 //! This module provides functions for calculating positions of newly created nodes.
+//!
+//! The returned positions are such that the new nodes will not overlap with existing ones.
 
 use crate::prelude::*;
 
@@ -15,9 +17,9 @@ use ensogl_hardcoded_theme as theme;
 
 
 
-/// Return a position for a newly created node, such that the node will not overlap with existing
-/// ones. The position is calculated by taking the mouse position and aligning it to the closest
-/// existing node if the mouse position is close enough to the node.
+/// Return a position for a newly created node. The position is calculated by taking the mouse
+/// position and aligning it to the closest existing node if the mouse position is close enough to
+/// the node.
 ///
 /// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn at_mouse_aligned_to_close_nodes(
@@ -28,10 +30,9 @@ pub fn at_mouse_aligned_to_close_nodes(
     aligned_if_close_to_node(graph_editor, mouse_position, nearest_node)
 }
 
-/// Return a position for a newly created node, such that the node will not overlap with existing
-/// ones. The position is calculated by taking the mouse position and aligning it to the source
-/// node (the node at the source of the [`edge_id`] edge) if the source node is close to the mouse
-/// position.
+/// Return a position for a newly created node. The position is calculated by taking the mouse
+/// position and aligning it to the source node (the node at the source of the [`edge_id`] edge) if
+/// the source node is close to the mouse position.
 ///
 /// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn at_mouse_aligned_to_source_node(
@@ -44,8 +45,8 @@ pub fn at_mouse_aligned_to_source_node(
     aligned_if_close_to_node(graph_editor, mouse_position, source_node)
 }
 
-/// Calculates a position for a new node, aligning it to the specified reference node if the
-/// proposed position is close enough to it.
+/// Return a position for a new node, aligning it to the specified reference node if the proposed
+/// position is close enough to it.
 ///
 /// A point is close enough to a node if it is located in an alignment area around a node,
 /// defined in the current theme ([`theme::graph_editor::alignment_area_around_node`]).
@@ -93,6 +94,12 @@ pub fn aligned_if_close_to_node(
     }
 }
 
+// FIXME
+/// Returns a position for a newly created node, such that the node will not overlap with existing
+/// ones. Returns the first such point on a ray extending to the left of a point below
+/// `node_above`.
+/// starting below the `node_above`, extending in the
+/// negative X direction.
 pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     let above_pos = graph_editor.node_position(node_above);
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
@@ -102,10 +109,34 @@ pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     on_ray(graph_editor, starting_point, direction).unwrap()
 }
 
-/// Returns a position for a newly created node, such that the node will not overlap with existing
-/// ones. Returns the first such point on a ray extending from `starting_point` in the `direction`,
-/// or [`None`] if the magnitude of each coordinate of `direction` is smaller than
-/// [`f32::EPSILON`].
+/// Return a position for a newly created node. Returns the first such position on a ray extending
+/// from `starting_point` in the `direction`, or [`None`] if the magnitude of each coordinate of
+/// `direction` is smaller than [`f32::EPSILON`].
+///
+/// The solid rectangle in the picture below represents the dimensions that a newly created node is
+/// assumed to have. The dashed rectangle represents an area around the node that is guaranteed to
+/// not intersect with the bounding boxes of existing nodes. The captions are used as variables in
+/// the code.
+/// ```text
+/// ┌┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┐
+/// ┆                 ▲                    ┆
+/// ┆           y_gap │                    ┆
+/// ┆                 ▼                    ┆
+/// ┆       ┌──────────────────────┐       ┆
+/// ┆       │                   ▲  │       ┆
+/// ┆ x_gap │      node::HEIGHT │  │ x_gap ┆
+/// ┆ ◀───▶ │                   │  │ ◀───▶ ┆
+/// ┆       │                   │  │       ┆
+/// ┆       │  min_spacing      │  │       ┆
+/// ┆       │◀──────────────────+─▶│       ┆
+/// ┆       │                   │  │       ┆
+/// ┆       │                   ▼  │       ┆
+/// ┆       └──────────────────────┘       ┆
+/// ┆                 ▲                    ┆
+/// ┆           y_gap │                    ┆
+/// ┆                 ▼                    ┆
+/// └┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┘
+/// ```
 pub fn on_ray(
     graph_editor: &GraphEditorModel,
     starting_point: Vector2,
