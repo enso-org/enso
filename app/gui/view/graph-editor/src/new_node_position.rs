@@ -17,9 +17,9 @@ use ensogl_hardcoded_theme as theme;
 
 
 
-/// ===================================
-/// === New Node Position Functions ===
-/// ===================================
+/// ============================
+/// === New Node Positioning ===
+/// ============================
 
 /// Return a position for a newly created node. The position is calculated by taking the mouse
 /// position and aligning it to the closest existing node if the mouse position is close enough to
