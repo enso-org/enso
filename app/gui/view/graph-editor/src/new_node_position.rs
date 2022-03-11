@@ -114,7 +114,8 @@ pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
 /// from `starting_point` in the `direction`, or [`None`] if the magnitude of each coordinate of
 /// `direction` is smaller than [`f32::EPSILON`].
 ///
-/// The solid rectangle in the picture below represents the dimensions that a newly created node is
+/// The returned position is the node's origin (as described in the documentation of [`Node`]). The
+/// solid rectangle in the picture below represents the dimensions that the newly created node is
 /// assumed to have. The dashed rectangle represents an area around the node that is guaranteed to
 /// not intersect with the bounding boxes of existing nodes. The captions are used as variables in
 /// the code.
@@ -125,11 +126,11 @@ pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
 /// ┆                 ▼                    ┆
 /// ┆       ┌──────────────────────┐       ┆
 /// ┆       │                   ▲  │       ┆
-/// ┆ x_gap │      node::HEIGHT │  │ x_gap ┆
-/// ┆ ◀───▶ │                   │  │ ◀───▶ ┆
+/// ┆       │      node::HEIGHT │  │       ┆
 /// ┆       │                   │  │       ┆
-/// ┆       │  min_spacing      │  │       ┆
-/// ┆       │◀──────────────────+─▶│       ┆
+/// ┆       │                   │  │       ┆
+/// ┆ x_gap │  min_spacing      │  │ x_gap ┆
+/// ┆ ◀───▶ │◀──────────────────+─▶│ ◀───▶ ┆
 /// ┆       │                   │  │       ┆
 /// ┆       │                   ▼  │       ┆
 /// ┆       └──────────────────────┘       ┆
