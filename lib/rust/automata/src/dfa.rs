@@ -110,13 +110,56 @@ impl From<Vec<Vec<usize>>> for Matrix<State> {
 // === Conversions ===
 // ===================
 
+/// Merges states that are connected by epsilon links, using an algorithm based on the one shown
+/// [here](https://www.youtube.com/watch?v=taClnxU-nao).
+pub fn eps_matrix(nfa: &Nfa) -> Vec<nfa::StateSetId> {
+    fn fill_eps_matrix(
+        nfa: &Nfa,
+        states: &mut Vec<nfa::StateSetId>,
+        visited: &mut Vec<bool>,
+        state: nfa::StateId,
+    ) {
+        let mut state_set = nfa::StateSetId::new();
+        visited[state.id()] = true;
+        state_set.insert(state);
+        for &target in &nfa[state].epsilon_links {
+            if !visited[target.id()] {
+                fill_eps_matrix(nfa, states, visited, target);
+            }
+            state_set.insert(target);
+            state_set.extend(states[target.id()].iter());
+        }
+        states[state.id()] = state_set;
+    }
+
+    let mut states = vec![nfa::StateSetId::new(); nfa.states.len()];
+    for id in 0..nfa.states.len() {
+        let mut visited = vec![false; states.len()];
+        fill_eps_matrix(nfa, &mut states, &mut visited, nfa::StateId::new(id));
+    }
+    states
+}
+
+/// Computes a transition matrix `(state, symbol) => state` for the Nfa, ignoring epsilon links.
+pub fn nfa_matrix(nfa: &Nfa) -> Matrix<nfa::StateId> {
+    let mut matrix = Matrix::new(nfa.states.len(), nfa.alphabet.divisions.len());
+
+    for (state_ix, source) in nfa.states.iter().enumerate() {
+        let targets = source.targets(&nfa.alphabet);
+        for (voc_ix, &target) in targets.iter().enumerate() {
+            matrix[(state_ix, voc_ix)] = target;
+        }
+    }
+    matrix
+}
+
 impl From<&Nfa> for Dfa {
     /// Transforms an Nfa into a Dfa, based on the algorithm described
     /// [here](https://www.youtube.com/watch?v=taClnxU-nao).
     /// The asymptotic complexity is quadratic in number of states.
     fn from(nfa: &Nfa) -> Self {
-        let nfa_mat = nfa.nfa_matrix();
-        let eps_mat = nfa.eps_matrix();
+        let nfa_mat = nfa_matrix(nfa);
+        let eps_mat = eps_matrix(nfa);
         let mut dfa_mat = Matrix::new(0, nfa.alphabet.divisions.len());
         let mut dfa_eps_ixs = Vec::<nfa::StateSetId>::new();
         let mut dfa_eps_map = HashMap::<nfa::StateSetId, State>::new();

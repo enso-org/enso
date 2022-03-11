@@ -32,12 +32,12 @@ pub type StateSetId = BTreeSet<StateId>;
 // === Transition ===
 // ==================
 
-/// A transition between states in a finite automaton that must consume a symbol to trigger.
+/// A transition between two NFA states. The transition between the states requires a symbol to be
+/// consumed.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub struct Transition {
-    /// The range of symbols on which this transition will trigger.
     pub symbols: RangeInclusive<Symbol>,
-    /// The state that is entered after the transition has triggered.
     pub target:  StateId,
 }
 
@@ -47,7 +47,7 @@ impl Transition {
         Self { symbols, target }
     }
 
-    /// Display the symbols range of this tansition.
+    /// Display the symbols range of this transition.
     pub fn display_symbols(&self) -> String {
         if self.symbols.start() == self.symbols.end() {
             format!("{}", self.symbols.start())
@@ -59,9 +59,9 @@ impl Transition {
 
 
 
-// ==========
+// ===========
 // == State ==
-// ==========
+// ===========
 
 /// A named state for a [`super::nfa::Nfa`].
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -110,9 +110,9 @@ impl State {
 }
 
 
-// =========================================
-// === Non-Deterministic Finite Automata ===
-// =========================================
+// ===========
+// === NFA ===
+// ===========
 
 /// The definition of a [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) for a
 /// given set of symbols, states, and transitions (specifically a NFA with ε-moves).
@@ -192,17 +192,6 @@ impl Nfa {
         }
     }
 
-    // /// Creates an ordinary transition for a range of symbols.
-    // ///
-    // /// If any symbol from such range happens to be the input when the automaton is in the
-    // `source` /// state, it will immediately transition to the `target` state.
-    // pub fn connect_via(&mut self, source: StateId, target: StateId, symbols:
-    // &RangeInclusive<Symbol>) {     self.alphabet.insert(symbols.clone());
-    //     self[source].links.push(Transition::new(symbols.clone(), target));
-    // }
-
-
-
     /// Transforms a pattern to connected NFA states by using the algorithm described
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI). Please note that the video contains
     /// error in the explanation of [`Pattern::Many`]. The correct solution is presented and
@@ -280,49 +269,6 @@ impl Nfa {
     }
 
 
-
-    /// Merges states that are connected by epsilon links, using an algorithm based on the one shown
-    /// [here](https://www.youtube.com/watch?v=taClnxU-nao).
-    pub fn eps_matrix(&self) -> Vec<StateSetId> {
-        fn fill_eps_matrix(
-            nfa: &Nfa,
-            states: &mut Vec<StateSetId>,
-            visited: &mut Vec<bool>,
-            state: StateId,
-        ) {
-            let mut state_set = StateSetId::new();
-            visited[state.id()] = true;
-            state_set.insert(state);
-            for &target in &nfa[state].epsilon_links {
-                if !visited[target.id()] {
-                    fill_eps_matrix(nfa, states, visited, target);
-                }
-                state_set.insert(target);
-                state_set.extend(states[target.id()].iter());
-            }
-            states[state.id()] = state_set;
-        }
-
-        let mut states = vec![StateSetId::new(); self.states.len()];
-        for id in 0..self.states.len() {
-            let mut visited = vec![false; states.len()];
-            fill_eps_matrix(self, &mut states, &mut visited, StateId::new(id));
-        }
-        states
-    }
-
-    /// Computes a transition matrix `(state, symbol) => state` for the Nfa, ignoring epsilon links.
-    pub fn nfa_matrix(&self) -> Matrix<StateId> {
-        let mut matrix = Matrix::new(self.states.len(), self.alphabet.divisions.len());
-
-        for (state_ix, source) in self.states.iter().enumerate() {
-            let targets = source.targets(&self.alphabet);
-            for (voc_ix, &target) in targets.iter().enumerate() {
-                matrix[(state_ix, voc_ix)] = target;
-            }
-        }
-        matrix
-    }
 
     /// Convert the automata to a GraphViz Dot code for the deubgging purposes.
     pub fn as_graphviz_code(&self) -> String {
