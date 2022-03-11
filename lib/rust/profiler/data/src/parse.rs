@@ -352,12 +352,28 @@ impl<M> LogVisitor<M> {
         id: profiler::internal::EventId,
         time: profiler::internal::Timestamp,
     ) -> Result<(), DataError> {
-        let current_profiler = self.active.pop().ok_or(DataError::ActiveProfilerRequired)?;
-        check_profiler(id, current_profiler)?;
-        let measurement = &mut self.builders.get_mut(&current_profiler).unwrap();
+        let id = match id.into() {
+            id::Event::Explicit(id::Explicit::Runtime(id)) => id,
+            id => return Err(DataError::RuntimeIdExpected(id)),
+        };
+        let measurement = &mut self.builders.get_mut(&id).unwrap();
         measurement.end = Some(crate::Mark { seq: pos.into(), time });
         match mem::replace(&mut measurement.state, State::Ended(pos)) {
-            State::Active(_) => (),
+            // Typical case: The current profiler ends.
+            State::Active(_) => {
+                // It shouldn't be possible for this to fail, because the set of profilers in the
+                // active stack should be the same as the set of profilers in the Active state.
+                let current_profiler = self.active.pop().unwrap();
+                if id != current_profiler {
+                    return Err(DataError::WrongProfiler {
+                        found:    id,
+                        expected: current_profiler,
+                    });
+                }
+            }
+            // Edge case: A profiler can be dropped without ever being started if an async block
+            // is created, but dropped without ever being awaited.
+            State::Paused(_) => (),
             state => return Err(DataError::UnexpectedState(state)),
         }
         Ok(())
@@ -461,13 +477,6 @@ impl<M> LogVisitor<M> {
         })
     }
 
-    fn check_empty_stack(&self) -> Result<(), DataError> {
-        match self.active.is_empty() {
-            true => Ok(()),
-            false => Err(DataError::ExpectedEmptyStack(self.active.clone())),
-        }
-    }
-
     /// Used to validate there is never more than one async task active simultaneously, which
     /// would indicate that a low-level-profiled section has used an uninstrumented `.await`
     /// expression.
@@ -475,7 +484,22 @@ impl<M> LogVisitor<M> {
         // This simple check is conservative; it doesn't allow certain legal behavior, like an
         // instrumented non-async function using block_on to run an instrumented async function,
         // because support for that is unlikely to be needed.
-        self.check_empty_stack()
+        if self.active.len() > 1 {
+            return Err(DataError::ExpectedEmptyStack(self.active.clone()));
+        }
+        match self.active.first() {
+            None => Ok(()),
+            Some(profiler) => {
+                let profiler = self.builders.get(profiler).unwrap();
+                // on_frame is a special case because it's tied to the async execution framework:
+                // It's the only non-async task that is expected to be active while async tasks
+                // are running.
+                match profiler.label.classify() {
+                    crate::Class::OnFrame => Ok(()),
+                    _ => Err(DataError::ExpectedEmptyStack(self.active.clone())),
+                }
+            }
+        }
     }
 }
 

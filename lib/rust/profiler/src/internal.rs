@@ -398,9 +398,9 @@ pub trait Profiler {
     /// Log the end of a measurement.
     fn finish(self);
     /// Log the beginning of an interval in which the profiler is not active.
-    fn pause(&self);
+    fn pause(self);
     /// Log the end of an interval in which the profiler is not active.
-    fn resume(&self);
+    fn resume(self);
 }
 
 
@@ -413,28 +413,6 @@ pub trait Profiler {
 #[derive(Debug)]
 pub struct Started<T: Profiler + Copy>(pub T);
 
-
-// === Trait Implementations ===
-
-impl<T: Profiler + Copy> Profiler for Started<T> {
-    fn start(
-        parent: EventId,
-        label: StaticLabel,
-        time: Option<Timestamp>,
-        start: StartState,
-    ) -> Self {
-        Self(T::start(parent, label, time, start))
-    }
-    fn finish(self) {
-        self.0.finish()
-    }
-    fn pause(&self) {
-        self.0.pause()
-    }
-    fn resume(&self) {
-        self.0.resume()
-    }
-}
 
 impl<T: Profiler + Copy> Drop for Started<T> {
     fn drop(&mut self) {

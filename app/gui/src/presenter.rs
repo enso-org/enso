@@ -85,6 +85,7 @@ impl Model {
 
     /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
     /// a second one for opening the project.
+    #[profile(Task)]
     pub fn open_project(&self, project_name: String) {
         let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
@@ -101,6 +102,7 @@ impl Model {
 
     /// Create a new project. `template` is an optional name of the project template passed to the
     /// Engine. It makes a call to Project Manager.
+    #[profile(Task)]
     fn create_project(&self, template: Option<&str>) {
         let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();

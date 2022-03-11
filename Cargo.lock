@@ -3000,6 +3000,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-data-structures",
  "enso-prelude",
+ "enso-profiler",
  "enso-text",
  "failure",
  "futures 0.3.21",

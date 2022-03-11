@@ -220,6 +220,13 @@ pub struct Measurement<M> {
     pub metadata: Vec<Metadata<M>>,
 }
 
+impl<M> Measurement<M> {
+    /// Distinguish between classes of profilers that may need to be handled differently.
+    pub fn classify(&self) -> Class {
+        self.label.classify()
+    }
+}
+
 
 // === Lifetime ===
 
@@ -291,6 +298,18 @@ impl AsyncLifetime {
             Interval { start, end }
         })
     }
+}
+
+
+// == Class ==
+
+/// Distinguishes special profilers from normal profilers.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Class {
+    /// Profiler that is active during the execution of anything else, after early startup.
+    OnFrame,
+    /// Any profiler that doesn't need special treatment.
+    Normal,
 }
 
 
@@ -394,6 +413,17 @@ pub struct Label {
     pub name: String,
     /// Location in the code the measurement originated, if compiled with line numbers enabled.
     pub pos:  Option<CodePos>,
+}
+
+impl Label {
+    fn classify(&self) -> Class {
+        match self.name.as_str() {
+            "@on_frame" => Class::OnFrame,
+            // Data producer is probably newer than consumer. Forward compatibility isn't necessary.
+            name if name.starts_with('@') => panic!("Unrecognized special profiler: {:?}", name),
+            _ => Class::Normal,
+        }
+    }
 }
 
 

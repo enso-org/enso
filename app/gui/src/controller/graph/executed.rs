@@ -87,6 +87,7 @@ pub struct Handle {
 
 impl Handle {
     /// Create handle for the executed graph that will be running the given method.
+    #[profile(Task)]
     pub async fn new(
         parent: impl AnyLogger,
         project: model::Project,
@@ -146,11 +147,13 @@ impl Handle {
     }
 
     /// See [`model::ExecutionContext::detach_visualization`].
+    #[profile(Detail)]
     pub async fn detach_visualization(&self, id: VisualizationId) -> FallibleResult<Visualization> {
         self.execution_ctx.detach_visualization(id).await
     }
 
     /// See [`model::ExecutionContext::detach_all_visualizations`].
+    #[profile(Detail)]
     pub async fn detach_all_visualizations(&self) -> Vec<FallibleResult<Visualization>> {
         self.execution_ctx.detach_all_visualizations().await
     }
@@ -162,6 +165,7 @@ impl Handle {
 
     /// Modify preprocessor code in visualization. See also
     /// [`model::ExecutionContext::modify_visualization`].
+    #[profile(Detail)]
     pub async fn set_visualization_preprocessor(
         &self,
         id: VisualizationId,

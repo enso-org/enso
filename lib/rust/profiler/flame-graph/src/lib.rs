@@ -83,7 +83,11 @@ impl<Metadata> From<data::Measurement<Metadata>> for FlameGraph {
             let measurement = to_parse.pop();
             match measurement {
                 Some((measurement, row)) => {
-                    let target_row = if measurement.lifetime.is_async() { 0 } else { row };
+                    // When an async task executes, it will always have exactly one ancestor on the
+                    // active stack: @on_frame, which measures part of the async executor mechanism.
+                    // @on_frame is always drawn at row 0, so async tasks can always be drawn at
+                    // row 1.
+                    let target_row = if measurement.lifetime.is_async() { 1 } else { row };
                     let measurement_blocks = blocks_from_measurement(measurement, target_row);
                     blocks.extend(measurement_blocks);
                     to_parse.extend(measurement.children.iter().map(|m| (m, target_row + 1)));
