@@ -36,11 +36,6 @@ pub fn new_node_position_at_mouse_aligned_to_close_nodes(
 ///
 /// To learn more about the align algorithm, see the docs of
 /// [`new_node_position_aligned_if_close_to_node`].
-
-/// Calculate a position for a new node, starting from the mouse position and aligning to the
-/// node at the source of the specified edge if the mouse position is close to the node.
-///
-/// See [`new_node_position_aligned_if_close_to_node`] for details on what "close to" means.
 pub fn new_node_position_at_mouse_aligned_to_source_node(
     graph_editor: &GraphEditorModel,
     edge_id: EdgeId,
