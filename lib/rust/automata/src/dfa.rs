@@ -217,16 +217,20 @@ pub mod tests {
         let mut nfa = Nfa::default();
         let start_state_id = nfa.start;
         // let x = nfa.new_pattern(start_state_id, Pattern::range('x'..='x'));
-        // let pattern = Pattern::Or(vec![
-        //     Pattern::range('x'..='x'),
-        //     Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]),
-        // ]);
+        let pattern = Pattern::or(
+            Pattern::range('x'..='x'),
+            Pattern::seq(Pattern::range('y'..='y'), Pattern::range('z'..='z')),
+        );
 
-        let pattern = Pattern::Or(vec![Pattern::range('x'..='x'), Pattern::range('y'..='y')]);
+        let pattern = pattern.many();
+
+        let pattern = Pattern::never().many();
+
+        // let pattern = Pattern::or(Pattern::range('x'..='x'), Pattern::range('y'..='y'));
 
         // let pattern = Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]);
 
-        nfa.new_pattern2(start_state_id, pattern);
+        nfa.new_pattern(start_state_id, pattern);
 
         println!("{}", nfa.as_graphviz_code());
     }

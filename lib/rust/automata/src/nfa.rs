@@ -41,11 +41,9 @@ pub type StateSetId = BTreeSet<State>;
 /// through use of
 /// [epsilon links](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton#NFA_with_%CE%B5-moves).
 ///
-/// ```text
-///  ┌───┐  'N'  ┌───┐    ┌───┐  'F'  ┌───┐    ┌───┐  'A'  ┌───┐
-///  │ 0 │ ----> │ 1 │ -> │ 2 │ ----> │ 3 │ -> │ 3 │ ----> │ 3 │
-///  └───┘       └───┘ ε  └───┘       └───┘ ε  └───┘       └───┘
-/// ```
+/// For a good introduction to NDA, DFA, and their conversions, see the following videos:
+/// - [Regular Expression to NFA](https://www.youtube.com/watch?v=RYNN-tb9WxI)
+/// - [Converting NFA to DFA](https://www.youtube.com/watch?v=taClnxU-nao)
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct Nfa {
@@ -95,160 +93,112 @@ impl Nfa {
         &self.alphabet
     }
 
-    /// Creates an epsilon transition between two states.
-    ///
-    /// Whenever the automaton happens to be in `source` state it can immediately transition to the
-    /// `target` state. It is, however, not _required_ to do so.
-    pub fn connect(&mut self, source: State, target: State) {
-        self[source].epsilon_links.push(target);
-    }
-
-    /// Creates an ordinary transition for a range of symbols.
-    ///
-    /// If any symbol from such range happens to be the input when the automaton is in the `source`
-    /// state, it will immediately transition to the `target` state.
-    pub fn connect_via(&mut self, source: State, target: State, symbols: &RangeInclusive<Symbol>) {
-        self.alphabet.insert(symbols.clone());
-        self[source].links.push(Transition::new(symbols.clone(), target));
-    }
-
-    // FIXME[WD]: It seems that it should be possible to simplify this function. This would
-    // drastically save memory (50-70%):
-    // 1. We are always adding epsilon connection on the beginning. This should not be needed, but
-    //    if we did it this way, it means there is a corner case probably. To be checked.
-    // 2. In other places we have similar things. For example, in `Or` pattern we use epsilon
-    //    connections to merge results, but we could theoretically first create the output, and
-    //    then expand sub-patterns with the provided output.
-    /// Transforms a pattern to connected NFA states by using the algorithm described
-    /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI).
-    /// The asymptotic complexity is linear in number of symbols.
-    pub fn new_pattern(&mut self, source: State, pattern: impl AsRef<Pattern>) -> State {
-        let pattern = pattern.as_ref();
-        let current = self.new_state();
-        self.connect(source, current);
-        let state = match pattern {
-            Pattern::Range(range) => {
-                let state = self.new_state();
-                self.connect_via(current, state, range);
-                state
-            }
-            Pattern::Many(body) => {
-                let s1 = self.new_state();
-                let s2 = self.new_pattern(s1, body);
-                let s3 = self.new_state();
-                self.connect(current, s1);
-                self.connect(current, s3);
-                self.connect(s2, s3);
-                self.connect(s3, s1);
-                s3
-            }
-            Pattern::Seq(patterns) =>
-                patterns.iter().fold(current, |s, pat| self.new_pattern(s, pat)),
-            Pattern::Or(patterns) => {
-                let states =
-                    patterns.iter().map(|pat| self.new_pattern(current, pat)).collect_vec();
-                let end = self.new_state();
-                for state in states {
-                    self.connect(state, end);
-                }
-                end
-            }
-            Pattern::Always => current,
-            Pattern::Never => self.new_state(),
-        };
-        self[state].export = true;
-        state
-    }
-
-
-    pub fn new_pattern2(&mut self, source: State, pattern: impl AsRef<Pattern>) -> State {
-        self.new_pattern2_internal(source, None, pattern)
-    }
-
-    pub fn new_pattern2_internal(
+    /// Create a new connection between [`source`] and [`target`] that can be traversed by consuming
+    /// [`symbols`]. If [`symbols`] are not provided, an epsilon transition is created, which allows
+    /// freely transitioning between the states without consuming any input.
+    pub fn connect(
         &mut self,
         source: State,
-        target: Option<State>,
-        pattern: impl AsRef<Pattern>,
-    ) -> State {
-        let pattern = pattern.as_ref();
-        let current = source;
-        let state = match pattern {
-            Pattern::Range(range) => {
-                let target = target.unwrap_or_else(|| self.new_state());
-                self.connect_via(current, target, range);
-                target
+        target: State,
+        symbols: Option<&RangeInclusive<Symbol>>,
+    ) {
+        match symbols {
+            None => self[source].epsilon_links.push(target),
+            Some(symbols) => {
+                self.alphabet.insert(symbols.clone());
+                self[source].links.push(Transition::new(symbols.clone(), target));
             }
-            // Pattern::Many(body) => {
-            //     let s1 = self.new_state();
-            //     let s2 = self.new_pattern(s1, body);
-            //     let s3 = self.new_state();
-            //     self.connect(current, s1);
-            //     self.connect(current, s3);
-            //     self.connect(s2, s3);
-            //     self.connect(s3, s1);
-            //     s3
-            // }
-            // Pattern::Seq(patterns) =>
-            //     patterns.iter().fold(current, |s, pat| self.new_pattern(s, pat)),
-            Pattern::Or(patterns) => {
-                let end = self.new_state();
-                let states = patterns
-                    .iter()
-                    .map(|pat| self.new_pattern2_internal(current, Some(end), pat))
-                    .collect_vec();
-                // for state in states {
-                //     self.connect(state, end);
-                // }
-                end
-            }
-            // Pattern::Always => current,
-            // Pattern::Never => self.new_state(),
-            _ => panic!(),
-        };
-        self[state].export = true;
-        state
+        }
     }
+
+    // /// Creates an ordinary transition for a range of symbols.
+    // ///
+    // /// If any symbol from such range happens to be the input when the automaton is in the
+    // `source` /// state, it will immediately transition to the `target` state.
+    // pub fn connect_via(&mut self, source: State, target: State, symbols: &RangeInclusive<Symbol>)
+    // {     self.alphabet.insert(symbols.clone());
+    //     self[source].links.push(Transition::new(symbols.clone(), target));
+    // }
 
 
 
     /// Transforms a pattern to connected NFA states by using the algorithm described
-    /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI). This function is similar to
-    /// `new_pattern`, but it consumes an explicit target state.
-    /// The asymptotic complexity is linear in number of symbols.
-    pub fn new_pattern_to(&mut self, source: State, target: State, pattern: impl AsRef<Pattern>) {
-        let pattern = pattern.as_ref();
-        let current = self.new_state();
-        self.connect(source, current);
-        match pattern {
+    /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI). Please note that the video contains
+    /// error in the explanation of [`Pattern::Many`]. The correct solution is presented and
+    /// implemented below.
+    pub fn new_pattern(&mut self, source: State, pattern: impl AsRef<Pattern>) -> State {
+        self.new_pattern_to(source, pattern, None)
+    }
+
+    /// Just like [`new_pattern`], but the target [`State`] can be provided as an argument.
+    pub fn new_pattern_to(
+        &mut self,
+        source: State,
+        pattern: impl AsRef<Pattern>,
+        target: Option<State>,
+    ) -> State {
+        let output_state = match pattern.as_ref() {
+            // source ──<range>──▶ target
             Pattern::Range(range) => {
-                self.connect_via(current, target, range);
+                let target = target.unwrap_or_else(|| self.new_state());
+                self.connect(source, target, Some(range));
+                target
             }
+
+            //                       ╭──EPSILON──╮
+            //                       ▼           │
+            // source ──EPSILON──▶ s1 ──body──▶ s2 ──EPSILON──▶ target
+            //       │                                           ▲
+            //       ╰──────────────────EPSILON───────────────────╯
             Pattern::Many(body) => {
                 let s1 = self.new_state();
-                let s2 = self.new_pattern(s1, body);
-                let target = self.new_state();
-                self.connect(current, s1);
-                self.connect(current, target);
-                self.connect(s2, target);
-                self.connect(target, s1);
+                let s2 = self.new_state();
+                self.new_pattern_to(s1, body, Some(s2));
+                let target = target.unwrap_or_else(|| self.new_state());
+                self.connect(source, s1, None);
+                self.connect(source, target, None);
+                self.connect(s2, target, None);
+                self.connect(s2, s1, None);
+                target
             }
-            Pattern::Seq(patterns) => {
-                let out = patterns.iter().fold(current, |s, pat| self.new_pattern(s, pat));
-                self.connect(out, target)
+
+            // source ──first──▶ middle ──second──▶ target
+            Pattern::Seq(first, second) => {
+                let target = target.unwrap_or_else(|| self.new_state());
+                let middle = self.new_pattern_to(source, first, None);
+                self.new_pattern_to(middle, second, Some(target));
+                target
             }
-            Pattern::Or(patterns) => {
-                let states =
-                    patterns.iter().map(|pat| self.new_pattern(current, pat)).collect_vec();
-                for state in states {
-                    self.connect(state, target);
+
+            // source ──┬──first───┬─▶ target
+            //          ╰──second──╯
+            Pattern::Or(first, second) => {
+                let target = target.unwrap_or_else(|| self.new_state());
+                self.new_pattern_to(source, first, Some(target));
+                self.new_pattern_to(source, second, Some(target));
+                target
+            }
+
+            // source ──▶ target
+            Pattern::Always => match target {
+                None => source,
+                Some(target) => {
+                    self.connect(source, target, None);
+                    target
                 }
-            }
-            Pattern::Always => self.connect(current, target),
-            Pattern::Never => {}
+            },
+
+            // current   <no connection>   target
+            Pattern::Never => match target {
+                None => self.new_state(),
+                Some(target) => target,
+            },
         };
-        self[target].export = true;
+        self[output_state].export = true;
+        output_state
     }
+
+
 
     /// Merges states that are connected by epsilon links, using an algorithm based on the one shown
     /// [here](https://www.youtube.com/watch?v=taClnxU-nao).
@@ -369,7 +319,7 @@ pub mod tests {
             for pattern in patterns {
                 let id = nfa.new_pattern(start_state_id, &pattern);
                 pattern_state_ids.push(id);
-                nfa.connect(id, end_state_id);
+                nfa.connect(id, end_state_id, None);
             }
             let callbacks = default();
             let names = default();
@@ -388,7 +338,7 @@ pub mod tests {
                 callbacks.insert(id, rule.callback.clone());
                 names.insert(id, rule.name.clone());
                 pattern_state_ids.push(id);
-                nfa.connect(id, end_state_id);
+                nfa.connect(id, end_state_id, None);
             }
             Self { nfa, start_state_id, pattern_state_ids, end_state_id, callbacks, names }
         }
