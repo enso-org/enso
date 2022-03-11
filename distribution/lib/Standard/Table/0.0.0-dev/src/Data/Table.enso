@@ -16,7 +16,6 @@ from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
-import Standard.Base.Error.Warnings
 
 import Standard.Table.Data.Group_By
 import Standard.Table.Data.Aggregate_Column

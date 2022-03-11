@@ -262,7 +262,7 @@ type Matcher
 
 ## PRIVATE
 match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning = Panic.recover <|
-    [matcher, objects, criteria, reorder, name_mapper, on_problems, warnings] . each Panic.rethrow
+    [matcher, objects, criteria, reorder, name_mapper, on_problems] . each Panic.rethrow
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
     match_matrix = objects.map obj->

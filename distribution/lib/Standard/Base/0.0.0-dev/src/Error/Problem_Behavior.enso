@@ -23,13 +23,12 @@ type Problem_Behavior
 
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problem
-       attached as a warning, after any warnings that were already attached to
-       this value.
+       attached as a warning.
        If it is set to Report_Error, the problem is returned in the form of a
        dataflow error. If the value already contained any dataflow error, that
        error takes precedence.
     attach_problem_after : Any -> Any -> Any
-    attach_problem_after decorated_value ~problem warnings = case this of
+    attach_problem_after decorated_value ~problem = case this of
         Ignore ->
             decorated_value
         Report_Warning ->
@@ -43,24 +42,19 @@ type Problem_Behavior
        Attaches a problem to the given value according to the expected problem
        behavior.
 
-       TODO [RW] we have no control over warning order, so this cannot do much - rethink it
-
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problem
-       attached as a warning, before any warnings that were already attached to
-       this value.
-
+       attached as a warning.
        If it is set to Report_Error, the problem is returned in the form of
        a dataflow error. The problem takes precedence over any errors that may
-       have been contained in the value - in this case the `decorated_value` is
+       have been contained in the value - in such case the `decorated_value` is
        not computed at all.
     attach_problem_before : Any -> Any -> Any
     attach_problem_before problem ~decorated_value = case this of
         Ignore ->
             decorated_value
         Report_Warning ->
-            # TODO [RW] attach before; see comment above.
-            warnings.attach decorated_value problem
+            Warning.attach problem decorated_value
         Report_Error ->
             Error.throw problem
 
@@ -71,8 +65,7 @@ type Problem_Behavior
 
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problems
-       attached as warnings, before any warnings that were already attached to
-       this value.
+       attached as warnings.
        If it is set to Report_Error, the first problem is returned in the form
        of a dataflow error. The problem takes precedence over any errors that
        may have been contained in the value - in this case the `decorated_value`
@@ -82,7 +75,7 @@ type Problem_Behavior
          Perform pre-flight checks and then compute the actual result only if needed.
 
              problems = preflight_checks
-             problem_behavior.attach_problems_before problems Warnings.default <|
+             problem_behavior.attach_problems_before problems <|
                  expensive_computation
 
     attach_problems_before : Vector -> Any -> Any
@@ -90,9 +83,8 @@ type Problem_Behavior
         Ignore ->
             decorated_value
         Report_Warning ->
-            # TODO [RW] attach before; see comment above.
-            # warnings.attach_many decorated_value problems
-            Panic.throw "TODO"
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
         Report_Error ->
             if problems.is_empty then decorated_value else
                 Error.throw problems.first
@@ -104,8 +96,7 @@ type Problem_Behavior
 
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problems
-       attached as warnings, after any warnings that were already attached to
-       this value.
+       attached as warnings.
        If it is set to Report_Error, the first problem is returned in the form
        of a dataflow error. If the value already contained any dataflow error,
        that error takes precedence.
@@ -122,8 +113,8 @@ type Problem_Behavior
         Ignore ->
             decorated_value
         Report_Warning ->
-            #warnings.attach_many decorated_value problems
-            Panic.throw "TODO"
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
         Report_Error -> case decorated_value of
             _ -> if problems.is_empty then decorated_value else
                 Error.throw problems.first
