@@ -872,7 +872,10 @@ pub type PhantomData2<T = ()> = PhantomData<T>;
 
 
 // TODO: add docs and move it to some library exported in prelude. This is insanely useful.
-// It basically transforms tokens of form `foo [[bar]] baz` to `foo <bar> baz`.
+// It basically transforms tokens of form `foo [<[bar]>] baz` to `foo <bar> baz`. It works because
+// tokens enclosed in `[...]` are consumed as a single `tt` match, while `<...>` is not a single
+// match (to be explained in depth in docs + link to tt-munchers). The syntax was chosen because
+// it shows the intention + it is very unusual that normal Rust code would use it anywhere.
 #[macro_export]
 macro_rules! anglify {
     ($($ts:tt)*) => {
@@ -882,15 +885,16 @@ macro_rules! anglify {
 
 #[macro_export(local_inner_macros)]
 macro_rules! anglify_internal {
-    ([$($out:tt)*])                           => { $($out)* };
-    ([$($out:tt)*] [[$($xs:tt)*]] $($ts:tt)*) => { anglify_internal!{ [$($out)* <] $($xs)* > $($ts)*} };
-    ([$($out:tt)*] $t:tt          $($ts:tt)*) => { anglify_internal!{ [$($out)* $t]          $($ts)*} };
+    ([$($out:tt)*])                             => { $($out)* };
+    ([$($out:tt)*] [<[$($xs:tt)*]>] $($ts:tt)*) => { anglify_internal!{ [$($out)* <] $($xs)* > $($ts)*} };
+    ([$($out:tt)*] $t:tt            $($ts:tt)*) => { anglify_internal!{ [$($out)* $t]          $($ts)*} };
 }
 
 // TODO: add docs and move it to some library exported in prelude. This is insanely useful.
 // this is an optimized version, which does not support nested transformations, like
-// `[[foo [[bar]]]] baz`. This will be translated to `<foo [[bar]]> baz`, while the normal version
-// will transform it to `<foo <bar>> baz`.
+// `[<[foo [<[bar]>]]>] baz`. This will be translated to `<foo [<[bar]>]> baz`, while the normal
+// version will transform it to `<foo <bar>> baz`. Use with care (only when you are sure it will
+// work in all cases).
 #[macro_export]
 macro_rules! anglify_shallow {
     ($($ts:tt)*) => {
@@ -900,9 +904,9 @@ macro_rules! anglify_shallow {
 
 #[macro_export(local_inner_macros)]
 macro_rules! anglify_shallow_internal {
-    ([$($out:tt)*])                           => { $($out)* };
-    ([$($out:tt)*] [[$($xs:tt)*]] $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* <$($xs)*>] $($ts)*} };
-    ([$($out:tt)*] $t:tt          $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* $t]        $($ts)*} };
+    ([$($out:tt)*])                             => { $($out)* };
+    ([$($out:tt)*] [<[$($xs:tt)*]>] $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* <$($xs)*>] $($ts)*} };
+    ([$($out:tt)*] $t:tt            $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* $t]        $($ts)*} };
 }
 
 #[macro_export]
@@ -920,7 +924,7 @@ macro_rules! find_me_a_name_and_docs {
 
     ) => {
         $crate::find_me_a_name_and_docs_anglify_showcase! {
-            [[$($ctx)*]] [$($param)*]
+            [<[$($ctx)*]>] [$($param)*]
             $name $data_name {
                 $(
                     $(#$field_attr)*
