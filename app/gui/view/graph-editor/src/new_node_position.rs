@@ -94,9 +94,8 @@ pub fn aligned_if_close_to_node(
     }
 }
 
-// FIXME
 /// Returns a position for a newly created node, such that the node will not overlap with existing
-/// ones. Returns a position below the `node_id` node, or a first available point on a ray
+/// ones. Returns a position closely below the `node_id` node, or a first available point on a ray
 /// extending to the left of that position.
 ///
 /// To learn more about the constraints guaranteed for the returned position, see the docs of
