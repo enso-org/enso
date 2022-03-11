@@ -117,6 +117,8 @@ pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
 /// extending from `starting_point` in the `direction`, or [`None`] if the magnitude of each
 /// coordinate of `direction` is smaller than [`f32::EPSILON`].
 ///
+/// ## Available position
+///
 /// The returned position represents an origin of a newly created [`Node`]. The solid rectangle in
 /// the picture below represents the dimensions that the new node is assumed to have. The dashed
 /// rectangle represents an area around the new node that is guaranteed to not intersect with
