@@ -1,6 +1,5 @@
 //! FRP utilities for defining application components.
 
-use std::marker::PhantomData;
 /// Generate a set of structures allowing for nice management of FRP inputs, outputs, and commands.
 ///
 /// Given the definition:
@@ -867,48 +866,6 @@ macro_rules! define_endpoints_2 {
     };
 }
 
-// FIXME - move to prelude and export instead of the original PhantomData (use the same name).
-pub type PhantomData2<T = ()> = PhantomData<T>;
-
-
-// TODO: add docs and move it to some library exported in prelude. This is insanely useful.
-// It basically transforms tokens of form `foo [<[bar]>] baz` to `foo <bar> baz`. It works because
-// tokens enclosed in `[...]` are consumed as a single `tt` match, while `<...>` is not a single
-// match (to be explained in depth in docs + link to tt-munchers). The syntax was chosen because
-// it shows the intention + it is very unusual that normal Rust code would use it anywhere.
-#[macro_export]
-macro_rules! anglify {
-    ($($ts:tt)*) => {
-        $crate::anglify_internal!{[] $($ts)*}
-    };
-}
-
-#[macro_export(local_inner_macros)]
-macro_rules! anglify_internal {
-    ([$($out:tt)*])                             => { $($out)* };
-    ([$($out:tt)*] [<[$($xs:tt)*]>] $($ts:tt)*) => { anglify_internal!{ [$($out)* <] $($xs)* > $($ts)*} };
-    ([$($out:tt)*] $t:tt            $($ts:tt)*) => { anglify_internal!{ [$($out)* $t]          $($ts)*} };
-}
-
-// TODO: add docs and move it to some library exported in prelude. This is insanely useful.
-// this is an optimized version, which does not support nested transformations, like
-// `[<[foo [<[bar]>]]>] baz`. This will be translated to `<foo [<[bar]>]> baz`, while the normal
-// version will transform it to `<foo <bar>> baz`. Use with care (only when you are sure it will
-// work in all cases).
-#[macro_export]
-macro_rules! anglify_shallow {
-    ($($ts:tt)*) => {
-        $crate::anglify_shallow_internal!{[] $($ts)*}
-    };
-}
-
-#[macro_export(local_inner_macros)]
-macro_rules! anglify_shallow_internal {
-    ([$($out:tt)*])                             => { $($out)* };
-    ([$($out:tt)*] [<[$($xs:tt)*]>] $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* <$($xs)*>] $($ts)*} };
-    ([$($out:tt)*] $t:tt            $($ts:tt)*) => { anglify_shallow_internal!{ [$($out)* $t]        $($ts)*} };
-}
-
 #[macro_export]
 macro_rules! find_me_a_name_and_docs {
     (
@@ -952,7 +909,7 @@ macro_rules! find_me_a_name_and_docs_anglify_showcase {
 
         pub fn new($($arg:ident : $arg_tp:tt),*) $body:tt
 
-    ) => {$crate::anglify_shallow!{
+    ) => {anglify_shallow!{
         #[derive(Debug, CloneRef)]
         pub struct $name $ctx {
             data: Rc<$data_name $($param)*>
@@ -975,7 +932,7 @@ macro_rules! find_me_a_name_and_docs_anglify_showcase {
         #[allow(unused_parens)]
         #[derive(Debug)]
         pub struct $data_name $ctx {
-            _phantom_type_args: $crate::application::frp::PhantomData2 $($param)*,
+            _phantom_type_args: PhantomData0 $($param)*,
             $(
                 $(#$field_attr)*
                 pub $field : $field_type
@@ -1280,7 +1237,9 @@ macro_rules! define_endpoints_2_normalized_glue {
         #[allow(missing_docs)]
         pub struct Frp <$($ctx)*> {
             public: api::Public  $($param)*,
-            // FIXME: write why its Rc with explanation that in the future it will not be Rc and this struct will not be cloneable.
+            // `api::Private` is not cloneable, but the Frp still needs to be `CloneRef`able for
+            // API compatibility. In the future we want to make the `FRP` not cloneable, and we will
+            // be able to hold the `api::Private` directly..
             private: Rc<api::Private  $($param)*>,
         }
 
