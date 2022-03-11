@@ -2,14 +2,14 @@
 
 use crate::prelude::*;
 
-use crate::EdgeId;
-use crate::GraphEditorModel;
-use crate::NodeId;
-use crate::Node;
 use crate::component::node;
 use crate::free_place_finder::find_free_place;
 use crate::free_place_finder::OccupiedArea;
 use crate::selection::BoundingBox;
+use crate::EdgeId;
+use crate::GraphEditorModel;
+use crate::Node;
+use crate::NodeId;
 
 use ensogl_hardcoded_theme as theme;
 
@@ -19,8 +19,7 @@ use ensogl_hardcoded_theme as theme;
 /// ones. The position is calculated by taking the mouse position and aligning it to the closest
 /// existing node if the mouse position is close enough to the node.
 ///
-/// To learn more about the align algorithm, see the docs of
-/// [`aligned_if_close_to_node`].
+/// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn at_mouse_aligned_to_close_nodes(
     graph_editor: &GraphEditorModel,
     mouse_position: Vector2,
@@ -34,8 +33,7 @@ pub fn at_mouse_aligned_to_close_nodes(
 /// node (the node at the source of the [`edge_id`] edge) if the source node is close to the mouse
 /// position.
 ///
-/// To learn more about the align algorithm, see the docs of
-/// [`aligned_if_close_to_node`].
+/// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn at_mouse_aligned_to_source_node(
     graph_editor: &GraphEditorModel,
     edge_id: EdgeId,
@@ -123,8 +121,8 @@ pub fn on_ray(
     // - the minimum gap between nodes in all directions, so the new node won't be "glued" to
     //   another;
     // - the new node size measured from origin point at each direction accordingly: because
-    //   `find_free_place` looks for free place for the origin point, and we want to fit not
-    //   only the point, but the whole node.
+    //   `find_free_place` looks for free place for the origin point, and we want to fit not only
+    //   the point, but the whole node.
     let node_areas = nodes.values().map(|node| {
         let bounding_box = node.frp.bounding_box.value();
         let left = bounding_box.left() - x_gap - min_spacing;
