@@ -96,10 +96,11 @@ pub fn aligned_if_close_to_node(
 
 // FIXME
 /// Returns a position for a newly created node, such that the node will not overlap with existing
-/// ones. Returns the first such point on a ray extending to the left of a point below
-/// `node_above`.
-/// starting below the `node_above`, extending in the
-/// negative X direction.
+/// ones. Returns a position below the `node_id` node, or a first available point on a ray
+/// extending to the left of that position.
+///
+/// To learn more about the constraints guaranteed for the returned position, see the docs of
+/// [`on_ray`].
 pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     let above_pos = graph_editor.node_position(node_above);
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
