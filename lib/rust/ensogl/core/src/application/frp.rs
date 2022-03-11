@@ -1,5 +1,6 @@
 //! FRP utilities for defining application components.
 
+use std::marker::PhantomData;
 /// Generate a set of structures allowing for nice management of FRP inputs, outputs, and commands.
 ///
 /// Given the definition:
@@ -820,14 +821,20 @@ macro_rules! define_endpoints_2 {
         $(
             Input {
                 $([$($input_opts:tt)*])?
-                $( $(#$in_attr:tt)* $in_field:ident $in_field_type:tt ),* $(,)?
+                $(
+                    $(#$in_field_attr:tt)*
+                    $in_field:ident $in_field_type:tt
+                ),* $(,)?
             }
         )?
 
         $(
             Output {
                 $([$($output_opts:tt)*])?
-                $( $(#$out_attr:tt)* $out_field:ident $out_field_type:tt ),* $(,)?
+                $(
+                    $(#$out_field_attr:tt)*
+                    $out_field:ident $out_field_type:tt
+                ),* $(,)?
             }
         )?
     ) => {
@@ -842,25 +849,36 @@ macro_rules! define_endpoints_2 {
                 defocus(),
                 /// Wrapper for `focus` and `defocus`.
                 set_focus(bool)
-                $($(, $(#$in_attr)* $in_field $in_field_type )*)?
+                $($(,
+                    $(#$in_field_attr)*
+                    $in_field $in_field_type
+                )*)?
             }
 
             Output { [$($($global_opts)*)? $($($($output_opts)*)?)?]
                 /// Focus state checker.
                 focused(bool)
-                $($(, $(#$out_attr)* $out_field $out_field_type )*)?
+                $($(,
+                    $(#$out_field_attr)*
+                    $out_field $out_field_type
+                )*)?
             }
         }}
     };
 }
 
 
+pub type PhantomData2<T = ()> = PhantomData<T>;
+
 #[macro_export]
 macro_rules! find_me_a_name_and_docs {
     (
         [$($ctx:tt)*] [$($param:tt)*]
         $name:tt $data_name:tt {
-            $( $(#$field_attr:tt)* $field:ident : $field_type:tt ),* $(,)?
+            $(
+                $(#$field_attr:tt)*
+                $field:ident : $field_type:tt
+            ),* $(,)?
         }
 
         pub fn new($($arg:ident : $arg_tp:tt),*) $body:tt
@@ -889,7 +907,10 @@ macro_rules! find_me_a_name_and_docs {
         #[derive(Debug)]
         pub struct $data_name $($ctx)* {
             _phantom_type_args: PhantomData<($($param)*)>,
-            $( $(#$field_attr)* pub $field : $field_type ),*
+            $(
+                $(#$field_attr)*
+                pub $field : $field_type
+            ),*
         }
 
         impl$($ctx)* $data_name <$($param)*> {
@@ -922,11 +943,17 @@ macro_rules! define_endpoints_2_normalized_public {
         [$($ctx:tt)*] [$($param:tt)*]
 
         Input { $input_opts:tt
-            $( $(#$in_attr:tt)* $in_field:ident $in_field_type:tt ),*
+            $(
+                $(#$in_field_attr:tt)*
+                $in_field:ident $in_field_type:tt
+            ),*
         }
 
         Output { $output_opts:tt
-            $( $(#$out_attr:tt)* $out_field:ident $out_field_type:tt ),*
+            $(
+                $(#$out_field_attr:tt)*
+                $out_field:ident $out_field_type:tt
+            ),*
         }
     }) => {
         /// Public FRP Api. Contains FRP nodes for sending FRP events into the API collected
@@ -941,7 +968,19 @@ macro_rules! define_endpoints_2_normalized_public {
             pub (crate) combined: public::Combined <$($param)*>,
         }
 
-        impl $($ctx)* Deref for Public <$($param)*> {
+        impl $($ctx)*
+        Public <$($param)*> {
+            pub fn new(
+                input: public::Input <$($param)*>,
+                output: public::Output <$($param)*>,
+                combined: public::Combined <$($param)*>
+            ) -> Self {
+                Self {input, output, combined}
+            }
+        }
+
+        impl $($ctx)*
+        Deref for Public <$($param)*> {
             type Target = public::Combined <$($param)*>;
             fn deref(&self) -> &Self::Target {
                 &self.combined
@@ -968,7 +1007,7 @@ macro_rules! define_endpoints_2_normalized_public {
             $crate::find_me_a_name_and_docs! {
                 [$($ctx)*] [$($param)*] Input InputData {
                     $(
-                        $(#$in_attr)*
+                        $(#$in_field_attr)*
                         $in_field : ($crate::frp::Any<$in_field_type>)
                     ),*
                 }
@@ -994,7 +1033,7 @@ macro_rules! define_endpoints_2_normalized_public {
                     status_map: (Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>),
                     command_map: (Rc<RefCell<HashMap<String,$crate::application::command::Command>>>)
                     $(,
-                        $(#$out_attr)*
+                        $(#$out_field_attr)*
                         $out_field: ($crate::frp::Sampler<$out_field_type>)
                     )*
                 }
@@ -1011,10 +1050,13 @@ macro_rules! define_endpoints_2_normalized_public {
                     }
                     let mut status_map : HashMap<String,$crate::frp::Sampler<bool>> = default();
                     let mut command_map : HashMap<String,Command> = default();
-                    $($crate::build_status_map!
-                    {status_map $out_field $out_field_type $out_field })*
-                    $($crate::build_command_map!
-                        {command_map $in_field $in_field_type public_input.$in_field })*
+                    $(
+                        $crate::build_status_map! {status_map $out_field $out_field_type $out_field}
+                    )*
+                    $(
+                        let in_field = &public_input.$in_field;
+                        $crate::build_command_map! {command_map $in_field $in_field_type in_field}
+                    )*
                     let status_map = Rc::new(RefCell::new(status_map));
                     let command_map = Rc::new(RefCell::new(command_map));
 
@@ -1028,8 +1070,15 @@ macro_rules! define_endpoints_2_normalized_public {
 
             $crate::find_me_a_name_and_docs! {
                 [$($ctx)*] [$($param)*] Combined CombinedData {
-                    $( $(#$in_attr)*  $in_field:  ($crate::frp::Any<$in_field_type>), )*
-                    $( $(#$out_attr)* $out_field: ($crate::frp::Sampler<$out_field_type>), )*
+                    $(
+                        $(#$in_field_attr)*
+                        $in_field: ($crate::frp::Any<$in_field_type>),
+                    )*
+
+                    $(
+                        $(#$out_field_attr)*
+                        $out_field: ($crate::frp::Sampler<$out_field_type>),
+                    )*
                 }
 
                 pub fn new(input: (&InputData<$($param)*>), output: (&OutputData<$($param)*>)) {
@@ -1055,11 +1104,17 @@ macro_rules! define_endpoints_2_normalized_private {
         [$($ctx:tt)*] [$($param:tt)*]
 
         Input { $input_opts:tt
-            $( $(#$in_attr:tt)* $in_field:ident $in_field_type:tt ),*
+            $(
+                $(#$in_field_attr:tt)*
+                $in_field:ident $in_field_type:tt
+            ),*
         }
 
         Output { $output_opts:tt
-            $( $(#$out_attr:tt)* $out_field:ident $out_field_type:tt ),*
+            $(
+                $(#$out_field_attr:tt)*
+                $out_field:ident $out_field_type:tt
+            ),*
         }
     }) => {
         // No Clone. We do not want `network` to be cloned easily in the future.
@@ -1068,6 +1123,16 @@ macro_rules! define_endpoints_2_normalized_private {
             pub network: $crate::frp::Network,
             pub input: private::Input<$($param)*>,
             pub output: private::Output<$($param)*>,
+        }
+
+        impl $($ctx)* Private <$($param)*> {
+            pub fn new(
+                network: $crate::frp::Network,
+                input: private::Input<$($param)*>,
+                output: private::Output<$($param)*>
+            ) -> Self {
+                Self {network, input, output}
+            }
         }
 
         pub mod private {
@@ -1079,7 +1144,7 @@ macro_rules! define_endpoints_2_normalized_private {
             $crate::find_me_a_name_and_docs! {
                 [$($ctx)*] [$($param)*] Input InputData {
                     $(
-                        $(#$in_attr)*
+                        $(#$in_field_attr)*
                         $in_field: ($crate::frp::Stream<$in_field_type>)
                     ),*
                 }
@@ -1099,7 +1164,7 @@ macro_rules! define_endpoints_2_normalized_private {
             $crate::find_me_a_name_and_docs! {
                 [$($ctx)*] [$($param)*] Output OutputData {
                     $(
-                        $(#$out_attr)*
+                        $(#$out_field_attr)*
                         $out_field: ($crate::frp::Any<$out_field_type>)
                     ),*
                 }
@@ -1124,14 +1189,14 @@ macro_rules! define_endpoints_2_normalized_glue {
 
         Input { $input_opts:tt
             $(
-                $(#$in_attr:tt)*
+                $(#$in_field_attr:tt)*
                 $in_field:ident $in_field_type:tt
             ),*
         }
 
         Output { $output_opts:tt
             $(
-                $(#$out_attr:tt)*
+                $(#$out_field_attr:tt)*
                 $out_field:ident $out_field_type:tt
             ),*
         }
@@ -1143,6 +1208,7 @@ macro_rules! define_endpoints_2_normalized_glue {
         #[allow(missing_docs)]
         pub struct Frp $($ctx)* {
             public: api::Public <$($param)*>,
+            // FIXME: write why its Rc with explanation that in the future it will not be Rc and this struct will not be cloneable.
             private: Rc<api::Private <$($param)*>>,
         }
 
@@ -1150,16 +1216,13 @@ macro_rules! define_endpoints_2_normalized_glue {
             /// Create Frp endpoints within and the associated network.
             pub fn new() -> Self {
                 let network = $crate::frp::Network::new(file!());
-                let public_input = api::public::Input::new(&network);
-                let private_input = api::private::Input::new(&network, &public_input);
-                let private_output = api::private::Output::new(&network);
-                let public_output = api::public::Output::new(
-                    &network, &private_output, &public_input);
-                let combined = api::public::Combined::new(
-                    &public_input,&public_output);
-                let public = api::Public{ input: public_input, output: public_output, combined };
-                let private = Rc::new(
-                    api::Private{ network, input: private_input, output: private_output});
+                let pub_input = api::public::Input::new(&network);
+                let priv_input = api::private::Input::new(&network, &pub_input);
+                let priv_output = api::private::Output::new(&network);
+                let pub_output = api::public::Output::new(&network, &priv_output, &pub_input);
+                let combined = api::public::Combined::new(&pub_input,&pub_output);
+                let public = api::Public::new(pub_input, pub_output, combined);
+                let private = Rc::new(api::Private::new(network, priv_input, priv_output));
                 Self {public,private}
             }
         }
@@ -1196,8 +1259,8 @@ macro_rules! define_endpoints_2_normalized_glue {
 
         impl $($ctx)*
         $crate::application::frp::API for Frp <$($param)*> {
-            type Public=api::Public <$($param)*>;
-            type Private=api::Private <$($param)*>;
+            type Public = api::Public <$($param)*>;
+            type Private = api::Private <$($param)*>;
 
             fn private(&self) -> &Self::Private {
                 &self.private
