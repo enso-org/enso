@@ -17,6 +17,10 @@ use ensogl_hardcoded_theme as theme;
 
 
 
+/// ========================
+/// === Public Functions ===
+/// ========================
+
 /// Return a position for a newly created node. The position is calculated by taking the mouse
 /// position and aligning it to the closest existing node if the mouse position is close enough to
 /// the node.
@@ -164,6 +168,12 @@ pub fn on_ray(
     });
     find_free_place(starting_point, direction, node_areas)
 }
+
+
+
+/// ================================
+/// === Private Helper Functions ===
+/// ================================
 
 /// Return a node nearest to the specified point.
 ///
