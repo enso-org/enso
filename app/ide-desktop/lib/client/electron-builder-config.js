@@ -1,10 +1,17 @@
+// This file cannot be made ES6 module due to: https://github.com/develar/read-config-file/issues/10
+
 const dist_var_name = "ENSO_IDE_DIST"
 
 const dist = process.env[dist_var_name] ?? (()=>{throw Error(`Missing ${dist_var_name} environment variable.`)})()
 
+const build = require('../../build.json')
+
 const config = {
     appId: 'org.enso',
     productName: 'Enso',
+    extraMetadata: {
+        version: build.version
+    },
     copyright: 'Copyright © 2021 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
