@@ -160,6 +160,58 @@ impl Nfa {
         state
     }
 
+
+    pub fn new_pattern2(&mut self, source: State, pattern: impl AsRef<Pattern>) -> State {
+        self.new_pattern2_internal(source, None, pattern)
+    }
+
+    pub fn new_pattern2_internal(
+        &mut self,
+        source: State,
+        target: Option<State>,
+        pattern: impl AsRef<Pattern>,
+    ) -> State {
+        let pattern = pattern.as_ref();
+        let current = source;
+        let state = match pattern {
+            Pattern::Range(range) => {
+                let target = target.unwrap_or_else(|| self.new_state());
+                self.connect_via(current, target, range);
+                target
+            }
+            // Pattern::Many(body) => {
+            //     let s1 = self.new_state();
+            //     let s2 = self.new_pattern(s1, body);
+            //     let s3 = self.new_state();
+            //     self.connect(current, s1);
+            //     self.connect(current, s3);
+            //     self.connect(s2, s3);
+            //     self.connect(s3, s1);
+            //     s3
+            // }
+            // Pattern::Seq(patterns) =>
+            //     patterns.iter().fold(current, |s, pat| self.new_pattern(s, pat)),
+            Pattern::Or(patterns) => {
+                let end = self.new_state();
+                let states = patterns
+                    .iter()
+                    .map(|pat| self.new_pattern2_internal(current, Some(end), pat))
+                    .collect_vec();
+                // for state in states {
+                //     self.connect(state, end);
+                // }
+                end
+            }
+            // Pattern::Always => current,
+            // Pattern::Never => self.new_state(),
+            _ => panic!(),
+        };
+        self[state].export = true;
+        state
+    }
+
+
+
     /// Transforms a pattern to connected NFA states by using the algorithm described
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI). This function is similar to
     /// `new_pattern`, but it consumes an explicit target state.
@@ -461,6 +513,8 @@ pub mod tests {
     #[test]
     fn nfa_pattern_range() {
         let nfa = pattern_range();
+
+        println!("{}", nfa.as_graphviz_code());
 
         assert!(nfa.alphabet.divisions().contains(&Symbol::from(0u64)));
         assert!(nfa.alphabet.divisions().contains(&Symbol::from(97u64)));

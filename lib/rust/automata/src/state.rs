@@ -5,8 +5,6 @@ use crate::prelude::*;
 use crate::alphabet;
 use crate::symbol::Symbol;
 
-
-
 use crate::nfa::Nfa; // FIXME
 
 

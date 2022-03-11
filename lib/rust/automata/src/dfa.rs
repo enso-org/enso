@@ -211,6 +211,27 @@ pub mod tests {
     // === The Tests ===
 
     #[test]
+    fn test1() {
+        use crate::pattern::Pattern;
+
+        let mut nfa = Nfa::default();
+        let start_state_id = nfa.start;
+        // let x = nfa.new_pattern(start_state_id, Pattern::range('x'..='x'));
+        // let pattern = Pattern::Or(vec![
+        //     Pattern::range('x'..='x'),
+        //     Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]),
+        // ]);
+
+        let pattern = Pattern::Or(vec![Pattern::range('x'..='x'), Pattern::range('y'..='y')]);
+
+        // let pattern = Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]);
+
+        nfa.new_pattern2(start_state_id, pattern);
+
+        println!("{}", nfa.as_graphviz_code());
+    }
+
+    #[test]
     fn dfa_pattern_range() {
         let nfa = nfa::tests::pattern_range();
         let dfa = Dfa::from(&nfa.nfa);
