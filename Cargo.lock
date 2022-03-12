@@ -926,25 +926,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-flexer"
-version = "0.2.1"
-dependencies = [
- "enso-automata",
- "enso-lazy-reader",
- "enso-logger",
- "enso-macro-utils",
- "enso-prelude",
- "itertools 0.8.2",
- "nonempty",
- "proc-macro2",
- "quote",
- "syn",
- "unicode-segmentation",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "enso-formatter"
 version = "0.1.0"
 dependencies = [
@@ -1041,14 +1022,6 @@ dependencies = [
  "ensogl",
  "wasm-bindgen",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "enso-lazy-reader"
-version = "0.2.0"
-dependencies = [
- "enso-prelude",
- "itertools 0.8.2",
 ]
 
 [[package]]
@@ -2403,25 +2376,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "lexer"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "enso-flexer",
- "enso-prelude",
- "lexer-definition",
-]
-
-[[package]]
-name = "lexer-definition"
-version = "0.1.0"
-dependencies = [
- "enso-flexer",
- "enso-prelude",
- "uuid",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2675,12 +2629,6 @@ dependencies = [
  "libc",
  "winapi 0.3.9",
 ]
-
-[[package]]
-name = "nonempty"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f962080273ac958f790079cfc886b5b9d722969dbd7b03f473902bdfe5c69b1"
 
 [[package]]
 name = "normalize-line-endings"
@@ -2982,18 +2930,6 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "websocket",
-]
-
-[[package]]
-name = "parser-new"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "enso-data-structures",
- "enso-logger",
- "enso-prelude",
- "itertools 0.10.3",
- "lexer",
 ]
 
 [[package]]
