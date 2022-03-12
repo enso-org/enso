@@ -38,7 +38,7 @@ pub type State = state::StateId<Dfa>;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Dfa {
     /// A set of disjoint intervals over the allowable input alphabet.
-    pub alphabet: alphabet::SealedSegmentation,
+    pub alphabet:         alphabet::SealedSegmentation,
     /// The transition matrix for the Dfa.
     ///
     /// It represents a function of type `(state, symbol) -> state`, returning the identifier for
@@ -52,9 +52,10 @@ pub struct Dfa {
     /// |:-:|:-:|:-:|
     /// | 0 | 1 | - |
     /// | 1 | - | 0 |
-    pub links:    Matrix<State>,
+    pub links:            Matrix<State>,
+    pub sources:          Vec<Vec<nfa::StateId>>,
     /// For each DFA state contains a list of NFA states it was constructed from.
-    pub sources:  Vec<Vec<nfa::StateId>>,
+    pub exported_sources: Vec<Vec<nfa::StateId>>,
 }
 
 impl Dfa {
@@ -72,17 +73,20 @@ impl Dfa {
     /// Convert the automata to GraphViz Dot code for the deubgging purposes.
     pub fn as_graphviz_code(&self) -> String {
         let mut out = String::new();
+        let alphabet_ranges = self.alphabet.ranges();
         for row in 0..self.links.rows {
-            out += &format!("node_{}[label=\"{}\"]\n", row, row);
+            let sources = &self.sources[row];
+            out += &format!("node_{}[label=\"{} ({:?})\"]\n", row, row, sources);
             for column in 0..self.links.columns {
+                let range = alphabet_ranges[column];
                 let state = self.links[(row, column)];
                 if !state.is_invalid() {
-                    out += &format!("node_{} -> node_{}\n", row, state.id());
+                    out += &format!("node_{} -> node_{}[label=\"{}\"]\n", row, state.id(), range);
                 }
             }
         }
         let opts = "node [shape=circle style=filled fillcolor=\"#4385f5\" fontcolor=\"#FFFFFF\" \
-                    color=white penwidth=5.0 margin=0.1 width=0.5 height=0.5 fixedsize=true]";
+                    color=white penwidth=5.0 margin=0.1]";
         format!("digraph G {{\n{}\n{}\n}}\n", opts, out)
     }
 }
@@ -195,14 +199,20 @@ impl From<&Nfa> for Dfa {
             i += 1;
         }
 
+        let mut exported_sources = vec![];
+        for epss in dfa_eps_ixs.iter() {
+            exported_sources
+                .push(epss.into_iter().filter(|state| nfa[**state].export).cloned().collect_vec());
+        }
+
         let mut sources = vec![];
         for epss in dfa_eps_ixs.into_iter() {
-            sources.push(epss.into_iter().filter(|state| nfa[*state].export).collect_vec());
+            sources.push(epss.into_iter().collect_vec());
         }
 
         let alphabet = (&nfa.alphabet).into();
         let links = dfa_mat;
-        Dfa { alphabet, links, sources }
+        Dfa { alphabet, links, sources, exported_sources }
     }
 }
 
@@ -236,7 +246,7 @@ pub mod tests {
     }
 
     fn get_name<'a>(nfa: &'a NfaTest, dfa: &Dfa, state: State) -> Option<&'a String> {
-        let sources = &dfa.sources[state.id()];
+        let sources = &dfa.exported_sources[state.id()];
         let mut result = None;
         for source in sources.iter() {
             let name = nfa.name(*source);
@@ -266,6 +276,7 @@ pub mod tests {
     #[test]
     fn test1() {
         use crate::pattern::Pattern;
+        use crate::state::INVALID_IX as X;
 
         let mut nfa = Nfa::default();
         let start_state_id = nfa.start;
@@ -283,9 +294,6 @@ pub mod tests {
         nfa.connect_eps(s3, s2);
 
         let m1 = nfa_matrix(&nfa);
-
-        use crate::state::INVALID_IX as X;
-
         #[rustfmt::skip]
         let m1_expected = Matrix::<nfa::StateId>::new_from_slice(4, 5, &[
             X, 1, X, 3, X,
@@ -293,8 +301,10 @@ pub mod tests {
             X, 1, X, X, X,
             X, X, X, 2, X,
         ]);
-
         assert_eq!(m1, m1_expected);
+
+        let m2 = eps_matrix(&nfa);
+        println!("{:?}", m2);
 
 
         // let pattern = Pattern::never().many();
@@ -306,7 +316,11 @@ pub mod tests {
         // nfa.new_pattern(start_state_id, pattern);
         let dfa = Dfa::from(&nfa);
 
-        println!("{}", nfa.as_graphviz_code());
+        // println!("{:?}", dfa.sources);
+
+        println!("{}", dfa.as_graphviz_code());
+
+        println!("{:#?}", dfa.alphabet);
     }
 
     #[test]
@@ -412,7 +426,7 @@ pub mod tests {
         let nfa = nfa::tests::named_rules();
         let dfa = Dfa::from(&nfa.nfa);
         assert_same_alphabet(&dfa, &nfa);
-        assert_eq!(dfa.sources.len(), 5);
+        assert_eq!(dfa.exported_sources.len(), 5);
         assert_eq!(get_name(&nfa, &dfa, make_state(0)), None);
         assert_eq!(get_name(&nfa, &dfa, make_state(1)), Some(&String::from("rule_1")));
         assert_eq!(get_name(&nfa, &dfa, make_state(2)), Some(&String::from("rule_2")));

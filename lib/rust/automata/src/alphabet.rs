@@ -124,6 +124,17 @@ impl SealedSegmentation {
             .map(|(k, v)| if k == symbol { *v } else { v - 1 })
             .unwrap_or_else(|| self.len() - 1)
     }
+
+    pub fn ranges(&self) -> Vec<symbol::Range> {
+        let iter_start = self.division_map.keys();
+        let iter_end = self
+            .division_map
+            .keys()
+            .skip(1)
+            .map(|t| t.prev_clamped())
+            .chain(std::iter::once(Symbol::max()));
+        iter_start.zip(iter_end).map(|(start, end)| symbol::Range::new(*start, end)).collect()
+    }
 }
 
 impl Deref for SealedSegmentation {

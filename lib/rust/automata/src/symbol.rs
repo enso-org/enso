@@ -26,6 +26,12 @@ pub struct Range {
     pub end:   Symbol,
 }
 
+impl Range {
+    pub fn new(start: Symbol, end: Symbol) -> Self {
+        Self { start, end }
+    }
+}
+
 impl From<RangeInclusive<Symbol>> for Range {
     fn from(t: RangeInclusive<Symbol>) -> Self {
         let start = *t.start();
@@ -51,6 +57,16 @@ impl From<char> for Range {
 impl From<&char> for Range {
     fn from(t: &char) -> Self {
         Self::from(*t)
+    }
+}
+
+impl Display for Range {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.start == self.end {
+            write!(f, "{}", self.start)
+        } else {
+            write!(f, "{} ..= {}", self.start, self.end)
+        }
     }
 }
 
@@ -108,6 +124,15 @@ impl Symbol {
     /// Next symbol, if any.
     pub fn next(&self) -> Option<Self> {
         self.index.checked_add(1).map(Self::new)
+    }
+
+    /// Next symbol, if any.
+    pub fn prev(&self) -> Option<Self> {
+        self.index.checked_sub(1).map(Self::new)
+    }
+
+    pub fn prev_clamped(&self) -> Self {
+        self.prev().unwrap_or(*self)
     }
 }
 
