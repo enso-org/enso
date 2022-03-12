@@ -12,6 +12,13 @@ members = [
     "integration-test"
 ]
 
+exclude = [
+    "lib/rust/parser_old",
+    "lib/rust/parser_old/ast",
+    "lib/rust/parser_old/flexer",
+    "lib/rust/parser_old/flexer-testing",
+]
+
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
 

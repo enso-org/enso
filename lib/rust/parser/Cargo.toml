@@ -1,0 +1,11 @@
+[package]
+name    = "enso-parser"
+version = "0.2.6"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+
+description  = "Enso Parser"
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/rust-lib/src/-prelude"
+repository   = "https://github.com/enso-org/rust-lib"
+license-file = "../../LICENSE"
