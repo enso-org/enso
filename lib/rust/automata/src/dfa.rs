@@ -91,14 +91,17 @@ impl Dfa {
     }
 }
 
-fn gen_parser_steps_code(dfa: &Dfa, name_map: &HashMap<nfa::StateId, String>) -> String {
-    println!("{:#?}", name_map);
+fn gen_parser_steps_code(
+    p_name: String,
+    dfa: &Dfa,
+    name_map: &HashMap<nfa::StateId, String>,
+) -> String {
     let mut out = String::new();
     let alphabet_ranges = dfa.alphabet.ranges();
     let mut fn_names = Vec::new();
     for row in 0..dfa.links.rows {
         let fn_name = format!("step_state{}", row);
-        out.push_str(&format!("fn {}<'s>(parser: &mut ParserRunner<'s>) {{\n", fn_name));
+        out.push_str(&format!("fn {}<'s>(parser: &mut {}<'s>) {{\n", fn_name, p_name));
         out.push_str(&format!("    println!(\"Calling '{}'\");\n", fn_name));
         let mut first_condition = true;
         for column in 0..dfa.links.columns {
@@ -106,7 +109,7 @@ fn gen_parser_steps_code(dfa: &Dfa, name_map: &HashMap<nfa::StateId, String>) ->
             first_condition = false;
             let range = alphabet_ranges[column];
             out.push_str(&format!(
-                "    {}if parser.current_input >= {} && parser.current_input <= {} {{\n",
+                "    {}if parser.runner.current_input >= {} && parser.runner.current_input <= {} {{\n",
                 glue, range.start.index, range.end.index,
             ));
             let target_state = &dfa.links[(row, column)];
@@ -115,16 +118,15 @@ fn gen_parser_steps_code(dfa: &Dfa, name_map: &HashMap<nfa::StateId, String>) ->
                 out.push_str("        println!(\"invalid\");\n");
             } else {
                 let exported_states = &dfa.exported_sources[target_state.id()];
-                println!("for {} exported states are {:?}", fn_name, exported_states);
 
                 out.push_str(&format!(
-                    "        parser.dfa_state = {}.into();\n",
+                    "        parser.runner.dfa_state = {}.into();\n",
                     target_state.id()
                 ));
                 for state in exported_states {
-                    println!(">> {:?}", state);
                     if let Some(name) = name_map.get(state) {
                         out.push_str(&format!("        println!(\"CALL: {}\");\n", name));
+                        out.push_str(&format!("        parser.{}();\n", name));
                     }
                 }
             }
@@ -135,15 +137,15 @@ fn gen_parser_steps_code(dfa: &Dfa, name_map: &HashMap<nfa::StateId, String>) ->
     }
     out.push_str("\n");
 
-    out.push_str("const STEPS_LOOKUP_TABLE: &[fn(&mut ParserRunner)] = &[\n");
+    out.push_str(&format!("const STEPS_LOOKUP_TABLE: &[fn(&mut {})] = &[\n", p_name));
     for fn_name in fn_names {
         out.push_str(&format!("    {},\n", fn_name));
     }
     out.push_str("];\n\n");
 
-    out.push_str("fn step<'s>(parser: &mut ParserRunner<'s>) {\n");
-    out.push_str("    parser.next_input_char();\n");
-    out.push_str("    STEPS_LOOKUP_TABLE[parser.dfa_state.id()](parser);\n");
+    out.push_str(&format!("fn step<'s>(parser: &mut {}<'s>) {{\n", p_name));
+    out.push_str("    parser.runner.next_input_char();\n");
+    out.push_str("    STEPS_LOOKUP_TABLE[parser.runner.dfa_state.id()](parser);\n");
     out.push_str("}\n");
 
     out
@@ -171,6 +173,7 @@ impl<'s> ParserRunner<'s> {
 
 pub trait Parser {
     fn bindings() -> Vec<Binding>;
+    fn runner(&self) -> &ParserRunner;
 }
 
 #[derive(Clone, Debug)]
@@ -179,21 +182,40 @@ pub struct Binding {
     pub name:    String,
 }
 
-use crate::Pattern;
-
-pub struct P1 {}
-
-impl P1 {
-    fn test() {
-        println!("TEST!");
+impl Binding {
+    pub fn new(pattern: Pattern, name: String) -> Self {
+        Self { pattern, name }
     }
 }
 
-impl Parser for P1 {
+use crate::Pattern;
+
+pub struct P1<'s> {
+    pub runner: ParserRunner<'s>,
+}
+
+impl<'s> P1<'s> {
+    pub fn ab(&mut self) {
+        println!("TEST ab!");
+    }
+
+    pub fn abc(&mut self) {
+        println!("TEST abc!");
+    }
+}
+
+impl<'s> Parser for P1<'s> {
     fn bindings() -> Vec<Binding> {
-        let pattern = Pattern::from('a') >> Pattern::from("b");
-        let name = "test".into();
-        vec![Binding { pattern, name }]
+        let p_ab = Pattern::from('a') >> Pattern::from("b");
+        let f_ab = "ab".into();
+
+        let p_abc = Pattern::from('a') >> Pattern::from("b") >> Pattern::from("c");
+        let f_abc = "abc".into();
+        vec![Binding::new(p_ab, f_ab), Binding::new(p_abc, f_abc)]
+    }
+
+    fn runner(&self) -> &ParserRunner {
+        &self.runner
     }
 }
 
@@ -203,10 +225,14 @@ pub fn gen_parser<P: Parser>() -> String {
     let mut map: HashMap<nfa::StateId, String> = default();
     for binding in bindings {
         let id = nfa.new_pattern(nfa.start, &binding.pattern);
+        println!("-----");
+        println!("{}", nfa.as_graphviz_code());
         map.insert(id, binding.name.clone());
     }
     let dfa = Dfa::from(&nfa);
-    gen_parser_steps_code(&dfa, &map)
+    println!("=====");
+    println!("{}", dfa.as_graphviz_code());
+    gen_parser_steps_code("P1".into(), &dfa, &map)
 }
 
 pub fn example_parser() -> String {
@@ -298,14 +324,14 @@ pub fn eps_matrix(nfa: &Nfa) -> Vec<nfa::StateSetId> {
     states
 }
 
-/// Computes a transition matrix `(state, symbol) => state` for the Nfa, ignoring epsilon links.
-pub fn nfa_matrix(nfa: &Nfa) -> Matrix<nfa::StateId> {
-    let mut matrix = Matrix::new(nfa.states.len(), nfa.alphabet.divisions.len());
+pub fn nfa_matrix(nfa: &Nfa) -> Matrix<Vec<nfa::StateId>> {
+    let mut matrix =
+        Matrix::<Vec<nfa::StateId>>::new(nfa.states.len(), nfa.alphabet.divisions.len());
 
     for (state_ix, state) in nfa.states.iter().enumerate() {
         let targets = state.targets(&nfa.alphabet);
-        for (voc_ix, &target_state_id) in targets.iter().enumerate() {
-            matrix[(state_ix, voc_ix)] = target_state_id;
+        for (voc_ix, target_state_id) in targets.iter().enumerate() {
+            matrix[(state_ix, voc_ix)].extend(target_state_id);
         }
     }
     matrix
@@ -333,8 +359,8 @@ impl From<&Nfa> for Dfa {
             for voc_ix in 0..nfa.alphabet.divisions.len() {
                 let mut eps_set = nfa::StateSetId::new();
                 for &eps_ix in &dfa_eps_ixs[i] {
-                    let tgt = nfa_mat[(eps_ix.id(), voc_ix)];
-                    if tgt != nfa::StateId::INVALID {
+                    let tgts = &nfa_mat[(eps_ix.id(), voc_ix)];
+                    for tgt in tgts {
                         eps_set.extend(eps_mat[tgt.id()].iter());
                     }
                 }
@@ -369,7 +395,6 @@ impl From<&Nfa> for Dfa {
         Dfa { alphabet, links, sources, exported_sources }
     }
 }
-
 
 
 // =============
@@ -449,7 +474,7 @@ pub mod tests {
 
         let m1 = nfa_matrix(&nfa);
         #[rustfmt::skip]
-        let m1_expected = Matrix::<nfa::StateId>::new_from_slice(4, 5, &[
+            let m1_expected = Matrix::<nfa::StateId>::new_from_slice(4, 5, &[
             X, 1, X, 3, X,
             X, X, 2, X, X,
             X, 1, X, X, X,
@@ -459,6 +484,65 @@ pub mod tests {
 
         let m2 = eps_matrix(&nfa);
         println!("{:?}", m2);
+
+
+        // let pattern = Pattern::never().many();
+
+        // let pattern = Pattern::or(Pattern::range('x'..='x'), Pattern::range('y'..='y'));
+
+        // let pattern = Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]);
+
+        // nfa.new_pattern(start_state_id, pattern);
+        let dfa = Dfa::from(&nfa);
+
+        // println!("{:?}", dfa.sources);
+
+        println!("{}", dfa.as_graphviz_code());
+
+        // println!("{}", gen_parser_steps_code(&dfa));
+    }
+
+
+    #[test]
+    fn test2() {
+        use crate::pattern::Pattern;
+        use crate::state::INVALID_IX as X;
+
+        let mut nfa = Nfa::default();
+        let start_state_id = nfa.start;
+
+        let s0 = nfa.start;
+        let s1 = nfa.new_state();
+        let s2 = nfa.new_state_exported();
+        let s3 = nfa.new_state();
+        let s4 = nfa.new_state();
+        let s5 = nfa.new_state_exported();
+        nfa.connect(s0, s1, 'a');
+        nfa.connect(s1, s2, 'b');
+        nfa.connect(s0, s3, 'a');
+        nfa.connect(s3, s4, 'b');
+        nfa.connect(s4, s5, 'c');
+
+        println!("{}", nfa.as_graphviz_code());
+
+        let m1 = nfa_matrix(&nfa);
+        println!("{:?}", m1);
+
+        println!("\n\n");
+
+
+
+        // #[rustfmt::skip]
+        //     let m1_expected = Matrix::<nfa::StateId>::new_from_slice(4, 5, &[
+        //     X, 1, X, 3, X,
+        //     X, X, 2, X, X,
+        //     X, 1, X, X, X,
+        //     X, X, X, 2, X,
+        // ]);
+        // assert_eq!(m1, m1_expected);
+
+        let m2 = eps_matrix(&nfa);
+        // println!("{:?}", m2);
 
 
         // let pattern = Pattern::never().many();

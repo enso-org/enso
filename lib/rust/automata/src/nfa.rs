@@ -91,7 +91,7 @@ impl State {
     }
 
     /// Returns the transition (next state) for each symbol in the alphabet.
-    pub fn targets(&self, alphabet: &alphabet::Segmentation) -> Vec<StateId> {
+    pub fn targets(&self, alphabet: &alphabet::Segmentation) -> Vec<Vec<StateId>> {
         let mut index = 0;
         let mut sorted_links = self.links.clone();
         sorted_links.sort_by_key(|link| link.symbols.start);
@@ -103,11 +103,12 @@ impl State {
                 while sorted_links.len() > index && sorted_links[index].symbols.end < symbol {
                     index += 1;
                 }
-                if sorted_links.len() <= index || sorted_links[index].symbols.start > symbol {
-                    StateId::INVALID
-                } else {
-                    sorted_links[index].target
+                let mut out = Vec::<StateId>::new();
+                while sorted_links.len() > index && sorted_links[index].symbols.start == symbol {
+                    out.push(sorted_links[index].target);
+                    index += 1;
                 }
+                out
             })
             .collect()
     }

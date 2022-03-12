@@ -35,7 +35,7 @@ impl<T: Debug> Debug for Matrix<T> {
     }
 }
 
-impl<T: Copy> Matrix<T> {
+impl<T> Matrix<T> {
     /// Get the number of rows in the matrix.
     pub fn rows(&self) -> usize {
         self.rows
@@ -50,11 +50,13 @@ impl<T: Copy> Matrix<T> {
     pub fn row_indices(&self) -> Range<usize> {
         0..self.rows()
     }
+}
 
+impl<T: Clone> Matrix<T> {
     /// Indexing with bounds checking.
     pub fn safe_index(&self, row: usize, column: usize) -> Option<T> {
         (row < self.rows && column < self.columns)
-            .as_some_from(|| self.matrix[row * self.columns + column])
+            .as_some_from(|| self.matrix[row * self.columns + column].clone())
     }
 }
 
