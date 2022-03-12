@@ -10,6 +10,10 @@ use std::ops::BitOr;
 use std::ops::RangeInclusive;
 use std::ops::Shr;
 
+use regex_syntax;
+use regex_syntax::hir;
+use regex_syntax::hir::Hir;
+use regex_syntax::hir::HirKind;
 
 
 // =============
@@ -34,6 +38,64 @@ pub enum Pattern {
 }
 
 impl Pattern {
+    pub fn from_regex(str: &str) -> Self {
+        let hir = regex_syntax::Parser::new().parse(str).unwrap();
+        Self::from_hir(&hir)
+    }
+
+    fn from_hir(hir: &Hir) -> Self {
+        match hir.kind() {
+            HirKind::Alternation(ts) => ts
+                .iter()
+                .map(|t| Self::from_hir(t))
+                .rfold(None, |accum, elem| match accum {
+                    None => Some(elem),
+                    Some(accum) => Some(Pattern::Or(Box::new(elem), Box::new(accum))),
+                })
+                .unwrap(),
+
+            HirKind::Concat(ts) => ts
+                .iter()
+                .map(|t| Self::from_hir(t))
+                .rfold(None, |accum, elem| match accum {
+                    None => Some(elem),
+                    Some(accum) => Some(Pattern::Seq(Box::new(elem), Box::new(accum))),
+                })
+                .unwrap(),
+            HirKind::Literal(t) => match t {
+                hir::Literal::Unicode(chr) => Self::from(chr),
+                _ => panic!(),
+            },
+            HirKind::Class(cls) => match cls {
+                hir::Class::Unicode(cls) => cls
+                    .ranges()
+                    .iter()
+                    .map(|t| Self::Range(symbol::Range::new(t.start(), t.end())))
+                    .rfold(None, |accum, elem| match accum {
+                        None => Some(elem),
+                        Some(accum) => Some(Pattern::Or(Box::new(elem), Box::new(accum))),
+                    })
+                    .unwrap(),
+                _ => panic!(),
+            },
+            HirKind::Repetition(rep) => {
+                let pat = Self::from_hir(&rep.hir);
+                match &rep.kind {
+                    hir::RepetitionKind::ZeroOrOne => pat.opt(),
+                    hir::RepetitionKind::ZeroOrMore => pat.many(),
+                    hir::RepetitionKind::OneOrMore => pat.many1(),
+                    hir::RepetitionKind::Range(r) => match r {
+                        hir::RepetitionRange::Exactly(u) => pat.repeat_exactly(*u as usize),
+                        hir::RepetitionRange::AtLeast(u) => pat.repeat_at_least(*u as usize),
+                        hir::RepetitionRange::Bounded(i, j) =>
+                            pat.repeat_bounded(*i as usize, *j as usize),
+                    },
+                }
+            }
+            t => panic!("not supported yet:\n{:#?}", t),
+        }
+    }
+
     pub fn or(first: impl Into<Pattern>, second: impl Into<Pattern>) -> Self {
         Self::Or(Box::new(first.into()), Box::new(second.into()))
     }
@@ -60,12 +122,12 @@ impl Pattern {
 
     /// A pattern that triggers on the minimum value.
     pub fn min() -> Self {
-        Pattern::symbol(&Symbol::min())
+        Pattern::symbol(Symbol::min())
     }
 
     /// A pattern that triggers on the minimum value.
     pub fn max() -> Self {
-        Pattern::symbol(&Symbol::max())
+        Pattern::symbol(Symbol::max())
     }
 
     /// A pattern that triggers on 0..N repetitions of the pattern described by `self`.
@@ -83,24 +145,43 @@ impl Pattern {
         self | Self::always()
     }
 
+    pub fn repeat_exactly(&self, num: usize) -> Self {
+        iter::repeat(self).take(num).fold(Self::always(), |acc, elem| elem >> acc)
+    }
+
+    pub fn repeat_at_least(&self, num: usize) -> Self {
+        self.repeat_exactly(num) >> self.many()
+    }
+
+    pub fn repeat_at_most(&self, max: usize) -> Self {
+        iter::repeat(self).take(max).fold(Self::always(), |acc, elem| (elem | (elem >> acc)))
+    }
+
+    pub fn repeat_bounded(&self, min: usize, max: usize) -> Self {
+        self.repeat_at_least(min) >> self.repeat_at_most(max - min)
+    }
+
+
+
     /// A pattern that triggers on the given character.
     pub fn char(character: char) -> Self {
-        Self::symbol(&Symbol::from(character))
+        Self::symbol(Symbol::from(character))
     }
 
     /// A pattern that triggers on the given symbol.
-    pub fn symbol(symbol: &Symbol) -> Self {
-        Pattern::symbols(symbol.clone()..=symbol.clone())
+    pub fn symbol(symbol: Symbol) -> Self {
+        Pattern::symbols(symbol..=symbol)
     }
 
     /// A pattern that triggers on any of the provided `symbols`.
-    pub fn symbols(symbols: impl Into<symbol::Range>) -> Self {
+    pub const fn symbols<T>(symbols: T) -> Self
+    where T: ~const Into<symbol::Range> {
         Pattern::Range(symbols.into())
     }
 
     /// A pattern that triggers at the end of the file.
     pub fn eof() -> Self {
-        Self::symbol(&Symbol::eof())
+        Self::symbol(Symbol::eof())
     }
 
     /// A pattern that triggers on any character in the provided `range`.
@@ -217,6 +298,12 @@ impl From<&str> for Pattern {
 impl From<char> for Pattern {
     fn from(char: char) -> Self {
         Pattern::char(char)
+    }
+}
+
+impl From<&char> for Pattern {
+    fn from(t: &char) -> Self {
+        Self::from(*t)
     }
 }
 

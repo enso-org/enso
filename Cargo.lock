@@ -877,6 +877,7 @@ name = "enso-automata"
 version = "0.2.0"
 dependencies = [
  "enso-prelude",
+ "regex-syntax",
 ]
 
 [[package]]

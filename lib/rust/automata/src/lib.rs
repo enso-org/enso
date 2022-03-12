@@ -3,6 +3,9 @@
 
 // === Features ===
 #![feature(test)]
+#![feature(const_trait_impl)]
+#![feature(const_option_ext)]
+#![feature(const_fn_trait_bound)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

@@ -27,7 +27,9 @@ pub struct Range {
 }
 
 impl Range {
-    pub fn new(start: Symbol, end: Symbol) -> Self {
+    pub fn new(start: impl Into<Symbol>, end: impl Into<Symbol>) -> Self {
+        let start = start.into();
+        let end = end.into();
         Self { start, end }
     }
 }
@@ -85,6 +87,11 @@ pub struct Symbol {
 
 
 impl Symbol {
+    /// Constructor.
+    pub fn new(index: SymbolIndex) -> Self {
+        Self { index }
+    }
+
     /// End of line symbol.
     pub fn eof() -> Self {
         Self::new(SymbolIndex::MAX)
@@ -110,10 +117,6 @@ impl Symbol {
         Self::new(SymbolIndex::MAX)
     }
     //
-    /// Constructor.
-    pub fn new(index: SymbolIndex) -> Self {
-        Self { index }
-    }
 
     // /// Named constructor.
     // pub fn new_named(index: SymbolIndex, name: impl Into<String>) -> Self {
@@ -177,11 +180,13 @@ impl PartialOrd<SymbolIndex> for Symbol {
 //
 impl Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            char::from_u32(self.index).map(|t| t.to_string()).unwrap_or("Invalid char".into())
-        )
+        let hex = format!("0x{:x}", self.index);
+        let str = if self.index >= 33 && self.index <= 126 {
+            format!("{} ('{}')", hex, char::from_u32(self.index).unwrap())
+        } else {
+            hex
+        };
+        write!(f, "{}", str)
     }
 }
 //
@@ -227,6 +232,22 @@ impl From<&Symbol> for Symbol {
     }
 }
 
+
+// pub trait ConstFrom<T>: Sized {
+//     #[must_use]
+//     const fn const_from(_: T) -> Self;
+// }
+//
+// pub trait ConstInto<T>: Sized {
+//     #[must_use]
+//     const fn const_into(self) -> T;
+// }
+//
+// impl<S, T: From<S>> ConstInto<T> for S {
+//     const fn const_into(self) -> T {
+//         T::from(self)
+//     }
+// }
 
 
 // =============
