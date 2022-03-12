@@ -72,4 +72,14 @@ spec =
             error.catch . should_equal "bar"
             error.get_stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
+    Test.group "Panics" <|
+        Test.specify "should be able to be caught" <|
+            result = Panic.catch (Panic.throw 42) error->
+                error+10
+            result . should_equal 52
+
+            result_2 = Panic.catch (1 + 2) error->
+                error+10
+            result_2 . should_equal 3
+
 main = Test.Suite.run_main here.spec

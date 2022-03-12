@@ -419,7 +419,7 @@ type Panic
     ## Executes the provided action and converts any panic thrown by it into
        an Error.
 
-       If action executes successfully, the result of Panic.recover is the
+       If action executes successfully, the result of `Panic.recover` is the
        result of that action. Otherwise, it is the panic that was thrown after
        conversion to a dataflow error.
 
@@ -432,6 +432,27 @@ type Panic
              Panic.recover (Panic.throw "Oh no!")
     recover : Any -> Any
     recover ~action = @Builtin_Method "Panic.recover"
+
+    ## Executes the provided action and if any panic was thrown, calls the
+       provided callback.
+
+       If action executes successfully, the result of `Panic.catch` is the
+       result of that action. Otherwise, it is the result of the provided
+       handler callback, executed with the caught panic as its first argument.
+
+       TODO [RW] we may add the stacktrace as a second argument?
+
+       Arguments:
+       - action: The code to execute that potentially panics.
+       - handler: The callback to handle any panics.
+
+       > Example
+         Handling a panic for a panicking action.
+
+             Panic.catch (Panic.throw "Oh no!") error->
+                 IO.println "Caught an error: "+error.to_text
+    catch : Any -> (Any -> Any) -> Any
+    catch ~action handler = @Builtin_Method "Panic.catch"
 
 # Function types.
 type Function

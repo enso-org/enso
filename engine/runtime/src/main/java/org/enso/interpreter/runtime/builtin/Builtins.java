@@ -12,6 +12,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
@@ -163,6 +164,7 @@ public class Builtins {
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
+    scope.registerMethod(panic, "catch", CatchPanicMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch_primitive", CatchAnyMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
