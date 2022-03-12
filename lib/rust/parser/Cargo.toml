@@ -9,3 +9,10 @@ readme       = "README.md"
 homepage     = "https://github.com/enso-org/rust-lib/src/-prelude"
 repository   = "https://github.com/enso-org/rust-lib"
 license-file = "../../LICENSE"
+
+
+[dependencies]
+enso-automata = { path = "../automata" }
+
+[build-dependencies]
+enso-automata = { path = "../automata" }

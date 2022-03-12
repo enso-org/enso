@@ -98,16 +98,20 @@ fn gen_parser_steps_code(dfa: &Dfa) -> String {
     for row in 0..dfa.links.rows {
         let fn_name = format!("step_state{}", row);
         out.push_str(&format!("fn {}<'s>(parser: &mut Parser<'s>) {{\n", fn_name));
-        fn_names.push(fn_name);
+        out.push_str(&format!("    println!(\"Calling '{}'\");\n", fn_name));
+        let mut first_condition = true;
         for column in 0..dfa.links.columns {
+            let glue = if first_condition { "" } else { "else " };
+            first_condition = false;
             let range = alphabet_ranges[column];
             out.push_str(&format!(
-                "    if parser.current_input >= {} && parser.current_input <= {} {{\n",
-                range.start.index, range.end.index,
+                "    {}if parser.current_input >= {} && parser.current_input <= {} {{\n",
+                glue, range.start.index, range.end.index,
             ));
             let target_state = &dfa.links[(row, column)];
             if target_state.is_invalid() {
                 out.push_str("        // invalid\n");
+                out.push_str("        println!(\"invalid\");\n");
             } else {
                 out.push_str(&format!(
                     "        parser.dfa_state = {}.into();\n",
@@ -117,6 +121,7 @@ fn gen_parser_steps_code(dfa: &Dfa) -> String {
             }
             out.push_str("    }\n");
         }
+        fn_names.push(fn_name);
         out.push_str("}\n\n")
     }
     out.push_str("\n");
@@ -125,7 +130,12 @@ fn gen_parser_steps_code(dfa: &Dfa) -> String {
     for fn_name in fn_names {
         out.push_str(&format!("    {},\n", fn_name));
     }
-    out.push_str("];\n");
+    out.push_str("];\n\n");
+
+    out.push_str("fn step<'s>(parser: &mut Parser<'s>) {\n");
+    out.push_str("    STEPS_LOOKUP_TABLE[parser.dfa_state.id()](parser);");
+    out.push_str("}\n");
+
     out
 }
 
@@ -140,7 +150,7 @@ impl<'s> Parser<'s> {
     pub fn new(input: &'s str) -> Self {
         let input_iter = input.chars();
         let current_input = default();
-        let dfa_state = default();
+        let dfa_state = Dfa::START_STATE;
         Self { input_iter, current_input, dfa_state }.init()
     }
 
@@ -153,90 +163,6 @@ impl<'s> Parser<'s> {
         self.current_input = self.input_iter.next().map(|t| t.into()).unwrap_or(Symbol::eof());
     }
 }
-
-fn step_state0<'s>(parser: &mut Parser<'s>) {
-    if parser.current_input >= 0 && parser.current_input <= 96 {
-        // invalid
-    }
-    if parser.current_input >= 97 && parser.current_input <= 97 {
-        parser.dfa_state = 1.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 98 && parser.current_input <= 98 {
-        // invalid
-    }
-    if parser.current_input >= 99 && parser.current_input <= 99 {
-        parser.dfa_state = 2.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
-        // invalid
-    }
-}
-
-fn step_state1<'s>(parser: &mut Parser<'s>) {
-    if parser.current_input >= 0 && parser.current_input <= 96 {
-        // invalid
-    }
-    if parser.current_input >= 97 && parser.current_input <= 97 {
-        parser.dfa_state = 1.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 98 && parser.current_input <= 98 {
-        parser.dfa_state = 3.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 99 && parser.current_input <= 99 {
-        parser.dfa_state = 2.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
-        // invalid
-    }
-}
-
-fn step_state2<'s>(parser: &mut Parser<'s>) {
-    if parser.current_input >= 0 && parser.current_input <= 96 {
-        // invalid
-    }
-    if parser.current_input >= 97 && parser.current_input <= 97 {
-        parser.dfa_state = 1.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 98 && parser.current_input <= 98 {
-        // invalid
-    }
-    if parser.current_input >= 99 && parser.current_input <= 99 {
-        parser.dfa_state = 3.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
-        // invalid
-    }
-}
-
-fn step_state3<'s>(parser: &mut Parser<'s>) {
-    if parser.current_input >= 0 && parser.current_input <= 96 {
-        // invalid
-    }
-    if parser.current_input >= 97 && parser.current_input <= 97 {
-        parser.dfa_state = 1.into();
-        parser.next_input_char();
-    }
-    if parser.current_input >= 98 && parser.current_input <= 98 {
-        // invalid
-    }
-    if parser.current_input >= 99 && parser.current_input <= 99 {
-        // invalid
-    }
-    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
-        // invalid
-    }
-}
-
-
-const STEPS_LOOKUP_TABLE: &[fn(&mut Parser)] =
-    &[step_state0, step_state1, step_state2, step_state3];
 
 
 // ===================
@@ -343,6 +269,57 @@ impl From<&Nfa> for Dfa {
         let links = dfa_mat;
         Dfa { alphabet, links, sources, exported_sources }
     }
+}
+
+
+pub fn example_parser() -> String {
+    use crate::pattern::Pattern;
+    use crate::state::INVALID_IX as X;
+
+    let mut nfa = Nfa::default();
+    let start_state_id = nfa.start;
+
+    let s0 = nfa.start;
+    let s1 = nfa.new_state();
+    let s2 = nfa.new_state();
+    let s3 = nfa.new_state();
+    nfa.connect(s0, s1, 'a');
+    nfa.connect(s0, s3, 'c');
+    nfa.connect_eps(s1, s0);
+    nfa.connect(s1, s2, 'b');
+    nfa.connect(s2, s1, 'a');
+    nfa.connect(s3, s2, 'c');
+    nfa.connect_eps(s3, s2);
+
+    let m1 = nfa_matrix(&nfa);
+    #[rustfmt::skip]
+        let m1_expected = Matrix::<nfa::StateId>::new_from_slice(4, 5, &[
+        X, 1, X, 3, X,
+        X, X, 2, X, X,
+        X, 1, X, X, X,
+        X, X, X, 2, X,
+    ]);
+    assert_eq!(m1, m1_expected);
+
+    let m2 = eps_matrix(&nfa);
+    // println!("{:?}", m2);
+
+
+    // let pattern = Pattern::never().many();
+
+    // let pattern = Pattern::or(Pattern::range('x'..='x'), Pattern::range('y'..='y'));
+
+    // let pattern = Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]);
+
+    // nfa.new_pattern(start_state_id, pattern);
+    let dfa = Dfa::from(&nfa);
+
+    // println!("{:?}", dfa.sources);
+    //
+    // println!("{}", dfa.as_graphviz_code());
+    //
+    // println!("{}", gen_parser_steps_code(&dfa));
+    gen_parser_steps_code(&dfa)
 }
 
 

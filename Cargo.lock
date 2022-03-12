@@ -1055,6 +1055,9 @@ dependencies = [
 [[package]]
 name = "enso-parser"
 version = "0.2.6"
+dependencies = [
+ "enso-automata",
+]
 
 [[package]]
 name = "enso-prelude"
