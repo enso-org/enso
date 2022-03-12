@@ -1,0 +1,61 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.text.CaseFoldedString
+
+import Standard.Test
+
+polyglot java import com.ibm.icu.text.BreakIterator
+spec =
+    Test.group "Text_Utils" <|
+        kshi = '\u0915\u094D\u0937\u093F'
+        facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
+        text = "a"+kshi+facepalm+'e\u{301}Z'
+        codepoints_to_graphemes = _.flatten <| text.characters.map_with_index ix-> grapheme->
+            codepoints_count = grapheme.utf_16.length
+            Vector.new codepoints_count _->ix
+
+        Test.specify "should correctly translate an codepoint index to a grapheme index" <|
+            codepoints_to_graphemes . each_with_index codepoint_ix-> grapheme_ix->
+                found_grapheme_ix = Text_Utils.utf16_index_to_grapheme_index text codepoint_ix
+                found_grapheme_ix.should_equal grapheme_ix
+
+            Text_Utils.utf16_index_to_grapheme_index text text.utf_16.length . should_equal text.length
+            Text_Utils.utf16_index_to_grapheme_index "" 0 . should_equal 0
+
+            Text_Utils.utf16_index_to_grapheme_index 'ą' 0 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index 'ą' 1 . should_equal 1
+
+            Text_Utils.utf16_index_to_grapheme_index "aB" 0 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index "aB" 1 . should_equal 1
+            Text_Utils.utf16_index_to_grapheme_index "aB" 2 . should_equal 2
+
+            Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 0 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 1 . should_equal 0
+            Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 2 . should_equal 1
+
+        Test.specify "should correctly translate a series of codepoint indices to a grapheme indices in a batch" <|
+            translate_indices text ixes =
+                Vector.from_array <| Text_Utils.utf16_indices_to_grapheme_indices text ixes.to_array
+            codepoint_indices = Vector.new text.utf_16.length ix->ix
+            translate_indices text codepoint_indices . should_equal codepoints_to_graphemes
+
+            translate_indices "" [0] . should_equal [0]
+            translate_indices 'ą' [0, 1] . should_equal [0, 1]
+            translate_indices "aB" [0, 1, 2] . should_equal [0, 1, 2]
+            translate_indices 'a\u{301}' [0, 1, 2] . should_equal [0, 0, 1]
+
+        Test.specify "should correctly case-fold a string and translate codeunits to graphemes" <|
+            text = 'a\u{301}AZßﬃą'
+            folded = CaseFoldedString.fold text Locale.default.java_locale
+            folded.getFoldedString . should_equal 'a\u{301}azssffią'
+
+            codeunits = Vector.new folded.getFoldedString.utf_16.length+1 ix->ix
+            grapheme_ixes = codeunits.map ix->
+                folded.codeUnitToGraphemeIndex ix
+            grapheme_ixes . should_equal [0, 0, 1, 2, 3, 3, 4, 4, 4, 5, 6]
+
+            Test.expect_panic_with (folded.codeUnitToGraphemeIndex -1) Polyglot_Error
+            Test.expect_panic_with (folded.codeUnitToGraphemeIndex folded.getFoldedString.utf_16.length+1) Polyglot_Error
+
+main = Test.Suite.run_main here.spec

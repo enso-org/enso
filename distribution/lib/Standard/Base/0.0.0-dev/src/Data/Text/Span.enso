@@ -7,30 +7,14 @@
 
          example_span =
              text = "Hello!"
-             Span.new 0 3 text
+             Span 0 3 text
 
 from Standard.Base import all
 
-import Standard.Base.Data.Range
+from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 
-## Construct a new `Span`.
-
-   Arguments:
-   - start: The index of the first character included in the span.
-   - end: The index of the first character after `start` that is _not_ included
-     in the span.
-   - text: The `Text` over which the span exists. This is _optional_.
-
-   > Example
-     Creating a span over the first three characters of the text "hello!".
-
-         import Standard.Base.Data.Text.Span
-
-         example_span =
-             text = "Hello!"
-             Span.new 0 3 text
-new : Integer -> Integer -> Text | Nothing -> Span
-new start end text=Nothing = Span (start.up_to end) text
+polyglot java import org.enso.base.Text_Utils
+polyglot java import com.ibm.icu.text.BreakIterator
 
 type Span
 
@@ -38,7 +22,7 @@ type Span
 
        Arguments:
        - range: The range of characters over which the span exists.
-       - text: The text over which the span exists. This is _optional_.
+       - text: The text over which the span exists.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -54,7 +38,7 @@ type Span
                  text = "Hello!"
                  range = 0.up_to 3
                  Span.Span range text
-    type Span (range : Range.Range) (text : (Text | Nothing) = Nothing)
+    type Span (range : Range.Range) (text : Text)
 
     ## The index of the first character included in the span.
 
@@ -74,3 +58,112 @@ type Span
          meaning in most text-processing applications.
     end : Integer
     end = this.range.end
+
+    ## The length of the span in extended grapheme clusters.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+    length : Integer
+    length = this.range.length
+
+    ## Converts the span of extended grapheme clusters to a corresponding span
+       of UTF-16 code units.
+
+       > Example
+         Find the span of code units corresponding to the span of extended grapheme clusters.
+
+         text = 'ae\u{301}fz'
+         (Span (Range 1 3) text).to_utf_16_span == (Utf_16_Span (Range 1 4) text)
+    to_utf_16_span : Utf_16_Span
+    to_utf_16_span =
+        Utf_16_Span (here.range_to_char_indices this.text this.range) this.text
+
+type Utf_16_Span
+
+    ## A representation of a span of UTF-16 code units in Enso's `Text` type.
+
+       Arguments:
+       - range: The range of code units over which the span exists.
+       - text: The text over which the span exists.
+
+       > Example
+         Creating a span over the first three code units of the text 'a\u{301}bc'.
+
+             import Standard.Base.Data.Text.Span
+
+             example_span =
+                 text = 'a\u{301}bc'
+                 Span.Utf_16_Span (Range 0 3) text
+    type Utf_16_Span (range : Range.Range) (text : Text)
+
+    ## The index of the first code unit included in the span.
+    start : Integer
+    start = this.range.start
+
+    ## The index of the first code unit after `start` that is _not_ included in
+       the span.
+    end : Integer
+    end = this.range.end
+
+    ## The length of the span in UTF-16 code units.
+    length : Integer
+    length = this.range.length
+
+    ## Returns a span of extended grapheme clusters which is the closest
+       approximation of this span of code units.
+
+       The resulting span is extended in such a way that every code unit that
+       was contained by the original span is also contained in a new span. Since
+       some grapheme clusters consist of multiple code units, after the span was
+       extended it may also contain code units which were not contained inside
+       of the original span.
+
+       > Example
+         Convert a codepoint span to graphemes and back.
+
+         text = 'a\u{301}e\u{302}o\u{303}'
+         span = Utf_16_Span (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o].
+         extended = span.to_grapheme_span
+         extended == Span (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
+         extended.to_utf_16_span == Utf_16_Span (Range 0 6) text
+    to_grapheme_span : Span
+    to_grapheme_span = if (this.start < 0) || (this.end > Text_Utils.char_length this.text) then Error.throw (Illegal_State_Error "Utf_16_Span indices are out of range of the associated text.") else
+        if this.end < this.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
+            case this.start == this.end of
+                True ->
+                    grapheme_ix = Text_Utils.utf16_index_to_grapheme_index this.text this.start
+                    Span (Range grapheme_ix grapheme_ix) this.text
+                False ->
+                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices this.text [this.start, this.end - 1].to_array
+                    grapheme_first = grapheme_ixes.at 0
+                    grapheme_last = grapheme_ixes.at 1
+                    ## We find the grapheme index of the last code unit actually contained within our span and set the
+                       end grapheme to the first grapheme after that. This ensures that if code units associated with
+                       only a part of a grapheme were contained in our original span, the resulting span will be
+                       extended to contain this whole grapheme.
+                    grapheme_end = grapheme_last + 1
+                    Span (Range grapheme_first grapheme_end) this.text
+
+## PRIVATE
+   Utility function taking a range pointing at grapheme clusters and converting
+   to a range on the underlying code units.
+range_to_char_indices : Text -> Range -> Range ! Index_Out_Of_Bounds_Error
+range_to_char_indices text range =
+    len = text.length
+    start = if range.start < 0 then range.start + len else range.start
+    end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
+    is_valid = (Range 0 len+1).contains
+
+    case (Pair (is_valid start) (is_valid end)) of
+        Pair False _ -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
+        Pair True False -> Error.throw (Index_Out_Of_Bounds_Error range.end len)
+        Pair True True ->
+            if start>=end then (Range 0 0) else
+                iterator = BreakIterator.getCharacterInstance
+                iterator.setText text
+
+                start_index = iterator.next start
+                end_index = iterator.next (end - start)
+                Range start_index end_index
