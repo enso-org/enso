@@ -252,8 +252,16 @@ type Prim_Warning
     attach value warning origin = @Builtin_Method "Prim_Warning.attach"
 
     ## PRIVATE
+    create : Any -> Any -> Prim_Warning
+    create payload origin = @Builtin_Method "Prim_Warning.create"
+
+    ## PRIVATE
     get_all : Any -> Array Prim_Warning
     get_all value = @Builtin_Method "Prim_Warning.get_all"
+
+    ## PRIVATE
+    set : Any -> Array Prim_Warning -> Any
+    set value warnings = @Builtin_Method "Prim_Warning.set"
 
     ## PRIVATE
     get_origin : Prim_Warning -> Any

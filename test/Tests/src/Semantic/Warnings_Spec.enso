@@ -101,5 +101,23 @@ spec = Test.group "Dataflow Warnings" <|
         filtered = warnings.filter x-> x.value % 2 == 0
         rewarned = Warning.set filtered warned
         rewarned.should_equal 'foo'
-        Warning.get_all rewarned . map .value . should_equal [2,4]
+        Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 
+    Test.specify "should allow to map the warnings" <|
+        warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        mapped = Warning.map_attached_warnings (ix -> ix + 10) warned
+        mapped . should_equal 'foo'
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 12, 13, 14]
+
+    Test.specify "should allow to map warnings or errors" <|
+        warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        mapped = Warning.map_warnings_and_errors (ix -> ix + 10) warned
+        mapped . should_equal 'foo'
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 12, 13, 14]
+
+        errored = Error.throw 42
+        mapped_2 = Warning.map_warnings_and_errors (ix -> ix + 10) errored
+        mapped_2.catch . should_equal 52
+        Warning.get_all mapped_2 . catch . should_equal 52
+
+main = Test.Suite.run_main here.spec

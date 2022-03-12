@@ -75,9 +75,10 @@ set warnings value =
 map_attached_warnings : (Any -> Any) -> Any -> Any
 map_attached_warnings mapper value =
     warnings = here.get_all value
-    cleared_value = here.set [] value
-    warnings.fold cleared_value acc-> warning->
-        Prim_Warning.attach acc (mapper warning.value) warning.origin
+    prim_mapped_warnings = warnings.map warning->
+        mapped_value = mapper warning.value
+        Prim_Warning.create mapped_value warning.origin
+    Prim_Warning.set value prim_mapped_warnings.to_array
 
 ## UNSTABLE
    An utility function which applies the mapping function both to any attached
