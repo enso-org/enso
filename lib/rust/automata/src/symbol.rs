@@ -139,6 +139,18 @@ impl Symbol {
 
 // === Impls ===
 
+impl PartialEq<SymbolIndex> for Symbol {
+    fn eq(&self, other: &SymbolIndex) -> bool {
+        self.eq(&Symbol::from(other))
+    }
+}
+
+impl PartialOrd<SymbolIndex> for Symbol {
+    fn partial_cmp(&self, other: &SymbolIndex) -> Option<Ordering> {
+        self.partial_cmp(&Symbol::from(other))
+    }
+}
+
 // impl PartialEq for Symbol {
 //     fn eq(&self, other: &Self) -> bool {
 //         self.index.eq(&other.index)
@@ -182,6 +194,12 @@ impl Default for Symbol {
 impl From<u32> for Symbol {
     fn from(index: u32) -> Symbol {
         Symbol::new(index)
+    }
+}
+
+impl From<&u32> for Symbol {
+    fn from(t: &u32) -> Symbol {
+        Self::from(*t)
     }
 }
 //

@@ -126,6 +126,20 @@ impl<T> IndexMut<(usize, usize)> for Matrix<T> {
     }
 }
 
+impl<S: Clone + Into<T>, T: Default> From<Vec<Vec<S>>> for Matrix<T> {
+    fn from(input: Vec<Vec<S>>) -> Self {
+        let rows = input.len();
+        let columns = if rows == 0 { 0 } else { input[0].len() };
+        let mut matrix = Self::new(rows, columns);
+        for row in 0..rows {
+            for column in 0..columns {
+                matrix[(row, column)] = input[row][column].clone().into();
+            }
+        }
+        matrix
+    }
+}
+
 
 
 // =============

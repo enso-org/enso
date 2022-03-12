@@ -16,7 +16,7 @@ use crate::symbol::Symbol;
 // =============
 
 /// Specialized DFA state type.
-pub type State = state::StateId<Dfa>;
+pub type StateId = state::StateId<Dfa>;
 
 
 
@@ -52,7 +52,7 @@ pub struct Dfa {
     /// |:-:|:-:|:-:|
     /// | 0 | 1 | - |
     /// | 1 | - | 0 |
-    pub links:            Matrix<State>,
+    pub links:            Matrix<StateId>,
     pub sources:          Vec<Vec<nfa::StateId>>,
     /// For each DFA state contains a list of NFA states it was constructed from.
     pub exported_sources: Vec<Vec<nfa::StateId>>,
@@ -60,12 +60,12 @@ pub struct Dfa {
 
 impl Dfa {
     /// The start state of the automata.
-    pub const START_STATE: State = State::new(0);
+    pub const START_STATE: StateId = StateId::new(0);
 }
 
 impl Dfa {
     /// Simulate the DFA transition with the provided input symbol.
-    pub fn next_state(&self, current_state: State, symbol: &Symbol) -> State {
+    pub fn next_state(&self, current_state: StateId, symbol: &Symbol) -> StateId {
         let ix = self.alphabet.index_of_symbol(symbol);
         self.links.safe_index(current_state.id(), ix).unwrap_or_default()
     }
@@ -91,23 +91,152 @@ impl Dfa {
     }
 }
 
-
-// === Trait Impls ===
-
-impl From<Vec<Vec<usize>>> for Matrix<State> {
-    fn from(input: Vec<Vec<usize>>) -> Self {
-        let rows = input.len();
-        let columns = if rows == 0 { 0 } else { input[0].len() };
-        let mut matrix = Self::new(rows, columns);
-        for row in 0..rows {
-            for column in 0..columns {
-                matrix[(row, column)] = State::new(input[row][column]);
+fn gen_parser_steps_code(dfa: &Dfa) -> String {
+    let mut out = String::new();
+    let alphabet_ranges = dfa.alphabet.ranges();
+    let mut fn_names = Vec::new();
+    for row in 0..dfa.links.rows {
+        let fn_name = format!("step_state{}", row);
+        out.push_str(&format!("fn {}<'s>(parser: &mut Parser<'s>) {{\n", fn_name));
+        fn_names.push(fn_name);
+        for column in 0..dfa.links.columns {
+            let range = alphabet_ranges[column];
+            out.push_str(&format!(
+                "    if parser.current_input >= {} && parser.current_input <= {} {{\n",
+                range.start.index, range.end.index,
+            ));
+            let target_state = &dfa.links[(row, column)];
+            if target_state.is_invalid() {
+                out.push_str("        // invalid\n");
+            } else {
+                out.push_str(&format!(
+                    "        parser.dfa_state = {}.into();\n",
+                    target_state.id()
+                ));
+                out.push_str("        parser.next_input_char();\n")
             }
+            out.push_str("    }\n");
         }
-        matrix
+        out.push_str("}\n\n")
+    }
+    out.push_str("\n");
+
+    out.push_str("const STEPS_LOOKUP_TABLE: &[fn(&mut Parser)] = &[\n");
+    for fn_name in fn_names {
+        out.push_str(&format!("    {},\n", fn_name));
+    }
+    out.push_str("];\n");
+    out
+}
+
+
+pub struct Parser<'s> {
+    pub input_iter:    std::str::Chars<'s>,
+    pub current_input: Symbol,
+    pub dfa_state:     StateId,
+}
+
+impl<'s> Parser<'s> {
+    pub fn new(input: &'s str) -> Self {
+        let input_iter = input.chars();
+        let current_input = default();
+        let dfa_state = default();
+        Self { input_iter, current_input, dfa_state }.init()
+    }
+
+    fn init(mut self) -> Self {
+        self.next_input_char();
+        self
+    }
+
+    pub fn next_input_char(&mut self) {
+        self.current_input = self.input_iter.next().map(|t| t.into()).unwrap_or(Symbol::eof());
     }
 }
 
+fn step_state0<'s>(parser: &mut Parser<'s>) {
+    if parser.current_input >= 0 && parser.current_input <= 96 {
+        // invalid
+    }
+    if parser.current_input >= 97 && parser.current_input <= 97 {
+        parser.dfa_state = 1.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 98 && parser.current_input <= 98 {
+        // invalid
+    }
+    if parser.current_input >= 99 && parser.current_input <= 99 {
+        parser.dfa_state = 2.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
+        // invalid
+    }
+}
+
+fn step_state1<'s>(parser: &mut Parser<'s>) {
+    if parser.current_input >= 0 && parser.current_input <= 96 {
+        // invalid
+    }
+    if parser.current_input >= 97 && parser.current_input <= 97 {
+        parser.dfa_state = 1.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 98 && parser.current_input <= 98 {
+        parser.dfa_state = 3.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 99 && parser.current_input <= 99 {
+        parser.dfa_state = 2.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
+        // invalid
+    }
+}
+
+fn step_state2<'s>(parser: &mut Parser<'s>) {
+    if parser.current_input >= 0 && parser.current_input <= 96 {
+        // invalid
+    }
+    if parser.current_input >= 97 && parser.current_input <= 97 {
+        parser.dfa_state = 1.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 98 && parser.current_input <= 98 {
+        // invalid
+    }
+    if parser.current_input >= 99 && parser.current_input <= 99 {
+        parser.dfa_state = 3.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
+        // invalid
+    }
+}
+
+fn step_state3<'s>(parser: &mut Parser<'s>) {
+    if parser.current_input >= 0 && parser.current_input <= 96 {
+        // invalid
+    }
+    if parser.current_input >= 97 && parser.current_input <= 97 {
+        parser.dfa_state = 1.into();
+        parser.next_input_char();
+    }
+    if parser.current_input >= 98 && parser.current_input <= 98 {
+        // invalid
+    }
+    if parser.current_input >= 99 && parser.current_input <= 99 {
+        // invalid
+    }
+    if parser.current_input >= 100 && parser.current_input <= 4294967295 {
+        // invalid
+    }
+}
+
+
+const STEPS_LOOKUP_TABLE: &[fn(&mut Parser)] =
+    &[step_state0, step_state1, step_state2, step_state3];
 
 
 // ===================
@@ -168,7 +297,7 @@ impl From<&Nfa> for Dfa {
         let eps_mat = eps_matrix(nfa);
         let mut dfa_mat = Matrix::new(0, nfa.alphabet.divisions.len());
         let mut dfa_eps_ixs = Vec::<nfa::StateSetId>::new();
-        let mut dfa_eps_map = HashMap::<nfa::StateSetId, State>::new();
+        let mut dfa_eps_map = HashMap::<nfa::StateSetId, StateId>::new();
 
         dfa_eps_ixs.push(eps_mat[0].clone());
         dfa_eps_map.insert(eps_mat[0].clone(), Dfa::START_STATE);
@@ -188,7 +317,7 @@ impl From<&Nfa> for Dfa {
                     dfa_mat[(i, voc_ix)] = match dfa_eps_map.get(&eps_set) {
                         Some(&id) => id,
                         None => {
-                            let id = State::new(dfa_eps_ixs.len());
+                            let id = StateId::new(dfa_eps_ixs.len());
                             dfa_eps_ixs.push(eps_set.clone());
                             dfa_eps_map.insert(eps_set, id);
                             id
@@ -234,18 +363,18 @@ pub mod tests {
     // === Utilities ===
 
     fn invalid() -> usize {
-        State::INVALID.id()
+        StateId::INVALID.id()
     }
 
     fn assert_same_alphabet(dfa: &Dfa, nfa: &Nfa) {
         assert_eq!(dfa.alphabet, nfa.alphabet.seal());
     }
 
-    fn assert_same_matrix(dfa: &Dfa, expected: &Matrix<State>) {
+    fn assert_same_matrix(dfa: &Dfa, expected: &Matrix<StateId>) {
         assert_eq!(dfa.links, *expected);
     }
 
-    fn get_name<'a>(nfa: &'a NfaTest, dfa: &Dfa, state: State) -> Option<&'a String> {
+    fn get_name<'a>(nfa: &'a NfaTest, dfa: &Dfa, state: StateId) -> Option<&'a String> {
         let sources = &dfa.exported_sources[state.id()];
         let mut result = None;
         for source in sources.iter() {
@@ -258,8 +387,8 @@ pub mod tests {
         result
     }
 
-    fn make_state(ix: usize) -> State {
-        State::new(ix)
+    fn make_state(ix: usize) -> StateId {
+        StateId::new(ix)
     }
 
 
@@ -320,7 +449,7 @@ pub mod tests {
 
         println!("{}", dfa.as_graphviz_code());
 
-        println!("{:#?}", dfa.alphabet);
+        println!("{}", gen_parser_steps_code(&dfa));
     }
 
     #[test]
