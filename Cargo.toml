@@ -17,6 +17,9 @@ exclude = [
     "lib/rust/parser_old/ast",
     "lib/rust/parser_old/flexer",
     "lib/rust/parser_old/flexer-testing",
+    "lib/rust/parser_old/lazy-reader",
+    "lib/rust/parser_old/lexer",
+    "lib/rust/parser_old/parser-jni",
 ]
 
 # The default memebers are those we want to check and test by default.
