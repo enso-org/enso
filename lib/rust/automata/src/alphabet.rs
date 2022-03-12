@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::symbol;
 use crate::symbol::Symbol;
 
 use std::collections::BTreeSet;
@@ -55,14 +56,15 @@ pub struct Segmentation {
 
 impl Segmentation {
     /// Inserts a range of symbols into the alphabet.
-    pub fn insert(&mut self, range: RangeInclusive<Symbol>) {
-        self.divisions.insert(range.start().clone());
-        let end = range.end().clone();
+    pub fn insert(&mut self, range: impl Into<symbol::Range>) {
+        let range = range.into();
+        self.divisions.insert(range.start);
+        let end = range.end;
         end.next().for_each(|t| self.divisions.insert(t));
     }
 
     /// Creates a [`Segmentation`] from an input set of divisions.
-    pub fn from_divisions(divisions: &[u64]) -> Self {
+    pub fn from_divisions(divisions: &[u32]) -> Self {
         let mut dict = Self::default();
         for val in divisions {
             dict.divisions.insert(Symbol::from(*val));
@@ -166,7 +168,7 @@ mod tests {
     fn len() {
         let num_to_insert = 10;
         let mut segmentation = Segmentation::default();
-        for ix in 0u64..num_to_insert {
+        for ix in 0u32..num_to_insert {
             segmentation.insert(Symbol::from(100 + ix)..=Symbol::from(100 + ix))
         }
         assert_eq!(segmentation.num_divisions(), (num_to_insert + 2) as usize);
@@ -176,6 +178,6 @@ mod tests {
     fn from_divisions_construction() {
         let segmentation = Segmentation::from_divisions(&[0, 5, 10, 15, 20]);
         assert_eq!(segmentation.num_divisions(), 5);
-        assert!(segmentation.divisions.contains(&Symbol::from(15u64)));
+        assert!(segmentation.divisions.contains(&Symbol::from(15u32)));
     }
 }

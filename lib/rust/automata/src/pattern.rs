@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::symbol;
 use crate::symbol::Symbol;
 
 use core::iter;
@@ -19,7 +20,7 @@ use std::ops::Shr;
 #[derive(Clone, Debug, PartialEq)]
 pub enum Pattern {
     /// The pattern that triggers on any symbol from the given range.
-    Range(RangeInclusive<Symbol>),
+    Range(symbol::Range),
     /// The pattern that triggers on any given pattern from a sequence.
     Or(Box<Pattern>, Box<Pattern>),
     /// The pattern that triggers when a sequence of patterns is encountered.
@@ -93,8 +94,8 @@ impl Pattern {
     }
 
     /// A pattern that triggers on any of the provided `symbols`.
-    pub fn symbols(symbols: RangeInclusive<Symbol>) -> Self {
-        Pattern::Range(symbols)
+    pub fn symbols(symbols: impl Into<symbol::Range>) -> Self {
+        Pattern::Range(symbols.into())
     }
 
     /// A pattern that triggers at the end of the file.
@@ -117,78 +118,78 @@ impl Pattern {
         chars.chars().fold(Self::never(), |pat, char| pat | Self::char(char))
     }
 
-    /// The pattern that doesn't trigger on any character contained in `chars`.
-    ///
-    /// This pattern will _always_ implicitly include [`Symbol::NULL`] and [`Symbol::EOF_CODE`] in
-    /// the excluded characters. If you do not want this behaviour instead use
-    /// [`Pattern::none_of_codes`] below.
-    pub fn none_of(chars: &str) -> Self {
-        let min = Symbol::null();
-        let max = Symbol::eof();
-        let iter = iter::once(min.index)
-            .chain(chars.chars().map(|c| c as u64))
-            .chain(iter::once(max.index))
-            .collect_vec();
-        let names = iter::once(min.name)
-            .chain(chars.chars().map(|c| c.to_string()))
-            .chain(iter::once(max.name))
-            .collect_vec();
-        Self::none_of_codes(iter.as_slice(), names.as_slice())
-    }
+    // /// The pattern that doesn't trigger on any character contained in `chars`.
+    // ///
+    // /// This pattern will _always_ implicitly include [`Symbol::NULL`] and [`Symbol::EOF_CODE`]
+    // in /// the excluded characters. If you do not want this behaviour instead use
+    // /// [`Pattern::none_of_codes`] below.
+    // pub fn none_of(chars: &str) -> Self {
+    //     let min = Symbol::null();
+    //     let max = Symbol::eof();
+    //     let iter = iter::once(min.index)
+    //         .chain(chars.chars().map(|c| c as u32))
+    //         .chain(iter::once(max.index))
+    //         .collect_vec();
+    //     let names = iter::once(min.name)
+    //         .chain(chars.chars().map(|c| c.to_string()))
+    //         .chain(iter::once(max.name))
+    //         .collect_vec();
+    //     Self::none_of_codes(iter.as_slice(), names.as_slice())
+    // }
 
-    /// This pattern doesn't trigger on any code contained in `codes`.
-    pub fn none_of_codes(codes: &[u64], names: &[String]) -> Self {
-        assert_eq!(codes.len(), names.len(), "`codes` and `names`must have the same length.");
-        let mut codes = Vec::from(codes);
-        codes.sort_unstable();
-        codes.dedup();
-        let pattern = codes.iter().tuple_windows().zip(names).fold(
-            Self::never(),
-            |pat, ((prev_code, next_code), name)| {
-                let start = prev_code + 1;
-                let end = next_code - 1;
-                if end < start {
-                    pat
-                } else {
-                    pat | Pattern::symbols(Symbol::new_named(start, name)..=Symbol::from(end))
-                }
-            },
-        );
-        if codes.contains(&Symbol::null().index) && codes.contains(&Symbol::eof().index) {
-            pattern
-        } else if codes.contains(&Symbol::null().index) {
-            let last = codes.last().unwrap() + 1;
-            let last_to_eof = Pattern::symbols(Symbol::from(last)..=Symbol::eof());
-            pattern | last_to_eof
-        } else if codes.contains(&Symbol::eof().index) {
-            let first = codes.first().unwrap() - 1;
-            let null_to_first = Pattern::symbols(Symbol::eof()..=Symbol::from(first));
-            null_to_first | pattern
-        } else {
-            let last = codes.last().unwrap() + 1;
-            let last_to_eof = Pattern::symbols(Symbol::from(last)..=Symbol::eof());
-            let first = codes.first().unwrap() - 1;
-            let null_to_first = Pattern::symbols(Symbol::null()..=Symbol::from(first));
-            null_to_first | pattern | last_to_eof
-        }
-    }
+    // /// This pattern doesn't trigger on any code contained in `codes`.
+    // pub fn none_of_codes(codes: &[u64], names: &[String]) -> Self {
+    //     assert_eq!(codes.len(), names.len(), "`codes` and `names`must have the same length.");
+    //     let mut codes = Vec::from(codes);
+    //     codes.sort_unstable();
+    //     codes.dedup();
+    //     let pattern = codes.iter().tuple_windows().zip(names).fold(
+    //         Self::never(),
+    //         |pat, ((prev_code, next_code), name)| {
+    //             let start = prev_code + 1;
+    //             let end = next_code - 1;
+    //             if end < start {
+    //                 pat
+    //             } else {
+    //                 pat | Pattern::symbols(Symbol::new_named(start, name)..=Symbol::from(end))
+    //             }
+    //         },
+    //     );
+    //     if codes.contains(&Symbol::null().index) && codes.contains(&Symbol::eof().index) {
+    //         pattern
+    //     } else if codes.contains(&Symbol::null().index) {
+    //         let last = codes.last().unwrap() + 1;
+    //         let last_to_eof = Pattern::symbols(Symbol::from(last)..=Symbol::eof());
+    //         pattern | last_to_eof
+    //     } else if codes.contains(&Symbol::eof().index) {
+    //         let first = codes.first().unwrap() - 1;
+    //         let null_to_first = Pattern::symbols(Symbol::eof()..=Symbol::from(first));
+    //         null_to_first | pattern
+    //     } else {
+    //         let last = codes.last().unwrap() + 1;
+    //         let last_to_eof = Pattern::symbols(Symbol::from(last)..=Symbol::eof());
+    //         let first = codes.first().unwrap() - 1;
+    //         let null_to_first = Pattern::symbols(Symbol::null()..=Symbol::from(first));
+    //         null_to_first | pattern | last_to_eof
+    //     }
+    // }
 
-    /// The pattern that triggers on any character but `char`.
-    pub fn not(char: char) -> Self {
-        Self::none_of(&char.to_string())
-    }
+    // /// The pattern that triggers on any character but `char`.
+    // pub fn not(char: char) -> Self {
+    //     Self::none_of(&char.to_string())
+    // }
 
     /// The pattern that triggers on any symbol but `symbol`.
     pub fn not_symbol(symbol: Symbol) -> Self {
         if symbol == Symbol::null() {
-            Self::Range(Symbol::from(Symbol::null().index + 1)..=Symbol::eof())
+            Self::symbols(Symbol::from(Symbol::null().index + 1)..=Symbol::eof())
         } else if symbol == Symbol::eof() {
-            Self::Range(Symbol::null()..=Symbol::from(Symbol::eof().index - 1))
+            Self::symbols(Symbol::null()..=Symbol::from(Symbol::eof().index - 1))
         } else {
             let prev_code = Symbol::from(symbol.index - 1);
             let next_code = Symbol::from(symbol.index + 1);
-            let before = Self::Range(Symbol::null()..=prev_code);
-            let after = Self::Range(next_code..=Symbol::eof());
+            let before = Self::symbols(Symbol::null()..=prev_code);
+            let after = Self::symbols(next_code..=Symbol::eof());
             before | after
         }
     }

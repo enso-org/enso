@@ -144,14 +144,16 @@ pub fn eps_matrix(nfa: &Nfa) -> Vec<nfa::StateSetId> {
 pub fn nfa_matrix(nfa: &Nfa) -> Matrix<nfa::StateId> {
     let mut matrix = Matrix::new(nfa.states.len(), nfa.alphabet.divisions.len());
 
-    for (state_ix, source) in nfa.states.iter().enumerate() {
-        let targets = source.targets(&nfa.alphabet);
-        for (voc_ix, &target) in targets.iter().enumerate() {
-            matrix[(state_ix, voc_ix)] = target;
+    for (state_ix, state) in nfa.states.iter().enumerate() {
+        let targets = state.targets(&nfa.alphabet);
+        for (voc_ix, &target_state_id) in targets.iter().enumerate() {
+            matrix[(state_ix, voc_ix)] = target_state_id;
         }
     }
     matrix
 }
+
+
 
 impl From<&Nfa> for Dfa {
     /// Transforms an Nfa into a Dfa, based on the algorithm described
@@ -253,19 +255,47 @@ pub mod tests {
 
     // === The Tests ===
 
+    /// Input NFA:
+    ///
+    ///  ╭──EPS───╮╭───a────╮
+    ///  ▼        │▼        │
+    /// s0 ──a──▶ s1 ──b──▶ s2
+    ///  │                  ▲
+    ///  ╰───c──▶ s3 ──c────┤
+    ///            ╰──EPS───╯
     #[test]
     fn test1() {
         use crate::pattern::Pattern;
 
         let mut nfa = Nfa::default();
         let start_state_id = nfa.start;
-        // let x = nfa.new_pattern(start_state_id, Pattern::range('x'..='x'));
-        let pattern = Pattern::or(
-            Pattern::range('x'..='x'),
-            Pattern::seq(Pattern::range('y'..='y'), Pattern::range('z'..='z')),
-        );
 
-        let pattern = pattern.many();
+        let s0 = nfa.start;
+        let s1 = nfa.new_state();
+        let s2 = nfa.new_state();
+        let s3 = nfa.new_state();
+        nfa.connect(s0, s1, 'a');
+        nfa.connect(s0, s3, 'c');
+        nfa.connect_eps(s1, s0);
+        nfa.connect(s1, s2, 'b');
+        nfa.connect(s2, s1, 'a');
+        nfa.connect(s3, s2, 'c');
+        nfa.connect_eps(s3, s2);
+
+        let m1 = nfa_matrix(&nfa);
+
+        use crate::state::INVALID_IX as X;
+
+        #[rustfmt::skip]
+        let m1_expected = Matrix::<nfa::StateId>::new_from_slice(4, 5, &[
+            X, 1, X, 3, X,
+            X, X, 2, X, X,
+            X, 1, X, X, X,
+            X, X, X, 2, X,
+        ]);
+
+        assert_eq!(m1, m1_expected);
+
 
         // let pattern = Pattern::never().many();
 
@@ -273,10 +303,10 @@ pub mod tests {
 
         // let pattern = Pattern::Seq(vec![Pattern::range('y'..='y'), Pattern::range('z'..='z')]);
 
-        nfa.new_pattern(start_state_id, pattern);
+        // nfa.new_pattern(start_state_id, pattern);
         let dfa = Dfa::from(&nfa);
 
-        println!("{}", dfa.as_graphviz_code());
+        println!("{}", nfa.as_graphviz_code());
     }
 
     #[test]

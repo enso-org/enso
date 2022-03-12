@@ -8,6 +8,8 @@ use crate::symbol::Symbol;
 use crate::nfa::Nfa; // FIXME
 
 
+pub const INVALID_IX: usize = usize::max_value();
+
 
 // ===========
 // == StateId ==
@@ -32,13 +34,13 @@ impl<T> StateId<T> {
     /// An identifier representing the invalid state.
     ///
     /// When in an invalid state, a finite automaton will reject the sequence of input symbols.
-    pub const INVALID: StateId<T> = Self::new(usize::max_value());
+    pub const INVALID: StateId<T> = Self::new(INVALID_IX);
 }
 
 impl<T> StateId<T> {
     /// Constructor. Not exposed to public as it should never be possible to construct a state
     /// from a number.
-    pub(crate) const fn new(id: usize) -> Self {
+    pub const fn new(id: usize) -> Self {
         let tp = PhantomData;
         Self { tp, id }
     }
@@ -67,10 +69,21 @@ impl<T> Default for StateId<T> {
 impl<T> Debug for StateId<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = if *self == Self::INVALID { "INVALID".into() } else { format!("{:?}", self.id) };
-        write!(f, "StateId({})", name)
+        write!(f, "{}", name)
     }
 }
 
+impl<T> From<usize> for StateId<T> {
+    fn from(t: usize) -> Self {
+        Self::new(t)
+    }
+}
+
+impl<T> From<&usize> for StateId<T> {
+    fn from(t: &usize) -> Self {
+        Self::new(*t)
+    }
+}
 
 
 // =============

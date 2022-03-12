@@ -12,12 +12,27 @@ use std::ops::IndexMut;
 // ============
 
 /// An efficient 2D matrix implemented on top of [`std::vec::Vec`].
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct Matrix<T> {
     pub rows:    usize,
     pub columns: usize,
     pub matrix:  Vec<T>,
+}
+
+impl<T: Debug> Debug for Matrix<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut column = 0;
+        for elem in &self.matrix {
+            if column >= self.columns {
+                column = 0;
+                write!(f, "\n")?
+            }
+            write!(f, "{:?}, ", elem)?;
+            column += 1;
+        }
+        Ok(())
+    }
 }
 
 impl<T: Copy> Matrix<T> {
@@ -40,6 +55,23 @@ impl<T: Copy> Matrix<T> {
     pub fn safe_index(&self, row: usize, column: usize) -> Option<T> {
         (row < self.rows && column < self.columns)
             .as_some_from(|| self.matrix[row * self.columns + column])
+    }
+}
+
+impl<T> Matrix<T> {
+    pub fn new_from_slice<S>(rows: usize, columns: usize, elems: &[S]) -> Self
+    where for<'s> (&'s S): Into<T> {
+        let expected = rows * columns;
+        let got = elems.len();
+        if expected != got {
+            panic!(
+                "The provided slice has wrong number of elements. Expected {}, got {}",
+                expected, got
+            );
+        }
+        let mut matrix = Vec::new();
+        matrix.extend(elems.iter().map(|s| s.into()));
+        Self { rows, columns, matrix }
     }
 }
 
