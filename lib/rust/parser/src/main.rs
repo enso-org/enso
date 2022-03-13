@@ -35,20 +35,13 @@ impl Token {
 
 
 
-// fn is_ident_char(t: char) -> bool {
-//     is_ident_start_char(t) || (t >= '0' && t <= '9') || (t == '_')
-// }
-//
-// fn ident(input: &str) -> IResult<&str, &str> {
-//     let x = opt(char('_'))(input);
-//     take_while1(is_ident_char)(input)
-// }
+pub type TokenVec<'s> = Vec<Token, &'s Bump>;
 
 pub struct Model<'s> {
     pub current:  Option<char>,
     pub iterator: str::Chars<'s>,
     pub offset:   usize,
-    pub output:   Vec<Token, &'s Bump>,
+    pub output:   TokenVec<'s>,
 }
 
 impl<'s> Model<'s> {
@@ -164,28 +157,17 @@ macro_rules! token_with_right_offset {
     };
 }
 
+
 pub trait MkToken {
     type Output;
-    fn mk_token(
-        self,
-        output: &mut Vec<Token, &Bump>,
-        start: usize,
-        len: usize,
-        right_offset: usize,
-    ) -> Self::Output;
+    fn mk_token(self, vec: &mut TokenVec, start: usize, len: usize, r_off: usize) -> Self::Output;
 }
 
 impl MkToken for Option<Kind> {
     type Output = bool;
-    fn mk_token(
-        self,
-        output: &mut Vec<Token, &Bump>,
-        start: usize,
-        len: usize,
-        right_offset: usize,
-    ) -> Self::Output {
-        if let Some(tok) = self.map(|t| Token::new(start, len, right_offset, t)) {
-            output.push(tok);
+    fn mk_token(self, vec: &mut TokenVec, start: usize, len: usize, r_off: usize) -> Self::Output {
+        if let Some(tok) = self.map(|t| Token::new(start, len, r_off, t)) {
+            vec.push(tok);
             true
         } else {
             false
@@ -199,29 +181,26 @@ impl MkToken for Option<Kind> {
 // === Space ===
 // =============
 
-/// Based on https://jkorpela.fi/chars/spaces.html.
-const UNICODE_SINGLE_SPACES: &str = "\u{0020}\u{00A0}\u{1680}\u{202F}\u{205F}\u{3000}";
+/// Based on https://en.wikipedia.org/wiki/Whitespace_character.
+const UNICODE_SINGLE_SPACES: &str = "\u{1680}\u{202F}\u{205F}\u{3000}";
 const UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
-const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{FEFF}";
+const UNICODE_ZERO_SPACES: &str = "\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
 
 #[inline(always)]
-fn is_space_char(t: char) -> bool {
-    (t == ' ')
-        || (t == '\t')
-        || UNICODE_SINGLE_SPACES.contains(t)
-        || (t >= UNICODE_SINGLE_SPACES_RANGE.0 && t <= UNICODE_SINGLE_SPACES_RANGE.1)
-        || (UNICODE_ZERO_SPACES.contains(t))
-}
-
-impl<'s> Model<'s> {
-    #[inline(always)]
-    fn space(&mut self) -> Option<usize> {
-        let out = self.current.and_then(|t| {
-            if t == ' ' {
-                Some(1)
-            } else if t == '\t' {
-                Some(4)
-            } else if UNICODE_SINGLE_SPACES.contains(t) {
+fn is_space_char(t: char) -> Option<usize> {
+    if t == ' ' {
+        Some(1)
+    } else if t == '\t' {
+        Some(4)
+    } else if t == '\u{00A0}' {
+        Some(1)
+    } else if t >= '\u{1680}' {
+        if t == '\u{1680}' {
+            Some(1)
+        } else if t == '\u{180E}' {
+            Some(0)
+        } else if t >= '\u{2000}' {
+            if UNICODE_SINGLE_SPACES.contains(t) {
                 Some(1)
             } else if t >= UNICODE_SINGLE_SPACES_RANGE.0 && t <= UNICODE_SINGLE_SPACES_RANGE.1 {
                 Some(1)
@@ -230,7 +209,18 @@ impl<'s> Model<'s> {
             } else {
                 None
             }
-        });
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+impl<'s> Model<'s> {
+    #[inline(always)]
+    fn space(&mut self) -> Option<usize> {
+        let out = self.current.and_then(is_space_char);
         if out.is_some() {
             self.next();
         }
@@ -295,12 +285,12 @@ fn is_ident_char(t: char) -> bool {
 
 #[inline(always)]
 fn is_invalid_suffix(t: char) -> bool {
-    !is_ident_split_char(t) && !is_space_char(t)
+    !is_ident_split_char(t) && !is_space_char(t).is_some()
 }
 
 #[inline(always)]
 fn is_operator_char(t: char) -> bool {
-    ";!$%&*+-/<>?^~|:\\".contains(t)
+    ";!".contains(t)
 }
 
 #[inline(always)]
@@ -455,7 +445,7 @@ mod benches {
         });
     }
 
-    // 16x slowdown.
+    // 8-9x slowdown.
     #[bench]
     fn bench_idents(b: &mut Bencher) {
         let reps = 1000_000;
