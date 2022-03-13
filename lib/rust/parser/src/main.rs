@@ -1,4 +1,9 @@
+#![feature(allocator_api)]
+#![feature(test)]
+
 use enso_prelude::*;
+
+use bumpalo::Bump;
 use std::str;
 
 
@@ -8,8 +13,8 @@ use std::str;
 // =============
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TokenKind {
-    Underscore,
+pub enum Kind {
+    Underscore(Underscore),
     Ident(Ident),
 }
 
@@ -18,11 +23,12 @@ pub struct Token {
     start:        usize,
     len:          usize,
     right_offset: usize,
-    kind:         TokenKind,
+    kind:         Kind,
 }
 
 impl Token {
-    pub fn new(start: usize, len: usize, right_offset: usize, kind: TokenKind) -> Self {
+    #[inline(always)]
+    pub fn new(start: usize, len: usize, right_offset: usize, kind: Kind) -> Self {
         Self { start, len, right_offset, kind }
     }
 }
@@ -38,18 +44,20 @@ impl Token {
 //     take_while1(is_ident_char)(input)
 // }
 
-pub struct Input<'s> {
+pub struct Model<'s> {
     pub current:  Option<char>,
     pub iterator: str::Chars<'s>,
     pub offset:   usize,
+    pub output:   Vec<Token, &'s Bump>,
 }
 
-impl<'s> Input<'s> {
-    pub fn new(input: &'s str) -> Self {
+impl<'s> Model<'s> {
+    pub fn new(bump: &'s Bump, input: &'s str) -> Self {
         let current = default();
         let iterator = input.chars();
         let offset = default();
-        Self { current, iterator, offset }.init()
+        let output = Vec::new_in(bump);
+        Self { current, iterator, offset, output }.init()
     }
 
     fn init(mut self) -> Self {
@@ -119,6 +127,7 @@ impl<'s> Input<'s> {
         }
     }
 
+    #[inline(always)]
     pub fn take_while_1(&mut self, f: impl Copy + Fn(char) -> bool) -> bool {
         let out = self.take_1(f);
         if out {
@@ -129,17 +138,61 @@ impl<'s> Input<'s> {
 }
 
 
-pub trait MkToken {
-    type Output;
-    fn mk_token(self, start: usize, len: usize, right_offset: usize) -> Self::Output;
+
+// =============
+// === Token ===
+// =============
+
+#[macro_export]
+macro_rules! token {
+    ($self:ident $($ts:tt)*) => {
+        let start = $self.offset;
+        let kind = { $($ts)* };
+        let len = $self.offset - start;
+        let right_offset = $self.spaces();
+        kind.mk_token(&mut $self.output, start, len, right_offset)
+    };
 }
 
-impl MkToken for Option<TokenKind> {
-    type Output = Option<Token>;
-    fn mk_token(self, start: usize, len: usize, right_offset: usize) -> Self::Output {
-        self.map(|t| Token::new(start, len, right_offset, t))
+#[macro_export]
+macro_rules! token_with_right_offset {
+    ($self:ident $($ts:tt)*) => {
+        let start = $self.offset;
+        let (kind,right_offset) = { $($ts)* };
+        let len = $self.offset - start - right_offset;
+        kind.mk_token(&mut $self.output, start, len, right_offset)
+    };
+}
+
+pub trait MkToken {
+    type Output;
+    fn mk_token(
+        self,
+        output: &mut Vec<Token, &Bump>,
+        start: usize,
+        len: usize,
+        right_offset: usize,
+    ) -> Self::Output;
+}
+
+impl MkToken for Option<Kind> {
+    type Output = bool;
+    fn mk_token(
+        self,
+        output: &mut Vec<Token, &Bump>,
+        start: usize,
+        len: usize,
+        right_offset: usize,
+    ) -> Self::Output {
+        if let Some(tok) = self.map(|t| Token::new(start, len, right_offset, t)) {
+            output.push(tok);
+            true
+        } else {
+            false
+        }
     }
 }
+
 
 
 // =============
@@ -151,7 +204,17 @@ const UNICODE_SINGLE_SPACES: &str = "\u{0020}\u{00A0}\u{1680}\u{202F}\u{205F}\u{
 const UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
 const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{FEFF}";
 
-impl<'s> Input<'s> {
+#[inline(always)]
+fn is_space_char(t: char) -> bool {
+    (t == ' ')
+        || (t == '\t')
+        || UNICODE_SINGLE_SPACES.contains(t)
+        || (t >= UNICODE_SINGLE_SPACES_RANGE.0 && t <= UNICODE_SINGLE_SPACES_RANGE.1)
+        || (UNICODE_ZERO_SPACES.contains(t))
+}
+
+impl<'s> Model<'s> {
+    #[inline(always)]
     fn space(&mut self) -> Option<usize> {
         let out = self.current.and_then(|t| {
             if t == ' ' {
@@ -174,6 +237,7 @@ impl<'s> Input<'s> {
         out
     }
 
+    #[inline(always)]
     fn spaces(&mut self) -> usize {
         let mut offset = 0;
         loop {
@@ -195,36 +259,89 @@ impl<'s> Input<'s> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Ident {
-    is_free:    bool,
-    lift_level: usize,
+    is_free:        bool,
+    lift_level:     usize,
+    invalid_suffix: usize,
 }
 
 impl Ident {
-    pub fn new(is_free: bool, lift_level: usize) -> Self {
-        Self { is_free, lift_level }
+    #[inline(always)]
+    pub fn new(is_free: bool, lift_level: usize, invalid_suffix: usize) -> Self {
+        Self { is_free, lift_level, invalid_suffix }
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Underscore {
+    invalid_suffix: usize,
+}
+
+impl Underscore {
+    #[inline(always)]
+    pub fn new(invalid_suffix: usize) -> Self {
+        Self { invalid_suffix }
+    }
+}
+
+#[inline(always)]
 fn is_ident_start_char(t: char) -> bool {
     (t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z')
 }
 
+#[inline(always)]
 fn is_ident_char(t: char) -> bool {
     is_ident_start_char(t) || (t >= '0' && t <= '9') || (t == '_')
 }
 
-impl<'s> Input<'s> {
-    fn ident(&mut self) -> Option<Token> {
-        token! { self
+#[inline(always)]
+fn is_invalid_suffix(t: char) -> bool {
+    !is_ident_split_char(t) && !is_space_char(t)
+}
+
+#[inline(always)]
+fn is_operator_char(t: char) -> bool {
+    ";!$%&*+-/<>?^~|:\\".contains(t)
+}
+
+#[inline(always)]
+fn is_bracket_char(t: char) -> bool {
+    "()[]{}".contains(t)
+}
+
+#[inline(always)]
+fn is_ident_split_char(t: char) -> bool {
+    is_bracket_char(t) || is_operator_char(t) || "\"".contains(t)
+}
+
+impl<'s> Model<'s> {
+    fn ident(&mut self) -> bool {
+        token_with_right_offset! { self
             let underscore = self.char('_');
-            let ident_start = self.take_1(is_ident_start_char);
-            if ident_start {
+            let ident_start = self.take_1(is_ident_char);
+            let invalid_suffix = 0;
+            let mut kind = if ident_start {
                 self.take_while(is_ident_char);
                 let lift_level = self.count_char('\'');
-                Some(TokenKind::Ident(Ident::new(underscore, lift_level)))
+                Some(Kind::Ident(Ident::new(underscore, lift_level, invalid_suffix)))
             } else {
-                underscore.as_some(TokenKind::Underscore)
+                underscore.as_some(Kind::Underscore(Underscore::new(invalid_suffix)))
+            };
+            let mut right_offset = 0;
+            if let Some(kind_ref) = kind.as_mut() {
+                right_offset = self.spaces();
+                if right_offset == 0 {
+                    let invalid_suffix = self.count(is_invalid_suffix);
+                    if invalid_suffix > 0 {
+                        match kind_ref {
+                            Kind::Ident(t) => t.invalid_suffix = invalid_suffix,
+                            Kind::Underscore(t) => t.invalid_suffix = invalid_suffix,
+                            _ => unreachable!()
+                        }
+                        right_offset = self.spaces()
+                    }
+                }
             }
+            (kind,right_offset)
         }
     }
 }
@@ -240,58 +357,117 @@ fn assert_token_eq(str: &str, f: Option<Box<dyn Fn(usize, usize) -> Token>>) {
     for r_offset in 0..4 {
         let inp = format!("{}{}", str, " ".repeat(r_offset));
         let result = f.as_ref().map(|f| f(0, r_offset));
-        let mut input = Input::new(&inp);
-        assert_eq!(input.ident(), result);
+        let bump = Bump::new();
+        let mut input = Model::new(&bump, &inp);
+        assert_eq!(input.ident().and_option_from(|| input.output.last().copied()), result);
     }
 }
 
-fn test_ident(s: &str, is_free: bool, lift_level: usize) -> Box<dyn Fn(usize, usize) -> Token> {
+fn test_ident(
+    s: &str,
+    is_free: bool,
+    lift_level: usize,
+    invalid_suffix: usize,
+) -> Box<dyn Fn(usize, usize) -> Token> {
     let len = s.len();
     Box::new(move |start: usize, right_offset: usize| {
-        Token::new(start, len, right_offset, TokenKind::Ident(Ident::new(is_free, lift_level)))
+        Token::new(
+            start,
+            len,
+            right_offset,
+            Kind::Ident(Ident::new(is_free, lift_level, invalid_suffix)),
+        )
     })
 }
 
-fn test_underscore() -> Box<dyn Fn(usize, usize) -> Token> {
+fn test_underscore(s: &str, invalid_suffix: usize) -> Box<dyn Fn(usize, usize) -> Token> {
+    let len = s.len();
     Box::new(move |start: usize, right_offset: usize| {
-        Token::new(start, 1, right_offset, TokenKind::Underscore)
+        Token::new(start, len, right_offset, Kind::Underscore(Underscore::new(invalid_suffix)))
     })
 }
 
 #[test]
 fn test_idents() {
     assert_token_eq("", None);
-    assert_token_eq("_", Some(test_underscore()));
-    assert_token_eq("a", Some(test_ident("a", false, 0)));
-    assert_token_eq("a'", Some(test_ident("a'", false, 1)));
-    assert_token_eq("a''", Some(test_ident("a''", false, 2)));
-    assert_token_eq("a'''", Some(test_ident("a'''", false, 3)));
-    assert_token_eq("_a", Some(test_ident("_a", true, 0)));
-    // assert_token_eq("__a", Some(test_ident("__a", true, 0)));
-    assert_token_eq("_a'", Some(test_ident("_a'", true, 1)));
-    assert_token_eq("_a''", Some(test_ident("_a''", true, 2)));
-    assert_token_eq("_a'''", Some(test_ident("_a'''", true, 3)));
-    assert_token_eq("test", Some(test_ident("test", false, 0)));
+    assert_token_eq("_", Some(test_underscore("_", 0)));
+    assert_token_eq("a", Some(test_ident("a", false, 0, 0)));
+    assert_token_eq("a'", Some(test_ident("a'", false, 1, 0)));
+    assert_token_eq("a''", Some(test_ident("a''", false, 2, 0)));
+    assert_token_eq("a'''", Some(test_ident("a'''", false, 3, 0)));
+    assert_token_eq("_a", Some(test_ident("_a", true, 0, 0)));
+    assert_token_eq("_a'", Some(test_ident("_a'", true, 1, 0)));
+    assert_token_eq("_a''", Some(test_ident("_a''", true, 2, 0)));
+    assert_token_eq("_a'''", Some(test_ident("_a'''", true, 3, 0)));
+    assert_token_eq("test", Some(test_ident("test", false, 0, 0)));
+    assert_token_eq("__a", Some(test_ident("__a", true, 0, 0)));
+    assert_token_eq("___a", Some(test_ident("___a", true, 0, 0)));
+    assert_token_eq("_a_", Some(test_ident("_a_", true, 0, 0)));
+    assert_token_eq("__a__", Some(test_ident("__a__", true, 0, 0)));
+    assert_token_eq("_a_b_", Some(test_ident("_a_b_", true, 0, 0)));
 
-    // assert_token_eq("test ", Some(Token::ident(0, 4, 0, false, 0)));
+    assert_token_eq("a'a", Some(test_ident("a'a", false, 1, 1)));
+    assert_token_eq("a'b'", Some(test_ident("a'b'", false, 1, 2)));
+    assert_token_eq("_'", Some(test_underscore("_'", 1)));
+    assert_token_eq("_'a", Some(test_underscore("_'a", 2)));
 }
 
-#[macro_export]
-macro_rules! token {
-    ($self:ident $($ts:tt)*) => {
-        let start = $self.offset;
-        let kind = { $($ts)* };
-        let len = $self.offset - start;
-        let right_offset = $self.spaces();
-        kind.mk_token(start, len, right_offset)
-    };
-}
+
 
 // pub fn count_with(&mut self, f: impl Fn(char) -> (bool, usize)) -> usize {
 
 
 fn main() {
     let str = "_fooAr'' bar";
-    let mut input = Input::new(str);
+    let capacity = str.len() / 5;
+    let bump = Bump::with_capacity(capacity);
+    let mut input = Model::new(&bump, str);
     println!("{:?}", input.ident());
+}
+
+
+#[cfg(test)]
+mod benches {
+    use super::*;
+    extern crate test;
+    use test::Bencher;
+
+    #[bench]
+    fn bench_str_iter(b: &mut Bencher) {
+        let reps = 1000_000;
+        let str = "test ".repeat(reps);
+
+        b.iter(move || str.chars().for_each(drop));
+    }
+
+    #[bench]
+    fn bench_str_iter_and_compare(b: &mut Bencher) {
+        let reps = 1000_000;
+        let str = "test ".repeat(reps);
+
+        b.iter(move || {
+            let mut sum = 0;
+            str.chars().for_each(|t| {
+                if t == 't' {
+                    sum += 1;
+                }
+            })
+        });
+    }
+
+    // 16x slowdown.
+    #[bench]
+    fn bench_idents(b: &mut Bencher) {
+        let reps = 1000_000;
+        let str = "test ".repeat(reps);
+        let capacity = str.len() / 5;
+
+        b.iter(move || {
+            let bump = Bump::with_capacity(capacity);
+            let mut input = Model::new(&bump, &str);
+            for _ in 0..reps {
+                assert_eq!(input.ident(), true)
+            }
+        });
+    }
 }
