@@ -16,8 +16,11 @@
 const fs = require('fs')
 const path = require('path')
 const child_process = require('child_process')
-const { dist } = require('../../../../../build/paths')
-const { ENGINE_VERSION } = require('../../../../../build/release')
+const { engineVersion } = require('../../../build.json')
+
+const dist_var_name = "ENSO_IDE_DIST"
+const dist = process.env[dist_var_name] ?? (()=>{throw Error(`Missing ${dist_var_name} environment variable.`)})()
+
 
 // `electron-builder`'s output directory name.
 function contentDirName() {
@@ -28,7 +31,7 @@ function contentDirName() {
     }
 }
 
-const contentRoot = path.join(dist.root, 'client', contentDirName(), 'Enso.app', 'Contents')
+const contentRoot = path.join(dist, 'client', contentDirName(), 'Enso.app', 'Contents')
 const resRoot = path.join(contentRoot, 'Resources')
 
 const ID = '"Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)"'
@@ -117,7 +120,7 @@ function signArchive(archivePath, archiveName, binPaths) {
 // message provided by Apple and can then be added here.
 const toSign = [
     {
-        jarDir: `enso/dist/${ENGINE_VERSION}/lib/Standard/Database/${ENGINE_VERSION}/polyglot/java`,
+        jarDir: `enso/dist/${engineVersion}/lib/Standard/Database/${engineVersion}/polyglot/java`,
         jarName: 'sqlite-jdbc-3.34.0.jar',
         jarContent: [
             'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
@@ -125,7 +128,7 @@ const toSign = [
         ],
     },
     {
-        jarDir: `enso/dist/${ENGINE_VERSION}/component`,
+        jarDir: `enso/dist/${engineVersion}/component`,
         jarName: 'runner.jar',
         jarContent: [
             'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
