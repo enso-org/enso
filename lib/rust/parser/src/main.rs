@@ -20,16 +20,16 @@ pub enum Kind {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Token {
-    start:        usize,
-    len:          usize,
-    right_offset: usize,
-    kind:         Kind,
+    left_offset: usize,
+    start:       usize,
+    len:         usize,
+    kind:        Kind,
 }
 
 impl Token {
     #[inline(always)]
-    pub fn new(start: usize, len: usize, right_offset: usize, kind: Kind) -> Self {
-        Self { start, len, right_offset, kind }
+    pub fn new(left_offset: usize, start: usize, len: usize, kind: Kind) -> Self {
+        Self { left_offset, start, len, kind }
     }
 }
 
@@ -38,10 +38,11 @@ impl Token {
 pub type TokenVec<'s> = Vec<Token, &'s Bump>;
 
 pub struct Model<'s> {
-    pub current:  Option<char>,
-    pub iterator: str::Chars<'s>,
-    pub offset:   usize,
-    pub output:   TokenVec<'s>,
+    pub current:     Option<char>,
+    pub iterator:    str::Chars<'s>,
+    pub offset:      usize,
+    pub output:      TokenVec<'s>,
+    pub last_spaces: usize,
 }
 
 impl<'s> Model<'s> {
@@ -50,7 +51,8 @@ impl<'s> Model<'s> {
         let iterator = input.chars();
         let offset = default();
         let output = Vec::new_in(bump);
-        Self { current, iterator, offset, output }.init()
+        let last_spaces = default();
+        Self { current, iterator, offset, output, last_spaces }.init()
     }
 
     fn init(mut self) -> Self {
@@ -139,34 +141,23 @@ impl<'s> Model<'s> {
 #[macro_export]
 macro_rules! token {
     ($self:ident $($ts:tt)*) => {
+        let left_offset = $self.last_spaces;
         let start = $self.offset;
         let kind = { $($ts)* };
         let len = $self.offset - start;
-        let right_offset = $self.spaces();
-        kind.mk_token(&mut $self.output, start, len, right_offset)
+        kind.mk_token(&mut $self.output, left_offset, start, len)
     };
 }
-
-#[macro_export]
-macro_rules! token_with_right_offset {
-    ($self:ident $($ts:tt)*) => {
-        let start = $self.offset;
-        let (kind,right_offset) = { $($ts)* };
-        let len = $self.offset - start - right_offset;
-        kind.mk_token(&mut $self.output, start, len, right_offset)
-    };
-}
-
 
 pub trait MkToken {
     type Output;
-    fn mk_token(self, vec: &mut TokenVec, start: usize, len: usize, r_off: usize) -> Self::Output;
+    fn mk_token(self, vec: &mut TokenVec, l_off: usize, start: usize, len: usize) -> Self::Output;
 }
 
 impl MkToken for Option<Kind> {
     type Output = bool;
-    fn mk_token(self, vec: &mut TokenVec, start: usize, len: usize, r_off: usize) -> Self::Output {
-        if let Some(tok) = self.map(|t| Token::new(start, len, r_off, t)) {
+    fn mk_token(self, vec: &mut TokenVec, l_off: usize, start: usize, len: usize) -> Self::Output {
+        if let Some(tok) = self.map(|t| Token::new(l_off, start, len, t)) {
             vec.push(tok);
             true
         } else {
@@ -285,7 +276,7 @@ fn is_ident_char(t: char) -> bool {
 
 #[inline(always)]
 fn is_invalid_suffix(t: char) -> bool {
-    !is_ident_split_char(t) && !is_space_char(t).is_some()
+    !is_space_char(t).is_some() && !is_ident_split_char(t)
 }
 
 #[inline(always)]
@@ -305,7 +296,7 @@ fn is_ident_split_char(t: char) -> bool {
 
 impl<'s> Model<'s> {
     fn ident(&mut self) -> bool {
-        token_with_right_offset! { self
+        token! { self
             let underscore = self.char('_');
             let ident_start = self.take_1(is_ident_char);
             let invalid_suffix = 0;
@@ -316,22 +307,17 @@ impl<'s> Model<'s> {
             } else {
                 underscore.as_some(Kind::Underscore(Underscore::new(invalid_suffix)))
             };
-            let mut right_offset = 0;
             if let Some(kind_ref) = kind.as_mut() {
-                right_offset = self.spaces();
-                if right_offset == 0 {
-                    let invalid_suffix = self.count(is_invalid_suffix);
-                    if invalid_suffix > 0 {
-                        match kind_ref {
-                            Kind::Ident(t) => t.invalid_suffix = invalid_suffix,
-                            Kind::Underscore(t) => t.invalid_suffix = invalid_suffix,
-                            _ => unreachable!()
-                        }
-                        right_offset = self.spaces()
+                let invalid_suffix = self.count(is_invalid_suffix);
+                if invalid_suffix > 0 {
+                    match kind_ref {
+                        Kind::Ident(t) => t.invalid_suffix = invalid_suffix,
+                        Kind::Underscore(t) => t.invalid_suffix = invalid_suffix,
+                        _ => unreachable!()
                     }
                 }
             }
-            (kind,right_offset)
+            kind
         }
     }
 }
@@ -345,6 +331,7 @@ impl<'s> Model<'s> {
 impl<'s> Model<'s> {
     fn lex(&mut self) -> bool {
         loop {
+            self.last_spaces = self.spaces();
             if !self.ident() {
                 break;
             }
@@ -360,12 +347,13 @@ impl<'s> Model<'s> {
 
 fn assert_token_eq(str: &str, f: Option<Box<dyn Fn(usize, usize) -> Token>>) {
     // TODO: test tabs
-    for r_offset in 0..4 {
-        let inp = format!("{}{}", str, " ".repeat(r_offset));
-        let result = f.as_ref().map(|f| f(0, r_offset));
+    for l_offset in 0..4 {
+        let inp = format!("{}{}", " ".repeat(l_offset), str);
+        let result = f.as_ref().map(|f| f(l_offset, l_offset));
         let bump = Bump::new();
         let mut input = Model::new(&bump, &inp);
-        assert_eq!(input.ident().and_option_from(|| input.output.last().copied()), result);
+        input.lex();
+        assert_eq!(input.output.last().copied(), result);
     }
 }
 
@@ -376,11 +364,11 @@ fn test_ident(
     invalid_suffix: usize,
 ) -> Box<dyn Fn(usize, usize) -> Token> {
     let len = s.len();
-    Box::new(move |start: usize, right_offset: usize| {
+    Box::new(move |left_offset: usize, start: usize| {
         Token::new(
+            left_offset,
             start,
             len,
-            right_offset,
             Kind::Ident(Ident::new(is_free, lift_level, invalid_suffix)),
         )
     })
@@ -388,13 +376,18 @@ fn test_ident(
 
 fn test_underscore(s: &str, invalid_suffix: usize) -> Box<dyn Fn(usize, usize) -> Token> {
     let len = s.len();
-    Box::new(move |start: usize, right_offset: usize| {
-        Token::new(start, len, right_offset, Kind::Underscore(Underscore::new(invalid_suffix)))
+    Box::new(move |left_offset: usize, start: usize| {
+        Token::new(left_offset, start, len, Kind::Underscore(Underscore::new(invalid_suffix)))
     })
 }
 
 #[test]
 fn test_idents() {
+    let inp = "test1 test2";
+    let bump = Bump::new();
+    let mut input = Model::new(&bump, &inp);
+
+    // println!("{}\n{:#?}", input.lex(), input.output);
     assert_token_eq("", None);
     assert_token_eq("_", Some(test_underscore("_", 0)));
     assert_token_eq("a", Some(test_ident("a", false, 0, 0)));
@@ -464,7 +457,7 @@ mod benches {
         });
     }
 
-    // 8-9x slowdown.
+    // 8-8.5x slowdown.
     #[bench]
     fn bench_idents(b: &mut Bencher) {
         let reps = 1000_000;
