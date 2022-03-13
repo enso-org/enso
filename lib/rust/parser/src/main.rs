@@ -290,7 +290,7 @@ fn is_invalid_suffix(t: char) -> bool {
 
 #[inline(always)]
 fn is_operator_char(t: char) -> bool {
-    ";!".contains(t)
+    ";!$%&*+-/<>?^~|:\\".contains(t)
 }
 
 #[inline(always)]
@@ -336,6 +336,22 @@ impl<'s> Model<'s> {
     }
 }
 
+
+
+// ============
+// === Glue ===
+// ============
+
+impl<'s> Model<'s> {
+    fn lex(&mut self) -> bool {
+        loop {
+            if !self.ident() {
+                break;
+            }
+        }
+        self.current == None
+    }
+}
 
 
 // =============
@@ -396,6 +412,9 @@ fn test_idents() {
     assert_token_eq("__a__", Some(test_ident("__a__", true, 0, 0)));
     assert_token_eq("_a_b_", Some(test_ident("_a_b_", true, 0, 0)));
 
+    assert_token_eq("Test_Name", Some(test_ident("Test_Name", false, 0, 0)));
+    assert_token_eq("Test_Name'", Some(test_ident("Test_Name'", false, 1, 0)));
+
     assert_token_eq("a'a", Some(test_ident("a'a", false, 1, 1)));
     assert_token_eq("a'b'", Some(test_ident("a'b'", false, 1, 2)));
     assert_token_eq("_'", Some(test_underscore("_'", 1)));
@@ -455,9 +474,9 @@ mod benches {
         b.iter(move || {
             let bump = Bump::with_capacity(capacity);
             let mut input = Model::new(&bump, &str);
-            for _ in 0..reps {
-                assert_eq!(input.ident(), true)
-            }
+            let ok = input.lex();
+            assert_eq!(ok, true);
+            assert_eq!(input.output.len(), reps);
         });
     }
 }
