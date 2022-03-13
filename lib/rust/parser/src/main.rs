@@ -16,6 +16,7 @@ use std::str;
 pub enum Kind {
     Underscore(Underscore),
     Ident(Ident),
+    Operator,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -264,60 +265,156 @@ impl Underscore {
     }
 }
 
+// #[inline(always)]
+// fn is_ident_start_char(t: char) -> bool {
+//     (t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z')
+// }
+//
+// #[inline(always)]
+// fn is_ident_char(t: char) -> bool {
+//     is_ident_start_char(t) || (t >= '0' && t <= '9') || (t == '_')
+// }
+//
+// #[inline(always)]
+// fn is_invalid_suffix(t: char) -> bool {
+//     !is_space_char(t).is_some() && !is_ident_split_char(t)
+// }
+
 #[inline(always)]
-fn is_ident_start_char(t: char) -> bool {
-    (t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z')
+fn is_ident_body2(t: char) -> bool {
+    is_ident_start_char2(t) || (t >= '0' && t <= '9')
 }
 
 #[inline(always)]
-fn is_ident_char(t: char) -> bool {
-    is_ident_start_char(t) || (t >= '0' && t <= '9') || (t == '_')
-}
-
-#[inline(always)]
-fn is_invalid_suffix(t: char) -> bool {
-    !is_space_char(t).is_some() && !is_ident_split_char(t)
-}
-
-#[inline(always)]
-fn is_operator_char(t: char) -> bool {
-    ";!$%&*+-/<>?^~|:\\".contains(t)
-}
-
-#[inline(always)]
-fn is_bracket_char(t: char) -> bool {
-    "()[]{}".contains(t)
-}
-
-#[inline(always)]
-fn is_ident_split_char(t: char) -> bool {
-    is_bracket_char(t) || is_operator_char(t) || "\"".contains(t)
+fn is_ident_start_char2(t: char) -> bool {
+    t.is_alphabetic() || t == '_' || t == '\''
 }
 
 impl<'s> Model<'s> {
+    // fn ident(&mut self) -> bool {
+    //     token! { self
+    //         let underscore = self.char('_');
+    //         let ident_start = self.take_1(is_ident_char);
+    //         let invalid_suffix = 0;
+    //         let mut kind = if ident_start {
+    //             self.take_while(is_ident_char);
+    //             let lift_level = self.count_char('\'');
+    //             Some(Kind::Ident(Ident::new(underscore, lift_level, invalid_suffix)))
+    //         } else {
+    //             underscore.as_some(Kind::Underscore(Underscore::new(invalid_suffix)))
+    //         };
+    //         if let Some(kind_ref) = kind.as_mut() {
+    //             let invalid_suffix = self.count(is_invalid_suffix);
+    //             if invalid_suffix > 0 {
+    //                 match kind_ref {
+    //                     Kind::Ident(t) => t.invalid_suffix = invalid_suffix,
+    //                     Kind::Underscore(t) => t.invalid_suffix = invalid_suffix,
+    //                     _ => unreachable!()
+    //                 }
+    //             }
+    //         }
+    //         kind
+    //     }
+    // }
+
     fn ident(&mut self) -> bool {
         token! { self
-            let underscore = self.char('_');
-            let ident_start = self.take_1(is_ident_char);
-            let invalid_suffix = 0;
-            let mut kind = if ident_start {
-                self.take_while(is_ident_char);
-                let lift_level = self.count_char('\'');
-                Some(Kind::Ident(Ident::new(underscore, lift_level, invalid_suffix)))
-            } else {
-                underscore.as_some(Kind::Underscore(Underscore::new(invalid_suffix)))
-            };
-            if let Some(kind_ref) = kind.as_mut() {
-                let invalid_suffix = self.count(is_invalid_suffix);
-                if invalid_suffix > 0 {
-                    match kind_ref {
-                        Kind::Ident(t) => t.invalid_suffix = invalid_suffix,
-                        Kind::Underscore(t) => t.invalid_suffix = invalid_suffix,
-                        _ => unreachable!()
-                    }
-                }
-            }
-            kind
+            self.take_1(is_ident_start_char2).as_some_from(||{
+                self.take_while(is_ident_body2);
+                Kind::Ident(Ident::new(false,0,0))
+            })
+        }
+    }
+}
+
+
+
+// ================
+// === Operator ===
+// ================
+
+/// According to https://en.wikipedia.org/wiki/ASCII:
+///
+/// hex   char  is_opr?  single_opr?
+/// 21    !     yes      ---
+/// 22    "     ---      ---
+/// 23    #     ---      ---
+/// 24    $     yes      ---
+/// 25    %     yes      ---
+/// 26    &     yes      ---
+/// 27    '     ---      ---
+/// 28    (     ---      ---
+/// 29    )     ---      ---
+/// 2A    *     yes      ---
+/// 2B    +     yes      sometimes (e.g. 4+-2)
+/// 2C    ,     yes      ---
+/// 2D    -     yes      sometimes (e.g. 4+-2)
+/// 2E    .     yes      special: (..), (...)
+/// 2F    /     yes      ---
+///
+/// .. 0-9 ..
+///
+/// 3A    :     yes      yes
+/// 3B    ;     yes      yes
+/// 3C    <     yes      ---
+/// 3D    =     yes      special
+/// 3E    >     yes      ---
+/// 3F    ?     yes      ---
+/// 40    @     yes      ---
+///
+/// .. A-Z ..
+///
+/// 5B    [     ---      ---
+/// 5C    \     yes      ---
+/// 5D    ]     ---      ---
+/// 5E    ^     yes      ---
+/// 5F    _     ---      ---
+/// 60    `     ---      ---
+///
+/// .. a-z ..
+///
+/// 7B    {     ---      ---
+/// 7C    |     yes      ---
+/// 7D    }     ---      ---
+/// 7E    ~     yes      ---
+
+#[inline(always)]
+fn is_operator_body_char(t: char) -> bool {
+    if t <= '\u{7E}' && t >= '\u{21}' {
+        (t == '\u{21}')
+            || (t >= '\u{24}' && t <= '\u{26}')
+            || (t >= '\u{2A}' && t <= '\u{2F}')
+            || (t >= '\u{3A}' && t <= '\u{40}')
+            || (t == '\u{5C}')
+            || (t == '\u{5E}')
+            || (t == '\u{7C}')
+            || (t == '\u{7E}')
+    } else {
+        false
+    }
+}
+
+// #[inline(always)]
+// fn is_ident_split_char(t: char) -> bool {
+//     if t <= '\u{7E}' && t >= '\u{21}' {
+//         (t >= '\u{21}' && t <= '\u{26}')
+//             || (t >= '\u{28}' && t <= '\u{2F}')
+//             || (t >= '\u{3A}' && t <= '\u{40}')
+//             || (t >= '\u{5B}' && t <= '\u{5E}')
+//             || (t == '\u{60}')
+//             || (t >= '\u{7B}' && t <= '\u{7E}')
+//     } else {
+//         false
+//     }
+// }
+
+
+impl<'s> Model<'s> {
+    fn operator(&mut self) -> bool {
+        token! { self
+            self.take_while_1(is_operator_body_char).as_some_from(||{
+                Kind::Operator
+            })
         }
     }
 }
@@ -333,7 +430,9 @@ impl<'s> Model<'s> {
         loop {
             self.last_spaces = self.spaces();
             if !self.ident() {
-                break;
+                if !self.operator() {
+                    break;
+                }
             }
         }
         self.current == None
@@ -381,39 +480,67 @@ fn test_underscore(s: &str, invalid_suffix: usize) -> Box<dyn Fn(usize, usize) -
     })
 }
 
-#[test]
-fn test_idents() {
-    let inp = "test1 test2";
-    let bump = Bump::new();
-    let mut input = Model::new(&bump, &inp);
-
-    // println!("{}\n{:#?}", input.lex(), input.output);
-    assert_token_eq("", None);
-    assert_token_eq("_", Some(test_underscore("_", 0)));
-    assert_token_eq("a", Some(test_ident("a", false, 0, 0)));
-    assert_token_eq("a'", Some(test_ident("a'", false, 1, 0)));
-    assert_token_eq("a''", Some(test_ident("a''", false, 2, 0)));
-    assert_token_eq("a'''", Some(test_ident("a'''", false, 3, 0)));
-    assert_token_eq("_a", Some(test_ident("_a", true, 0, 0)));
-    assert_token_eq("_a'", Some(test_ident("_a'", true, 1, 0)));
-    assert_token_eq("_a''", Some(test_ident("_a''", true, 2, 0)));
-    assert_token_eq("_a'''", Some(test_ident("_a'''", true, 3, 0)));
-    assert_token_eq("test", Some(test_ident("test", false, 0, 0)));
-    assert_token_eq("__a", Some(test_ident("__a", true, 0, 0)));
-    assert_token_eq("___a", Some(test_ident("___a", true, 0, 0)));
-    assert_token_eq("_a_", Some(test_ident("_a_", true, 0, 0)));
-    assert_token_eq("__a__", Some(test_ident("__a__", true, 0, 0)));
-    assert_token_eq("_a_b_", Some(test_ident("_a_b_", true, 0, 0)));
-
-    assert_token_eq("Test_Name", Some(test_ident("Test_Name", false, 0, 0)));
-    assert_token_eq("Test_Name'", Some(test_ident("Test_Name'", false, 1, 0)));
-
-    assert_token_eq("a'a", Some(test_ident("a'a", false, 1, 1)));
-    assert_token_eq("a'b'", Some(test_ident("a'b'", false, 1, 2)));
-    assert_token_eq("_'", Some(test_underscore("_'", 1)));
-    assert_token_eq("_'a", Some(test_underscore("_'a", 2)));
+fn test_operator(s: &str) -> Box<dyn Fn(usize, usize) -> Token> {
+    let len = s.len();
+    Box::new(move |left_offset: usize, start: usize| {
+        Token::new(left_offset, start, len, Kind::Operator)
+    })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_manual() {
+        let inp = "test test2'''_ tt";
+        let bump = Bump::new();
+        let mut input = Model::new(&bump, &inp);
+        input.lex();
+        println!("{:#?}", input.output);
+    }
+
+    #[test]
+    fn test_case_idents() {
+        assert_token_eq("", None);
+        assert_token_eq("_", Some(test_underscore("_", 0)));
+        assert_token_eq("a", Some(test_ident("a", false, 0, 0)));
+        assert_token_eq("a'", Some(test_ident("a'", false, 1, 0)));
+        assert_token_eq("a''", Some(test_ident("a''", false, 2, 0)));
+        assert_token_eq("a'''", Some(test_ident("a'''", false, 3, 0)));
+        assert_token_eq("_a", Some(test_ident("_a", true, 0, 0)));
+        assert_token_eq("_a'", Some(test_ident("_a'", true, 1, 0)));
+        assert_token_eq("_a''", Some(test_ident("_a''", true, 2, 0)));
+        assert_token_eq("_a'''", Some(test_ident("_a'''", true, 3, 0)));
+        assert_token_eq("test", Some(test_ident("test", false, 0, 0)));
+        assert_token_eq("__a", Some(test_ident("__a", true, 0, 0)));
+        assert_token_eq("___a", Some(test_ident("___a", true, 0, 0)));
+        assert_token_eq("_a_", Some(test_ident("_a_", true, 0, 0)));
+        assert_token_eq("__a__", Some(test_ident("__a__", true, 0, 0)));
+        assert_token_eq("_a_b_", Some(test_ident("_a_b_", true, 0, 0)));
+
+        assert_token_eq("Test_Name", Some(test_ident("Test_Name", false, 0, 0)));
+        assert_token_eq("Test_Name'", Some(test_ident("Test_Name'", false, 1, 0)));
+
+        assert_token_eq("a'a", Some(test_ident("a'a", false, 1, 1)));
+        assert_token_eq("a'b'", Some(test_ident("a'b'", false, 1, 2)));
+        assert_token_eq("_'", Some(test_underscore("_'", 1)));
+        assert_token_eq("_'a", Some(test_underscore("_'a", 2)));
+
+        // assert_token_eq("ą", Some(test_ident("ą", false, 0, 0)));
+    }
+
+    #[test]
+    fn test_case_operator() {
+        assert_token_eq("", None);
+        assert_token_eq("+", Some(test_operator("+")));
+        assert_token_eq("-", Some(test_operator("-")));
+        assert_token_eq("=", Some(test_operator("=")));
+        assert_token_eq("==", Some(test_operator("==")));
+        assert_token_eq("===", Some(test_operator("===")));
+        // +-
+    }
+}
 
 
 // pub fn count_with(&mut self, f: impl Fn(char) -> (bool, usize)) -> usize {
