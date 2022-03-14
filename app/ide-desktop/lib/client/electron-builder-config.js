@@ -82,7 +82,10 @@ const config = {
         sign: false,
     },
     afterAllArtifactBuild: 'tasks/computeHashes.js',
-    afterPack: 'tasks/prepareToSign.js',
+
+    // TODO [mwu]: Temporarily disabled, signing should be revised.
+    //             In particular, engine should handle signing of its artifacts.
+    // afterPack: 'tasks/prepareToSign.js',
 }
 
 module.exports = config

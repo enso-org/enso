@@ -24,7 +24,7 @@ const dist = process.env[dist_var_name] ?? (()=>{throw Error(`Missing ${dist_var
 
 // `electron-builder`'s output directory name.
 function contentDirName() {
-    if (process.arch == 'arm64') {
+    if (process.arch === 'arm64') {
         return 'mac-arm64'
     } else {
         return 'mac'
