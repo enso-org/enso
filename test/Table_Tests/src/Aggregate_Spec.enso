@@ -282,7 +282,7 @@ spec =
             grouped.columns.at 1 . at idx . should_equal 261
 
         Test.specify "should be able to count missing values" <|
-            grouped = table.group_by grouping [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = table.aggregate [Group_By "Index", Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             grouped.row_count . should_equal 10
             grouped.columns.length . should_equal 5
             grouped.columns.at 0 . name . should_equal "Index"
@@ -314,7 +314,7 @@ spec =
             grouped.columns.at 4 . at idx . should_equal 2
 
         Test.specify "should be able to sum, average and standard deviation of values" <|
-            grouped = table.group_by grouping [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped = table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
             grouped.row_count . should_equal 10
             grouped.columns.length . should_equal 9
             grouped.columns.at 0 . name . should_equal "Index"
@@ -358,7 +358,7 @@ spec =
             grouped.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" <|
-            grouped = table.group_by grouping [First "TextWithNothing", Last "Value"]
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
             grouped.row_count . should_equal 10
             grouped.columns.length . should_equal 3
             grouped.columns.at 0 . name . should_equal "Index"
@@ -386,7 +386,7 @@ spec =
             grouped.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
 
         Test.specify "should be able to get shortest, longest and concatenated values" <|
-            grouped = table.group_by grouping [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            grouped = table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
             grouped.row_count . should_equal 10
             grouped.columns.length . should_equal 4
             grouped.columns.at 0 . name . should_equal "Index"

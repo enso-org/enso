@@ -9,8 +9,8 @@ from Standard.Table.Data.Aggregate_Column import all
 
 ## Bench Utilities ============================================================
 
-vector_size = 100
-iter_size = 1
+vector_size = 2500
+iter_size = 100
 num_iterations = 10
 
 create_table : Integer->Integer->Table
