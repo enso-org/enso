@@ -21,22 +21,13 @@ pub mod hysteretic;
 // === Animation ===
 // =================
 
-// crate::define_endpoints! { <T>
-//     Input {
-//         target    (f32),
-//         precision (f32),
-//         skip      (),
-//     }
-//     Output {
-//         value  (f32),
-//         on_end (),
-//     }
-// }
-
 /// Simulator used to run the animation.
 pub type AnimationSimulator<T> = inertia::DynSimulator<mix::Repr<T>>;
 
 /// Default animation precision.
+///
+/// This value defines the threshold of how close the current animation value should be to the
+/// target value so that the animation is considered finished.
 pub const DEFAULT_PRECISION: f32 = 0.001;
 
 /// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
@@ -46,7 +37,6 @@ pub const DEFAULT_PRECISION: f32 = 0.001;
 #[allow(missing_docs)]
 pub struct Animation<T: mix::Mixable + frp::Data> {
     pub target:    frp::Any<T>,
-    pub set_value: frp::Any<T>,
     pub precision: frp::Any<f32>,
     pub skip:      frp::Any,
     pub value:     frp::Stream<T>,
@@ -73,18 +63,16 @@ where mix::Repr<T>: inertia::Value
         simulator.set_precision(DEFAULT_PRECISION);
         frp::extend! { network
             target    <- any_mut::<T>();
-            set_value <- any_mut::<T>();
             precision <- any_mut::<f32>();
             skip      <- any_mut::<()>();
             eval  target    ((t) simulator.set_target_value(mix::into_space(t.clone())));
-            eval  set_value ((t) simulator.set_value(mix::into_space(t.clone())));
             eval  precision ((t) simulator.set_precision(*t));
             eval_ skip      (simulator.skip());
         }
         let value = value_src.into();
         let on_end = on_end_src.into();
         network.store(&simulator);
-        Self { target, set_value, precision, skip, value, on_end }
+        Self { target, precision, skip, value, on_end }
     }
 
     /// Constructor. The initial value is provided explicitly.

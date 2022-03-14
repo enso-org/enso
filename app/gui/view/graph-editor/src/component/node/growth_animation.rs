@@ -36,16 +36,16 @@ pub fn initialize_edited_node_animator(
         let main_cam_frp = main_cam.frp();
 
 
-        // === Starting  node editing. ===
+        // === Starting node editing ===
 
         previous_edited_node <- out.node_editing_started.previous();
         _eval <- all_with(&out.node_editing_started, &previous_edited_node, f!([model] (current, previous) {
-            move_node_to_main_layer(&model, *previous);
-            move_node_to_edited_node_layer(&model, *current);
+            model.move_node_to_main_layer(*previous);
+            model.move_node_to_edited_node_layer(*current);
         }));
 
 
-        // === Edited node camera position animation. ===
+        // === Edited node camera position animation ===
 
         is_growing <- bool(&out.node_editing_finished, &out.node_editing_started);
         edited_node_cam_target <- switch(&is_growing, &main_cam_frp.position, &searcher_cam_frp.position);
@@ -57,10 +57,20 @@ pub fn initialize_edited_node_animator(
             animation_blending.target(1.0);
         });
 
-        edited_node_cam_position <- all_with3(&edited_node_cam_target,
-                                              &growth_animation.value,
-                                              &animation_blending.value,
-                                              |target,animation,weight| {
+        // We want to:
+        // 1. Smothly animate edited node camera from `main_cam` position to `searcher_cam` position when we
+        // start/finish node editing so that the edited node "grows" or "shrinks" to reach the correct
+        // visible size. This is `growth_animation`.
+        // 2. Keep `searcher_cam` and `edited_node_cam` at the same position everywhen else so that the
+        // searcher and the edited node are at the same visible position at all times. This is
+        // `edited_node_cam_target`.
+        //
+        // Enabling/disabling "follow me" mode for the edited node camera is hard
+        // to implement and leads to serious visualization lags. To avoid that, we blend these two
+        // components together using `animation_blending` as a weight koefficient. This allows a very smooth
+        // transition between "follow me" mode and node growth/shrink animation.
+        edited_node_cam_position <- all_with3
+            (&edited_node_cam_target, &growth_animation.value, &animation_blending.value, |target,animation,weight| {
             let weight = Vector3::from_element(*weight);
             let inv_weight = Vector3::from_element(1.0) - weight;
             target.component_mul(&weight) + animation.component_mul(&inv_weight)
@@ -68,7 +78,7 @@ pub fn initialize_edited_node_animator(
         eval edited_node_cam_position([edited_node_cam] (pos) edited_node_cam.set_position(*pos));
 
 
-        // === Finishing shrinking animation. ===
+        // === Finishing shrinking animation ===
 
         animation_magnitude <- all_with(&growth_animation.target,
                                         &growth_animation.value,
@@ -79,21 +89,26 @@ pub fn initialize_edited_node_animator(
         shrinking_finished <- any(&shrinking_ended, &shrinking_not_needed);
         node_that_finished_editing <- out.node_editing_finished.sample(&shrinking_finished);
         eval node_that_finished_editing ([model] (id) {
-            move_node_to_main_layer(&model, *id);
+            model.move_node_to_main_layer(*id);
         });
     }
 }
 
-/// Move node to the `edited_node` scene layer, so that it is rendered by the separate camera.
-fn move_node_to_edited_node_layer(model: &GraphEditorModelWithNetwork, node_id: NodeId) {
-    if let Some(node) = model.nodes.get_cloned(&node_id) {
-        node.model.move_to_edited_node_layer();
-    }
-}
 
-/// Move node to the `main` scene layer, so that it is rendered by the main camera.
-fn move_node_to_main_layer(model: &GraphEditorModelWithNetwork, node_id: NodeId) {
-    if let Some(node) = model.nodes.get_cloned(&node_id) {
-        node.model.move_to_main_layer();
+// === Helpers ===
+
+impl GraphEditorModelWithNetwork {
+    /// Move node to the `edited_node` scene layer, so that it is rendered by the separate camera.
+    fn move_node_to_edited_node_layer(&self, node_id: NodeId) {
+        if let Some(node) = self.nodes.get_cloned(&node_id) {
+            node.model.move_to_edited_node_layer();
+        }
+    }
+
+    /// Move node to the `main` scene layer, so that it is rendered by the main camera.
+    fn move_node_to_main_layer(&self, node_id: NodeId) {
+        if let Some(node) = self.nodes.get_cloned(&node_id) {
+            node.model.move_to_main_layer();
+        }
     }
 }

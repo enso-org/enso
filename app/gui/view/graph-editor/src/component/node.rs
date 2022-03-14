@@ -20,6 +20,7 @@ use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::scene::Layer;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
@@ -551,6 +552,9 @@ impl NodeModel {
     ///
     /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
+    ///
+    /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
+    /// separate `above_nodes` layer, unlike every other node component.
     pub fn move_to_edited_node_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.edited_node;
@@ -563,6 +567,9 @@ impl NodeModel {
     ///
     /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
+    ///
+    /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
+    /// node component.
     pub fn move_to_main_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.main;

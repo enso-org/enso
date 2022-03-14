@@ -2,7 +2,9 @@
 
 #### Visual Environment
 
-- [Node Searcher preserves its zoom factor.][3327]
+- [Node Searcher preserves its zoom factor.][3327] The visible size of the node
+  searcher and edited node is now fixed. It simplifies node editing on
+  non-standard zoom levels.
 - [Maximum zoom factor is limited to 1.0x if IDE is not in Debug Mode.][3273]
 - [Debug Mode for Graph Editor can be activated/deactivated using a
   shortcut.][3264] It allows access to a set of restricted features. See

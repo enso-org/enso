@@ -482,7 +482,7 @@ impl View {
                 let move_to_edited_node = searcher_pos * (1.0 - zoom);
                 preserve_zoom + move_to_edited_node
             });
-            eval searcher_cam_pos ([searcher_cam] (pos) searcher_cam.set_position_xy(*pos));
+            eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
 
             _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
                 let x = lt.x + size.x / 2.0;

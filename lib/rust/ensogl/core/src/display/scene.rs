@@ -470,8 +470,8 @@ impl Dom {
 // === DomLayers ===
 // =================
 
-/// DOM DomLayers of the scene. It contains a 3 CSS 3D layers and a canvas layer in the middle. The
-/// CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
+/// DOM DomLayers of the scene. It contains several CSS 3D layers and a canvas layer in the middle.
+/// The CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
 /// elements.
 ///
 /// Each DomLayer is created with `pointer-events: none` CSS property to avoid "stealing" mouse
