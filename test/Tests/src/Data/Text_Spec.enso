@@ -4,7 +4,10 @@ from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
+from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Text.Text_Sub_Range import all
+import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Matching_Mode
 import Standard.Test
 
 type Auto a
@@ -87,9 +90,8 @@ spec =
             'e\u0301' . equals_ignore_case 'e\u0303' . should_be_false
 
             "I" . equals_ignore_case "i" . should_be_true
-            "I" . equals_ignore_case "ı" . should_be_true
-            "İ" . equals_ignore_case "i" . should_be_false
             "İ" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_true
+            "I" . equals_ignore_case "ı" (locale = Locale.new "tr") . should_be_true
             "I" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_false
 
             "Kongressstraße"=="Kongressstrasse" . should_be_false
@@ -199,15 +201,20 @@ spec =
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 6) . should_equal 'Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 5) . should_equal 'o\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'ê') . should_equal 'H'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'ö') . should_equal 'He\u{302}llo\u{308} W'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'ê') . should_equal 'llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{308}') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o\u{308}') . should_equal 'rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'ö') . should_equal 'rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e\u{302}') . should_equal 'H'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='ê') . should_equal 'H'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal 'lo\u{308}'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal 'ld'
@@ -231,6 +238,30 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 Nothing) . should_equal '😍😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 Nothing) . should_equal '😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 -1) . should_equal '😙😉'
+
+        Test.specify "take should correctly handle edge cases" <|
+            "".take First.new . should_equal ""
+            "".take Last.new . should_equal ""
+
+            "".take (After "a") . should_equal ""
+            "".take (After_Last "a") . should_equal ""
+            "".take (Before "a") . should_equal ""
+            "".take (Before_Last "a") . should_equal ""
+
+            "".take (After "") . should_equal ""
+            "".take (After_Last "") . should_equal ""
+            "".take (Before "") . should_equal ""
+            "".take (Before_Last "") . should_equal ""
+
+            "".take (While _->True) . should_equal ""
+
+            "".take (Range 0 0) . should_equal ""
+            'ABC\u{301}'.take (Range 0 0) . should_equal ""
+
+            'ABC\u{301}'.take (After "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.take (After_Last "") . should_equal ""
+            'ABC\u{301}'.take (Before "") . should_equal ""
+            'ABC\u{301}'.take (Before_Last "") . should_equal 'ABC\u{301}'
 
         Test.specify "drop should work as in the examples" <|
             "Hello World!".drop First.new . should_equal "ello World!"
@@ -269,15 +300,20 @@ spec =
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'ê') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'ö') . should_equal 'o\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{302}') . should_equal 'He\u{302}'
+            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'ê') . should_equal 'He\u{302}'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'ö') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e') . should_equal ''
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 -1) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r!'
@@ -300,6 +336,30 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 Nothing) . should_equal '✨🚀🚧'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 Nothing) . should_equal '✨🚀🚧😍😃😍😎'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
+
+        Test.specify "drop should correctly handle edge cases" <|
+            "".drop First.new . should_equal ""
+            "".drop Last.new . should_equal ""
+
+            "".drop (After "a") . should_equal ""
+            "".drop (After_Last "a") . should_equal ""
+            "".drop (Before "a") . should_equal ""
+            "".drop (Before_Last "a") . should_equal ""
+
+            "".drop (After "") . should_equal ""
+            "".drop (After_Last "") . should_equal ""
+            "".drop (Before "") . should_equal ""
+            "".drop (Before_Last "") . should_equal ""
+
+            "".drop (While _->True) . should_equal ""
+
+            "".drop (Range 0 0) . should_equal ""
+            'ABC\u{301}'.drop (Range 0 0) . should_equal 'ABC\u{301}'
+
+            'ABC\u{301}'.drop (After "") . should_equal ''
+            'ABC\u{301}'.drop (After_Last "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.drop (Before "") . should_equal 'ABC\u{301}'
+            'ABC\u{301}'.drop (Before_Last "") . should_equal ''
 
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
@@ -465,10 +525,7 @@ spec =
             ## This shows what regex is doing by default and we cannot easily fix
                that.
             's\u{301}' . contains 's' (Regex_Matcher.new) . should_be_true
-            ## This would normally be false, but we perform input normalization
-               to get results that are consistent regardless of if the input was
-               normalized or not.
-            'ś' . contains 's' (Regex_Matcher.new) . should_be_true
+            'ś' . contains 's' (Regex_Matcher.new) . should_be_false
             's\u{301}' . contains 'ś' (Regex_Matcher.new) . should_be_true
             'ś' . contains 's\u{301}' (Regex_Matcher.new) . should_be_true
 
@@ -766,6 +823,157 @@ spec =
             ''*100 . should_equal ''
 
             '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
+
+        Test.specify "location_of should work as shown in examples" <|
+            example_1 =
+                "Hello World!".location_of "J" == Nothing
+                "Hello World!".location_of "o" == Span (Range 4 5) "Hello World!"
+                "Hello World!".location_of "o" mode=Matching_Mode.Last == Span (Range 4 5) "Hello World!"
+
+            example_2 =
+                term = "straße"
+                text = "MONUMENTENSTRASSE 42"
+                match = text . location_of term matcher=(Text_Matcher Case_Insensitive.new)
+                term.length . should_equal 6
+                match.length . should_equal 7
+
+            example_3 =
+                ligatures = "ﬃﬄ"
+                ligatures.length . should_equal 2
+                term_1 = "IFF"
+                match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive.new)
+                term_1.length . should_equal 3
+                match_1.length . should_equal 2
+                term_2 = "ffiffl"
+                match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive.new)
+                term_2.length . should_equal 6
+                match_2.length . should_equal 2
+                match_1 . should_equal match_2
+
+            example_4 =
+                "Hello World!".location_of_all "J" . should_equal []
+                "Hello World!".location_of_all "o" . map .start . should_equal [4, 7]
+
+            example_5 =
+                term = "strasse"
+                text = "MONUMENTENSTRASSE ist eine große Straße."
+                match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive.new)
+                term.length . should_equal 7
+                match . map .length . should_equal [7, 6]
+
+            example_6 =
+                ligatures = "ﬃﬄFFIFF"
+                ligatures.length . should_equal 7
+                match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive.new)
+                match_1 . map .length . should_equal [2, 3]
+                match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive.new)
+                match_2 . map .length . should_equal [2, 5]
+
+            # Put them in blocks to avoid name clashes.
+            example_1
+            example_2
+            example_3
+            example_4
+            example_5
+            example_6
+
+        Test.specify "should allow to find location_of occurrences within a text" <|
+            "Hello World!".location_of_all "J" . should_equal []
+            "Hello World!".location_of_all "o" . map .start . should_equal [4, 7]
+
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            accents.location_of accent_1 . should_equal (Span (Range 1 2) accents)
+
+            "".location_of "foo" . should_equal Nothing
+            "".location_of "foo" mode=Matching_Mode.Last . should_equal Nothing
+            "".location_of_all "foo" . should_equal []
+            "".location_of "" . should_equal (Span (Range 0 0) "")
+            "".location_of "" mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
+            "".location_of_all "" . should_equal [Span (Range 0 0) ""]
+            abc = 'A\u{301}ßC'
+            abc.location_of "" . should_equal (Span (Range 0 0) abc)
+            abc.location_of "" mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
+            abc.location_of_all "" . should_equal [Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
+
+        Test.specify "should allow case insensitive matching in location_of" <|
+            hello = "Hello WORLD!"
+            case_insensitive = Text_Matcher Case_Insensitive.new
+            hello.location_of "world" . should_equal Nothing
+            hello.location_of "world" matcher=case_insensitive . should_equal (Span (Range 6 11) hello)
+
+            hello.location_of "o" mode=Mode.First matcher=case_insensitive . should_equal (Span (Range 4 5) hello)
+            hello.location_of "o" mode=Matching_Mode.Last matcher=case_insensitive . should_equal (Span (Range 7 8) hello)
+
+            accents = 'A\u{301}E\u{301}O\u{301}'
+            accents.location_of accent_1 matcher=case_insensitive . should_equal (Span (Range 1 2) accents)
+
+            "Strasse".location_of "ß" matcher=case_insensitive . should_equal (Span (Range 4 6) "Strasse")
+            "Monumentenstraße 42".location_of "STRASSE" matcher=case_insensitive . should_equal (Span (Range 10 16) "Monumentenstraße 42")
+
+            '\u0390'.location_of '\u03B9\u0308\u0301' matcher=case_insensitive . should_equal (Span (Range 0 1) '\u0390')
+            'ԵՒ'.location_of 'և' . should_equal Nothing
+            'ԵՒ'.location_of 'և' matcher=case_insensitive . should_equal (Span (Range 0 2) 'ԵՒ')
+            'և'.location_of 'ԵՒ' matcher=case_insensitive . should_equal (Span (Range 0 1) 'և')
+
+            ligatures = 'ffaﬀﬁﬂﬃﬄﬅﬆZ'
+            ligatures.location_of 'FFI' matcher=case_insensitive . should_equal (Span (Range 3 5) ligatures)
+            ligatures.location_of 'FF' matcher=case_insensitive . should_equal (Span (Range 0 2) ligatures)
+            ligatures.location_of 'ff' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 7 8) ligatures)
+            ligatures.location_of_all 'ff' . should_equal [Span (Range 0 2) ligatures]
+            ligatures.location_of_all 'FF' matcher=case_insensitive . should_equal [Span (Range 0 2) ligatures, Span (Range 3 4) ligatures, Span (Range 6 7) ligatures, Span (Range 7 8) ligatures]
+            ligatures.location_of_all 'ffi' matcher=case_insensitive . should_equal [Span (Range 3 5) ligatures, Span (Range 6 7) ligatures]
+            'fffi'.location_of_all 'ﬀ' matcher=case_insensitive . should_equal [Span (Range 0 2) 'fffi']
+            'fffi'.location_of_all 'ﬃ' . should_equal []
+            'fffi'.location_of_all 'ﬃ' matcher=case_insensitive . should_equal [Span (Range 1 4) 'fffi']
+            'FFFI'.location_of 'ﬃ' matcher=case_insensitive . should_equal (Span (Range 1 4) 'FFFI')
+
+            'ﬃﬄ'.location_of 'IF' matcher=case_insensitive . should_equal (Span (Range 0 2) 'ﬃﬄ')
+            'ﬃﬄ'.location_of 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span (Range 1 2) 'ﬃﬄ')
+            'ﬃﬄ'.location_of_all 'F' matcher=case_insensitive . should_equal [Span (Range 0 1) 'ﬃﬄ', Span (Range 0 1) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ']
+            'aaﬃbb'.location_of_all 'af' matcher=case_insensitive . should_equal [Span (Range 1 3) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'affi' matcher=case_insensitive . should_equal [Span (Range 1 3) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'ib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'ffib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
+
+            "".location_of "foo" matcher=case_insensitive . should_equal Nothing
+            "".location_of "foo" matcher=case_insensitive mode=Matching_Mode.Last . should_equal Nothing
+            "".location_of_all "foo" matcher=case_insensitive . should_equal []
+            "".location_of "" matcher=case_insensitive . should_equal (Span (Range 0 0) "")
+            "".location_of "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
+            "".location_of_all "" matcher=case_insensitive . should_equal [Span (Range 0 0) ""]
+            abc = 'A\u{301}ßC'
+            abc.location_of "" matcher=case_insensitive . should_equal (Span (Range 0 0) abc)
+            abc.location_of "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
+            abc.location_of_all "" matcher=case_insensitive . should_equal [Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
+
+        Test.specify "should allow regexes in location_of" <|
+            hello = "Hello World!"
+            regex = Regex_Matcher.new
+            regex_insensitive = Regex_Matcher.new case_sensitive=Case_Insensitive.new
+            hello.location_of ".o" Matching_Mode.First matcher=regex . should_equal (Span (Range 3 5) hello)
+            hello.location_of ".o" Matching_Mode.Last matcher=regex . should_equal (Span (Range 6 8) hello)
+            hello.location_of_all ".o" matcher=regex . map .start . should_equal [3, 6]
+
+            "foobar".location_of "BAR" Mode.First matcher=regex_insensitive . should_equal (Span (Range 3 6) "foobar")
+
+            ## Regex matching does not do case folding
+            "Strasse".location_of "ß" Mode.First matcher=regex_insensitive . should_equal Nothing
+
+            ## But it should handle the Unicode normalization
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            accents.location_of accent_1 Mode.First matcher=regex . should_equal (Span (Range 1 2) accents)
+        Test.specify "should correctly handle regex edge cases in location_of" pending="Figure out how to make Regex correctly handle empty patterns." <|
+            regex = Regex_Matcher.new
+            "".location_of "foo" matcher=regex . should_equal Nothing
+            "".location_of "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
+            "".location_of_all "foo" matcher=regex . should_equal []
+            "".location_of "" matcher=regex . should_equal (Span (Range 0 0) "")
+            "".location_of_all "" matcher=regex . should_equal [Span (Range 0 0) ""]
+            "".location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
+            abc = 'A\u{301}ßC'
+            abc.location_of "" matcher=regex . should_equal (Span (Range 0 0) abc)
+            abc.location_of_all "" matcher=regex . should_equal [Span (Range 0 0) abc, Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
+            abc.location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|

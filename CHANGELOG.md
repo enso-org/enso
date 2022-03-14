@@ -63,6 +63,7 @@
 - [Implemented `Bool.compare_to` method][3317]
 - [Implemented `Map.first`, `Map.last` functions. Expanded `Table.group_by` to
   also compute mode, percentile, minimum, maximum.][3318]
+- [Implemented `Text.location_of` and `Text.location_of_all` methods.][3324]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -100,7 +101,8 @@
 [3236]: https://github.com/enso-org/enso/pull/3236
 [3311]: https://github.com/enso-org/enso/pull/3311
 [3317]: https://github.com/enso-org/enso/pull/3317
-[3317]: https://github.com/enso-org/enso/pull/3318
+[3318]: https://github.com/enso-org/enso/pull/3318
+[3324]: https://github.com/enso-org/enso/pull/3324
 
 #### Enso Compiler
 
