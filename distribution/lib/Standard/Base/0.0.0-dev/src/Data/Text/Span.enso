@@ -167,3 +167,6 @@ range_to_char_indices text range =
                 start_index = iterator.next start
                 end_index = iterator.next (end - start)
                 Range start_index end_index
+
+Span.from (that:Utf_16_Span) = that.to_grapheme_span
+Utf_16_Span.from (that:Span) = that.to_utf_16_span
