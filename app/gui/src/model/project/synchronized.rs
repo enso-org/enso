@@ -1,12 +1,12 @@
 //! A Project Model that synchronizes all its operations with the Language Server.
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::model::execution_context;
 use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
-use crate::model::traits::*;
 use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;

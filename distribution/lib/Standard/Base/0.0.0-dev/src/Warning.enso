@@ -1,0 +1,69 @@
+from Standard.Base import all
+
+## A representation of a dataflow warning attached to a value.
+type Warning
+    ## PRIVATE
+
+       The constructor to wrap primitive warnings.
+    type Warning prim_warning
+
+    ## UNSTABLE
+
+       Returns the warning value – usually its explanation or other contents.
+    value : Any
+    value = Prim_Warning.get_value this.prim_warning
+
+    ## UNSTABLE
+       ADVANCED
+
+       A stack trace for the original warning creation.
+    origin : Vector.Vector Stack_Trace_Element
+    origin = Prim_Warning.get_origin this.prim_warning
+
+    ## UNSTABLE
+       ADVANCED
+
+       A list of locations where the warning was reassigned in the order of
+       latest-first.
+
+       Warnings are reassigned whenever they interract with specific language
+       elements:
+       - When pattern matching, the warnings of the scrutinee will be reassigned
+         to the `case` expression result.
+       - When calling a method, warnings assigned to `this` will be reassigned to
+         the method return value.
+       - When calling a polyglot function or method, warnings assigned to any
+         arguments will be accumulated in the return value.
+       - The standard library methods reassign warnings such that their dataflow
+         nature is preserved.
+    reassignments : Vector.Vector Stack_Trace_Element
+    reassignments =
+        Vector.Vector (Prim_Warning.get_reassignments this.prim_warning) . map r->
+            loc = case Polyglot.has_source_location r of
+                False -> Nothing
+                True -> Source_Location (Polyglot.get_source_location r)
+            Stack_Trace_Element (Polyglot.get_executable_name r) loc
+
+## UNSTABLE
+
+   Attaches a new warning to the value.
+attach : Any -> Any -> Any
+attach warning value =
+    origin = Runtime.get_stack_trace
+    Prim_Warning.attach value warning (origin.drop_start 1)
+
+## UNSTABLE
+
+   Gets all the warnings attached to the given value. Warnings are returned in the
+   reverse-chronological order with respect to their attachment time.
+get_all : Any -> Vector.Vector Warning
+get_all value =
+    Vector.Vector (Prim_Warning.get_all value) . map Warning
+
+## UNSTABLE
+   ADVANCED
+
+   Sets a new list of warnings for the given value. Any warnings already present
+   in `value` will be lost.
+set warnings value =
+    Prim_Warning.set value (warnings.map .prim_warning).to_array

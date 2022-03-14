@@ -1,9 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.TruffleLanguage.ContextReference;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
@@ -11,13 +8,11 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
 import java.util.Comparator;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -40,36 +35,33 @@ public abstract class SortNode extends Node {
   Object doSortFunction(
       VirtualFrame frame,
       Array _this,
-      Function comparator,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    Comparator<Object> compare = getComparator(comparator, ctxRef);
-    return runSort(compare, _this, ctxRef);
+      Function comparator) {
+    Context context = Context.get(this);
+    Comparator<Object> compare = getComparator(comparator, context);
+    return runSort(compare, _this, context);
   }
 
   @Specialization
   Object doSortCallable(
       VirtualFrame frame,
       Array _this,
-      Object comparator,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef) {
+      Object comparator) {
     Comparator<Object> compare = (l, r) -> comparatorNode.execute(frame, comparator, l, r);
-    return runSort(compare, _this, ctxRef);
+    return runSort(compare, _this, Context.get(this));
   }
 
   @Specialization
   Object doAtomThis(
       VirtualFrame frame,
       Atom _this,
-      Object that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("ctxRef.get().getBuiltins().mutable().array()") AtomConstructor array) {
-    return ctxRef.get().getBuiltins().nothing().newInstance();
+      Object that) {
+    return Context.get(this).getBuiltins().nothing().newInstance();
   }
 
-  Object runSort(Comparator<Object> compare, Array _this, ContextReference<Context> ctxRef) {
+  Object runSort(Comparator<Object> compare, Array _this, Context context) {
     doSort(_this.getItems(), compare);
     LoopNode.reportLoopCount(this, _this.length());
-    return ctxRef.get().getBuiltins().nothing().newInstance();
+    return context.getBuiltins().nothing().newInstance();
   }
 
   @TruffleBoundary
@@ -77,24 +69,24 @@ public abstract class SortNode extends Node {
     Arrays.sort(items, compare);
   }
 
-  private SortComparator getComparator(Function comp, ContextReference<Context> ctxRef) {
-    return new SortComparator(comp, ctxRef, this);
+  private SortComparator getComparator(Function comp, Context context) {
+    return new SortComparator(comp, context, this);
   }
 
   private class SortComparator implements Comparator<Object> {
     private final Function compFn;
-    private final ContextReference<Context> ctxRef;
+    private final Context context;
     private final Atom less;
     private final Atom equal;
     private final Atom greater;
     private final SortNode outerThis;
 
-    SortComparator(Function compFn, ContextReference<Context> ctxRef, SortNode outerThis) {
+    SortComparator(Function compFn, Context context, SortNode outerThis) {
       this.compFn = compFn;
-      this.ctxRef = ctxRef;
-      this.less = ctxRef.get().getBuiltins().ordering().newLess();
-      this.equal = ctxRef.get().getBuiltins().ordering().newEqual();
-      this.greater = ctxRef.get().getBuiltins().ordering().newGreater();
+      this.context = context;
+      this.less = context.getBuiltins().ordering().newLess();
+      this.equal = context.getBuiltins().ordering().newEqual();
+      this.greater = context.getBuiltins().ordering().newGreater();
       this.outerThis = outerThis;
     }
 
@@ -115,9 +107,9 @@ public abstract class SortNode extends Node {
         return 1;
       } else {
         resultProfile.enter();
-        var ordering = ctxRef.get().getBuiltins().ordering().ordering();
+        var ordering = context.getBuiltins().ordering().ordering();
         throw new PanicException(
-            ctxRef.get().getBuiltins().error().makeTypeError(ordering, res, "result"), outerThis);
+            context.getBuiltins().error().makeTypeError(ordering, res, "result"), outerThis);
       }
     }
   }

@@ -1,7 +1,10 @@
 //! Definition of the node input port component.
 
-
 use crate::prelude::*;
+use enso_text::traits::*;
+use enso_text::unit::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
 
 use crate::component::type_coloring;
 use crate::node;
@@ -10,18 +13,13 @@ use crate::node::profiling;
 use crate::view;
 use crate::Type;
 
-
 use enso_frp as frp;
 use enso_frp;
 use enso_text::text::Text;
-use enso_text::traits::*;
-use enso_text::unit::*;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;

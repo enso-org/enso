@@ -1,21 +1,24 @@
 //! The component with buttons in the top left corner. See [[View]].
 
-pub mod close;
-pub mod common;
-pub mod fullscreen;
-
-
+use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
+use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::define_shape_system;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 
-use enso_frp as frp;
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod close;
+pub mod common;
+pub mod fullscreen;
 
 
 

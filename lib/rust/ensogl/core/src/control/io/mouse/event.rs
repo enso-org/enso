@@ -1,12 +1,12 @@
 //! This module defines possible mouse events.
 
 use crate::prelude::*;
+use web::traits::*;
 
 use crate::system::web;
-use enso_frp::io::mouse;
 
+use enso_frp::io::mouse;
 use web::dom::Shape;
-use web::traits::*;
 
 
 

@@ -1,14 +1,14 @@
 //! A module containing the fullscreen view of visualization.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
+use ensogl::system::web::traits::*;
 
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl_hardcoded_theme as theme;
 
 

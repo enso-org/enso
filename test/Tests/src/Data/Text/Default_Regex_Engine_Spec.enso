@@ -6,7 +6,7 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option as Global_Option
-import Standard.Base.Data.Text.Span
+from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
@@ -182,6 +182,22 @@ spec =
             match.at 1 . group 0 . should_equal "ef"
             match.at 2 . group 0 . should_equal "gh"
 
+        Test.specify "should correctly handle empty patterns" pending="Figure out how to make Regex correctly handle empty patterns." <|
+           pattern = engine.compile "" []
+           match_1 = pattern.match "" mode=Mode.All
+           match_1.length . should_equal 1
+           match_1.at 0 . start 0 . should_equal 0
+           match_1.at 0 . end 0 . should_equal 0
+
+           match_2 = pattern.match "ABC" mode=Mode.All
+           match_2.length . should_equal 4
+           match_2.at 0 . start 0 . should_equal 0
+           match_2.at 0 . end 0 . should_equal 0
+           match_2.at 1 . start 0 . should_equal 1
+           match_2.at 1 . end 0 . should_equal 1
+           match_2.at 3 . start 0 . should_equal 3
+           match_2.at 3 . end 0 . should_equal 3
+
     Test.group "The default regex engine's Pattern.find" <|
         engine = Default_Engine.new
 
@@ -261,11 +277,23 @@ spec =
             match.at 1 . should_equal "ef"
             match.at 2 . should_equal "gh"
 
+            match_2 = pattern.find input mode=(Mode.Bounded 2 8 mode=10)
+            match_2.length . should_equal 3
+            match_2.at 0 . should_equal "cd"
+            match_2.at 1 . should_equal "ef"
+            match_2.at 2 . should_equal "gh"
+
+            match_3 = pattern.find input mode=(Mode.Bounded 2 8 mode=2)
+            match_3.length . should_equal 2
+            match_3.at 0 . should_equal "cd"
+            match_3.at 1 . should_equal "ef"
+
         Test.specify "should correctly handle edge cases where one-letter matches happen at the end of the word" <|
             engine.compile "(a+|1+)" [] . find "a1a1" . should_equal ["a", "1", "a", "1"]
             engine.compile "([a]+|[1]+)" [] . find "a1a1" . should_equal ["a", "1", "a", "1"]
             engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" . should_equal ["a", "1", "b", "2"]
 
+            engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=5 . should_equal ["a", "1", "b", "2"]
             engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=4 . should_equal ["a", "1", "b", "2"]
             engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=3 . should_equal ["a", "1", "b"]
             engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=(Mode.Bounded 1 3) . should_equal ["1", "b"]
@@ -501,10 +529,10 @@ spec =
         match . should_be_a Default_Engine.Match
 
         Test.specify "should get the span of a group by index" <|
-            match.span 1 . should_equal (Span.new 0 6 input)
+            match.span 1 . should_equal (Utf_16_Span (Range 0 6) input)
 
         Test.specify "should get the span of a group by name" <|
-            match.span "letters" . should_equal (Span.new 6 18 input)
+            match.span "letters" . should_equal (Utf_16_Span (Range 6 18) input)
 
         Test.specify "should return Nothing if the group didn't match" <|
             match.span 3 . should_equal Nothing

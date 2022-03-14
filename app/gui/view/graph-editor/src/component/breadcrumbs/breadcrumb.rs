@@ -1,21 +1,21 @@
 //! This module provides a clickable view for a single breadcrumb.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+
+use crate::component::breadcrumbs;
+use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
+use crate::MethodPointer;
 
 use super::RelativePosition;
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
 use super::TEXT_SIZE;
-use crate::component::breadcrumbs;
-use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
-use crate::MethodPointer;
-
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;

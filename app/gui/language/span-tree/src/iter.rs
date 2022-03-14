@@ -1,4 +1,5 @@
 //! Module providing advanced iterators over SpanTree nodes.
+
 use crate::prelude::*;
 
 use crate::node;

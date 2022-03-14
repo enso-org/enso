@@ -1,7 +1,5 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -11,7 +9,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.pkg.QualifiedName;
 
 /** A common base class for all kinds of root node in Enso. */
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
@@ -20,8 +17,6 @@ public abstract class EnsoRootNode extends RootNode {
   private final SourceSection sourceSection;
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
-  private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
-      contextReference;
   private final FrameSlot stateFrameSlot;
 
   /**
@@ -54,12 +49,7 @@ public abstract class EnsoRootNode extends RootNode {
    * @return a reference to the language context
    */
   public Context getContext() {
-    if (contextReference == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      contextReference = lookupContextReference(Language.class);
-    }
-
-    return contextReference.get();
+    return Context.get(this);
   }
 
   /**

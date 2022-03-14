@@ -1,14 +1,19 @@
 //! FRP bindings to the animation engine.
 
-pub mod delayed;
-pub mod hysteretic;
-
 use crate::prelude::*;
 
 use crate::animation::physics::inertia;
 use crate::data::mix;
 
 use enso_frp as frp;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod delayed;
+pub mod hysteretic;
 
 
 

@@ -2,12 +2,7 @@
 //! edited belongs to and navigating through them.
 
 use crate::prelude::*;
-
-pub mod breadcrumb;
-pub mod project_name;
-
-pub use breadcrumb::Breadcrumb;
-pub use project_name::ProjectName;
+use ensogl::display::shape::*;
 
 use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::LocalCall;
@@ -18,11 +13,21 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use std::cmp::Ordering;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod breadcrumb;
+pub mod project_name;
+
+pub use breadcrumb::Breadcrumb;
+pub use project_name::ProjectName;
 
 
 

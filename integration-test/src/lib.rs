@@ -6,24 +6,29 @@
 //!
 //! These tests require the Project Manager for working.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use enso_frp::future::EventOutputExt;
 use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
-use enso_web::traits::*;
 use enso_web::HtmlDivElement;
 use ensogl::application::Application;
+
+
 
 /// Reexports of commonly-used structures, methods and traits.
 pub mod prelude {

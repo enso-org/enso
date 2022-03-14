@@ -2,11 +2,9 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -59,14 +57,17 @@ public abstract class InteropApplicationNode extends Node {
         InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
+  Context getContext() {
+    return Context.get(this);
+  }
+
   @Specialization(
-      guards = {"!context.isInlineCachingDisabled()", "arguments.length == cachedArgsLength"},
+      guards = {"!getContext().isInlineCachingDisabled()", "arguments.length == cachedArgsLength"},
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       Function function,
       Object state,
       Object[] arguments,
-      @CachedContext(Language.class) Context context,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode,
       @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {

@@ -1,9 +1,9 @@
 //! This module defines the `Renderer` trait and related functionality.
 
 use crate::prelude::*;
+use crate::visualization::*;
 
 use crate::data::enso;
-use crate::visualization::*;
 
 use enso_frp as frp;
 use ensogl::display;

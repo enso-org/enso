@@ -1,8 +1,8 @@
 //! Visualization definition abstraction.
 
+use crate::data::*;
 use crate::prelude::*;
 
-use crate::data::*;
 use crate::visualization;
 
 use ensogl::display::Scene;

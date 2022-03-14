@@ -1,14 +1,7 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
-#[warn(missing_docs)]
-pub mod dom;
-#[warn(missing_docs)]
-pub mod layer;
-
-pub use layer::Layer;
-
-pub use crate::system::web::dom::Shape;
-
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 use web::traits::*;
 
@@ -17,7 +10,6 @@ use crate::control::callback;
 use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::camera::Camera2d;
@@ -45,6 +37,20 @@ use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
 use web::HtmlElement;
+
+
+// ==============
+// === Export ===
+// ==============
+
+#[warn(missing_docs)]
+pub mod dom;
+#[warn(missing_docs)]
+pub mod layer;
+
+pub use crate::system::web::dom::Shape;
+pub use layer::Layer;
+
 
 
 pub trait MouseTarget: Debug + 'static {

@@ -2,6 +2,8 @@
 //! possible in a constant time.
 
 use crate::prelude::*;
+use enso_text::traits::*;
+use enso_text::unit::*;
 
 use crate::enumerate_non_empty_lines;
 use crate::known;
@@ -13,8 +15,6 @@ use crate::ShiftedVec1;
 use crate::TokenConsumer;
 
 use enso_text as text;
-use enso_text::traits::*;
-use enso_text::unit::*;
 
 
 

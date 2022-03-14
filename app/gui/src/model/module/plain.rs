@@ -19,6 +19,8 @@ use parser::api::ParsedSourceFile;
 use parser::api::SourceFile;
 use parser::Parser;
 
+
+
 /// A structure describing the module.
 ///
 /// It implements internal mutability pattern, so the state may be shared between different

@@ -1,5 +1,6 @@
 //! The code shared between different buttons living in the Top Buttons panel.
 
+use ensogl::display::shape::*;
 use prelude::*;
 
 use enso_frp as frp;
@@ -9,7 +10,6 @@ use ensogl::data::color;
 use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::style::data::DataMatch;
 use ensogl::gui::component::ShapeView;

@@ -1,8 +1,16 @@
 //! Implements the segmented output port area.
-use crate::prelude::*;
 
+use crate::prelude::*;
 use ensogl::display::traits::*;
 
+use crate::component::node;
+use crate::component::node::input;
+use crate::component::node::output::port;
+use crate::tooltip;
+use crate::view;
+use crate::Type;
+
+use enso_config::ARGS;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::hysteretic::HystereticAnimation;
@@ -14,14 +22,6 @@ use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 use span_tree;
-
-use crate::component::node;
-use crate::component::node::input;
-use crate::component::node::output::port;
-use crate::tooltip;
-use crate::view;
-use crate::Type;
-use enso_config::ARGS;
 
 
 

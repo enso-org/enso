@@ -1,15 +1,19 @@
 //! This is a visualization example scene which creates a sinusoidal graph.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 use ensogl::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl::animation;
 use ensogl::application::Application;
@@ -21,7 +25,6 @@ use ide_view::graph_editor::component::visualization::Data;
 use ide_view::graph_editor::component::visualization::Registry;
 use js_sys::Math::sin;
 use nalgebra::Vector2;
-use wasm_bindgen::prelude::*;
 
 
 

@@ -1,9 +1,14 @@
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use enso_integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;
 use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
 use std::time::Duration;
+
 
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

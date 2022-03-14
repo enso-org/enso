@@ -12,6 +12,7 @@ use ide_view as view;
 use ide_view::project::ComponentBrowserOpenReason;
 
 
+
 // =============
 // === Model ===
 // =============

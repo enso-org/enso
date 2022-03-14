@@ -2,6 +2,8 @@
 //! text editors.
 
 use crate::prelude::*;
+use enso_text::unit::*;
+use ensogl_core::display::shape::*;
 
 use crate::buffer;
 use crate::buffer::style;
@@ -16,13 +18,11 @@ use crate::typeface::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
-use enso_text::unit::*;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
