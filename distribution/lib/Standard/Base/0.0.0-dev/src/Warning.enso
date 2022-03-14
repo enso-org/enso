@@ -109,7 +109,7 @@ map_attached_warnings_helper mapper value frames_to_drop =
     prim_mapped_warnings = warnings.map warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
-                new_origin = Runtime.get_stack_trace.drop_start 3+frames_to_drop
+                new_origin = Runtime.get_stack_trace.drop_start 13+frames_to_drop
                 Prim_Warning.create new_payload new_origin
             ## If the mapper did not want to affect this warning, we return the
                original (unwrapped) warning instance.
