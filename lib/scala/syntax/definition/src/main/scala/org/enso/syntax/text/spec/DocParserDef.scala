@@ -850,13 +850,17 @@ case class DocParserDef() extends Parser[Doc] {
     def transformOverlyIndentedRawIntoCode(
       baseIndent: Int
     ): Unit = {
-      var newStack = List[Section]()
+      var newStack      = List[Section]()
+      var currentIndent = baseIndent
       while (section.stack.nonEmpty) {
         var current = section.pop().get
-        if (current.indent > baseIndent && current.isInstanceOf[Section.Raw]) {
+        if (
+          current.indent > currentIndent &&
+          current.isInstanceOf[Section.Raw]
+        ) {
           var stackOfCodeSections: List[Section] = List[Section]()
           while (
-            section.stack.nonEmpty && current.indent > baseIndent && current
+            section.stack.nonEmpty && current.indent > currentIndent && current
               .isInstanceOf[Section.Raw] && section.stack.head
               .isInstanceOf[Section.Raw]
           ) {
@@ -878,13 +882,18 @@ case class DocParserDef() extends Parser[Doc] {
           if (codeLines.nonEmpty) {
             val l1CodeLines = List1(codeLines.head, codeLines.tail)
             val codeBlock   = Doc.Elem.CodeBlock(l1CodeLines)
-            val s           = newStack.head
-            val sElems      = newStack.head.elems :+ codeBlock
-            s.elems  = sElems
+            val newElems    = newStack.head.elems :+ codeBlock
+            val newSection = newStack.head match {
+              case marked: Doc.Section.Marked =>
+                marked.copy(elems = newElems)
+              case raw: Doc.Section.Raw =>
+                raw.copy(elems = newElems)
+            }
             newStack = newStack.drop(1)
-            newStack +:= s
+            newStack +:= newSection
           }
         } else {
+          currentIndent = current.indent
           newStack +:= current
         }
       }

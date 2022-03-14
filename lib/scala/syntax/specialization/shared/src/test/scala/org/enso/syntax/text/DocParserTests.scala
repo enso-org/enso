@@ -292,8 +292,6 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   //      )
   //    )
   //  )
-  // TODO[DB] line with the exclamation mark is missing in the parser output
-  //          It happens with symbols: !,?,>
   """ Synopsis
     |
     | ! Important
@@ -315,33 +313,81 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       )
     )
   )
-  // TODO[DB] Marked section can not be split into two.
-  //          The second paragraph is parsed as code block.
-  //  """ Synopsis
-  //    |
-  //    | ! Important
-  //    |   This is important.
-  //    |
-  //    |   And this""".stripMargin.replaceAll(
-  //    System.lineSeparator(),
-  //    "\n"
-  //  ) ?= Doc(
-  //    Synopsis(
-  //      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
-  //    ),
-  //    Body(
-  //      Section.Marked(
-  //        1,
-  //        1,
-  //        Section.Marked.Important,
-  //        Section.Header("Important"),
-  //        Doc.Elem.Newline,
-  //        "This is important.",
-  //        Doc.Elem.Newline,
-  //        CodeBlock(CodeBlock.Line(3, "And this"))
-  //      )
-  //    )
-  //  )
+  """ Synopsis
+    |
+    | ! Important
+    |   This is important.
+    |
+    |   And this""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important.",
+        Doc.Elem.Newline
+      ),
+      Section.Raw(3, "And this")
+    )
+  )
+  """ Synopsis
+    |
+    | !Important
+    |    This is a code
+    |
+    |  And this is not""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        0,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(4, "This is a code")),
+        Doc.Elem.Newline
+      ),
+      Section.Raw(2, "And this is not")
+    )
+  )
+  """Synopsis
+    |
+    |! Important
+    |  This is important
+    |
+    |    And this is a code""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?== Doc(
+    Synopsis(
+      Section.Raw("Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        0,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important",
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(4, "And this is a code"))
+      )
+    )
+  )
   "?Info" ?= Doc(
     Synopsis(Section.Marked(Section.Marked.Info, Section.Header("Info")))
   )
@@ -375,6 +421,45 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         Newline
       ),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
+    )
+  )
+  """Synopsis
+    |
+    | ! Important
+    |   This is important
+    |     And this is a code
+    |
+    |> Example
+    |  This is example
+    |      More code""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw("Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important",
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(5, "And this is a code")),
+        Doc.Elem.Newline
+      ),
+      Section.Marked(
+        0,
+        1,
+        Section.Marked.Example,
+        Section.Header("Example"),
+        Doc.Elem.Newline,
+        "This is example",
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(6, "More code"))
+      )
     )
   )
   """Foo *Foo* ~*Bar~ `foo bar baz bo`

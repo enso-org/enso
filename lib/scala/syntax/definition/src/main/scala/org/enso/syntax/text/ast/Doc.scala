@@ -352,7 +352,7 @@ object Doc {
     */
   sealed trait Section extends Symbol {
     def indent: Int
-    var elems: List[Elem]
+    def elems:  List[Elem]
 
     def reprOfNormalText(elem: Elem, prevElem: Elem): Repr.Builder = {
       prevElem match {
@@ -387,7 +387,7 @@ object Doc {
       indentBeforeMarker: Int,
       indentAfterMarker: Int,
       typ: Marked.Type,
-      var elems: List[Elem]
+      elems: List[Elem]
     ) extends Section {
       val marker: String = typ.marker.toString
       val firstIndentRepr: Repr.Builder =
@@ -443,7 +443,7 @@ object Doc {
       case object Example   extends Type('>')
     }
 
-    final case class Raw(indent: Int, var elems: List[Elem]) extends Section {
+    final case class Raw(indent: Int, elems: List[Elem]) extends Section {
       val dummyElem   = Elem.Text("")
       val newLn: Elem = Elem.Newline
       val elemsRepr: List[Repr.Builder] = elems.zip(dummyElem :: elems).map {
