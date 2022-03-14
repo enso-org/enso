@@ -447,8 +447,9 @@ impl View {
 
             // === Adding Node ===
 
-            searcher_for_adding <- graph.node_added.map(
-                |&(node, src)| SearcherParams::new_for_new_node(node, src)
+            node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
+            searcher_for_adding <- node_added_by_user.map(
+                |&(node, src, _)| SearcherParams::new_for_new_node(node, src)
             );
             frp.source.adding_new_node <+ searcher_for_adding.to_true();
             new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
@@ -469,7 +470,7 @@ impl View {
 
             // === Editing ===
 
-            existing_node_edited <- graph.node_editing_started.gate_not(&frp.adding_new_node);
+            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
             frp.source.searcher <+ existing_node_edited.map(
                 |&node| Some(SearcherParams::new_for_edited_node(node))
             );

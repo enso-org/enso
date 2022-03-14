@@ -646,7 +646,7 @@ ensogl::define_endpoints! {
         // === Other ===
         // FIXME: To be refactored
 
-        node_added                (NodeId, Option<NodeSource>),
+        node_added                (NodeId, Option<NodeSource>, bool),
         node_removed              (NodeId),
         nodes_collapsed           ((Vec<NodeId>,NodeId)),
         node_hovered              (Option<Switch<NodeId>>),
@@ -1702,7 +1702,7 @@ impl GraphEditorModel {
     #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
-        let (node_id, _) = self.frp.node_added.value();
+        let (node_id, _, _) = self.frp.node_added.value();
         node_id
     }
 
@@ -2838,7 +2838,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             };
             model.create_node(&ctx, *way, *mouse_pos)
         }));
-        out.source.node_added <+ new_node.map(|&(id, src, _)| (id, src));
+        out.source.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
     }
 
