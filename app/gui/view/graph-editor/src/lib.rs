@@ -46,7 +46,6 @@ pub use crate::node::profiling::Status as NodeProfilingStatus;
 
 use enso_config::ARGS;
 use enso_frp as frp;
-use ensogl::animation;
 use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
@@ -64,7 +63,6 @@ use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
-use ensogl::Easing;
 use ensogl_hardcoded_theme as theme;
 use ordered_float::OrderedFloat;
 
@@ -1430,20 +1428,6 @@ impl GraphEditorModelWithNetwork {
         node_id
     }
 
-    /// Move node to the `edited_node` scene layer, so that it is rendered by the separate camera.
-    pub fn move_node_to_edited_node_layer(&self, node_id: NodeId) {
-        if let Some(node) = self.nodes.get_cloned(&node_id) {
-            node.model.move_to_edited_node_layer();
-        }
-    }
-
-    /// Move node to the `main` scene layer, so that it is rendered by the main camera.
-    pub fn move_node_to_main_layer(&self, node_id: NodeId) {
-        if let Some(node) = self.nodes.get_cloned(&node_id) {
-            node.model.move_to_main_layer();
-        }
-    }
-
     fn is_node_connected_at_input(&self, node_id: NodeId, crumbs: &span_tree::Crumbs) -> bool {
         if let Some(node) = self.nodes.get_cloned(&node_id) {
             for in_edge_id in node.in_edges.raw.borrow().iter() {
@@ -2612,57 +2596,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
-    // === Edited node growth/shrink animation ===
+    // === Edited node growth/shrink animation. ===
 
-    let searcher_cam = model.app.display.default_scene.layers.node_searcher.camera();
-    let edited_node_cam = model.app.display.default_scene.layers.edited_node.camera();
-    let main_cam = model.app.display.default_scene.layers.main.camera();
-
-    let growth_animation = Animation::new(network);
-    let animation_blending = Easing::new(network);
-
-    frp::extend! { network
-        let searcher_cam_frp = searcher_cam.frp();
-        let main_cam_frp = main_cam.frp();
-
-        previous_edited_node <- out.node_editing_started.previous();
-        _eval <- all_with(&out.node_editing_started, &previous_edited_node, f!([model] (current, previous) {
-            model.move_node_to_main_layer(*previous);
-            model.move_node_to_edited_node_layer(*current);
-        }));
-
-        is_growing <- bool(&out.node_editing_finished, &out.node_editing_started);
-        edited_node_cam_target <- switch(&is_growing, &main_cam_frp.position, &searcher_cam_frp.position);
-        growth_animation.target <+ edited_node_cam_target;
-
-        on_node_editing_start_or_finish <- any(&out.node_editing_started, &out.node_editing_finished);
-        eval_ on_node_editing_start_or_finish ({
-            animation_blending.stop_and_rewind(0.0);
-            animation_blending.target(1.0);
-        });
-
-        edited_node_cam_position <- all_with3(&edited_node_cam_target,
-                                              &growth_animation.value,
-                                              &animation_blending.value,
-                                              |target,animation,weight| {
-            let weight = Vector3::from_element(*weight);
-            let inv_weight = Vector3::from_element(1.0) - weight;
-            target.component_mul(&weight) + animation.component_mul(&inv_weight)
-        });
-        eval edited_node_cam_position([edited_node_cam] (pos) edited_node_cam.set_position(*pos));
-
-        animation_magnitude <- all_with(&growth_animation.target,
-                                        &growth_animation.value,
-                                        |target, value| (target - value).magnitude());
-        animation_not_needed <- animation_magnitude.map(|m| *m < animation::DEFAULT_PRECISION);
-        shrinking_not_needed <- animation_not_needed.sample(&out.node_editing_finished).on_true();
-        shrinking_ended <- growth_animation.on_end.gate_not(&is_growing);
-        shrinking_finished <- any(&shrinking_ended, &shrinking_not_needed);
-        node_that_finished_editing <- out.node_editing_finished.sample(&shrinking_finished);
-        eval node_that_finished_editing ([model] (id) {
-            model.move_node_to_main_layer(*id);
-        });
-    }
+    component::node::growth_animation::initialize_edited_node_animator(&model, &frp, scene);
 
 
     // === Edge interactions  ===

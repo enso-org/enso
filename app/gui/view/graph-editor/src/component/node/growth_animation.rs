@@ -1,0 +1,99 @@
+//! Edited node growth/shrink animation implementation.
+//!
+//! When the user starts editing of the node - it smoothly growth in size to match the 1.0x zoom
+//! factor size. After editing is finished, the node smothly shrinks to its original size. This is
+//! implemented by using a separate `edited_node` camera that is moved in synchronization with
+//! `node_searcher` camera.
+
+use ensogl::prelude::*;
+
+use crate::GraphEditorModelWithNetwork;
+use crate::NodeId;
+use enso_frp as frp;
+use ensogl::animation;
+use ensogl::display::Scene;
+use ensogl::Animation;
+use ensogl::Easing;
+
+/// Initialize edited node growth/shrink animator. It would handle scene layer change for the edited
+/// node as well.
+pub fn initialize_edited_node_animator(
+    model: &GraphEditorModelWithNetwork,
+    frp: &crate::Frp,
+    scene: &Scene,
+) {
+    let network = &frp.network;
+    let out = &frp.output;
+    let searcher_cam = scene.layers.node_searcher.camera();
+    let edited_node_cam = scene.layers.edited_node.camera();
+    let main_cam = scene.layers.main.camera();
+
+    let growth_animation = Animation::new(network);
+    let animation_blending = Easing::new(network);
+
+    frp::extend! { network
+        let searcher_cam_frp = searcher_cam.frp();
+        let main_cam_frp = main_cam.frp();
+
+
+        // === Starting  node editing. ===
+
+        previous_edited_node <- out.node_editing_started.previous();
+        _eval <- all_with(&out.node_editing_started, &previous_edited_node, f!([model] (current, previous) {
+            move_node_to_main_layer(&model, *previous);
+            move_node_to_edited_node_layer(&model, *current);
+        }));
+
+
+        // === Edited node camera position animation. ===
+
+        is_growing <- bool(&out.node_editing_finished, &out.node_editing_started);
+        edited_node_cam_target <- switch(&is_growing, &main_cam_frp.position, &searcher_cam_frp.position);
+        growth_animation.target <+ edited_node_cam_target;
+
+        on_node_editing_start_or_finish <- any(&out.node_editing_started, &out.node_editing_finished);
+        eval_ on_node_editing_start_or_finish ({
+            animation_blending.stop_and_rewind(0.0);
+            animation_blending.target(1.0);
+        });
+
+        edited_node_cam_position <- all_with3(&edited_node_cam_target,
+                                              &growth_animation.value,
+                                              &animation_blending.value,
+                                              |target,animation,weight| {
+            let weight = Vector3::from_element(*weight);
+            let inv_weight = Vector3::from_element(1.0) - weight;
+            target.component_mul(&weight) + animation.component_mul(&inv_weight)
+        });
+        eval edited_node_cam_position([edited_node_cam] (pos) edited_node_cam.set_position(*pos));
+
+
+        // === Finishing shrinking animation. ===
+
+        animation_magnitude <- all_with(&growth_animation.target,
+                                        &growth_animation.value,
+                                        |target, value| (target - value).magnitude());
+        animation_not_needed <- animation_magnitude.map(|m| *m < animation::DEFAULT_PRECISION);
+        shrinking_not_needed <- animation_not_needed.sample(&out.node_editing_finished).on_true();
+        shrinking_ended <- growth_animation.on_end.gate_not(&is_growing);
+        shrinking_finished <- any(&shrinking_ended, &shrinking_not_needed);
+        node_that_finished_editing <- out.node_editing_finished.sample(&shrinking_finished);
+        eval node_that_finished_editing ([model] (id) {
+            move_node_to_main_layer(&model, *id);
+        });
+    }
+}
+
+/// Move node to the `edited_node` scene layer, so that it is rendered by the separate camera.
+fn move_node_to_edited_node_layer(model: &GraphEditorModelWithNetwork, node_id: NodeId) {
+    if let Some(node) = model.nodes.get_cloned(&node_id) {
+        node.model.move_to_edited_node_layer();
+    }
+}
+
+/// Move node to the `main` scene layer, so that it is rendered by the main camera.
+fn move_node_to_main_layer(model: &GraphEditorModelWithNetwork, node_id: NodeId) {
+    if let Some(node) = model.nodes.get_cloned(&node_id) {
+        node.model.move_to_main_layer();
+    }
+}

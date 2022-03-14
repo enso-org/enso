@@ -7,6 +7,7 @@ pub mod action_bar;
 #[warn(missing_docs)]
 pub mod error;
 pub mod expression;
+pub mod growth_animation;
 pub mod input;
 pub mod output;
 #[warn(missing_docs)]

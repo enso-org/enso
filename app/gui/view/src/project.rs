@@ -477,9 +477,9 @@ impl View {
             searcher_cam_pos <- all_with3(&main_cam_frp.position,
                                           &main_cam_frp.zoom,
                                           &searcher_left_top_position.value,
-                                          |main_cam_pos, zoom, searcher_pos| {
-                let preserve_zoom = (*main_cam_pos * *zoom).xy();
-                let move_to_edited_node = *searcher_pos * (1.0 - *zoom);
+                                          |&main_cam_pos, &zoom, &searcher_pos| {
+                let preserve_zoom = (main_cam_pos * zoom).xy();
+                let move_to_edited_node = searcher_pos * (1.0 - zoom);
                 preserve_zoom + move_to_edited_node
             });
             eval searcher_cam_pos ([searcher_cam] (pos) searcher_cam.set_position_xy(*pos));
