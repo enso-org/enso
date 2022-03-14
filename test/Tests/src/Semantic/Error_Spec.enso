@@ -75,11 +75,18 @@ spec =
     Test.group "Panics" <|
         Test.specify "should be able to be caught" <|
             result = Panic.catch (Panic.throw 42) error->
-                error+10
+                error.payload+10
             result . should_equal 52
 
             result_2 = Panic.catch (1 + 2) error->
-                error+10
+                error.payload+10
             result_2 . should_equal 3
+        Test.specify "should provide access to stack traces" <|
+            stack = Panic.catch here.throw_a_bar_panicking error->
+                error.stack_trace
+            stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
+
+        Test.specify "should be able to be rethrown without changing the stack trace" pending="TODO" <|
+            Nothing
 
 main = Test.Suite.run_main here.spec

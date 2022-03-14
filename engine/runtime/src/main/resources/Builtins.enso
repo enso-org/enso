@@ -440,8 +440,6 @@ type Panic
        result of that action. Otherwise, it is the result of the provided
        handler callback, executed with the caught panic as its first argument.
 
-       TODO [RW] we may add the stacktrace as a second argument?
-
        Arguments:
        - action: The code to execute that potentially panics.
        - handler: The callback to handle any panics.
@@ -450,9 +448,18 @@ type Panic
          Handling a panic for a panicking action.
 
              Panic.catch (Panic.throw "Oh no!") error->
-                 IO.println "Caught an error: "+error.to_text
-    catch : Any -> (Any -> Any) -> Any
+                 IO.println "Caught an error: "+error.payload.to_text
+    catch : Any -> (Caught_Panic -> Any) -> Any
     catch ~action handler = @Builtin_Method "Panic.catch"
+
+## A wrapper for a caught panic.
+
+   Arguments:
+   - payload: the payload carried by the error.
+   - prim_stack_trace: an array of primitive stack trace elements. Use
+     `stack_trace` instead.
+@Builtin_Type
+type Caught_Panic payload prim_stack_trace
 
 # Function types.
 type Function

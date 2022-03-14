@@ -13,7 +13,10 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -40,7 +43,11 @@ public abstract class CatchPanicNode extends Node {
   }
 
   abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object _this, @Suspend Object action, Object handler);
+      VirtualFrame frame,
+      @MonadicState Object state,
+      Object _this,
+      @Suspend Object action,
+      Object handler);
 
   @Specialization
   Stateful doExecute(
@@ -53,11 +60,22 @@ public abstract class CatchPanicNode extends Node {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
-      return invokeCallableNode.execute(handler, frame, state, new Object[] {e.getPayload()});
+      Object payload = e.getPayload();
+      Array stackTrace =
+          org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceNode.stackTraceToArray(
+              e);
+      Atom caughtPanic =
+          Context.get(this).getBuiltins().caughtPanic().newInstance(payload, stackTrace);
+      return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
     } catch (Throwable e) {
       if (exceptions.isException(e)) {
-        Object payload = Context.get(this).getBuiltins().error().makePolyglotError(e);
-        return invokeCallableNode.execute(handler, frame, state, new Object[] {payload});
+        Builtins builtins = Context.get(this).getBuiltins();
+        Object payload = builtins.error().makePolyglotError(e);
+        Array stackTrace =
+            org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceNode
+                .stackTraceToArray(e);
+        Atom caughtPanic = builtins.caughtPanic().newInstance(payload, stackTrace);
+        return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
       }
       unknownExceptionProfile.enter();
       throw e;

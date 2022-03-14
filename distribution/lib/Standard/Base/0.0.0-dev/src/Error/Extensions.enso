@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Runtime.Extensions as Runtime_Extensions
+from Standard.Base.Runtime.Extensions as Runtime_Extensions import Stack_Trace_Element
 
 ## ADVANCED
    UNSTABLE
@@ -156,3 +156,10 @@ Error.is_error = True
          example_rethrow = Panic.rethrow Examples.throw_error
 Panic.rethrow : (Any ! Any) -> Any
 Panic.rethrow value = value.catch Panic.throw
+
+## Returns the stack trace of the caught panic.
+Caught_Panic.stack_trace : Vector.Vector Stack_Trace_Element
+Caught_Panic.stack_trace =
+    prim_stack = this.prim_stack_trace
+    stack_with_prims = Vector.Vector prim_stack
+    stack_with_prims.map Runtime_Extensions.wrap_primitive_stack_trace_element
