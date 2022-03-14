@@ -284,38 +284,85 @@ object Doc {
     //// List - Ordered & Unordered, Invalid Indent ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
+    /** A list item.
+      *
+      * @param elems the elements that make up this list item
+      */
+    final case class ListItem(elems: scala.List[Elem]) extends Elem {
+
+      override val repr: Repr.Builder = R + elems
+
+      override def html: HTML = elems.map(_.html)
+
+      def append(elem: Elem): ListItem = {
+        copy(elems = elems :+ elem)
+      }
+    }
+
+    object ListItem {
+      def apply(elems: Elem*): ListItem =
+        new ListItem(elems.toList)
+    }
+
     /** List - block used to hold ordered and unordered lists
+      *
+      * Indent.Invalid - holds list element with invalid indent
       *
       * @param indent - specifies indentation of list
       * @param typ - type of list
       * @param elems - elements which make up list
-      *
-      * Indent.Invalid - holds list element with invalid indent
       */
-    final case class List(indent: Int, typ: List.Type, elems: List1[Elem])
+    final case class List(indent: Int, typ: List.Type, elems: List1[ListItem])
         extends Elem {
-      val repr: Repr.Builder = R + indent + typ.marker + elems.head + elems.tail
-        .map {
-          case elem @ (_: Elem.Invalid) => R + Newline + elem
-          case elem @ (_: List)         => R + Newline + elem
-          case elem =>
-            R + Newline + indent + typ.marker + elem
+      val elemIndent = 1
+
+      val repr: Repr.Builder = {
+        val listElems = elems.reverse
+        R + indent + typ.marker + elemIndent + listElems.head +
+        listElems.tail.map { elem =>
+          R + Elem.Newline + indent + typ.marker + elemIndent + elem
         }
+      }
+//        R + indent + typ.marker + elemIndent + elems.head + elems.tail
+//          .map {
+//            case elem @ (_: Elem.Invalid) => R + Newline + elem
+//            case elem @ (_: List)         => R + Newline + elem
+//            case elem =>
+//              R + Newline + indent + typ.marker + elem
+//          }
 
       val html: HTML = {
-        val elemsHTML = elems.toList.map {
-          case elem @ (_: List) => elem.html
-          case elem             => Seq(HTML.li(elem.html))
+        val elemsHTML = elems.reverse.toList.map {
+          //case elem @ (_: List) => elem.html
+          elem => HTML.li(elem.html)
         }
         Seq(typ.HTMLMarker(elemsHTML))
+      }
+
+      def append(elem: Elem): List = {
+        val newElems = List1(elems.head.append(elem), elems.tail)
+        this.copy(elems = newElems)
+      }
+
+      def addItem(item: ListItem): List = {
+        val newElems = elems.prepend(item)
+        this.copy(elems = newElems)
       }
     }
 
     object List {
-      def apply(indent: Int, listType: Type, elem: Elem): List =
-        List(indent, listType, List1(elem))
-      def apply(indent: Int, listType: Type, elems: Elem*): List =
-        List(indent, listType, List1(elems.head, elems.tail.toList))
+
+      def empty(indent: Int, listType: Type): List =
+        new List(indent, listType, List1(ListItem(Nil)))
+
+      def apply(indent: Int, listType: Type, elem: Elem, elems: Elem*): List = {
+        val listItems = (elem :: elems.toList).reverse.map(ListItem(_))
+        new List(
+          indent,
+          listType,
+          List1.fromListOption(listItems).get
+        )
+      }
 
       abstract class Type(val marker: Char, val HTMLMarker: HTMLTag)
       final case object Unordered extends Type('-', HTML.ul)

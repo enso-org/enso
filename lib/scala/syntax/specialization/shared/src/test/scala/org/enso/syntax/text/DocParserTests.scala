@@ -22,6 +22,8 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
+        println(s"value=$value")
+        println(s"value.show='${value.show()}'")
         if (assertShow) {
           assert(value.show() == new Reader(input).toString())
         }
@@ -53,7 +55,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
 
   "Foo"             ?= Doc(Synopsis(Section.Raw("Foo")))
   "Foo\uD83D\uDC98" ?= Doc(Synopsis(Section.Raw("Foo", "\uD83D\uDC98")))
-  "*Foo*"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
+  "*Foo1*"          ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo1"))))
   "_Foo_"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
   "~Foo~" ?= Doc(
     Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
@@ -271,6 +273,39 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         Section.Header("Important"),
         Doc.Elem.Newline,
         "This is important."
+      )
+    )
+  )
+  """! Synopsis
+    |  This _is_ important""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Marked(
+        0,
+        1,
+        Section.Marked.Important,
+        Section.Header("Synopsis"),
+        Doc.Elem.Newline,
+        "This ",
+        Formatter(Formatter.Italic, "is"),
+        " important"
+      )
+    )
+  )
+  """Synopsis
+    |This _is1_ important""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "Synopsis",
+        Doc.Elem.Newline,
+        "This ",
+        Formatter(Formatter.Italic, "is1"),
+        " important"
       )
     )
   )
@@ -522,9 +557,8 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     )
   )
   """List
-    |  - First unordered item
-    |  - Second unordered item
-    |  - Third unordered item""".stripMargin
+    |  - _First_
+    |  - *Second*""".stripMargin
     .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
@@ -533,9 +567,28 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
-          " Third unordered item"
+          " ",
+          Formatter(Formatter.Italic, "First"),
+          Formatter(Formatter.Bold, "Second")
+        )
+      )
+    )
+  )
+  """List
+    |- First1
+    |- Second
+    |- Third""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          0,
+          List.Unordered,
+          "First1",
+          "Second",
+          "Third"
         )
       )
     )
