@@ -159,8 +159,9 @@ object GenerateFlatbuffers {
   ): Set[File] = {
     val affectedSources =
       schemas.flatMap { schema =>
-        val cmdMakeRules =
-          s"$flatcCmd -M --java -o ${out.getAbsolutePath} ${schema.getAbsolutePath}"
+        val cmdMakeRules = Process(flatcCmd, List("-M", "--java", "-o", out.getAbsolutePath, schema.getAbsolutePath))
+//        val cmdMakeRules =
+//          s"$flatcCmd -M --java -o ${out.getAbsolutePath} ${schema.getAbsolutePath}"
         val makeRules =
           try {
             cmdMakeRules.!!
