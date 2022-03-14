@@ -76,6 +76,15 @@ set warnings value =
      the given warning is replaced with the new value. If it returns `Nothing`
      the original warning remains unaffected.
    - value: the value whose warnings should be modified.
+
+   > Example
+     Map all `No_Match_Found` warnings to more specific messages. Any other
+     attached warnings are unaffected.
+
+         mapper warning = case warning of
+             Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+             _ -> Nothing
+         Warning.map_attached_warnings mapper value
 map_attached_warnings : (Any -> Maybe Any) -> Any -> Any
 map_attached_warnings mapper value =
     here.map_attached_warnings_helper mapper value 1
@@ -89,6 +98,15 @@ map_attached_warnings mapper value =
      `Some` value, the given warning or error is replaced with the new value. If
      it returns `Nothing` the original warning or error remains unaffected.
    - value: the value whose errors or warnings should be modified.
+
+   > Example
+     Map all `No_Match_Found` warnings or errors to more specific messages. Any
+     other attached warnings or errors are unaffected.
+
+         mapper error = case error of
+             Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+             _ -> Nothing
+         Warning.map_warnings_and_errors mapper value
 map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any
 map_warnings_and_errors mapper value =
     mapped_warnings_or_error = here.map_attached_warnings_helper mapper value 1
