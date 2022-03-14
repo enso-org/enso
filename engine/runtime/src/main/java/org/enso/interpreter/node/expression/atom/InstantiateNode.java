@@ -21,19 +21,21 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @NodeInfo(shortName = "Instantiate", description = "Instantiates a constant Atom constructor")
 public class InstantiateNode extends ExpressionNode {
   private final AtomConstructor constructor;
-  private @Children ExpressionNode[] arguments;
+  private @Children ExpressionNode[] argAssignments;
+  private @Children ExpressionNode[] argReads;
   private @CompilationFinal(dimensions = 1) ConditionProfile[] profiles;
   private @CompilationFinal(dimensions = 1) ConditionProfile[] warningProfiles;
   private @CompilationFinal(dimensions = 1) BranchProfile[] sentinelProfiles;
   private final ConditionProfile anyWarningsProfile = ConditionProfile.createCountingProfile();
 
-  InstantiateNode(AtomConstructor constructor, ExpressionNode[] arguments) {
+  InstantiateNode(AtomConstructor constructor, ExpressionNode[] argAssignments, ExpressionNode[] argReads) {
     this.constructor = constructor;
-    this.arguments = arguments;
-    this.profiles = new ConditionProfile[arguments.length];
-    this.sentinelProfiles = new BranchProfile[arguments.length];
-    this.warningProfiles = new ConditionProfile[arguments.length];
-    for (int i = 0; i < arguments.length; ++i) {
+    this.argAssignments = argAssignments;
+    this.argReads = argReads;
+    this.profiles = new ConditionProfile[argAssignments.length];
+    this.sentinelProfiles = new BranchProfile[argAssignments.length];
+    this.warningProfiles = new ConditionProfile[argAssignments.length];
+    for (int i = 0; i < argAssignments.length; ++i) {
       this.profiles[i] = ConditionProfile.createCountingProfile();
       this.sentinelProfiles[i] = BranchProfile.create();
       this.warningProfiles[i] = ConditionProfile.createCountingProfile();
@@ -44,11 +46,15 @@ public class InstantiateNode extends ExpressionNode {
    * Creates an instance of this node.
    *
    * @param constructor the {@link AtomConstructor} this node will be instantiating
-   * @param arguments the expressions for field values
+   * @param argAssignments the expressions that evaluate and assign constructor arguments to local vars
+   * @param argReads the expressions that read field values from local vars
    * @return a node that instantiates {@code constructor}
    */
-  public static InstantiateNode build(AtomConstructor constructor, ExpressionNode[] arguments) {
-    return new InstantiateNode(constructor, arguments);
+  public static InstantiateNode build(
+          AtomConstructor constructor,
+          ExpressionNode[] argAssignments,
+          ExpressionNode[] argReads) {
+    return new InstantiateNode(constructor, argAssignments, argReads);
   }
 
   /**
@@ -61,14 +67,15 @@ public class InstantiateNode extends ExpressionNode {
   @Override
   @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
-    Object[] argumentValues = new Object[arguments.length];
+    Object[] argumentValues = new Object[argAssignments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
-    for (int i = 0; i < arguments.length; i++) {
+    for (int i = 0; i < argAssignments.length; i++) {
       ConditionProfile profile = profiles[i];
       ConditionProfile warningProfile = warningProfiles[i];
       BranchProfile sentinelProfile = sentinelProfiles[i];
-      Object argument = arguments[i].executeGeneric(frame);
+      argAssignments[i].executeVoid(frame);
+      Object argument = argReads[i].executeGeneric(frame);
       if (profile.profile(TypesGen.isDataflowError(argument))) {
         return argument;
       } else if (warningProfile.profile(argument instanceof WithWarnings)) {
