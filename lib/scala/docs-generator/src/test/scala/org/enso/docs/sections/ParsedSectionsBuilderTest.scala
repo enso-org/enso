@@ -1,10 +1,13 @@
-package org.enso.docs.generator
+package org.enso.docs.sections
 
+import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.ast.Doc
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
+class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
+
+  import ParsedSectionsBuilderTest._
 
   "DocSectionsGenerator" should {
 
@@ -13,10 +16,10 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         """ UNSTABLE
           |""".stripMargin
       val expected = List(
-        DocSection.Tag("UNSTABLE", None)
+        Section.Tag("UNSTABLE", None)
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate multiple tags" in {
@@ -25,11 +28,11 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | DEPRECATED
           |""".stripMargin
       val expected = List(
-        DocSection.Tag("UNSTABLE", None),
-        DocSection.Tag("DEPRECATED", None)
+        Section.Tag("UNSTABLE", None),
+        Section.Tag("DEPRECATED", None)
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate tag with description" in {
@@ -37,10 +40,10 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         """ ALIAS Check Matches
           |""".stripMargin
       val expected = List(
-        DocSection.Tag("ALIAS", Some("Check Matches"))
+        Section.Tag("ALIAS", Some(Doc.Elem.Text("Check Matches")))
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate description single line" in {
@@ -48,10 +51,10 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         """ hello world
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(List(Doc.Elem.Text("hello world")))
+        Section.Paragraph(List(Doc.Elem.Text("hello world")))
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate description multiline" in {
@@ -60,7 +63,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | second line
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(
             Doc.Elem.Text("hello world"),
             Doc.Elem.Newline,
@@ -69,7 +72,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate description multiple paragraphs" in {
@@ -81,7 +84,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | multiline
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(
             Doc.Elem.Text("Hello world"),
             Doc.Elem.Newline,
@@ -89,7 +92,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.Newline
           )
         ),
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(
             Doc.Elem.Text("Second paragraph"),
             Doc.Elem.Newline,
@@ -98,7 +101,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate keyed arguments" in {
@@ -110,10 +113,10 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | - two: The second
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Keyed(
+        Section.Keyed(
           "Arguments",
           List(
             Doc.Elem.Newline,
@@ -127,7 +130,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate keyed icon" in {
@@ -137,16 +140,16 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | Icon: my-icon
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Keyed(
+        Section.Keyed(
           "Icon",
           List(Doc.Elem.Text("my-icon"))
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate keyed aliases" in {
@@ -156,16 +159,16 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | Aliases: foo, bar baz, redshift®
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Keyed(
+        Section.Keyed(
           "Aliases",
           List(Doc.Elem.Text("foo, bar baz, redshift"), Doc.Elem.Text("®"))
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate marked example" in {
@@ -177,11 +180,11 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |       main = 42
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Marked(
-          DocSection.Mark.Example,
+        Section.Marked(
+          Section.Mark.Example,
           Some("Example"),
           List(
             Doc.Elem.Newline,
@@ -192,7 +195,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate marked multiple examples" in {
@@ -213,11 +216,11 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |           42
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Marked(
-          DocSection.Mark.Example,
+        Section.Marked(
+          Section.Mark.Example,
           Some("Example"),
           List(
             Doc.Elem.Newline,
@@ -229,8 +232,8 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.Newline
           )
         ),
-        DocSection.Marked(
-          DocSection.Mark.Example,
+        Section.Marked(
+          Section.Mark.Example,
           Some("Example"),
           List(
             Doc.Elem.Newline,
@@ -245,7 +248,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate marked important" in {
@@ -256,11 +259,11 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   Beware of nulls.
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Marked(
-          DocSection.Mark.Important,
+        Section.Marked(
+          Section.Mark.Important,
           Some("This is important"),
           List(
             Doc.Elem.Newline,
@@ -269,7 +272,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate marked info" in {
@@ -280,11 +283,11 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   FYI.
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Marked(
-          DocSection.Mark.Info,
+        Section.Marked(
+          Section.Mark.Info,
           Some("Out of curiosity"),
           List(
             Doc.Elem.Newline,
@@ -293,7 +296,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate marked info multiple sections" in {
@@ -305,15 +308,15 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           | ? Out of curiosity
           |   FYI.
-          |   
+          |
           |   Another section.
           |""".stripMargin
       val expected = List(
-        DocSection.Paragraph(
+        Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
         ),
-        DocSection.Marked(
-          DocSection.Mark.Info,
+        Section.Marked(
+          Section.Mark.Info,
           Some("Out of curiosity"),
           List(
             Doc.Elem.Newline,
@@ -324,7 +327,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
 
     "generate multiple sections" in {
@@ -333,7 +336,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           | Some paragraph
           | Second line
-          | 
+          |
           | Arguments:
           | - one: The first
           | - two: The second
@@ -345,9 +348,9 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   FYI.
           |""".stripMargin
       val expected = List(
-        DocSection.Tag("DEPRECATED", None),
-        DocSection.Paragraph(List(Doc.Elem.Newline)),
-        DocSection.Paragraph(
+        Section.Tag("DEPRECATED", None),
+        Section.Paragraph(List(Doc.Elem.Newline)),
+        Section.Paragraph(
           List(
             Doc.Elem.Text("Some paragraph"),
             Doc.Elem.Newline,
@@ -355,7 +358,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.Newline
           )
         ),
-        DocSection.Keyed(
+        Section.Keyed(
           "Arguments",
           List(
             Doc.Elem.Newline,
@@ -368,8 +371,8 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.Newline
           )
         ),
-        DocSection.Marked(
-          DocSection.Mark.Important,
+        Section.Marked(
+          Section.Mark.Important,
           Some("This is important"),
           List(
             Doc.Elem.Newline,
@@ -377,8 +380,8 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.Newline
           )
         ),
-        DocSection.Marked(
-          DocSection.Mark.Info,
+        Section.Marked(
+          Section.Mark.Info,
           Some("Out of curiosity"),
           List(
             Doc.Elem.Newline,
@@ -387,8 +390,17 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         )
       )
 
-      DocParserWrapper.buildSections(comment) shouldEqual expected
+      parseSections(comment) shouldEqual expected
     }
   }
 
+}
+object ParsedSectionsBuilderTest {
+
+  val parsedSectionsBuilder = new ParsedSectionsBuilder
+
+  def parseSections(comment: String): List[ParsedSection] = {
+    val doc = DocParser.runMatched(comment)
+    parsedSectionsBuilder.build(doc)
+  }
 }
