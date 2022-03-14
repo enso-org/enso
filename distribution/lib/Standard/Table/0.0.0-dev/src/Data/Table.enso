@@ -487,11 +487,13 @@ type Table
 
 
     ## Prototype Group By function
-    group_by : Column_Selector -> [Aggregate_Column] -> Problem_Behavior -> Table
-    group_by selector columns (on_problems=Report_Warning) =
+    aggregate : [Aggregate_Column] -> Problem_Behavior -> Warnings.Warning_System -> Table
+    aggregate columns (on_problems=Report_Warning) (warnings=Warnings.default) =
         # Grouping Key
-        key_columns = if selector.is_nothing then [] else
-            Table_Helpers.select_columns_helper internal_columns=this.columns selector=selector reorder=True on_problems=on_problems
+        map c = case c of
+            Group_By _ _ -> True
+            _ -> false
+        key_columns = columns.filter map . map c->(c.resolve_column this c.column)
         key_length = key_columns.length
         make_key = if (key_length == 0) then _->(Group_By.key [1]) else i->(Group_By.key (key_columns.map v->(v.at i)))
 

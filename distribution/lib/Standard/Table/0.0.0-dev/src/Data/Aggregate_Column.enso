@@ -5,6 +5,9 @@ import Standard.Table.Data.Group_By
 
 ## Defines an Aggregate Column
 type Aggregate_Column
+    ## Group By
+    type GroupBy (column:Column|Text|Integer) (name:Text|Nothing=Nothing)
+
     ## Creates a new column with the row count of each group
 
        Arguments:
@@ -174,6 +177,7 @@ type Aggregate_Column
         if this.name.is_nothing.not then this.name else
             get_name c = (this.resolve_column table c).name
             case this of
+                Group_By c _ -> (get_name c)
                 Count _ -> "Count"
                 Count_Distinct c _ _ ->
                     case c of
@@ -208,6 +212,7 @@ type Aggregate_Column
 
     initial_value : Any
     initial_value = case this of
+        Group_By _ _ -> Nothing
         Count_Distinct _ _ _ -> Map.empty
         Median _ _ -> Map.empty
         Percentile _ _ _ -> Map.empty
@@ -235,6 +240,7 @@ type Aggregate_Column
             _ -> Error.throw (Invalid_Aggregation_Method this.col "Empty is only valid for Text")
 
         case this of
+            Group_By c _ -> create_closure c col->_->i->(col.at i)
             Count _ -> count->_->(count+1)
             Count_Not_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 0 else 1)
             Count_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
