@@ -248,8 +248,8 @@ select_columns_helper internal_columns selector reorder on_problems = case selec
    Converts the generic `No_Matches_Found` error to a more specific
    `Missing_Input_Columns`. Any other errors are returned as-is.
 promote_no_matches_to_missing_columns error = case error of
-    Matching.No_Matches_Found criteria -> Missing_Input_Columns criteria
-    _ -> error
+    Matching.No_Matches_Found criteria -> Maybe.Some <| Missing_Input_Columns criteria
+    _ -> Nothing
 
 ## PRIVATE
    Selects element from the vector based on the given indices.

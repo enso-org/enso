@@ -103,21 +103,30 @@ spec = Test.group "Dataflow Warnings" <|
         rewarned.should_equal 'foo'
         Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 
-    Test.specify "should allow to map the warnings" <|
-        warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
-        mapped = Warning.map_attached_warnings (ix -> ix + 10) warned
-        mapped . should_equal 'foo'
-        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 12, 13, 14]
+    Test.specify "should allow to map the warnings, selectively" <|
+        mapper x = if x % 2 == 0 then Nothing else Maybe.Some (x + 10)
 
-    Test.specify "should allow to map warnings or errors" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
-        mapped = Warning.map_warnings_and_errors (ix -> ix + 10) warned
+        mapped = Warning.map_attached_warnings mapper warned
         mapped . should_equal 'foo'
-        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 12, 13, 14]
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
 
-        errored = Error.throw 42
-        mapped_2 = Warning.map_warnings_and_errors (ix -> ix + 10) errored
-        mapped_2.catch . should_equal 52
-        Warning.get_all mapped_2 . catch . should_equal 52
+    Test.specify "should allow to map warnings or errors, selectively" <|
+        mapper x = if x % 2 == 0 then Nothing else Maybe.Some (x + 10)
+
+        warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        mapped = Warning.map_warnings_and_errors mapper warned
+        mapped . should_equal 'foo'
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
+
+        errored_2 = Error.throw 7
+        mapped_2 = Warning.map_warnings_and_errors mapper errored_2
+        mapped_2.catch . should_equal 17
+        Warning.get_all mapped_2 . catch . should_equal 17
+
+        errored_3 = Error.throw 8
+        mapped_3 = Warning.map_warnings_and_errors mapper errored_3
+        mapped_3.catch . should_equal 8
+        Warning.get_all mapped_3 . catch . should_equal 8
 
 main = Test.Suite.run_main here.spec

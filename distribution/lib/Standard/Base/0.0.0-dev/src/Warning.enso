@@ -71,18 +71,47 @@ set warnings value =
 ## UNSTABLE
    Maps warnings attached to a value.
 
-   TODO [RW] this will likely lose reattachments metadata, but I guess this is acceptable? ideally we should have a notion of a partial function and make this affect only warnings that actually matched and were changed
-map_attached_warnings : (Any -> Any) -> Any -> Any
+   Arguments:
+   - mapper: the function to apply to all warnings. If it returns `Some` value,
+     the given warning is replaced with the new value. If it returns `Nothing`
+     the original warning remains unaffected.
+   - value: the value whose warnings should be modified.
+map_attached_warnings : (Any -> Maybe Any) -> Any -> Any
 map_attached_warnings mapper value =
-    warnings = here.get_all value
-    prim_mapped_warnings = warnings.map warning->
-        mapped_value = mapper warning.value
-        Prim_Warning.create mapped_value warning.origin
-    Prim_Warning.set value prim_mapped_warnings.to_array
+    here.map_attached_warnings_helper mapper value 1
 
 ## UNSTABLE
    An utility function which applies the mapping function both to any attached
    warnings and dataflow errors.
-map_warnings_and_errors : (Any -> Any) -> Any -> Any
+
+   Arguments:
+   - mapper: the function to apply to all warnings or errors. If it returns
+     `Some` value, the given warning or error is replaced with the new value. If
+     it returns `Nothing` the original warning or error remains unaffected.
+   - value: the value whose errors or warnings should be modified.
+map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any
 map_warnings_and_errors mapper value =
-    (here.map_attached_warnings mapper value) . map_error mapper
+    mapped_warnings_or_error = here.map_attached_warnings_helper mapper value 1
+    mapped_warnings_or_error.catch error->
+        case mapper error of
+            Maybe.Some new_error -> Error.throw new_error
+            ## If the mapper did not want to affect the error, we return the
+               original dataflow error as-is, to preserve its stacktrace.
+            Nothing -> mapped_warnings_or_error
+
+## PRIVATE
+   Maps warnings attached to a value.
+
+   An internal helper function to avoid repeating the implementation.
+map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
+map_attached_warnings_helper mapper value frames_to_drop =
+    warnings = here.get_all value
+    prim_mapped_warnings = warnings.map warning->
+        case mapper warning.value of
+            Maybe.Some new_payload ->
+                new_origin = Runtime.get_stack_trace.drop_start 3+frames_to_drop
+                Prim_Warning.create new_payload new_origin
+            ## If the mapper did not want to affect this warning, we return the
+               original (unwrapped) warning instance.
+            Nothing -> warning.prim_warning
+    Prim_Warning.set value prim_mapped_warnings.to_array
