@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -27,25 +26,22 @@ public abstract class CompareToNode extends Node {
   @Specialization
   Atom doLong(
       EnsoBigInteger _this,
-      long that,
-      @Cached("getOrdering()") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
+      long that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
   }
 
   @Specialization
   Atom doBigInt(
       EnsoBigInteger _this,
-      EnsoBigInteger that,
-      @Cached("getOrdering()") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compareTo(_this.getValue(), that.getValue()));
+      EnsoBigInteger that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(_this.getValue(), that.getValue()));
   }
 
   @Specialization
   Atom doDecimal(
       EnsoBigInteger _this,
-      double that,
-      @Cached("getOrdering()") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
+      double that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
   }
 
   @Specialization
