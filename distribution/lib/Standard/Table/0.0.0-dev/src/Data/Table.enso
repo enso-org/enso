@@ -509,7 +509,7 @@ type Table
         aggregators = columns.map c->(c.make_aggregator this)
         aggregate map i =
             key = make_key i
-            row_index = map.get_or_else key (add_row key)
+            row_index = map.get_or_else key (add_row Nothing)
 
             # Accumulate
             0.up_to (columns.length) . each j->
@@ -520,7 +520,7 @@ type Table
                 array . set_at row_index new
 
             map.insert key row_index
-        if ((key_columns.length == 0) && (this.row_count == 0)) then (add_row []) else
+        if ((key_columns.length == 0) && (this.row_count == 0)) then (add_row Nothing) else
             0.up_to this.row_count . fold Map.empty aggregate
 
         # Now Finalise and make a table
