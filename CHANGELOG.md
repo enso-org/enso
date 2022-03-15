@@ -64,6 +64,7 @@
 - [Implemented `Map.first`, `Map.last` functions. Expanded `Table.group_by` to
   also compute mode, percentile, minimum, maximum.][3318]
 - [Implemented `Text.location_of` and `Text.location_of_all` methods.][3324]
+- [Replaced `Table.group_by` with `Table.aggregate`][3339]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -103,6 +104,7 @@
 [3317]: https://github.com/enso-org/enso/pull/3317
 [3318]: https://github.com/enso-org/enso/pull/3318
 [3324]: https://github.com/enso-org/enso/pull/3324
+[3339]: https://github.com/enso-org/enso/pull/3339
 
 #### Enso Compiler
 
