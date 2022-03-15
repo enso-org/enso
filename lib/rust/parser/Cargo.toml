@@ -11,6 +11,5 @@ repository   = "https://github.com/enso-org/rust-lib"
 license-file = "../../LICENSE"
 
 [dependencies]
-nom = "7.1.0"
 bumpalo = {version = "3.9.1", features = ["allocator_api"]}
 enso-prelude = { path = "../prelude" }
