@@ -202,6 +202,7 @@ pub struct LexerState {
     pub last_spaces_visible_offset: usize,
     pub current_block_indent:       usize,
     pub block_indent_stack:         Vec<usize>,
+    pub line_contains_tokens:       bool,
 }
 
 impl<'s> Deref for Lexer<'s> {
@@ -245,6 +246,20 @@ impl<'s> Lexer<'s> {
             Token { left_visible_offset, left_offset, start, len, elem }
         })
     }
+
+    #[inline(always)]
+    pub fn try_running(&mut self, f: impl FnOnce(&mut Self)) -> bool {
+        let offset = self.offset;
+        f(self);
+        self.offset > offset
+    }
+
+    #[inline(always)]
+    pub fn submit_token(&mut self, token: Token) {
+        self.output.push(token);
+        self.line_contains_tokens = true;
+    }
+
 
     #[inline(always)]
     pub fn push_block_indent(&mut self, new_indent: usize) {
@@ -331,11 +346,11 @@ impl<'s> Lexer<'s> {
 
     #[inline(always)]
     pub fn take_while_1(&mut self, f: impl Copy + Pattern) -> bool {
-        let out = self.take_1(f);
-        if out {
+        let ok = self.take_1(f);
+        if ok {
             self.take_while(f);
         }
-        out
+        ok
     }
 }
 
@@ -423,6 +438,8 @@ pub enum Kind {
     Ident(Ident),
     Operator,
     Modifier,
+    Comment,
+    DocComment,
 }
 
 
@@ -465,7 +482,7 @@ impl<'s> Lexer<'s> {
                 Kind::Ident(Ident { is_free, lift_level })
             };
             let tok = tok.with_elem(kind);
-            self.output.push(tok);
+            self.submit_token(tok);
         }
     }
 }
@@ -544,7 +561,8 @@ impl<'s> Lexer<'s> {
                 match current {
                     '.' => this.take_while_1('.'),
                     '=' => this.take_while_1('='),
-                    ':' => this.take_while_1(':'),
+                    ':' => true,
+                    ',' => true,
                     _ => this.take_while_1(is_operator_body_char),
                 };
             }
@@ -555,12 +573,12 @@ impl<'s> Lexer<'s> {
                 let (left, right) = tok.split_at(Bytes::from(1)).unwrap();
                 let left = left.with_elem(Kind::Operator);
                 let right = right.with_elem(Kind::Operator);
-                self.output.push(left);
-                self.output.push(right);
+                self.submit_token(left);
+                self.submit_token(right);
             } else {
                 let kind = if repr.ends_with('=') { Kind::Modifier } else { Kind::Operator };
                 let token = tok.with_elem(kind);
-                self.output.push(token);
+                self.submit_token(token);
             }
         }
     }
@@ -577,7 +595,36 @@ impl<'s> Lexer<'s> {
         if let Some(current) = self.current_char {
             if "(){}[]`".contains(current) {
                 let token = self.token(|this| this.take_any()).unwrap().with_elem(Kind::Symbol);
-                self.output.push(token);
+                self.submit_token(token);
+            }
+        }
+    }
+}
+
+
+
+// ================
+// === Comments ===
+// ================
+
+impl<'s> Lexer<'s> {
+    #[inline(always)]
+    fn submit_line_as(&mut self, kind: Kind) {
+        let tok = self.token(|this| this.take_line());
+        if let Some(tok) = tok {
+            self.submit_token(tok.with_elem(kind));
+        }
+    }
+
+    fn comment(&mut self) {
+        if let Some(current) = self.current_char {
+            if current == '#' {
+                self.submit_line_as(Kind::Comment);
+                let initial_ident = self.current_block_indent;
+                let check_ident = |this: &mut Self| this.current_block_indent > initial_ident;
+                while self.try_running(|this| this.newline()) && check_ident(self) {
+                    self.submit_line_as(Kind::Comment);
+                }
             }
         }
     }
@@ -589,7 +636,17 @@ impl<'s> Lexer<'s> {
 // === Block ===
 // =============
 
+#[inline(always)]
+pub fn is_newline_char(t: char) -> bool {
+    t == '\n' || t == '\r'
+}
+
 impl<'s> Lexer<'s> {
+    #[inline(always)]
+    pub fn take_line(&mut self) {
+        self.take_while(|t| !is_newline_char(t))
+    }
+
     fn newline(&mut self) {
         let tok = self.token(|this| {
             if !this.take_1('\n') {
@@ -600,10 +657,10 @@ impl<'s> Lexer<'s> {
         });
         if let Some(tok) = tok {
             let block_indent = self.last_spaces_visible_offset;
-            self.output.push(tok.with_elem(Kind::Newline));
+            self.submit_token(tok.with_elem(Kind::Newline));
             if block_indent > self.current_block_indent {
                 let block_start = Token::new_no_offset_phantom(self.offset, Kind::BlockStart);
-                self.output.push(block_start);
+                self.submit_token(block_start);
                 self.push_block_indent(block_indent);
             } else {
                 while block_indent < self.current_block_indent {
@@ -617,10 +674,11 @@ impl<'s> Lexer<'s> {
                         break;
                     } else {
                         let block_end = Token::new_no_offset_phantom(self.offset, Kind::BlockEnd);
-                        self.output.push(block_end);
+                        self.submit_token(block_end);
                     }
                 }
             }
+            self.line_contains_tokens = false;
         }
     }
 }
@@ -632,7 +690,7 @@ impl<'s> Lexer<'s> {
 // ============
 
 const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] =
-    &[|t| t.ident(), |t| t.operator(), |t| t.newline(), |t| t.symbol()];
+    &[|t| t.ident(), |t| t.operator(), |t| t.newline(), |t| t.symbol(), |t| t.comment()];
 
 impl<'s> Lexer<'s> {
     fn lex(&mut self) -> bool {
@@ -641,9 +699,7 @@ impl<'s> Lexer<'s> {
         while any_parser_matched {
             any_parser_matched = false;
             for f in PARSERS {
-                let offset = self.offset;
-                f(self);
-                if self.offset > offset {
+                if self.try_running(f) {
                     any_parser_matched = true;
                     break;
                 }
@@ -678,7 +734,7 @@ mod tests {
 
     #[test]
     fn test_manual() {
-        let inp = "f )";
+        let inp = "f ) # dsad asd sa asd asd\n foo";
         let mut input = Lexer::new(&inp);
         input.lex();
         println!("{:#?}", input.output);
