@@ -366,6 +366,65 @@ Any.should_be_a typ = if this.is_a typ then Success else
 Any.should_be_an : Any -> Assertion
 Any.should_be_an typ = this.should_be_a typ
 
+## Asserts that `this` value contains the same elements as `that`.
+
+   It only checks that all elements from one collection are also present in the
+   other one. Arities of elements are not checked, so the collections can still
+   differ in length by containing duplicate elements.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - that: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain the same elements as another.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
+Any.should_contain_the_same_elements_as : Any -> Integer -> Assertion
+Any.should_contain_the_same_elements_as that frames_to_skip=0 =
+    that.each element->
+        if this.contains element . not then
+            loc = Meta.get_source_location 2+frames_to_skip
+            msg = "The collection (" + this.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
+            here.fail msg
+    this.each element->
+        if that.contains element . not then
+            loc = Meta.get_source_location 2+frames_to_skip
+            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
+            here.fail msg
+
+## Asserts that `this` value contains the same elements as `that`.
+
+   It only checks that all elements from one collection are also present in the
+   other one. Arities of elements are not checked, so the collections can still
+   differ in length by containing duplicate elements.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - _: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain the same elements as another.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
+Error.should_contain_the_same_elements_as : Any -> Assertion
+Error.should_contain_the_same_elements_as _ frames_to_skip=0 = here.fail_match_on_unexpected_error this 1+frames_to_skip
+
+
 type Verbs
 
     ## PRIVATE

@@ -37,6 +37,26 @@ foo value = here.bar value
 
 Integer.from (that:Wrap) = that.foo
 
+attach_four_warnings value =
+    v1 = Warning.attach 4 value
+    v2 = Warning.attach 3 v1
+    v3 = Warning.attach 2 v2
+    v4 = Warning.attach 1 v3
+    v4
+
+odd_warning_mapper payload = case payload of
+    Integer -> if payload % 2 == 0 then Nothing else Maybe.Some (payload + 10)
+    _ -> Nothing
+
+map_odd_warnings value =
+    Warning.map_attached_warnings here.odd_warning_mapper value
+
+map_odd_warnings_and_errors value =
+    Warning.map_warnings_and_errors here.odd_warning_mapper value
+
+throw_a_bar =
+    Panic.throw "bar"
+
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|
         x = 1233
@@ -101,5 +121,30 @@ spec = Test.group "Dataflow Warnings" <|
         filtered = warnings.filter x-> x.value % 2 == 0
         rewarned = Warning.set filtered warned
         rewarned.should_equal 'foo'
-        Warning.get_all rewarned . map .value . should_equal [2,4]
+        Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 
+    Test.specify "should allow to map the warnings, selectively" <|
+        warned = here.attach_four_warnings "foo"
+        mapped = here.map_odd_warnings warned
+        mapped . should_equal 'foo'
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
+
+    Test.specify "should allow to map warnings and errors, selectively" <|
+        warned = here.attach_four_warnings "foo"
+        mapped = here.map_odd_warnings_and_errors warned
+        mapped . should_equal 'foo'
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
+        Warning.get_all mapped . map (w-> w.origin.first.name) . should_contain_the_same_elements_as ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
+
+        errored_2 = Error.throw 7
+        mapped_2 = here.map_odd_warnings_and_errors errored_2
+        mapped_2.catch . should_equal 17
+        Warning.get_all mapped_2 . catch . should_equal 17
+
+        errored_3 = Panic.recover here.throw_a_bar
+        mapped_3 = here.map_odd_warnings_and_errors errored_3
+        mapped_3.catch . should_equal "bar"
+        mapped_3.get_stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"
+        Warning.get_all mapped_3 . catch . should_equal "bar"
+
+main = Test.Suite.run_main here.spec

@@ -66,6 +66,8 @@ pub mod prelude {
     pub use enso_logger::DefaultWarningLogger as Logger;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
     pub use enso_shapely::newtype_prim;
     pub use enso_shapely::newtype_prim_no_default;
     pub use enso_shapely::newtype_prim_no_default_no_display;
