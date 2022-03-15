@@ -2,13 +2,60 @@
 #![feature(allocator_api)]
 #![feature(slice_index_methods)]
 #![feature(test)]
+#![feature(generic_associated_types)]
 
 use enso_prelude::*;
 
 use bumpalo::Bump;
+use ouroboros::self_referencing;
 use std::str;
 
 
+
+// ===============
+// === BumpVec ===
+// ===============
+
+#[self_referencing]
+struct BumpVec<T> {
+    allocator: Bump,
+    #[covariant]
+    #[borrows(allocator)]
+    pub vec:   Vec<T, &'this Bump>,
+}
+
+impl<T> Default for BumpVec<T> {
+    fn default() -> Self {
+        let allocator = Bump::new();
+        BumpVecBuilder { allocator, vec_builder: |allocator: &Bump| Vec::new_in(allocator) }.build()
+    }
+}
+
+impl<T> BumpVec<T> {
+    pub fn push(&mut self, t: T) {
+        self.with_mut(|fields| fields.vec.push(t))
+    }
+
+    pub fn last(&self) -> Option<&T> {
+        self.borrow_vec().last()
+    }
+
+    pub fn len(&self) -> usize {
+        self.borrow_vec().len()
+    }
+}
+
+impl<T: Debug> Debug for BumpVec<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self.borrow_vec(), f)
+    }
+}
+
+
+
+// =============
+// === Bytes ===
+// =============
 
 #[derive(
     Add, AddAssign, Clone, Copy, Debug, Default, Eq, From, Hash, PartialEq, PartialOrd, Ord, Sub
@@ -36,6 +83,7 @@ impl BytesStrOps for str {
         &self[bytes_range_into_usize_range(range)]
     }
 }
+
 
 
 // =============
@@ -100,14 +148,10 @@ impl<T> Token<T> {
     }
 }
 
-
-
-pub type TokenVec<'s> = Vec<Token, &'s Bump>;
-
-pub struct Model<'s> {
+pub struct Lexer<'s> {
     pub input:    &'s str,
     pub iterator: str::CharIndices<'s>,
-    pub output:   TokenVec<'s>,
+    output:       BumpVec<Token>,
     pub state:    ModelState,
 }
 
@@ -122,23 +166,23 @@ pub struct ModelState {
     pub block_indent_stack:         Vec<usize>,
 }
 
-impl<'s> Deref for Model<'s> {
+impl<'s> Deref for Lexer<'s> {
     type Target = ModelState;
     fn deref(&self) -> &Self::Target {
         &self.state
     }
 }
 
-impl<'s> DerefMut for Model<'s> {
+impl<'s> DerefMut for Lexer<'s> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.state
     }
 }
 
-impl<'s> Model<'s> {
-    pub fn new(bump: &'s Bump, input: &'s str) -> Self {
+impl<'s> Lexer<'s> {
+    pub fn new(input: &'s str) -> Self {
         let iterator = input.char_indices();
-        let output = Vec::new_in(bump);
+        let output = default();
         let state = default();
         Self { input, iterator, output, state }.init()
     }
@@ -307,7 +351,7 @@ fn is_space_char(t: char) -> Option<usize> {
     }
 }
 
-impl<'s> Model<'s> {
+impl<'s> Lexer<'s> {
     #[inline(always)]
     fn space_and_its_visible_offset(&mut self) -> Option<usize> {
         let out = self.current_char.and_then(is_space_char);
@@ -359,7 +403,7 @@ pub enum Kind {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Ident {
-    is_free:    bool,
+    is_free:    bool, // impl_bound (!!!)
     lift_level: usize,
 }
 
@@ -373,7 +417,7 @@ fn is_ident_body(t: char) -> bool {
     is_ident_start_char(t) || (t >= '0' && t <= '9') || t == '\''
 }
 
-impl<'s> Model<'s> {
+impl<'s> Lexer<'s> {
     fn ident(&mut self) {
         let tok = self.token(|this| {
             if this.take_1(is_ident_start_char) {
@@ -463,7 +507,7 @@ fn is_operator_body_char(t: char) -> bool {
     }
 }
 
-impl<'s> Model<'s> {
+impl<'s> Lexer<'s> {
     fn operator(&mut self) {
         let tok = self.token(|this| {
             if let Some(current) = this.current_char {
@@ -498,7 +542,7 @@ impl<'s> Model<'s> {
 // === Symbol ===
 // ==============
 
-impl<'s> Model<'s> {
+impl<'s> Lexer<'s> {
     fn symbol(&mut self) {
         if let Some(current) = self.current_char {
             if "(){}[]`".contains(current) {
@@ -515,7 +559,7 @@ impl<'s> Model<'s> {
 // === Block ===
 // =============
 
-impl<'s> Model<'s> {
+impl<'s> Lexer<'s> {
     fn newline(&mut self) {
         let tok = self.token(|this| {
             if !this.take_1(|t| t == '\n') {
@@ -557,10 +601,10 @@ impl<'s> Model<'s> {
 // === Glue ===
 // ============
 
-const PARSERS: &[for<'r> fn(&'r mut Model<'_>)] =
+const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] =
     &[|t| t.ident(), |t| t.operator(), |t| t.newline(), |t| t.symbol()];
 
-impl<'s> Model<'s> {
+impl<'s> Lexer<'s> {
     fn lex(&mut self) -> bool {
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
         let mut any_parser_matched = true;
@@ -590,8 +634,7 @@ fn assert_token_eq(str: &str, f: Option<Box<dyn Fn(usize, usize) -> Token>>) {
     for l_offset in 0..4 {
         let inp = format!("{}{}", " ".repeat(l_offset), str);
         let result = f.as_ref().map(|f| f(l_offset, l_offset));
-        let bump = Bump::new();
-        let mut input = Model::new(&bump, &inp);
+        let mut input = Lexer::new(&inp);
         input.lex();
         assert_eq!(input.output.last().copied(), result);
     }
@@ -606,8 +649,7 @@ mod tests {
     #[test]
     fn test_manual() {
         let inp = "f )";
-        let bump = Bump::new();
-        let mut input = Model::new(&bump, &inp);
+        let mut input = Lexer::new(&inp);
         input.lex();
         println!("{:#?}", input.output);
     }
@@ -662,7 +704,7 @@ fn main() {
     let str = "_fooAr'' bar";
     let capacity = str.len() / 5;
     let bump = Bump::with_capacity(capacity);
-    let mut input = Model::new(&bump, str);
+    let mut input = Lexer::new(str);
     println!("{:?}", input.ident());
 }
 
@@ -704,8 +746,8 @@ mod benches {
         let capacity = str.len() / 5;
 
         b.iter(move || {
-            let bump = Bump::with_capacity(capacity);
-            let mut input = Model::new(&bump, &str);
+            // let bump = Bump::with_capacity(capacity);
+            let mut input = Lexer::new(&str);
             let ok = input.lex();
             assert_eq!(ok, true);
             assert_eq!(input.output.len(), reps);
