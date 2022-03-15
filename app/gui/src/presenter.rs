@@ -43,45 +43,44 @@ struct Model {
 
 impl Model {
     /// Instantiate a new project presenter, which will display current project in the view.
+    #[profile(Task)]
     fn setup_and_display_new_project(self: Rc<Self>) {
         // Remove the old integration first. We want to be sure the old and new integrations will
         // not race for the view.
         *self.current_project.borrow_mut() = None;
+        let project_model = match self.controller.current_project() {
+            Some(model) => model,
+            None => return,
+        };
+        self.view.switch_view_to_project();
+        // We know the name of new project before it loads. We set it right now to avoid
+        // displaying a placeholder on the scene during loading.
+        let project_view = self.view.project();
+        let status_bar = self.view.status_bar().clone_ref();
+        let breadcrumbs = &project_view.graph().model.breadcrumbs;
+        breadcrumbs.project_name(project_model.name().to_string());
 
-        if let Some(project_model) = self.controller.current_project() {
-            self.view.switch_view_to_project();
-            // We know the name of new project before it loads. We set it right now to avoid
-            // displaying placeholder on the scene during loading.
-            let project_view = self.view.project();
-            let status_bar = self.view.status_bar().clone_ref();
-            let breadcrumbs = &project_view.graph().model.breadcrumbs;
-            breadcrumbs.project_name(project_model.name().to_string());
-
-            let status_notifications = self.controller.status_notifications().clone_ref();
-            let ide_controller = self.controller.clone_ref();
-            let project_controller =
-                controller::Project::new(project_model, status_notifications.clone_ref());
-
-            executor::global::spawn(async move {
-                match presenter::Project::initialize(
-                    ide_controller,
-                    project_controller,
-                    project_view,
-                    status_bar,
-                )
-                .await
-                {
-                    Ok(project) => {
-                        *self.current_project.borrow_mut() = Some(project);
-                    }
-                    Err(err) => {
-                        let err_msg = format!("Failed to initialize project: {}", err);
-                        error!(self.logger, "{err_msg}");
-                        status_notifications.publish_event(err_msg)
-                    }
+        let status_notifications = self.controller.status_notifications().clone_ref();
+        let ide_controller = self.controller.clone_ref();
+        let project_controller = controller::Project::new(project_model, status_notifications);
+        let project_presenter = presenter::Project::initialize(
+            ide_controller,
+            project_controller,
+            project_view,
+            status_bar,
+        );
+        crate::executor::global::spawn(async move {
+            match project_presenter.await {
+                Ok(project) => {
+                    *self.current_project.borrow_mut() = Some(project);
                 }
-            });
-        }
+                Err(err) => {
+                    let err_msg = format!("Failed to initialize project: {}", err);
+                    error!(self.logger, "{err_msg}");
+                    self.controller.status_notifications().publish_event(err_msg);
+                }
+            }
+        });
     }
 
     /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
@@ -145,6 +144,7 @@ impl Presenter {
     ///
     /// The returned presenter is working and does not require any initialization. The current
     /// project will be displayed (if any).
+    #[profile(Task)]
     pub fn new(controller: controller::Ide, view: ide_view::root::View) -> Self {
         let logger = Logger::new("Presenter");
         let current_project = default();
@@ -164,11 +164,12 @@ impl Presenter {
         Self { model, network }.init()
     }
 
+    #[profile(Detail)]
     fn init(self) -> Self {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
-        self.set_projects_list_on_welcome_screen();
         self.model.clone_ref().setup_and_display_new_project();
+        executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
         self
     }
 
@@ -216,23 +217,19 @@ impl Presenter {
         });
     }
 
-    fn set_projects_list_on_welcome_screen(&self) {
-        let controller = self.model.controller.clone_ref();
-        let welcome_view_frp = self.model.view.welcome_screen().frp.clone_ref();
-        let logger = self.model.logger.clone_ref();
-        crate::executor::global::spawn(async move {
-            if let Ok(project_manager) = controller.manage_projects() {
-                match project_manager.list_projects().await {
-                    Ok(projects) => {
-                        let names = projects.into_iter().map(|p| p.name.into()).collect::<Vec<_>>();
-                        welcome_view_frp.set_projects_list(names);
-                    }
-                    Err(err) => {
-                        error!(logger, "Unable to get list of projects: {err}.");
-                    }
+    #[profile(Detail)]
+    async fn set_projects_list_on_welcome_screen(self) {
+        if let Ok(project_manager) = self.model.controller.manage_projects() {
+            match project_manager.list_projects().await {
+                Ok(projects) => {
+                    let names = projects.into_iter().map(|p| p.name.into()).collect::<Vec<_>>();
+                    self.model.view.welcome_screen().frp.set_projects_list(names);
+                }
+                Err(err) => {
+                    error!(self.model.logger, "Unable to get list of projects: {err}.");
                 }
             }
-        });
+        }
     }
 }
 
