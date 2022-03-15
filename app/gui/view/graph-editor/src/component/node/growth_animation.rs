@@ -10,7 +10,7 @@ use ensogl::prelude::*;
 use crate::GraphEditorModelWithNetwork;
 use crate::NodeId;
 use enso_frp as frp;
-use ensogl::animation;
+use ensogl::animation::easing::EndStatus::Normal;
 use ensogl::display::Scene;
 use ensogl::Animation;
 use ensogl::Easing;
@@ -39,7 +39,7 @@ pub fn initialize_edited_node_animator(
         // === Starting node editing ===
 
         previous_edited_node <- out.node_editing_started.previous();
-        _eval <- all_with(&out.node_editing_started, &previous_edited_node, f!([model] (current, previous) {
+        _eval <- out.node_editing_started.map2(&previous_edited_node, f!([model] (current, previous) {
             model.move_node_to_main_layer(*previous);
             model.move_node_to_edited_node_layer(*current);
         }));
@@ -80,14 +80,9 @@ pub fn initialize_edited_node_animator(
 
         // === Finishing shrinking animation ===
 
-        animation_magnitude <- all_with(&growth_animation.target,
-                                        &growth_animation.value,
-                                        |target, value| (target - value).magnitude());
-        animation_not_needed <- animation_magnitude.map(|m| *m < animation::DEFAULT_PRECISION);
-        shrinking_not_needed <- animation_not_needed.sample(&out.node_editing_finished).on_true();
-        shrinking_ended <- growth_animation.on_end.gate_not(&is_growing);
-        shrinking_finished <- any(&shrinking_ended, &shrinking_not_needed);
-        node_that_finished_editing <- out.node_editing_finished.sample(&shrinking_finished);
+        on_animation_end <- animation_blending.on_end.filter(|end_status| *end_status == Normal);
+        shrinking_finished <- on_animation_end.gate_not(&is_growing);
+        node_that_finished_editing <- out.node_editing_started.sample(&shrinking_finished);
         eval node_that_finished_editing ([model] (id) {
             model.move_node_to_main_layer(*id);
         });
