@@ -456,6 +456,10 @@ public class Context {
     return TruffleLogger.getLogger(LanguageInfo.ID, klass);
   }
 
+  /** Returns the current clock value and atomically increments the counter by one.
+   *
+   * The counter is used to track the creation time of warnings.
+   */
   public long clockTick() {
     return clock.getAndIncrement();
   }

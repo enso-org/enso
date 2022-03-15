@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.Runtime.Extensions as Runtime_Extensions
+
 ## ADVANCED
    UNSTABLE
 
@@ -119,6 +121,17 @@ Error.to_json =
              map.get 10 . map_error (_ -> "The element 10 was not found.")
 Error.map_error : (Error -> Error) -> Any
 Error.map_error f = this.catch (x -> Error.throw (f x))
+
+## ADVANCED
+   UNSTABLE
+
+   Returns the attached stack trace of the error. The ordering of the resulting
+   vector is such that the top stack frame is the first element.
+Error.get_stack_trace : Vector.Vector Stack_Trace_Element
+Error.get_stack_trace =
+    prim_stack = this.primitive_get_stack_trace
+    stack_with_prims = Vector.Vector prim_stack
+    stack_with_prims.map Runtime_Extensions.wrap_primitive_stack_trace_element
 
 ## Checks if `this` is an error.
 

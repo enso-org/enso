@@ -83,11 +83,15 @@ Runtime.get_stack_trace : Vector.Vector Stack_Trace_Element
 Runtime.get_stack_trace =
     prim_stack = this.primitive_get_stack_trace
     stack_with_prims = Vector.Vector prim_stack
-    stack = stack_with_prims.map el->
-        loc = case Polyglot.has_source_location el of
-            True -> Source_Location (Polyglot.get_source_location el)
-            False -> Nothing
-        name = Polyglot.get_executable_name el
-        Stack_Trace_Element name loc
+    stack = stack_with_prims.map here.wrap_primitive_stack_trace_element
     # drop this frame and the one from `Runtime.primitive_get_stack_trace`
     stack.drop_start 2
+
+## PRIVATE
+   Converts a primitive stack trace element into the regular one.
+wrap_primitive_stack_trace_element el =
+    loc = case Polyglot.has_source_location el of
+        True -> Source_Location (Polyglot.get_source_location el)
+        False -> Nothing
+    name = Polyglot.get_executable_name el
+    Stack_Trace_Element name loc
