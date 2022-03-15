@@ -15,6 +15,12 @@ use std::str;
 )]
 pub struct Bytes(usize);
 
+impl Display for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
 #[inline(always)]
 fn bytes_range_into_usize_range(range: Range<Bytes>) -> Range<usize> {
     unsafe { mem::transmute(range) }
@@ -36,7 +42,7 @@ impl BytesStrOps for str {
 // === Token ===
 // =============
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Token<T = Kind> {
     left_visible_offset: usize,
     left_offset:         Bytes,
@@ -45,7 +51,26 @@ pub struct Token<T = Kind> {
     elem:                T,
 }
 
+impl<T: Debug> Debug for Token<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}({},{})", self.elem, self.left_visible_offset, self.len)
+    }
+}
+
 impl<T> Token<T> {
+    #[inline(always)]
+    pub fn new_no_offset(start: Bytes, len: Bytes, elem: T) -> Self {
+        let left_visible_offset = 0;
+        let left_offset = Bytes::from(0);
+        Self { left_visible_offset, left_offset, start, len, elem }
+    }
+
+    #[inline(always)]
+    pub fn new_no_offset_phantom(start: Bytes, elem: T) -> Self {
+        let len = Bytes::from(0);
+        Self::new_no_offset(start, len, elem)
+    }
+
     #[inline(always)]
     pub fn with_elem<S>(self, elem: S) -> Token<S> {
         Token { elem, ..self }
@@ -80,42 +105,75 @@ impl<T> Token<T> {
 pub type TokenVec<'s> = Vec<Token, &'s Bump>;
 
 pub struct Model<'s> {
-    pub input: &'s str,
+    pub input:    &'s str,
     pub iterator: str::CharIndices<'s>,
-    pub current: Option<char>,
-    pub char_offset: usize,
-    pub offset: Bytes,
-    pub output: TokenVec<'s>,
+    pub output:   TokenVec<'s>,
+    pub state:    ModelState,
+}
+
+#[derive(Debug, Default)]
+pub struct ModelState {
+    pub current_char:               Option<char>,
+    pub char_offset:                usize,
+    pub offset:                     Bytes,
     pub last_spaces_visible_offset: usize,
-    pub last_spaces_offset: Bytes,
+    pub last_spaces_offset:         Bytes,
+    pub current_block_indent:       usize,
+    pub block_indent_stack:         Vec<usize>,
+}
+
+impl<'s> Deref for Model<'s> {
+    type Target = ModelState;
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
+}
+
+impl<'s> DerefMut for Model<'s> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.state
+    }
 }
 
 impl<'s> Model<'s> {
     pub fn new(bump: &'s Bump, input: &'s str) -> Self {
         let iterator = input.char_indices();
-        let current = default();
-        let char_offset = default();
-        let offset = default();
         let output = Vec::new_in(bump);
-        let last_spaces_visible_offset = default();
-        let last_spaces_offset = default();
-        Self {
-            input,
-            iterator,
-            current,
-            char_offset,
-            offset,
-            output,
-            last_spaces_visible_offset,
-            last_spaces_offset,
-        }
-        .init()
+        let state = default();
+        Self { input, iterator, output, state }.init()
     }
 
     fn init(mut self) -> Self {
         self.next();
         self.char_offset = 0;
         self
+    }
+
+    #[inline(always)]
+    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Token<T> {
+        let left_offset = self.last_spaces_offset;
+        let left_visible_offset = self.last_spaces_visible_offset;
+        let start = self.offset;
+        let elem = f(self);
+        let len = self.offset - start;
+        (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
+        Token { left_visible_offset, left_offset, start, len, elem }
+    }
+
+    #[inline(always)]
+    pub fn push_block_indent(&mut self, new_indent: usize) {
+        let current_block_indent = self.current_block_indent;
+        self.block_indent_stack.push(current_block_indent);
+        self.current_block_indent = new_indent;
+    }
+
+    #[inline(always)]
+    pub fn pop_block_indent(&mut self) -> Option<usize> {
+        self.block_indent_stack.pop().map(|prev| {
+            let out = self.current_block_indent;
+            self.current_block_indent = prev;
+            out
+        })
     }
 
     #[inline(always)]
@@ -126,14 +184,14 @@ impl<'s> Model<'s> {
     #[inline(always)]
     fn next(&mut self) {
         let next = self.iterator.next();
-        if let Some((offset, current)) = next {
+        if let Some((offset, current_char)) = next {
             self.char_offset += 1;
             self.offset = Bytes::from(offset);
-            self.current = Some(current);
-        } else if self.current.is_some() {
+            self.current_char = Some(current_char);
+        } else if self.current_char.is_some() {
             self.char_offset += 1;
             self.offset = Bytes::from(self.input.len());
-            self.current = None;
+            self.current_char = None;
         }
     }
 
@@ -170,7 +228,7 @@ impl<'s> Model<'s> {
 
     #[inline(always)]
     pub fn take_1(&mut self, f: impl Fn(char) -> bool) -> bool {
-        let out = self.current.map(f) == Some(true);
+        let out = self.current_char.map(f) == Some(true);
         if out {
             self.next();
         }
@@ -180,7 +238,7 @@ impl<'s> Model<'s> {
     #[inline(always)]
     pub fn take_while(&mut self, mut f: impl FnMut(char) -> bool) {
         loop {
-            if let Some(t) = self.current {
+            if let Some(t) = self.current_char {
                 if f(t) {
                     self.next()
                 } else {
@@ -207,31 +265,6 @@ impl<'s> Model<'s> {
 // =============
 // === Token ===
 // =============
-
-#[macro_export]
-macro_rules! token {
-    ($self:ident $($ts:tt)*) => {
-        let left_offset = $self.last_spaces;
-        let start = $self.offset;
-        let kind = { $($ts)* };
-        let len = $self.offset - start;
-        kind.mk_token(&mut $self.output, left_offset, start, len)
-    };
-}
-
-#[macro_export]
-macro_rules! token2 {
-    ($self:ident $($ts:tt)*) => {{
-        let left_offset = $self.last_spaces_offset;
-        let left_visible_offset = $self.last_spaces_visible_offset;
-        let start = $self.offset;
-        let elem = { $($ts)* };
-        let len = $self.offset - start;
-        Token{left_visible_offset, left_offset, start, len, elem}
-    }};
-}
-
-
 
 pub trait MkToken {
     type Output;
@@ -311,7 +344,7 @@ fn is_space_char(t: char) -> Option<usize> {
 impl<'s> Model<'s> {
     #[inline(always)]
     fn space_and_its_visible_offset(&mut self) -> Option<usize> {
-        let out = self.current.and_then(is_space_char);
+        let out = self.current_char.and_then(is_space_char);
         if out.is_some() {
             self.next();
         }
@@ -342,6 +375,9 @@ impl<'s> Model<'s> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
+    Newline,
+    BlockStart,
+    BlockEnd,
     Wildcard,
     Ident(Ident),
     Operator,
@@ -371,13 +407,13 @@ fn is_ident_body(t: char) -> bool {
 
 impl<'s> Model<'s> {
     fn ident(&mut self) -> bool {
-        let tok = token2! { self
-            let ok = self.take_1(is_ident_start_char);
+        let tok = self.token(|this| {
+            let ok = this.take_1(is_ident_start_char);
             if ok {
-                self.take_while(is_ident_body);
+                this.take_while(is_ident_body);
             }
             ok
-        };
+        });
         let ok = tok.elem;
         if ok {
             let repr = self.repr(tok);
@@ -465,13 +501,14 @@ fn is_operator_body_char(t: char) -> bool {
 
 impl<'s> Model<'s> {
     fn operator(&mut self) -> bool {
-        let tok = token2! { self
-            self.current.map(|current| match current {
-                '.' => self.take_while_1(|t| t == '.'),
-                '=' => self.take_while_1(|t| t == '='),
-                _ => self.take_while_1(is_operator_body_char),
+        let tok = self.token(|this| {
+            this.current_char.map(|current| match current {
+                '.' => this.take_while_1(|t| t == '.'),
+                '=' => this.take_while_1(|t| t == '='),
+                ':' => this.take_while_1(|t| t == ':'),
+                _ => this.take_while_1(is_operator_body_char),
             })
-        };
+        });
         let ok = tok.elem == Some(true);
         if ok {
             let repr = self.repr(tok);
@@ -493,21 +530,70 @@ impl<'s> Model<'s> {
 
 
 
+// =============
+// === Block ===
+// =============
+
+impl<'s> Model<'s> {
+    fn newline(&mut self) -> bool {
+        let tok = self.token(|this| {
+            let mut ok = this.take_1(|t| t == '\n');
+            if !ok {
+                if this.take_1(|t| t == '\r') {
+                    this.take_1(|t| t == '\n');
+                    ok = true;
+                }
+            }
+            ok
+        });
+        let ok = tok.elem;
+        if ok {
+            let block_indent = self.last_spaces_visible_offset;
+            self.output.push(tok.with_elem(Kind::Newline));
+            if block_indent > self.current_block_indent {
+                let block_start = Token::new_no_offset_phantom(self.offset, Kind::BlockStart);
+                self.output.push(block_start);
+                self.push_block_indent(block_indent);
+            } else {
+                while block_indent < self.current_block_indent {
+                    let err = "Lexer internal error. Inconsistent code block hierarchy.";
+                    let parent_block_indent = self.pop_block_indent().expect(err);
+                    if block_indent > self.current_block_indent {
+                        // The new line indent is smaller than current block but bigger than the
+                        // previous one. We are treating the line as belonging to the block. The
+                        // warning should be reported by parser.
+                        self.push_block_indent(parent_block_indent);
+                        break;
+                    } else {
+                        let block_end = Token::new_no_offset_phantom(self.offset, Kind::BlockEnd);
+                        self.output.push(block_end);
+                    }
+                }
+            }
+        }
+        ok
+    }
+}
+
+
+
 // ============
 // === Glue ===
 // ============
 
 impl<'s> Model<'s> {
     fn lex(&mut self) -> bool {
+        (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
         loop {
-            (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
             if !self.ident() {
                 if !self.operator() {
-                    break;
+                    if !self.newline() {
+                        break;
+                    }
                 }
             }
         }
-        self.current == None
+        self.current_char == None
     }
 }
 
@@ -565,7 +651,7 @@ mod tests {
 
     #[test]
     fn test_manual() {
-        let inp = "+-";
+        let inp = "\n  foo\n    bar\nbaz";
         let bump = Bump::new();
         let mut input = Model::new(&bump, &inp);
         input.lex();
