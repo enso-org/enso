@@ -178,3 +178,35 @@ Panic.rethrow value = value.catch Panic.throw
 Caught_Panic.stack_trace : Vector.Vector Stack_Trace_Element
 Caught_Panic.stack_trace =
     Panic.get_attached_stack_trace this
+
+## UNSTABLE
+   ADVANCED
+
+   Catches panics caused by a Java exception which is a subclass of the provided
+   class.
+
+   Arguments:
+   - action: the action to attempt and catch exceptions from.
+   - java_class: the class of a Java exception that should be caught.
+   - handler: a callback which is called with the caught exception.
+
+   Returns the result of running `action` or the result of the `handler` if the
+   matching Java exception has been thrown from within the `action`.
+
+   > Example
+     Convert a string to an integer, catching `NumberFormatException` and
+     converting it to a more Enso-friendly dataflow error.
+
+     polyglot java import java.lang.Long
+     polyglot java import java.lang.NumberFormatException
+     parse str =
+         Panic.catch_java_exception (Long.parseLong str) NumberFormatException exception->
+             Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+exception.getMessage)
+Panic.catch_java_exception : Any -> Any -> (Any -> Any) -> Any
+Panic.catch_java_exception ~action java_class handler =
+    Panic.catch action caught_panic-> case caught_panic.payload of
+        Polyglot_Error java_exception ->
+            case Java.is_instance java_exception java_class of
+                True -> handler java_exception
+                False -> Panic.throw caught_panic
+        _ -> Panic.throw caught_panic

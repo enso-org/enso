@@ -3,6 +3,8 @@ from Standard.Base import all
 import Standard.Test
 
 polyglot java import java.util.Random
+polyglot java import java.lang.Long
+polyglot java import java.lang.NumberFormatException
 
 type My_Type foo
 
@@ -82,6 +84,12 @@ spec =
             result_2 = Panic.catch (1 + 2) caught_panic->
                 caught_panic.payload+10
             result_2 . should_equal 3
+
+        Test.specify "should not mix with dataflow errors" <|
+            result = Panic.catch (Error.throw 42) caught_panic->
+                caught_panic.payload+10
+            result.catch . should_equal 42
+
         Test.specify "should provide access to stack traces" <|
             stack = Panic.catch here.throw_a_bar_panicking caught_panic->
                 caught_panic.stack_trace
@@ -104,5 +112,23 @@ spec =
             error = Panic.recover (perform_operation here.throw_a_foo_panicking)
             error.catch . should_equal "foo"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_foo_panicking"
+
+        Test.specify "should work as in the examples" <|
+            fun ~act =
+                Panic.catch act caught_panic-> case caught_panic.payload of
+                    Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
+                    other_panic -> Panic.throw other_panic
+            Panic.recover (fun "bar") . should_equal "bar"
+            Panic.recover (fun (Panic.throw "foo")) . catch . should_equal "foo"
+            Panic.recover (fun (Panic.throw (Illegal_Argument_Error "msg" Nothing))) . should_equal "Illegal arguments were provided: msg"
+
+        Test.specify "should allow catching Java exceptions easily" <|
+            parse str =
+                Panic.catch_java_exception (Long.parseLong str) NumberFormatException exception->
+                    Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+exception.getMessage)
+
+            parse "42" . should_equal 42
+            parse "foo" . catch . should_equal (Illegal_Argument_Error 'The provided string is not a valid number: For input string: "foo"')
+            Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types
 
 main = Test.Suite.run_main here.spec
