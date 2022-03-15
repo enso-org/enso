@@ -247,6 +247,9 @@ impl WorldData {
                     display_mode.set(1)
                 } else if key == "Digit2" {
                     display_mode.set(2)
+                } else if key == "KeyP" {
+                    let log = profiler::internal::take_log();
+                    web_sys::console::log_1(&log.into());
                 }
             }
         });

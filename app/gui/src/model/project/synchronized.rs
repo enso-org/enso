@@ -248,6 +248,7 @@ pub struct Project {
 
 impl Project {
     /// Create a new project model.
+    #[profile(Detail)]
     pub async fn new(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -303,6 +304,7 @@ impl Project {
     }
 
     /// Initializes the json and binary connection to Language Server, and creates a Project Model
+    #[profile(Detail)]
     pub async fn new_connected(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -337,6 +339,7 @@ impl Project {
 
     /// Creates a project model by opening a given project in project_manager, and initializing
     /// the received json and binary connections.
+    #[profile(Detail)]
     pub async fn new_opened(
         parent: &Logger,
         project_manager: Rc<dyn project_manager::API>,

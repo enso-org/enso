@@ -34,6 +34,7 @@ struct Model {
 }
 
 impl Model {
+    #[profile(Task)]
     fn new(
         ide_controller: controller::Ide,
         controller: controller::Project,
@@ -165,6 +166,7 @@ impl Project {
     ///
     /// The returned presenter will be already working: it will display the initial main graph, and
     /// react to all notifications.
+    #[profile(Task)]
     pub fn new(
         ide_controller: controller::Ide,
         controller: controller::Project,
@@ -177,6 +179,7 @@ impl Project {
         Self { network, model: Rc::new(model) }.init()
     }
 
+    #[profile(Detail)]
     fn init(self) -> Self {
         let model = &self.model;
         let network = &self.network;
@@ -271,6 +274,7 @@ impl Project {
     ///
     /// This calls the [`controller::Project::initialize`] method and use the initialization result
     /// to construct working presenter.
+    #[profile(Task)]
     pub async fn initialize(
         ide_controller: controller::Ide,
         controller: controller::Project,
