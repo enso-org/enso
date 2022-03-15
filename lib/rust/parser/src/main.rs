@@ -230,18 +230,18 @@ impl<'s> Model<'s> {
 
     #[inline(always)]
     pub fn take_any(&mut self) -> bool {
-        let out = self.current_char.is_some();
+        let ok = self.current_char.is_some();
         self.next();
-        out
+        ok
     }
 
     #[inline(always)]
     pub fn take_1(&mut self, f: impl Fn(char) -> bool) -> bool {
-        let out = self.current_char.map(f) == Some(true);
-        if out {
+        let ok = self.current_char.map(f) == Some(true);
+        if ok {
             self.next();
         }
-        out
+        ok
     }
 
     #[inline(always)]
