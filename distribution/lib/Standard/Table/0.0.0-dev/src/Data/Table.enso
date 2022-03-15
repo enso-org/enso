@@ -487,19 +487,19 @@ type Table
 
 
     ## Prototype Group By function
-    aggregate : [Aggregate_Column] -> Problem_Behavior -> Warnings.Warning_System -> Table
-    aggregate columns (on_problems=Report_Warning) (warnings=Warnings.default) =
+    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+    aggregate columns (on_problems=Report_Warning) =
         # Grouping Key
-        map c = case c of
+        is_a_key c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
-        key_columns = columns.filter map . map c->(c.resolve_column this c.column)
+        key_columns = columns.filter is_a_key . map c->(c.resolve_column this c.column)
         make_key = if (key_columns.length == 0) then _->(Group_By_Key.key [1]) else i->(Group_By_Key.key (key_columns.map v->(v.at i)))
 
         # New Table Accumulator
         name_strategy = Unique_Name_Strategy.new
         new_table = columns.map c->(c.column_name this) . map n->[name_strategy.make_unique n, Vector.new_builder]
-        add_row key =
+        add_row _ =
             idx = new_table.at 0 . at 1 . length
             0.up_to (columns.length) . each i->
                 new_table.at i . at 1 . append ((columns.at i).initial_value)
