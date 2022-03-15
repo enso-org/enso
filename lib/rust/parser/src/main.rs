@@ -32,14 +32,23 @@ impl<T> Default for BumpVec<T> {
 }
 
 impl<T> BumpVec<T> {
+    #[inline(always)]
+    fn new_with_capacity(capacity: usize) -> Self {
+        let allocator = Bump::with_capacity(capacity);
+        BumpVecBuilder { allocator, vec_builder: |allocator: &Bump| Vec::new_in(allocator) }.build()
+    }
+
+    #[inline(always)]
     pub fn push(&mut self, t: T) {
         self.with_mut(|fields| fields.vec.push(t))
     }
 
+    #[inline(always)]
     pub fn last(&self) -> Option<&T> {
         self.borrow_vec().last()
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.borrow_vec().len()
     }
@@ -126,7 +135,7 @@ impl<T> Token<T> {
 
     #[inline(always)]
     pub fn split_at(self, offset: Bytes) -> Option<(Token<()>, Token<()>)> {
-        (self.len >= offset).as_some_from(|| {
+        (offset <= self.len).as_some_from(|| {
             let token1 = {
                 let left_visible_offset = self.left_visible_offset;
                 let left_offset = self.left_offset;
@@ -148,26 +157,55 @@ impl<T> Token<T> {
     }
 }
 
+
+
+// ===============
+// === Pattern ===
+// ===============
+
+pub trait Pattern {
+    #[inline(always)]
+    fn match_pattern(&mut self, t: char) -> bool;
+}
+
+impl<T: FnMut(char) -> bool> Pattern for T {
+    fn match_pattern(&mut self, t: char) -> bool {
+        (self)(t)
+    }
+}
+
+impl Pattern for char {
+    fn match_pattern(&mut self, t: char) -> bool {
+        *self == t
+    }
+}
+
+
+
+// =============
+// === Lexer ===
+// =============
+
 pub struct Lexer<'s> {
     pub input:    &'s str,
     pub iterator: str::CharIndices<'s>,
     output:       BumpVec<Token>,
-    pub state:    ModelState,
+    pub state:    LexerState,
 }
 
 #[derive(Debug, Default)]
-pub struct ModelState {
+pub struct LexerState {
     pub current_char:               Option<char>,
     pub char_offset:                usize,
     pub offset:                     Bytes,
-    pub last_spaces_visible_offset: usize,
     pub last_spaces_offset:         Bytes,
+    pub last_spaces_visible_offset: usize,
     pub current_block_indent:       usize,
     pub block_indent_stack:         Vec<usize>,
 }
 
 impl<'s> Deref for Lexer<'s> {
-    type Target = ModelState;
+    type Target = LexerState;
     fn deref(&self) -> &Self::Target {
         &self.state
     }
@@ -181,8 +219,10 @@ impl<'s> DerefMut for Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     pub fn new(input: &'s str) -> Self {
+        let avg_token_len = 5;
         let iterator = input.char_indices();
-        let output = default();
+        let capacity = input.len() / avg_token_len;
+        let output = BumpVec::new_with_capacity(capacity);
         let state = default();
         Self { input, iterator, output, state }.init()
     }
@@ -242,17 +282,7 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
-    pub fn char(&mut self, t: char) -> bool {
-        self.take_1(|s| s == t)
-    }
-
-    #[inline(always)]
-    pub fn count_char(&mut self, t: char) -> usize {
-        self.count_chars(|s| s == t)
-    }
-
-    #[inline(always)]
-    pub fn count_chars(&mut self, f: impl Fn(char) -> bool) -> usize {
+    pub fn count_chars(&mut self, f: impl Pattern) -> usize {
         let start = self.char_offset;
         self.take_while(f);
         self.char_offset - start
@@ -280,8 +310,8 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
-    pub fn take_1(&mut self, f: impl Fn(char) -> bool) -> bool {
-        let ok = self.current_char.map(f) == Some(true);
+    pub fn take_1(&mut self, mut pat: impl Pattern) -> bool {
+        let ok = self.current_char.map(|t| pat.match_pattern(t)) == Some(true);
         if ok {
             self.next();
         }
@@ -289,9 +319,9 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
-    pub fn take_while(&mut self, mut f: impl FnMut(char) -> bool) {
+    pub fn take_while(&mut self, mut pat: impl Pattern) {
         while let Some(t) = self.current_char {
-            if f(t) {
+            if pat.match_pattern(t) {
                 self.next()
             } else {
                 break;
@@ -300,7 +330,7 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
-    pub fn take_while_1(&mut self, f: impl Copy + Fn(char) -> bool) -> bool {
+    pub fn take_while_1(&mut self, f: impl Copy + Pattern) -> bool {
         let out = self.take_1(f);
         if out {
             self.take_while(f);
@@ -403,7 +433,7 @@ pub enum Kind {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Ident {
-    is_free:    bool, // impl_bound (!!!)
+    is_free:    bool,
     lift_level: usize,
 }
 
@@ -512,9 +542,9 @@ impl<'s> Lexer<'s> {
         let tok = self.token(|this| {
             if let Some(current) = this.current_char {
                 match current {
-                    '.' => this.take_while_1(|t| t == '.'),
-                    '=' => this.take_while_1(|t| t == '='),
-                    ':' => this.take_while_1(|t| t == ':'),
+                    '.' => this.take_while_1('.'),
+                    '=' => this.take_while_1('='),
+                    ':' => this.take_while_1(':'),
                     _ => this.take_while_1(is_operator_body_char),
                 };
             }
@@ -562,9 +592,9 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     fn newline(&mut self) {
         let tok = self.token(|this| {
-            if !this.take_1(|t| t == '\n') {
-                if this.take_1(|t| t == '\r') {
-                    this.take_1(|t| t == '\n');
+            if !this.take_1('\n') {
+                if this.take_1('\r') {
+                    this.take_1('\n');
                 }
             }
         });
@@ -738,7 +768,7 @@ mod benches {
         });
     }
 
-    /// 4.5-5x slowdown in comparison to [`bench_str_iter_and_compare`].
+    /// 10x slowdown in comparison to [`bench_str_iter`] and [`bench_str_iter_and_compare`].
     #[bench]
     fn bench_idents(b: &mut Bencher) {
         let reps = 1000_000;
@@ -746,7 +776,6 @@ mod benches {
         let capacity = str.len() / 5;
 
         b.iter(move || {
-            // let bump = Bump::with_capacity(capacity);
             let mut input = Lexer::new(&str);
             let ok = input.lex();
             assert_eq!(ok, true);
