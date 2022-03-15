@@ -234,14 +234,6 @@ type Error
     get_stack_trace_text : Text
     get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
 
-    ## PRIVATE
-
-       Returns a raw representation of the stack trace attached to the provided
-       throwable. It can be a dataflow error, a panic or a native Java exception.
-       You probably want `Error.get_stack_trace` instead.
-    primitive_get_attached_stack_trace : Throwable -> Array
-    primitive_get_attached_stack_trace throwable = @Builtin_Method "Error.primitive_get_attached_stack_trace"
-
     ## Converts an error to a corresponding textual representation.
 
        > Example
@@ -452,6 +444,14 @@ type Panic
                  IO.println "Caught an error: "+error.payload.to_text
     catch : Any -> (Caught_Panic -> Any) -> Any
     catch ~action handler = @Builtin_Method "Panic.catch"
+
+    ## PRIVATE
+
+       Returns a raw representation of the stack trace attached to the provided
+       throwable. It can be a dataflow error, a panic or a native Java exception.
+       You probably want `Panic.get_attached_stack_trace` instead.
+    primitive_get_attached_stack_trace : Throwable -> Array
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Error.primitive_get_attached_stack_trace"
 
 ## A wrapper for a caught panic.
 

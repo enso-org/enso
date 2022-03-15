@@ -144,7 +144,7 @@ spec = Test.group "Dataflow Warnings" <|
         errored_3 = Panic.recover here.throw_a_bar
         mapped_3 = here.map_odd_warnings_and_errors errored_3
         mapped_3.catch . should_equal "bar"
-        mapped_3.get_stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"
+        mapped_3.stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"
         Warning.get_all mapped_3 . catch . should_equal "bar"
 
 main = Test.Suite.run_main here.spec
