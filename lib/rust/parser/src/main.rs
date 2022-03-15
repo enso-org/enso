@@ -10,7 +10,9 @@ use std::str;
 
 
 
-#[derive(Add, AddAssign, Clone, Copy, Debug, Default, Eq, From, Hash, PartialEq, Sub)]
+#[derive(
+    Add, AddAssign, Clone, Copy, Debug, Default, Eq, From, Hash, PartialEq, PartialOrd, Ord, Sub
+)]
 pub struct Bytes(usize);
 
 #[inline(always)]
@@ -47,6 +49,29 @@ impl<T> Token<T> {
     #[inline(always)]
     pub fn with_elem<S>(self, elem: S) -> Token<S> {
         Token { elem, ..self }
+    }
+
+    #[inline(always)]
+    pub fn split_at(self, offset: Bytes) -> Option<(Token<()>, Token<()>)> {
+        (self.len >= offset).as_some_from(|| {
+            let token1 = {
+                let left_visible_offset = self.left_visible_offset;
+                let left_offset = self.left_offset;
+                let start = self.start;
+                let len = self.len - offset;
+                let elem = ();
+                Token { left_visible_offset, left_offset, start, len, elem }
+            };
+            let token2 = {
+                let left_visible_offset = 0;
+                let left_offset = Bytes::from(0);
+                let start = self.start + offset;
+                let len = self.len - offset;
+                let elem = ();
+                Token { left_visible_offset, left_offset, start, len, elem }
+            };
+            (token1, token2)
+        })
     }
 }
 
@@ -100,11 +125,14 @@ impl<'s> Model<'s> {
 
     #[inline(always)]
     fn next(&mut self) {
-        if let Some((offset, current)) = self.iterator.next() {
+        let next = self.iterator.next();
+        if let Some((offset, current)) = next {
             self.char_offset += 1;
-            self.offset = offset.into();
+            self.offset = Bytes::from(offset);
             self.current = Some(current);
-        } else {
+        } else if self.current.is_some() {
+            self.char_offset += 1;
+            self.offset = Bytes::from(self.input.len());
             self.current = None;
         }
     }
@@ -317,6 +345,7 @@ pub enum Kind {
     Wildcard,
     Ident(Ident),
     Operator,
+    Modifier,
 }
 
 
@@ -434,48 +463,31 @@ fn is_operator_body_char(t: char) -> bool {
     }
 }
 
-// #[inline(always)]
-// fn is_ident_split_char(t: char) -> bool {
-//     if t <= '\u{7E}' && t >= '\u{21}' {
-//         (t >= '\u{21}' && t <= '\u{26}')
-//             || (t >= '\u{28}' && t <= '\u{2F}')
-//             || (t >= '\u{3A}' && t <= '\u{40}')
-//             || (t >= '\u{5B}' && t <= '\u{5E}')
-//             || (t == '\u{60}')
-//             || (t >= '\u{7B}' && t <= '\u{7E}')
-//     } else {
-//         false
-//     }
-// }
-
-
 impl<'s> Model<'s> {
     fn operator(&mut self) -> bool {
         let tok = token2! { self
-            self.take_1(is_operator_body_char).as_some_from(||{
-                // match self.unchecked_last_char() {
-                // '=' => {}
-                // _ => {}
-                self.take_while(is_operator_body_char);
-                Kind::Operator
+            self.current.map(|current| match current {
+                '.' => self.take_while_1(|t| t == '.'),
+                '=' => self.take_while_1(|t| t == '='),
+                _ => self.take_while_1(is_operator_body_char),
             })
-
-
         };
-        if let Some(kind) = tok.elem {
+        let ok = tok.elem == Some(true);
+        if ok {
             let repr = self.repr(tok);
-            // for opr in repr.split('.') {
-            //     if opr.is_empty() {
-            //
-            //     } else {
-            //
-            //     }
-            // }
-            // println!(">> {:?}", repr.split('.').collect_vec());
-            let token = tok.with_elem(kind);
-            self.output.push(token);
+            if repr == "+-" {
+                let (left, right) = tok.split_at(Bytes::from(1)).unwrap();
+                let left = left.with_elem(Kind::Operator);
+                let right = right.with_elem(Kind::Operator);
+                self.output.push(left);
+                self.output.push(right);
+            } else {
+                let kind = if repr.ends_with('=') { Kind::Modifier } else { Kind::Operator };
+                let token = tok.with_elem(kind);
+                self.output.push(token);
+            }
         }
-        tok.elem.is_some()
+        ok
     }
 }
 
@@ -553,7 +565,7 @@ mod tests {
 
     #[test]
     fn test_manual() {
-        let inp = "test test2'''_ tt .+= a";
+        let inp = "+-";
         let bump = Bump::new();
         let mut input = Model::new(&bump, &inp);
         input.lex();
