@@ -150,14 +150,16 @@ impl<'s> Model<'s> {
     }
 
     #[inline(always)]
-    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Token<T> {
-        let left_offset = self.last_spaces_offset;
-        let left_visible_offset = self.last_spaces_visible_offset;
+    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<T>> {
         let start = self.offset;
         let elem = f(self);
         let len = self.offset - start;
-        (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
-        Token { left_visible_offset, left_offset, start, len, elem }
+        (len > Bytes::from(0)).as_some_from(|| {
+            let left_offset = self.last_spaces_offset;
+            let left_visible_offset = self.last_spaces_visible_offset;
+            (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
+            Token { left_visible_offset, left_offset, start, len, elem }
+        })
     }
 
     #[inline(always)]
@@ -227,6 +229,13 @@ impl<'s> Model<'s> {
     }
 
     #[inline(always)]
+    pub fn take_any(&mut self) -> bool {
+        let out = self.current_char.is_some();
+        self.next();
+        out
+    }
+
+    #[inline(always)]
     pub fn take_1(&mut self, f: impl Fn(char) -> bool) -> bool {
         let out = self.current_char.map(f) == Some(true);
         if out {
@@ -237,13 +246,9 @@ impl<'s> Model<'s> {
 
     #[inline(always)]
     pub fn take_while(&mut self, mut f: impl FnMut(char) -> bool) {
-        loop {
-            if let Some(t) = self.current_char {
-                if f(t) {
-                    self.next()
-                } else {
-                    break;
-                }
+        while let Some(t) = self.current_char {
+            if f(t) {
+                self.next()
             } else {
                 break;
             }
@@ -257,45 +262,6 @@ impl<'s> Model<'s> {
             self.take_while(f);
         }
         out
-    }
-}
-
-
-
-// =============
-// === Token ===
-// =============
-
-pub trait MkToken {
-    type Output;
-    fn mk_token(
-        self,
-        vec: &mut TokenVec,
-        lv_off: usize,
-        l_off: Bytes,
-        start: Bytes,
-        len: Bytes,
-    ) -> Self::Output;
-}
-
-impl MkToken for Option<Kind> {
-    type Output = bool;
-    fn mk_token(
-        self,
-        vec: &mut TokenVec,
-        left_visible_offset: usize,
-        left_offset: Bytes,
-        start: Bytes,
-        len: Bytes,
-    ) -> Self::Output {
-        if let Some(tok) =
-            self.map(|elem| Token { left_visible_offset, left_offset, start, len, elem })
-        {
-            vec.push(tok);
-            true
-        } else {
-            false
-        }
     }
 }
 
@@ -376,6 +342,7 @@ impl<'s> Model<'s> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Newline,
+    Symbol,
     BlockStart,
     BlockEnd,
     Wildcard,
@@ -383,6 +350,7 @@ pub enum Kind {
     Operator,
     Modifier,
 }
+
 
 
 // =============
@@ -406,16 +374,13 @@ fn is_ident_body(t: char) -> bool {
 }
 
 impl<'s> Model<'s> {
-    fn ident(&mut self) -> bool {
+    fn ident(&mut self) {
         let tok = self.token(|this| {
-            let ok = this.take_1(is_ident_start_char);
-            if ok {
+            if this.take_1(is_ident_start_char) {
                 this.take_while(is_ident_body);
             }
-            ok
         });
-        let ok = tok.elem;
-        if ok {
+        if let Some(tok) = tok {
             let repr = self.repr(tok);
             let starts_with_underscore = repr.starts_with('_');
             let kind = if starts_with_underscore && repr.len() == 1 {
@@ -428,7 +393,6 @@ impl<'s> Model<'s> {
             let tok = tok.with_elem(kind);
             self.output.push(tok);
         }
-        ok
     }
 }
 
@@ -500,17 +464,18 @@ fn is_operator_body_char(t: char) -> bool {
 }
 
 impl<'s> Model<'s> {
-    fn operator(&mut self) -> bool {
+    fn operator(&mut self) {
         let tok = self.token(|this| {
-            this.current_char.map(|current| match current {
-                '.' => this.take_while_1(|t| t == '.'),
-                '=' => this.take_while_1(|t| t == '='),
-                ':' => this.take_while_1(|t| t == ':'),
-                _ => this.take_while_1(is_operator_body_char),
-            })
+            if let Some(current) = this.current_char {
+                match current {
+                    '.' => this.take_while_1(|t| t == '.'),
+                    '=' => this.take_while_1(|t| t == '='),
+                    ':' => this.take_while_1(|t| t == ':'),
+                    _ => this.take_while_1(is_operator_body_char),
+                };
+            }
         });
-        let ok = tok.elem == Some(true);
-        if ok {
+        if let Some(tok) = tok {
             let repr = self.repr(tok);
             if repr == "+-" {
                 let (left, right) = tok.split_at(Bytes::from(1)).unwrap();
@@ -524,7 +489,23 @@ impl<'s> Model<'s> {
                 self.output.push(token);
             }
         }
-        ok
+    }
+}
+
+
+
+// ==============
+// === Symbol ===
+// ==============
+
+impl<'s> Model<'s> {
+    fn symbol(&mut self) {
+        if let Some(current) = self.current_char {
+            if "(){}[]`".contains(current) {
+                let token = self.token(|this| this.take_any()).unwrap().with_elem(Kind::Symbol);
+                self.output.push(token);
+            }
+        }
     }
 }
 
@@ -535,19 +516,15 @@ impl<'s> Model<'s> {
 // =============
 
 impl<'s> Model<'s> {
-    fn newline(&mut self) -> bool {
+    fn newline(&mut self) {
         let tok = self.token(|this| {
-            let mut ok = this.take_1(|t| t == '\n');
-            if !ok {
+            if !this.take_1(|t| t == '\n') {
                 if this.take_1(|t| t == '\r') {
                     this.take_1(|t| t == '\n');
-                    ok = true;
                 }
             }
-            ok
         });
-        let ok = tok.elem;
-        if ok {
+        if let Some(tok) = tok {
             let block_indent = self.last_spaces_visible_offset;
             self.output.push(tok.with_elem(Kind::Newline));
             if block_indent > self.current_block_indent {
@@ -571,7 +548,6 @@ impl<'s> Model<'s> {
                 }
             }
         }
-        ok
     }
 }
 
@@ -581,21 +557,28 @@ impl<'s> Model<'s> {
 // === Glue ===
 // ============
 
+const PARSERS: &[for<'r> fn(&'r mut Model<'_>)] =
+    &[|t| t.ident(), |t| t.operator(), |t| t.newline(), |t| t.symbol()];
+
 impl<'s> Model<'s> {
     fn lex(&mut self) -> bool {
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
-        loop {
-            if !self.ident() {
-                if !self.operator() {
-                    if !self.newline() {
-                        break;
-                    }
+        let mut any_parser_matched = true;
+        while any_parser_matched {
+            any_parser_matched = false;
+            for f in PARSERS {
+                let offset = self.offset;
+                f(self);
+                if self.offset > offset {
+                    any_parser_matched = true;
+                    break;
                 }
             }
         }
         self.current_char == None
     }
 }
+
 
 
 // =============
@@ -614,36 +597,7 @@ fn assert_token_eq(str: &str, f: Option<Box<dyn Fn(usize, usize) -> Token>>) {
     }
 }
 
-// fn test_ident(
-//     s: &str,
-//     is_free: bool,
-//     lift_level: usize,
-//     invalid_suffix: usize,
-// ) -> Box<dyn Fn(usize, usize) -> Token> {
-//     let len = s.len();
-//     Box::new(move |left_offset: usize, start: usize| {
-//         Token::new(
-//             left_offset,
-//             start,
-//             len,
-//             Kind::Ident(Ident::new(is_free, lift_level, invalid_suffix)),
-//         )
-//     })
-// }
 
-// fn test_underscore(s: &str, invalid_suffix: usize) -> Box<dyn Fn(usize, usize) -> Token> {
-//     let len = s.len();
-//     Box::new(move |left_offset: usize, start: usize| {
-//         Token::new(left_offset, start, len, Kind::Underscore(Underscore::new(invalid_suffix)))
-//     })
-// }
-//
-// fn test_operator(s: &str) -> Box<dyn Fn(usize, usize) -> Token> {
-//     let len = s.len();
-//     Box::new(move |left_offset: usize, start: usize| {
-//         Token::new(left_offset, start, len, Kind::Operator)
-//     })
-// }
 
 #[cfg(test)]
 mod tests {
@@ -651,7 +605,7 @@ mod tests {
 
     #[test]
     fn test_manual() {
-        let inp = "\n  foo\n    bar\nbaz";
+        let inp = "f )";
         let bump = Bump::new();
         let mut input = Model::new(&bump, &inp);
         input.lex();
