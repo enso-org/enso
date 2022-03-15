@@ -36,7 +36,7 @@ spec =
 
         Test.specify "should correctly translate a series of codepoint indices to a grapheme indices in a batch" <|
             translate_indices text ixes =
-                Vector.from_array <| Text_Utils.utf16_indices_to_grapheme_indices text ixes.to_array
+                Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices text ixes.to_array
             codepoint_indices = Vector.new text.utf_16.length ix->ix
             translate_indices text codepoint_indices . should_equal codepoints_to_graphemes
 
