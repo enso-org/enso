@@ -41,21 +41,18 @@ public abstract class ComparatorNode extends Node {
   }
 
   @Specialization
-  int execute(
+  int doComparator(
       VirtualFrame frame,
       Object comparator,
       Object l,
-      Object r,
-      @Cached("getOrdering().newLess()") Atom less,
-      @Cached("getOrdering().newEqual()") Atom equal,
-      @Cached("getOrdering().newGreater()") Atom greater) {
+      Object r) {
     Stateful result = invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
     Object atom = result.getValue();
-    if (atom == less) {
+    if (atom == getOrdering().less()) {
       return -1;
-    } else if (atom == equal) {
+    } else if (atom == getOrdering().equal()) {
       return 0;
-    } else if (atom == greater) {
+    } else if (atom == getOrdering().greater()) {
       return 1;
     } else {
       CompilerDirectives.transferToInterpreter();
