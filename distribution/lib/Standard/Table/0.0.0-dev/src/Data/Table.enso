@@ -17,7 +17,7 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
 
-import Standard.Table.Data.Group_By
+import Standard.Table.Data.Group_By_Key
 import Standard.Table.Data.Aggregate_Column
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
@@ -487,49 +487,46 @@ type Table
 
 
     ## Prototype Group By function
-    group_by : Column_Selector -> [Aggregate_Column] -> Problem_Behavior -> Table
-    group_by selector columns (on_problems=Report_Warning) =
+    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+    aggregate columns (on_problems=Report_Warning) =
         # Grouping Key
-        key_columns = if selector.is_nothing then [] else
-            Table_Helpers.select_columns_helper internal_columns=this.columns selector=selector reorder=True on_problems=on_problems
-        key_length = key_columns.length
-        make_key = if (key_length == 0) then _->(Group_By.key [1]) else i->(Group_By.key (key_columns.map v->(v.at i)))
+        is_a_key c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+        key_columns = columns.filter is_a_key . map c->(c.resolve_column this c.column)
+        make_key = if (key_columns.length == 0) then _->(Group_By_Key.key [1]) else i->(Group_By_Key.key (key_columns.map v->(v.at i)))
 
         # New Table Accumulator
         name_strategy = Unique_Name_Strategy.new
-        new_table = (key_columns.map c->c.name)+(columns.map c->(c.column_name this)) . map n->[name_strategy.make_unique n, Vector.new_builder]
-        add_row key =
+        new_table = columns.map c->(c.column_name this) . map n->[name_strategy.make_unique n, Vector.new_builder]
+        add_row _ =
             idx = new_table.at 0 . at 1 . length
-            0.up_to key_length . each i->
-                new_table.at i . at 1 . append (key.values.at i).value
             0.up_to (columns.length) . each i->
-                column = columns.at i
-                new_table.at (i + key_length) . at 1 . append (column.initial_value)
+                new_table.at i . at 1 . append ((columns.at i).initial_value)
             idx
 
         # Fold
         aggregators = columns.map c->(c.make_aggregator this)
         aggregate map i =
             key = make_key i
-            row_index = map.get_or_else key (add_row key)
+            row_index = map.get_or_else key (add_row Nothing)
 
             # Accumulate
             0.up_to (columns.length) . each j->
                 aggregator = aggregators.at j
-                array = new_table.at (j + key_length) . at 1 . to_array
+                array = new_table.at j . at 1 . to_array
                 current = array . at row_index
                 new = aggregator current i
                 array . set_at row_index new
 
             map.insert key row_index
-        if ((key_length == 0) && (this.row_count == 0)) then (add_row []) else
+        if ((key_columns.length == 0) && (this.row_count == 0)) then (add_row Nothing) else
             0.up_to this.row_count . fold Map.empty aggregate
 
         # Now Finalise and make a table
         finalise builder index =
-            if index < key_length then builder.to_vector else
-                column = columns.at (index - key_length)
-                Vector.new builder.length i->(column.evaluate (builder.to_array.at i))
+            column = columns.at index
+            Vector.new builder.length i->(column.evaluate (builder.to_array.at i))
         here.new (new_table.map_with_index i->c->[c.at 0,finalise (c.at 1) i])
 
 
