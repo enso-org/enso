@@ -1,11 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
@@ -16,7 +16,6 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -27,7 +26,6 @@ import org.enso.interpreter.runtime.state.Stateful;
 public abstract class CatchPanicNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
-  private final BranchProfile unknownExceptionProfile = BranchProfile.create();
 
   CatchPanicNode() {
     this.invokeCallableNode =
@@ -60,25 +58,15 @@ public abstract class CatchPanicNode extends Node {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
+      Builtins builtins = Context.get(this).getBuiltins();
       Object payload = e.getPayload();
-      Array stackTrace =
-          org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceNode.stackTraceToArray(
-              e);
-      Atom caughtPanic =
-          Context.get(this).getBuiltins().caughtPanic().newInstance(payload, stackTrace);
+      Atom caughtPanic = builtins.caughtPanic().newInstance(payload, e);
       return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
-    } catch (Throwable e) {
-      if (exceptions.isException(e)) {
-        Builtins builtins = Context.get(this).getBuiltins();
-        Object payload = builtins.error().makePolyglotError(e);
-        Array stackTrace =
-            org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceNode
-                .stackTraceToArray(e);
-        Atom caughtPanic = builtins.caughtPanic().newInstance(payload, stackTrace);
-        return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
-      }
-      unknownExceptionProfile.enter();
-      throw e;
+    } catch (AbstractTruffleException e) {
+      Builtins builtins = Context.get(this).getBuiltins();
+      Object payload = builtins.error().makePolyglotError(e);
+      Atom caughtPanic = builtins.caughtPanic().newInstance(payload, e);
+      return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
     }
   }
 }

@@ -125,13 +125,30 @@ Error.map_error f = this.catch (x -> Error.throw (f x))
 ## ADVANCED
    UNSTABLE
 
-   Returns the attached stack trace of the error. The ordering of the resulting
-   vector is such that the top stack frame is the first element.
-Error.get_stack_trace : Vector.Vector Stack_Trace_Element
-Error.get_stack_trace =
-    prim_stack = this.primitive_get_stack_trace
+   Returns the attached stack trace of the given throwable. Can be used to get
+   an Enso friendly stack trace from native Java exceptions.
+
+   The ordering of the resulting vector is such that the top stack frame is the
+   first element.
+Panic.get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Stack_Trace_Element
+Panic.get_attached_stack_trace error =
+    throwable = case error of
+        Caught_Panic _ internal_original_exception -> internal_original_exception
+        throwable -> throwable
+    prim_stack = Panic.primitive_get_attached_stack_trace throwable
     stack_with_prims = Vector.Vector prim_stack
     stack_with_prims.map Runtime_Extensions.wrap_primitive_stack_trace_element
+
+## ADVANCED
+   UNSTABLE
+
+   Returns the attached stack trace of the error.
+
+   The ordering of the resulting vector is such that the top stack frame is the
+   first element.
+Error.stack_trace : Vector.Vector Stack_Trace_Element
+Error.stack_trace =
+    Panic.get_attached_stack_trace this
 
 ## Checks if `this` is an error.
 
@@ -160,6 +177,4 @@ Panic.rethrow value = value.catch Panic.throw
 ## Returns the stack trace of the caught panic.
 Caught_Panic.stack_trace : Vector.Vector Stack_Trace_Element
 Caught_Panic.stack_trace =
-    prim_stack = this.prim_stack_trace
-    stack_with_prims = Vector.Vector prim_stack
-    stack_with_prims.map Runtime_Extensions.wrap_primitive_stack_trace_element
+    Panic.get_attached_stack_trace this

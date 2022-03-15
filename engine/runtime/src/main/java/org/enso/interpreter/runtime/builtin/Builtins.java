@@ -13,6 +13,7 @@ import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodG
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
@@ -115,7 +116,7 @@ public class Builtins {
             .initializeFields(
                 new ArgumentDefinition(0, "payload", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(
-                    1, "prim_stack_trace", ArgumentDefinition.ExecutionMode.EXECUTE));
+                    1, "internal_original_exception", ArgumentDefinition.ExecutionMode.EXECUTE));
     polyglot = new Polyglot(language, scope);
     resource = new Resource(language, scope);
     system = new System(language, scope);
@@ -174,6 +175,10 @@ public class Builtins {
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "catch", CatchPanicMethodGen.makeFunction(language));
+    scope.registerMethod(
+        panic,
+        "primitive_get_attached_stack_trace",
+        GetAttachedStackTraceMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch_primitive", CatchAnyMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));

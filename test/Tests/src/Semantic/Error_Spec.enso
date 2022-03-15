@@ -8,6 +8,7 @@ type My_Type foo
 
 throw_a_bar = Error.throw "bar"
 throw_a_bar_panicking = Panic.throw "bar"
+throw_a_foo_panicking = Panic.throw "foo"
 
 spec =
     Test.group "No Method Errors" <|
@@ -70,23 +71,38 @@ spec =
         Test.specify "should allow to inspect the stack trace of a recovered panic" <|
             error = Panic.recover <| here.throw_a_bar_panicking
             error.catch . should_equal "bar"
-            error.get_stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
+            error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
     Test.group "Panics" <|
         Test.specify "should be able to be caught" <|
-            result = Panic.catch (Panic.throw 42) error->
-                error.payload+10
+            result = Panic.catch (Panic.throw 42) caught_panic->
+                caught_panic.payload+10
             result . should_equal 52
 
-            result_2 = Panic.catch (1 + 2) error->
-                error.payload+10
+            result_2 = Panic.catch (1 + 2) caught_panic->
+                caught_panic.payload+10
             result_2 . should_equal 3
         Test.specify "should provide access to stack traces" <|
-            stack = Panic.catch here.throw_a_bar_panicking error->
-                error.stack_trace
+            stack = Panic.catch here.throw_a_bar_panicking caught_panic->
+                caught_panic.stack_trace
             stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
-        Test.specify "should be able to be rethrown without changing the stack trace" pending="TODO" <|
-            Nothing
+        Test.specify "should be able to be rethrown without changing the stack trace" <|
+            caught_panic = Panic.catch here.throw_a_bar_panicking x->x
+            rethrow foo = Panic.throw foo
+            rethrown_panic = Panic.catch (rethrow caught_panic) x->x
+            (rethrown_panic.stack_trace.length > 0).should_be_true
+            (rethrown_panic.stack_trace.map .name) . should_equal (caught_panic.stack_trace.map .name)
+
+        Test.specify "should allow the pattern for handling selected exceptions" <|
+            perform_operation ~action =
+                Panic.catch action caught_panic->
+                    if caught_panic.payload == "bar" then 42 else
+                        Panic.throw caught_panic
+            Panic.recover (perform_operation here.throw_a_bar_panicking) . should_equal 42
+
+            error = Panic.recover (perform_operation here.throw_a_foo_panicking)
+            error.catch . should_equal "foo"
+            error.stack_trace.second.name . should_equal "Error_Spec.throw_a_foo_panicking"
 
 main = Test.Suite.run_main here.spec

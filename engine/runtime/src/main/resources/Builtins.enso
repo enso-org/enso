@@ -236,10 +236,11 @@ type Error
 
     ## PRIVATE
 
-       Returns a raw representation of the current execution stack trace.
+       Returns a raw representation of the stack trace attached to the provided
+       throwable. It can be a dataflow error, a panic or a native Java exception.
        You probably want `Error.get_stack_trace` instead.
-    primitive_get_stack_trace : Array
-    primitive_get_stack_trace = @Builtin_Method "Error.primitive_get_stack_trace"
+    primitive_get_attached_stack_trace : Throwable -> Array
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Error.primitive_get_attached_stack_trace"
 
     ## Converts an error to a corresponding textual representation.
 
@@ -456,10 +457,12 @@ type Panic
 
    Arguments:
    - payload: the payload carried by the error.
-   - prim_stack_trace: an array of primitive stack trace elements. Use
-     `stack_trace` instead.
+   - internal_original_exception (private): the original Java exception that is
+     the source of this panic. Only for internal use. To get the Java exception
+     from polyglot exceptions, match the `payload` on `Polyglot_Error` and
+     extract the Java object from there.
 @Builtin_Type
-type Caught_Panic payload prim_stack_trace
+type Caught_Panic payload internal_original_exception
 
 # Function types.
 type Function

@@ -40,15 +40,10 @@ public abstract class RecoverPanicNode extends Node {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
       return new Stateful(state, DataflowError.withTrace(e.getPayload(), e));
-    } catch (Throwable e) {
-      if (exceptions.isException(e)) {
-        return new Stateful(
-            state,
-            DataflowError.withTrace(
-                Context.get(this).getBuiltins().error().makePolyglotError(e), (AbstractTruffleException) e));
-      }
-      unknownExceptionProfile.enter();
-      throw e;
+    } catch (AbstractTruffleException e) {
+      return new Stateful(
+          state,
+          DataflowError.withTrace(Context.get(this).getBuiltins().error().makePolyglotError(e), e));
     }
   }
 }
