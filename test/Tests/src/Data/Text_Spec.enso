@@ -16,6 +16,42 @@ type Manual b
 
 Manual.to_text = "[[[MyREP " + this.b.to_text + "]]]"
 
+## Specification of operations on the Text type.
+
+   ? Guidelines on proper handling of edge cases in Text tests:
+
+     The following edge cases should be considered:
+     - Handling of empty arguments.
+     - Using grapheme-cluster based indexing instead of code unit indexing where
+       appropriate: this can be tested by adding tests with graphemes that
+       consist of multiple code units, like 'e\u{301}' or emojis and ensuring
+       that the offsets are correct.
+     - Correct handling of Unicode normalization: some graphemes can be
+       expressed using different combinations of code units. All alternative
+       representations of the same grapheme should be treated as equivalent, i.e.
+       equality checks or substring search should work consistently. Interesting
+       examples are:
+       - 'e\u{301}' and '\u00E9' (both meaning 'é'),
+       - reordering of modifiers (although this may not work for all sets), for
+         example: 'e\u{321}\u{360}' should be equivalent to 'e\u{360}\u{321}'.
+       - in general 's' should not be treated as a substring of 's\u{301}' since
+         the latter is a two-codepoint encoding of a single grapheme 'ś' that is
+         different from 's'.
+     - Be aware that changing case can change the length of a string (in
+       extended grapheme clusters), a common example being `ß` becoming `SS` or
+       `ﬃ` becoming `FFI`. Case insensitive comparisons must take this into
+       consideration. Note that due to this, if matching strings case
+       insensitively, the length of the match can differ from the length of the
+       term being matched.
+     - Casing is locale-dependent. The pair of `i - I` is handled differently in
+       Turkish and Azerbaijani - instead there are two separate pairs: 'İ - i'
+       and 'I - ı'.
+     - Handling of out of range indices should be checked. In particular, often
+       the index `text.length` should still be valid to point just right at the
+       end of the text. Moreover, negative indices are usually allowed to index
+       from the back.
+     - Note that currently the regex-based operations may not handle the edge
+       cases described above too well.
 spec =
     Test.group "Text" <|
         kshi = '\u0915\u094D\u0937\u093F'
@@ -91,7 +127,7 @@ spec =
 
             "I" . equals_ignore_case "i" . should_be_true
             "İ" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_true
-            "I" . equals_ignore_case "ı" (locale = Locale.new "tr") . should_be_true
+            "I" . equals_ignore_case "ı" (locale = Locale.new "az") . should_be_true
             "I" . equals_ignore_case "i" (locale = Locale.new "tr") . should_be_false
 
             "Kongressstraße"=="Kongressstrasse" . should_be_false

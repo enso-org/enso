@@ -1350,8 +1350,8 @@ Text.location_of_all : Text -> Matcher -> [Span]
 Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> if term.is_empty then Vector.new (this.length + 1) (ix -> Span (Range ix ix) this) else case case_sensitive of
         True ->
-            codepoint_spans = Vector.from_array <| Text_Utils.span_of_all this term
-            grahpeme_ixes = Vector.from_array <| Text_Utils.utf16_indices_to_grapheme_indices this (codepoint_spans.map .start).to_array
+            codepoint_spans = Vector.Vector <| Text_Utils.span_of_all this term
+            grahpeme_ixes = Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices this (codepoint_spans.map .start).to_array
             ## While the codepoint_spans may have different code unit lengths
                from our term, the `length` counted in grapheme clusters is
                guaranteed to be the same.
@@ -1360,7 +1360,7 @@ Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
                 end = start+offset
                 Span (Range start end) this
         Case_Insensitive locale ->
-            grapheme_spans = Vector.from_array <| Text_Utils.span_of_all_case_insensitive this term locale.java_locale
+            grapheme_spans = Vector.Vector <| Text_Utils.span_of_all_case_insensitive this term locale.java_locale
             grapheme_spans.map grapheme_span->
                 Span (Range grapheme_span.start grapheme_span.end) this
     Regex_Matcher _ _ _ _ _ ->
