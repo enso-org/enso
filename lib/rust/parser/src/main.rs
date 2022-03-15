@@ -1,5 +1,6 @@
 #![feature(type_changing_struct_update)]
 #![feature(allocator_api)]
+#![feature(slice_index_methods)]
 #![feature(test)]
 
 use enso_prelude::*;
@@ -9,37 +10,40 @@ use std::str;
 
 
 
+#[derive(Add, AddAssign, Clone, Copy, Debug, Default, Eq, From, Hash, PartialEq, Sub)]
 pub struct Bytes(usize);
 
+#[inline(always)]
+fn bytes_range_into_usize_range(range: Range<Bytes>) -> Range<usize> {
+    unsafe { mem::transmute(range) }
+}
+
+pub trait BytesStrOps {
+    #[inline(always)]
+    fn slice(&self, range: Range<Bytes>) -> &str;
+}
+
+impl BytesStrOps for str {
+    fn slice(&self, range: Range<Bytes>) -> &str {
+        &self[bytes_range_into_usize_range(range)]
+    }
+}
 
 
 // =============
 // === Token ===
 // =============
 
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Token<T = Kind> {
     left_visible_offset: usize,
-    left_byte_offset:    usize,
-    start_byte_offset:   usize,
-    bytes:               usize,
+    left_offset:         Bytes,
+    start:               Bytes,
+    len:                 Bytes,
     elem:                T,
 }
 
 impl<T> Token<T> {
-    #[inline(always)]
-    pub fn new(
-        left_visible_offset: usize,
-        left_byte_offset: usize,
-        start_byte_offset: usize,
-        bytes: usize,
-        elem: T,
-    ) -> Self {
-        Self { left_visible_offset, left_byte_offset, start_byte_offset, bytes, elem }
-    }
-
     #[inline(always)]
     pub fn with_elem<S>(self, elem: S) -> Token<S> {
         Token { elem, ..self }
@@ -55,10 +59,10 @@ pub struct Model<'s> {
     pub iterator: str::CharIndices<'s>,
     pub current: Option<char>,
     pub char_offset: usize,
-    pub byte_offset: usize,
+    pub offset: Bytes,
     pub output: TokenVec<'s>,
     pub last_spaces_visible_offset: usize,
-    pub last_spaces_byte_offset: usize,
+    pub last_spaces_offset: Bytes,
 }
 
 impl<'s> Model<'s> {
@@ -66,19 +70,19 @@ impl<'s> Model<'s> {
         let iterator = input.char_indices();
         let current = default();
         let char_offset = default();
-        let byte_offset = default();
+        let offset = default();
         let output = Vec::new_in(bump);
         let last_spaces_visible_offset = default();
-        let last_spaces_byte_offset = default();
+        let last_spaces_offset = default();
         Self {
             input,
             iterator,
             current,
             char_offset,
-            byte_offset,
+            offset,
             output,
             last_spaces_visible_offset,
-            last_spaces_byte_offset,
+            last_spaces_offset,
         }
         .init()
     }
@@ -91,14 +95,14 @@ impl<'s> Model<'s> {
 
     #[inline(always)]
     fn repr<T>(&self, token: Token<T>) -> &str {
-        &self.input[token.start_byte_offset..token.start_byte_offset + token.bytes]
+        self.input.slice(token.start..token.start + token.len)
     }
 
     #[inline(always)]
     fn next(&mut self) {
-        if let Some((byte_offset, current)) = self.iterator.next() {
+        if let Some((offset, current)) = self.iterator.next() {
             self.char_offset += 1;
-            self.byte_offset = byte_offset;
+            self.offset = offset.into();
             self.current = Some(current);
         } else {
             self.current = None;
@@ -190,14 +194,16 @@ macro_rules! token {
 #[macro_export]
 macro_rules! token2 {
     ($self:ident $($ts:tt)*) => {{
-        let left_byte_offset = $self.last_spaces_byte_offset;
+        let left_offset = $self.last_spaces_offset;
         let left_visible_offset = $self.last_spaces_visible_offset;
-        let start_byte_offset = $self.byte_offset;
+        let start = $self.offset;
         let elem = { $($ts)* };
-        let bytes = $self.byte_offset - start_byte_offset;
-        Token::new(left_visible_offset, left_byte_offset, start_byte_offset, bytes, elem)
+        let len = $self.offset - start;
+        Token{left_visible_offset, left_offset, start, len, elem}
     }};
 }
+
+
 
 pub trait MkToken {
     type Output;
@@ -205,9 +211,9 @@ pub trait MkToken {
         self,
         vec: &mut TokenVec,
         lv_off: usize,
-        l_off: usize,
-        start: usize,
-        len: usize,
+        l_off: Bytes,
+        start: Bytes,
+        len: Bytes,
     ) -> Self::Output;
 }
 
@@ -216,12 +222,14 @@ impl MkToken for Option<Kind> {
     fn mk_token(
         self,
         vec: &mut TokenVec,
-        lv_off: usize,
-        l_off: usize,
-        start: usize,
-        len: usize,
+        left_visible_offset: usize,
+        left_offset: Bytes,
+        start: Bytes,
+        len: Bytes,
     ) -> Self::Output {
-        if let Some(tok) = self.map(|t| Token::new(lv_off, l_off, start, len, t)) {
+        if let Some(tok) =
+            self.map(|elem| Token { left_visible_offset, left_offset, start, len, elem })
+        {
             vec.push(tok);
             true
         } else {
@@ -283,13 +291,13 @@ impl<'s> Model<'s> {
     }
 
     #[inline(always)]
-    fn spaces(&mut self) -> (usize, usize) {
+    fn spaces(&mut self) -> (usize, Bytes) {
         let mut total_visible_offset = 0;
-        let mut total_byte_offset = 0;
+        let mut total_byte_offset = Bytes::from(0);
         loop {
             if let Some(visible_offset) = self.space_and_its_visible_offset() {
                 total_visible_offset += visible_offset;
-                total_byte_offset += 1;
+                total_byte_offset += Bytes::from(1);
             } else {
                 break;
             }
@@ -480,7 +488,7 @@ impl<'s> Model<'s> {
 impl<'s> Model<'s> {
     fn lex(&mut self) -> bool {
         loop {
-            (self.last_spaces_visible_offset, self.last_spaces_byte_offset) = self.spaces();
+            (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
             if !self.ident() {
                 if !self.operator() {
                     break;
