@@ -2,8 +2,8 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -32,13 +32,17 @@ public abstract class ThrowPanicNode extends Node {
       // Note [Original Exception Type]
       Object originalException = payload.getFields()[1];
       if (interopLibrary.isException(originalException)) {
-        throw (AbstractTruffleException) originalException;
+        try {
+          throw interopLibrary.throwException(originalException);
+        } catch (UnsupportedMessageException e) {
+          throw new IllegalStateException(
+              "Impossible, `isException` returned true for `originalException`.");
+        }
       } else {
         throw new PanicException(
             builtins
                 .error()
-                .makeTypeError(
-                    "Exception", originalException, "internal_original_exception"),
+                .makeTypeError("Exception", originalException, "internal_original_exception"),
             this);
       }
     } else {
@@ -47,15 +51,24 @@ public abstract class ThrowPanicNode extends Node {
   }
 
   @Fallback
-  Stateful doFallback(Object _this, Object payload) {
-    throw new PanicException(payload, this);
+  Stateful doFallback(
+      Object _this, Object payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
+    if (interopLibrary.isException(payload)) {
+      try {
+        throw interopLibrary.throwException(payload);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException("Impossible, `isException` returned true for `payload`.");
+      }
+    } else {
+      throw new PanicException(payload, this);
+    }
   }
 }
 
 /* Note [Original Exception Type]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * We can assume that the exception stored in a `Caught_Panic` atom is a
- * subclass of a `RuntimeException`, because the only place which constructs
- * `Caught_Panic` puts a `PanicException` there or an
- * `AbstractTruffleException`, both of which are subtypes of `RuntimException`.
+ * subclass of a `AbstractTruffleException`, because the only place which
+ * constructs `Caught_Panic` puts a `PanicException` there or an
+ * `AbstractTruffleException` directly.
  */

@@ -400,9 +400,10 @@ type Panic
     ## Throws a new panic with the provided payload.
 
        Arguments:
-       - payload: The contents of the panic to be thrown. If the payload is
-         `Caught_Panic`, instead of throwing a new panic with it as a payload,
-         the original exception is rethrown, preserving its stacktrace.
+       - payload: The contents of the panic to be thrown. If the payload is a
+         `Caught_Panic` or a raw Java exception, instead of throwing a new panic
+         with it as a payload, the original exception is rethrown, preserving
+         its stacktrace.
 
        > Example
          Throwing a panic containing the text "Oh no!".
@@ -416,6 +417,14 @@ type Panic
              Panic.catch (Panic.throw "foo") caught_panic-> case caught_panic.payload of
                  Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
+
+       > Example
+         Use together with `Panic.catch_java_exception` to intercept a raw Java
+         exception and later rethrow it without changing its stacktrace.
+
+             Panic.catch_java_exception (Long.parseLong "Foo") NumberFormatException java_exception->
+                 IO.println "Intercepted exception: "+java_exception.to_text
+                 Panic.throw java_exception
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
 
@@ -469,7 +478,7 @@ type Panic
        throwable. It can be a dataflow error, a panic or a native Java exception.
        You probably want `Panic.get_attached_stack_trace` instead.
     primitive_get_attached_stack_trace : Throwable -> Array
-    primitive_get_attached_stack_trace throwable = @Builtin_Method "Error.primitive_get_attached_stack_trace"
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
 
 ## A wrapper for a caught panic.
 
