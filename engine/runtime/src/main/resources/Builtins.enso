@@ -423,7 +423,7 @@ type Panic
          Use together with `Panic.catch_java_exception` to intercept a raw Java
          exception and later rethrow it without changing its stacktrace.
 
-             Panic.catch_java_exception (Long.parseLong "Foo") NumberFormatException java_exception->
+             Panic.catch_java_exception NumberFormatException (Long.parseLong "Foo") java_exception->
                  IO.println "Intercepted exception: "+java_exception.to_text
                  Panic.throw java_exception
     throw : Any -> Panic

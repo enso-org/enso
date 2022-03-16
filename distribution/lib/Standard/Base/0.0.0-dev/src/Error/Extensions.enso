@@ -200,10 +200,10 @@ Caught_Panic.stack_trace =
      polyglot java import java.lang.Long
      polyglot java import java.lang.NumberFormatException
      parse str =
-         Panic.catch_java_exception (Long.parseLong str) NumberFormatException exception->
+         Panic.catch_java_exception NumberFormatException (Long.parseLong str) exception->
              Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+exception.getMessage)
 Panic.catch_java_exception : Any -> Any -> (Any -> Any) -> Any
-Panic.catch_java_exception ~action java_class handler =
+Panic.catch_java_exception java_class ~action handler =
     Panic.catch_any action caught_panic-> case caught_panic.payload of
         Polyglot_Error java_exception ->
             case Java.is_instance java_exception java_class of

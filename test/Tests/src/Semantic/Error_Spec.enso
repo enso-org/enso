@@ -139,7 +139,7 @@ spec =
 
         Test.specify "should allow catching Java exceptions easily" <|
             parse str =
-                Panic.catch_java_exception (Long.parseLong str) NumberFormatException exception->
+                Panic.catch_java_exception NumberFormatException (Long.parseLong str) exception->
                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+exception.getMessage)
 
             parse "42" . should_equal 42
@@ -148,7 +148,7 @@ spec =
             Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types
 
         Test.specify "should allow to throw raw Java exceptions" <|
-            exception = Panic.catch_java_exception (here.throw_raw_java "foo") NumberFormatException x->x
+            exception = Panic.catch_java_exception NumberFormatException (here.throw_raw_java "foo") x->x
             exception.getMessage . should_equal "foo"
             Panic.get_attached_stack_trace exception . second . name . should_equal "Error_Spec.throw_raw_java"
 
@@ -159,7 +159,7 @@ spec =
         Test.specify "should allow to re-throw raw Java exceptions" <|
             message_1 = Ref.new ""
             caught_1 = Panic.recover <|
-                Panic.catch_java_exception (here.do_a_parse "foo") NumberFormatException exception->
+                Panic.catch_java_exception NumberFormatException (here.do_a_parse "foo") exception->
                     Ref.put message_1 exception.getMessage
                     Panic.throw exception
             Ref.get message_1 . should_equal 'For input string: "foo"'
@@ -168,7 +168,7 @@ spec =
 
             message_2 = Ref.new ""
             caught_2 = Panic.recover <|
-                Panic.catch_java_exception (here.throw_raw_java "foo") NumberFormatException exception->
+                Panic.catch_java_exception NumberFormatException (here.throw_raw_java "foo") exception->
                     Ref.put message_2 exception.getMessage
                     Panic.throw exception
             Ref.get message_2 . should_equal "foo"
