@@ -2858,6 +2858,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         input_start_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartCreationEvent);
         input_start_conn_creation_way <- inputs.start_connected_node_creation.constant(WayOfCreatingNode::StartConnectedCreationEvent);
         start_connected_creation_way <- input_start_conn_creation_way.gate(&out.source.some_node_output_hovered);
+        removed_edges_on_connected_node_creation <= start_connected_creation_way.map(f_!(model.model.clear_all_detached_edges()));
+        out.source.on_edge_drop <+ removed_edges_on_connected_node_creation;
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
         add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &start_connected_creation_way, &add_with_button_way, &add_with_edge_drop_way);
