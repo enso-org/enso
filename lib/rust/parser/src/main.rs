@@ -366,7 +366,7 @@ const UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
 const UNICODE_ZERO_SPACES: &str = "\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
 
 #[inline(always)]
-fn is_space_char(t: char) -> Option<usize> {
+fn space_char_visible_size(t: char) -> Option<usize> {
     if t == ' ' {
         Some(1)
     } else if t == '\t' {
@@ -396,10 +396,15 @@ fn is_space_char(t: char) -> Option<usize> {
     }
 }
 
+#[inline(always)]
+fn is_space_char(t: char) -> bool {
+    space_char_visible_size(t).is_some()
+}
+
 impl<'s> Lexer<'s> {
     #[inline(always)]
     fn space_and_its_visible_offset(&mut self) -> Option<usize> {
-        let out = self.current_char.and_then(is_space_char);
+        let out = self.current_char.and_then(space_char_visible_size);
         if out.is_some() {
             self.next();
         }
@@ -440,6 +445,11 @@ pub enum Kind {
     Modifier,
     Comment,
     DocComment,
+    Number,
+    TextStart,
+    TextEnd,
+    TextSection,
+    TextEscape,
 }
 
 
@@ -460,15 +470,25 @@ fn is_ident_start_char(t: char) -> bool {
 }
 
 #[inline(always)]
+fn is_digit(t: char) -> bool {
+    t >= '0' && t <= '9'
+}
+
+#[inline(always)]
 fn is_ident_body(t: char) -> bool {
-    is_ident_start_char(t) || (t >= '0' && t <= '9') || t == '\''
+    is_ident_start_char(t) || is_digit(t) || t == '\''
+}
+
+#[inline(always)]
+fn is_ident_split_char(t: char) -> bool {
+    is_ident_body_split_operator(t) || is_space_char(t) || is_newline_char(t)
 }
 
 impl<'s> Lexer<'s> {
     fn ident(&mut self) {
         let tok = self.token(|this| {
             if this.take_1(is_ident_start_char) {
-                this.take_while(is_ident_body);
+                this.take_while(|t| !is_ident_split_char(t));
             }
         });
         if let Some(tok) = tok {
@@ -539,6 +559,20 @@ impl<'s> Lexer<'s> {
 /// 7E    ~     yes      ---
 
 #[inline(always)]
+fn is_ident_body_split_operator(t: char) -> bool {
+    if t <= '\u{7E}' && t >= '\u{21}' {
+        (t == '\u{21}')
+            || (t >= '\u{21}' && t <= '\u{26}')
+            || (t >= '\u{28}' && t <= '\u{2F}')
+            || (t >= '\u{3A}' && t <= '\u{40}')
+            || (t >= '\u{5B}' && t <= '\u{60}')
+            || (t >= '\u{7B}' && t <= '\u{7E}')
+    } else {
+        false
+    }
+}
+
+#[inline(always)]
 fn is_operator_body_char(t: char) -> bool {
     if t <= '\u{7E}' && t >= '\u{21}' {
         (t == '\u{21}')
@@ -603,6 +637,78 @@ impl<'s> Lexer<'s> {
 
 
 
+// ==============
+// === Number ===
+// ==============
+
+impl<'s> Lexer<'s> {
+    fn number(&mut self) {
+        let tok = self.token(|this| {
+            if this.take_1(is_digit) {
+                this.take_while(|t| !is_ident_split_char(t));
+            }
+        });
+        if let Some(tok) = tok {
+            self.submit_token(tok.with_elem(Kind::Number));
+        }
+    }
+}
+
+
+
+// ============
+// === Text ===
+// ============
+
+fn is_inline_text_body(t: char) -> bool {
+    t != '"' && !is_newline_char(t) && t != '\\'
+}
+
+impl<'s> Lexer<'s> {
+    fn text(&mut self) {
+        let tok = self.token(|this| this.take_1('"'));
+        if let Some(tok) = tok {
+            self.submit_token(tok.with_elem(Kind::TextStart));
+            let line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
+            if line_empty {
+                todo!()
+            } else {
+                let mut parsed_element = false;
+                loop {
+                    parsed_element = false;
+
+                    let section = self.token(|this| this.take_while_1(is_inline_text_body));
+                    if let Some(tok) = section {
+                        parsed_element = true;
+                        self.submit_token(tok.with_elem(Kind::TextSection));
+                    }
+
+                    let escape = self.token(|this| {
+                        if this.take_1('\\') {
+                            this.take_1('"');
+                        }
+                    });
+                    if let Some(tok) = escape {
+                        parsed_element = true;
+                        self.submit_token(tok.with_elem(Kind::TextEscape));
+                    }
+
+                    let end = self.token(|this| this.take_1('"'));
+                    if let Some(tok) = end {
+                        self.submit_token(tok.with_elem(Kind::TextEnd));
+                        break;
+                    }
+
+                    if !parsed_element {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 // ================
 // === Comments ===
 // ================
@@ -658,23 +764,27 @@ impl<'s> Lexer<'s> {
         if let Some(tok) = tok {
             let block_indent = self.last_spaces_visible_offset;
             self.submit_token(tok.with_elem(Kind::Newline));
-            if block_indent > self.current_block_indent {
-                let block_start = Token::new_no_offset_phantom(self.offset, Kind::BlockStart);
-                self.submit_token(block_start);
-                self.push_block_indent(block_indent);
-            } else {
-                while block_indent < self.current_block_indent {
-                    let err = "Lexer internal error. Inconsistent code block hierarchy.";
-                    let parent_block_indent = self.pop_block_indent().expect(err);
-                    if block_indent > self.current_block_indent {
-                        // The new line indent is smaller than current block but bigger than the
-                        // previous one. We are treating the line as belonging to the block. The
-                        // warning should be reported by parser.
-                        self.push_block_indent(parent_block_indent);
-                        break;
-                    } else {
-                        let block_end = Token::new_no_offset_phantom(self.offset, Kind::BlockEnd);
-                        self.submit_token(block_end);
+            let next_line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
+            if !next_line_empty {
+                if block_indent > self.current_block_indent {
+                    let block_start = Token::new_no_offset_phantom(self.offset, Kind::BlockStart);
+                    self.submit_token(block_start);
+                    self.push_block_indent(block_indent);
+                } else {
+                    while block_indent < self.current_block_indent {
+                        let err = "Lexer internal error. Inconsistent code block hierarchy.";
+                        let parent_block_indent = self.pop_block_indent().expect(err);
+                        if block_indent > self.current_block_indent {
+                            // The new line indent is smaller than current block but bigger than the
+                            // previous one. We are treating the line as belonging to the block. The
+                            // warning should be reported by parser.
+                            self.push_block_indent(parent_block_indent);
+                            break;
+                        } else {
+                            let block_end =
+                                Token::new_no_offset_phantom(self.offset, Kind::BlockEnd);
+                            self.submit_token(block_end);
+                        }
                     }
                 }
             }
@@ -689,8 +799,15 @@ impl<'s> Lexer<'s> {
 // === Glue ===
 // ============
 
-const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] =
-    &[|t| t.ident(), |t| t.operator(), |t| t.newline(), |t| t.symbol(), |t| t.comment()];
+const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
+    |t| t.ident(),
+    |t| t.operator(),
+    |t| t.newline(),
+    |t| t.symbol(),
+    |t| t.comment(),
+    |t| t.number(),
+    |t| t.text(),
+];
 
 impl<'s> Lexer<'s> {
     fn lex(&mut self) -> bool {
@@ -734,7 +851,7 @@ mod tests {
 
     #[test]
     fn test_manual() {
-        let inp = "f ) # dsad asd sa asd asd\n foo";
+        let inp = "foo \"hello";
         let mut input = Lexer::new(&inp);
         input.lex();
         println!("{:#?}", input.output);
