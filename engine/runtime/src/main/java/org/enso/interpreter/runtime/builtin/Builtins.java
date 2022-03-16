@@ -13,8 +13,8 @@ import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodG
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDataflowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
@@ -173,12 +173,12 @@ public class Builtins {
         runtime, "primitive_get_stack_trace", GetStackTraceMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
-    scope.registerMethod(panic, "recover_any", RecoverPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "catch_any", CatchPanicMethodGen.makeFunction(language));
     scope.registerMethod(
         panic,
         "primitive_get_attached_stack_trace",
         GetAttachedStackTraceMethodGen.makeFunction(language));
+    scope.registerMethod(caughtPanic, "convert_to_dataflow_error", CaughtPanicConvertToDataflowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch_primitive", CatchAnyMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
