@@ -5,10 +5,10 @@
 //!
 //! # Usage
 //!
-//! ```
+//! ```ignore
 //! // The prelude will import all structures from this crate and EnsoGL core which are needed
 //! // for defining custom button.
-//! use ensogl_button::prelude::*;
+//! use crate::prelude::*;
 //!
 //! // First, define our custom button shape. The shape should take two colors as a parameters:
 //! // one of the icon, and one of the background. In this example we will create "close" button.

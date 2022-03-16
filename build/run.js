@@ -255,7 +255,7 @@ commands.test = command(`Run test suites`)
 commands.test.rust = async function (argv) {
     if (argv.native) {
         console.log(`Running Rust test suite.`)
-        await run_cargo('cargo', ['test'])
+        await run_cargo('cargo', ['test', '--workspace'])
     }
 
     if (argv.wasm) {

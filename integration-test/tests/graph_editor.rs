@@ -26,7 +26,7 @@ async fn create_new_project_and_add_nodes() {
     assert_eq!(graph_editor.model.nodes.all.len(), 2);
     let expect_node_added = graph_editor.node_added.next_event();
     graph_editor.add_node();
-    let (added_node_id, source_node) = expect_node_added.expect();
+    let (added_node_id, source_node, _) = expect_node_added.expect();
     assert_eq!(source_node, None);
     assert_eq!(graph_editor.model.nodes.all.len(), 3);
 
@@ -163,7 +163,7 @@ fn add_node_with_add_node_button(
     let add_node_button = &graph_editor.model.add_node_button;
     let node_added = graph_editor.node_added.next_event();
     add_node_button.click();
-    let (node_id, source_node) = node_added.expect();
+    let (node_id, source_node, _) = node_added.expect();
     let node = graph_editor.model.nodes.get_cloned_ref(&node_id).expect("Node was not added");
     node.set_expression(Expression::new_plain(expression));
     graph_editor.stop_editing();
