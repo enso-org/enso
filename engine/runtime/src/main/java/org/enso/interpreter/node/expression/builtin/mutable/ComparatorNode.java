@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.state.data.EmptyMap;
 @NodeInfo(
     shortName = "sortComparator",
     description = "The implementation of the comparator for Array sorting.")
-public abstract class ComparatorNode extends Node {
+public class ComparatorNode extends Node {
   private @Child InvokeCallableNode invokeNode;
 
   public static ComparatorNode build() {
@@ -34,14 +34,11 @@ public abstract class ComparatorNode extends Node {
             callArguments, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
-  abstract int execute(VirtualFrame frame, Object comparator, Object l, Object r);
-
   Ordering getOrdering() {
     return Context.get(this).getBuiltins().ordering();
   }
 
-  @Specialization
-  int doComparator(
+  public int execute(
       VirtualFrame frame,
       Object comparator,
       Object l,

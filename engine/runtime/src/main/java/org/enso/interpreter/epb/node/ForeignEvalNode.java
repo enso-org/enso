@@ -2,7 +2,6 @@ package org.enso.interpreter.epb.node;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -17,7 +16,7 @@ import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.epb.EpbParser;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
-public abstract class ForeignEvalNode extends RootNode {
+public class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
   private @Child ForeignFunctionCallNode foreign;
   private @Child ContextRewrapNode rewrapNode = ContextRewrapNode.build();
@@ -45,9 +44,7 @@ public abstract class ForeignEvalNode extends RootNode {
     return ForeignEvalNodeGen.create(language, code, arguments);
   }
 
-  @Specialization
-  Object doExecute(
-      VirtualFrame frame) {
+  public Object execute(VirtualFrame frame) {
     ensureParsed();
     if (foreign != null) {
       return foreign.execute(frame.getArguments());
@@ -97,7 +94,8 @@ public abstract class ForeignEvalNode extends RootNode {
               + "\n};poly_enso_eval";
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
 
-      CallTarget ct = context.getEnv().parsePublic(source);
+      // After calling inner.enter, operating in a different, isolated truffle instance so need to call one with the correct semantics.
+      CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNode.build(argNames.length, fn));
     } catch (Throwable e) {
@@ -150,7 +148,9 @@ public abstract class ForeignEvalNode extends RootNode {
       String args = String.join(",", argNames);
       String wrappedSrc = "function(" + args + "){\n" + code.getForeignSource() + "\n}";
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
-      CallTarget ct = context.getEnv().parsePublic(source);
+
+      // After calling inner.enter, operating in a different, isolated truffle instance so need to call one with the correct semantics.
+      CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(RForeignNodeGen.create(fn));
     } catch (Throwable e) {
