@@ -12,6 +12,7 @@ throw_a_bar = Error.throw "bar"
 throw_a_bar_panicking = Panic.throw "bar"
 throw_a_foo_panicking = Panic.throw "foo"
 throw_raw_java msg = Panic.throw (NumberFormatException.new msg)
+do_a_parse str = Long.parseLong str
 
 spec =
     Test.group "No Method Errors" <|
@@ -101,13 +102,13 @@ spec =
                 caught_panic.stack_trace
             stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
-        Test.specify "should provide access to Java stack traces" pending="TODO Exposed stack traces of polyglot exceptions seem to be wrong" <|
-            stack_1 = Panic.recover (Long.parseLong "foo") . stack_trace
-            stack_1.first.name . should_equal "???"
+        Test.specify "should provide access to Java stack traces" <| #pending="TODO Exposed stack traces of polyglot exceptions seem to be wrong" <|
+            stack_1 = Panic.recover (here.do_a_parse "foo") . stack_trace
+            stack_1.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
-            stack_2 = Panic.catch_any (Long.parseLong "foo") caught_panic->
+            stack_2 = Panic.catch_any (here.do_a_parse "foo") caught_panic->
                 caught_panic.stack_trace
-            stack_2.first.name . should_equal "???"
+            stack_2.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
         Test.specify "should be able to be rethrown without changing the stack trace" <|
             caught_panic = Panic.catch_any here.throw_a_bar_panicking x->x
@@ -158,19 +159,21 @@ spec =
         Test.specify "should allow to re-throw raw Java exceptions" <|
             message_1 = Ref.new ""
             caught_1 = Panic.recover <|
-                Panic.catch_java_exception (Long.parseLong "foo") NumberFormatException exception->
+                Panic.catch_java_exception (here.do_a_parse "foo") NumberFormatException exception->
                     Ref.put message_1 exception.getMessage
                     Panic.throw exception
             Ref.get message_1 . should_equal 'For input string: "foo"'
             caught_1.catch . should_be_a Polyglot_Error
+            caught_1.stack_trace.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
             message_2 = Ref.new ""
             caught_2 = Panic.recover <|
-                Panic.catch_java_exception (Long.parseLong "foo") NumberFormatException exception->
+                Panic.catch_java_exception (here.throw_raw_java "foo") NumberFormatException exception->
                     Ref.put message_2 exception.getMessage
                     Panic.throw exception
-            Ref.get message_2 . should_equal 'For input string: "foo"'
+            Ref.get message_2 . should_equal "foo"
             caught_2.catch . should_be_a Polyglot_Error
+            caught_2.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
 
         Test.specify "should allow to catch a specific panic type easily" <|
             message_1 = Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "msg" Nothing)) caught_panic->
