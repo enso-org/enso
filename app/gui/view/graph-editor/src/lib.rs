@@ -2598,6 +2598,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         //TODO: only if not hover_node_output (.gate()?)
         node_switch_to_enter    <- out.node_hovered.sample(&enter_node).unwrap();
         node_to_enter           <- node_switch_to_enter.map(|switch| switch.on().cloned()).unwrap();
+        trace node_to_enter;
         out.source.node_entered <+ node_to_enter;
     }
 
