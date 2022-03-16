@@ -567,7 +567,6 @@ fn main() {
 // =============
 
 #[test]
-#[ignore]
 fn test_formatting() {
     let input = r#"//! Module-level documentation
 //! written in two lines.

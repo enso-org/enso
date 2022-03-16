@@ -2736,9 +2736,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down);
     create_edge_from_input  <- node_input_touch.down.map(|value| value.clone());
 
-
-    // === Edge creation  ===
-
     on_new_edge    <- any(&output_down,&input_down);
     let selection_mode = selection::get_mode(network,inputs);
     keep_selection <- selection_mode.map(|t| *t != selection::Mode::Normal);
@@ -3616,5 +3613,164 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 impl display::Object for GraphEditor {
     fn display_object(&self) -> &display::object::Instance {
         self.model.display_object()
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod graph_editor_tests {
+    use super::*;
+
+    #[test]
+    fn test_adding_node_by_internal_api() {
+        let (_, graph_editor) = init();
+        assert_eq!(graph_editor.nodes().len(), 0);
+        graph_editor.add_node();
+        assert_eq!(graph_editor.nodes().len(), 1);
+        graph_editor.assert(Case { node_source: None, should_edit: false });
+    }
+
+    #[test]
+    fn test_adding_node_by_shortcut() {
+        let add_node = |editor: &GraphEditor| editor.start_node_creation();
+        test_adding_node(add_node);
+    }
+
+    #[test]
+    fn test_adding_node_by_adding_node_button() {
+        let add_node = |editor: &GraphEditor| {
+            let adding_node_button = &editor.model.add_node_button;
+            adding_node_button.click();
+        };
+        test_adding_node(add_node);
+    }
+
+    fn test_adding_node(add_node: impl Fn(&GraphEditor)) {
+        let (app, graph_editor) = init();
+        assert_eq!(graph_editor.nodes().len(), 0);
+
+        // Adding first node.
+        let (node_1_id, node_1) = graph_editor.add_node_by(&add_node);
+        graph_editor.assert(Case { node_source: None, should_edit: true });
+        graph_editor.stop_editing();
+        assert_eq!(graph_editor.nodes().len(), 1);
+
+        // First node is created in the center of the screen.
+        let node_1_pos = node_1.position();
+        let screen_center = app.display.default_scene.screen_to_scene_coordinates(Vector3::zeros());
+        assert_eq!(node_1_pos.xy(), screen_center.xy());
+        graph_editor.model.nodes.select(node_1_id);
+
+        // Adding second node.
+        let (_, node_2) = graph_editor.add_node_by(&add_node);
+        graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
+        assert_eq!(graph_editor.nodes().len(), 2);
+
+        // Second node is below the first.
+        let node_2_pos = node_2.position();
+        assert!(node_2_pos.y < node_1_pos.y);
+    }
+
+    #[test]
+    fn test_adding_node_by_dropping_edge() {
+        let (app, graph_editor) = init();
+        assert_eq!(graph_editor.model.nodes.all.len(), 0);
+        // Adding a new node.
+        let (node_1_id, node_1) = graph_editor.add_node_by_api();
+        graph_editor.stop_editing();
+        // Creating edge.
+        node_1.model.output.test_port_press();
+        // Dropping edge.
+        let mouse = app.display.default_scene.mouse.test_api();
+        let click_pos = Vector2(300.0, 300.0);
+        let click_on_background = |_: &GraphEditor| mouse.click_on_background(click_pos);
+        let (_, node_2) = graph_editor.add_node_by(&click_on_background);
+        graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
+        let node_pos = node_2.position();
+        assert_eq!(node_pos.xy(), click_pos);
+    }
+
+    #[test]
+    fn test_connecting_two_nodes() {
+        let (_, ref graph_editor) = init();
+        let edges = graph_editor.edges();
+        assert!(graph_editor.nodes().is_empty());
+        assert!(edges.is_empty());
+        // Adding two nodes.
+        let (node_id_1, node_1) = graph_editor.add_node_by_api();
+        graph_editor.stop_editing();
+        let (node_id_2, node_2) = graph_editor.add_node_by_api();
+        graph_editor.stop_editing();
+        // Creating edge.
+        node_1.model.output.test_port_press();
+        let edge_id = graph_editor.on_edge_add.value();
+        let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added");
+        assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
+        assert_eq!(edge.target().map(|e| e.node_id), None);
+        assert_eq!(edges.len(), 1);
+        // Connecting edge.
+        node_2.model.input.test_port_press();
+        assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
+        assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
+    }
+
+
+    // === Test utilities ===
+
+    struct Case {
+        node_source: Option<NodeId>,
+        should_edit: bool,
+    }
+
+    impl GraphEditor {
+        fn add_node_by<F: Fn(&GraphEditor)>(&self, add_node: &F) -> (NodeId, Node) {
+            add_node(self);
+            let (node_id, ..) = self.node_added.value();
+            let node = self.model.nodes.all.get_cloned_ref(&node_id).expect("Node was not added");
+            node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
+            (node_id, node)
+        }
+
+        fn add_node_by_api(&self) -> (NodeId, Node) {
+            let add_node = |editor: &GraphEditor| editor.add_node();
+            self.add_node_by(&add_node)
+        }
+
+        fn assert(&self, case: Case) {
+            let (added_node, node_source, should_edit) = self.node_added.value();
+            let node_being_edited = self.node_being_edited.value();
+            assert_eq!(
+                should_edit, case.should_edit,
+                "Node editing state does not match expected."
+            );
+            assert_eq!(should_edit, node_being_edited.is_some());
+            if let Some(node_being_edited) = node_being_edited {
+                assert_eq!(node_being_edited, added_node, "Edited node does not match added one.");
+            }
+            let node_source = node_source.map(|source| source.node);
+            assert_eq!(node_source, case.node_source, "Source node does not match expected.");
+        }
+
+        fn nodes(&self) -> &SharedHashMap<NodeId, Node> {
+            &self.model.nodes.all
+        }
+
+        fn edges(&self) -> &SharedHashMap<EdgeId, Edge> {
+            &self.model.edges.all
+        }
+    }
+
+    fn init() -> (Application, GraphEditor) {
+        let app = Application::new("root");
+        app.set_screen_size_for_tests();
+        let graph_editor = new_graph_editor(&app);
+        let mouse = &app.display.default_scene.mouse;
+        mouse.test_api().set_position(Vector2::zeros());
+        (app, graph_editor)
     }
 }

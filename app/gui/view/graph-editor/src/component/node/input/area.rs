@@ -200,6 +200,8 @@ ensogl::define_endpoints! {
 
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
+        /// Emit `on_port_press` for unit tests purposes.
+        test_port_press      (),
     }
 
     Output {
@@ -666,6 +668,7 @@ impl Area {
                     // === Press ===
 
                     eval_ mouse_down ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
+                    eval_ frp.test_port_press ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
 
 
                     // === Hover ===

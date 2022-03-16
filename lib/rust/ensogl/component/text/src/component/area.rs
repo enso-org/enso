@@ -1,6 +1,9 @@
 //! The text area implementation. It serves the purpose of single and multi-line text labels and
 //! text editors.
 
+#![cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+#![cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
+
 use crate::prelude::*;
 use enso_text::unit::*;
 use ensogl_core::display::shape::*;
@@ -530,6 +533,12 @@ impl Area {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        default()
+    }
+
+    #[cfg(target_arch = "wasm32")]
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
         let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
         let shapes = &self.data.app.display.default_scene.shapes;
@@ -558,6 +567,7 @@ pub struct AreaModel {
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
+    #[cfg(target_arch = "wasm32")]
     glyph_system:   glyph::System,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
@@ -571,15 +581,19 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
-        let fonts = scene.extension::<typeface::font::Registry>();
-        let font = fonts.load("DejaVuSansMono");
-        let glyph_system = typeface::glyph::System::new(&scene, font);
+        #[cfg(target_arch = "wasm32")]
+        let glyph_system = {
+            let fonts = scene.extension::<typeface::font::Registry>();
+            let font = fonts.load("DejaVuSansMono");
+            typeface::glyph::System::new(&scene, font)
+        };
         let display_object = display::object::Instance::new(&logger);
         let buffer = default();
         let lines = default();
         let single_line = default();
         let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
 
+        #[cfg(target_arch = "wasm32")]
         display_object.add_child(&glyph_system);
 
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
@@ -603,6 +617,7 @@ impl AreaModel {
             frp_endpoints,
             buffer,
             display_object,
+            #[cfg(target_arch = "wasm32")]
             glyph_system,
             lines,
             single_line,
@@ -611,6 +626,10 @@ impl AreaModel {
         .init()
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
+
+    #[cfg(target_arch = "wasm32")]
     fn on_modified_selection(
         &self,
         selections: &buffer::selection::Group,
@@ -749,6 +768,12 @@ impl AreaModel {
         self.lines.len() as f32 * LINE_HEIGHT
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn redraw_line(&self, _: usize, _: String) -> f32 {
+        0.0
+    }
+
+    #[cfg(target_arch = "wasm32")]
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
         let cursor_map = self
             .selection_map

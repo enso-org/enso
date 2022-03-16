@@ -1,5 +1,7 @@
 //! Provides a text cursor and selection component.
 
+#![cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 

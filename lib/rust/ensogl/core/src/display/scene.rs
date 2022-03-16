@@ -405,6 +405,35 @@ impl Mouse {
         let position = Vector2(new_pos.x as f32, new_pos.y as f32) - shape.center();
         self.frp.position.emit(position);
     }
+
+    /// Get a wrapper with an access to the test API.
+    pub fn test_api(&self) -> MouseTestApi<'_> {
+        MouseTestApi { inner: self }
+    }
+}
+
+
+// === MouseTestApi ===
+
+/// Addional API for unit tests.
+#[derive(Debug)]
+pub struct MouseTestApi<'a> {
+    inner: &'a Mouse,
+}
+
+impl MouseTestApi<'_> {
+    /// Set mouse position.
+    pub fn set_position(&self, pos: Vector2<f32>) {
+        self.inner.last_position.set(Vector2(pos.x as i32, pos.y as i32));
+        self.inner.re_emit_position_event();
+    }
+
+    /// Click on background at a specified position.
+    pub fn click_on_background(&self, pos: Vector2<f32>) {
+        self.set_position(pos);
+        self.inner.target.set(PointerTarget::Background);
+        self.inner.frp.up.emit(frp::io::mouse::Button::Button0);
+    }
 }
 
 

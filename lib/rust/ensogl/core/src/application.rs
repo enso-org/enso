@@ -30,6 +30,11 @@ pub use view::View;
 // === Application ===
 // ===================
 
+
+
+/// Screen size for unit and integration tests.
+const TEST_SCREEN_SIZE: (f32, f32) = (1920.0, 1080.0);
+
 /// A top level structure for an application. It combines a view, keyboard shortcut manager, and is
 /// intended to also manage layout of visible panes.
 #[derive(Debug, Clone, CloneRef)]
@@ -67,6 +72,19 @@ impl Application {
     /// Create a new instance of a view.
     pub fn new_view<T: View>(&self) -> T {
         self.views.new_view(self)
+    }
+
+    /// Set "fake" screen dimensions for unit and integration tests. This is important for a lot of
+    /// position and screen size related computations in the IDE.
+    pub fn set_screen_size_for_tests(&self) {
+        let (screen_width, screen_height) = TEST_SCREEN_SIZE;
+        let scene = &self.display.default_scene;
+        scene.layers.iter_sublayers_and_masks_nested(|layer| {
+            let camera = layer.camera();
+            camera.set_screen(screen_width, screen_height);
+            camera.reset_zoom();
+            camera.update(scene);
+        });
     }
 }
 

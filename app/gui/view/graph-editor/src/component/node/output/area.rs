@@ -133,6 +133,8 @@ ensogl::define_endpoints! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type (Crumbs,Option<Type>),
+        /// Emit `on_port_press` for unit tests purposes.
+        test_port_press           (),
     }
 
     Output {
@@ -350,6 +352,7 @@ impl Model {
                     self.frp.source.on_port_hover <+ port_frp.on_hover.map
                         (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
                     self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
+                    port_frp.test_press <+ self.frp.test_port_press;
 
                     port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
                     self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
