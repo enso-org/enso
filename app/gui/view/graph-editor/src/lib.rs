@@ -643,6 +643,7 @@ ensogl::define_endpoints! {
 
         hover_node_input            (Option<EdgeEndpoint>),
         hover_node_output           (Option<EdgeEndpoint>),
+        some_node_output_hovered    (bool),
 
 
         // === Other ===
@@ -2590,7 +2591,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.source.node_exited <+ enter_on_background;
 
         // Go level down on node double click.
-        enter_node <= target_to_enter.map(|target| target.is_symbol().as_some(()));
+        out.source.some_node_output_hovered <+ inputs.hover_node_output.map(Option::is_some);
         //TODO: only if not hover_node_output (.gate()?)
         node_switch_to_enter    <- out.node_hovered.sample(&enter_node).unwrap();
         node_to_enter           <- node_switch_to_enter.map(|switch| switch.on().cloned()).unwrap();
