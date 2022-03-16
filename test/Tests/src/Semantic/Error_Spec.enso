@@ -102,7 +102,7 @@ spec =
                 caught_panic.stack_trace
             stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
-        Test.specify "should provide access to Java stack traces" <| #pending="TODO Exposed stack traces of polyglot exceptions seem to be wrong" <|
+        Test.specify "should provide access to Java stack traces" <|
             stack_1 = Panic.recover (here.do_a_parse "foo") . stack_trace
             stack_1.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
