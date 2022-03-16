@@ -1,4 +1,3 @@
-#![feature(type_changing_struct_update)]
 #![feature(allocator_api)]
 #![feature(slice_index_methods)]
 #![feature(test)]
@@ -17,7 +16,7 @@ use std::str;
 // ===============
 
 #[self_referencing]
-struct BumpVec<T> {
+pub struct BumpVec<T> {
     allocator: Bump,
     #[covariant]
     #[borrows(allocator)]
@@ -88,11 +87,11 @@ fn bytes_range_into_usize_range(range: Range<Bytes>) -> Range<usize> {
 }
 
 pub trait BytesStrOps {
-    #[inline(always)]
     fn slice(&self, range: Range<Bytes>) -> &str;
 }
 
 impl BytesStrOps for str {
+    #[inline(always)]
     fn slice(&self, range: Range<Bytes>) -> &str {
         &self[bytes_range_into_usize_range(range)]
     }
@@ -135,7 +134,11 @@ impl<T> Token<T> {
 
     #[inline(always)]
     pub fn with_elem<S>(self, elem: S) -> Token<S> {
-        Token { elem, ..self }
+        let left_visible_offset = self.left_visible_offset;
+        let left_offset = self.left_offset;
+        let start = self.start;
+        let len = self.len;
+        Token { left_visible_offset, left_offset, start, len, elem }
     }
 
     #[inline(always)]
@@ -164,6 +167,7 @@ impl<T> Token<T> {
 
 
 impl PartialEq<Token> for &Token {
+    #[inline(always)]
     fn eq(&self, other: &Token) -> bool {
         (*self).eq(other)
     }
@@ -176,17 +180,18 @@ impl PartialEq<Token> for &Token {
 // ===============
 
 pub trait Pattern {
-    #[inline(always)]
     fn match_pattern(&mut self, t: char) -> bool;
 }
 
 impl<T: FnMut(char) -> bool> Pattern for T {
+    #[inline(always)]
     fn match_pattern(&mut self, t: char) -> bool {
         (self)(t)
     }
 }
 
 impl Pattern for char {
+    #[inline(always)]
     fn match_pattern(&mut self, t: char) -> bool {
         *self == t
     }
@@ -219,12 +224,14 @@ pub struct LexerState {
 
 impl<'s> Deref for Lexer<'s> {
     type Target = LexerState;
+    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         &self.state
     }
 }
 
 impl<'s> DerefMut for Lexer<'s> {
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.state
     }
@@ -368,6 +375,24 @@ impl<'s> Lexer<'s> {
 
 
 
+// =================
+// === Validator ===
+// =================
+
+pub trait Validator {
+    type Output;
+    fn validate(self, repr: &str) -> Vec<Self::Output>;
+}
+
+impl<'s> Lexer<'s> {
+    pub fn validate<T: Copy + Validator>(&self, token: Token<T>) -> Vec<T::Output> {
+        let repr = self.repr(token);
+        token.elem.validate(repr)
+    }
+}
+
+
+
 // =============
 // === Space ===
 // =============
@@ -445,24 +470,65 @@ impl<'s> Lexer<'s> {
 // === Kind ===
 // ============
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Kind {
-    Newline,
-    Symbol,
-    BlockStart,
-    BlockEnd,
-    Wildcard,
-    Ident(Ident),
-    Operator,
-    Modifier,
-    Comment,
-    DocComment,
-    Number,
-    TextStart,
-    TextEnd,
-    TextSection,
-    TextEscape,
+macro_rules! tagged_enum {
+    ($name:ident {
+        $($l_variant:ident : $variant:ident $({$($arg:ident : $arg_tp:ty),* $(,)?})? ),* $(,)?
+    }) => {
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum $name {
+            $($variant($variant)),*
+        }
+
+        $(
+            #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+            pub struct $variant {
+                $($($arg : $arg_tp),*)?
+            }
+
+            impl From<$variant> for $name {
+                #[inline(always)]
+                fn from(t: $variant) -> Self {
+                    Self::$variant(t)
+                }
+            }
+
+            impl PartialEq<$variant> for &$variant {
+                #[inline(always)]
+                fn eq(&self, other: &$variant) -> bool {
+                    $variant::eq(*self, other)
+                }
+            }
+        )*
+
+        impl $name {
+            $(
+                /// Constructor.
+                #[inline(always)]
+                pub fn $l_variant($($($arg : $arg_tp),*)?) -> Self {
+                    Self::$variant($variant { $($($arg),*)? })
+                }
+            )*
+        }
+    };
 }
+
+tagged_enum!(Kind {
+    newline:      Newline,
+    symbol:       Symbol,
+    block_start:  BlockStart,
+    block_end:    BlockEnd,
+    wildcard:     Wildcard,
+    ident:        Ident { is_free: bool, lift_level: usize },
+    operator:     Operator,
+    modifier:     Modifier,
+    comment:      Comment,
+    doc_comment:  DocComment,
+    number:       Number,
+    text_start:   TextStart,
+    text_end:     TextEnd,
+    text_section: TextSection,
+    text_escape:  TextEscape,
+});
 
 
 
@@ -470,25 +536,9 @@ pub enum Kind {
 // === Ident ===
 // =============
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct Ident {
-    is_free:    bool,
-    lift_level: usize,
-}
-
-#[inline(always)]
-fn is_ident_start_char(t: char) -> bool {
-    t.is_alphabetic() || t == '_'
-}
-
 #[inline(always)]
 fn is_digit(t: char) -> bool {
     t >= '0' && t <= '9'
-}
-
-#[inline(always)]
-fn is_ident_body(t: char) -> bool {
-    is_ident_start_char(t) || is_digit(t) || t == '\''
 }
 
 #[inline(always)]
@@ -496,26 +546,35 @@ fn is_ident_split_char(t: char) -> bool {
     is_ident_body_split_operator(t) || is_space_char(t) || is_newline_char(t)
 }
 
+#[inline(always)]
+fn is_ident_char(t: char) -> bool {
+    !is_ident_split_char(t)
+}
+
 impl<'s> Lexer<'s> {
     fn ident(&mut self) {
-        let tok = self.token(|this| {
-            if this.take_1(is_ident_start_char) {
-                this.take_while(|t| !is_ident_split_char(t));
-            }
-        });
-        if let Some(tok) = tok {
+        if let Some(tok) = self.token(|this| this.take_while_1(is_ident_char)) {
             let repr = self.repr(tok);
             let starts_with_underscore = repr.starts_with('_');
             let kind = if starts_with_underscore && repr.len() == 1 {
-                Kind::Wildcard
+                Kind::wildcard()
             } else {
                 let is_free = starts_with_underscore;
                 let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-                Kind::Ident(Ident { is_free, lift_level })
+                Kind::ident(is_free, lift_level)
             };
             let tok = tok.with_elem(kind);
             self.submit_token(tok);
         }
+    }
+}
+
+pub struct IdentError {}
+
+impl Validator for Ident {
+    type Output = IdentError;
+    fn validate(self, _repr: &str) -> Vec<Self::Output> {
+        vec![] // TODO
     }
 }
 
@@ -617,12 +676,10 @@ impl<'s> Lexer<'s> {
             let repr = self.repr(tok);
             if repr == "+-" {
                 let (left, right) = tok.split_at(Bytes::from(1)).unwrap();
-                let left = left.with_elem(Kind::Operator);
-                let right = right.with_elem(Kind::Operator);
-                self.submit_token(left);
-                self.submit_token(right);
+                self.submit_token(left.with_elem(Kind::operator()));
+                self.submit_token(right.with_elem(Kind::operator()));
             } else {
-                let kind = if repr.ends_with('=') { Kind::Modifier } else { Kind::Operator };
+                let kind = if repr.ends_with('=') { Kind::modifier() } else { Kind::operator() };
                 let token = tok.with_elem(kind);
                 self.submit_token(token);
             }
@@ -640,7 +697,7 @@ impl<'s> Lexer<'s> {
     fn symbol(&mut self) {
         if let Some(current) = self.current_char {
             if "(){}[]`".contains(current) {
-                let token = self.token(|this| this.take_any()).unwrap().with_elem(Kind::Symbol);
+                let token = self.token(|this| this.take_any()).unwrap().with_elem(Kind::symbol());
                 self.submit_token(token);
             }
         }
@@ -661,7 +718,7 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(tok) = tok {
-            self.submit_token(tok.with_elem(Kind::Number));
+            self.submit_token(tok.with_elem(Kind::number()));
         }
     }
 }
@@ -680,19 +737,19 @@ impl<'s> Lexer<'s> {
     fn text(&mut self) {
         let tok = self.token(|this| this.take_1('"'));
         if let Some(tok) = tok {
-            self.submit_token(tok.with_elem(Kind::TextStart));
+            self.submit_token(tok.with_elem(Kind::text_start()));
             let line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
             if line_empty {
                 todo!()
             } else {
-                let mut parsed_element = false;
+                let mut parsed_element;
                 loop {
                     parsed_element = false;
 
                     let section = self.token(|this| this.take_while_1(is_inline_text_body));
                     if let Some(tok) = section {
                         parsed_element = true;
-                        self.submit_token(tok.with_elem(Kind::TextSection));
+                        self.submit_token(tok.with_elem(Kind::text_section()));
                     }
 
                     let escape = self.token(|this| {
@@ -702,12 +759,12 @@ impl<'s> Lexer<'s> {
                     });
                     if let Some(tok) = escape {
                         parsed_element = true;
-                        self.submit_token(tok.with_elem(Kind::TextEscape));
+                        self.submit_token(tok.with_elem(Kind::text_escape()));
                     }
 
                     let end = self.token(|this| this.take_1('"'));
                     if let Some(tok) = end {
-                        self.submit_token(tok.with_elem(Kind::TextEnd));
+                        self.submit_token(tok.with_elem(Kind::text_end()));
                         break;
                     }
 
@@ -737,11 +794,11 @@ impl<'s> Lexer<'s> {
     fn comment(&mut self) {
         if let Some(current) = self.current_char {
             if current == '#' {
-                self.submit_line_as(Kind::Comment);
+                self.submit_line_as(Kind::comment());
                 let initial_ident = self.current_block_indent;
                 let check_ident = |this: &mut Self| this.current_block_indent > initial_ident;
                 while self.try_running(|this| this.newline()) && check_ident(self) {
-                    self.submit_line_as(Kind::Comment);
+                    self.submit_line_as(Kind::comment());
                 }
             }
         }
@@ -775,11 +832,12 @@ impl<'s> Lexer<'s> {
         });
         if let Some(tok) = tok {
             let block_indent = self.last_spaces_visible_offset;
-            self.submit_token(tok.with_elem(Kind::Newline));
+            self.submit_token(tok.with_elem(Kind::newline()));
             let next_line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
             if !next_line_empty {
                 if block_indent > self.current_block_indent {
-                    let block_start = Token::new_no_offset_phantom(self.offset, Kind::BlockStart);
+                    let block_start =
+                        Token::new_no_offset_phantom(self.offset, Kind::block_start());
                     self.submit_token(block_start);
                     self.push_block_indent(block_indent);
                 } else {
@@ -794,7 +852,7 @@ impl<'s> Lexer<'s> {
                             break;
                         } else {
                             let block_end =
-                                Token::new_no_offset_phantom(self.offset, Kind::BlockEnd);
+                                Token::new_no_offset_phantom(self.offset, Kind::block_end());
                             self.submit_token(block_end);
                         }
                     }
@@ -844,19 +902,6 @@ impl<'s> Lexer<'s> {
 // === Tests ===
 // =============
 
-fn assert_token_eq(str: &str, f: Option<Box<dyn Fn(usize, usize) -> Token>>) {
-    // TODO: test tabs
-    for l_offset in 0..4 {
-        let inp = format!("{}{}", " ".repeat(l_offset), str);
-        let result = f.as_ref().map(|f| f(l_offset, l_offset));
-        let mut lexer = Lexer::new(&inp);
-        lexer.run();
-        assert_eq!(lexer.output.last().copied(), result);
-    }
-}
-
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -889,7 +934,7 @@ mod tests {
             left_offset: Bytes::from(left_offset),
             start: Bytes(0),
             len: Bytes(repr.len()),
-            elem: Kind::Ident(Ident { is_free, lift_level }),
+            elem: Kind::ident(is_free, lift_level),
         }
     }
 
@@ -957,8 +1002,6 @@ mod tests {
 
 fn main() {
     let str = "_fooAr'' bar";
-    let capacity = str.len() / 5;
-    let bump = Bump::with_capacity(capacity);
     let mut input = Lexer::new(str);
     println!("{:?}", input.ident());
 }
@@ -993,12 +1036,11 @@ mod benches {
         });
     }
 
-    /// 10x slowdown in comparison to [`bench_str_iter`] and [`bench_str_iter_and_compare`].
+    /// 12-13x slowdown in comparison to [`bench_str_iter`] and [`bench_str_iter_and_compare`].
     #[bench]
     fn bench_idents(b: &mut Bencher) {
         let reps = 1000_000;
         let str = "test ".repeat(reps);
-        let capacity = str.len() / 5;
 
         b.iter(move || {
             let mut input = Lexer::new(&str);
