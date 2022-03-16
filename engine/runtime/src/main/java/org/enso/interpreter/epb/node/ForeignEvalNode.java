@@ -25,12 +25,6 @@ public class ForeignEvalNode extends RootNode {
   private @CompilerDirectives.CompilationFinal AbstractTruffleException parseError;
   private final String[] argNames;
 
-  ForeignEvalNode(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
-    super(language, new FrameDescriptor());
-    this.code = code;
-    argNames = arguments.toArray(new String[0]);
-  }
-
   /**
    * Creates a new instance of this node
    *
@@ -39,9 +33,14 @@ public class ForeignEvalNode extends RootNode {
    * @param arguments argument names allowed in the function body
    * @return an instance of this node
    */
-  public static ForeignEvalNode build(
-      EpbLanguage language, EpbParser.Result code, List<String> arguments) {
-    return ForeignEvalNodeGen.create(language, code, arguments);
+  public static ForeignEvalNode build(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
+    return new ForeignEvalNode(language, code, arguments);
+  }
+
+  ForeignEvalNode(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
+    super(language, new FrameDescriptor());
+    this.code = code;
+    argNames = arguments.toArray(new String[0]);
   }
 
   public Object execute(VirtualFrame frame) {

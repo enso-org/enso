@@ -1,8 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -12,7 +10,6 @@ import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMo
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Ordering;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
@@ -24,7 +21,7 @@ public class ComparatorNode extends Node {
   private @Child InvokeCallableNode invokeNode;
 
   public static ComparatorNode build() {
-    return ComparatorNodeGen.create();
+    return new ComparatorNode();
   }
 
   ComparatorNode() {
