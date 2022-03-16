@@ -83,25 +83,25 @@ case class DocParserDef() extends Parser[Doc] {
         } else if (section.isBeginning()) {
           val text = removeWhitespaces(in)
           push(text)
-        } else if (list.inListFlag) {
-          println(s"onPushing result.current=${result.current}")
-          result.current match {
-            case None =>
-              result.pop()
-              result.current match {
-                case Some(l: Elem.List) =>
-                  result.current = Some(l.append(in))
-                  result.push()
-                case elem =>
-                  throw new IllegalStateException(
-                    s"Illegal stack head when in list stack.head=$elem"
-                  )
-              }
-            case Some(elem) =>
-              throw new IllegalStateException(
-                s"Illegal current state when in list current=$elem"
-              )
-          }
+//        } else if (list.inListFlag) {
+//          println(s"onPushing result.current=${result.current}")
+//          result.current match {
+//            case None =>
+//              result.pop()
+//              result.current match {
+//                case Some(l: Elem.List) =>
+//                  result.current = Some(l.append(in))
+//                  result.push()
+//                case elem =>
+//                  throw new IllegalStateException(
+//                    s"Illegal stack head when in list stack.head=$elem"
+//                  )
+//              }
+//            case Some(elem) =>
+//              throw new IllegalStateException(
+//                s"Illegal current state when in list current=$elem"
+//              )
+//          }
         } else {
           push(in)
         }
@@ -509,17 +509,13 @@ case class DocParserDef() extends Parser[Doc] {
         result.push()
       }
 
-    def onIndentForListCreation(
-      indent: Int,
-      typ: Elem.List.Type,
-      content: String
-    ): Unit =
+    def onIndentForListCreation(indent: Int, typ: Elem.List.Type): Unit =
       logger.trace {
         val diff = indent - current
         println(
-          s"indent=$indent,current=$current,diff=$diff,inListFlag=${list.inListFlag}"
+          s"indent=$indent,current=$current,diff=$diff,inList=${list.inListFlag}"
         )
-        if (diff >= 0 && !list.inListFlag) {
+        if (!list.inListFlag) {
           /* NOTE
            * Used to push new line before pushing first list
            */
@@ -527,26 +523,40 @@ case class DocParserDef() extends Parser[Doc] {
           onPushingNewLine()
           stack +:= indent
           list.inListFlag = true
-          if (content.isEmpty) {
-            list.createNew(indent, typ)
-          } else {
-            list.addNew(indent, typ, content)
-          }
-        } else if (diff == 0 && list.inListFlag) {
-          //list.addContent(content)
-          list.addListItem()
-        } else if (diff < 0 && list.inListFlag) {
-          if (stack.tail.head != indent) {
-            onInvalidIndent(indent, typ, content)
-          } else {
-            list.appendInnerToOuter()
-            list.addContent(content)
-            stack = stack.tail
-          }
+          list.createNew(indent, typ)
+        } else if (diff == 0) {
+          list.endListItem()
+          list.startListItem()
+        } else if (diff > 0) {
+          stack +:= indent
+          list.endListItem()
+          list.createNew(indent, typ)
         } else {
-          println(s"onInvalidIndent($indent,$typ,$content)")
-          onInvalidIndent(indent, typ, content)
+          stack = stack.tail
+          list.endListItem()
+          list.endSublist()
+          list.startListItem()
         }
+//          if (content.isEmpty) {
+//            list.createNew(indent, typ)
+//          } else {
+//            list.addNew(indent, typ, content)
+//          }
+//        } else if (diff == 0 && list.inListFlag) {
+//          //list.addContent(content)
+//          list.addListItem()
+//        } else if (diff < 0 && list.inListFlag) {
+//          if (stack.tail.head != indent) {
+//            onInvalidIndent(indent, typ, content)
+//          } else {
+//            list.appendInnerToOuter()
+//            list.addContent(content)
+//            stack = stack.tail
+//          }
+//        } else {
+//          println(s"onInvalidIndent($indent,$typ,$content)")
+//          onInvalidIndent(indent, typ, content)
+//        }
       }
 
     def onInvalidIndent(
@@ -617,31 +627,109 @@ case class DocParserDef() extends Parser[Doc] {
     */
   final object list {
     var inListFlag: Boolean = false
+    //var stack: List[Elem.List] = Nil
 
     def createNew(indent: Int, listType: Elem.List.Type): Unit =
       logger.trace {
+        //stack +:= Elem.List.empty(indent, listType)
         result.current = Some(Elem.List.empty(indent, listType))
         result.push()
       }
 
-    def addNew(indent: Int, listType: Elem.List.Type, content: Elem): Unit =
+    def startListItem(): Unit =
       logger.trace {
-        result.current = Some(Elem.List(indent, listType, content))
-        result.push()
-      }
-
-    def addListItem(): Unit =
-      logger.trace {
-        val current = result.current
         result.pop()
         result.current match {
           case Some(l: Elem.List) =>
-            result.current = Some(l.addItem(Elem.ListItem(current.toList)))
+            result.current = Some(l.addItem())
             result.push()
+          case elem =>
+            throw new IllegalStateException(
+              s"Illegal startListItem current=$elem"
+            )
+        }
+      }
+
+    def endListItem(): Unit =
+      logger.trace {
+        val elems = stackUnwind()
+        println(s"addListItem elems=$elems")
+        result.current match {
+          case Some(l: Elem.List) =>
+            result.current = Some(l.append(elems))
+            result.push()
+          case elem =>
+            throw new IllegalStateException(
+              s"Illegal endListItem state [current=$elem]"
+            )
+        }
+      }
+
+    def endSublist(): Unit =
+      logger.trace {
+        println(s"endSublist current=${result.current}")
+        result.current match {
+          case None =>
+            result.pop()
+            result.current match {
+              case Some(sublist: Elem.List) =>
+                result.pop()
+                result.current match {
+                  case Some(l: Elem.List) =>
+                    result.current = Some(l.addItem(sublist))
+                    result.push()
+                  case elem =>
+                    throw new IllegalStateException(
+                      s"Illegal endSublist stack [List,$elem,...]"
+                    )
+                }
+              case elem =>
+                throw new IllegalStateException(
+                  s"Illegal endSublist stack [$elem,...]"
+                )
+            }
+          case elem =>
+            throw new IllegalStateException(
+              s"Illegal endSublist state [current=$elem]"
+            )
+        }
+      }
+
+    def addLastItem(): Unit =
+      logger.trace {
+        val elems = stackUnwind()
+        println(s"addLastItem elems=$elems")
+        result.current match {
+          case Some(l: Elem.List) =>
+            if (elems.last == Elem.Newline) {
+              result.current = Some(l.append(elems.init))
+              result.push()
+              result.current = Some(Elem.Newline)
+              result.push()
+            } else {
+              result.current = Some(l.append(elems))
+              result.push()
+            }
           case elem =>
             throw new IllegalStateException(s"Illegal addList current=$elem")
         }
       }
+
+    def stackUnwind(): List[Elem] = {
+      @scala.annotation.tailrec
+      def go(elems: List[Elem]): List[Elem] = {
+        result.pop()
+        result.current match {
+          case Some(_: Elem.List) | None =>
+            elems
+          case Some(elem) =>
+            go(elem :: elems)
+        }
+      }
+
+      val init = result.current.toList
+      go(init)
+    }
 
     def addContent(content: Elem): Unit =
       logger.trace {
@@ -687,31 +775,35 @@ case class DocParserDef() extends Parser[Doc] {
     def onOrdered(): Unit =
       logger.trace {
         state.end()
-        val matchedContent = currentMatch.split(orderedListTrigger)
-        val listIndent     = matchedContent(0).length
-        val listElems      = matchedContent(1)
-        indent.onIndentForListCreation(listIndent, Elem.List.Ordered, listElems)
+//        val matchedContent = currentMatch.split(orderedListTrigger)
+//        val listIndent     = matchedContent(0).length
+//        val listElems      = matchedContent(1)
+        val listIndent =
+          currentMatch
+            .takeWhile(_ != orderedListTrigger)
+            .length
+        indent.onIndentForListCreation(listIndent, Elem.List.Ordered)
       }
 
     def onUnordered(): Unit =
       logger.trace {
         state.end()
         println(s"currentMatch='$currentMatch'")
-        val matchedContent = currentMatch.split(unorderedListTrigger)
-        val listIndent     = matchedContent(0).length
-        val listElems      = matchedContent(1).drop(1)
-        indent.onIndentForListCreation(
-          listIndent,
-          Elem.List.Unordered,
-          listElems
-        )
+//        val matchedContent = currentMatch.split(unorderedListTrigger)
+//        val listIndent     = matchedContent(0).length
+//        val listElems      = matchedContent(1).drop(1)
+        val listIndent =
+          currentMatch
+            .takeWhile(_ != unorderedListTrigger)
+            .length
+        indent.onIndentForListCreation(listIndent, Elem.List.Unordered)
       }
 
     val orderedListTrigger: Char   = Elem.List.Ordered.marker
     val unorderedListTrigger: Char = Elem.List.Unordered.marker
 
     val orderedPattern: Pattern =
-      indent.indentPattern >> orderedListTrigger >> notNewLine
+      indent.indentPattern >> orderedListTrigger >> whitespace // notNewLine
     val unorderedPattern: Pattern =
       indent.indentPattern >> unorderedListTrigger >> whitespace //*/ notNewLine
   }
@@ -799,6 +891,12 @@ case class DocParserDef() extends Parser[Doc] {
         formatter.checkForUnclosed(Elem.Formatter.Strikeout)
       }
 
+    def checkForUnclosedListsOnEOS(): Unit =
+      if (list.inListFlag) {
+        list.addLastItem()
+        list.inListFlag = false
+      }
+
     def reverseStackOnEOS(): Unit =
       logger.trace {
         result.stack = result.stack.reverse
@@ -851,6 +949,7 @@ case class DocParserDef() extends Parser[Doc] {
     def onEOS(): Unit =
       logger.trace {
         checkForUnclosedFormattersOnEOS()
+        checkForUnclosedListsOnEOS()
         reverseStackOnEOS()
         header.create()
         push()

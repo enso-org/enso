@@ -284,19 +284,22 @@ object Doc {
     //// List - Ordered & Unordered, Invalid Indent ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
+    sealed trait ListElem extends Elem {
+      def append(xs: scala.List[Elem]): ListElem
+    }
+
     /** A list item.
       *
       * @param elems the elements that make up this list item
       */
-    final case class ListItem(elems: scala.List[Elem]) extends Elem {
+    final case class ListItem(elems: scala.List[Elem]) extends ListElem {
 
       override val repr: Repr.Builder = R + elems
 
       override def html: HTML = elems.map(_.html)
 
-      def append(elem: Elem): ListItem = {
-        copy(elems = elems :+ elem)
-      }
+      override def append(xs: scala.List[Elem]): ListItem =
+        copy(elems = elems :++ xs)
     }
 
     object ListItem {
@@ -312,15 +315,17 @@ object Doc {
       * @param typ - type of list
       * @param elems - elements which make up list
       */
-    final case class List(indent: Int, typ: List.Type, elems: List1[ListItem])
-        extends Elem {
-      val elemIndent = 1
+    final case class List(indent: Int, typ: List.Type, elems: List1[ListElem])
+        extends ListElem {
 
       val repr: Repr.Builder = {
         val listElems = elems.reverse
-        R + indent + typ.marker + elemIndent + listElems.head +
-        listElems.tail.map { elem =>
-          R + Elem.Newline + indent + typ.marker + elemIndent + elem
+        R + indent + typ.marker + List.ElemIndent + listElems.head +
+        listElems.tail.map {
+          case elem: List =>
+            R + Newline + elem
+          case elem: ListItem =>
+            R + Newline + indent + typ.marker + List.ElemIndent + elem
         }
       }
 //        R + indent + typ.marker + elemIndent + elems.head + elems.tail
@@ -333,30 +338,39 @@ object Doc {
 
       val html: HTML = {
         val elemsHTML = elems.reverse.toList.map {
-          //case elem @ (_: List) => elem.html
-          elem => HTML.li(elem.html)
+          case elem: List     => elem.html
+          case elem: ListElem => Seq(HTML.li(elem.html))
         }
         Seq(typ.HTMLMarker(elemsHTML))
       }
 
-      def append(elem: Elem): List = {
-        val newElems = List1(elems.head.append(elem), elems.tail)
+      override def append(xs: scala.List[Elem]): List = {
+        val newElems = List1(elems.head.append(xs), elems.tail)
         this.copy(elems = newElems)
       }
 
-      def addItem(item: ListItem): List = {
+      def addItem(item: ListElem): List = {
         val newElems = elems.prepend(item)
         this.copy(elems = newElems)
       }
+
+      def addItem(): List =
+        this.copy(elems = elems.prepend(ListItem(Nil)))
     }
 
     object List {
+
+      val ElemIndent: Int = 1
 
       def empty(indent: Int, listType: Type): List =
         new List(indent, listType, List1(ListItem(Nil)))
 
       def apply(indent: Int, listType: Type, elem: Elem, elems: Elem*): List = {
-        val listItems = (elem :: elems.toList).reverse.map(ListItem(_))
+        val listItems = (elem :: elems.toList).reverse.map {
+          case list: List     => list
+          case elem: ListElem => elem
+          case elem           => ListItem(elem)
+        }
         new List(
           indent,
           listType,

@@ -557,25 +557,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     )
   )
   """List
-    |  - _First_
-    |  - *Second*""".stripMargin
-    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
-    Synopsis(
-      Section.Raw(
-        "List",
-        Newline,
-        List(
-          2,
-          List.Unordered,
-          " ",
-          Formatter(Formatter.Italic, "First"),
-          Formatter(Formatter.Bold, "Second")
-        )
-      )
-    )
-  )
-  """List
-    |- First1
+    |- First
     |- Second
     |- Third""".stripMargin
     .replaceAll(System.lineSeparator(), "\n") ?= Doc(
@@ -586,7 +568,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           0,
           List.Unordered,
-          "First1",
+          "First",
           "Second",
           "Third"
         )
@@ -606,11 +588,106 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
-          " Third unordered item"
+          "First unordered item",
+          "Second unordered item",
+          "Third unordered item"
         ),
         Newline
+      )
+    )
+  )
+  """List
+    |- _First_
+    |- *Second*""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          0,
+          List.Unordered,
+          Formatter(Formatter.Italic, "First"),
+          Formatter(Formatter.Bold, "Second")
+        )
+      )
+    )
+  )
+  """List
+    |- _First_ list `item`
+    |- *Second* list ~item""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          0,
+          List.Unordered,
+          ListItem(
+            Formatter(Formatter.Italic, "First"),
+            " list ",
+            CodeBlock.Inline("item")
+          ),
+          ListItem(
+            Formatter(Formatter.Bold, "Second"),
+            " list ",
+            Formatter.Unclosed(Formatter.Strikeout, "item")
+          )
+        )
+      )
+    )
+  )
+  """List
+    |- _First_ list `item`
+    |- *Second* list ~item
+    |""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          0,
+          List.Unordered,
+          ListItem(
+            Formatter(Formatter.Italic, "First"),
+            " list ",
+            CodeBlock.Inline("item")
+          ),
+          ListItem(
+            Formatter(Formatter.Bold, "Second"),
+            " list ",
+            Formatter.Unclosed(Formatter.Strikeout, "item", Newline)
+          )
+        )
+      )
+    )
+  )
+  """List
+    |  - First
+    |  - Second
+    |    * First1
+    |    * Second1
+    |  - Third""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          "Second",
+          List(
+            4,
+            List.Ordered,
+            "First1",
+            "Second1"
+          ),
+          "Third"
+        )
       )
     )
   )
@@ -628,15 +705,15 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
+          "First unordered item",
+          "Second unordered item",
           List(
             4,
             List.Ordered,
-            " First ordered sub item",
-            " Second ordered sub item"
+            "First ordered sub item",
+            "Second ordered sub item"
           ),
-          " Third unordered item"
+          "Third unordered item"
         )
       )
     )
