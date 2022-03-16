@@ -2590,6 +2590,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         // Go level down on node double click.
         enter_node <= target_to_enter.map(|target| target.is_symbol().as_some(()));
+        //TODO: only if not hover_node_output (.gate()?)
         node_switch_to_enter    <- out.node_hovered.sample(&enter_node).unwrap();
         node_to_enter           <- node_switch_to_enter.map(|switch| switch.on().cloned()).unwrap();
         out.source.node_entered <+ node_to_enter;
