@@ -459,6 +459,7 @@ pub struct Graph {
 impl Graph {
     /// Create graph presenter. The returned structure is working and does not require any
     /// initialization.
+    #[profile(Task)]
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
@@ -470,6 +471,7 @@ impl Graph {
         Self { network, model }.init(project_view)
     }
 
+    #[profile(Detail)]
     fn init(self, project_view: &view::project::View) -> Self {
         let logger = &self.model.logger;
         let network = &self.network;

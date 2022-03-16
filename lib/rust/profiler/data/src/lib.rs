@@ -214,9 +214,9 @@ pub struct Measurement<M> {
     pub lifetime: Lifetime,
     /// Identifies the profiler's source and scope to the user.
     pub label:    Label,
-    /// Profilers started by this profiler.
+    /// Profilers started by this profiler, ordered by time created.
     pub children: Vec<Self>,
-    /// Metadata attached to this profiler.
+    /// Metadata attached to this profiler, ordered by time logged.
     pub metadata: Vec<Metadata<M>>,
 }
 

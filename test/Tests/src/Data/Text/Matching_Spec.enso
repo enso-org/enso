@@ -2,7 +2,6 @@ from Standard.Base import all
 
 from Standard.Table.Error as Error_Module import all
 import Standard.Base.Error.Problem_Behavior
-import Standard.Base.Error.Warnings
 import Standard.Base.Data.Text.Matching
 import Standard.Test
 import Standard.Test.Problems
@@ -52,12 +51,12 @@ spec = Test.group 'Matching Helper' <|
         Regex_Matcher.new.match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False . should_equal ["bar", "baz", "zap"]
 
     Test.specify 'should correctly handle criteria which did not match anything' <|
-        action = Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True warnings=_ on_problems=_
+        action = Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_problems=_
         tester = _.should_equal ["baz"]
         problems = [Matching.No_Matches_Found ["unknown_column"]]
         Problems.test_problem_handling action problems tester
 
-        action_2 = Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column_1", "unknown_column_2"] reorder=False warnings=_ on_problems=_
+        action_2 = Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column_1", "unknown_column_2"] reorder=False on_problems=_
         problems_2 = [Matching.No_Matches_Found ["unknown_column_1", "unknown_column_2"]]
         Problems.test_problem_handling action_2 problems_2 tester
 

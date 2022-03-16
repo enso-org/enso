@@ -234,6 +234,13 @@ type Error
     get_stack_trace_text : Text
     get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
 
+    ## PRIVATE
+
+       Returns a raw representation of the current execution stack trace.
+       You probably want `Error.get_stack_trace` instead.
+    primitive_get_stack_trace : Array
+    primitive_get_stack_trace = @Builtin_Method "Error.primitive_get_stack_trace"
+
     ## Converts an error to a corresponding textual representation.
 
        > Example
@@ -248,12 +255,20 @@ type Prim_Warning
     type Prim_Warning
 
     ## PRIVATE
-    attach : Any -> Any -> Any
-    attach value warning = @Builtin_Method "Prim_Warning.attach"
+    attach : Any -> Any -> Any -> Any
+    attach value warning origin = @Builtin_Method "Prim_Warning.attach"
+
+    ## PRIVATE
+    create : Any -> Any -> Prim_Warning
+    create payload origin = @Builtin_Method "Prim_Warning.create"
 
     ## PRIVATE
     get_all : Any -> Array Prim_Warning
     get_all value = @Builtin_Method "Prim_Warning.get_all"
+
+    ## PRIVATE
+    set : Any -> Array Prim_Warning -> Any
+    set value warnings = @Builtin_Method "Prim_Warning.set"
 
     ## PRIVATE
     get_origin : Prim_Warning -> Any
