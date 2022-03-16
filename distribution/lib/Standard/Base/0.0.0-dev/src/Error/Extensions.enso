@@ -204,9 +204,37 @@ Caught_Panic.stack_trace =
              Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+exception.getMessage)
 Panic.catch_java_exception : Any -> Any -> (Any -> Any) -> Any
 Panic.catch_java_exception ~action java_class handler =
-    Panic.catch action caught_panic-> case caught_panic.payload of
+    Panic.catch_any action caught_panic-> case caught_panic.payload of
         Polyglot_Error java_exception ->
             case Java.is_instance java_exception java_class of
                 True -> handler java_exception
                 False -> Panic.throw caught_panic
         _ -> Panic.throw caught_panic
+
+## Executes the provided action and if panic matching the provided matcher was
+   thrown, calls the provided callback.
+
+   If action executes successfully, the result of `Panic.catch` is the result of
+   that action. Otherwise, if a matching panic is thrown from within the action,
+   the result is obtained by calling the provided handler callback. Any
+   non-matching panics are forwarded without changes.
+
+   Arguments:
+   - typ: The expected panic type.
+   - action: The code to execute that potentially panics.
+   - handler: The callback to handle the panics. The callback will be provided
+     with a `Caught_Panic` instance encapsulating the `payload` of the caught
+     panic and its stacktrace.
+
+   > Example
+     Handling a specific type of panic.
+
+         Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             IO.println "Caught an `Illegal_Argument_Error`: "+error.payload.message
+             "fallback value"
+Panic.catch : Any -> Any -> (Caught_Panic -> Any) -> Any
+Panic.catch typ ~action handler =
+    Panic.catch_any action caught_panic->
+        case caught_panic.payload.is_a typ of
+            True -> handler caught_panic
+            False -> Panic.throw caught_panic

@@ -411,10 +411,11 @@ type Panic
              Panic.throw "Oh no!"
 
        > Example
-         Use together with `Panic.catch` to catch only specific types of errors
-         and rethrow any others, without affecting their stacktraces.
+         Use together with `Panic.catch_any` to catch only specific types of
+         errors and rethrow any others, without affecting their stacktraces.
+         This pattern is encapsulated by `Panic.catch`.
 
-             Panic.catch (Panic.throw "foo") caught_panic-> case caught_panic.payload of
+             Panic.catch_any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
                  Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
 
@@ -439,7 +440,7 @@ type Panic
        - action: The code to execute that potentially panics.
 
        > Example
-         Handling a panic for a panicking action.
+         Converting a panic to a dataflow error.
 
              Panic.recover (Panic.throw "Oh no!")
     recover : Any -> Any
@@ -448,7 +449,7 @@ type Panic
     ## Executes the provided action and if any panic was thrown, calls the
        provided callback.
 
-       If action executes successfully, the result of `Panic.catch` is the
+       If action executes successfully, the result of `Panic.catch_any` is the
        result of that action. Otherwise, it is the result of the provided
        handler callback, executed with the caught panic as its first argument.
 
@@ -459,18 +460,18 @@ type Panic
        > Example
          Handling a panic for a panicking action.
 
-             Panic.catch (Panic.throw "Oh no!") error->
+             Panic.catch_any (Panic.throw "Oh no!") error->
                  IO.println "Caught an error: "+error.payload.to_text
 
        > Example
          Use together with `Panic.throw` to catch only specific types of errors
          and rethrow any others, without affecting their stacktraces.
 
-             Panic.catch (Panic.throw "foo") caught_panic-> case caught_panic.payload of
+             Panic.catch_any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
                  Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
-    catch : Any -> (Caught_Panic -> Any) -> Any
-    catch ~action handler = @Builtin_Method "Panic.catch"
+    catch_any : Any -> (Caught_Panic -> Any) -> Any
+    catch_any ~action handler = @Builtin_Method "Panic.catch_any"
 
     ## PRIVATE
 

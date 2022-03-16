@@ -19,7 +19,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
     type = "Panic",
-    name = "catch",
+    name = "catch_any",
     description = "Executes an action if a panic was thrown, calls the provided callback.")
 public abstract class CatchPanicNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;

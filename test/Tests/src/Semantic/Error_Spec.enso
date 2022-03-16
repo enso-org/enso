@@ -83,21 +83,21 @@ spec =
 
     Test.group "Panics" <|
         Test.specify "should be able to be caught" <|
-            result = Panic.catch (Panic.throw 42) caught_panic->
+            result = Panic.catch_any (Panic.throw 42) caught_panic->
                 caught_panic.payload+10
             result . should_equal 52
 
-            result_2 = Panic.catch (1 + 2) caught_panic->
+            result_2 = Panic.catch_any (1 + 2) caught_panic->
                 caught_panic.payload+10
             result_2 . should_equal 3
 
         Test.specify "should not mix with dataflow errors" <|
-            result = Panic.catch (Error.throw 42) caught_panic->
+            result = Panic.catch_any (Error.throw 42) caught_panic->
                 caught_panic.payload+10
             result.catch . should_equal 42
 
         Test.specify "should provide access to stack traces" <|
-            stack = Panic.catch here.throw_a_bar_panicking caught_panic->
+            stack = Panic.catch_any here.throw_a_bar_panicking caught_panic->
                 caught_panic.stack_trace
             stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
@@ -105,20 +105,20 @@ spec =
             stack_1 = Panic.recover (Long.parseLong "foo") . stack_trace
             stack_1.first.name . should_equal "???"
 
-            stack_2 = Panic.catch (Long.parseLong "foo") caught_panic->
+            stack_2 = Panic.catch_any (Long.parseLong "foo") caught_panic->
                 caught_panic.stack_trace
             stack_2.first.name . should_equal "???"
 
         Test.specify "should be able to be rethrown without changing the stack trace" <|
-            caught_panic = Panic.catch here.throw_a_bar_panicking x->x
+            caught_panic = Panic.catch_any here.throw_a_bar_panicking x->x
             rethrow foo = Panic.throw foo
-            rethrown_panic = Panic.catch (rethrow caught_panic) x->x
+            rethrown_panic = Panic.catch_any (rethrow caught_panic) x->x
             (rethrown_panic.stack_trace.length > 0).should_be_true
             (rethrown_panic.stack_trace.map .name) . should_equal (caught_panic.stack_trace.map .name)
 
         Test.specify "should allow the pattern for handling selected exceptions" <|
             perform_operation ~action =
-                Panic.catch action caught_panic->
+                Panic.catch_any action caught_panic->
                     if caught_panic.payload == "bar" then 42 else
                         Panic.throw caught_panic
             Panic.recover (perform_operation here.throw_a_bar_panicking) . should_equal 42
@@ -129,7 +129,7 @@ spec =
 
         Test.specify "should work as in the examples" <|
             fun ~act =
-                Panic.catch act caught_panic-> case caught_panic.payload of
+                Panic.catch_any act caught_panic-> case caught_panic.payload of
                     Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                     other_panic -> Panic.throw other_panic
             Panic.recover (fun "bar") . should_equal "bar"
@@ -151,7 +151,7 @@ spec =
             exception.getMessage . should_equal "foo"
             Panic.get_attached_stack_trace exception . second . name . should_equal "Error_Spec.throw_raw_java"
 
-            caught_panic = Panic.catch (here.throw_raw_java "foo") x->x
+            caught_panic = Panic.catch_any (here.throw_raw_java "foo") x->x
             caught_panic.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
             caught_panic.payload . should_be_a Polyglot_Error
 
@@ -171,5 +171,33 @@ spec =
                     Panic.throw exception
             Ref.get message_2 . should_equal 'For input string: "foo"'
             caught_2.catch . should_be_a Polyglot_Error
+
+        Test.specify "should allow to catch a specific panic type easily" <|
+            message_1 = Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "msg" Nothing)) caught_panic->
+                caught_panic.payload.message
+            message_1 . should_equal "msg"
+
+            error = Panic.recover <| Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_State_Error "foo" Nothing)) caught_panic->
+                caught_panic.payload.message
+            error.catch . should_be_an Illegal_State_Error
+
+            message_2 = Panic.catch Any (Panic.throw (Illegal_Argument_Error "msg" Nothing)) _->
+                "caught"
+            message_2 . should_equal "caught"
+
+            message_3 = Panic.catch Polyglot_Error (Long.parseLong "foo") _->
+                "polyglot"
+            message_3 . should_equal "polyglot"
+            message_4 = Panic.catch Any (Long.parseLong "foo") _->
+                "polyglot2"
+            message_4 . should_equal "polyglot2"
+            message_5 = Panic.catch Unsupported_Argument_Types (Long.parseLong 0) _->
+                "uat"
+            message_5 . should_equal "uat"
+
+
+            Test.expect_panic_with (Panic.catch Illegal_Argument_Error (Long.parseLong "foo") (_->"polyglot3")) Polyglot_Error
+            Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types
+
 
 main = Test.Suite.run_main here.spec

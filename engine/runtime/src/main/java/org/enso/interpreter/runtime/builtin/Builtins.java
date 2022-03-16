@@ -174,7 +174,7 @@ public class Builtins {
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
-    scope.registerMethod(panic, "catch", CatchPanicMethodGen.makeFunction(language));
+    scope.registerMethod(panic, "catch_any", CatchPanicMethodGen.makeFunction(language));
     scope.registerMethod(
         panic,
         "primitive_get_attached_stack_trace",
