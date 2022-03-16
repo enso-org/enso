@@ -1,9 +1,10 @@
 // This file cannot be made ES6 module due to: https://github.com/develar/read-config-file/issues/10
 
+
+const utils = require('../../utils')
+
 const dist_var_name = "ENSO_IDE_DIST"
-
-const dist = process.env[dist_var_name] ?? (()=>{throw Error(`Missing ${dist_var_name} environment variable.`)})()
-
+const dist = utils.require_env(dist_var_name)
 const build = require('../../build.json')
 
 const config = {

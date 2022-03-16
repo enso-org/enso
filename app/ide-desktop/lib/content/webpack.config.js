@@ -2,7 +2,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const CompressionPlugin = require('compression-webpack-plugin')
 const path = require('path')
 const webpack = require('webpack')
-const paths = require('../../../../build/paths')
+const utils = require('../../utils')
 const BUILD_INFO = require('../../build.json')
 
 const thisPath = path.resolve(__dirname)
@@ -11,6 +11,11 @@ const child_process = require('child_process')
 function git(command) {
     return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
+
+const output_path = utils.require_env('ENSO_IDE_DIST')
+const wasm_path = utils.require_env('ENSO_GUI_WASM')
+const js_glue_path = utils.require_env('ENSO_GUI_JS_GLUE')
+const assets_path = utils.require_env('ENSO_GUI_ASSETS')
 
 // scala-parser.js is compiled from Scala code, so no source map is available for it.
 const IGNORE_SOURCE_MAPS = [/scala-parser\.js/]
@@ -36,7 +41,7 @@ module.exports = {
         wasm_imports: './src/wasm_imports.js',
     },
     output: {
-        path: paths.dist.assets,
+        path: path.resolve(output_path, 'assets'),
         filename: '[name].js',
         libraryTarget: 'umd',
     },
@@ -50,8 +55,8 @@ module.exports = {
             path.resolve(thisPath, 'src', 'run.js'),
             path.resolve(thisPath, 'src', 'style.css'),
             path.resolve(thisPath, 'src', 'docsStyle.css'),
-            path.resolve(thisPath, 'assets'),
-            paths.dist.wasm.main,
+            assets_path,
+            wasm_path,
         ]),
         new webpack.DefinePlugin({
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
@@ -68,7 +73,7 @@ module.exports = {
     },
     resolve: {
         alias: {
-            wasm_rust_glue$: paths.dist.wasm.glue,
+            wasm_rust_glue$: js_glue_path,
         },
         extensions: ['.ts', '.js'],
     },

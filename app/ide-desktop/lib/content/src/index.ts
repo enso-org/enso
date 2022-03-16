@@ -20,8 +20,7 @@ import firebase from 'firebase/app'
 // @ts-ignore
 import 'firebase/auth'
 
-import * as semver from 'semver'
-import {SemVer} from "semver";
+import {SemVer, Comparator} from "semver";
 
 
 const authInfo = 'auth-info'
@@ -541,7 +540,7 @@ async function checkMinSupportedVersion(config: Config) {
         // const appConfig: any = await fetchApplicationConfig(config.application_config_url)
         // const clientVersion = Versions.ideVersion
         // const minSupportedVersion = appConfig.minimumSupportedVersion
-        const comparator = new semver.Comparator(">=2.0.0-alpha.6")
+        const comparator = new Comparator(">=2.0.0-alpha.6")
         return comparator.test(Versions.ideVersion)
     } catch (e) {
         console.error('Minimum version check failed.', e)

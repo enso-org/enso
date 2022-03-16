@@ -1,6 +1,5 @@
 const Copy = require('copy-webpack-plugin')
 const path = require('path')
-const paths = require('../../../../build/paths')
 
 const thisPath = path.resolve(__dirname)
 
@@ -14,7 +13,7 @@ module.exports = {
     mode: 'production',
     target: 'electron-main',
     output: {
-        path: paths.dist.content,
+        path: distContent,
         filename: '[name].js',
     },
     plugins: [
