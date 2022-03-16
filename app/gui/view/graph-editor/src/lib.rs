@@ -408,7 +408,7 @@ impl<K, V, S> SharedHashMap<K, V, S> {
 /// source to "this" port of new node.
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, PartialEq)]
 pub struct NodeSource {
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    #[allow(missing_docs)]
     pub node: NodeId,
 }
 
@@ -1297,7 +1297,7 @@ impl Deref for GraphEditorModelWithNetwork {
 
 
 impl GraphEditorModelWithNetwork {
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    /// Constructor.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
         let model = GraphEditorModel::new(app, cursor, frp);
@@ -1319,7 +1319,7 @@ impl GraphEditorModelWithNetwork {
         false
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    /// Return a position of the node with provided id.
     pub fn get_node_position(&self, node_id: NodeId) -> Option<Vector3<f32>> {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
     }
@@ -1699,27 +1699,27 @@ impl GraphEditorModel {
 
 // === Add node ===
 impl GraphEditorModel {
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    /// Create a new node and return a unique identifier.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
         let (node_id, _, _) = self.frp.node_added.value();
         node_id
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    /// Create a new node and place it at a free place below `above` node.
     pub fn add_node_below(&self, above: NodeId) -> NodeId {
         let pos = self.find_free_place_under(above);
         self.add_node_at(pos)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    /// Create a new node and place it at `pos`.
     pub fn add_node_at(&self, pos: Vector2) -> NodeId {
         let node_id = self.add_node();
         self.frp.set_node_position((node_id, pos));
         node_id
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    /// Return the first available position for a new node below `node_above` node.
     pub fn find_free_place_under(&self, node_above: NodeId) -> Vector2 {
         let above_pos = self.node_position(node_above);
         let y_gap = self.frp.default_y_gap_between_nodes.value();
@@ -1729,7 +1729,8 @@ impl GraphEditorModel {
         self.find_free_place_for_node(starting_point, direction).unwrap()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+    /// Return the first unoccupied point when going along the ray starting from `starting_point`
+    /// and parallel to `direction` vector.
     pub fn find_free_place_for_node(
         &self,
         starting_from: Vector2,
@@ -1756,12 +1757,6 @@ impl GraphEditorModel {
             OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
         });
         find_free_place(starting_from, direction, node_areas)
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-    pub fn start_editing_new_node(&self, node_id: NodeId) {
-        self.frp.set_node_expression.emit(&(node_id, node::Expression::default()));
-        self.frp.edit_node.emit(&node_id);
     }
 }
 
