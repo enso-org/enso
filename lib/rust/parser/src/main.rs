@@ -52,6 +52,11 @@ impl<T> BumpVec<T> {
     pub fn len(&self) -> usize {
         self.borrow_vec().len()
     }
+
+    #[inline(always)]
+    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+        self.borrow_vec().into_iter()
+    }
 }
 
 impl<T: Debug> Debug for BumpVec<T> {
@@ -154,6 +159,13 @@ impl<T> Token<T> {
             };
             (token1, token2)
         })
+    }
+}
+
+
+impl PartialEq<Token> for &Token {
+    fn eq(&self, other: &Token) -> bool {
+        (*self).eq(other)
     }
 }
 
@@ -810,7 +822,7 @@ const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
 ];
 
 impl<'s> Lexer<'s> {
-    fn lex(&mut self) -> bool {
+    fn run(&mut self) -> bool {
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
         let mut any_parser_matched = true;
         while any_parser_matched {
@@ -837,9 +849,9 @@ fn assert_token_eq(str: &str, f: Option<Box<dyn Fn(usize, usize) -> Token>>) {
     for l_offset in 0..4 {
         let inp = format!("{}{}", " ".repeat(l_offset), str);
         let result = f.as_ref().map(|f| f(l_offset, l_offset));
-        let mut input = Lexer::new(&inp);
-        input.lex();
-        assert_eq!(input.output.last().copied(), result);
+        let mut lexer = Lexer::new(&inp);
+        lexer.run();
+        assert_eq!(lexer.output.last().copied(), result);
     }
 }
 
@@ -849,14 +861,54 @@ fn assert_token_eq(str: &str, f: Option<Box<dyn Fn(usize, usize) -> Token>>) {
 mod tests {
     use super::*;
 
+    macro_rules! lexer_tests {
+        ($($input:literal => $body:tt),* $(,)?) => {
+            $( test_lexer($input, (&$body).to_vec()); )*
+        };
+    }
+
+    fn test_lexer(input: &str, expected: Vec<Token>) {
+        let mut lexer = Lexer::new(input);
+        lexer.run();
+        assert_eq!(lexer.output.iter().collect_vec(), expected);
+    }
+
     #[test]
     fn test_manual() {
         let inp = "foo \"hello";
-        let mut input = Lexer::new(&inp);
-        input.lex();
-        println!("{:#?}", input.output);
+        let mut lexer = Lexer::new(&inp);
+        lexer.run();
+        println!("{:#?}", lexer.output);
     }
 
+    fn ident(left_visible_offset: usize, left_offset: usize, repr: &str) -> Token {
+        let is_free = repr.starts_with('_');
+        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
+        Token {
+            left_visible_offset,
+            left_offset: Bytes::from(left_offset),
+            start: Bytes(0),
+            len: Bytes(repr.len()),
+            elem: Kind::Ident(Ident { is_free, lift_level }),
+        }
+    }
+
+    #[test]
+    fn test_case_idents() {
+        lexer_tests! {
+            ""      => [],
+            "test"  => [ident(0, 0, "test")],
+            "你好"   => [ident(0, 0, "你好")],
+            "cześć" => [ident(0, 0, "cześć")],
+            "❤️foo" => [ident(0, 0, "❤️foo")],
+        }
+    }
+
+    // left_visible_offset: usize,
+    // left_offset:         Bytes,
+    // start:               Bytes,
+    // len:                 Bytes,
+    // elem:                T,
     // #[test]
     // fn test_case_idents() {
     //     assert_token_eq("", None);
@@ -950,7 +1002,7 @@ mod benches {
 
         b.iter(move || {
             let mut input = Lexer::new(&str);
-            let ok = input.lex();
+            let ok = input.run();
             assert_eq!(ok, true);
             assert_eq!(input.output.len(), reps);
         });
