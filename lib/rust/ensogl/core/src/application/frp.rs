@@ -865,37 +865,74 @@ macro_rules! define_endpoints_2 {
         }}
     };
 }
-//
-// #[macro_export]
-// macro_rules! generate_rc_structs_and_impls_anglify_wrapper {
-//     (
-//         [$($ctx:tt)*] [$($param:tt)*]
-//         pub struct $name:tt $data_name:tt {
-//             $(
-//                 $(#$field_attr:tt)*
-//                 $field:ident : $field_type:tt
-//             ),* $(,)?
-//         }
-//
-//         pub fn new($($arg:ident : $arg_tp:tt),*) $body:tt
-//
-//     ) => {
-//         $crate::generate_rc_structs_and_impls! {
-//             [<[$($ctx)*]>] [$($param)*]
-//             pub struct $name $data_name {
-//                 $(
-//                     $(#$field_attr)*
-//                     $field : $field_type
-//                 ),*
-//             }
-//
-//             pub fn new($($arg : $arg_tp),*) $body
-//         }
-//     };
-// }
 
-// TODO: of course, this function can be merged with `find_me_a_name_and_docs` after anglify will be
-// used everywhere. This is just a simple showcase.
+/// Generate structs with additional implementations with a wrapper that holds
+/// the given struct via an `Rc` and additional trait implementations for `Deref`, to the inner
+/// struct, Clone, and a constructor as given.
+///
+/// Note that additional type arguments for the structs have to be passed in `anglified` form
+///
+/// Example
+/// -------
+///
+/// ```no_compile
+/// generate_rc_structs_and_impls! {
+///     [<[]>] [<>]
+///     pub struct Output OutputData {
+///         foo: f32,
+///     }
+///     
+///     pub fn new() {
+///     
+///     }
+/// }
+/// ```
+/// creates
+/// ```no_compile
+/// #[derive(Debug, CloneRef)]
+/// pub struct Output<> {
+///     data: Rc<OutputData<>>,
+/// }
+/// impl<> Deref for Output<[ {
+///     type Target = OutputData<>;
+///     fn deref(&self) -> &Self::Target {
+///         &self.data
+///     }
+/// }
+/// impl<> Clone for Output<> {
+///     fn clone(&self) -> Self {
+///         let data = Rc::clone(&self.data);
+///         Self { data }
+///     }
+/// }
+/// #[allow(unused_parens)]
+/// #[derive(Debug)]
+/// pub struct OutputData<> {
+///     _phantom_type_args: PhantomData0<>,
+///
+///     pub foo: f32,
+/// }
+/// impl<> OutputData<> {
+///     fn new_from_tuple(tuple: (f32, )) -> Self {
+///         let _phantom_type_args = default();
+///         let (foo, ) = tuple;
+///         Self { _phantom_type_args, foo }
+///     }
+/// }
+/// impl<> Output<> {
+///     pub fn new() -> Self {
+///         let data = Rc::new(OutputData::new());
+///         Self { data }
+///     }
+/// }
+/// #[allow(unused_parens)]
+/// impl<> OutputData<> {
+///     pub fn new() -> Self {
+///         Self::new_from_tuple({}
+///         )
+///     }
+/// }
+/// ```
 #[macro_export]
 macro_rules! generate_rc_structs_and_impls {
     (
@@ -963,6 +1000,8 @@ macro_rules! generate_rc_structs_and_impls {
     }};
 }
 
+/// Creates the structs and functionality of the public API as described in the docs of
+/// `define_endpoints_2`.
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_public {
     ({
@@ -1127,8 +1166,8 @@ macro_rules! define_endpoints_2_normalized_public {
     }};
 }
 
-
-
+/// Creates the structs and functionality of the private API as described in the docs of
+/// `define_endpoints_2`.
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_private {
     ({
@@ -1216,46 +1255,7 @@ macro_rules! define_endpoints_2_normalized_private {
     }};
 }
 
-
-#[macro_export]
-macro_rules! define_endpoints_2_normalized_glue_anglify_wrapper {
-    ({
-        [$($ctx:tt)*] [$($param:tt)*]
-
-        Input { $input_opts:tt
-            $(
-                $(#$in_field_attr:tt)*
-                $in_field:ident $in_field_type:tt
-            ),*
-        }
-
-        Output { $output_opts:tt
-            $(
-                $(#$out_field_attr:tt)*
-                $out_field:ident $out_field_type:tt
-            ),*
-        }
-    }) => {
-        $crate::define_endpoints_2_normalized_glue!{
-        [<[$($ctx)*]>] [$($param)*]
-
-        Input { $input_opts
-            $(
-                $(#$in_field_attr)*
-                $in_field $in_field_type
-            ),*
-        }
-
-        Output { $output_opts
-            $(
-                $(#$out_field_attr)*
-                $out_field $out_field_type
-            ),*
-        }
-    }};
-}
-
-
+/// Creates the `Frp` struct related functionality as described in the docs of `define_endpoints_2`.
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_glue {
     ({
@@ -1281,14 +1281,14 @@ macro_rules! define_endpoints_2_normalized_glue {
         #[derive(CloneRef)]
         #[allow(missing_docs)]
         pub struct Frp $ctx {
-            public: api::Public  $($param)*,
+            public: api::Public $($param)*,
             // `api::Private` is not cloneable, but the Frp still needs to be `CloneRef`able for
             // API compatibility. In the future we want to make the `FRP` not cloneable, and we will
             // be able to hold the `api::Private` directly..
-            private: Rc<api::Private  $($param)*>,
+            private: Rc<api::Private $($param)*>,
         }
 
-         impl $ctx Frp  $($param)* {
+         impl $ctx Frp $($param)* {
             /// Create Frp endpoints within and the associated network.
             pub fn new() -> Self {
                 let network = $crate::frp::Network::new(file!());
@@ -1304,7 +1304,7 @@ macro_rules! define_endpoints_2_normalized_glue {
         }
 
         impl $ctx
-        Default for Frp  $($param)* {
+        Default for Frp $($param)* {
             fn default() -> Self {
                 Self::new()
             }
@@ -1319,7 +1319,7 @@ macro_rules! define_endpoints_2_normalized_glue {
             }
         }
 
-        impl $ctx Deref for Frp  $($param)* {
+        impl $ctx Deref for Frp $($param)* {
             type Target = api::Public  $($param)*;
             fn deref(&self) -> &Self::Target {
                 &self.public
@@ -1327,14 +1327,14 @@ macro_rules! define_endpoints_2_normalized_glue {
         }
 
         impl $ctx
-        $crate::application::command::FrpNetworkProvider for Frp  $($param)*  {
+        $crate::application::command::FrpNetworkProvider for Frp $($param)*  {
             fn network(&self) -> &$crate::frp::Network {
                 &self.private.network
             }
         }
 
         impl $ctx
-        $crate::application::frp::API for Frp  $($param)* {
+        $crate::application::frp::API for Frp $($param)* {
             type Public = api::Public  $($param)*;
             type Private = api::Private  $($param)*;
 
@@ -1349,7 +1349,7 @@ macro_rules! define_endpoints_2_normalized_glue {
     }};
 }
 
-
+/// Creates the overall structure described in the docs of `define_endpoints_2`.
 #[macro_export]
 macro_rules! define_endpoints_2_normalized {
     ($def:tt) => {
@@ -1358,6 +1358,7 @@ macro_rules! define_endpoints_2_normalized {
         /// Module containing the implementations of the structs that make up the public
         /// (`api::Public`) and private (`api::Private`) part of the FRP API.
         #[allow(missing_docs)]
+        #[allow(unused_parens)]
         #[allow(clippy::manual_non_exhaustive)]
         pub mod api {
             use super::*;
@@ -1433,7 +1434,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_simple_api_usage() {
         let frp = Frp::<u32>::default();
@@ -1455,5 +1455,19 @@ mod tests {
 
         assert_eq!(frp.radius.value(), 2);
         assert_eq!(frp.diameter.value(), 4);
+    }
+
+    #[test]
+    fn test_generate_rc_structs_and_impls() {
+        generate_rc_structs_and_impls! {
+            [<[]>] [<[]>]
+            pub struct Output OutputData {
+                foo: f32,
+            }
+
+            pub fn new() {
+
+            }
+        }
     }
 }
