@@ -3,6 +3,7 @@
 //! needs to be made aware that changes to the env can invalidate the result of compiling this
 //! crate and any dependents.
 
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -11,6 +12,8 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
+
 
 fn main() {
     println!("cargo:rerun-if-env-changed=ENSO_MAX_PROFILING_LEVEL");

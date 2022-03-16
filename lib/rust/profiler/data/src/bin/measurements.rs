@@ -10,19 +10,24 @@
 //! ~/git/enso/data $ cargo run --bin measurements < profile.json | less
 //! ```
 
+// === Features ===
 #![feature(test)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
-
 
 use enso_profiler_data as profiler_data;
 use std::io::Read;
+
+
 
 /// Format a [`profiler_data::Interval`] in an easy-to-read way.
 fn fmt_interval(interval: profiler_data::Interval) -> String {
