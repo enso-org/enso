@@ -115,6 +115,7 @@ async fn adding_node_with_add_node_button() {
     const INITIAL_NODE_COUNT: usize = 2;
     let test = IntegrationTestOnNewProject::setup().await;
     let graph_editor = test.graph_editor();
+    let scene = &test.ide.ensogl_app.display.default_scene;
 
     let nodes = graph_editor.model.nodes.all.keys();
     let nodes_positions = nodes.into_iter().flat_map(|id| graph_editor.model.get_node_position(id));
@@ -141,7 +142,7 @@ async fn adding_node_with_add_node_button() {
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 2);
 
     // If there is a free space, the new node is created in the center of screen.
-    let camera = test.ide.ensogl_app.display.default_scene.layers.main.camera();
+    let camera = scene.layers.main.camera();
     camera.mod_position_xy(|pos| pos + Vector2(1000.0, 1000.0));
     let wait_for_update = Duration::from_millis(500);
     sleep(wait_for_update).await;
@@ -150,8 +151,7 @@ async fn adding_node_with_add_node_button() {
     assert!(node_source.is_none());
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 3);
     let node_position = graph_editor.model.get_node_position(node_id).expect("Node was not added");
-    let center_of_screen =
-        test.ide.ensogl_app.display.default_scene.screen_to_scene_coordinates(Vector3(0.0, 0.0, 0.0));
+    let center_of_screen = scene.screen_to_scene_coordinates(Vector3::zeros());
     assert_abs_diff_eq!(node_position.x, center_of_screen.x, epsilon = 10.0);
     assert_abs_diff_eq!(node_position.y, center_of_screen.y, epsilon = 10.0);
 }
