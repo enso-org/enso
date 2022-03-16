@@ -473,26 +473,36 @@ case class DocParserDef() extends Parser[Doc] {
     */
   final object indent {
     var stack: List[Int] = Nil
-    def current: Int =
-      stack match {
-        case Nil         => 0
-        case ::(head, _) => head
-      }
+    def current: Int     = stack.headOption.getOrElse(0)
+//      stack match {
+//        case Nil         => 0
+//        case ::(head, _) => head
+//      }
 
     def onIndent(): Unit =
       logger.trace {
         val diff = currentMatch.length - current
-        if (diff < 0 && list.inListFlag) {
-          list.appendInnerToOuter()
-          stack = stack.tail
-        } else if (
-          currentMatch.length > section.currentIndentRaw && result.stack.nonEmpty
-        ) {
-          tryToFindCodeInStack()
-          stack +:= currentMatch.length
-          state.begin(CODE)
+        println(s"onIndent match='$currentMatch';current=$current;diff=$diff")
+        if (list.inListFlag) {
+//          list.appendInnerToOuter()
+//          stack = stack.tail
+          if (diff > list.Indent) {
+            tryToFindCodeInStack()
+            stack +:= currentMatch.length
+            state.begin(CODE)
+          } else {
+            text.push(currentMatch)
+          }
         } else {
-          section.currentIndentRaw = currentMatch.length
+          if (
+            currentMatch.length > section.currentIndentRaw && result.stack.nonEmpty
+          ) {
+            tryToFindCodeInStack()
+            stack +:= currentMatch.length
+            state.begin(CODE)
+          } else {
+            section.currentIndentRaw = currentMatch.length
+          }
         }
       }
 
@@ -511,16 +521,13 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onIndentForListCreation(indent: Int, typ: Elem.List.Type): Unit =
       logger.trace {
-        val diff = indent - current
+        val diff = indent - list.current
         println(
-          s"indent=$indent,current=$current,diff=$diff,inList=${list.inListFlag}"
+          s"indent=$indent,current=$current,list.current=${list.current},diff=$diff,inList=${list.inListFlag}"
         )
         if (!list.inListFlag) {
-          /* NOTE
-           * Used to push new line before pushing first list
-           */
-          //if (!list.inListFlag) onPushingNewLine()
           onPushingNewLine()
+
           stack +:= indent
           list.inListFlag = true
           list.createNew(indent, typ)
@@ -583,7 +590,7 @@ case class DocParserDef() extends Parser[Doc] {
     def onEmptyLine(): Unit =
       logger.trace {
         if (list.inListFlag) {
-          list.appendInnerToOuter()
+          list.endListItem()
           list.inListFlag = false
         }
         onPushingNewLine()
@@ -626,12 +633,20 @@ case class DocParserDef() extends Parser[Doc] {
     * there are 2 possible types of lists - ordered and unordered.
     */
   final object list {
+    val Indent: Int = 2
+
+    var stack: List[Int] = Nil
+    def current: Int     = stack.headOption.getOrElse(0)
+
     var inListFlag: Boolean = false
     //var stack: List[Elem.List] = Nil
+
+    def isInList: Boolean = stack.nonEmpty
 
     def createNew(indent: Int, listType: Elem.List.Type): Unit =
       logger.trace {
         //stack +:= Elem.List.empty(indent, listType)
+        list.stack +:= indent
         result.current = Some(Elem.List.empty(indent, listType))
         result.push()
       }
@@ -676,6 +691,7 @@ case class DocParserDef() extends Parser[Doc] {
                 result.pop()
                 result.current match {
                   case Some(l: Elem.List) =>
+                    list.stack     = list.stack.tail
                     result.current = Some(l.addItem(sublist))
                     result.push()
                   case elem =>
@@ -701,6 +717,7 @@ case class DocParserDef() extends Parser[Doc] {
         println(s"addLastItem elems=$elems")
         result.current match {
           case Some(l: Elem.List) =>
+            list.stack = list.stack.tail
             if (elems.last == Elem.Newline) {
               result.current = Some(l.append(elems.init))
               result.push()
@@ -775,27 +792,18 @@ case class DocParserDef() extends Parser[Doc] {
     def onOrdered(): Unit =
       logger.trace {
         state.end()
-//        val matchedContent = currentMatch.split(orderedListTrigger)
-//        val listIndent     = matchedContent(0).length
-//        val listElems      = matchedContent(1)
-        val listIndent =
-          currentMatch
-            .takeWhile(_ != orderedListTrigger)
-            .length
+        val listIndent = currentMatch
+          .takeWhile(_ != orderedListTrigger)
+          .length
         indent.onIndentForListCreation(listIndent, Elem.List.Ordered)
       }
 
     def onUnordered(): Unit =
       logger.trace {
         state.end()
-        println(s"currentMatch='$currentMatch'")
-//        val matchedContent = currentMatch.split(unorderedListTrigger)
-//        val listIndent     = matchedContent(0).length
-//        val listElems      = matchedContent(1).drop(1)
-        val listIndent =
-          currentMatch
-            .takeWhile(_ != unorderedListTrigger)
-            .length
+        val listIndent = currentMatch
+          .takeWhile(_ != unorderedListTrigger)
+          .length
         indent.onIndentForListCreation(listIndent, Elem.List.Unordered)
       }
 
@@ -803,9 +811,9 @@ case class DocParserDef() extends Parser[Doc] {
     val unorderedListTrigger: Char = Elem.List.Unordered.marker
 
     val orderedPattern: Pattern =
-      indent.indentPattern >> orderedListTrigger >> whitespace // notNewLine
+      indent.indentPattern >> orderedListTrigger >> space
     val unorderedPattern: Pattern =
-      indent.indentPattern >> unorderedListTrigger >> whitespace //*/ notNewLine
+      indent.indentPattern >> unorderedListTrigger >> space
   }
 
   NEWLINE || list.orderedPattern   || list.onOrdered()
