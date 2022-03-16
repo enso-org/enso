@@ -2,6 +2,9 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
@@ -22,19 +25,20 @@ public abstract class ThrowPanicNode extends Node {
   abstract Stateful execute(Object _this, Object payload);
 
   @Specialization
-  Stateful doAtom(Object _this, Atom payload) {
+  Stateful doAtom(
+      Object _this, Atom payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
     Builtins builtins = Context.get(this).getBuiltins();
     if (payload.getConstructor() == builtins.caughtPanic()) {
       // Note [Original Exception Type]
       Object originalException = payload.getFields()[1];
-      if (originalException instanceof RuntimeException) {
-        throw (RuntimeException) originalException;
+      if (interopLibrary.isException(originalException)) {
+        throw (AbstractTruffleException) originalException;
       } else {
         throw new PanicException(
             builtins
                 .error()
                 .makeTypeError(
-                    "RuntimeException", originalException, "internal_original_exception"),
+                    "Exception", originalException, "internal_original_exception"),
             this);
       }
     } else {
