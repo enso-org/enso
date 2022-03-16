@@ -1421,7 +1421,8 @@ impl GraphEditorModelWithNetwork {
         hover_out_port: Option<EdgeEndpoint>,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
-        DEBUG!("create_node way=" way;?);
+        DEBUG!("create_node way=" way;?
+               "\n  hover_out_port=" hover_out_port;?);
         let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
         let source_node = match way {
