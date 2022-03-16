@@ -15,6 +15,18 @@ use ensogl::display::Scene;
 use ensogl::Animation;
 use ensogl::Easing;
 
+/// Describes the "speed" of growth/shrink animation.
+///
+/// To determine the duration of the blending animation, we divide the length of the camera path by
+/// this value. This is primarily used to move the edited node back to the `main` layer once editing
+/// is done. If the camera is already at its destination – the duration would be close to zero, so
+/// we would immediately change the layer of the node. If the camera needs to travel a lot - we
+/// increase the animation duration proportionally so that the layer would be changed later.
+///
+/// The exact value is selected empirically. The maximum camera travel distance is about 9000.0
+/// units, so our coefficient determines the maximum animation duration as 600 ms.
+const ANIMATION_LENGTH_COEFFIENT: f32 = 15.0;
+
 /// Initialize edited node growth/shrink animator. It would handle scene layer change for the edited
 /// node as well.
 pub fn initialize_edited_node_animator(
@@ -51,8 +63,12 @@ pub fn initialize_edited_node_animator(
         edited_node_cam_target <- switch(&is_growing, &main_cam_frp.position, &searcher_cam_frp.position);
         growth_animation.target <+ edited_node_cam_target;
 
+        camera_path_length <- all_with
+            (&growth_animation.value, &growth_animation.target, |v, t| (v - t).magnitude());
         on_node_editing_start_or_finish <- any(&out.node_editing_started, &out.node_editing_finished);
-        eval_ on_node_editing_start_or_finish ({
+        start_animation_blending <- camera_path_length.sample(&on_node_editing_start_or_finish);
+        eval start_animation_blending ((length) {
+            animation_blending.set_duration(*length / ANIMATION_LENGTH_COEFFIENT);
             animation_blending.stop_and_rewind(0.0);
             animation_blending.target(1.0);
         });
@@ -67,7 +83,7 @@ pub fn initialize_edited_node_animator(
         //
         // Enabling/disabling "follow me" mode for the edited node camera is hard
         // to implement and leads to serious visualization lags. To avoid that, we blend these two
-        // components together using `animation_blending` as a weight koefficient. This allows a very smooth
+        // components together using `animation_blending` as a weight coefficient. This allows a very smooth
         // transition between "follow me" mode and node growth/shrink animation.
         edited_node_cam_position <- all_with3
             (&edited_node_cam_target, &growth_animation.value, &animation_blending.value, |target,animation,weight| {
