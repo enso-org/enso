@@ -1462,7 +1462,7 @@ mod tests {
     #[test]
     fn test_generate_rc_structs_and_impls() {
         generate_rc_structs_and_impls! {
-            [<[]>] [<[]>]
+            [<[]>] <[]>
             pub struct Output OutputData {
                 foo: f32,
             }
