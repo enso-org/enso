@@ -60,6 +60,9 @@ public class InstantiateNode extends ExpressionNode {
   /**
    * Executes the node, by executing all its children and putting their values as fields of the
    * newly created {@link AtomConstructor} instance.
+   * Note that evaluation of children is a two-stage process. First we assign the values of executed arguments
+   * to local variables and then we read them back. That way default arguments can refer to previously defined
+   * constructor arguments.
    *
    * @param frame the stack frame for execution
    * @return the newly created {@link AtomConstructor} instance.
