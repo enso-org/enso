@@ -17,9 +17,9 @@ do_a_parse str = Long.parseLong str
 spec =
     Test.group "No Method Errors" <|
         Test.specify "should be recoverable" <|
-            err_1 = Panic.recover (123 . foobar "baz") . catch e->e
-            err_2 = Panic.recover ("foo" . baz 123) . catch e->e
-            err_3 = Panic.recover (My_Type False . nope) . catch e->e
+            err_1 = Panic.recover_any (123 . foobar "baz") . catch e->e
+            err_2 = Panic.recover_any ("foo" . baz 123) . catch e->e
+            err_3 = Panic.recover_any (My_Type False . nope) . catch e->e
 
             err_1.target.should_equal 123
             err_1.method_name.should_equal "foobar"
@@ -78,7 +78,7 @@ spec =
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar"
 
         Test.specify "should allow to inspect the stack trace of a recovered panic" <|
-            error = Panic.recover <| here.throw_a_bar_panicking
+            error = Panic.recover_any <| here.throw_a_bar_panicking
             error.catch . should_equal "bar"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
@@ -103,7 +103,7 @@ spec =
             stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
         Test.specify "should provide access to Java stack traces" <|
-            stack_1 = Panic.recover (here.do_a_parse "foo") . stack_trace
+            stack_1 = Panic.recover_any (here.do_a_parse "foo") . stack_trace
             stack_1.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
             stack_2 = Panic.catch_any (here.do_a_parse "foo") caught_panic->
@@ -122,9 +122,9 @@ spec =
                 Panic.catch_any action caught_panic->
                     if caught_panic.payload == "bar" then 42 else
                         Panic.throw caught_panic
-            Panic.recover (perform_operation here.throw_a_bar_panicking) . should_equal 42
+            Panic.recover_any (perform_operation here.throw_a_bar_panicking) . should_equal 42
 
-            error = Panic.recover (perform_operation here.throw_a_foo_panicking)
+            error = Panic.recover_any (perform_operation here.throw_a_foo_panicking)
             error.catch . should_equal "foo"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_foo_panicking"
 
@@ -133,9 +133,9 @@ spec =
                 Panic.catch_any act caught_panic-> case caught_panic.payload of
                     Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                     other_panic -> Panic.throw other_panic
-            Panic.recover (fun "bar") . should_equal "bar"
-            Panic.recover (fun (Panic.throw "foo")) . catch . should_equal "foo"
-            Panic.recover (fun (Panic.throw (Illegal_Argument_Error "msg" Nothing))) . should_equal "Illegal arguments were provided: msg"
+            Panic.recover_any (fun "bar") . should_equal "bar"
+            Panic.recover_any (fun (Panic.throw "foo")) . catch . should_equal "foo"
+            Panic.recover_any (fun (Panic.throw (Illegal_Argument_Error "msg" Nothing))) . should_equal "Illegal arguments were provided: msg"
 
         Test.specify "should allow catching Java exceptions easily" <|
             parse str =
@@ -158,7 +158,7 @@ spec =
 
         Test.specify "should allow to re-throw raw Java exceptions" <|
             message_1 = Ref.new ""
-            caught_1 = Panic.recover <|
+            caught_1 = Panic.recover_any <|
                 Panic.catch_java_exception NumberFormatException (here.do_a_parse "foo") exception->
                     Ref.put message_1 exception.getMessage
                     Panic.throw exception
@@ -167,7 +167,7 @@ spec =
             caught_1.stack_trace.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
             message_2 = Ref.new ""
-            caught_2 = Panic.recover <|
+            caught_2 = Panic.recover_any <|
                 Panic.catch_java_exception NumberFormatException (here.throw_raw_java "foo") exception->
                     Ref.put message_2 exception.getMessage
                     Panic.throw exception
@@ -180,7 +180,7 @@ spec =
                 caught_panic.payload.message
             message_1 . should_equal "msg"
 
-            error = Panic.recover <| Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_State_Error "foo" Nothing)) caught_panic->
+            error = Panic.recover_any <| Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_State_Error "foo" Nothing)) caught_panic->
                 caught_panic.payload.message
             error.catch . should_be_an Illegal_State_Error
 

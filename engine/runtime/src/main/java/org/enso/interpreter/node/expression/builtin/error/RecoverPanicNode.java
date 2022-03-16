@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
     type = "Panic",
-    name = "recover",
+    name = "recover_any",
     description = "Executes an action and converts any Panic thrown by it into an Error")
 public abstract class RecoverPanicNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();

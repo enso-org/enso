@@ -173,7 +173,7 @@ public class Builtins {
         runtime, "primitive_get_stack_trace", GetStackTraceMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
-    scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
+    scope.registerMethod(panic, "recover_any", RecoverPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "catch_any", CatchPanicMethodGen.makeFunction(language));
     scope.registerMethod(
         panic,

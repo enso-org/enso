@@ -38,7 +38,7 @@ from_pairs contents =
          example_parse = Json.parse '{ "a": 1 }'
 parse : Text -> Json ! Parse_Error
 parse json_text =
-    r = Panic.recover (Internal.parse_helper json_text)
+    r = Panic.recover_any (Internal.parse_helper json_text)
     r.catch e-> case e of
         Polyglot_Error err -> Error.throw (Parse_Error err.getMessage)
         p -> Panic.throw p
@@ -104,7 +104,7 @@ type Json
                  json.into format
     into : Any -> Any ! Marshalling_Error
     into type_descriptor =
-        Panic.recover (Internal.into_helper type_descriptor this)
+        Panic.recover_any (Internal.into_helper type_descriptor this)
 
     ## Returns this Json object.
 
