@@ -10,5 +10,6 @@ enso-frp = { path = "../lib/rust/frp" }
 enso-prelude = { path = "../lib/rust/prelude" }
 enso-gui = { path = "../app/gui" }
 enso-web = { path = "../lib/rust/web" }
+ordered-float = "2.7.0"
 wasm-bindgen = { version = "0.2.78" }
 wasm-bindgen-test = "0.3.8"

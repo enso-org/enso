@@ -255,7 +255,7 @@ commands.test = command(`Run test suites`)
 commands.test.rust = async function (argv) {
     if (argv.native) {
         console.log(`Running Rust test suite.`)
-        await run_cargo('cargo', ['test'])
+        await run_cargo('cargo', ['test', '--workspace'])
     }
 
     if (argv.wasm) {
@@ -285,7 +285,7 @@ commands['integration-test'].rust = async function (argv) {
     }
     try {
         console.log(`Running Rust WASM test suite.`)
-        process.env.WASM_BINDGEN_TEST_TIMEOUT = 120
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 180
         let args = [
             'test',
             '--headless',
