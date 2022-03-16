@@ -1123,8 +1123,8 @@ macro_rules! define_endpoints_2_normalized_public {
                         $crate::build_status_map! {status_map $out_field $out_field_type $out_field}
                     )*
                     $(
-                        let in_field = &public_input.$in_field;
-                        $crate::build_command_map! {command_map $in_field $in_field_type in_field}
+                        let _in_field = &public_input.$in_field;
+                        $crate::build_command_map! {command_map $in_field $in_field_type _in_field}
                     )*
                     let status_map = Rc::new(RefCell::new(status_map));
                     let command_map = Rc::new(RefCell::new(command_map));
@@ -1462,13 +1462,13 @@ mod tests {
     #[test]
     fn test_generate_rc_structs_and_impls() {
         generate_rc_structs_and_impls! {
-            [<[]>] <[]>
+            [<[]>] [<>]
             pub struct Output OutputData {
                 foo: f32,
             }
 
             pub fn new() {
-
+                (64.0,)
             }
         }
     }
