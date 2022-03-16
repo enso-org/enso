@@ -22,7 +22,6 @@ use crate::stream::Stream;
 use crate::stream::ValueProvider;
 
 use enso_generics as generics;
-use enso_generics::traits::*;
 use enso_profiler as profiler;
 
 
