@@ -1,12 +1,3 @@
-#![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
-
 //! This file contains the code defining a lexer for the following small language. Due to the way in
 //! which the code-generation from the flexer is used, it has to be defined in a separate crate from
 //! the site at which it's used. For the actual tests of this code, please see
@@ -24,6 +15,19 @@
 //! Please note that there is a fair amount of duplicated code between this test and the
 //! `lexer_generated_api_test` file. This is to present the full view of what each portion of the
 //! process looks like.
+
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
+// === Non-Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
 
 use enso_flexer::prelude::*;
 use enso_flexer::*;

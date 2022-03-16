@@ -1,5 +1,7 @@
 ///! Frp of the number selector.
 use crate::prelude::*;
+use crate::shape::*;
+use ensogl_core::display::shape::*;
 
 use crate::bounds::absolute_value;
 use crate::bounds::clamp_with_overflow;
@@ -7,14 +9,12 @@ use crate::bounds::normalise_value;
 use crate::bounds::position_to_normalised_value;
 use crate::model::Model;
 use crate::shape::relative_shape_down_position;
-use crate::shape::*;
 use crate::Bounds;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::shape::*;
 use ensogl_hardcoded_theme as theme;
 
 

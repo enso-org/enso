@@ -1,4 +1,5 @@
 //! Module defining registry of models which are loading asynchronously.
+
 use crate::prelude::*;
 
 use crate::notification::Publisher;

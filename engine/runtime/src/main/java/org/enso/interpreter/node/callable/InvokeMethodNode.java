@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -12,6 +13,8 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -21,10 +24,9 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -32,7 +34,10 @@ import org.enso.interpreter.runtime.state.Stateful;
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
+  private final BranchProfile polyglotArgumentErrorProfile = BranchProfile.create();
+  private @Child InvokeMethodNode childDispatch;
   private final int argumentCount;
+  private final int thisArgumentPosition;
 
   /**
    * Creates a new node for method invocation.
@@ -45,23 +50,30 @@ public abstract class InvokeMethodNode extends BaseNode {
   public static InvokeMethodNode build(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeMethodNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      int thisArgumentPosition) {
+    return InvokeMethodNodeGen.create(
+        schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition);
   }
 
   InvokeMethodNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      int thisArgumentPosition) {
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.argumentCount = schema.length;
+    this.thisArgumentPosition = thisArgumentPosition;
   }
 
   @Override
   public void setTailStatus(TailStatus tailStatus) {
     super.setTailStatus(tailStatus);
     this.invokeFunctionNode.setTailStatus(tailStatus);
+    if (childDispatch != null) {
+      childDispatch.setTailStatus(tailStatus);
+    }
   }
 
   public abstract Stateful execute(
@@ -74,14 +86,13 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object _this,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
     try {
       Function function = dispatch.getFunctionalDispatch(_this, symbol);
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }
   }
 
@@ -111,6 +122,41 @@ public abstract class InvokeMethodNode extends BaseNode {
     throw _this;
   }
 
+  @Specialization
+  Stateful doWarning(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      WithWarnings _this,
+      Object[] arguments) {
+    // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
+    if (childDispatch == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      Lock lock = getLock();
+      lock.lock();
+      try {
+        if (childDispatch == null) {
+          childDispatch =
+              insert(
+                  build(
+                      invokeFunctionNode.getSchema(),
+                      invokeFunctionNode.getDefaultsExecutionMode(),
+                      invokeFunctionNode.getArgumentsExecutionMode(),
+                      thisArgumentPosition));
+          childDispatch.setTailStatus(getTailStatus());
+          notifyInserted(childDispatch);
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
+
+    arguments[thisArgumentPosition] = _this.getValue();
+    ArrayRope<Warning> warnings = _this.getReassignedWarnings(this);
+    Stateful result = childDispatch.execute(frame, state, symbol, _this.getValue(), arguments);
+    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
+  }
+
   @ExplodeLoop
   @Specialization(
       guards = {
@@ -131,19 +177,33 @@ public abstract class InvokeMethodNode extends BaseNode {
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
+      @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
+      @Cached BranchProfile anyWarningsProfile,
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[argExecutors.length];
+    boolean anyWarnings = false;
+    ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < argExecutors.length; i++) {
       Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+      state = r.getState();
+      args[i] = r.getValue();
       if (r.getValue() instanceof DataflowError) {
         profiles[i].enter();
         return r;
+      } else if (r.getValue() instanceof WithWarnings) {
+        warningProfiles[i].enter();
+        anyWarnings = true;
+        accumulatedWarnings =
+            accumulatedWarnings.append(((WithWarnings) r.getValue()).getReassignedWarnings(this));
+        args[i] = ((WithWarnings) r.getValue()).getValue();
       }
-      state = r.getState();
-      args[i] = r.getValue();
     }
-    return new Stateful(
-        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
+    Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args);
+    if (anyWarnings) {
+      anyWarningsProfile.enter();
+      res = WithWarnings.prependTo(res, accumulatedWarnings);
+    }
+    return new Stateful(state, res);
   }
 
   @Specialization(
@@ -160,8 +220,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       String str = interop.asString(_this);
       Text txt = Text.create(str);
@@ -172,7 +231,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }
   }
 

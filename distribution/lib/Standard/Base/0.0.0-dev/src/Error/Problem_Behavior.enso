@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Error.Warnings
+import Standard.Base.Warning
 
 ## Specifies how to handle problems.
 type Problem_Behavior
@@ -23,21 +23,16 @@ type Problem_Behavior
 
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problem
-       attached as a warning, after any warnings that were already attached to
-       this value.
+       attached as a warning.
        If it is set to Report_Error, the problem is returned in the form of a
        dataflow error. If the value already contained any dataflow error, that
        error takes precedence.
-
-       TODO [RW] the Warning_System argument is temporary, as the warning system
-       is mocked until the real implementation is shipped. It will be removed
-       soon. See: https://www.pivotaltracker.com/story/show/180901472
-    attach_problem_after : Any -> Any -> Warning_System -> Any
-    attach_problem_after decorated_value ~problem warnings = case this of
+    attach_problem_after : Any -> Any -> Any
+    attach_problem_after decorated_value ~problem = case this of
         Ignore ->
             decorated_value
         Report_Warning ->
-            warnings.attach decorated_value problem
+            Warning.attach problem decorated_value
         Report_Error ->
             case decorated_value of
                 _ -> Error.throw problem
@@ -49,28 +44,17 @@ type Problem_Behavior
 
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problem
-       attached as a warning, before any warnings that were already attached to
-       this value.
-
-       TODO [RW] attaching before a warning is not supported in the mock warning
-       system, it can only be added once the full Warning system is implemented.
-       See: https://www.pivotaltracker.com/story/show/180901472
-
+       attached as a warning.
        If it is set to Report_Error, the problem is returned in the form of
        a dataflow error. The problem takes precedence over any errors that may
-       have been contained in the value - in this case the `decorated_value` is
+       have been contained in the value - in such case the `decorated_value` is
        not computed at all.
-
-       TODO [RW] the Warning_System argument is temporary, as the warning system
-       is mocked until the real implementation is shipped. It will be removed
-       soon. See: https://www.pivotaltracker.com/story/show/180901472
-    attach_problem_before : Any -> Any -> Warning_System -> Any
-    attach_problem_before problem warnings ~decorated_value = case this of
+    attach_problem_before : Any -> Any -> Any
+    attach_problem_before problem ~decorated_value = case this of
         Ignore ->
             decorated_value
         Report_Warning ->
-            # TODO [RW] attach before; see comment above.
-            warnings.attach decorated_value problem
+            Warning.attach problem decorated_value
         Report_Error ->
             Error.throw problem
 
@@ -81,31 +65,26 @@ type Problem_Behavior
 
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problems
-       attached as warnings, before any warnings that were already attached to
-       this value.
+       attached as warnings.
        If it is set to Report_Error, the first problem is returned in the form
        of a dataflow error. The problem takes precedence over any errors that
        may have been contained in the value - in this case the `decorated_value`
        is not computed at all.
 
-       TODO [RW] the Warning_System argument is temporary, as the warning system
-       is mocked until the real implementation is shipped. It will be removed
-       soon. See: https://www.pivotaltracker.com/story/show/180901472
-
        > Example
          Perform pre-flight checks and then compute the actual result only if needed.
 
              problems = preflight_checks
-             problem_behavior.attach_problems_before problems Warnings.default <|
+             problem_behavior.attach_problems_before problems <|
                  expensive_computation
 
-    attach_problems_before : Vector -> Warning_System -> Any -> Any
-    attach_problems_before problems warnings ~decorated_value = case this of
+    attach_problems_before : Vector -> Any -> Any
+    attach_problems_before problems ~decorated_value = case this of
         Ignore ->
             decorated_value
         Report_Warning ->
-            # TODO [RW] attach before; see comment above.
-            warnings.attach_many decorated_value problems
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
         Report_Error ->
             if problems.is_empty then decorated_value else
                 Error.throw problems.first
@@ -117,30 +96,25 @@ type Problem_Behavior
 
        If the problem behavior is set to Ignore, the value is returned as-is.
        If it is set to Report_Warning, the value is returned with the problems
-       attached as warnings, after any warnings that were already attached to
-       this value.
+       attached as warnings.
        If it is set to Report_Error, the first problem is returned in the form
        of a dataflow error. If the value already contained any dataflow error,
        that error takes precedence.
-
-       TODO [RW] the Warning_System argument is temporary, as the warning system
-       is mocked until the real implementation is shipped. It will be removed
-       soon. See: https://www.pivotaltracker.com/story/show/180901472
 
        > Example
          First compute a result and then, only if the computation has succeeded,
          perform any postprocessing checks which may raise warnings/errors.
 
              result = compute_result
-             # TODO [RW] the underscore will be able to be removed once the `warnings` argument is deprecated, see above.
-             problem_behavior.attach_problems_after result _ Warnings.default <|
+             problem_behavior.attach_problems_after result <|
                  perform_post_process_checks_and_return_problems
-    attach_problems_after : Any -> Vector -> Warning_System -> Any
-    attach_problems_after decorated_value ~problems warnings = case this of
+    attach_problems_after : Any -> Vector -> Any
+    attach_problems_after decorated_value ~problems = case this of
         Ignore ->
             decorated_value
         Report_Warning ->
-            warnings.attach_many decorated_value problems
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
         Report_Error -> case decorated_value of
             _ -> if problems.is_empty then decorated_value else
                 Error.throw problems.first

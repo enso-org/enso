@@ -1,17 +1,21 @@
 //! This module defines several useful string variants, including copy-on-write and immutable
 //! implementations.
-use std::borrow::Cow;
 
 use crate::clone::*;
-use crate::impls;
 use derive_more::*;
 use itertools::*;
+
+use crate::impls;
+
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 #[cfg(feature = "serde")]
 use serde::Serialize;
+use std::borrow::Cow;
 use std::ops::Deref;
 use std::rc::Rc;
+
+
 
 // =================
 // === StringOps ===

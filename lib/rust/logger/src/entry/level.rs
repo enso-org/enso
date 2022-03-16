@@ -2,9 +2,10 @@
 //! that the verbosity level mechanism is completely user-extensible and this implementation can be
 //! completely redefined by the user.
 
+use crate::prelude::*;
+
 use crate::entry::level;
 use crate::entry::Entry;
-use crate::prelude::*;
 use crate::processor::formatter;
 
 

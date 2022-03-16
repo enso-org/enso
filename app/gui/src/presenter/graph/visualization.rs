@@ -1,15 +1,12 @@
 //! The module with the [`Visualization`] presenter. See [`crate::presenter`] documentation to know
 //! more about presenters in general.
 
-pub mod manager;
-
 use crate::prelude::*;
-
-use crate::presenter::graph;
-use crate::presenter::graph::visualization::manager::Manager;
 
 use crate::executor::global::spawn_stream_handler;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::presenter::graph;
+use crate::presenter::graph::visualization::manager::Manager;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
@@ -17,6 +14,14 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod manager;
+
 
 
 // =============

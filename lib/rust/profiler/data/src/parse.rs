@@ -1,7 +1,6 @@
 //! Parsing implementation. `pub` contents are low-level error details.
 
 use enso_profiler as profiler;
-
 use std::collections;
 use std::error;
 use std::fmt;
@@ -68,7 +67,8 @@ pub(crate) fn interpret<M>(
     // Build measurements from accumulated measurement data.
     let mut measurements: collections::HashMap<_, _> =
         builders.into_iter().map(|(k, v)| (k, v.build())).collect();
-    // Organize measurements into trees.
+    // Organize measurements into trees. Use reverse chronological order as a convenient topological
+    // sort (parents are always created before children).
     let mut root = root_builder.build();
     for (id, parent) in order.into_iter().rev() {
         let child = measurements.remove(&id).unwrap();
@@ -83,7 +83,16 @@ pub(crate) fn interpret<M>(
         };
         parent.push(child);
     }
+    // Organize children by creation time. (Previous pass gathered them in reverse order.)
+    reverse_subtrees(&mut root);
     Ok(root)
+}
+
+fn reverse_subtrees<M>(root: &mut crate::Measurement<M>) {
+    root.children.reverse();
+    for child in root.children.iter_mut() {
+        reverse_subtrees(child);
+    }
 }
 
 

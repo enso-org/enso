@@ -2,15 +2,15 @@
 //! both selectors and can be configured to suit the needs of both.
 
 use crate::prelude::*;
+use crate::shape::*;
+use ensogl_core::display::shape::*;
 
 use crate::decimal_aligned::FloatLabel;
-use crate::shape::*;
 use crate::Bounds;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_text as text;
 
 

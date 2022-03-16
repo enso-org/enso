@@ -5,7 +5,6 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
-ensogl-button = { path = "button" }
 ensogl-drop-down-menu = { path = "drop-down-menu" }
 ensogl-drop-manager = { path = "drop-manager" }
 ensogl-file-browser = { path = "file-browser" }

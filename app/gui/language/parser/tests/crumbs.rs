@@ -1,9 +1,12 @@
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use enso_prelude::*;
 
 use ast::crumbs::Crumbable;
 use ast::HasRepr;
 use parser::Parser;
-
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 

@@ -1,13 +1,7 @@
 //! View part of the text editor.
 
 use crate::prelude::*;
-
-pub mod movement;
-pub mod selection;
-pub mod word;
-
-pub use movement::*;
-pub use selection::Selection;
+use enso_text::unit::*;
 
 use crate::buffer;
 use crate::buffer::style;
@@ -19,9 +13,20 @@ use crate::buffer::Setter;
 use enso_frp as frp;
 use enso_text::text::BoundsError;
 use enso_text::text::Change;
-use enso_text::unit::*;
 use enso_text::Text;
 use ensogl_core::data::color;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod movement;
+pub mod selection;
+pub mod word;
+
+pub use movement::*;
+pub use selection::Selection;
 
 
 

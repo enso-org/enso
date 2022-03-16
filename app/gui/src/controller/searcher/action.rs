@@ -1,10 +1,16 @@
 //! All structures related to the suggestion list provided by SearcherController.
+
 use crate::prelude::*;
 
 use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::CodeToInsert;
 
 use double_representation::module;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod hardcoded;
 

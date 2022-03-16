@@ -1,10 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
@@ -35,15 +33,15 @@ public abstract class BitXorNode extends Node {
   }
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that, @CachedContext(Language.class) Context ctx) {
-    Builtins builtins = ctx.getBuiltins();
+  Object doAtomThis(Atom _this, Object that) {
+    Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, _this, "this"), this);
   }
 
   @Fallback
   Object doOther(Object _this, Object that) {
-    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }

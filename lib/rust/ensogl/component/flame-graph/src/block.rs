@@ -1,5 +1,6 @@
 //! A single block component that is used to build up a flame graph.
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use ensogl::frp;
@@ -8,7 +9,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::shape::*;
 use ensogl_core::Animation;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;

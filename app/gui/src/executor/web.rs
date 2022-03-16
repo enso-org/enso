@@ -1,8 +1,6 @@
 //! Module defining `JsExecutor` - an executor that tries running until stalled
 //! on each animation frame callback call.
 
-pub mod test;
-
 use crate::prelude::*;
 
 use ensogl::animation;
@@ -12,6 +10,15 @@ use futures::executor::LocalSpawner;
 use futures::task::LocalFutureObj;
 use futures::task::LocalSpawn;
 use futures::task::SpawnError;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod test;
+
+
 
 /// An alias for a main animation loop.
 pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;

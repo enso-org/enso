@@ -17,7 +17,6 @@ from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
-import Standard.Base.Error.Warnings
 
 polyglot java import java.sql.JDBCType
 
@@ -106,11 +105,6 @@ type Table
            `Input_Indices_Already_Matched`, indicating that the additional
            indices will not introduce additional columns.
          - If there are no columns in the output table, a `No_Output_Columns`.
-       - warnings: A `Warning_System` instance specifying how to handle
-         warnings. This is a temporary workaround to allow for testing the
-         warning mechanism. Once the proper warning system is implemented, this
-         argument will become obsolete and will be removed. No user code should
-         use this argument, as it will be removed in the future.
 
        > Example
          Select columns by name.
@@ -136,9 +130,9 @@ type Table
          Select columns with the same names as the ones provided.
 
              table.select_columns (By_Column [column1, column2])
-    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Table
-    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) (warnings = Warnings.default) =
-        new_columns = Table_Helpers.select_columns internal_columns=this.internal_columns selector=columns reorder=reorder on_problems=on_problems warnings=warnings
+    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
+    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
+        new_columns = Table_Helpers.select_columns internal_columns=this.internal_columns selector=columns reorder=reorder on_problems=on_problems
         this.updated_columns new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -161,11 +155,6 @@ type Table
            `Input_Indices_Already_Matched`, indicating that the additional
            indices will not introduce additional columns.
          - If there are no columns in the output table, a `No_Output_Columns`.
-       - warnings: A `Warning_System` instance specifying how to handle
-         warnings. This is a temporary workaround to allow for testing the
-         warning mechanism. Once the proper warning system is implemented, this
-         argument will become obsolete and will be removed. No user code should
-         use this argument, as it will be removed in the future.
 
        > Example
          Remove columns with given names.
@@ -190,9 +179,9 @@ type Table
          Remove columns with the same names as the ones provided.
 
              table.remove_columns (By_Column [column1, column2])
-    remove_columns : Column_Selector -> Problem_Behavior -> Warnings.Warning_System -> Table
-    remove_columns (columns = By_Index [0]) (on_problems = Report_Warning) (warnings = Warnings.default) =
-        new_columns = Table_Helpers.remove_columns internal_columns=this.internal_columns selector=columns on_problems=on_problems warnings=warnings
+    remove_columns : Column_Selector -> Problem_Behavior -> Table
+    remove_columns (columns = By_Index [0]) (on_problems = Report_Warning) =
+        new_columns = Table_Helpers.remove_columns internal_columns=this.internal_columns selector=columns on_problems=on_problems
         this.updated_columns new_columns
 
     ## Returns a new table with the specified selection of columns moved to
@@ -215,11 +204,6 @@ type Table
          - If two distinct indices would refer to the same column, a
            `Input_Indices_Already_Matched`, indicating that the additional
            indices will not introduce additional columns.
-       - warnings: A `Warning_System` instance specifying how to handle
-         warnings. This is a temporary workaround to allow for testing the
-         warning mechanism. Once the proper warning system is implemented, this
-         argument will become obsolete and will be removed. No user code should
-         use this argument, as it will be removed in the future.
 
        > Example
          Move a column with a specified name to back.
@@ -249,9 +233,9 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (By_Column [column1, column2])
-    reorder_columns : Column_Selector -> Position.Position -> Problem_Behavior -> Warnings.Warning_System -> Table
-    reorder_columns (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) (warnings = Warnings.default) =
-        new_columns = Table_Helpers.reorder_columns internal_columns=this.internal_columns selector=columns position=position on_problems=on_problems warnings=warnings
+    reorder_columns : Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
+        new_columns = Table_Helpers.reorder_columns internal_columns=this.internal_columns selector=columns position=position on_problems=on_problems
         this.updated_columns new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -301,16 +285,11 @@ type Table
            `Invalid_Output_Column_Names`.
          - If any of the new names clash either with existing names or each
            other, a Duplicate_Output_Column_Names.
-       - warnings: A `Warning_System` instance specifying how to handle
-         warnings. This is a temporary workaround to allow for testing the
-         warning mechanism. Once the proper warning system is implemented, this
-         argument will become obsolete and will be removed. No user code should
-         use this argument, as it will be removed in the future.
 
        > Example
-    rename_columns : Column_Mapping -> Problem_Behavior -> Warnings.Warning_System -> Table
-    rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) (warnings=Warnings.default) =
-        new_names = Table_Helpers.rename_columns internal_columns=this.internal_columns mapping=column_map on_problems=on_problems warnings=warnings
+    rename_columns : Column_Mapping -> Problem_Behavior -> Table
+    rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
+        new_names = Table_Helpers.rename_columns internal_columns=this.internal_columns mapping=column_map on_problems=on_problems
         if new_names.is_error then new_names else
             new_columns = this.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
             this.updated_columns new_columns

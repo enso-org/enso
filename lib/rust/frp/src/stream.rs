@@ -1,9 +1,10 @@
 //! FRP event stream implementation.
 
-use crate::data::watch;
 use crate::network::*;
 use crate::node::*;
 use crate::prelude::*;
+
+use crate::data::watch;
 
 
 

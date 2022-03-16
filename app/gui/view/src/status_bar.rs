@@ -3,16 +3,18 @@
 //! The component is currently rather a stub: it has endpoints for setting many events and
 //! processes and keep them in a list, but it shows only a label of the last event/process
 //! added.
+
 //TODO[ao] Implement the status bar according to https://github.com/enso-org/ide/issues/1193
 //    description
+
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::graph_editor::component::node::input::area::TEXT_SIZE;
 
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
-use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::Scene;
 use ensogl_component::shadow;
@@ -206,23 +208,27 @@ impl Model {
 
     fn camera_changed(&self) {
         let screen = self.camera.screen();
-        let y = screen.height / 2.0 - MARGIN;
+        let x = -screen.width / 2.0 + MARGIN;
+        let y = -screen.height / 2.0 + MARGIN;
+        self.root.set_position_x(x.round());
         self.root.set_position_y(y.round());
     }
 
     fn update_layout(&self) {
-        let label_width = self.label.width.value();
-        self.label.set_position_x(-label_width / 2.0);
-        self.label.set_position_y(-HEIGHT / 2.0 + TEXT_SIZE / 2.0);
+        self.label.set_position_x(PADDING);
+        self.label.set_position_y(HEIGHT / 2.0 + TEXT_SIZE / 2.0);
 
-        let bg_width = if label_width > 0.0 {
-            label_width + 2.0 * PADDING + 2.0 * MAGIC_SHADOW_MARGIN
+        let bg_width = if self.label.width.value() > 0.0 {
+            PADDING + self.label.width.value() + PADDING
         } else {
             0.0
         };
-        let bg_height = HEIGHT + 2.0 * MAGIC_SHADOW_MARGIN;
-        self.background.size.set(Vector2(bg_width, bg_height));
-        self.background.set_position_y(-HEIGHT / 2.0);
+        let bg_height = HEIGHT;
+        self.background.size.set(Vector2(
+            bg_width + 2.0 * MAGIC_SHADOW_MARGIN,
+            bg_height + 2.0 * MAGIC_SHADOW_MARGIN,
+        ));
+        self.background.set_position(Vector3(bg_width / 2.0, bg_height / 2.0, 0.0));
     }
 
     fn add_event(&self, label: &event::Label) -> event::Id {

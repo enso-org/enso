@@ -8,6 +8,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
@@ -58,6 +59,12 @@ import org.graalvm.options.OptionDescriptors;
 })
 public final class Language extends TruffleLanguage<Context> {
   private IdExecutionInstrument idExecutionInstrument;
+  private static final LanguageReference<Language> REFERENCE =
+      LanguageReference.create(Language.class);
+
+  public static Language get(Node node) {
+    return REFERENCE.get(node);
+  }
 
   /**
    * Creates a new Enso context.

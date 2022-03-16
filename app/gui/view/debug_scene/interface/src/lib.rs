@@ -2,18 +2,23 @@
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl::prelude::*;
-
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
+use ensogl::prelude::*;
+use span_tree::traits::*;
+use wasm_bindgen::prelude::*;
+
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
@@ -33,9 +38,7 @@ use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
 use parser::Parser;
-use span_tree::traits::*;
 use uuid::Uuid;
-use wasm_bindgen::prelude::*;
 
 
 
@@ -125,9 +128,9 @@ fn init(app: &Application) {
 
     // === Nodes ===
 
-    let node1_id = graph_editor.model.add_node();
-    let node2_id = graph_editor.model.add_node();
-    let node3_id = graph_editor.model.add_node();
+    let node1_id = graph_editor.add_node();
+    let node2_id = graph_editor.add_node();
+    let node3_id = graph_editor.add_node();
 
     graph_editor.frp.set_node_position.emit((node1_id, Vector2(-150.0, 50.0)));
     graph_editor.frp.set_node_position.emit((node2_id, Vector2(50.0, 50.0)));
@@ -142,7 +145,7 @@ fn init(app: &Application) {
     let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id, expression_2.clone()));
 
-    let expression_3 = expression_mock3();
+    let expression_3 = expression_mock2();
     graph_editor.frp.set_node_expression.emit((node3_id, expression_3));
     let kind = Immutable(graph_editor::component::node::error::Kind::Panic);
     let message = Rc::new(Some("Runtime Error".to_owned()));
@@ -150,10 +153,10 @@ fn init(app: &Application) {
     let error = graph_editor::component::node::Error { kind, message, propagated };
     graph_editor.frp.set_node_error_status.emit((node3_id, Some(error)));
 
-    let foo_node = graph_editor.model.add_node_below(node3_id);
+    let foo_node = graph_editor.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((foo_node, Expression::new_plain("foo")));
 
-    let baz_node = graph_editor.model.add_node_below(node3_id);
+    let baz_node = graph_editor.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((baz_node, Expression::new_plain("baz")));
     let (_, baz_position) = graph_editor.node_position_set.value();
     let styles = StyleWatch::new(&scene.style_sheet);
@@ -162,7 +165,7 @@ fn init(app: &Application) {
     let gap_for_bar_node = min_spacing + gap_between_nodes + f32::EPSILON;
     graph_editor.set_node_position((baz_node, baz_position + Vector2(gap_for_bar_node, 0.0)));
 
-    let bar_node = graph_editor.model.add_node_below(node3_id);
+    let bar_node = graph_editor.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((bar_node, Expression::new_plain("bar")));
 
 
@@ -176,9 +179,9 @@ fn init(app: &Application) {
 
     // === VCS ===
 
-    let dummy_node_added_id = graph_editor.model.add_node();
-    let dummy_node_edited_id = graph_editor.model.add_node();
-    let dummy_node_unchanged_id = graph_editor.model.add_node();
+    let dummy_node_added_id = graph_editor.add_node();
+    let dummy_node_edited_id = graph_editor.add_node();
+    let dummy_node_unchanged_id = graph_editor.add_node();
 
     graph_editor.frp.set_node_position.emit((dummy_node_added_id, Vector2(-450.0, 50.0)));
     graph_editor.frp.set_node_position.emit((dummy_node_edited_id, Vector2(-450.0, 125.0)));
@@ -338,7 +341,6 @@ pub fn expression_mock() -> Expression {
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
-// TODO[ao] This expression mocks results in panic. If you want to use it, please fix it first.
 pub fn expression_mock2() -> Expression {
     let pattern = Some("var1".to_string());
     let pattern_cr = vec![Seq { right: false }, Or, Or, Build];

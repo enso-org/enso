@@ -1,14 +1,14 @@
 //! The `Tooltip` shows extra information for UI components. It is pegged to the cursor location
 //! and appears when it receives information to show.
 
-use enso_frp as frp;
-use ensogl::application::Application;
-use ensogl::define_style;
-use ensogl::display;
 use ensogl::gui::style::*;
 use ensogl::prelude::*;
 
+use enso_frp as frp;
 use ensogl::animation::hysteretic::HystereticAnimation;
+use ensogl::application::Application;
+use ensogl::define_style;
+use ensogl::display;
 use ensogl::display::shape::StyleWatch;
 use ensogl_component::label::Label;
 
