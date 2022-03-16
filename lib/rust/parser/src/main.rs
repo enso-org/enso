@@ -10,6 +10,13 @@ use ouroboros::self_referencing;
 use std::str;
 
 
+// =================
+// === Constants ===
+// =================
+
+pub const AVERAGE_TOKEN_LEN: usize = 5;
+
+
 
 // ===============
 // === BumpVec ===
@@ -25,8 +32,7 @@ pub struct BumpVec<T> {
 
 impl<T> Default for BumpVec<T> {
     fn default() -> Self {
-        let allocator = Bump::new();
-        BumpVecBuilder { allocator, vec_builder: |allocator: &Bump| Vec::new_in(allocator) }.build()
+        Self::new_with_capacity(0)
     }
 }
 
@@ -144,7 +150,7 @@ impl<T> Token<T> {
     #[inline(always)]
     pub fn split_at(self, offset: Bytes) -> Option<(Token<()>, Token<()>)> {
         (offset <= self.len).as_some_from(|| {
-            let token1 = {
+            let token_left = {
                 let left_visible_offset = self.left_visible_offset;
                 let left_offset = self.left_offset;
                 let start = self.start;
@@ -152,7 +158,7 @@ impl<T> Token<T> {
                 let elem = ();
                 Token { left_visible_offset, left_offset, start, len, elem }
             };
-            let token2 = {
+            let token_right = {
                 let left_visible_offset = 0;
                 let left_offset = Bytes::from(0);
                 let start = self.start + offset;
@@ -160,11 +166,10 @@ impl<T> Token<T> {
                 let elem = ();
                 Token { left_visible_offset, left_offset, start, len, elem }
             };
-            (token1, token2)
+            (token_left, token_right)
         })
     }
 }
-
 
 impl PartialEq<Token> for &Token {
     #[inline(always)]
@@ -197,12 +202,26 @@ impl Pattern for char {
     }
 }
 
+macro_rules! pattern_impl_for_char_slice {
+    ($($num:tt),* $(,)?) => {$(
+        impl Pattern for &[char; $num] {
+            #[inline(always)]
+            fn match_pattern(&mut self, t: char) -> bool {
+                self.contains(&t)
+            }
+        }
+    )*};
+}
+pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
 
 
 // =============
 // === Lexer ===
 // =============
 
+/// Efficient lexer implementation with no backtracking an 1-character lookahead (you can check the
+/// [`current_char`] that is not yet being consumed).
 pub struct Lexer<'s> {
     pub input:    &'s str,
     pub iterator: str::CharIndices<'s>,
@@ -239,9 +258,8 @@ impl<'s> DerefMut for Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     pub fn new(input: &'s str) -> Self {
-        let avg_token_len = 5;
         let iterator = input.char_indices();
-        let capacity = input.len() / avg_token_len;
+        let capacity = input.len() / AVERAGE_TOKEN_LEN;
         let output = BumpVec::new_with_capacity(capacity);
         let state = default();
         Self { input, iterator, output, state }.init()
@@ -254,10 +272,30 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
+    fn next(&mut self) {
+        let next = self.iterator.next();
+        if let Some((offset, current_char)) = next {
+            self.char_offset += 1;
+            self.offset = Bytes::from(offset);
+            self.current_char = Some(current_char);
+        } else if self.current_char.is_some() {
+            self.char_offset += 1;
+            self.offset = Bytes::from(self.input.len());
+            self.current_char = None;
+        }
+    }
+
+    #[inline(always)]
+    pub fn repr<T>(&self, token: Token<T>) -> &str {
+        self.input.slice(token.start..token.start + token.len)
+    }
+}
+
+impl<'s> Lexer<'s> {
+    #[inline(always)]
     pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<T>> {
         let start = self.offset;
-        let elem = f(self);
-        let len = self.offset - start;
+        let (elem, len) = self.run_and_check_offset(f);
         (len > Bytes::from(0)).as_some_from(|| {
             let left_offset = self.last_spaces_offset;
             let left_visible_offset = self.last_spaces_visible_offset;
@@ -267,10 +305,17 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
+    pub fn run_and_check_offset<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> (T, Bytes) {
+        let start = self.offset;
+        let out = f(self);
+        let len = self.offset - start;
+        (out, len)
+    }
+
+    #[inline(always)]
     pub fn try_running(&mut self, f: impl FnOnce(&mut Self)) -> bool {
-        let offset = self.offset;
-        f(self);
-        self.offset > offset
+        let (_, offset) = self.run_and_check_offset(f);
+        offset > Bytes::from(0)
     }
 
     #[inline(always)]
@@ -278,7 +323,6 @@ impl<'s> Lexer<'s> {
         self.output.push(token);
         self.line_contains_tokens = true;
     }
-
 
     #[inline(always)]
     pub fn push_block_indent(&mut self, new_indent: usize) {
@@ -297,47 +341,7 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
-    fn repr<T>(&self, token: Token<T>) -> &str {
-        self.input.slice(token.start..token.start + token.len)
-    }
-
-    #[inline(always)]
-    fn next(&mut self) {
-        let next = self.iterator.next();
-        if let Some((offset, current_char)) = next {
-            self.char_offset += 1;
-            self.offset = Bytes::from(offset);
-            self.current_char = Some(current_char);
-        } else if self.current_char.is_some() {
-            self.char_offset += 1;
-            self.offset = Bytes::from(self.input.len());
-            self.current_char = None;
-        }
-    }
-
-    #[inline(always)]
-    pub fn count_chars(&mut self, f: impl Pattern) -> usize {
-        let start = self.char_offset;
-        self.take_while(f);
-        self.char_offset - start
-    }
-
-    #[inline(always)]
-    pub fn count_with(&mut self, f: impl Fn(char) -> Option<usize>) -> usize {
-        let mut result = 0;
-        self.take_while(|t| {
-            if let Some(count) = f(t) {
-                result += count;
-                true
-            } else {
-                false
-            }
-        });
-        result
-    }
-
-    #[inline(always)]
-    pub fn take_any(&mut self) -> bool {
+    pub fn take_next(&mut self) -> bool {
         let ok = self.current_char.is_some();
         self.next();
         ok
@@ -584,50 +588,25 @@ impl Validator for Ident {
 // === Operator ===
 // ================
 
-/// According to https://en.wikipedia.org/wiki/ASCII:
+/// # ASCII char table
+/// Based on https://en.wikipedia.org/wiki/ASCII.
 ///
-/// hex   char  is_opr?  single_opr?
-/// 21    !     yes      ---
-/// 22    "     ---      ---
-/// 23    #     ---      ---
-/// 24    $     yes      ---
-/// 25    %     yes      ---
-/// 26    &     yes      ---
-/// 27    '     ---      ---
-/// 28    (     ---      ---
-/// 29    )     ---      ---
-/// 2A    *     yes      ---
-/// 2B    +     yes      sometimes (e.g. 4+-2)
-/// 2C    ,     yes      ---
-/// 2D    -     yes      sometimes (e.g. 4+-2)
-/// 2E    .     yes      special: (..), (...)
-/// 2F    /     yes      ---
-///
-/// .. 0-9 ..
-///
-/// 3A    :     yes      yes
-/// 3B    ;     yes      yes
-/// 3C    <     yes      ---
-/// 3D    =     yes      special
-/// 3E    >     yes      ---
-/// 3F    ?     yes      ---
-/// 40    @     yes      ---
-///
-/// .. A-Z ..
-///
-/// 5B    [     ---      ---
-/// 5C    \     yes      ---
-/// 5D    ]     ---      ---
-/// 5E    ^     yes      ---
-/// 5F    _     ---      ---
-/// 60    `     ---      ---
-///
-/// .. a-z ..
-///
-/// 7B    {     ---      ---
-/// 7C    |     yes      ---
-/// 7D    }     ---      ---
-/// 7E    ~     yes      ---
+/// 21  !     3A  :     7B  {
+/// 22  "     3B  ;     7C  |
+/// 23  #     3C  <     7D  }
+/// 24  $     3D  =     7E  ~
+/// 25  %     3E  >
+/// 26  &     3F  ?
+/// 27  '     40  @
+/// 28  (     [A-Z]
+/// 29  )     
+/// 2A  *     5B  [
+/// 2B  +     5C  \
+/// 2C  ,     5D  ]
+/// 2D  -     5E  ^
+/// 2E  .     5F  _
+/// 2F  /     60  `
+/// [0-9]     [a-z]
 
 #[inline(always)]
 fn is_ident_body_split_operator(t: char) -> bool {
@@ -695,11 +674,8 @@ impl<'s> Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     fn symbol(&mut self) {
-        if let Some(current) = self.current_char {
-            if "(){}[]`".contains(current) {
-                let token = self.token(|this| this.take_any()).unwrap().with_elem(Kind::symbol());
-                self.submit_token(token);
-            }
+        if let Some(tok) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
+            self.submit_token(tok.with_elem(Kind::symbol()));
         }
     }
 }
@@ -941,11 +917,19 @@ mod tests {
     #[test]
     fn test_case_idents() {
         lexer_tests! {
-            ""      => [],
-            "test"  => [ident(0, 0, "test")],
-            "你好"   => [ident(0, 0, "你好")],
-            "cześć" => [ident(0, 0, "cześć")],
-            "❤️foo" => [ident(0, 0, "❤️foo")],
+            ""            => [],
+            "test"        => [ident(0, 0, "test")],
+            "你好"         => [ident(0, 0, "你好")],
+            "cześć"       => [ident(0, 0, "cześć")],
+            "GrüßGott"    => [ident(0, 0, "GrüßGott")],
+            "Nǐhǎo"       => [ident(0, 0, "Nǐhǎo")],
+            "hyvääpäivää" => [ident(0, 0, "hyvääpäivää")],
+            "Góðandag"    => [ident(0, 0, "Góðandag")],
+            "Moïen"       => [ident(0, 0, "Moïen")],
+            "Namastē"     => [ident(0, 0, "Namastē")],
+            "やあ"         => [ident(0, 0, "やあ")],
+            "đượchậuđải"  => [ident(0, 0, "đượchậuđải")],
+            "❤️foo"       => [ident(0, 0, "❤️foo")],
         }
     }
 
@@ -995,9 +979,6 @@ mod tests {
     //     // +-
     // }
 }
-
-
-// pub fn count_with(&mut self, f: impl Fn(char) -> (bool, usize)) -> usize {
 
 
 fn main() {
