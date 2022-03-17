@@ -141,7 +141,7 @@ spec = Test.group "Dataflow Warnings" <|
         mapped_2.catch . should_equal 17
         Warning.get_all mapped_2 . catch . should_equal 17
 
-        errored_3 = Panic.recover_any here.throw_a_bar
+        errored_3 = Panic.recover Any here.throw_a_bar
         mapped_3 = here.map_odd_warnings_and_errors errored_3
         mapped_3.catch . should_equal "bar"
         mapped_3.stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"

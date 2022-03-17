@@ -388,7 +388,7 @@ type Panic
        program control flow.
 
        Panics "bubble up" through the program until they reach either an
-       invocation of Panic.recover_any or the program's main method. An unhandled
+       invocation of Panic.recover Any or the program's main method. An unhandled
        panic in main will terminate the program.
 
        ? Dataflow Errors or Panics

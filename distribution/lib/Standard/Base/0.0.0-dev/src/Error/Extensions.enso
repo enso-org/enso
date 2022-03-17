@@ -239,24 +239,6 @@ Panic.catch typ ~action handler =
             True -> handler caught_panic
             False -> Panic.throw caught_panic
 
-## Executes the provided action and converts any panic thrown by it into
-   an Error.
-
-   If action executes successfully, the result of `Panic.recover_any` is the
-   result of that action. Otherwise, it is the panic that was thrown after
-   conversion to a dataflow error.
-
-   Arguments:
-   - action: The code to execute that potentially panics.
-
-   > Example
-     Converting a panic to a dataflow error.
-
-         Panic.recover_any (Panic.throw "Oh no!")
-Panic.recover_any : Any -> Any
-Panic.recover_any ~action =
-    Panic.catch_any action .convert_to_dataflow_error
-
 ## Executes the provided action and converts a possible panic matching any of
    the provided types into a dataflow Error.
 

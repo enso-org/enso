@@ -102,7 +102,7 @@ type Json
                  json.into format
     into : Any -> Any ! Marshalling_Error
     into type_descriptor =
-        Panic.recover_any (Internal.into_helper type_descriptor this)
+        Panic.recover Any (Internal.into_helper type_descriptor this)
 
     ## Returns this Json object.
 
