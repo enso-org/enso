@@ -284,11 +284,24 @@ object Doc {
     //// List - Ordered & Unordered, Invalid Indent ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
+    /** An element of the list.
+      *
+      * The list can contain following elements:
+      * - [[ListItem]] a plain list element
+      * - [[List]] a sublist
+      * - [[MisalignedItem]] a list item that is not aligned correctly with the
+      *   previous list item
+      */
     sealed trait ListElem extends Elem {
+
+      /** Append elements to this list item.
+        *
+        * @param xs elements to append
+        */
       def append(xs: scala.List[Elem]): ListElem
     }
 
-    /** A list item.
+    /** A list item that can hold a complex element structure.
       *
       * @param elems the elements that make up this list item
       */
@@ -298,14 +311,27 @@ object Doc {
 
       override def html: HTML = elems.map(_.html)
 
+      /** @inheritdoc */
       override def append(xs: scala.List[Elem]): ListItem =
         copy(elems = elems :++ xs)
     }
     object ListItem {
+
+      /** Create a list item from the provided elemenets
+        *
+        * @param elems the elements that make up the list item
+        * @return the list item
+        */
       def apply(elems: Elem*): ListItem =
         ListItem(elems.toList)
     }
 
+    /** The list item that is not aligned correctly with the previous list item.
+      *
+      * @param indent the indentation of this list item
+      * @param typ the list type
+      * @param elems the elements that make up this list item
+      */
     final case class MisalignedItem(
       indent: Int,
       typ: List.Type,
@@ -318,11 +344,19 @@ object Doc {
       override def html: HTML =
         elems.map(_.html)
 
+      /** @inheritdoc */
       override def append(xs: scala.List[Elem]): MisalignedItem =
         copy(elems = elems :++ xs)
     }
     object MisalignedItem {
 
+      /** Create a misaligned item from the provided elements.
+        *
+        * @param indent the indentation of this list item
+        * @param typ the list type
+        * @param elems the elements that make up the list item
+        * @return the new misaligned item
+        */
       def apply(indent: Int, typ: List.Type, elems: Elem*): MisalignedItem =
         new MisalignedItem(indent, typ, elems.toList)
     }
@@ -331,9 +365,9 @@ object Doc {
       *
       * Indent.Invalid - holds list element with invalid indent
       *
-      * @param indent - specifies indentation of list
-      * @param typ - type of list
-      * @param elems - elements which make up list
+      * @param indent specifies indentation of list
+      * @param typ the list type
+      * @param elems the elements that make up this list
       */
     final case class List(indent: Int, typ: List.Type, elems: List1[ListElem])
         extends ListElem {
@@ -359,16 +393,26 @@ object Doc {
         Seq(typ.HTMLMarker(elemsHTML))
       }
 
+      /** @inheritdoc */
       override def append(xs: scala.List[Elem]): List = {
         val newElems = List1(elems.head.append(xs), elems.tail)
         this.copy(elems = newElems)
       }
 
+      /** Add a new list item.
+        *
+        * @param item the list item to add
+        * @return the new list with this item added
+        */
       def addItem(item: ListElem): List = {
         val newElems = elems.prepend(item)
         this.copy(elems = newElems)
       }
 
+      /** Add an empty list item.
+        *
+        * @return the new list with an empty list item added
+        */
       def addItem(): List =
         this.copy(elems = elems.prepend(ListItem(Nil)))
     }
@@ -377,10 +421,24 @@ object Doc {
 
       val ElemIndent: Int = 1
 
-      def empty(indent: Int, listType: Type): List =
-        new List(indent, listType, List1(ListItem(Nil)))
+      /** Create an empty list.
+        *
+        * @param indent the list indentation
+        * @param typ the list type
+        * @return the new list
+        */
+      def empty(indent: Int, typ: Type): List =
+        new List(indent, typ, List1(ListItem(Nil)))
 
-      def apply(indent: Int, listType: Type, elem: Elem, elems: Elem*): List = {
+      /** Create a new list.
+        *
+        * @param indent the list indentation
+        * @param typ the list type
+        * @param elem the first elements of this list
+        * @param elems the rest of the list elements
+        * @return the new list
+        */
+      def apply(indent: Int, typ: Type, elem: Elem, elems: Elem*): List = {
         val listItems = (elem :: elems.toList).reverse.map {
           case list: List           => list
           case elem: ListItem       => elem
@@ -389,29 +447,16 @@ object Doc {
         }
         new List(
           indent,
-          listType,
+          typ,
           List1.fromListOption(listItems).get
         )
       }
 
+      /** The list type. */
       abstract class Type(val marker: Char, val HTMLMarker: HTMLTag)
       final case object Unordered extends Type('-', HTML.ul)
       final case object Ordered   extends Type('*', HTML.ol)
 
-      object Indent {
-        final case class Invalid(indent: Int, typ: Type, elem: Elem)
-            extends Elem.Invalid {
-          val repr: Repr.Builder = R + indent + typ.marker + elem
-          val html: HTML = {
-            val className = this.productPrefix
-            val htmlCls   = HTML.`class` := className + getObjectName
-            Seq(HTML.div(htmlCls)(elem.html))
-          }
-        }
-      }
-
-      def getObjectName: String =
-        getClass.toString.split('$').last
     }
   }
 
