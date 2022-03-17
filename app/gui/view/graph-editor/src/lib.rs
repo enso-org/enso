@@ -1422,7 +1422,6 @@ impl GraphEditorModelWithNetwork {
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
-        DEBUG!("create_node way=" way;?);
         let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
         let source_node = match way {
@@ -2564,7 +2563,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
 
         target_to_enter <- inputs.enter_hovered_node.map(f_!(scene.mouse.target.get()));
-        eval inputs.enter_hovered_node ([](_){ DEBUG!("MCDBG enter_hovered_node"); });
 
         // Go level up on background click.
         enter_on_background    <= target_to_enter.map(|target| target.is_background().as_some(()));
