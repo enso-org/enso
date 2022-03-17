@@ -1441,8 +1441,7 @@ impl GraphEditorModelWithNetwork {
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { .. } => mouse_position,
-            StartCreationFromPortEvent { endpoint } =>
-                self.find_free_place_under(endpoint.node_id),
+            StartCreationFromPortEvent { endpoint } => self.find_free_place_under(endpoint.node_id),
         };
         let node = self.new_node(ctx);
         node.set_position_xy(position);
