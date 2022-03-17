@@ -1,13 +1,10 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.TruffleLanguage.ContextReference;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
@@ -42,14 +39,14 @@ public abstract class BitShiftNode extends Node {
 
   @Specialization(guards = "that >= 0", replaces = "doLongShiftLeft")
   Object doLongShiftLeftExplicit(
-      long _this, long that, @CachedContext(Language.class) ContextReference<Context> ctxRef) {
+      long _this, long that) {
     if (canShiftLeftInLongProfile.profile(canShiftLeftInLong(_this, that))) {
       return doLongShiftLeft(_this, that);
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(_this, (int) that));
     } else {
       return DataflowError.withoutTrace(
-          ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
+          Context.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
 
@@ -74,14 +71,13 @@ public abstract class BitShiftNode extends Node {
   @Specialization
   Object doBigInteger(
       long _this,
-      EnsoBigInteger that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef) {
+      EnsoBigInteger that) {
     if (!BigIntegerOps.nonNegative(that.getValue())) {
       return _this >= 0 ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
       return DataflowError.withoutTrace(
-          ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
+          Context.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
 
@@ -92,15 +88,15 @@ public abstract class BitShiftNode extends Node {
    */
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that, @CachedContext(Language.class) Context ctx) {
-    Builtins builtins = ctx.getBuiltins();
+  Object doAtomThis(Atom _this, Object that) {
+    Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "this"), this);
   }
 
   @Fallback
   Object doOther(Object _this, Object that) {
-    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }

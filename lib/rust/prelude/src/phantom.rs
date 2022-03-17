@@ -1,6 +1,7 @@
 //! This module defines utilities for working with PhantomData.
 
 use super::std_reexports::*;
+
 use derivative::Derivative;
 use shrinkwraprs::Shrinkwrap;
 

@@ -1,10 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.resource;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -27,8 +25,7 @@ public abstract class RegisterNode extends Node {
   ManagedResource doRegister(
       Object _this,
       Object resource,
-      Function function,
-      @CachedContext(Language.class) Context context) {
-    return context.getResourceManager().register(resource, function);
+      Function function) {
+    return Context.get(this).getResourceManager().register(resource, function);
   }
 }

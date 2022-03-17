@@ -1,6 +1,9 @@
 //! Module for utilities related to serialization/deserialization using the `serde` library.
+
 #[cfg(feature = "serde_json")]
 use serde::Deserialize;
+
+
 
 /// Try to deserialize value of type `Ret`. In case of any error, it is ignored and the default
 /// value is returned instead.

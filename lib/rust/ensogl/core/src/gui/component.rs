@@ -1,12 +1,10 @@
 //! Root module for GUI related components.
-
 //! NOTE
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
-use crate::prelude::*;
-
 use crate::display::object::traits::*;
+use crate::prelude::*;
 
 use crate::display;
 use crate::display::scene;

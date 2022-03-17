@@ -1,5 +1,4 @@
 //! A module with [`OpenDialog`] component.
-pub mod project_list;
 
 use crate::prelude::*;
 
@@ -9,6 +8,13 @@ use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::file_browser::FileBrowser;
 use ensogl_hardcoded_theme as theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod project_list;
 
 
 

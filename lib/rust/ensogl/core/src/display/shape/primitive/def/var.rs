@@ -1,14 +1,14 @@
 //! This module defines an abstraction for all types which can be used as GLSL code values.
 
 use crate::prelude::*;
+use crate::system::gpu::types::*;
+use std::ops::*;
 
 use crate::data::color;
 use crate::display::shape::primitive::def::unit::PixelDistance;
 use crate::system::gpu::shader::glsl::Glsl;
-use crate::system::gpu::types::*;
 
 use nalgebra::Scalar;
-use std::ops::*;
 
 
 

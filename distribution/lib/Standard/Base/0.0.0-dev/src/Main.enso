@@ -22,8 +22,10 @@ import project.Meta
 import project.Meta.Enso_Project
 import project.Polyglot.Java
 import project.Runtime.Extensions
+import project.System.Environment
 import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
+import project.Warning
 
 from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
 
@@ -37,8 +39,10 @@ export project.Data.Ordering.Sort_Order
 export project.Data.Vector
 export project.Math
 export project.Meta
+export project.System.Environment
 export project.System.File
 export project.Data.Text.Regex.Mode as Regex_Mode
+export project.Warning
 
 from project.Data.Any.Extensions export all
 from project.Data.Array.Extensions export all

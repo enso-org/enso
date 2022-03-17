@@ -1,4 +1,5 @@
 //! Module that contains an implementation of a simple axis aligned bounding box.
+
 use ensogl::prelude::*;
 
 

@@ -1,6 +1,7 @@
-#![allow(unsafe_code)]
-
 //! This module exports various UTF decoders for decoding UTF32 characters.
+
+// === Non-Standard Linter Configuration ===
+#![allow(unsafe_code)]
 
 use std::fmt::Debug;
 

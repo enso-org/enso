@@ -1,13 +1,13 @@
 //! This module defines remote image texture storage. It is used to download image from a given URL.
 
-use crate::prelude::*;
-
 use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
+
 use crate::system::gpu::Context;
 #[cfg(target_arch = "wasm32")]
 use crate::system::web;
+
 #[cfg(target_arch = "wasm32")]
 use web::Closure;
 #[cfg(target_arch = "wasm32")]

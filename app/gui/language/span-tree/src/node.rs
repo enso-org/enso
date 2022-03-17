@@ -1,6 +1,7 @@
 //! A module with SpanTree structure definition.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
@@ -8,9 +9,14 @@ use crate::ArgumentInfo;
 
 use ast::crumbs::IntoCrumbs;
 use enso_text as text;
-use enso_text::unit::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod kind;
+
 pub use kind::*;
 
 

@@ -1,7 +1,13 @@
 //! The fullscreen button in the Top Button panel.
-pub use ensogl_hardcoded_theme::application::window_control_buttons::fullscreen as theme;
 
 use ensogl_component::button::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use ensogl_hardcoded_theme::application::window_control_buttons::fullscreen as theme;
 
 
 

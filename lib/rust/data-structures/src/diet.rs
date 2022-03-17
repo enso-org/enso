@@ -21,6 +21,8 @@
 //! This module contains a lot of benchmarks in order to compare different techniques of managing
 //! free indexes for the needs of efficient attribute memory management in EnsoGL. Read the docs of
 //! [`ensogl::AttributeScopeData`] to learn more.
+
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::field_reassign_with_default)]
 
 use crate::prelude::*;

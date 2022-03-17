@@ -3,12 +3,12 @@
 //! Side menu contains a list of available projects and a "new project" button.
 
 use ensogl::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::ClickableElement;
 
 use enso_frp as frp;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 
 
 

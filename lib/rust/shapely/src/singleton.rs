@@ -1,6 +1,8 @@
 //! This module defines helpers for defining singletons and associated enum types. A singleton is
 //! a type with one possible value. It is used mainly for a type level programming purposes.
 
+
+
 /// Defines singleton types. For the following input:
 /// ```compile_fail
 /// define_singletons!{

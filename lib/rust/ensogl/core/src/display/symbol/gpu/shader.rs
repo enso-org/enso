@@ -1,25 +1,30 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
-#[warn(missing_docs)]
-pub mod builder;
-
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::gpu::shader::*;
 
 use crate::control::callback;
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
 use crate::display::symbol::shader::ContextLossOrError;
 use crate::display::symbol::ScopeType;
-use crate::system::gpu::shader::*;
 use crate::system::Context;
 
+use enso_shapely::shared;
 use web_sys::WebGlProgram;
 
-use enso_shapely::shared;
+
+// ==============
+// === Export ===
+// ==============
+
+#[warn(missing_docs)]
+pub mod builder;
 
 
 

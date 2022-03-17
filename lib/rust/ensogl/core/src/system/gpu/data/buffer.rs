@@ -1,9 +1,9 @@
 //! This module implements utilities for managing WebGL buffers.
 
-pub mod item;
-pub mod usage;
-
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::gpu::data::gl_enum::traits::*;
+use crate::system::gpu::data::prim::*;
 
 use crate::closure;
 use crate::control::callback;
@@ -14,17 +14,21 @@ use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
 use crate::system::gpu::data::buffer::usage::BufferUsage;
-use crate::system::Context;
-
-use crate::data::dirty::traits::*;
 use crate::system::gpu::data::default::gpu_default;
-use crate::system::gpu::data::gl_enum::traits::*;
-use crate::system::gpu::data::prim::*;
+use crate::system::Context;
 
 use enso_shapely::shared;
 use std::iter::Extend;
 use std::ops::RangeInclusive;
 use web_sys::WebGlBuffer;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod item;
+pub mod usage;
 
 pub use crate::system::gpu::data::Storable;
 

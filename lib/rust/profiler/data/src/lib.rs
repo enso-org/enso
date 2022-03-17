@@ -1,3 +1,6 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 #![allow(rustdoc::private_intra_doc_links)] // check_no_async_tasks_active
 //! Interface to profile data.
 //!
@@ -211,9 +214,9 @@ pub struct Measurement<M> {
     pub lifetime: Lifetime,
     /// Identifies the profiler's source and scope to the user.
     pub label:    Label,
-    /// Profilers started by this profiler.
+    /// Profilers started by this profiler, ordered by time created.
     pub children: Vec<Self>,
-    /// Metadata attached to this profiler.
+    /// Metadata attached to this profiler, ordered by time logged.
     pub metadata: Vec<Metadata<M>>,
 }
 

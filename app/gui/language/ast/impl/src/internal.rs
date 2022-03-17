@@ -1,6 +1,8 @@
 //! Implementation details used by this crate. Not really dangerous but not intended for user
 //! to need.
 
+
+
 /// Iterate recursively over tree-like structure implementing `IntoIterator`.
 pub fn iterate_subtree<T>(ast: T) -> impl Iterator<Item = T::Item>
 where T: IntoIterator<Item = T> + Copy {

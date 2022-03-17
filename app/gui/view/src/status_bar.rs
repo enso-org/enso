@@ -3,16 +3,18 @@
 //! The component is currently rather a stub: it has endpoints for setting many events and
 //! processes and keep them in a list, but it shows only a label of the last event/process
 //! added.
+
 //TODO[ao] Implement the status bar according to https://github.com/enso-org/ide/issues/1193
 //    description
+
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::graph_editor::component::node::input::area::TEXT_SIZE;
 
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
-use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::Scene;
 use ensogl_component::shadow;

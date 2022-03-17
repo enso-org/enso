@@ -1,30 +1,34 @@
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
-use ensogl_core::traits::*;
+use ensogl_core::display::world::*;
+use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::Sprite;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
-use ensogl_core::display::world::*;
-use ensogl_core::prelude::*;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
-use wasm_bindgen::prelude::*;
+
 
 
 #[wasm_bindgen]

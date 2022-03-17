@@ -1,17 +1,22 @@
 //! This module contains implementation of a mouse manager and related utilities.
 
+use crate::control::callback::traits::*;
 use crate::prelude::*;
 
-pub mod event;
-
 use crate::control::callback;
-use crate::control::callback::traits::*;
 use crate::system::web;
 
 use std::rc::Rc;
 use web::Closure;
 use web::JsCast;
 use web::JsValue;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod event;
 
 pub use crate::frp::io::mouse::*;
 pub use event::*;

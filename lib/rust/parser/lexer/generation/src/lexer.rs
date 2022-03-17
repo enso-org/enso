@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::generated::engine::EnsoLexer;
 use crate::library::token;
 use crate::prelude::reader::decoder::DecoderUTF8;
+
 use enso_flexer::LexingResult;
 
 
