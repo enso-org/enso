@@ -449,9 +449,8 @@ case class DocParserDef() extends Parser[Doc] {
     def onIndent(): Unit =
       logger.trace {
         val diff = currentMatch.length - current
-        println(s"onIndent match='$currentMatch';current=$current;diff=$diff")
-        if (list.inListFlag) {
-          if (diff > list.Indent) {
+        if (list.isInList) {
+          if (diff > list.minIndent) {
             tryToFindCodeInStack()
             stack +:= currentMatch.length
             state.begin(CODE)
@@ -487,14 +486,11 @@ case class DocParserDef() extends Parser[Doc] {
     def onIndentForListCreation(indent: Int, typ: Elem.List.Type): Unit =
       logger.trace {
         val diff = indent - list.current
-        println(
-          s"indent=$indent,current=$current,list.current=${list.current},diff=$diff,inList=${list.inListFlag}"
-        )
-        if (!list.inListFlag) {
+
+        if (!list.isInList) {
           onPushingNewLine()
 
           stack +:= indent
-          list.inListFlag = true
           list.startNewList(indent, typ)
         } else if (diff == 0) {
           list.endListItem()
@@ -526,9 +522,8 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onEmptyLine(): Unit =
       logger.trace {
-        if (list.inListFlag) {
-          list.endListItem()
-          list.inListFlag = false
+        if (list.isInList) {
+          list.endListItem(endList = true)
         }
         onPushingNewLine()
         section.onEOS()
@@ -570,7 +565,11 @@ case class DocParserDef() extends Parser[Doc] {
     * there are 2 possible types of lists - ordered and unordered.
     */
   final object list {
-    val Indent: Int = 2
+
+    /** The minimum list indentation consisting of a list symbol and a space
+      * character.
+      */
+    val minIndent: Int = 2
 
     var stack: List[Int] = Nil
     def current: Int =
@@ -583,8 +582,6 @@ case class DocParserDef() extends Parser[Doc] {
         case _ :: p :: _ => p
         case _           => 0
       }
-
-    var inListFlag: Boolean = false
 
     def isInList: Boolean = stack.nonEmpty
 
@@ -624,12 +621,14 @@ case class DocParserDef() extends Parser[Doc] {
         }
       }
 
-    def endListItem(): Unit =
+    def endListItem(endList: Boolean = false): Unit =
       logger.trace {
         val elems = stackUnwind()
-        println(s"endListItem elems=$elems")
         result.current match {
           case Some(l: Elem.List) =>
+            if (endList) {
+              list.stack = list.stack.tail
+            }
             result.current = Some(l.append(elems))
             result.push()
           case elem =>
@@ -641,7 +640,6 @@ case class DocParserDef() extends Parser[Doc] {
 
     def endSublist(): Unit =
       logger.trace {
-        println(s"endSublist current=${result.current}")
         result.current match {
           case None =>
             result.pop()
@@ -673,7 +671,6 @@ case class DocParserDef() extends Parser[Doc] {
     def addLastItem(): Unit =
       logger.trace {
         val elems = stackUnwind()
-        println(s"addLastItem elems=$elems")
         result.current match {
           case Some(l: Elem.List) =>
             list.stack = list.stack.tail
@@ -693,6 +690,9 @@ case class DocParserDef() extends Parser[Doc] {
         }
       }
 
+    /** Get all elements from the stack that were added after the [[Elem.List]]
+      * node was pushed.
+      */
     def stackUnwind(): List[Elem] = {
       @scala.annotation.tailrec
       def go(elems: List[Elem]): List[Elem] = {
@@ -820,9 +820,8 @@ case class DocParserDef() extends Parser[Doc] {
       }
 
     def checkForUnclosedListsOnEOS(): Unit =
-      if (list.inListFlag) {
+      if (list.isInList) {
         list.addLastItem()
-        list.inListFlag = false
       }
 
     def reverseStackOnEOS(): Unit =
