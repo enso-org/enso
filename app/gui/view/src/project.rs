@@ -402,10 +402,39 @@ impl View {
         }
 
         let shape = scene.shape().clone_ref();
+
         frp::extend! { network
             eval shape ((shape) model.on_dom_shape_changed(shape));
 
             // === Searcher Position and Size ===
+
+            let main_cam = app.display.default_scene.layers.main.camera();
+            let searcher_cam = app.display.default_scene.layers.node_searcher.camera();
+            let main_cam_frp = &main_cam.frp();
+            // We want to:
+            // 1. Preserve the zoom factor of the searcher.
+            // 2. Keep it directly below edited node at all times.
+            // We do that by placing `node_searcher` camera in a position calculated by the
+            // following equations:
+            // ```
+            // xy = main_cam.xy * main_cam.zoom
+            // move_to_edited_node = edited_node.xy - edited_node.xy * main_cam.zoom
+            // searcher_cam.z = const
+            // searcher_cam.xy = xy + move_to_edited_node
+            // ```
+            // To understand the `move_to_edited_node` equation, consider the following example:
+            // If edited_node.x = 100, zoom = 0.1, then the node is positioned at
+            // x = 100 * 0.1 = 10 in searcher_cam-space. To compensate for that, we need to move
+            // searcher (or rather searcher_cam) by 90 units, so that the node is at x = 100 both
+            // in searcher_cam- and in main_cam-space.
+            searcher_cam_pos <- all_with3
+                (&main_cam_frp.position, &main_cam_frp.zoom, &searcher_left_top_position.value,
+                |&main_cam_pos, &zoom, &searcher_pos| {
+                    let preserve_zoom = (main_cam_pos * zoom).xy();
+                    let move_to_edited_node = searcher_pos * (1.0 - zoom);
+                    preserve_zoom + move_to_edited_node
+                });
+            eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
 
             _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
                 let x = lt.x + size.x / 2.0;

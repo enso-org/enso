@@ -2875,6 +2875,11 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
+    // === Edited node growth/shrink animation ===
+
+    component::node::growth_animation::initialize_edited_node_animator(&model, &frp, scene);
+
+
     // === Event Propagation ===
 
     // See the docs of `Node` to learn about how the graph - nodes event propagation works.
