@@ -2835,21 +2835,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
         input_start_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartCreationEvent);
-        // aaa <- inputs.start_connected_node_creation.sample(&inputs.hover_node_output);
-        aaa <- inputs.hover_node_output.sample(&inputs.start_connected_node_creation);
-        bbb <- aaa.filter_map(|v| v.clone());
-        // aaa <- inputs.hover_node_output.gate(inputs.start_connected_node_creation);
-        // fff <- aaa.filter_map(|v| v.clone().map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint}));
-        fff <- bbb.map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint: endpoint.clone()});
-        // input_start_conn_creation_way <- inputs.start_connected_node_creation.constant(WayOfCreatingNode::StartConnectedCreationEvent);
-        // start_connected_creation_way <- input_start_conn_creation_way.gate(&out.source.some_node_output_hovered);
-        // fff <- inputs.hover_node_output.filter_map(|v| v.clone().map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint}));
-        removed_edges_on_connected_node_creation <= fff.map(f_!(model.model.clear_all_detached_edges()));
-        // removed_edges_on_connected_node_creation <= start_connected_creation_way.map(f_!(model.model.clear_all_detached_edges()));
+        input_start_node_creation_from_port <- inputs.hover_node_output.sample(&inputs.start_connected_node_creation);
+        start_node_creation_from_some_port <- input_start_node_creation_from_port.filter_map(|v| v.clone());
+        start_connected_node_creation_way <- start_node_creation_from_some_port.map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint: endpoint.clone()});
+        removed_edges_on_connected_node_creation <= start_connected_node_creation_way.map(f_!(model.model.clear_all_detached_edges()));
         out.source.on_edge_drop <+ removed_edges_on_connected_node_creation;
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
-        add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &fff, &add_with_button_way, &add_with_edge_drop_way);
+        add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &start_connected_node_creation_way, &add_with_button_way, &add_with_edge_drop_way);
 
         new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
             let ctx = NodeCreationContext {
