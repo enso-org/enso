@@ -40,9 +40,8 @@ pub async fn entry_point_render_profile() {
     let navigator = navigator::Navigator::new(scene, &scene.camera());
     init_theme(scene);
     let data = get_data().await;
-    let measurements: profiler_data::Measurement<profiler_data::OpaqueMetadata> =
-        data.parse().unwrap();
-    let flame_graph = flame_graph::FlameGraph::from_data(measurements.into(), &app);
+    let profile: profiler_data::Profile<profiler_data::OpaqueMetadata> = data.parse().unwrap();
+    let flame_graph = flame_graph::FlameGraph::from_data(profile.into(), &app);
     scene.add_child(&flame_graph);
     scene.layers.main.add_exclusive(&flame_graph);
     world.keep_alive_forever();

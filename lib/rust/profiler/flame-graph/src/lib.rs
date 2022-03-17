@@ -8,9 +8,6 @@
 
 use enso_profiler as profiler;
 use enso_profiler_data as data;
-use enso_profiler_data::Interval;
-use enso_profiler_data::Lifetime;
-use enso_profiler_data::Measurement;
 
 
 
@@ -52,48 +49,31 @@ pub struct FlameGraph {
     pub blocks: Vec<Block>,
 }
 
-fn blocks_from_measurement<Metadata>(measurement: &Measurement<Metadata>, row: u32) -> Vec<Block> {
-    match &measurement.lifetime {
-        Lifetime::Async(lifetime) => lifetime
-            .active
-            .iter()
-            .map(|interval| block_from_interval(&measurement.label, row, interval))
-            .collect(),
-        Lifetime::NonAsync { active } => vec![block_from_interval(&measurement.label, row, active)],
+fn visit_interval<Metadata>(
+    profile: &data::Profile<Metadata>,
+    active: data::IntervalId,
+    blocks: &mut Vec<Block>,
+    row: u32,
+) {
+    let active = &profile[active];
+    let start = active.interval.start.into_ms();
+    let end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
+    // Optimization: can't draw zero-width blocks anyway.
+    if end == start {
+        return;
+    }
+    let label = profile[active.measurement].label.to_string();
+    blocks.push(Block { start, end, label, row });
+    for child in &active.children {
+        visit_interval(profile, *child, blocks, row + 1);
     }
 }
 
-fn block_from_interval(label: &data::Label, row: u32, interval: &Interval) -> Block {
-    let start = interval.start.into_ms();
-    let end = interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
-    let label = label.to_string();
-    let row = row;
-    Block { start, end, label, row }
-}
-
-impl<Metadata> From<data::Measurement<Metadata>> for FlameGraph {
-    fn from(root: data::Measurement<Metadata>) -> Self {
+impl<Metadata> From<data::Profile<Metadata>> for FlameGraph {
+    fn from(profile: data::Profile<Metadata>) -> Self {
         let mut blocks = Vec::default();
-        // We skip the root node, which is the app lifetime, and store the measurements with
-        // their depth. Newly added children of visited nodes, will be added one row above their
-        // parents.
-        let mut to_parse: Vec<_> = root.children.iter().map(|m| (m, 0)).collect();
-
-        loop {
-            let measurement = to_parse.pop();
-            match measurement {
-                Some((measurement, row)) => {
-                    // When an async task executes, it will always have exactly one ancestor on the
-                    // active stack: @on_frame, which measures part of the async executor mechanism.
-                    // @on_frame is always drawn at row 0, so async tasks can always be drawn at
-                    // row 1.
-                    let target_row = if measurement.lifetime.is_async() { 1 } else { row };
-                    let measurement_blocks = blocks_from_measurement(measurement, target_row);
-                    blocks.extend(measurement_blocks);
-                    to_parse.extend(measurement.children.iter().map(|m| (m, target_row + 1)));
-                }
-                None => break,
-            }
+        for child in &profile.root_interval().children {
+            visit_interval(&profile, *child, &mut blocks, 0);
         }
         Self { blocks }
     }
@@ -102,10 +82,10 @@ impl<Metadata> From<data::Measurement<Metadata>> for FlameGraph {
 impl FlameGraph {
     /// Gather and remove all logged measurements and return them as a `FlameGraph`.
     pub fn take_from_log() -> Self {
-        let root: Result<data::Measurement<data::OpaqueMetadata>, _> =
+        let profile: Result<data::Profile<data::OpaqueMetadata>, _> =
             profiler::internal::take_log().parse();
-        if let Ok(root) = root {
-            root.into()
+        if let Ok(profile) = profile {
+            profile.into()
         } else {
             eprintln!("Failed to deserialize profiling event log.");
             FlameGraph::default()
