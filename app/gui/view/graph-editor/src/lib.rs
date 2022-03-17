@@ -489,8 +489,9 @@ ensogl::define_endpoints! {
         /// mode. The node position may vary, depending on what is the best for the UX - for details
         /// see [`GraphEditorModel::create_node`] implementation.
         start_node_creation(),
-        /// FIXME documentation
-        start_connected_node_creation(),
+        /// Start creation of a new Node connected to the port that is currently under the cursor.
+        /// If the cursor is currently not over any node's port, this event will have no effect.
+        start_node_creation_from_port(),
 
 
 
@@ -1389,8 +1390,8 @@ enum WayOfCreatingNode {
     AddNodeEvent,
     /// "start_node_creation" FRP event was emitted.
     StartCreationEvent,
-    /// "start_connected_node_creation" FRP event was emitted.
-    StartConnectedCreationEvent { endpoint: EdgeEndpoint },
+    /// "start_node_creation_from_port" FRP event was emitted.
+    StartCreationFromPortEvent { endpoint: EdgeEndpoint },
     /// add_node_button was clicked.
     ClickingButton,
     /// The edge was dropped on the stage.
@@ -1428,7 +1429,7 @@ impl GraphEditorModelWithNetwork {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
             DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
-            StartConnectedCreationEvent { ref endpoint } => Some(endpoint.node_id),
+            StartCreationFromPortEvent { ref endpoint } => Some(endpoint.node_id),
         };
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
@@ -1441,7 +1442,7 @@ impl GraphEditorModelWithNetwork {
             ClickingButton =>
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { .. } => mouse_position,
-            StartConnectedCreationEvent { .. } =>
+            StartCreationFromPortEvent { .. } =>
                 self.find_free_place_under(source_node.unwrap()),
         };
         let node = self.new_node(ctx);
@@ -2442,8 +2443,8 @@ impl application::View for GraphEditor {
                 "cycle_visualization_for_selected_node",
             ),
             (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
-            (DoublePress, "", "left-mouse-button", "start_connected_node_creation"),
-            (Press, "", "right-mouse-button", "start_connected_node_creation"),
+            (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
+            (Press, "", "right-mouse-button", "start_node_creation_from_port"),
             (Press, "!node_editing", "enter", "enter_selected_node"),
             (Press, "", "alt enter", "exit_node"), // === Node Editing ===
             (Press, "", "cmd", "edit_mode_on"),
@@ -2835,14 +2836,15 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
         input_start_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartCreationEvent);
-        input_start_node_creation_from_port <- inputs.hover_node_output.sample(&inputs.start_connected_node_creation);
-        start_node_creation_from_some_port <- input_start_node_creation_from_port.filter_map(|v| v.clone());
-        start_connected_node_creation_way <- start_node_creation_from_some_port.map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint: endpoint.clone()});
-        removed_edges_on_connected_node_creation <= start_connected_node_creation_way.map(f_!(model.model.clear_all_detached_edges()));
+        input_start_node_creation_from_port <- inputs.hover_node_output.sample(&inputs.start_node_creation_from_port);
+        start_node_creation_from_port <- input_start_node_creation_from_port.filter_map(|v| v.clone());
+        start_creation_from_port_way <- start_node_creation_from_port.map(
+            |endpoint| WayOfCreatingNode::StartCreationFromPortEvent{endpoint: endpoint.clone()});
+        removed_edges_on_connected_node_creation <= start_creation_from_port_way.map(f_!(model.model.clear_all_detached_edges()));
         out.source.on_edge_drop <+ removed_edges_on_connected_node_creation;
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
-        add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &start_connected_node_creation_way, &add_with_button_way, &add_with_edge_drop_way);
+        add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &start_creation_from_port_way, &add_with_button_way, &add_with_edge_drop_way);
 
         new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
             let ctx = NodeCreationContext {
