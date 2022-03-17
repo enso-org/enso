@@ -51,7 +51,7 @@ pub fn entry_point_profiling_run_graph() {
     // Generate Test data
     futures::executor::block_on(start_project());
 
-    let measurements = profiler_flame_graph::FlameGraph::take_from_log();
+    let measurements = profiler_flame_graph::Graph::take_from_log();
     let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
 
     world.add_child(&flame_graph);

@@ -595,6 +595,7 @@ impl model::project::API for Project {
         .boxed_local()
     }
 
+    #[profile(Detail)]
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
