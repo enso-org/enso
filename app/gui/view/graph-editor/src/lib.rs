@@ -425,10 +425,6 @@ ensogl::define_endpoints! {
 
         // === Node Selection ===
 
-        /// FIXME
-        mcdbg1(),
-        /// FIXME
-        mcdbg2(),
         /// Node press event
         node_press(),
         /// Node press event
@@ -2457,8 +2453,6 @@ impl application::View for GraphEditor {
                 "ctrl space",
                 "cycle_visualization_for_selected_node",
             ),
-            (DoublePress, "", "left-mouse-button", "mcdbg2"),
-            (Press, "", "left-mouse-button", "mcdbg1"),
             (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
             (DoublePress, "", "left-mouse-button", "start_connected_node_creation"),
             (Press, "", "right-mouse-button", "start_connected_node_creation"),
@@ -2534,8 +2528,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ========================
 
     frp::extend! { network
-        eval inputs.mcdbg1 ([](_){ DEBUG!("MCDBG one"); });
-        eval inputs.mcdbg2 ([](_){ DEBUG!("MCDBG two"); });
         no_vis_selected   <- out.some_visualisation_selected.on_false();
         some_vis_selected <- out.some_visualisation_selected.on_true();
 
