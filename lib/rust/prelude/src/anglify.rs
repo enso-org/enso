@@ -104,21 +104,17 @@ macro_rules! rebuild_tts_internal {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    trace_macros!(true);
-
     // Required to be detected as test.
     #[test]
     fn test_anglify_expansion() {
         anglify! {
+            #[allow(missing_docs)]
+            #[allow(dead_code)]
             mod bar {
-                use super::*;
                 #[derive(Debug)]
                 pub struct Foo [<[]>]{
-                    baz: Box<Foo [<[  ]>]>
+                    _baz: Box<Foo [<[  ]>]>
                 }
-
 
                 impl Foo [<[]>] {
                     fn new() -> Foo [<[]>] {

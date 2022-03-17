@@ -1386,12 +1386,8 @@ mod tests {
     use crate::application::command::FrpNetworkProvider;
     use crate::frp;
 
-    trace_macros!(true);
-
-
     // Check compilation of macro output.
-    #[test]
-    fn empty_api() {
+    mod empty_api {
         use super::*;
 
         define_endpoints_2! {
@@ -1401,8 +1397,7 @@ mod tests {
     }
 
     // Check compilation of macro output.
-    #[test]
-    fn tuple_type() {
+    mod tuple_type {
         use super::*;
 
         define_endpoints_2! {
@@ -1415,9 +1410,8 @@ mod tests {
         }
     }
 
-    #[test]
     // Check compilation of doc example.
-    fn doc_example() {
+    mod doc_example {
         use super::*;
 
         define_endpoints_2! {
@@ -1433,19 +1427,19 @@ mod tests {
         }
     }
 
+    // Check compilation of macro output.
+    define_endpoints_2! { <Value:(Default+Debug+Clone+'static)>
+        Input{
+            set_radius(Value)
+        }
+        Output{
+            radius(Value),
+            diameter(Value)
+        }
+    }
+
     #[test]
     fn test_simple_api_usage() {
-        // Check compilation of macro output.
-        define_endpoints_2! { <Value:(Default+Debug+Clone+'static)>
-            Input{
-                set_radius(Value)
-            }
-            Output{
-                radius(Value),
-                diameter(Value)
-            }
-        }
-
         let frp = Frp::<u32>::default();
         let network = frp.network();
 
@@ -1470,7 +1464,7 @@ mod tests {
     #[test]
     fn test_generate_rc_structs_and_impls() {
         generate_rc_structs_and_impls! {
-            [<[]>] [<>]
+            [<[]>] [<[]>]
             pub struct Output OutputData {
                 foo: f32,
             }

@@ -15,6 +15,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(unsafe_code)]
+#![recursion_limit = "256"]
 
 mod anglify;
 #[cfg(feature = "futures")]
