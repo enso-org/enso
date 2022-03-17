@@ -601,7 +601,7 @@ case class DocParserDef() extends Parser[Doc] {
             result.push()
           case elem =>
             throw new IllegalStateException(
-              s"Illegal startListItem current=$elem"
+              s"Illegal startListItem state [current=$elem]"
             )
         }
       }
