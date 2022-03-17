@@ -1419,11 +1419,9 @@ impl GraphEditorModelWithNetwork {
         ctx: &NodeCreationContext,
         way: WayOfCreatingNode,
         mouse_position: Vector2,
-        hovered_endpoint: Option<EdgeEndpoint>,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
-        DEBUG!("create_node way=" way;?
-               "\n  hover_out_port=" hovered_endpoint;?);
+        DEBUG!("create_node way=" way;?);
         let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
         let source_node = match way {
@@ -2851,7 +2849,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
         add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &fff, &add_with_button_way, &add_with_edge_drop_way);
 
-        new_node <- add_node_way.map3(&cursor_pos_in_scene, &inputs.hover_node_output, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos, hover_out_port) {
+        new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
             let ctx = NodeCreationContext {
                 pointer_style  : &node_pointer_style,
                 tooltip_update : &node_tooltip,
@@ -2859,7 +2857,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                 input_press    : &node_input_touch.down,
                 output         : &out,
             };
-            model.create_node(&ctx, way.clone(), *mouse_pos, hover_out_port.clone())
+            model.create_node(&ctx, way.clone(), *mouse_pos)
         }));
         out.source.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
