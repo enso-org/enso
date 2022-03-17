@@ -24,6 +24,21 @@ use ensogl_hardcoded_theme as theme;
 /// === New Node Positioning ===
 /// ============================
 
+/// Return a position for a newly created node. The position is calculated by establishing a
+/// reference position and then aligning it to existing nodes.
+///
+/// The reference position is chosen from among:
+///  - the position of a source node of the dropped edge (if available),
+///  - the mouse position,
+///  - the screen center.
+/// The position is then aligned to either:
+///  - the source node of the dropped edge (if available),
+///  - the `selection` (if available),
+///  - the node closest to the mouse position (if available),
+///  - not aligned.
+/// The choice among the options described above is governed by the `way`.
+///
+/// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn new_node_position(
     graph_editor: &GraphEditorModel,
     way: WayOfCreatingNode,
