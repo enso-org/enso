@@ -2835,13 +2835,15 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
         input_start_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartCreationEvent);
+        // aaa <- inputs.start_connected_node_creation.sample(&inputs.hover_node_output);
+        aaa <- inputs.hover_node_output.sample(&inputs.start_connected_node_creation);
+        bbb <- aaa.filter_map(|v| v.clone());
+        // aaa <- inputs.hover_node_output.gate(inputs.start_connected_node_creation);
+        // fff <- aaa.filter_map(|v| v.clone().map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint}));
+        fff <- bbb.map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint: endpoint.clone()});
         // input_start_conn_creation_way <- inputs.start_connected_node_creation.constant(WayOfCreatingNode::StartConnectedCreationEvent);
         // start_connected_creation_way <- input_start_conn_creation_way.gate(&out.source.some_node_output_hovered);
-        // fff <- inputs.hover_node_output.filter_map(|v| v.as_ref().map(|edge| WayOfCreatingNode::StartConnectedCreationEvent));
-        // fff <- inputs.hover_node_output.filter_map(|v| v.clone().map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent));
-        fff <- inputs.hover_node_output.filter_map(|v| v.clone().map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint}));
-        // fff <- inputs.hover_node_output.filter_map(|v| v.map(|edge| WayOfCreatingNode::StartConnectedCreationEvent));
-        // fff <- inputs.hover_node_output.filter_map(f!((v) v.map(|edge| WayOfCreatingNode::StartConnectedCreationEvent)));
+        // fff <- inputs.hover_node_output.filter_map(|v| v.clone().map(|endpoint| WayOfCreatingNode::StartConnectedCreationEvent{endpoint}));
         removed_edges_on_connected_node_creation <= fff.map(f_!(model.model.clear_all_detached_edges()));
         // removed_edges_on_connected_node_creation <= start_connected_creation_way.map(f_!(model.model.clear_all_detached_edges()));
         out.source.on_edge_drop <+ removed_edges_on_connected_node_creation;
