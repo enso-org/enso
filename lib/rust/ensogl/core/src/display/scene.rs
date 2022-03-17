@@ -470,8 +470,8 @@ impl Dom {
 // === DomLayers ===
 // =================
 
-/// DOM DomLayers of the scene. It contains a 2 CSS 3D layers and a canvas layer in the middle. The
-/// CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
+/// DOM DomLayers of the scene. It contains several CSS 3D layers and a canvas layer in the middle.
+/// The CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
 /// elements.
 ///
 /// Each DomLayer is created with `pointer-events: none` CSS property to avoid "stealing" mouse
@@ -492,6 +492,9 @@ pub struct DomLayers {
     pub fullscreen_vis: DomScene,
     /// Front DOM scene layer.
     pub front:          DomScene,
+    /// DOM scene layer for Node Searcher DOM elements. This layer should probably be removed once
+    /// all parts of Node Searcher will use ensogl primitives instead of DOM objects for rendering.
+    pub node_searcher:  DomScene,
     /// The WebGL scene layer.
     pub canvas:         web::HtmlCanvasElement,
 }
@@ -525,12 +528,17 @@ impl DomLayers {
         canvas.set_style_or_warn("pointer-events", "none");
         dom.append_or_warn(&canvas);
 
+        let node_searcher = DomScene::new(logger);
+        node_searcher.dom.set_class_name("node-searcher");
+        node_searcher.dom.set_style_or_warn("z-index", "4");
+        dom.append_or_warn(&node_searcher.dom);
+
         let front = DomScene::new(logger);
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "4");
+        front.dom.set_style_or_warn("z-index", "5");
         dom.append_or_warn(&front.dom);
 
-        Self { back, welcome_screen, fullscreen_vis, front, canvas }
+        Self { back, welcome_screen, fullscreen_vis, front, node_searcher, canvas }
     }
 }
 
@@ -698,6 +706,9 @@ pub struct HardcodedLayers {
     pub panel:              Layer,
     pub panel_text:         Layer,
     pub node_searcher:      Layer,
+    pub node_searcher_text: Layer,
+    pub edited_node:        Layer,
+    pub edited_node_text:   Layer,
     pub node_searcher_mask: Layer,
     pub tooltip:            Layer,
     pub tooltip_text:       Layer,
@@ -726,13 +737,19 @@ impl HardcodedLayers {
         let panel = Layer::new(logger.sub("panel"));
         let panel_text = Layer::new(logger.sub("panel_text"));
         let node_searcher = Layer::new(logger.sub("node_searcher"));
+        let node_searcher_cam = node_searcher.camera();
+        let searcher_text_logger = logger.sub("node_searcher_text");
+        let node_searcher_text = Layer::new_with_cam(searcher_text_logger, &node_searcher_cam);
+        let edited_node = Layer::new(logger.sub("edited_node"));
+        let edited_node_cam = edited_node.camera();
+        let edited_node_text_logger = logger.sub("edited_node_text");
+        let edited_node_text = Layer::new_with_cam(edited_node_text_logger, &edited_node_cam);
         let node_searcher_mask = Layer::new(logger.sub("node_searcher_mask"));
         let tooltip = Layer::new_with_cam(logger.sub("tooltip"), main_cam);
         let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
         let cursor = Layer::new(logger.sub("cursor"));
 
         let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
-        node_searcher.set_mask(&node_searcher_mask);
         root.set_sublayers(&[
             &viz,
             &below_main,
@@ -744,6 +761,9 @@ impl HardcodedLayers {
             &panel,
             &panel_text,
             &node_searcher,
+            &node_searcher_text,
+            &edited_node,
+            &edited_node_text,
             &tooltip,
             &tooltip_text,
             &cursor,
@@ -760,6 +780,9 @@ impl HardcodedLayers {
             panel,
             panel_text,
             node_searcher,
+            node_searcher_text,
+            edited_node,
+            edited_node_text,
             node_searcher_mask,
             tooltip,
             tooltip_text,
@@ -1007,6 +1030,11 @@ impl SceneData {
         if fs_vis_camera_changed {
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
             self.dom.layers.welcome_screen.update_view_projection(&welcome_screen_camera);
+        }
+        let node_searcher_camera = self.layers.node_searcher.camera();
+        let node_searcher_camera_changed = node_searcher_camera.update(scene);
+        if node_searcher_camera_changed {
+            self.dom.layers.node_searcher.update_view_projection(&node_searcher_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
