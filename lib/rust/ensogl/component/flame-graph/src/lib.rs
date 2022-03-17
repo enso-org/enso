@@ -11,7 +11,7 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "256"]
+#![recursion_limit = "4096"]
 
 use ensogl_core::prelude::*;
 

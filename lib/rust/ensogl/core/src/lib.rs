@@ -2,7 +2,7 @@
 //! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
 //! of the `ensogl` crate to learn more.
 
-#![recursion_limit = "512"]
+#![recursion_limit = "4096"]
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(associated_type_defaults)]
@@ -16,6 +16,7 @@
 #![feature(marker_trait_attr)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+#![feature(trace_macros)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

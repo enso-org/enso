@@ -7,6 +7,7 @@
 #![feature(concat_idents)]
 #![feature(specialization)]
 #![feature(trait_alias)]
+#![feature(trace_macros)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
