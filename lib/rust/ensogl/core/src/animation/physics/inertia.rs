@@ -617,7 +617,7 @@ where
 // =================
 
 /// Handy alias for `Simulator` with a boxed closure callback.
-pub type DynSimulator<T> = Simulator<T, Box<dyn Fn(T)>, (), ()>;
+pub type DynSimulator<T> = Simulator<T, Box<dyn Fn(T)>, (), Box<dyn Fn(EndStatus)>>;
 
 /// The `SimulationDataCell` with an associated animation loop. The simulation is updated every
 /// frame in an efficient way – when the simulation finishes, it automatically unregisters the
