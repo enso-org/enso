@@ -34,7 +34,7 @@ use ensogl_hardcoded_theme as theme;
 /// The position is then aligned to either:
 ///  - the source node of the dropped edge (if available),
 ///  - the `selection` (if available),
-///  - the node closest to the mouse position (if available),
+///  - the node closest to the reference position (if available),
 ///  - not aligned.
 /// The choice among the options described above is governed by the `way`.
 ///
