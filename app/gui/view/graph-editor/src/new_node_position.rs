@@ -14,6 +14,7 @@ use crate::EdgeId;
 use crate::GraphEditorModel;
 use crate::Node;
 use crate::NodeId;
+use crate::WayOfCreatingNode;
 
 use ensogl_hardcoded_theme as theme;
 
@@ -22,6 +23,27 @@ use ensogl_hardcoded_theme as theme;
 /// ============================
 /// === New Node Positioning ===
 /// ============================
+
+pub fn new_node_position(
+    graph_editor: &GraphEditorModel,
+    way: WayOfCreatingNode,
+    selection: Option<NodeId>,
+    mouse_position: Vector2,
+) -> Vector2 {
+    use WayOfCreatingNode::*;
+    let scene = graph_editor.scene();
+    let origin = Vector2(0.0, 0.0);
+    let screen_center = scene.screen_to_object_space(&graph_editor.display_object, origin);
+    match way {
+        AddNodeEvent => default(),
+        StartCreationEvent | ClickingButton if selection.is_some() =>
+            under(graph_editor, selection.unwrap()),
+        StartCreationEvent => at_mouse_aligned_to_close_nodes(graph_editor, mouse_position),
+        ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
+        DroppingEdge { edge_id } =>
+            at_mouse_aligned_to_source_node(graph_editor, edge_id, mouse_position),
+    }
+}
 
 /// Return a position for a newly created node. The position is calculated by taking the mouse
 /// position and aligning it to the closest existing node if the mouse position is close enough to

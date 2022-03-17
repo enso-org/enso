@@ -1377,8 +1377,9 @@ impl GraphEditorModelWithNetwork {
 
 // === Node Creation ===
 
+/// Describes the way used to request creation of a new node.
 #[derive(Clone, Copy, Debug)]
-enum WayOfCreatingNode {
+pub enum WayOfCreatingNode {
     /// "add_node" FRP event was emitted.
     AddNodeEvent,
     /// "start_node_creation" FRP event was emitted.
@@ -1386,6 +1387,7 @@ enum WayOfCreatingNode {
     /// add_node_button was clicked.
     ClickingButton,
     /// The edge was dropped on the stage.
+    #[allow(missing_docs)]
     DroppingEdge { edge_id: EdgeId },
 }
 
@@ -1413,32 +1415,20 @@ impl GraphEditorModelWithNetwork {
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
-        let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
+        let position = new_node_position::new_node_position(self, way, selection, mouse_position);
+        let node = self.new_node(ctx);
+        node.set_position_xy(position);
+        let should_edit = !matches!(way, AddNodeEvent);
+        if should_edit {
+            node.view.set_expression(node::Expression::default());
+        }
         let source_node = match way {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
             DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
         };
         let source = source_node.map(|node| NodeSource { node });
-        let screen_center =
-            self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
-        let position: Vector2 = match way {
-            AddNodeEvent => default(),
-            StartCreationEvent | ClickingButton if selection.is_some() =>
-                new_node_position::under(self, selection.unwrap()),
-            StartCreationEvent =>
-                new_node_position::at_mouse_aligned_to_close_nodes(self, mouse_position),
-            ClickingButton =>
-                new_node_position::on_ray(self, screen_center, Vector2(0.0, -1.0)).unwrap(),
-            DroppingEdge { edge_id } =>
-                new_node_position::at_mouse_aligned_to_source_node(self, edge_id, mouse_position),
-        };
-        let node = self.new_node(ctx);
-        node.set_position_xy(position);
-        if should_edit {
-            node.view.set_expression(node::Expression::default());
-        }
         (node.id(), source, should_edit)
     }
 
