@@ -47,9 +47,7 @@ public class InstantiateNode extends ExpressionNode {
    * @param arguments the expressions that read field values from local vars
    * @return a node that instantiates {@code constructor}
    */
-  public static InstantiateNode build(
-          AtomConstructor constructor,
-          ExpressionNode[] arguments) {
+  public static InstantiateNode build(AtomConstructor constructor, ExpressionNode[] arguments) {
     return new InstantiateNode(constructor, arguments);
   }
 
