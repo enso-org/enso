@@ -4,7 +4,7 @@ import Standard.Test
 type Box
     type Foo (v : Bool = True)
 
-type Bar (a : Integer = 1) (b : Box = (Foo False))
+type Bar (a : Integer = 1) (b : Box = (Foo False)) (c : Boolean = b.v)
 
 type A a=0 b=1
 type B a=2 b=(Foo True)
@@ -31,6 +31,7 @@ spec =
             c.b.should_equal (Foo)
             d = D 1
             d.b.b.should_equal (Foo False)
+            d.b.c.should_equal False
 
         Test.specify "should be allowed to use default arguments that refer to previous parameters" <|
             e = E 1
