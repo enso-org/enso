@@ -2838,8 +2838,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         start_node_creation_from_port <- input_start_node_creation_from_port.filter_map(|v| v.clone());
         start_creation_from_port_way <- start_node_creation_from_port.map(
             |endpoint| WayOfCreatingNode::StartCreationFromPortEvent{endpoint: endpoint.clone()});
-        removed_edges_on_connected_node_creation <= start_creation_from_port_way.map(f_!(model.model.clear_all_detached_edges()));
-        out.source.on_edge_drop <+ removed_edges_on_connected_node_creation;
+        removed_edges_on_node_creation_from_port <= start_creation_from_port_way.map(f_!(model.model.clear_all_detached_edges()));
+        out.source.on_edge_drop <+ removed_edges_on_node_creation_from_port;
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
         add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
         add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &start_creation_from_port_way, &add_with_button_way, &add_with_edge_drop_way);
