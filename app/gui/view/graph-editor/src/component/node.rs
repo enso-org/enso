@@ -20,6 +20,7 @@ use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::scene::Layer;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
@@ -38,6 +39,7 @@ pub mod action_bar;
 #[warn(missing_docs)]
 pub mod error;
 pub mod expression;
+pub mod growth_animation;
 pub mod input;
 pub mod output;
 #[warn(missing_docs)]
@@ -535,6 +537,45 @@ impl NodeModel {
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
         self
+    }
+
+    fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
+        layer.add_exclusive(&self.display_object);
+        action_bar_layer.add_exclusive(&self.action_bar);
+        self.output.set_label_layer(text_layer);
+        self.input.set_label_layer(text_layer);
+        self.profiling_label.set_label_layer(text_layer);
+        self.comment.add_to_scene_layer(text_layer);
+    }
+
+    /// Move all sub-components to `edited_node` layer.
+    ///
+    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// separate layer management API.
+    ///
+    /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
+    /// separate `above_nodes` layer, unlike every other node component.
+    pub fn move_to_edited_node_layer(&self) {
+        let scene = &self.app.display.default_scene;
+        let layer = &scene.layers.edited_node;
+        let text_layer = &scene.layers.edited_node_text;
+        let action_bar_layer = &scene.layers.edited_node;
+        self.set_layers(layer, text_layer, action_bar_layer);
+    }
+
+    /// Move all sub-components to `main` layer.
+    ///
+    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// separate layer management API.
+    ///
+    /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
+    /// node component.
+    pub fn move_to_main_layer(&self) {
+        let scene = &self.app.display.default_scene;
+        let layer = &scene.layers.main;
+        let text_layer = &scene.layers.label;
+        let action_bar_layer = &scene.layers.above_nodes;
+        self.set_layers(layer, text_layer, action_bar_layer);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.

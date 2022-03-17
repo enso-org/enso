@@ -7,6 +7,9 @@
   to make the resulting graph prettier and avoid overlapping. In such cases,
   created nodes will be placed below an existing node or on the bottom-left
   diagonal if there is no space underneath.
+- [Node Searcher preserves its zoom factor.][3327] The visible size of the node
+  searcher and edited node is now fixed. It simplifies node editing on
+  non-standard zoom levels.
 - [Nodes can be added to the graph by clicking (+) button on the screen][3278].
   The button is in the bottom-left corner. Node is added at the center or pushed
   down if the center is already occupied by nodes.
@@ -114,6 +117,7 @@
 [3317]: https://github.com/enso-org/enso/pull/3317
 [3318]: https://github.com/enso-org/enso/pull/3318
 [3324]: https://github.com/enso-org/enso/pull/3324
+[3327]: https://github.com/enso-org/enso/pull/3327
 [3339]: https://github.com/enso-org/enso/pull/3339
 
 #### Enso Compiler
