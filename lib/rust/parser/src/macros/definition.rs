@@ -1,7 +1,9 @@
 //! Macro definitions in Enso.
 
-use crate::macros::literal::Literal;
 use crate::prelude::*;
+
+use crate::macros::literal::Literal;
+
 use itertools::Itertools;
 
 

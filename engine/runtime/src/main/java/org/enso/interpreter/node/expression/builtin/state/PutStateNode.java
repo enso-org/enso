@@ -1,13 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
@@ -24,7 +23,8 @@ public abstract class PutStateNode extends Node {
     return PutStateNodeGen.create();
   }
 
-  abstract Stateful execute(@MonadicState Object state, Object _this, Object key, Object new_state);
+  abstract Stateful execute(
+      @MonadicState Object state, Object _this, Object key, Object new_state);
 
   @Specialization(guards = "state.getKey() == key")
   Stateful doExistingSingleton(SingletonMap state, Object _this, Object key, Object new_state) {
@@ -53,14 +53,13 @@ public abstract class PutStateNode extends Node {
       SmallMap state,
       Object _this,
       Object key,
-      Object new_state,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef) {
+      Object new_state) {
     int index = state.indexOf(key);
     if (index == SmallMap.NOT_FOUND) {
       return new Stateful(
           state,
           DataflowError.withoutTrace(
-              ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this));
+              Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this));
     } else {
       return doExistingMultiCached(state, _this, key, new_state, key, state.getKeys(), index);
     }
@@ -71,11 +70,10 @@ public abstract class PutStateNode extends Node {
       Object state,
       Object _this,
       Object key,
-      Object new_state,
-      @CachedContext(Language.class) Context ctx) {
+      Object new_state) {
     return new Stateful(
         state,
         DataflowError.withoutTrace(
-            ctx.getBuiltins().error().uninitializedState().newInstance(key), this));
+            Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this));
   }
 }

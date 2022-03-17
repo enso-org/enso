@@ -1,15 +1,22 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
-
-#[warn(missing_docs)]
-pub mod glsl;
 
 use enso_prelude::*;
 
 use crate::system::Context;
+
 use js_sys::Float32Array;
 use web_sys::WebGlBuffer;
 use web_sys::WebGlProgram;
 use web_sys::WebGlShader;
+
+
+// ==============
+// === Export ===
+// ==============
+
+#[warn(missing_docs)]
+pub mod glsl;
 
 
 

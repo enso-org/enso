@@ -1,9 +1,6 @@
 package org.enso.interpreter.dsl.model;
 
-import org.enso.interpreter.dsl.AcceptsError;
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
-import org.enso.interpreter.dsl.Suspend;
+import org.enso.interpreter.dsl.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -185,6 +182,7 @@ public class MethodDefinition {
     private final boolean isCallerInfo;
     private final boolean isSuspended;
     private final boolean acceptsError;
+    private final boolean acceptsWarning;
     private final int position;
     private final VariableElement element;
 
@@ -206,6 +204,7 @@ public class MethodDefinition {
       acceptsError =
           (element.getAnnotation(AcceptsError.class) != null)
               || type.toString().equals(DATAFLOW_ERROR);
+      acceptsWarning = element.getAnnotation(AcceptsWarning.class) != null;
       isFrame = type.toString().equals(VIRTUAL_FRAME);
       isCallerInfo = type.toString().equals(CALLER_INFO);
       this.position = position;
@@ -287,6 +286,14 @@ public class MethodDefinition {
     /** @return whether thsi argument accepts a dataflow error. */
     public boolean acceptsError() {
       return acceptsError;
+    }
+
+    public boolean acceptsWarning() {
+      return acceptsWarning;
+    }
+
+    public boolean isThis() {
+      return name.equals("this") || position == 0;
     }
   }
 }

@@ -1,4 +1,5 @@
 //! The Subsequence Graph.
+
 use crate::prelude::*;
 
 use std::collections::BTreeSet;

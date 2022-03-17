@@ -1,5 +1,7 @@
-use crate::binding::emscripten_get_value_from_memory;
 use crate::prelude::*;
+
+use crate::binding::emscripten_get_value_from_memory;
+
 use wasm_bindgen::JsValue;
 
 

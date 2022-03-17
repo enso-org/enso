@@ -134,18 +134,29 @@
 //! set of constructors create profilers that inherit their start time from the specified parent,
 //! e.g. [`objective_with_same_start!`] in the example above.
 
+// === Features ===
 #![feature(test)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod internal;
 pub mod log;
+
+
 
 extern crate test;
 
@@ -153,6 +164,17 @@ use std::rc;
 use std::str;
 
 use internal::*;
+
+
+
+// ===============
+// === prelude ===
+// ===============
+
+/// Widely-used exports.
+pub mod prelude {
+    pub use crate::profile;
+}
 
 
 
@@ -412,7 +434,7 @@ mod tests {
         #[profile(Objective)]
         async fn profiled() -> u32 {
             let block = async { 4 };
-            block.await
+            block.await + 1
         }
         let future = profiled();
         futures::executor::block_on(future);
@@ -588,6 +610,45 @@ mod compile_tests {
 
     #[profile(Objective)]
     async fn profiled_async() {}
+
+    #[profile(Objective)]
+    async fn polymorphic_return() -> Box<dyn PartialEq<u32>> {
+        Box::new(23)
+    }
+
+    #[profile(Objective)]
+    async fn borrows_input_references_in_output(x: &u32) -> &u32 {
+        x
+    }
+
+    #[profile(Objective)]
+    #[allow(clippy::needless_lifetimes)]
+    async fn borrows_input_references_in_output_explicitly<'a>(x: &'a u32) -> &'a u32 {
+        x
+    }
+
+    #[profile(Objective)]
+    async fn borrows_input_doesnt_use(_: &u32) -> u32 {
+        4
+    }
+
+    #[profile(Objective)]
+    async fn borrows_input_uses(x: &u32) -> u32 {
+        *x
+    }
+
+    #[profile(Objective)]
+    async fn borrows_two_args(x: &u32, y: &u32) -> u32 {
+        *x + *y
+    }
+
+    struct Foo(u32);
+    impl Foo {
+        #[profile(Objective)]
+        async fn borrows_self_and_arg(&self, x: &u32) -> u32 {
+            self.0 + *x
+        }
+    }
 
     #[profile(Detail)]
     #[allow(unsafe_code)]

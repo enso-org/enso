@@ -1,14 +1,14 @@
 //! Definition of the Cursor (known as well as mouse pointer) component.
 
+use crate::display::shape::*;
+use crate::gui::style::*;
 use crate::prelude::*;
 
 use crate::data::color;
 use crate::define_style;
 use crate::display;
 use crate::display::scene::Scene;
-use crate::display::shape::*;
 use crate::frp;
-use crate::gui::style::*;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
 use crate::DEPRECATED_Tween;

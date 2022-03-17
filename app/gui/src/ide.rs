@@ -1,7 +1,4 @@
 //! This module contains the IDE object implementation.
-pub mod initializer;
-
-pub use initializer::Initializer;
 
 use crate::prelude::*;
 
@@ -12,6 +9,15 @@ use analytics::AnonymousData;
 use enso_frp as frp;
 use ensogl::system::web::sleep;
 use std::time::Duration;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod initializer;
+
+pub use initializer::Initializer;
 
 
 

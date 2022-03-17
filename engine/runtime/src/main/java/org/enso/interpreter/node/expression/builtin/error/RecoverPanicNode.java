@@ -1,14 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
@@ -38,8 +35,7 @@ public abstract class RecoverPanicNode extends Node {
       @MonadicState Object state,
       Object _this,
       Object action,
-      @CachedLibrary(limit = "5") InteropLibrary exceptions,
-      @CachedContext(Language.class) Context ctx) {
+      @CachedLibrary(limit = "5") InteropLibrary exceptions) {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
@@ -49,7 +45,7 @@ public abstract class RecoverPanicNode extends Node {
         return new Stateful(
             state,
             DataflowError.withTrace(
-                ctx.getBuiltins().error().makePolyglotError(e), (AbstractTruffleException) e));
+                Context.get(this).getBuiltins().error().makePolyglotError(e), (AbstractTruffleException) e));
       }
       unknownExceptionProfile.enter();
       throw e;

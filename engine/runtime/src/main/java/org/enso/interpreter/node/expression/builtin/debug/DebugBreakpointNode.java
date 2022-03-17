@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.debug;
 
 import com.oracle.truffle.api.debug.DebuggerTags;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.GenerateWrapper;
@@ -9,7 +8,6 @@ import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
@@ -46,9 +44,8 @@ public abstract class DebugBreakpointNode extends Node implements Instrumentable
       VirtualFrame frame,
       CallerInfo callerInfo,
       Object state,
-      Object _this,
-      @CachedContext(Language.class) Context context) {
-    return new Stateful(state, context.getNothing().newInstance());
+      Object _this) {
+    return new Stateful(state, Context.get(this).getNothing().newInstance());
   }
 
   /**

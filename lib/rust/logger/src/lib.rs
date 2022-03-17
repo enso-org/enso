@@ -69,7 +69,6 @@
 //! or `expanded` just before `||` to print the group collapsed or expanded by default,
 //! respectively. If not provided, the [`warning`] and [`error`] group macros are collapsed by
 //! default, while all other group macros are expanded by default.
-
 //! #### Compile-time Log Level Filtering
 //!
 //! The crate provides a set of predefined loggers that can be used together with reexport
@@ -100,6 +99,10 @@
 //! [`define_compile_time_filtering_rules!`] macros), formatters (see [`processor::formatter`]), and
 //! log processing pipelines (see [`processor`]).
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]

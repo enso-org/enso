@@ -7,11 +7,16 @@ use crate::automata::nfa::Nfa;
 use crate::automata::pattern::Pattern;
 use crate::automata::state;
 use crate::group::rule::Rule;
-
 use crate::prelude::fmt::Formatter;
 use crate::prelude::HashMap;
+
 use itertools::Itertools;
 use std::fmt::Display;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod rule;
 

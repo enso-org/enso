@@ -76,14 +76,22 @@
 //! "code points except high-surrogate and low-surrogate code points" - but the surrogate code
 //! points are not used uin UTF-8 anyway).
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod range;
 pub mod rope;
@@ -101,6 +109,8 @@ pub use text::Text;
 pub use text::TextCell;
 pub use unit::traits;
 pub use unit::*;
+
+
 
 /// Commonly used utilities.
 pub mod prelude {

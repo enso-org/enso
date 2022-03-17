@@ -1,7 +1,14 @@
 //! This module defines utilities for working with the [`SmallVec`] type.
 
-pub use smallvec::SmallVec;
 use std::cmp::Ordering;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use smallvec::SmallVec;
+
 
 
 /// Adds methods to the `SmallVec` type.

@@ -8,6 +8,8 @@
 //! production-ready code, so they should be easy to visually catch during code reviews.
 //! Also, this gets us good names that otherwise would be already used.
 
+
+
 /// Defines the methods from given names.
 ///
 /// Must be invoked with arguments `$ [...] [...]...` where [...] is triple `[lower UPPER color]`.

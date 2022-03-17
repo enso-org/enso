@@ -3,17 +3,23 @@
 //! The IDE controller expose functionality bound to the application as a whole, not to specific
 //! component or opened project.
 
-pub mod desktop;
-pub mod plain;
-
 use crate::prelude::*;
 
 use crate::notification;
 
-pub use engine_protocol::project_manager::ProjectMetadata;
-pub use engine_protocol::project_manager::ProjectName;
 use mockall::automock;
 use parser::Parser;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod desktop;
+pub mod plain;
+
+pub use engine_protocol::project_manager::ProjectMetadata;
+pub use engine_protocol::project_manager::ProjectName;
 
 
 

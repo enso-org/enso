@@ -2,6 +2,7 @@
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
@@ -10,6 +11,9 @@
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -403,8 +407,8 @@ impl<K, V, S> SharedHashMap<K, V, S> {
 /// This is information meant to be sent to searcher, which can, for example, auto- connect the
 /// source to "this" port of new node.
 #[derive(Clone, CloneRef, Copy, Debug, Default, Eq, PartialEq)]
-#[allow(missing_docs)]
 pub struct NodeSource {
+    #[allow(missing_docs)]
     pub node: NodeId,
 }
 
@@ -649,7 +653,7 @@ ensogl::define_endpoints! {
         // === Other ===
         // FIXME: To be refactored
 
-        node_added                (NodeId, Option<NodeSource>),
+        node_added                (NodeId, Option<NodeSource>, bool),
         node_removed              (NodeId),
         nodes_collapsed           ((Vec<NodeId>,NodeId)),
         node_hovered              (Option<Switch<NodeId>>),
@@ -1300,7 +1304,7 @@ impl Deref for GraphEditorModelWithNetwork {
 
 
 impl GraphEditorModelWithNetwork {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Constructor.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
         let model = GraphEditorModel::new(app, cursor, frp);
@@ -1322,7 +1326,7 @@ impl GraphEditorModelWithNetwork {
         false
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Return a position of the node with provided id.
     pub fn get_node_position(&self, node_id: NodeId) -> Option<Vector3<f32>> {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
     }
@@ -1720,27 +1724,27 @@ impl GraphEditorModel {
 
 // === Add node ===
 impl GraphEditorModel {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Create a new node and return a unique identifier.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
-        let (node_id, _) = self.frp.node_added.value();
+        let (node_id, _, _) = self.frp.node_added.value();
         node_id
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Create a new node and place it at a free place below `above` node.
     pub fn add_node_below(&self, above: NodeId) -> NodeId {
         let pos = self.find_free_place_under(above);
         self.add_node_at(pos)
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Create a new node and place it at `pos`.
     pub fn add_node_at(&self, pos: Vector2) -> NodeId {
         let node_id = self.add_node();
         self.frp.set_node_position((node_id, pos));
         node_id
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Return the first available position for a new node below `node_above` node.
     pub fn find_free_place_under(&self, node_above: NodeId) -> Vector2 {
         let above_pos = self.node_position(node_above);
         let y_gap = self.frp.default_y_gap_between_nodes.value();
@@ -1750,7 +1754,8 @@ impl GraphEditorModel {
         self.find_free_place_for_node(starting_point, direction).unwrap()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Return the first unoccupied point when going along the ray starting from `starting_point`
+    /// and parallel to `direction` vector.
     pub fn find_free_place_for_node(
         &self,
         starting_from: Vector2,
@@ -1777,12 +1782,6 @@ impl GraphEditorModel {
             OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
         });
         find_free_place(starting_from, direction, node_areas)
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn start_editing_new_node(&self, node_id: NodeId) {
-        self.frp.set_node_expression.emit(&(node_id, node::Expression::default()));
-        self.frp.edit_node.emit(&node_id);
     }
 }
 
@@ -2874,7 +2873,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             };
             model.create_node(&ctx, *way, *mouse_pos, hover_out_port.clone())
         }));
-        out.source.node_added <+ new_node.map(|&(id, src, _)| (id, src));
+        out.source.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
     }
 

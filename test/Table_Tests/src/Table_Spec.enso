@@ -657,7 +657,7 @@ spec =
             c_0 = ['A', ["", "B", "C"]]
             c_2 = ['x', [1, 2, 3]]
             table = Table.new [c_0, c_2]
-            action = table.use_first_row_as_names warnings=_ on_problems=_
+            action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["Column", "1"]
             problems = [Invalid_Output_Column_Names [""]]
             Problems.test_problem_handling action problems tester
@@ -666,7 +666,7 @@ spec =
             c_0 = ['A', ["A", "B", "C"]]
             c_2 = ['x', [Nothing, 2, 3]]
             table = Table.new [c_0, c_2]
-            action = table.use_first_row_as_names warnings=_ on_problems=_
+            action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "Column"]
             problems = [Invalid_Output_Column_Names [""]]
             Problems.test_problem_handling action problems tester
@@ -677,7 +677,7 @@ spec =
             c_2 = ['x', ["A", "B", "C"]]
             c_3 = ['C', ["A", "B", "C"]]
             table = Table.new [c_0, c_1, c_2, c_3]
-            action = table.use_first_row_as_names warnings=_ on_problems=_
+            action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
             problems = [Duplicate_Output_Column_Names ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester

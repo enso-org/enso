@@ -910,16 +910,6 @@ type Vector
        Arguments:
        - on: A projection from the element type to the value of that element
              which determines the uniqueness criteria.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         function.
-         By default, a warning is issued, but the operation proceeds.
-         If set to `Report_Error`, the operation fails with a dataflow error.
-         If set to `Ignore`, the operation proceeds without errors or warnings.
-       - warnings: A Warning_System instance specifying how to handle warnings.
-         This is a temporary workaround to allow for testing the warning
-         mechanism. Once the proper warning system is implemented, this
-         argument will become obsolete and will be removed. No user code should
-         use this argument, as it will be removed in the future.
 
        The returned unique elements are kept in the same order as they appeared
        in the input.

@@ -62,15 +62,18 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
+  Context getContext() {
+    return Context.get(this);
+  }
+
   @Specialization(
-      guards = {"!context.isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
+      guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   Stateful invokeCached(
       Function function,
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
-      @CachedContext(Language.class) Context context,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
       @Cached("generate(cachedSchema, getSchema())")
           CallArgumentInfo.ArgumentMapping argumentMapping,
@@ -160,15 +163,15 @@ public abstract class InvokeFunctionNode extends BaseNode {
   public abstract Stateful execute(
       Function callable, VirtualFrame callerFrame, Object state, Object[] arguments);
 
-  CallArgumentInfo[] getSchema() {
+  public CallArgumentInfo[] getSchema() {
     return schema;
   }
 
-  InvokeCallableNode.DefaultsExecutionMode getDefaultsExecutionMode() {
+  public InvokeCallableNode.DefaultsExecutionMode getDefaultsExecutionMode() {
     return this.defaultsExecutionMode;
   }
 
-  InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
+  public InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
     return argumentsExecutionMode;
   }
 
@@ -187,4 +190,5 @@ public abstract class InvokeFunctionNode extends BaseNode {
   public void setId(UUID id) {
     functionCallInstrumentationNode.setId(id);
   }
+
 }

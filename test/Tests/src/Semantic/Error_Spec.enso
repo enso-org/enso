@@ -6,6 +6,9 @@ polyglot java import java.util.Random
 
 type My_Type foo
 
+throw_a_bar = Error.throw "bar"
+throw_a_bar_panicking = Panic.throw "bar"
+
 spec =
     Test.group "No Method Errors" <|
         Test.specify "should be recoverable" <|
@@ -63,3 +66,10 @@ spec =
         Test.specify "should short-circuit polyglot evaluation" <|
             error = Error.throw 42
             Random.new error . should_fail_with Integer
+
+        Test.specify "should allow to inspect the stack trace of a recovered panic" <|
+            error = Panic.recover <| here.throw_a_bar_panicking
+            error.catch . should_equal "bar"
+            error.get_stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
+
+main = Test.Suite.run_main here.spec

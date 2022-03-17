@@ -9,6 +9,8 @@ import project.Csv_Spec
 import project.Json_Spec
 import project.Table_Spec
 import project.Spreadsheet_Spec
+import project.Aggregate_Column_Spec
+import project.Aggregate_Spec
 
 main = Test.Suite.run_main <|
     Column_Spec.spec
@@ -18,3 +20,5 @@ main = Test.Suite.run_main <|
     Table_Spec.spec
     Database_Spec.sqlite_spec
     Model_Spec.spec
+    Aggregate_Column_Spec.spec
+    Aggregate_Spec.spec

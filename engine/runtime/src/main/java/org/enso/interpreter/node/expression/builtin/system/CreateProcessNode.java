@@ -2,14 +2,11 @@ package org.enso.interpreter.node.expression.builtin.system;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -46,8 +43,8 @@ public abstract class CreateProcessNode extends Node {
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
-      @CachedContext(Language.class) Context ctx,
       @Cached ExpectStringNode expectStringNode) {
+    Context ctx = Context.get(this);
     String[] cmd = new String[arguments.getItems().length + 1];
     cmd[0] = expectStringNode.execute(command);
     for (int i = 1; i <= arguments.getItems().length; i++) {
@@ -114,8 +111,8 @@ public abstract class CreateProcessNode extends Node {
       }
 
       long exitCode = p.exitValue();
-      Text returnOut = Text.create(new String(out.toByteArray()));
-      Text returnErr = Text.create(new String(err.toByteArray()));
+      Text returnOut = Text.create(out.toString());
+      Text returnErr = Text.create(err.toString());
 
       return ctx.getBuiltins()
           .system()

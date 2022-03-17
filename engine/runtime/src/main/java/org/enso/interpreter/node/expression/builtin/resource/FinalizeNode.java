@@ -1,9 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.resource;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.ManagedResource;
@@ -21,8 +19,8 @@ public abstract class FinalizeNode extends Node {
   abstract Object execute(Object _this, ManagedResource resource);
 
   @Specialization
-  Object doClose(
-      Object _this, ManagedResource resource, @CachedContext(Language.class) Context context) {
+  Object doClose(Object _this, ManagedResource resource) {
+    Context context = Context.get(this);
     context.getResourceManager().close(resource);
     return context.getBuiltins().nothing().newInstance();
   }
