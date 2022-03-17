@@ -450,16 +450,13 @@ impl Manager {
             }
             Err(error) => {
                 // TODO [mwu]
-                //   We should somehow deal with this, but we have really no
-                // information, how to.   If this failed
-                // because e.g. the visualization was already removed (or another
+                //   We should somehow deal with this, but we have really no information, how to.
+                //   If this failed because e.g. the visualization was already removed (or another
                 //   reason to that effect), we should just do nothing.
-                //   However, if it is issue like connectivity problem, then we should
-                // retry.   However, even if had better
-                // error recognition, we won't always know.
-                //   So we should also handle errors like unexpected visualization
-                // updates and use   them to drive cleanups
-                // on such discrepancies.
+                //   However, if it is issue like connectivity problem, then we should retry.
+                //   However, even if had better error recognition, we won't always know.
+                //   So we should also handle errors like unexpected visualization updates and use
+                //   them to drive cleanups on such discrepancies.
                 let status = Status::NotAttached;
                 self.update_status(target, status);
                 let notification =
@@ -481,8 +478,7 @@ impl Manager {
                 self.update_status(target, status);
                 if let Some(vis) = self.visualizations.remove(&so_far.expression_id) {
                     if vis.desired.is_some() {
-                        // Restore visualization that was re-requested while being
-                        // detached.
+                        // Restore visualization that was re-requested while being detached.
                         self.visualizations.insert(so_far.expression_id, vis);
                         self.synchronize(so_far.expression_id);
                     }
@@ -496,7 +492,6 @@ impl Manager {
             }
         };
     }
-
 
     #[profile(Detail)]
     async fn modify_visualization(

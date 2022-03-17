@@ -426,6 +426,7 @@ pub struct Label {
 }
 
 impl Label {
+    /// Recognize profilers with special names.
     fn classify(&self) -> Class {
         match self.name.as_str() {
             "@on_frame" => Class::OnFrame,

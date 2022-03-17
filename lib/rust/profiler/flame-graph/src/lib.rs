@@ -49,6 +49,7 @@ pub struct FlameGraph {
     pub blocks: Vec<Block>,
 }
 
+/// Create a block for an interval; recurse into children.
 fn visit_interval<Metadata>(
     profile: &data::Profile<Metadata>,
     active: data::IntervalId,
@@ -72,6 +73,7 @@ fn visit_interval<Metadata>(
 impl<Metadata> From<data::Profile<Metadata>> for FlameGraph {
     fn from(profile: data::Profile<Metadata>) -> Self {
         let mut blocks = Vec::default();
+        // We skip the root node APP_LIFETIME, which is not a real measurement.
         for child in &profile.root_interval().children {
             visit_interval(&profile, *child, &mut blocks, 0);
         }
