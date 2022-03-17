@@ -307,24 +307,6 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       )
     )
   )
-  // TODO[DB] line with the exclamation mark is missing in the parser output
-  //          It happens with symbols: !,?,>
-  //  """ ! Important
-  //    |   This is important!""".stripMargin.replaceAll(
-  //    System.lineSeparator(),
-  //    "\n"
-  //  ) ?= Doc(
-  //    Synopsis(
-  //      Section.Marked(
-  //        3, <-- |
-  //        0, <-- | numbers are also wrong
-  //        Section.Marked.Important,
-  //        Section.Header("Important"),
-  //        Doc.Elem.Newline,
-  //        "This is important!" <-- this one
-  //      )
-  //    )
-  //  )
   """ Synopsis
     |
     | ! Important

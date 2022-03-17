@@ -1,6 +1,7 @@
 package org.enso.docs.sections
 
 import cats.kernel.Monoid
+import cats.syntax.compose._
 import org.enso.syntax.text.ast.Doc
 
 final class ParsedSectionsBuilder {
@@ -14,18 +15,20 @@ final class ParsedSectionsBuilder {
     Monoid.combineAll(tagSections ++ synopsisSections ++ bodySections)
   }
 
-  def buildTags(tags: Doc.Tags): List[ParsedSection] =
+  private def buildTags(tags: Doc.Tags): List[ParsedSection] =
     tags.elems.toList.map { tag =>
       Section.Tag(tag.name, tag.details.map(_.trim).map(Doc.Elem.Text))
     }
 
-  def buildSynopsis(synopsis: Doc.Synopsis): List[ParsedSection] =
-    buildSections(synopsis.elems.toList)
+  private def buildSynopsis(synopsis: Doc.Synopsis): List[ParsedSection] =
+    (joinSections _ >>> buildSections)(synopsis.elems.toList)
 
-  def buildBody(body: Doc.Body): List[ParsedSection] =
-    buildSections(body.elems.toList)
+  private def buildBody(body: Doc.Body): List[ParsedSection] =
+    (joinSections _ >>> buildSections)(body.elems.toList)
 
-  def buildSections(sections: List[Doc.Section]): List[ParsedSection] = {
+  private def buildSections(
+    sections: List[Doc.Section]
+  ): List[ParsedSection] = {
     sections.map {
       case Doc.Section.Raw(_, elems) =>
         elems match {
@@ -57,12 +60,36 @@ final class ParsedSectionsBuilder {
     }
   }
 
-  def buildMark(typ: Doc.Section.Marked.Type): Section.Mark =
+  private def buildMark(typ: Doc.Section.Marked.Type): Section.Mark =
     typ match {
       case Doc.Section.Marked.Important => Section.Mark.Important
       case Doc.Section.Marked.Info      => Section.Mark.Info
       case Doc.Section.Marked.Example   => Section.Mark.Example
     }
+
+  private def joinSections(sections: List[Doc.Section]): List[Doc.Section] = {
+    val init: Option[Doc.Section.Marked] = None
+    val stack: List[Doc.Section]         = Nil
+
+    val (result, acc) = sections.foldLeft((stack, init)) {
+      case ((stack, acc), section) =>
+        (section, acc) match {
+          case (marked: Doc.Section.Marked, _) =>
+            (acc.toList ::: stack, Some(marked))
+          case (raw: Doc.Section.Raw, None) =>
+            (raw :: stack, acc)
+          case (raw: Doc.Section.Raw, Some(marked)) =>
+            if (raw.indent == marked.indent) {
+              val newElems = marked.elems ::: Doc.Elem.Newline :: raw.elems
+              (stack, Some(marked.copy(elems = newElems)))
+            } else {
+              (raw :: marked :: stack, None)
+            }
+        }
+    }
+
+    (acc.toList ::: result).reverse
+  }
 }
 object ParsedSectionsBuilder {
 

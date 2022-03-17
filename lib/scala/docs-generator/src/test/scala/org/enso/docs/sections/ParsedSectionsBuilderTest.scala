@@ -123,8 +123,8 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.List(
               1,
               Doc.Elem.List.Unordered,
-              Doc.Elem.Text(" one: The first"),
-              Doc.Elem.Text(" two: The second")
+              Doc.Elem.Text("one: The first"),
+              Doc.Elem.Text("two: The second")
             )
           )
         )
@@ -300,9 +300,6 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
     }
 
     "generate marked info multiple sections" in {
-      // TODO[DB] Marked section can not be split into paragraphs.
-      // It is parsed as code block.
-      pending
       val comment =
         """ Description
           |
@@ -310,6 +307,8 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   FYI.
           |
           |   Another section.
+          |
+          |   And another.
           |""".stripMargin
       val expected = List(
         Section.Paragraph(
@@ -322,7 +321,82 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.Newline,
             Doc.Elem.Text("FYI."),
             Doc.Elem.Newline,
-            Doc.Elem.CodeBlock(Doc.Elem.CodeBlock.Line(3, "Another section."))
+            Doc.Elem.Newline,
+            Doc.Elem.Text("Another section."),
+            Doc.Elem.Newline,
+            Doc.Elem.Newline,
+            Doc.Elem.Text("And another.")
+          )
+        )
+      )
+
+      parseSections(comment) shouldEqual expected
+    }
+
+    "generate marked info and paragraph sections" in {
+      val comment =
+        """ Description
+          |
+          | ? Out of curiosity
+          |   FYI.
+          |
+          |   Another section.
+          |
+          | This is paragraph.
+          |""".stripMargin
+      val expected = List(
+        Section.Paragraph(
+          List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
+        ),
+        Section.Marked(
+          Section.Mark.Info,
+          Some("Out of curiosity"),
+          List(
+            Doc.Elem.Newline,
+            Doc.Elem.Text("FYI."),
+            Doc.Elem.Newline,
+            Doc.Elem.Newline,
+            Doc.Elem.Text("Another section."),
+            Doc.Elem.Newline
+          )
+        ),
+        Section.Paragraph(
+          List(Doc.Elem.Text("This is paragraph."))
+        )
+      )
+
+      parseSections(comment) shouldEqual expected
+    }
+
+    "generate marked info and important sections" in {
+      val comment =
+        """ Description
+          |
+          | ? Out of curiosity
+          |   FYI.
+          |
+          | ! Warning
+          |   Pretty important.
+          |""".stripMargin
+      val expected = List(
+        Section.Paragraph(
+          List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
+        ),
+        Section.Marked(
+          Section.Mark.Info,
+          Some("Out of curiosity"),
+          List(
+            Doc.Elem.Newline,
+            Doc.Elem.Text("FYI."),
+            Doc.Elem.Newline
+          )
+        ),
+        Section.Marked(
+          Section.Mark.Important,
+          Some("Warning"),
+          List(
+            Doc.Elem.Newline,
+            Doc.Elem.Text("Pretty important.")
           )
         )
       )
@@ -365,8 +439,8 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
             Doc.Elem.List(
               1,
               Doc.Elem.List.Unordered,
-              Doc.Elem.Text(" one: The first"),
-              Doc.Elem.Text(" two: The second")
+              Doc.Elem.Text("one: The first"),
+              Doc.Elem.Text("two: The second")
             ),
             Doc.Elem.Newline
           )
