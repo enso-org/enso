@@ -1414,22 +1414,30 @@ impl GraphEditorModelWithNetwork {
         way: WayOfCreatingNode,
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
-        use WayOfCreatingNode::*;
         let selection = self.nodes.selected.first_cloned();
         let position = new_node_position::new_node_position(self, way, selection, mouse_position);
         let node = self.new_node(ctx);
         node.set_position_xy(position);
-        let should_edit = !matches!(way, AddNodeEvent);
+        let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
         }
+        let source = self.data_source_for_new_node(way, selection);
+        (node.id(), source, should_edit)
+    }
+
+    fn data_source_for_new_node(
+        &self,
+        way: WayOfCreatingNode,
+        selection: Option<NodeId>,
+    ) -> Option<NodeSource> {
+        use WayOfCreatingNode::*;
         let source_node = match way {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
             DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
         };
-        let source = source_node.map(|node| NodeSource { node });
-        (node.id(), source, should_edit)
+        source_node.map(|node| NodeSource { node })
     }
 
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
