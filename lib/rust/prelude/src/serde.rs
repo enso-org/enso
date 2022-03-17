@@ -1,7 +1,7 @@
 //! Module for utilities related to serialization/deserialization using the `serde` library.
 
+#[cfg(feature = "serde_json")]
 use serde::Deserialize;
-use serde::Deserializer;
 
 
 
@@ -11,7 +11,7 @@ use serde::Deserializer;
 pub fn deserialize_or_default<'d, Ret, D>(d: D) -> Result<Ret, D::Error>
 where
     for<'e> Ret: Default + Deserialize<'e>,
-    D: Deserializer<'d>, {
+    D: serde::Deserializer<'d>, {
     // We first parse as generic JSON value. This is necessary to consume parser input.
     // If we just tried parsing the desired type directly and ignored error, we would end up with
     // `trailing characters` error in non-trivial cases.
