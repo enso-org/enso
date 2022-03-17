@@ -204,7 +204,7 @@ Caught_Panic.stack_trace =
              Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+exception.getMessage)
 Panic.catch_java_exception : Any -> Any -> (Any -> Any) -> Any
 Panic.catch_java_exception java_class ~action handler =
-    Panic.catch_any action caught_panic-> case caught_panic.payload of
+    Panic.catch Any action caught_panic-> case caught_panic.payload of
         Polyglot_Error java_exception ->
             case Java.is_instance java_exception java_class of
                 True -> handler java_exception
@@ -230,11 +230,16 @@ Panic.catch_java_exception java_class ~action handler =
      Handling a specific type of panic.
 
          Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
-             IO.println "Caught an `Illegal_Argument_Error`: "+error.payload.message
-             "fallback value"
+             "Caught an `Illegal_Argument_Error`: "+error.payload.message
+
+   > Example
+     Handling any panic.
+
+         Panic.catch Any (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             "Caught some panic!"
 Panic.catch : Any -> Any -> (Caught_Panic -> Any) -> Any
 Panic.catch typ ~action handler =
-    Panic.catch_any action caught_panic->
+    Panic.catch_primitive action caught_panic->
         case caught_panic.payload.is_a typ of
             True -> handler caught_panic
             False -> Panic.throw caught_panic
@@ -267,7 +272,7 @@ Panic.recover expected_types ~action =
     types_to_check = case expected_types of
         Vector.Vector _ -> expected_types
         _ -> [expected_types]
-    Panic.catch_any action caught_panic->
+    Panic.catch Any action caught_panic->
         is_matched = types_to_check.exists typ->
             caught_panic.payload.is_a typ
         case is_matched of
