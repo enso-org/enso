@@ -797,55 +797,40 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   //// Wrong indent ////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-//  """List1
-//    |  - First unordered item
-//    |  - Second unordered item
-//    |    * First ordered sub item
-//    |    * Second ordered sub item
-//    |  - Third unordered item
-//    |    * First ordered sub item
-//    |    * Second ordered sub item
-//    |      - First unordered sub item
-//    |      - Second unordered sub item
-//    |    * Third ordered sub item
-//    |   * Wrong Indent Item
-//    |  - Fourth unordered item""".stripMargin
-//    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
-//    Synopsis(
-//      Section.Raw(
-//        "List1",
-//        Newline,
-//        List(
-//          2,
-//          List.Unordered,
-//          "First unordered item",
-//          "Second unordered item",
-//          List(
-//            4,
-//            List.Ordered,
-//            "First ordered sub item",
-//            "Second ordered sub item"
-//          ),
-//          "Third unordered item",
-//          List(
-//            4,
-//            List.Ordered,
-//            "First ordered sub item",
-//            "Second ordered sub item",
-//            List(
-//              6,
-//              List.Unordered,
-//              "First unordered sub item",
-//              "Second unordered sub item"
-//            ),
-//            "Third ordered sub item",
-//            List.Indent.Invalid(3, List.Ordered, " Wrong Indent Item")
-//          ),
-//          "Fourth unordered item"
-//        )
-//      )
-//    )
-//  )
+  """List
+    |  - First
+    |     * Aligned
+    |    * Misaligned
+    |   * Misaligned _styled_
+    |     * Correct
+    |  - Second""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            5,
+            List.Ordered,
+            "Aligned",
+            Elem.MisalignedItem(4, List.Ordered, "Misaligned"),
+            Elem.MisalignedItem(
+              3,
+              List.Ordered,
+              "Misaligned ",
+              Formatter(Formatter.Italic, "styled")
+            ),
+            "Correct"
+          ),
+          "Second"
+        )
+      )
+    )
+  )
 
   //////////////////////////////////////////////////////////////////////////////
   //// Links ///////////////////////////////////////////////////////////////////

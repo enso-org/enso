@@ -473,19 +473,17 @@ case class DocParserDef() extends Parser[Doc] {
     */
   final object indent {
     var stack: List[Int] = Nil
-    def current: Int     = stack.headOption.getOrElse(0)
-//      stack match {
-//        case Nil         => 0
-//        case ::(head, _) => head
-//      }
+    def current: Int =
+      stack match {
+        case h :: _ => h
+        case Nil    => 0
+      }
 
     def onIndent(): Unit =
       logger.trace {
         val diff = currentMatch.length - current
         println(s"onIndent match='$currentMatch';current=$current;diff=$diff")
         if (list.inListFlag) {
-//          list.appendInnerToOuter()
-//          stack = stack.tail
           if (diff > list.Indent) {
             tryToFindCodeInStack()
             stack +:= currentMatch.length
@@ -530,19 +528,26 @@ case class DocParserDef() extends Parser[Doc] {
 
           stack +:= indent
           list.inListFlag = true
-          list.createNew(indent, typ)
+          list.startNewList(indent, typ)
         } else if (diff == 0) {
           list.endListItem()
           list.startListItem()
         } else if (diff > 0) {
           stack +:= indent
           list.endListItem()
-          list.createNew(indent, typ)
+          list.startNewList(indent, typ)
         } else {
-          stack = stack.tail
-          list.endListItem()
-          list.endSublist()
-          list.startListItem()
+          if (indent > list.prev) {
+            stack = stack.tail
+            stack +:= indent
+            list.endListItem()
+            list.startMisalignedListItem(indent, typ)
+          } else {
+            stack = stack.tail
+            list.endListItem()
+            list.endSublist()
+            list.startListItem()
+          }
         }
 //          if (content.isEmpty) {
 //            list.createNew(indent, typ)
@@ -636,16 +641,23 @@ case class DocParserDef() extends Parser[Doc] {
     val Indent: Int = 2
 
     var stack: List[Int] = Nil
-    def current: Int     = stack.headOption.getOrElse(0)
+    def current: Int =
+      stack match {
+        case h :: _ => h
+        case Nil    => 0
+      }
+    def prev: Int =
+      stack match {
+        case _ :: p :: _ => p
+        case _           => 0
+      }
 
     var inListFlag: Boolean = false
-    //var stack: List[Elem.List] = Nil
 
     def isInList: Boolean = stack.nonEmpty
 
-    def createNew(indent: Int, listType: Elem.List.Type): Unit =
+    def startNewList(indent: Int, listType: Elem.List.Type): Unit =
       logger.trace {
-        //stack +:= Elem.List.empty(indent, listType)
         list.stack +:= indent
         result.current = Some(Elem.List.empty(indent, listType))
         result.push()
@@ -657,6 +669,21 @@ case class DocParserDef() extends Parser[Doc] {
         result.current match {
           case Some(l: Elem.List) =>
             result.current = Some(l.addItem())
+            result.push()
+          case elem =>
+            throw new IllegalStateException(
+              s"Illegal startListItem current=$elem"
+            )
+        }
+      }
+
+    def startMisalignedListItem(indent: Int, typ: Elem.List.Type): Unit =
+      logger.trace {
+        result.pop()
+        result.current match {
+          case Some(l: Elem.List) =>
+            val item = Elem.MisalignedItem(indent, typ, List())
+            result.current = Some(l.addItem(item))
             result.push()
           case elem =>
             throw new IllegalStateException(

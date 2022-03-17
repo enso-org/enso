@@ -301,10 +301,30 @@ object Doc {
       override def append(xs: scala.List[Elem]): ListItem =
         copy(elems = elems :++ xs)
     }
-
     object ListItem {
       def apply(elems: Elem*): ListItem =
-        new ListItem(elems.toList)
+        ListItem(elems.toList)
+    }
+
+    final case class MisalignedItem(
+      indent: Int,
+      typ: List.Type,
+      elems: scala.List[Elem]
+    ) extends ListElem {
+
+      override val repr: Repr.Builder =
+        R + indent + typ.marker + List.ElemIndent + elems
+
+      override def html: HTML =
+        elems.map(_.html)
+
+      override def append(xs: scala.List[Elem]): MisalignedItem =
+        copy(elems = elems :++ xs)
+    }
+    object MisalignedItem {
+
+      def apply(indent: Int, typ: List.Type, elems: Elem*): MisalignedItem =
+        new MisalignedItem(indent, typ, elems.toList)
     }
 
     /** List - block used to hold ordered and unordered lists
@@ -326,15 +346,10 @@ object Doc {
             R + Newline + elem
           case elem: ListItem =>
             R + Newline + indent + typ.marker + List.ElemIndent + elem
+          case elem: MisalignedItem =>
+            R + Newline + elem
         }
       }
-//        R + indent + typ.marker + elemIndent + elems.head + elems.tail
-//          .map {
-//            case elem @ (_: Elem.Invalid) => R + Newline + elem
-//            case elem @ (_: List)         => R + Newline + elem
-//            case elem =>
-//              R + Newline + indent + typ.marker + elem
-//          }
 
       val html: HTML = {
         val elemsHTML = elems.reverse.toList.map {
@@ -367,9 +382,10 @@ object Doc {
 
       def apply(indent: Int, listType: Type, elem: Elem, elems: Elem*): List = {
         val listItems = (elem :: elems.toList).reverse.map {
-          case list: List     => list
-          case elem: ListElem => elem
-          case elem           => ListItem(elem)
+          case list: List           => list
+          case elem: ListItem       => elem
+          case elem: MisalignedItem => elem
+          case elem                 => ListItem(elem)
         }
         new List(
           indent,
