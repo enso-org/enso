@@ -1389,7 +1389,7 @@ enum WayOfCreatingNode {
     AddNodeEvent,
     /// "start_node_creation" FRP event was emitted.
     StartCreationEvent,
-    /// FIXME docs
+    /// "start_connected_node_creation" FRP event was emitted.
     StartConnectedCreationEvent,
     /// add_node_button was clicked.
     ClickingButton,
