@@ -1,0 +1,42 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Aggregate_Column
+import Standard.Database.Data.Internal.IR
+from Standard.Database.Data.Sql import Sql_Type
+
+make_aggregate_expression : Table -> Aggregate_Column -> IR.Internal_Column
+make_aggregate_expression table aggregate =
+    new_name = aggregate.column_name table
+    resolve column = aggregate.resolve_column column
+    sql_type = Error.throw "TODO"
+    expression = Error.throw "TODO"
+    IR.Internal_Column new_name sql_type expression
+
+## PRIVATE
+#resolve_target_sql_type aggregate table =
+#    resolve column = aggregate.resolve_column table column
+#    ## TODO [RW] This is a prototype.
+#       We will need to be able to inspect which backend the Table is backed by and have backend specific methods for resolving this.
+#    dialect = table.connection.dialect
+#
+#    case aggregate of
+#        Group_By c _ -> (resolve c).sql_type
+#        Count _ -> Sql_Type.integer
+#        Count_Distinct _ _ _ -> Sql_Type.integer
+#        Count_Not_Nothing _ _ -> Sql_Type.integer
+#        Count_Nothing _ _ -> Sql_Type.integer
+#        Count_Not_Empty _ _ -> Sql_Type.integer
+#        Count_Empty _ _ -> Sql_Type.integer
+#        Sum c _ -> (resolve c).sql_type
+#        Average c _ -> (resolve c).sql_type
+#        Median c _ -> (resolve c).sql_type
+#        Percentile p c _ -> (resolve c).sql_type
+#        Mode c _ -> (resolve c).sql_type
+#        Standard_Deviation c _ _ -> (resolve c).sql_type
+#        Concatenate c _ _ _ _ _ -> (resolve c).sql_type
+#        First c _ _ _ -> (resolve c).sql_type
+#        Last c _ _ _ -> (resolve c).sql_type
+#        Maximum c _ -> (resolve c).sql_type
+#        Minimum c _ -> (resolve c).sql_type
+#        Shortest c _ -> (resolve c).sql_type
+#        Longest c _ -> (resolve c).sql_type
