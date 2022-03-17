@@ -1419,18 +1419,18 @@ impl GraphEditorModelWithNetwork {
         ctx: &NodeCreationContext,
         way: WayOfCreatingNode,
         mouse_position: Vector2,
-        hover_out_port: Option<EdgeEndpoint>,
+        hovered_endpoint: Option<EdgeEndpoint>,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
         DEBUG!("create_node way=" way;?
-               "\n  hover_out_port=" hover_out_port;?);
+               "\n  hover_out_port=" hovered_endpoint;?);
         let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
         let source_node = match way {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
             DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
-            StartConnectedCreationEvent => hover_out_port.clone().map(|e| e.node_id),
+            StartConnectedCreationEvent => hovered_endpoint.clone().map(|e| e.node_id),
         };
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
@@ -1444,7 +1444,7 @@ impl GraphEditorModelWithNetwork {
                 self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
             DroppingEdge { .. } => mouse_position,
             StartConnectedCreationEvent => {
-                match hover_out_port {
+                match hovered_endpoint {
                     // TODO[LATER]: properly ignore None cases
                     None => mouse_position,
                     Some(edge_end) => {
