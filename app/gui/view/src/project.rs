@@ -427,14 +427,13 @@ impl View {
             // x = 100 * 0.1 = 10 in searcher_cam-space. To compensate for that, we need to move
             // searcher (or rather searcher_cam) by 90 units, so that the node is at x = 100 both
             // in searcher_cam- and in main_cam-space.
-            searcher_cam_pos <- all_with3(&main_cam_frp.position,
-                                          &main_cam_frp.zoom,
-                                          &searcher_left_top_position.value,
-                                          |&main_cam_pos, &zoom, &searcher_pos| {
-                let preserve_zoom = (main_cam_pos * zoom).xy();
-                let move_to_edited_node = searcher_pos * (1.0 - zoom);
-                preserve_zoom + move_to_edited_node
-            });
+            searcher_cam_pos <- all_with3
+                (&main_cam_frp.position, &main_cam_frp.zoom, &searcher_left_top_position.value,
+                |&main_cam_pos, &zoom, &searcher_pos| {
+                    let preserve_zoom = (main_cam_pos * zoom).xy();
+                    let move_to_edited_node = searcher_pos * (1.0 - zoom);
+                    preserve_zoom + move_to_edited_node
+                });
             eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
 
             _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
