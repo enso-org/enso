@@ -1,15 +1,14 @@
 //! This module defines attributes and related utilities.
 
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::gpu::types::*;
 
 use crate::control::callback;
 use crate::data::dirty;
 use crate::data::OptVec;
 use crate::debug::Stats;
 use crate::system::gpu::Context;
-
-use crate::data::dirty::traits::*;
-use crate::system::gpu::types::*;
 
 use enso_shapely::newtype_prim;
 use std::collections::BTreeSet;

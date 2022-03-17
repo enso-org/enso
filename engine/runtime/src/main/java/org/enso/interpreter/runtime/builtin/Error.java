@@ -103,8 +103,9 @@ public class Error {
     arityError =
         new AtomConstructor("Arity_Error", scope)
             .initializeFields(
-                new ArgumentDefinition(0, "expected", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(0, "expected_min", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(1, "expected_max", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(2, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     unsupportedArgumentsError =
         new AtomConstructor("Unsupported_Argument_Types", scope)
@@ -293,12 +294,13 @@ public class Error {
   }
 
   /**
-   * @param expected the expected arity
+   * @param expected_min the minimum expected arity
+   * @param expected_max the maximum expected arity
    * @param actual the actual arity
    * @return an error informing about the arity being mismatched
    */
-  public Atom makeArityError(long expected, long actual) {
-    return arityError.newInstance(expected, actual);
+  public Atom makeArityError(long expected_min, long expected_max, long actual) {
+    return arityError.newInstance(expected_min, expected_max, actual);
   }
 
   /**

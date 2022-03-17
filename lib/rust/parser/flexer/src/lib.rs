@@ -1,13 +1,3 @@
-#![deny(unconditional_recursion)]
-#![feature(test)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
-
 //! This module exports the API for defining a simple lexer based on a deterministic finite state
 //! automaton.
 //!
@@ -1016,18 +1006,41 @@
 //! The flexer allows its clients to define highly optimised lexer implementations that are capable
 //! of lexing languages of a high complexity.
 
+// === Features ===
+#![feature(test)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+
 use crate::prelude::*;
 use prelude::logger::*;
 
 use crate::generate::GenError;
+
 use prelude::logger::AnyLogger;
 use prelude::reader::BookmarkManager;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod generate;
+pub mod group;
 
 pub use enso_automata as automata;
 pub use enso_automata::char;
 pub use enso_automata::literal;
-pub mod generate;
-pub mod group;
+
+
 
 /// Useful libraries for working with the flexer.
 pub mod prelude {

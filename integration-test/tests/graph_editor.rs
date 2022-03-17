@@ -1,3 +1,7 @@
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use enso_integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;
@@ -11,6 +15,7 @@ use ordered_float::OrderedFloat;
 use std::time::Duration;
 
 
+
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
@@ -21,7 +26,7 @@ async fn create_new_project_and_add_nodes() {
     assert_eq!(graph_editor.model.nodes.all.len(), 2);
     let expect_node_added = graph_editor.node_added.next_event();
     graph_editor.add_node();
-    let (added_node_id, source_node) = expect_node_added.expect();
+    let (added_node_id, source_node, _) = expect_node_added.expect();
     assert_eq!(source_node, None);
     assert_eq!(graph_editor.model.nodes.all.len(), 3);
 
@@ -110,6 +115,7 @@ async fn adding_node_with_add_node_button() {
     const INITIAL_NODE_COUNT: usize = 2;
     let test = IntegrationTestOnNewProject::setup().await;
     let graph_editor = test.graph_editor();
+    let scene = &test.ide.ensogl_app.display.default_scene;
 
     let nodes = graph_editor.model.nodes.all.keys();
     let nodes_positions = nodes.into_iter().flat_map(|id| graph_editor.model.get_node_position(id));
@@ -136,7 +142,7 @@ async fn adding_node_with_add_node_button() {
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 2);
 
     // If there is a free space, the new node is created in the center of screen.
-    let camera = test.ide.ensogl_app.display.default_scene.layers.main.camera();
+    let camera = scene.layers.main.camera();
     camera.mod_position_xy(|pos| pos + Vector2(1000.0, 1000.0));
     let wait_for_update = Duration::from_millis(500);
     sleep(wait_for_update).await;
@@ -145,8 +151,7 @@ async fn adding_node_with_add_node_button() {
     assert!(node_source.is_none());
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 3);
     let node_position = graph_editor.model.get_node_position(node_id).expect("Node was not added");
-    let scene = &test.ide.ensogl_app.display.default_scene;
-    let center_of_screen = scene.screen_to_scene_coordinates(Vector3(0.0, 0.0, 0.0));
+    let center_of_screen = scene.screen_to_scene_coordinates(Vector3::zeros());
     assert_abs_diff_eq!(node_position.x, center_of_screen.x, epsilon = 10.0);
     assert_abs_diff_eq!(node_position.y, center_of_screen.y, epsilon = 10.0);
 }
@@ -158,7 +163,7 @@ fn add_node_with_add_node_button(
     let add_node_button = &graph_editor.model.add_node_button;
     let node_added = graph_editor.node_added.next_event();
     add_node_button.click();
-    let (node_id, source_node) = node_added.expect();
+    let (node_id, source_node, _) = node_added.expect();
     let node = graph_editor.model.nodes.get_cloned_ref(&node_id).expect("Node was not added");
     node.set_expression(Expression::new_plain(expression));
     graph_editor.stop_editing();

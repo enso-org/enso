@@ -1,4 +1,5 @@
 //! Animation that has a delayed onset.
+
 use crate::prelude::*;
 
 use crate::Easing;

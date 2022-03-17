@@ -1,12 +1,9 @@
 package org.enso.interpreter.node.expression.builtin.number.decimal;
 
-import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.Context;
@@ -41,8 +38,7 @@ public abstract class EqualsNode extends Node {
   boolean doAtom(
       Atom _this,
       Atom that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getDecimalConstructor(ctxRef)") AtomConstructor decimalCons) {
+      @Cached("getDecimalConstructor()") AtomConstructor decimalCons) {
     var thatCons = that.getConstructor();
     var thisCons = _this.getConstructor();
     return (thatCons == decimalCons) && (thisCons == thatCons);
@@ -53,7 +49,7 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
-  AtomConstructor getDecimalConstructor(ContextReference<Context> ctxRef) {
-    return ctxRef.get().getBuiltins().number().getDecimal();
+  AtomConstructor getDecimalConstructor() {
+    return Context.get(this).getBuiltins().number().getDecimal();
   }
 }

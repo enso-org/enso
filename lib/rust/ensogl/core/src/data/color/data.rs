@@ -1,12 +1,11 @@
 //! This module defines `Color` and `Alpha`, generic data types used to define specific color
 //! implementations.
 
+use super::component::*;
 use crate::prelude::*;
-
 use enso_generics::*;
 
 use super::component::HasComponents;
-use super::component::*;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 

@@ -5,17 +5,17 @@
 //! * [visualization documentation](https://enso.org/docs/developer/ide/product/visualizations.html).
 
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
-use super::binding;
-use super::instance::Instance;
 use crate::component::visualization;
 use crate::component::visualization::InstantiationError;
 use crate::component::visualization::InstantiationResult;
 use crate::visualization::foreign::java_script::Sources;
 
+use super::binding;
+use super::instance::Instance;
 use ensogl::display::Scene;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl::system::web::Function;
 use ensogl::system::web::JsString;
 use ensogl::system::web::JsValue;

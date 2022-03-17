@@ -438,7 +438,6 @@ let mainWindow = null
 let origin = null
 
 async function main(args) {
-    setUserAgent()
     runBackend()
     console.log('Starting the IDE service.')
     if (args.server !== false) {
@@ -460,19 +459,6 @@ async function main(args) {
     }
 }
 
-/// Set custom user agent to fix the issue with Google authentication.
-///
-/// Google authentication doesn't work with the default Electron user agent. And
-/// Google is quite picky about the values you provide. For example, just
-/// removing Electron occurrences from the default user agent doesn't work. This
-/// user agent was chosen by trial and error as a stable one.
-///
-/// https://github.com/firebase/firebase-js-sdk/issues/2478
-function setUserAgent() {
-    const agent = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:70.0) Gecko/20100101 Firefox/70.0'
-    Electron.app.userAgentFallback = agent
-    Electron.session.defaultSession.setUserAgent(agent)
-}
 function urlParamsFromObject(obj) {
     let params = []
     for (let key in obj) {

@@ -1,8 +1,9 @@
 //! This module contains the shapes and shape related functionality required.
+
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use ensogl_core::data::color;
-use ensogl_core::display::shape::*;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
 

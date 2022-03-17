@@ -1,20 +1,16 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -72,20 +68,24 @@ public abstract class CaseNode extends ExpressionNode {
     throw sentinel;
   }
 
+  @Specialization
+  Object doWarning(VirtualFrame frame, WithWarnings object) {
+    ArrayRope<Warning> warnings = object.getReassignedWarnings(this);
+    Object result = doMatch(frame, object.getValue());
+    return WithWarnings.appendTo(result, warnings);
+  }
+
   /**
    * Executes the case expression.
    *
    * @param frame the stack frame in which to execute
    * @param object the object being matched against
-   * @param ctx the language context reference
    * @return the result of executing the case expression on {@code object}
    */
-  @Specialization(guards = {"!isDataflowError(object)", "!isPanicSentinel(object)"})
+  @Specialization(
+      guards = {"!isDataflowError(object)", "!isPanicSentinel(object)", "!isWarning(object)"})
   @ExplodeLoop
-  public Object doMatch(
-      VirtualFrame frame,
-      Object object,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+  public Object doMatch(VirtualFrame frame, Object object) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     try {
       for (BranchNode branchNode : cases) {
@@ -93,7 +93,11 @@ public abstract class CaseNode extends ExpressionNode {
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          ctx.get().getBuiltins().error().inexhaustivePatternMatchError().newInstance(object),
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .inexhaustivePatternMatchError()
+              .newInstance(object),
           this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
@@ -108,6 +112,10 @@ public abstract class CaseNode extends ExpressionNode {
 
   boolean isPanicSentinel(Object sentinel) {
     return TypesGen.isPanicSentinel(sentinel);
+  }
+
+  boolean isWarning(Object warning) {
+    return warning instanceof WithWarnings;
   }
 
   /* Note [Branch Selection Control Flow]

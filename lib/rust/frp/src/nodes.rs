@@ -3,23 +3,26 @@
 //! Please note that the documentation is provided for methods of `Network`, as this is considered
 //! to be the public API. The same documentation applies to node definitions below.
 
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::prelude::*;
-
-use crate::data::watch;
 use crate::network::*;
 use crate::node::*;
+use crate::prelude::*;
+use enso_generics::traits::*;
+
+use crate::data::watch;
 use crate::stream;
 use crate::stream::CallStack;
 use crate::stream::EventOutput;
 use crate::stream::OwnedStream;
 use crate::stream::Stream;
 use crate::stream::ValueProvider;
+
 use enso_generics as generics;
-use enso_generics::traits::*;
+
 
 
 // ========================

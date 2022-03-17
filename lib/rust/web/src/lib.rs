@@ -2,15 +2,6 @@
 //! high-level features and bug-fixes. It also provides a mock API version allowing the native
 //! compilation in order to run native tests of code which uses this API.
 
-// === Linter configuration ===
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(trait_alias)]
@@ -18,14 +9,26 @@
 #![feature(specialization)]
 #![feature(auto_traits)]
 #![feature(unsize)]
-
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
 
 use crate::prelude::*;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-pub use std::time::Duration;
-pub use std::time::Instant;
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod binding;
 pub mod clipboard;
@@ -34,6 +37,11 @@ pub mod event;
 pub mod platform;
 pub mod resize_observer;
 pub mod stream;
+
+pub use std::time::Duration;
+pub use std::time::Instant;
+
+
 
 /// Common types that should be visible across the whole crate.
 pub mod prelude {

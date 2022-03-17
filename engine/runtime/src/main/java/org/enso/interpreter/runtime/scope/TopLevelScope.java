@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -114,8 +112,7 @@ public class TopLevelScope implements TruffleObject {
   abstract static class InvokeMember {
     private static Module getModule(
         TopLevelScope scope,
-        Object[] arguments,
-        TruffleLanguage.ContextReference<Context> contextReference)
+        Object[] arguments)
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
       String moduleName = Types.extractArguments(arguments, String.class);
 
@@ -167,22 +164,21 @@ public class TopLevelScope implements TruffleObject {
     static Object doInvoke(
         TopLevelScope scope,
         String member,
-        Object[] arguments,
-        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
+        Object[] arguments)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
         case MethodNames.TopScope.GET_MODULE:
-          return getModule(scope, arguments, contextRef);
+          return getModule(scope, arguments);
         case MethodNames.TopScope.CREATE_MODULE:
-          return createModule(scope, arguments, contextRef.get());
+          return createModule(scope, arguments, Context.get(null));
         case MethodNames.TopScope.REGISTER_MODULE:
-          return registerModule(scope, arguments, contextRef.get());
+          return registerModule(scope, arguments, Context.get(null));
         case MethodNames.TopScope.UNREGISTER_MODULE:
-          return unregisterModule(scope, arguments, contextRef.get());
+          return unregisterModule(scope, arguments, Context.get(null));
         case MethodNames.TopScope.LEAK_CONTEXT:
-          return leakContext(contextRef.get());
+          return leakContext(Context.get(null));
         case MethodNames.TopScope.COMPILE:
-          return compile(arguments, contextRef.get());
+          return compile(arguments, Context.get(null));
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -232,7 +228,7 @@ public class TopLevelScope implements TruffleObject {
    */
   @ExportMessage
   Object getScopeParent() throws UnsupportedMessageException {
-    return UnsupportedMessageException.create();
+    throw UnsupportedMessageException.create();
   }
 
   /**

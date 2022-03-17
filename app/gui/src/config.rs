@@ -1,4 +1,5 @@
 //! This module provides IDE configuration structures.
+
 use crate::prelude::*;
 
 use crate::constants;

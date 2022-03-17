@@ -1,13 +1,10 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
@@ -50,12 +47,11 @@ public abstract class GetStateNode extends Node {
   Object doMultiUncached(
       SmallMap state,
       Object _this,
-      Object key,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef) {
+      Object key) {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
       return DataflowError.withoutTrace(
-          ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this);
+          Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
     } else {
       return state.getValues()[idx];
     }
@@ -63,15 +59,15 @@ public abstract class GetStateNode extends Node {
 
   @Specialization
   Object doEmpty(
-      EmptyMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
+      EmptyMap state, Object _this, Object key) {
     return DataflowError.withoutTrace(
-        ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
+        Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 
   @Specialization
   Object doSingletonError(
-      SingletonMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
+      SingletonMap state, Object _this, Object key) {
     return DataflowError.withoutTrace(
-        ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
+        Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 }

@@ -3,7 +3,6 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
-from Standard.Base.Error.Warnings import Warning_System
 
 ## UNSTABLE
    An error indicating that some criteria did not match any names in the input.
@@ -201,11 +200,6 @@ Regex_Matcher.match_single_criterion name criterion =
      By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warnings: A Warning_System instance specifying how to handle warnings. This
-     is a temporary workaround to allow for testing the warning mechanism. Once
-     the proper warning system is implemented, this argument will become
-     obsolete and will be removed. No user code should use this argument, as it
-     will be removed in the future.
 
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
@@ -217,7 +211,7 @@ Regex_Matcher.match_single_criterion name criterion =
      ordering the result according to the order of criteria that matched them.
 
          Text_Matcher.new.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
-Text_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Warning_System -> Vector Any ! No_Matches_Found
+Text_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
 Text_Matcher.match_criteria = here.match_criteria_implementation this
 
 ## UNSTABLE
@@ -247,11 +241,6 @@ Text_Matcher.match_criteria = here.match_criteria_implementation this
      By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warnings: A Warning_System instance specifying how to handle warnings. This
-     is a temporary workaround to allow for testing the warning mechanism. Once
-     the proper warning system is implemented, this argument will become
-     obsolete and will be removed. No user code should use this argument, as it
-     will be removed in the future.
 
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
@@ -263,7 +252,7 @@ Text_Matcher.match_criteria = here.match_criteria_implementation this
      ordering the result according to the order of criteria that matched them.
 
          Text_Matcher.new.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
-Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Warning_System -> Vector Any ! No_Matches_Found
+Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
 Regex_Matcher.match_criteria = here.match_criteria_implementation this
 
 ## A common supertype representing a matching strategy.
@@ -272,8 +261,8 @@ type Matcher
     Regex_Matcher
 
 ## PRIVATE
-match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning warnings=Warnings.default = Panic.recover <|
-    [matcher, objects, criteria, reorder, name_mapper, on_problems, warnings] . each Panic.rethrow
+match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning = Panic.recover <|
+    [matcher, objects, criteria, reorder, name_mapper, on_problems] . each Panic.rethrow
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
     match_matrix = objects.map obj->
@@ -315,4 +304,4 @@ match_criteria_implementation matcher objects criteria reorder=False name_mapper
     result = selected_indices.map objects.at
     problems = if unmatched_criteria.is_empty then [] else
         [No_Matches_Found unmatched_criteria]
-    on_problems.attach_problems_after result problems warnings
+    on_problems.attach_problems_after result problems

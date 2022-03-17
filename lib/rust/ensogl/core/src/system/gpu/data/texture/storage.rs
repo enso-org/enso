@@ -1,5 +1,12 @@
 //! This is a root module for all texture storage definitions.
 
+use crate::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod gpu_only;
 pub mod owned;
 pub mod remote_image;
@@ -7,8 +14,6 @@ pub mod remote_image;
 pub use gpu_only::*;
 pub use owned::*;
 pub use remote_image::*;
-
-use crate::prelude::*;
 
 
 

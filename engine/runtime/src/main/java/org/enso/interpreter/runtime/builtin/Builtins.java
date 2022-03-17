@@ -93,6 +93,7 @@ public class Builtins {
     bool = new Bool(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
     dataflowError = new DataflowError(language, scope);
+    Warning.initWarningMethods(language, scope);
     projectDescription =
         new AtomConstructor("Project_Description", scope)
             .initializeFields(
