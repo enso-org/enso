@@ -134,10 +134,8 @@ impl Model {
     fn set_label_visible(&self, visible: bool) {
         if visible {
             self.enable_label();
-        } else {
-            if let Some(label) = self.label.take() {
-                label.unset_parent()
-            }
+        } else if let Some(label) = self.label.take() {
+            label.unset_parent()
         }
     }
 
