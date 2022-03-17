@@ -2574,7 +2574,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         enter_node <- enter_on_node.gate_not(&out.some_node_output_hovered);
         node_switch_to_enter    <- out.node_hovered.sample(&enter_node).unwrap();
         node_to_enter           <- node_switch_to_enter.map(|switch| switch.on().cloned()).unwrap();
-        trace node_to_enter;
         out.source.node_entered <+ node_to_enter;
     }
 
@@ -2742,7 +2741,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     port_input_mouse_up  <- inputs.hover_node_input.sample(&mouse.up_primary).unwrap();
     port_output_mouse_up <- inputs.hover_node_output.sample(&mouse.up_primary).unwrap();
-    trace inputs.hover_node_output;
 
     attach_all_edge_inputs  <- any (port_input_mouse_up, inputs.press_node_input, inputs.set_detached_edge_targets);
     attach_all_edge_outputs <- any (port_output_mouse_up, inputs.press_node_output, inputs.set_detached_edge_sources);
