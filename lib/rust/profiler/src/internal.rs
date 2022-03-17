@@ -324,7 +324,16 @@ fn now() -> f64 {
 }
 #[cfg(not(target_arch = "wasm32"))]
 fn now() -> f64 {
-    0.0
+    // Monotonically-increasing timestamp, providing slightly more realistic data for tests than
+    // a constant.
+    thread_local! {
+        static NEXT_TIMESTAMP: std::cell::Cell<f64> = Default::default();
+    }
+    NEXT_TIMESTAMP.with(|timestamp| {
+        let now = timestamp.get();
+        timestamp.set(now + 0.1);
+        now
+    })
 }
 
 
