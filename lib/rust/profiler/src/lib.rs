@@ -234,9 +234,9 @@ pub trait Parent<T: Profiler + Copy> {
 macro_rules! await_ {
     ($evaluates_to_future:expr, $profiler:ident) => {{
         let future = $evaluates_to_future;
-        profiler::internal::Profiler::pause(&$profiler);
+        profiler::internal::Profiler::pause($profiler.0);
         let result = future.await;
-        profiler::internal::Profiler::resume(&$profiler);
+        profiler::internal::Profiler::resume($profiler.0);
         result
     }};
 }
@@ -315,7 +315,7 @@ macro_rules! await_ {
 ///         profiler::internal::Started(profiler)
 ///     };
 ///     async move {
-///         profiler::internal::Profiler::resume(&__profiler_scope.0);
+///         profiler::internal::Profiler::resume(__profiler_scope.0);
 ///         let result = { input };
 ///         std::mem::drop(__profiler_scope);
 ///         result
