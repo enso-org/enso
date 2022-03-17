@@ -2,11 +2,13 @@
 //!
 //! The returned positions are such that the new nodes will not overlap with existing ones.
 
+pub mod free_place_finder;
+
 use crate::prelude::*;
 
 use crate::component::node;
-use crate::free_place_finder::find_free_place;
-use crate::free_place_finder::OccupiedArea;
+use crate::new_node_position::free_place_finder::find_free_place;
+use crate::new_node_position::free_place_finder::OccupiedArea;
 use crate::selection::BoundingBox;
 use crate::EdgeId;
 use crate::GraphEditorModel;

@@ -30,8 +30,6 @@ pub mod component;
 
 pub mod builtin;
 pub mod data;
-#[warn(missing_docs)]
-pub mod free_place_finder;
 pub mod new_node_position;
 #[warn(missing_docs)]
 pub mod profiling;
