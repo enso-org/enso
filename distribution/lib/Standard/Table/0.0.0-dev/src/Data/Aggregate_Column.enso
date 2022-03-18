@@ -229,8 +229,8 @@ new_aggregator table column =
             create_aggregator name=(if n.is_nothing then "Count" else n) initial=0 accumulator=(c->_->c+1)
         Count_Distinct columns n ignore_nothing ->
             resolved = case columns of
-                Vector.Vector _ -> columns.map c->(this.resolve_column table c)
-                _ -> [this.resolve_column table columns]
+                Vector.Vector _ -> columns.map c->(column.resolve_column table c)
+                _ -> [column.resolve_column table columns]
             key_maker i = Group_By_Key.key (resolved.map c->(c.at i))
             name = if n.is_nothing.not then n else "Count Distinct " + (resolved.map .name . join " ")
             accumulator = case ignore_nothing of
@@ -238,7 +238,7 @@ new_aggregator table column =
                 True-> map->i->
                     key = key_maker i
                     if key.values.all .is_nothing then map else (map.insert key 1)
-            create_aggregator name=name initial=Map.empty accumulator=accumulator
+            create_aggregator name=name initial=Map.empty accumulator=accumulator finalizer=(v->v.size)
         Count_Not_Nothing c n ->
             accumulator = create_closure c col->count->i->(count + if (col.at i).is_nothing then 0 else 1)
             create_aggregator name=(get_name c n "Count Not Nothing ") initial=0 accumulator=accumulator
@@ -289,17 +289,18 @@ new_aggregator table column =
                 f = if p then 1 else (value.first / (value.first - 1)).sqrt
                 ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
             create_aggregator name=(get_name c n "Standard Deviation ") initial=[0, 0, 0] accumulator=accumulator finalizer=finalizer
-        Concatenate c n join prefix suffix quote ->
+        Concatenate c n join prefix suffix q ->
             accumulator = create_closure c col->text->i->
                 v = col.at i
                 val=if v.is_nothing then "" else
-                    text = case v of
+                    val_text = case v of
                         Text -> v
                         _ -> v.to_text
-                    if text == "" then (quote+quote) else if text.contains join then (quote+text.replace(quote, quote+quote)+quote) else text
+                    if is_empty q then val_text else
+                        if (val_text == "") || (val_text.contains join) then (q+(val_text.replace q (q+q))+q) else val_text
                 if text.is_nothing then val else (text + join + val)
             finalizer value = if value.is_nothing then value else (prefix + value + suffix)
-            create_aggregator name=(get_name c n "Concatenate ") initial=Map.empty accumulator=accumulator finalizer=finalizer
+            create_aggregator name=(get_name c n "Concatenate ") accumulator=accumulator finalizer=finalizer
         First c n ignore_nothing _ ->
             accumulator = case ignore_nothing of
                 False -> create_closure c col->current->i->(if current.second then current else [(col.at i), True])
