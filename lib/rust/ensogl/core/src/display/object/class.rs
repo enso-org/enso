@@ -578,7 +578,7 @@ impl<Host> Model<Host> {
 // === Id ===
 // ==========
 
-enso_data_structures::define_id!{
+enso_data_structures::define_id! {
     /// Globally unique identifier of a display object.
     #[derive(CloneRef)]
     pub struct Id($);
@@ -807,7 +807,7 @@ impl<Host> Debug for Instance<Host> {
 #[derivative(Debug(bound = ""))]
 pub struct WeakInstance<Host> {
     weak: Weak<Model<Host>>,
-    id: Id,
+    id:   Id,
 }
 
 impl<Host> WeakInstance<Host> {
