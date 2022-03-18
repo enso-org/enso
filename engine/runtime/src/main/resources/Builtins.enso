@@ -417,14 +417,6 @@ type Panic
              Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
                  Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
-
-       > Example
-         Use together with `Panic.catch_java_exception` to intercept a raw Java
-         exception and later rethrow it without changing its stacktrace.
-
-             Panic.catch_java_exception NumberFormatException (Long.parseLong "Foo") java_exception->
-                 IO.println "Intercepted exception: "+java_exception.to_text
-                 Panic.throw java_exception
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
 

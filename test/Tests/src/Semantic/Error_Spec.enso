@@ -139,8 +139,8 @@ spec =
 
         Test.specify "should allow catching Java exceptions easily" <|
             parse str =
-                Panic.catch_java_exception NumberFormatException (Long.parseLong str) exception->
-                    Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+exception.getMessage)
+                Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
+                    Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
 
             parse "42" . should_equal 42
             dataflow_error = parse "foo"
@@ -148,7 +148,7 @@ spec =
             Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types
 
         Test.specify "should allow to throw raw Java exceptions" <|
-            exception = Panic.catch_java_exception NumberFormatException (here.throw_raw_java "foo") x->x
+            exception = Panic.catch NumberFormatException (here.throw_raw_java "foo") (p -> p.payload.cause)
             exception.getMessage . should_equal "foo"
             Panic.get_attached_stack_trace exception . second . name . should_equal "Error_Spec.throw_raw_java"
 
@@ -159,18 +159,18 @@ spec =
         Test.specify "should allow to re-throw raw Java exceptions" <|
             message_1 = Ref.new ""
             caught_1 = Panic.recover Any <|
-                Panic.catch_java_exception NumberFormatException (here.do_a_parse "foo") exception->
-                    Ref.put message_1 exception.getMessage
-                    Panic.throw exception
+                Panic.catch NumberFormatException (here.do_a_parse "foo") caught_panic->
+                    Ref.put message_1 caught_panic.payload.cause.getMessage
+                    Panic.throw caught_panic.payload.cause
             Ref.get message_1 . should_equal 'For input string: "foo"'
             caught_1.catch . should_be_a Polyglot_Error
             caught_1.stack_trace.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
             message_2 = Ref.new ""
             caught_2 = Panic.recover Any <|
-                Panic.catch_java_exception NumberFormatException (here.throw_raw_java "foo") exception->
-                    Ref.put message_2 exception.getMessage
-                    Panic.throw exception
+                Panic.catch NumberFormatException (here.throw_raw_java "foo") caught_panic->
+                    Ref.put message_2 caught_panic.payload.cause.getMessage
+                    Panic.throw caught_panic.payload.cause
             Ref.get message_2 . should_equal "foo"
             caught_2.catch . should_be_a Polyglot_Error
             caught_2.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"

@@ -269,7 +269,7 @@ Number.to_json = Json.Number this
          Integer.parse "20220216"
 Integer.parse : Text -> Text -> Integer ! Parse_Error
 Integer.parse text (radix=10) =
-    Panic.catch_java_exception NumberFormatException (Long.parseLong text radix) _->
+    Panic.catch NumberFormatException (Long.parseLong text radix) _->
          Error.throw (Parse_Error text)
 
 ## ALIAS From Text
@@ -286,7 +286,7 @@ Integer.parse text (radix=10) =
          Decimal.parse "7.6"
 Decimal.parse : Text -> Decimal ! Parse_Error
 Decimal.parse text =
-    Panic.catch_java_exception NumberFormatException (Double.parseDouble text) _->
+    Panic.catch NumberFormatException (Double.parseDouble text) _->
         Error.throw (Parse_Error text)
 
 ## UNSTABLE
