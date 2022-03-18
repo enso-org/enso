@@ -22,6 +22,8 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
+        println(s"value=$value")
+        println(s"value.show()=${value.show()}")
         if (assertShow) {
           assert(value.show() == new Reader(input).toString())
         }
@@ -644,6 +646,28 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       )
     )
   )
+  """ List
+    |   - unclosed_formatter
+    |   - second""".stripMargin.stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?== Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "List",
+        Newline,
+        List(
+          3,
+          List.Unordered,
+          ListItem(
+            "unclosed",
+            Formatter.Unclosed(Formatter.Italic, "formatter")
+          ),
+          "second"
+        )
+      )
+    )
+  )
+
   """List
     |  - First
     |  - Second
@@ -1299,4 +1323,5 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       )
     )
   )
+
 }

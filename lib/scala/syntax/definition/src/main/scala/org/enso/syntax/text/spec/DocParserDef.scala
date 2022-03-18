@@ -623,6 +623,7 @@ case class DocParserDef() extends Parser[Doc] {
 
     def endListItem(endList: Boolean = false): Unit =
       logger.trace {
+        section.checkForUnclosedFormattersOnEOS()
         val elems = stackUnwind()
         result.current match {
           case Some(l: Elem.List) =>
