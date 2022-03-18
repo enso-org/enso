@@ -29,6 +29,8 @@ object Section {
     *
     * {{{
     *   Arbitrary text in the documentation comment.
+    *
+    *   This is another paragraph.
     * }}}
     *
     * @param body the elements that make up this paragraph
@@ -38,8 +40,7 @@ object Section {
   /** The section that starts with the key followed by the colon and the body.
     *
     * {{{
-    *   key:
-    *   body
+    *   key: body
     * }}}
     *
     * ==Example==
@@ -48,6 +49,10 @@ object Section {
     *   Arguments:
     *   - one: the first
     *   - two: the second
+    * }}}
+    *
+    * {{{
+    *   Icon: table-from-rows
     * }}}
     *
     * @param key the section key
