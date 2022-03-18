@@ -1417,7 +1417,7 @@ impl GraphEditorModelWithNetwork {
     fn create_node(
         &self,
         ctx: &NodeCreationContext,
-        way: WayOfCreatingNode,
+        way: &WayOfCreatingNode,
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
         use WayOfCreatingNode::*;
@@ -1426,8 +1426,8 @@ impl GraphEditorModelWithNetwork {
         let source_node = match way {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
-            DroppingEdge { edge_id } => self.edge_source_node_id(edge_id),
-            StartCreationFromPortEvent { ref endpoint } => Some(endpoint.node_id),
+            DroppingEdge { edge_id } => self.edge_source_node_id(*edge_id),
+            StartCreationFromPortEvent { endpoint } => Some(endpoint.node_id),
         };
         let source = source_node.map(|node| NodeSource { node });
         let screen_center =
@@ -2860,7 +2860,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                 input_press    : &node_input_touch.down,
                 output         : &out,
             };
-            model.create_node(&ctx, way.clone(), *mouse_pos)
+            model.create_node(&ctx, way, *mouse_pos)
         }));
         out.source.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
