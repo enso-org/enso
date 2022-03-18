@@ -22,6 +22,7 @@ macro_rules! anglify {
 #[macro_export(local_inner_macros)]
 macro_rules! anglify_internal {
     ([ [$($f:tt)*] $($args:tt)* ] [$($out:tt)*])        => { $($f)* {$($args)* $($out)*} };
+    ($f:tt [$($out:tt)*] [[<[ $($xs:tt)* ]>]] $($ts:tt)*) => { anglify_internal!{ $f [$($out)* <#0] $($xs)* 0#> $($ts)*} };
     ($f:tt [$($out:tt)*] [<[ $($xs:tt)* ]>] $($ts:tt)*) => { anglify_internal!{ $f [$($out)* <] $($xs)* > $($ts)*} };
     ($f:tt [$($out:tt)*] {   $($xs:tt)*   } $($ts:tt)*) => { anglify_internal!{ $f [$($out)* <#1] $($xs)* 1#> $($ts)*} };
     ($f:tt [$($out:tt)*] (   $($xs:tt)*   ) $($ts:tt)*) => { anglify_internal!{ $f [$($out)* <#2] $($xs)* 2#> $($ts)*} };
@@ -92,9 +93,11 @@ macro_rules! rebuild_tts {
 #[macro_export(local_inner_macros)]
 macro_rules! rebuild_tts_internal {
     ([[$($xs:tt)*]])                                          => {$($xs)*};
+    ([                          $($as:tt)*] <#0   $($ts:tt)*) => { rebuild_tts_internal!{ [[]                  $($as)*] $($ts)*} };
     ([                          $($as:tt)*] <#1   $($ts:tt)*) => { rebuild_tts_internal!{ [[]                  $($as)*] $($ts)*} };
     ([                          $($as:tt)*] <#2   $($ts:tt)*) => { rebuild_tts_internal!{ [[]                  $($as)*] $($ts)*} };
     ([                          $($as:tt)*] <#3   $($ts:tt)*) => { rebuild_tts_internal!{ [[]                  $($as)*] $($ts)*} };
+    ([[$($cs:tt)*] [$($bs:tt)*] $($as:tt)*] 0#>   $($ts:tt)*) => { rebuild_tts_internal!{ [[$($bs)* [<[$($cs)*]>]] $($as)*] $($ts)*} };
     ([[$($cs:tt)*] [$($bs:tt)*] $($as:tt)*] 1#>   $($ts:tt)*) => { rebuild_tts_internal!{ [[$($bs)* {$($cs)*}] $($as)*] $($ts)*} };
     ([[$($cs:tt)*] [$($bs:tt)*] $($as:tt)*] 2#>   $($ts:tt)*) => { rebuild_tts_internal!{ [[$($bs)* ($($cs)*)] $($as)*] $($ts)*} };
     ([[$($cs:tt)*] [$($bs:tt)*] $($as:tt)*] 3#>   $($ts:tt)*) => { rebuild_tts_internal!{ [[$($bs)* [$($cs)*]] $($as)*] $($ts)*} };

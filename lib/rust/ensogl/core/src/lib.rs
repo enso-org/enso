@@ -2,7 +2,7 @@
 //! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
 //! of the `ensogl` crate to learn more.
 
-#![recursion_limit = "4096"]
+#![recursion_limit = "8192"]
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(associated_type_defaults)]

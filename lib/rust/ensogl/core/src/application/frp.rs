@@ -1035,8 +1035,7 @@ macro_rules! define_endpoints_2_normalized_public {
             pub (crate) combined: public::Combined $param,
         }
 
-        impl $ctx
-        Public $param {
+        impl $ctx Public $param {
             pub fn new(
                 input: public::Input $param,
                 output: public::Output $param,
@@ -1046,16 +1045,14 @@ macro_rules! define_endpoints_2_normalized_public {
             }
         }
 
-        impl $ctx
-        Deref for Public $param {
+        impl $ctx Deref for Public $param {
             type Target = public::Combined $param;
             fn deref(&self) -> &Self::Target {
                 &self.combined
             }
         }
 
-        impl $ctx
-        $crate::application::command::CommandApi for Public $param  {
+        impl $ctx $crate::application::command::CommandApi for Public $param  {
             fn command_api(&self)
                 -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
                 self.output.command_map.clone()
@@ -1065,14 +1062,13 @@ macro_rules! define_endpoints_2_normalized_public {
                 self.output.status_map.clone()
             }
         }
-        }
 
         pub mod public {
             use super::*;
             // === Input ===
 
             $crate::generate_rc_structs_and_impls! {
-                $ctx $param
+                [$ctx] [$param]
                 pub struct Input InputData {
                     $(
                         $(#$in_field_attr)*
@@ -1088,17 +1084,16 @@ macro_rules! define_endpoints_2_normalized_public {
                 }
             }
 
-            anglify!{
             #[allow(unused_parens)]
             impl $ctx InputData $param {
                 $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
             }
-            }
+
 
             // === Output ===
 
             $crate::generate_rc_structs_and_impls! {
-                $ctx $param
+                [$ctx] [$param]
                 pub struct Output OutputData {
                     status_map: (Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>),
                     command_map: (Rc<RefCell<HashMap<String,$crate::application::command::Command>>>)
@@ -1138,7 +1133,7 @@ macro_rules! define_endpoints_2_normalized_public {
             // === Combined ===
 
             $crate::generate_rc_structs_and_impls! {
-                $ctx $param
+                [$ctx] [$param]
                 pub struct Combined CombinedData {
                     $(
                         $(#$in_field_attr)*
@@ -1158,14 +1153,12 @@ macro_rules! define_endpoints_2_normalized_public {
                 }
             }
 
-            anglify!{
             #[allow(unused_parens)]
             impl $ctx Combined $param {
                 $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
             }
-            }
         }
-    };
+    }};
 }
 
 /// Creates the structs and functionality of the private API as described in the docs of
@@ -1277,8 +1270,7 @@ macro_rules! define_endpoints_2_normalized_glue {
                 $out_field:ident $out_field_type:tt
             ),*
         }
-    }) => {
-        anglify! {
+    }) => {anglify! {
             /// Frp API consisting of a public and private API. See the documentation of
             /// [define_endpoints_2] for full documentation.
             #[derive(Debug)]
@@ -1350,8 +1342,7 @@ macro_rules! define_endpoints_2_normalized_glue {
                     &self.public
                 }
             }
-        }
-    };
+    }};
 }
 
 /// Creates the overall structure described in the docs of `define_endpoints_2`.
