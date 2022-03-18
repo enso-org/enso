@@ -2828,17 +2828,29 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         let node_added_with_button = model.add_node_button.clicked.clone_ref();
 
+        input_start_node_creation_from_port <- inputs.hover_node_output.sample(
+            &inputs.start_node_creation_from_port);
+        start_node_creation_from_port <- input_start_node_creation_from_port.filter_map(
+            |v| v.clone());
+        removed_edges_on_node_creation_from_port <= start_node_creation_from_port.map(f_!(
+            model.model.clear_all_detached_edges()));
+        out.source.on_edge_drop <+ removed_edges_on_node_creation_from_port;
+
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
-        input_start_creation_way <- inputs.start_node_creation.constant(WayOfCreatingNode::StartCreationEvent);
-        input_start_node_creation_from_port <- inputs.hover_node_output.sample(&inputs.start_node_creation_from_port);
-        start_node_creation_from_port <- input_start_node_creation_from_port.filter_map(|v| v.clone());
+        input_start_creation_way <- inputs.start_node_creation.constant(
+            WayOfCreatingNode::StartCreationEvent);
         start_creation_from_port_way <- start_node_creation_from_port.map(
             |endpoint| WayOfCreatingNode::StartCreationFromPortEvent{endpoint: endpoint.clone()});
-        removed_edges_on_node_creation_from_port <= start_creation_from_port_way.map(f_!(model.model.clear_all_detached_edges()));
-        out.source.on_edge_drop <+ removed_edges_on_node_creation_from_port;
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
-        add_with_edge_drop_way <- edge_dropped_to_create_node.map(|&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
-        add_node_way <- any5 (&input_add_node_way, &input_start_creation_way, &start_creation_from_port_way, &add_with_button_way, &add_with_edge_drop_way);
+        add_with_edge_drop_way <- edge_dropped_to_create_node.map(
+            |&edge_id| WayOfCreatingNode::DroppingEdge{edge_id});
+        add_node_way <- any5 (
+            &input_add_node_way,
+            &input_start_creation_way,
+            &start_creation_from_port_way,
+            &add_with_button_way,
+            &add_with_edge_drop_way,
+        );
 
         new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
             let ctx = NodeCreationContext {
