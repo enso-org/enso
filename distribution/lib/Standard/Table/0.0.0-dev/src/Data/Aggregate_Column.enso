@@ -174,32 +174,12 @@ type Aggregate_Column
     ## Gets a column name to use for the aggregate column
     column_name : Table->Text
     column_name table =
-        if this.new_name.is_nothing.not then this.new_name else
-            get_name c = (this.resolve_column table c).name
-            case this of
-                Group_By c _ -> (get_name c)
-                Count _ -> "Count"
-                Count_Distinct c _ _ ->
-                    case c of
-                        Vector.Vector _ -> "Count Distinct " + ((c.map get_name).join " ")
-                        _ -> "Count Distinct " + (get_name c)
-                Count_Not_Nothing c _ -> "Count Not Nothing " + (get_name c)
-                Count_Nothing c _ -> "Count Nothing " + (get_name c)
-                Count_Not_Empty c _ -> "Count Not Empty " + (get_name c)
-                Count_Empty c _ -> "Count Empty " + (get_name c)
-                Sum c _ -> "Sum " + (get_name c)
-                Average c _ -> "Average " + (get_name c)
-                Median c _ -> "Median " + (get_name c)
-                Percentile p c _ -> (p*100).floor.to_text + "%-ile " + (get_name c)
-                Mode c _ -> "Mode " + (get_name c)
-                Standard_Deviation c _ _ -> "Standard Deviation " + (get_name c)
-                Concatenate c _ _ _ _ _ -> "Concatenate " + (get_name c)
-                First c _ _ _ -> "First " + (get_name c)
-                Last c _ _ _ -> "Last " + (get_name c)
-                Maximum c _ -> "Maximum " + (get_name c)
-                Minimum c _ -> "Minimum " + (get_name c)
-                Shortest c _ -> "Shortest " + (get_name c)
-                Longest c _ -> "Longest " + (get_name c)
+        this.make_aggregator table . name
+
+    ## Gets an Aggregate_Column_Aggregator object for the specified column
+    make_aggregator : Table->Aggregate_Column_Aggregator
+    make_aggregator table =
+        here.new_aggregator table this
 
     ## PRIVATE
        Given a column reference resolve to the underlying column
@@ -210,131 +190,150 @@ type Aggregate_Column
             Text -> table.at column
             Integer -> table.columns.at column
 
-    initial_value : Any
-    initial_value = case this of
-        Group_By _ _ -> Nothing
-        Count_Distinct _ _ _ -> Map.empty
-        Median _ _ -> Map.empty
-        Percentile _ _ _ -> Map.empty
-        Mode _ _ -> Map.empty
-        Average _ _ -> [0, 0]
-        Standard_Deviation _ _ _ -> [0, 0, 0]
-        Concatenate _ _ _ _ _ _ -> Nothing
-        First _ _ _ _ -> Nothing
-        Last _ _ _ _ -> Nothing
-        Sum _ _ -> Nothing
-        Maximum _ _ -> Nothing
-        Minimum _ _ -> Nothing
-        Shortest _ _ -> Nothing
-        Longest _ _ -> Nothing
-        _ -> 0
+## Type used to compute an aggregate column
+type Aggregate_Column_Aggregator
+    type Aggregate_Column_Aggregator name initial accumulator finalizer
 
-    make_aggregator : Table->(Any->Integer->Any)
-    make_aggregator table =
-        create_closure c function =
-            col = this.resolve_column table c
-            function col
+## Given a Table and a Column create an aggregator
+new_aggregator : Table->Aggregate_Column->Aggregate_Column_Aggregator
+new_aggregator table column =
+    get_name c name prefix:Text="" = if name.is_nothing then prefix + (column.resolve_column table c).name else name
+    create_closure c function:(Column->Any->Integer->Any) = function (column.resolve_column table c)
 
-        is_empty s = if s.is_nothing then True else case s of
-            Text -> s.is_empty
-            _ -> Error.throw (Invalid_Aggregation_Method this.col "Empty is only valid for Text")
+    is_empty s = if s.is_nothing then True else case s of
+        Text -> s.is_empty
+        _ -> Error.throw (Invalid_Aggregation_Method this.col "Empty is only valid for Text")
 
-        case this of
-            Group_By c _ -> create_closure c col->_->i->(col.at i)
-            Count _ -> count->_->(count+1)
-            Count_Not_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 0 else 1)
-            Count_Nothing c _ -> create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
-            Count_Not_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 0 else 1)
-            Count_Empty c _ -> create_closure c col->count->i->(count + if is_empty (col.at i) then 1 else 0)
-            First c _ ignore_nothing _ ->
-                case ignore_nothing of
-                    False -> create_closure c col->current->i->(if i==0 then (col.at i) else current)
-                    True -> create_closure c col->current->i->if current.is_nothing then (col.at i) else current
-            Last c _ ignore_nothing _ ->
-                case ignore_nothing of
-                    False -> create_closure c col->_->i->(col.at i)
-                    True -> create_closure c col->current->i->
-                        v = (col.at i)
-                        if v.is_nothing then current else v
-            Maximum c _ -> create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else m.max v
-            Minimum c _ -> create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else m.min v
-            Shortest c _ -> create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else if m.length <= v.length then m else v
-            Longest c _ -> create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else if m.length >= v.length then m else v
-            Sum c _ -> create_closure c col->total->i->
+    create_aggregator name:Text initial:Nothing (accumulator:(Any->Integer->Any)=c->_->c) (finalizer:(Any->Any)=v->v) =
+        Aggregate_Column_Aggregator name initial accumulator finalizer
+
+    ## Given a map of values and counts, find the value at a specified percentile
+    percentile p:Decimal value:Map =
+        count = value.fold 0 (+)
+        if count == 0 then Nothing else
+            mid_value = (count - 1)*p + 1
+            if mid_value <= 1 then value.first.first else
+                if mid_value >= count then value.last.first else
+                    mid = mid_value.floor
+                    output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
+                        new_v = c.first + v
+                        new_s = if c.first.up_to new_v . contains (mid-1) then k else c.second
+                        new_t = if c.first.up_to new_v . contains mid then k else (c.at 2)
+                        [new_v, new_s, new_t]
+                    (output.second + (output.at 2 - output.second) * (mid_value - mid))
+
+    case column of
+        Group_By c n ->
+            create_aggregator name=(get_name c n "") accumulator=(create_closure c col->_->i->(col.at i))
+        Count n ->
+            create_aggregator name=(if n.is_nothing then "Count" else n) initial=0 accumulator=(c->_->c+1)
+        Count_Distinct columns n ignore_nothing ->
+            resolved = case columns of
+                Vector.Vector _ -> columns.map c->(this.resolve_column table c)
+                _ -> [this.resolve_column table columns]
+            key_maker i = Group_By_Key.key (resolved.map c->(c.at i))
+            name = if n.is_nothing.not then n else "Count Distinct " + (resolved.map .name . join " ")
+            accumulator = case ignore_nothing of
+                False-> map->i->(map.insert (key_maker i) 1)
+                True-> map->i->
+                    key = key_maker i
+                    if key.values.all .is_nothing then map else (map.insert key 1)
+            create_aggregator name=name initial=Map.empty accumulator=accumulator
+        Count_Not_Nothing c n ->
+            accumulator = create_closure c col->count->i->(count + if (col.at i).is_nothing then 0 else 1)
+            create_aggregator name=(get_name c n "Count Not Nothing ") initial=0 accumulator=accumulator
+        Count_Nothing c n ->
+            accumulator = create_closure c col->count->i->(count + if (col.at i).is_nothing then 1 else 0)
+            create_aggregator name=(get_name c n "Count Nothing ") initial=0 accumulator=accumulator
+        Count_Not_Empty c n ->
+            accumulator = create_closure c col->count->i->(count + if is_empty (col.at i) then 0 else 1)
+            create_aggregator name=(get_name c n "Count Not Empty ") initial=0 accumulator=accumulator
+        Count_Empty c n ->
+            accumulator = create_closure c col->count->i->(count + if is_empty (col.at i) then 1 else 0)
+            create_aggregator name=(get_name c n "Count Empty ") initial=0 accumulator=accumulator
+        Sum c n ->
+            accumulator = create_closure c col->total->i->
                 v = col.at i
                 if v.is_nothing then total else
                     if total.is_nothing then v else total + v
-            Average c _ -> create_closure c col->a->i->
+            create_aggregator name=(get_name c n "Sum ") accumulator=accumulator
+        Average c n ->
+            accumulator = create_closure c col->a->i->
                 v = col.at i
                 if v.is_nothing then a else [a.first + 1, a.second + v]
-            Standard_Deviation c _ _ -> create_closure c col->a->i->
+            finalizer value = if value.first == 0 then Nothing else (value.second / value.first)
+            create_aggregator name=(get_name c n "Average ") initial=[0, 0] accumulator=accumulator finalizer=finalizer
+        Median c n ->
+            accumulator = create_closure c col->map->i->
+                v = col.at i
+                if v.is_nothing then map else (map.insert v (1 + (map.get_or_else v 0)))
+            finalizer = percentile 0.5
+            create_aggregator name=(get_name c n "Median ") initial=Map.empty accumulator=accumulator finalizer=finalizer
+        Percentile p c n ->
+            accumulator = create_closure c col->map->i->
+                v = col.at i
+                if v.is_nothing then map else (map.insert v (1 + (map.get_or_else v 0)))
+            finalizer = percentile p
+            create_aggregator name=(get_name c n ((p*100).floor.to_text + "%-ile ")) initial=Map.empty accumulator=accumulator finalizer=finalizer
+        Mode c n ->
+            accumulator = create_closure c col->map->i->
+                v = col.at i
+                if v.is_nothing then map else (map.insert v (1 + (map.get_or_else v 0)))
+            finalizer value = (value.fold_with_key (Pair 0 Nothing) p->k->v->(if v>(p.first) then (Pair v k) else p) . second)
+            create_aggregator name=(get_name c n "Mode ") initial=Map.empty accumulator=accumulator finalizer=finalizer
+        Standard_Deviation c n p ->
+            accumulator = create_closure c col->a->i->
                 v = col.at i
                 if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v]
-            Concatenate c _ join _ _ quote -> create_closure c col->text->i->
+            finalizer value = if value.first == 0 then Nothing else
+                f = if p then 1 else (value.first / (value.first - 1)).sqrt
+                ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
+            create_aggregator name=(get_name c n "Standard Deviation ") initial=[0, 0, 0] accumulator=accumulator finalizer=finalizer
+        Concatenate c n join prefix suffix quote ->
+            accumulator = create_closure c col->text->i->
                 v = col.at i
                 val=if v.is_nothing then "" else
                     text = case v of
                         Text -> v
                         _ -> v.to_text
-                    if text == "" then (quote+quote) else
-                        if text.contains join then (quote+text+quote) else text
+                    if text == "" then (quote+quote) else if text.contains join then (quote+text.replace(quote, quote+quote)+quote) else text
                 if text.is_nothing then val else (text + join + val)
-            Median c _ -> create_closure c col->map->i->
-                val = col.at i
-                if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
-            Percentile _ c _ -> create_closure c col->map->i->
-                val = col.at i
-                if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
-            Mode c _ -> create_closure c col->map->i->
-                val = col.at i
-                if val.is_nothing then map else (map.insert val (1 + (map.get_or_else val 0)))
-            Count_Distinct columns _ ignore_nothing ->
-                resolved = case columns of
-                    Vector.Vector _ -> columns.map c->(this.resolve_column table c)
-                    _ -> [this.resolve_column table columns]
-                key_maker i = Group_By_Key.key (resolved.map c->(c.at i))
-                case ignore_nothing of
-                    False-> map->i->(map.insert (key_maker i) 1)
-                    True-> map->i->
-                        key = key_maker i
-                        if key.values.all .is_nothing then map else (map.insert key 1)
-
-    evaluate : Any->Any
-    evaluate value =
-        ## Given a map of values and counts, find the value at a specified percentile
-        percentile p:Decimal value:Map =
-            count = value.fold 0 (+)
-            if count == 0 then Nothing else
-                mid_value = (count - 1)*p + 1
-                if mid_value <= 1 then value.first.first else
-                    if mid_value >= count then value.last.first else
-                        mid = mid_value.floor
-                        output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
-                            new_v = c.first + v
-                            new_s = if c.first.up_to new_v . contains (mid-1) then k else c.second
-                            new_t = if c.first.up_to new_v . contains mid then k else (c.at 2)
-                            [new_v, new_s, new_t]
-                        (output.second + (output.at 2 - output.second) * (mid_value - mid))
-
-        case this of
-            Count_Distinct _ _ _ -> value.size
-            Median _ _ -> percentile 0.5 value
-            Percentile p _ _ -> percentile p value
-            Mode _ _ -> (value.fold_with_key (Pair 0 Nothing) p->k->v-> if v>(p.first) then (Pair v k) else p) . second
-            Average _ _ -> if value.first == 0 then Nothing else (value.second / value.first)
-            Standard_Deviation _ _ p -> if value.first == 0 then Nothing else
-                f = if p then 1 else (value.first / (value.first - 1)).sqrt
-                ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
-            Concatenate _ _ _ s p _ -> if value.is_nothing then value else (s + value + p)
-            _ -> value
+            finalizer value = if value.is_nothing then value else (prefix + value + suffix)
+            create_aggregator name=(get_name c n "Concatenate ") initial=Map.empty accumulator=accumulator finalizer=finalizer
+        First c n ignore_nothing _ ->
+            accumulator = case ignore_nothing of
+                False -> create_closure c col->current->i->(if current.second then current else [(col.at i), True])
+                True -> create_closure c col->current->i->if current.second then current else
+                    v = col.at i
+                    if v.is_nothing then current else [v, True]
+            create_aggregator name=(get_name c n "First ") initial=[Nothing, False] accumulator=accumulator finalizer=(p->p.first)
+        Last c n ignore_nothing _ ->
+            accumulator = case ignore_nothing of
+                False -> create_closure c col->_->i->(col.at i)
+                True -> create_closure c col->current->i->
+                    v = (col.at i)
+                    if v.is_nothing then current else v
+            create_aggregator name=(get_name c n "Last ") accumulator=accumulator
+        Maximum c n ->
+            accumulator = create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else m.max v
+            create_aggregator name=(get_name c n "Maximum ") accumulator=accumulator
+        Minimum c n ->
+            accumulator = create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else m.min v
+            create_aggregator name=(get_name c n "Minimum ") accumulator=accumulator
+        Shortest c n ->
+            accumulator = create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else if m.length <= v.length then m else v
+            create_aggregator name=(get_name c n "Shortest ") accumulator=accumulator
+        Longest c n ->
+            accumulator = create_closure c col->m->i->
+                v = col.at i
+                if v.is_nothing then m else if m.is_nothing then v else if m.length >= v.length then m else v
+            create_aggregator name=(get_name c n "Longest ") accumulator=accumulator
 
 ## Occurs when cannot aggregate a column
 type Invalid_Aggregation_Method (column : Text) (message : Text)
