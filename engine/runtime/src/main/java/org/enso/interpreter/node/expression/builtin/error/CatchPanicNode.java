@@ -49,17 +49,25 @@ public abstract class CatchPanicNode extends Node {
   Stateful doExecute(
       VirtualFrame frame, @MonadicState Object state, Object _this, Object action, Object handler) {
     try {
-      return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.TAIL_DIRECT);
     } catch (PanicException e) {
-      Builtins builtins = Context.get(this).getBuiltins();
       Object payload = e.getPayload();
-      Atom caughtPanic = builtins.caughtPanic().newInstance(payload, e);
-      return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
+      return executeCallback(frame, state, handler, payload, e);
     } catch (AbstractTruffleException e) {
       Builtins builtins = Context.get(this).getBuiltins();
       Object payload = builtins.error().makePolyglotError(e);
-      Atom caughtPanic = builtins.caughtPanic().newInstance(payload, e);
-      return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
+      return executeCallback(frame, state, handler, payload, e);
     }
+  }
+
+  private Stateful executeCallback(
+      VirtualFrame frame,
+      Object state,
+      Object handler,
+      Object payload,
+      AbstractTruffleException originalException) {
+    Builtins builtins = Context.get(this).getBuiltins();
+    Atom caughtPanic = builtins.caughtPanic().newInstance(payload, originalException);
+    return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
   }
 }

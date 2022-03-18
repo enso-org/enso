@@ -35,8 +35,14 @@ public abstract class ThrowPanicNode extends Node {
         try {
           throw interopLibrary.throwException(originalException);
         } catch (UnsupportedMessageException e) {
-          throw new IllegalStateException(
-              "Impossible, `isException` returned true for `originalException`.");
+          /* We cannot rethrow the original exception, so we throw a panic with
+           * the given payload, marked as originating from here, as we cannot
+           * reconstruct a better location.
+           *
+           * This situation should never arise, based on the contract of
+           * `throwException` and `isException`.
+           */
+          throw new PanicException(payload.getFields()[0], this);
         }
       } else {
         throw new PanicException(
