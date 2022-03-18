@@ -1,7 +1,6 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
-#![allow(rustdoc::private_intra_doc_links)] // check_no_async_tasks_active
 //! Interface to profile data.
 //!
 //! # Overview
@@ -91,13 +90,6 @@
 //!
 //! store_and_retrieve_metadata();
 //! ```
-//!
-//! # Limitations
-//!
-//! [`parse::LogVisitor::check_no_async_task_active`] checks for a type of API misuse error, but
-//! currently also disallows running an async profiler during the lifetime of a non-async parent.
-//! The only way that could occur is with the use of `block_on`, which is never used in the Enso
-//! codebase except in tests.
 
 #![feature(test)]
 #![deny(unconditional_recursion)]
