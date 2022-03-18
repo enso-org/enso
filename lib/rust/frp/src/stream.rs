@@ -327,7 +327,7 @@ impl<Out: Data> ValueProvider for NodeData<Out> {
 #[derivative(Clone(bound = ""))]
 pub struct OwnedStream<Out = ()> {
     data: Rc<NodeData<Out>>,
-    id: Id,
+    id:   Id,
 }
 
 /// Weak reference to FRP stream node with limited functionality and parametrized only by the
@@ -337,7 +337,7 @@ pub struct OwnedStream<Out = ()> {
 #[derivative(Clone(bound = ""))]
 pub struct Stream<Out = ()> {
     data: Weak<NodeData<Out>>,
-    id: Id,
+    id:   Id,
 }
 
 /// A strong reference to FRP stream node. See the docs of `NodeData` to learn more about its

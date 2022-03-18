@@ -33,14 +33,14 @@ enso_data_structures::define_id! {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Network {
     data: Rc<NetworkData>,
-    id: NetworkId,
+    id:   NetworkId,
 }
 
 /// Weak version of `Network`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct WeakNetwork {
     data: Weak<NetworkData>,
-    id: NetworkId,
+    id:   NetworkId,
 }
 
 /// Network item.

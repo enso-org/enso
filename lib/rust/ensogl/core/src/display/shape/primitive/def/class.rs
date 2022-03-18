@@ -57,7 +57,7 @@ pub struct ShapeRef<T> {
     id: ShapeId,
 }
 
-enso_data_structures::define_id!{
+enso_data_structures::define_id! {
     /// Unique ID for a shape.
     pub struct ShapeId($);
 }

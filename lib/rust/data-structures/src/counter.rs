@@ -39,7 +39,7 @@ impl Default for Counter {
 ///
 /// Example usage:
 /// ```
-/// enso_data_structures::define_id!{
+/// enso_data_structures::define_id! {
 ///     /// Example ID type. This macro syntax allows applying doc comments and attribute macros to
 ///     /// the type being defined.
 ///     pub struct MyId($);
