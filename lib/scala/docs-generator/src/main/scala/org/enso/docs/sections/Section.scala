@@ -6,11 +6,16 @@ object Section {
 
   /** The documentation tag.
     *
+    * {{{
+    *   name text
+    * }}}
+    *
     * ==Example==
     *
     * {{{
     *   UNSTABLE
     *   DEPRECATED
+    *   ALIAS Length
     * }}}
     *
     * @param name the tag name
