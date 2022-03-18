@@ -8,9 +8,9 @@ polyglot java import java.util.Locale as JavaLocale
 with_locale locale ~test =
     default_locale = JavaLocale.getDefault
     JavaLocale.setDefault locale.java_locale
-    result = Panic.recover test . catch_primitive e->
+    result = Panic.catch Any test caught_panic->
         JavaLocale.setDefault default_locale
-        Panic.throw e
+        Panic.throw caught_panic
     JavaLocale.setDefault default_locale
     result
 

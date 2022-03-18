@@ -554,7 +554,7 @@ type Http
                  http.request req
     request : Request -> Response ! Request_Error
     request req =
-        response = Panic.recover <|
+        response = Panic.recover Any <|
             body_publishers = HttpRequest.BodyPublishers
             builder = HttpRequest.newBuilder
             # set uri

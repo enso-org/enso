@@ -409,7 +409,7 @@ type Table
        Arguments:
        - index: The column to use as the index of the table.
     set_index : Text | Column | Vector Text -> Table
-    set_index index = Panic.recover <|
+    set_index index = Panic.recover Any <|
         new_index = (Helpers.unify_vector_singleton index).map (this.at >> .as_internal)
         new_ctx = this.context.set_index new_index
         new_cols = this.internal_columns.filter col->
@@ -490,7 +490,7 @@ type Table
              quality_ratio = table.at 'Rating' / table.at 'Price'
              table.sort by=[quality_ratio, 'Rating']
     sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Order -> Boolean -> Table
-    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover <|
+    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover Any <|
         order_to_ir = case _ of
             Sort_Order.Ascending -> IR.Ascending
             Sort_Order.Descending -> IR.Descending
@@ -547,7 +547,7 @@ type Table
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = case other of
         Column _ _ _ _ _ -> this.join other.to_table on drop_unmatched left_suffix right_suffix
-        Table _ _ _ _ -> Panic.recover <|
+        Table _ _ _ _ -> Panic.recover Any <|
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
                 Panic.throw <| Illegal_State_Error "left_suffix must be different from right_suffix"
@@ -627,7 +627,7 @@ type Table
        - by: The column names on which to group. If this is not set, the index
          will be used for grouping instead.
     group : Vector Text | Text | Nothing -> Aggregate_Table
-    group by=Nothing = Panic.recover <|
+    group by=Nothing = Panic.recover Any <|
         cols = case by of
             Nothing ->
                 if this.context.meta_index.is_empty then Panic.throw <| Illegal_State_Error "Trying to group by an empty index." else
