@@ -93,6 +93,8 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Generates a constructor function to be used for object instantiation from other Enso code.
+   * Building constructor function involves storing the argument in a local var and then reading
+   * it again on purpose. That way default arguments can refer to previously defined constructor arguments.
    *
    * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
