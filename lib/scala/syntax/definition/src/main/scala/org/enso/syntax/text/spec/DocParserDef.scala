@@ -505,7 +505,6 @@ case class DocParserDef() extends Parser[Doc] {
             list.startMisalignedListItem(indent, typ)
           } else {
             do {
-              stack = stack.tail
               list.endListItem()
               list.endSublist()
             } while (indent < list.current)
@@ -683,6 +682,10 @@ case class DocParserDef() extends Parser[Doc] {
             } else {
               result.current = Some(l.append(elems))
               result.push()
+            }
+            while (stack.nonEmpty) {
+              list.endListItem()
+              list.endSublist()
             }
           case elem =>
             throw new IllegalStateException(

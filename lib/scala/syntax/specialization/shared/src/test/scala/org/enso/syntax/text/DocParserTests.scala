@@ -697,6 +697,74 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     |  - First
     |    - First1
     |      - First2
+    |        - First3""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            4,
+            List.Unordered,
+            "First1",
+            List(
+              6,
+              List.Unordered,
+              "First2",
+              List(
+                8,
+                List.Unordered,
+                "First3"
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  """List
+    |  - First
+    |    - First1
+    |      - First2
+    |        - First3
+    |""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            4,
+            List.Unordered,
+            "First1",
+            List(
+              6,
+              List.Unordered,
+              "First2",
+              List(
+                8,
+                List.Unordered,
+                ListItem("First3", Newline)
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  """List
+    |  - First
+    |    - First1
+    |      - First2
+    |        - First3
     |  - Second""".stripMargin
     .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
@@ -714,7 +782,12 @@ class DocParserTests extends AnyFlatSpec with Matchers {
             List(
               6,
               List.Unordered,
-              "First2"
+              "First2",
+              List(
+                8,
+                List.Unordered,
+                "First3"
+              )
             )
           ),
           "Second"
