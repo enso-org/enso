@@ -1,11 +1,13 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -24,50 +26,56 @@ public abstract class ThrowPanicNode extends Node {
 
   abstract Stateful execute(Object _this, Object payload);
 
-  @Specialization
-  Stateful doAtom(
-      Object _this, Atom payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
-    Builtins builtins = Context.get(this).getBuiltins();
-    if (payload.getConstructor() == builtins.caughtPanic()) {
-      // Note [Original Exception Type]
-      Object originalException = payload.getFields()[1];
-      if (interopLibrary.isException(originalException)) {
-        try {
-          throw interopLibrary.throwException(originalException);
-        } catch (UnsupportedMessageException e) {
-          /* We cannot rethrow the original exception, so we throw a panic with
-           * the given payload, marked as originating from here, as we cannot
-           * reconstruct a better location.
-           *
-           * This situation should never arise, based on the contract of
-           * `throwException` and `isException`.
-           */
-          throw new PanicException(payload.getFields()[0], this);
-        }
-      } else {
-        throw new PanicException(
-            builtins
-                .error()
-                .makeTypeError("Exception", originalException, "internal_original_exception"),
-            this);
+  Context getContext() {
+    return Context.get(this);
+  }
+
+  @Specialization(
+      guards = {"payload.getConstructor() == getContext().getBuiltins().caughtPanic()"})
+  Stateful doCaughtPanic(
+      Object _this,
+      Atom payload,
+      @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
+      @Cached BranchProfile typeErrorProfile) {
+    // Note [Original Exception Type]
+    Object originalException = payload.getFields()[1];
+    if (interopLibrary.isException(originalException)) {
+      try {
+        throw interopLibrary.throwException(originalException);
+      } catch (UnsupportedMessageException e) {
+        /* We cannot rethrow the original exception, so we throw a panic with
+         * the given payload, marked as originating from here, as we cannot
+         * reconstruct a better location.
+         *
+         * This situation should never arise in practice, based on the contract
+         * of `throwException` and `isException`.
+         */
+        throw new PanicException(payload.getFields()[0], this);
       }
     } else {
-      throw new PanicException(payload, this);
+      typeErrorProfile.enter();
+      Builtins builtins = Context.get(this).getBuiltins();
+      throw new PanicException(
+          builtins
+              .error()
+              .makeTypeError("Exception", originalException, "internal_original_exception"),
+          this);
+    }
+  }
+
+  @Specialization(guards = "interopLibrary.isException(payload)")
+  Stateful doOtherException(
+      Object _this, Object payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
+    try {
+      throw interopLibrary.throwException(payload);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, `isException` returned true for `payload`.");
     }
   }
 
   @Fallback
-  Stateful doFallback(
-      Object _this, Object payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
-    if (interopLibrary.isException(payload)) {
-      try {
-        throw interopLibrary.throwException(payload);
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException("Impossible, `isException` returned true for `payload`.");
-      }
-    } else {
-      throw new PanicException(payload, this);
-    }
+  Stateful doFallback(Object _this, Object payload) {
+    throw new PanicException(payload, this);
   }
 }
 
