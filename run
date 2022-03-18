@@ -21,7 +21,7 @@ async function init () {
         console.log("Checking versions of installed packages.")
         await cmd.check_version('node',node_lts_version)
         await cmd.check_version('npm',npm_lts_version)
-        await cmd.check_version('rustc','1.60.0-nightly',{
+        await cmd.check_version('rustc','1.61.0-nightly',{
             preprocess:(v)=>v.substring(6,20)
         })
     }
