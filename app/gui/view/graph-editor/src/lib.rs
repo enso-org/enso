@@ -491,6 +491,10 @@ ensogl::define_endpoints! {
         start_node_creation(),
         /// Start creation of a new Node connected to the port that is currently under the cursor.
         /// If the cursor is currently not over any node's port, this event will have no effect.
+        ///
+        /// The same as in the case of [`start_node_creation`], this event is intended to be
+        /// emitted in situations when the user wants to interactively create a node via the UI (as
+        /// opposed to e.g. when loading a graph from a file).
         start_node_creation_from_port(),
 
 
