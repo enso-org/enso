@@ -41,7 +41,7 @@ class PanicsTest extends InterpreterTest {
           |
           |main =
           |    thrower = x -> Panic.throw x
-          |    caught = Panic.catch_any (thrower MyError) .convert_to_dataflow_error 
+          |    caught = Panic.catch_primitive (thrower MyError) .convert_to_dataflow_error 
           |    IO.println caught
           |""".stripMargin
 
@@ -55,7 +55,7 @@ class PanicsTest extends InterpreterTest {
           |polyglot java import java.lang.Long
           |
           |main =
-          |    caught = Panic.catch_any (Long.parseLong "oops") .convert_to_dataflow_error
+          |    caught = Panic.catch_primitive (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
           |    cause = caught.catch_primitive e-> case e of
           |        Polyglot_Error err -> err

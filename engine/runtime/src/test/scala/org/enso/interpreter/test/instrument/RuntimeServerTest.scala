@@ -2869,7 +2869,7 @@ class RuntimeServerTest
       """from Standard.Builtins import all
         |
         |main =
-        |    x = Panic.catch_any @ .convert_to_dataflow_error
+        |    x = Panic.catch_primitive @ .convert_to_dataflow_error
         |    IO.println (x.catch .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -2932,7 +2932,7 @@ class RuntimeServerTest
       """from Standard.Builtins import all
         |
         |main =
-        |    x = Panic.catch_any () .convert_to_dataflow_error
+        |    x = Panic.catch_primitive () .convert_to_dataflow_error
         |    IO.println (x.catch .to_text)
         |
         |""".stripMargin.linesIterator.mkString("\n")

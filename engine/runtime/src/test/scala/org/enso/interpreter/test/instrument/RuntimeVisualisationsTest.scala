@@ -1813,7 +1813,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             moduleName,
-            "x -> Panic.catch_any x caught_panic-> caught_panic.payload.to_text"
+            "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text"
           )
         )
       )
