@@ -71,9 +71,8 @@
   also compute mode, percentile, minimum, maximum.][3318]
 - [Implemented `Text.location_of` and `Text.location_of_all` methods.][3324]
 - [Replaced `Table.group_by` with `Table.aggregate`][3339]
-- [Implemented `Panic.catch` and helper functions for handling errors. Renamed
-  `Panic.recover` to `Panic.recover_any` and added `Panic.recover` which
-  recovers specific types of errors.][3344]
+- [Implemented `Panic.catch` and helper functions for handling errors. Added a
+  type parameter to `Panic.recover` to recover specific types of errors.][3344]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
