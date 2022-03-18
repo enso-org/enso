@@ -370,6 +370,14 @@ impl Manager {
         })
     }
 
+    /// Remove (set desired state to None) each visualization not attached to any of the `targets`.
+    pub fn retain_visualizations(self: &Rc<Self>, targets: &HashSet<ast::Id>) {
+        let to_remove = self.visualizations.keys().into_iter().filter(|id| !targets.contains(id));
+        for target in to_remove {
+            self.set_visualization(target, None);
+        }
+    }
+
     /// Schedule an asynchronous task that will try applying local desired state of the
     /// visualization to the language server.
     #[profile(Detail)]
@@ -409,20 +417,6 @@ impl Manager {
         });
     }
 
-    /// Remove (set desired state to None) each visualization not attached to any of the `targets`.
-    pub fn retain_visualizations(self: &Rc<Self>, targets: &HashSet<ast::Id>) {
-        let to_remove = self.visualizations.keys().into_iter().filter(|id| !targets.contains(id));
-        for target in to_remove {
-            self.set_visualization(target, None);
-        }
-    }
-}
-
-
-// === synchronize ===
-
-// Change the server's state to match a new local desired state.
-impl Manager {
     #[profile(Detail)]
     async fn attach_visualization(
         self: Rc<Self>,

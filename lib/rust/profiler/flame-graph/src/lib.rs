@@ -80,9 +80,9 @@ impl Graph {
 
 
 
-// =================
-// === callgraph ===
-// =================
+// ==================
+// === Callgraphs ===
+// ==================
 
 /// Build a graph that illustrates the call stack over time.
 struct CallgraphBuilder<'p, Metadata> {
@@ -124,9 +124,9 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
 
 
 
-// ================
-// === rungraph ===
-// ================
+// =================
+// === Rungraphs ===
+// =================
 
 /// Build a graph that illustrates async tasks over time.
 struct RungraphBuilder<'p, Metadata> {
@@ -197,9 +197,11 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
     Graph { blocks }
 }
 
-// ==================
-// === flamegraph ===
-// ==================
+
+
+// ===================
+// === Flamegraphs ===
+// ===================
 
 /// Build a graph that illustrates aggregate time spent in different functions.
 #[derive(Default, Debug)]
