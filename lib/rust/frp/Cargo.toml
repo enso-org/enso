@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 enso-callback = { path = "../callback" }
+enso-data-structures = { path = "../data-structures" }
 enso-generics = { path = "../generics"}
 enso-logger = { path = "../logger"}
 enso-prelude = { path = "../prelude"}

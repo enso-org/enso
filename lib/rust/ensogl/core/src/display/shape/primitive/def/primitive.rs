@@ -88,7 +88,7 @@ macro_rules! _define_sdf_shape_immutable_part {
             fn draw(&self, canvas:&mut Canvas) -> canvas::Shape {
                 let args = vec!["position".to_string(), $(self.$field.glsl().into()),* ].join(",");
                 let code = format!("{}({})",self.glsl_name,args);
-                canvas.define_shape(self.id(),&code)
+                canvas.define_shape(self.id(), &code)
             }
         }
 

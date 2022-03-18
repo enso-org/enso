@@ -327,6 +327,7 @@ impl<Out: Data> ValueProvider for NodeData<Out> {
 #[derivative(Clone(bound = ""))]
 pub struct OwnedStream<Out = ()> {
     data: Rc<NodeData<Out>>,
+    id: Id,
 }
 
 /// Weak reference to FRP stream node with limited functionality and parametrized only by the
@@ -336,6 +337,7 @@ pub struct OwnedStream<Out = ()> {
 #[derivative(Clone(bound = ""))]
 pub struct Stream<Out = ()> {
     data: Weak<NodeData<Out>>,
+    id: Id,
 }
 
 /// A strong reference to FRP stream node. See the docs of `NodeData` to learn more about its
@@ -404,7 +406,8 @@ impl<Def: HasOutputStatic> Node<Def> {
     /// Constructor.
     pub fn construct(label: Label, definition: Def) -> Self {
         let data = Rc::new(NodeData::new(label));
-        let stream = OwnedStream { data };
+        let id = Default::default();
+        let stream = OwnedStream { data, id };
         let definition = Rc::new(definition);
         Self { stream, definition }
     }
@@ -456,14 +459,14 @@ impl<T: HasOutputStatic> WeakNode<T> {
 impl<Out> OwnedStream<Out> {
     /// Downgrades to the weak version.
     pub fn downgrade(&self) -> Stream<Out> {
-        Stream { data: Rc::downgrade(&self.data) }
+        Stream { data: Rc::downgrade(&self.data), id: self.id }
     }
 }
 
 impl<Out> Stream<Out> {
     /// Upgrades to the strong version.
     pub fn upgrade(&self) -> Option<OwnedStream<Out>> {
-        self.data.upgrade().map(|data| OwnedStream { data })
+        self.data.upgrade().map(|data| OwnedStream { data, id: self.id })
     }
 }
 
@@ -623,20 +626,19 @@ impl<Def: HasOutputStatic> ValueProvider for WeakNode<Def> {
 
 impl<Out> HasId for Stream<Out> {
     fn id(&self) -> Id {
-        let raw = self.data.as_ptr() as *const () as usize;
-        raw.into()
+        self.id
     }
 }
 
 impl<Def: HasOutputStatic> HasId for Node<Def> {
     fn id(&self) -> Id {
-        self.downgrade().id()
+        self.stream.id
     }
 }
 
 impl<Def: HasOutputStatic> HasId for WeakNode<Def> {
     fn id(&self) -> Id {
-        self.stream.id()
+        self.stream.id
     }
 }
 

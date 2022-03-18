@@ -21,6 +21,7 @@
 // === Export ===
 // ==============
 
+pub mod counter;
 pub mod dependency_graph;
 pub mod diet;
 pub mod hash_map_tree;

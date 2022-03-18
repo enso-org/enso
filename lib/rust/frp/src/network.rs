@@ -13,9 +13,11 @@ use crate::stream::Stream;
 // === Id ===
 // ==========
 
-/// Globally unique identifier of an frp network.
-#[derive(Clone, CloneRef, Copy, Debug, Default, Display, Eq, From, Hash, Into, PartialEq)]
-pub struct NetworkId(usize);
+enso_data_structures::define_id! {
+    /// Globally unique identifier of an frp network.
+    #[derive(CloneRef)]
+    pub struct NetworkId($);
+}
 
 
 
@@ -31,12 +33,14 @@ pub struct NetworkId(usize);
 #[derive(Clone, CloneRef, Debug)]
 pub struct Network {
     data: Rc<NetworkData>,
+    id: NetworkId,
 }
 
 /// Weak version of `Network`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct WeakNetwork {
     data: Weak<NetworkData>,
+    id: NetworkId,
 }
 
 /// Network item.
@@ -82,17 +86,18 @@ impl Network {
     /// Constructor.
     pub fn new(label: impl Into<String>) -> Self {
         let data = Rc::new(NetworkData::new(label));
-        Self { data }
+        let id = Default::default();
+        Self { data, id }
     }
 
     /// Get the weak version.
     pub fn downgrade(&self) -> WeakNetwork {
-        WeakNetwork { data: Rc::downgrade(&self.data) }
+        WeakNetwork { data: Rc::downgrade(&self.data), id: self.id }
     }
 
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
-        self.downgrade().id()
+        self.id
     }
 
     /// Store arbitrary item in this network. Used as a convenient storage of data associated with
@@ -132,7 +137,8 @@ impl Network {
     pub fn draw(&self) {
         let mut viz = debug::Graphviz::default();
         self.data.nodes.borrow().iter().for_each(|node| {
-            viz.add_node(node.id().into(), node.output_type_label(), node.label());
+            let id = u64::from(node.id()).try_into().unwrap();
+            viz.add_node(id, node.output_type_label(), node.label());
         });
         debug::display_graphviz(viz);
     }
@@ -141,12 +147,12 @@ impl Network {
 impl WeakNetwork {
     /// Upgrade to strong reference.
     pub fn upgrade(&self) -> Option<Network> {
-        self.data.upgrade().map(|data| Network { data })
+        self.data.upgrade().map(|data| Network { data, id: self.id })
     }
 
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
-        NetworkId(self.data.as_ptr() as *const () as usize)
+        self.id
     }
 }
 

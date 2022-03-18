@@ -52,7 +52,14 @@ impl canvas::Draw for AnyShape {
 #[derive(Debug, Derivative, Shrinkwrap)]
 #[derivative(Clone(bound = ""))]
 pub struct ShapeRef<T> {
+    #[shrinkwrap(main_field)]
     rc: Rc<T>,
+    id: ShapeId,
+}
+
+enso_data_structures::define_id!{
+    /// Unique ID for a shape.
+    pub struct ShapeId($);
 }
 
 impl<T> From<&ShapeRef<T>> for ShapeRef<T> {
@@ -64,22 +71,20 @@ impl<T> From<&ShapeRef<T>> for ShapeRef<T> {
 impl<T> ShapeRef<T> {
     /// Constructor.
     pub fn new(t: T) -> Self {
-        Self { rc: Rc::new(t) }
+        Self { rc: Rc::new(t), id: Default::default() }
     }
 
     /// Unwraps the shape and provides the raw reference to its content.
     pub fn unwrap(&self) -> &T {
         self.deref()
     }
-}
 
-impl<T> ShapeRef<T> {
     /// Each shape definition has to be assigned with an unique id in order for the painter to
     /// implement results cache. For example, we can create three shapes `s1`, `s2`, and `s3`. We
     /// want to define `s4 = s1 - s2`, `s5 = s1 - s3`, and `s6 = s4 + s5`. We need to discover that
     /// we use `s1` twice under the hood in order to optimize the GLSL.
-    pub fn id(&self) -> usize {
-        Rc::downgrade(&self.rc).as_ptr() as *const () as usize
+    pub fn id(&self) -> ShapeId {
+        self.id
     }
 }
 

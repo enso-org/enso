@@ -578,12 +578,11 @@ impl<Host> Model<Host> {
 // === Id ===
 // ==========
 
-/// Globally unique identifier of a display object.
-#[derive(
-    Clone, CloneRef, Copy, Debug, Default, Display, Eq, From, Hash, Into, PartialEq, Ord,
-    PartialOrd
-)]
-pub struct Id(usize);
+enso_data_structures::define_id!{
+    /// Globally unique identifier of a display object.
+    #[derive(CloneRef)]
+    pub struct Id($);
+}
 
 
 
@@ -635,6 +634,7 @@ pub struct Id(usize);
 #[derivative(Clone(bound = ""))]
 pub struct Instance<Host = Scene> {
     rc: Rc<Model<Host>>,
+    id: Id,
 }
 
 impl<Host> Deref for Instance<Host> {
@@ -647,13 +647,15 @@ impl<Host> Deref for Instance<Host> {
 impl<Host> Instance<Host> {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
-        Self { rc: Rc::new(Model::new(logger)) }
+        let rc = Rc::new(Model::new(logger));
+        let id = Default::default();
+        Self { rc, id }
     }
 
     /// Create a new weak pointer to this display object instance.
     pub fn downgrade(&self) -> WeakInstance<Host> {
         let weak = Rc::downgrade(&self.rc);
-        WeakInstance { weak }
+        WeakInstance { weak, id: self.id }
     }
 }
 
@@ -663,7 +665,7 @@ impl<Host> Instance<Host> {
 impl<Host> Instance<Host> {
     /// ID getter of this display object.
     pub fn _id(&self) -> Id {
-        Id(Rc::downgrade(&self.rc).as_ptr() as *const () as usize)
+        self.id
     }
 
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
@@ -805,12 +807,13 @@ impl<Host> Debug for Instance<Host> {
 #[derivative(Debug(bound = ""))]
 pub struct WeakInstance<Host> {
     weak: Weak<Model<Host>>,
+    id: Id,
 }
 
 impl<Host> WeakInstance<Host> {
     /// Upgrade the weak instance to strong one if it was not yet dropped.
     pub fn upgrade(&self) -> Option<Instance<Host>> {
-        self.weak.upgrade().map(|rc| Instance { rc })
+        self.weak.upgrade().map(|rc| Instance { rc, id: self.id })
     }
 
     /// Checks whether this weak instance still exists (its strong instance was not dropped yet).

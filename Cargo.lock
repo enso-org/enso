@@ -958,6 +958,7 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "enso-callback",
+ "enso-data-structures",
  "enso-generics",
  "enso-logger",
  "enso-prelude",
