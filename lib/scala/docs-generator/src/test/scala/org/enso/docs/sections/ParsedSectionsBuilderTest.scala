@@ -14,7 +14,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
     "generate single tag" in {
       val comment =
         """ UNSTABLE
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Tag("UNSTABLE", None)
       )
@@ -26,7 +26,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
       val comment =
         """ UNSTABLE
           | DEPRECATED
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Tag("UNSTABLE", None),
         Section.Tag("DEPRECATED", None)
@@ -38,7 +38,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
     "generate tag with description" in {
       val comment =
         """ ALIAS Check Matches
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Tag("ALIAS", Some(Doc.Elem.Text("Check Matches")))
       )
@@ -49,7 +49,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
     "generate description single line" in {
       val comment =
         """ hello world
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(List(Doc.Elem.Text("hello world")))
       )
@@ -61,7 +61,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
       val comment =
         """ hello world
           | second line
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(
@@ -82,7 +82,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           | Second paragraph
           | multiline
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(
@@ -111,7 +111,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           | Arguments:
           | - one: The first
           | - two: The second
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -138,7 +138,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
         """ Description
           |
           | Icon: my-icon
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -157,7 +157,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
         """ Description
           |
           | Aliases: foo, bar baz, redshift®
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -178,7 +178,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           | > Example
           |   Simple program
           |       main = 42
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -214,7 +214,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           |       main =
           |           42
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -257,7 +257,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           | ! This is important
           |   Beware of nulls.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -281,7 +281,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           | ? Out of curiosity
           |   FYI.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -309,7 +309,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   Another section.
           |
           |   And another.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -343,7 +343,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   Another section.
           |
           | This is paragraph.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -377,7 +377,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           | ! Warning
           |   Pretty important.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Paragraph(
           List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
@@ -420,7 +420,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           | ? Out of curiosity
           |   FYI.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Tag("DEPRECATED", None),
         Section.Paragraph(List(Doc.Elem.Newline)),
