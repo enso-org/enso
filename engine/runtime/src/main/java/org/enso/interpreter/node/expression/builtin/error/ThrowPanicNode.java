@@ -30,8 +30,7 @@ public abstract class ThrowPanicNode extends Node {
     return Context.get(this);
   }
 
-  @Specialization(
-      guards = {"payload.getConstructor() == getContext().getBuiltins().caughtPanic()"})
+  @Specialization(guards = {"payload.getConstructor() == getContext().getBuiltins().caughtPanic()"})
   Stateful doCaughtPanic(
       Object _this,
       Atom payload,
@@ -43,14 +42,8 @@ public abstract class ThrowPanicNode extends Node {
       try {
         throw interopLibrary.throwException(originalException);
       } catch (UnsupportedMessageException e) {
-        /* We cannot rethrow the original exception, so we throw a panic with
-         * the given payload, marked as originating from here, as we cannot
-         * reconstruct a better location.
-         *
-         * This situation should never arise in practice, based on the contract
-         * of `throwException` and `isException`.
-         */
-        throw new PanicException(payload.getFields()[0], this);
+        throw new IllegalStateException(
+            "Impossible, `isException` returned true for `originalException`.");
       }
     } else {
       typeErrorProfile.enter();
