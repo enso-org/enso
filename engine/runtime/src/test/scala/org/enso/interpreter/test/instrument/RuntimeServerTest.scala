@@ -2910,7 +2910,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Unrecognized token.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 24), model.Position(3, 25)))
+              Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
             )
           )
         )
@@ -2974,7 +2974,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 24), model.Position(3, 26)))
+              Some(model.Range(model.Position(3, 30), model.Position(3, 32)))
             )
           )
         )
