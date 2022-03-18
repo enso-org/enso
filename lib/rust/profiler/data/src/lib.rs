@@ -79,13 +79,14 @@
 //!     // Parse the log. Interpret metadata according to the enum defined above.
 //!     let profile: profiler_data::Profile<MyMetadata> = log.parse().unwrap();
 //!     // Verify the MyData objects are present and attached to the right interval.
-//!     let profiler = &profile[profile.root_interval().children[0]].children[0];
-//!     assert_eq!(&profiler.label.name, "action_producing_metadata");
-//!     let interval = profile[profiler.intervals[0]];
+//!     let demo = &profile[profile.root_interval().children[0]];
+//!     let interval = &profile[demo.children[0]];
+//!     let action = &profile[interval.measurement];
+//!     assert_eq!(&action.label.name, "action_producing_metadata");
 //!     assert_eq!(interval.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
 //!     assert_eq!(interval.metadata[1].data, MyMetadata::MyDataB(MyDataB("5".into())));
 //!     // Marks can be used to compare the order of events.
-//!     assert!(profiler.metadata[0].mark < profiler.metadata[1].mark);
+//!     assert!(interval.metadata[0].mark < interval.metadata[1].mark);
 //! }
 //!
 //! store_and_retrieve_metadata();
