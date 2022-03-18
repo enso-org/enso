@@ -204,7 +204,7 @@ new_aggregator table column =
         Text -> s.is_empty
         _ -> Error.throw (Invalid_Aggregation_Method this.col "Empty is only valid for Text")
 
-    create_aggregator name:Text initial:Nothing (accumulator:(Any->Integer->Any)=c->_->c) (finalizer:(Any->Any)=v->v) =
+    create_aggregator name:Text initial:Any=Nothing (accumulator:(Any->Integer->Any)=c->_->c) (finalizer:(Any->Any)=(v->v)) =
         Aggregate_Column_Aggregator name initial accumulator finalizer
 
     ## Given a map of values and counts, find the value at a specified percentile
