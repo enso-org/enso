@@ -126,11 +126,11 @@ impl NavigatorEventsData {
     }
 
     fn on_zoom(&self, event: ZoomEvent) {
-        (&mut self.properties.borrow_mut().zoom_callback)(event);
+        (self.properties.borrow_mut().zoom_callback)(event);
     }
 
     fn on_pan(&self, event: PanEvent) {
-        (&mut self.properties.borrow_mut().pan_callback)(event);
+        (self.properties.borrow_mut().pan_callback)(event);
     }
 }
 
