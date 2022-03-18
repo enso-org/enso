@@ -120,7 +120,7 @@ type Engine
         options_bitmask = here.from_enso_options all_options
         unicode_regex = UnicodeRegex.new
 
-        maybe_java_pattern = Panic.recover <|
+        maybe_java_pattern = Panic.recover Any <|
             Java_Pattern.compile (unicode_regex.transform expression) options_bitmask
 
         internal_pattern = maybe_java_pattern.map_error case _ of
@@ -617,7 +617,7 @@ type Match
                  match.group "letters"
     group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
     group id =
-        Panic.recover (this.internal_match.group id) . map_error (here.handle_error _ id)
+        Panic.recover Any (this.internal_match.group id) . map_error (here.handle_error _ id)
 
     ## Gets a vector containing the results of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
@@ -703,7 +703,7 @@ type Match
                  match.start 0
     start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     start id =
-        result = Panic.recover (this.internal_match.start id)
+        result = Panic.recover Any (this.internal_match.start id)
         no_errors = result.map_error (here.handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
 
@@ -731,7 +731,7 @@ type Match
                  match.end 0
     end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     end id =
-        result = Panic.recover (this.internal_match.end id)
+        result = Panic.recover Any (this.internal_match.end id)
         no_errors = result.map_error (here.handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
 
@@ -854,7 +854,7 @@ type Option
    - opts: The enso-side options to configure the regex.
 from_enso_options : Vector.Vector (Option | Global_Option.Option) -> Integer
 from_enso_options opts =
-    java_flags = Panic.recover <| opts.flat_map case _ of
+    java_flags = Panic.recover Any <| opts.flat_map case _ of
         Literal_Pattern -> [Java_Pattern.LITERAL]
         Unix_Lines -> [Java_Pattern.UNIX_LINES]
         Global_Option.Case_Insensitive -> [Java_Pattern.CASE_INSENSITIVE]

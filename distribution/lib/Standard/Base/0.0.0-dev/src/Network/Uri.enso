@@ -22,7 +22,7 @@ polyglot java import java.util.Optional
          example_parse = Uri.parse "http://example.com"
 parse : Text -> Uri ! Syntax_Error
 parse text =
-    Panic.recover (Uri (Java_URI.create text)) . catch e-> case e of
+    Panic.recover Any (Uri (Java_URI.create text)) . catch e-> case e of
         Polyglot_Error ex -> Error.throw (Syntax_Error ex.getMessage)
         other -> Panic.throw other
 

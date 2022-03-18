@@ -48,7 +48,7 @@ now = Time_Of_Day LocalTime.now
          example_epoch = Time_Of_Day.new hour=9 minute=30
 new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time.Time_Error
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.recover (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch e-> case e of
+    Panic.recover Any (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -115,7 +115,7 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
          example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
 parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time.Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    result = Panic.recover <| case pattern of
+    result = Panic.recover Any <| case pattern of
         Nothing -> LocalTime.parse text
         Text ->
             formatter = DateTimeFormatter.ofPattern pattern

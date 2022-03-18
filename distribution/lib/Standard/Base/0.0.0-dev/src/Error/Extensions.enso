@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-import Standard.Base.Runtime.Extensions as Runtime_Extensions
+import Standard.Builtins
+from Standard.Base.Runtime.Extensions as Runtime_Extensions import Stack_Trace_Element
 
 ## ADVANCED
    UNSTABLE
@@ -125,13 +126,30 @@ Error.map_error f = this.catch (x -> Error.throw (f x))
 ## ADVANCED
    UNSTABLE
 
-   Returns the attached stack trace of the error. The ordering of the resulting
-   vector is such that the top stack frame is the first element.
-Error.get_stack_trace : Vector.Vector Stack_Trace_Element
-Error.get_stack_trace =
-    prim_stack = this.primitive_get_stack_trace
+   Returns the attached stack trace of the given throwable. Can be used to get
+   an Enso friendly stack trace from native Java exceptions.
+
+   The ordering of the resulting vector is such that the top stack frame is the
+   first element.
+Panic.get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Stack_Trace_Element
+Panic.get_attached_stack_trace error =
+    throwable = case error of
+        Caught_Panic _ internal_original_exception -> internal_original_exception
+        throwable -> throwable
+    prim_stack = Panic.primitive_get_attached_stack_trace throwable
     stack_with_prims = Vector.Vector prim_stack
     stack_with_prims.map Runtime_Extensions.wrap_primitive_stack_trace_element
+
+## ADVANCED
+   UNSTABLE
+
+   Returns the attached stack trace of the error.
+
+   The ordering of the resulting vector is such that the top stack frame is the
+   first element.
+Error.stack_trace : Vector.Vector Stack_Trace_Element
+Error.stack_trace =
+    Panic.get_attached_stack_trace this
 
 ## Checks if `this` is an error.
 
@@ -156,3 +174,95 @@ Error.is_error = True
          example_rethrow = Panic.rethrow Examples.throw_error
 Panic.rethrow : (Any ! Any) -> Any
 Panic.rethrow value = value.catch Panic.throw
+
+## Returns the stack trace of the caught panic.
+Caught_Panic.stack_trace : Vector.Vector Stack_Trace_Element
+Caught_Panic.stack_trace =
+    Panic.get_attached_stack_trace this
+
+## Executes the provided action and if a panic matching the provided type was
+   thrown, calls the provided callback.
+
+   If action executes successfully, the result of `Panic.catch` is the result of
+   that action. Otherwise, if a matching panic is thrown from within the action,
+   the result is obtained by calling the provided handler callback. Any
+   non-matching panics are forwarded without changes.
+
+   Arguments:
+   - panic_type: The expected panic type. It can either be an Enso type or a
+     Java class. If the Java class is provided, `Polyglot_Error` containing a
+     Java exception of this class will be matched.
+   - action: The code to execute that potentially panics.
+   - handler: The callback to handle the panics. The callback will be provided
+     with a `Caught_Panic` instance encapsulating the `payload` of the caught
+     panic and its stacktrace.
+
+   > Example
+     Handling a specific type of panic.
+
+         Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             "Caught an `Illegal_Argument_Error`: "+error.payload.message
+
+   > Example
+     Handling any panic.
+
+         Panic.catch Any (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             "Caught some panic!"
+
+   > Example
+     Convert a string to an integer, catching the Java `NumberFormatException`
+     and converting it to a more Enso-friendly dataflow error.
+
+     polyglot java import java.lang.Long
+     polyglot java import java.lang.NumberFormatException
+     parse str =
+         Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
+             Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+Panic.catch : Any -> Any -> (Caught_Panic -> Any) -> Any
+Panic.catch panic_type ~action handler =
+    Panic.catch_primitive action caught_panic->
+        case Builtins.Meta.get_polyglot_language panic_type == "java" of
+            False -> case caught_panic.payload.is_a panic_type of
+                True -> handler caught_panic
+                False -> Panic.throw caught_panic
+            True -> case caught_panic.payload of
+                Polyglot_Error java_exception ->
+                    case Java.is_instance java_exception panic_type of
+                        True -> handler caught_panic
+                        False -> Panic.throw caught_panic
+                _ -> Panic.throw caught_panic
+
+## Executes the provided action and converts a possible panic matching any of
+   the provided types into a dataflow Error.
+
+   If action executes successfully, the result of `Panic.recover` is the result
+   of that action. Otherwise, if it panicked with a type matching one of the
+   expected error types, that panic is returned as a dataflow error. Unexpected
+   panics are passed through as-is. it is the panic that was thrown after
+   conversion to a dataflow error.
+
+   Arguments:
+   - expected_types: The types of expected panics which should be recovered.
+     This can either be a Vector of types or a single type.
+   - action: The code to execute that potentially panics.
+
+   > Example
+     Converting an expected panic to a dataflow error.
+
+         Panic.recover Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+
+   > Example
+     Converting one of many expected panic types to a dataflow error.
+
+         Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+Panic.recover : (Vector.Vector Any | Any) -> Any -> Any
+Panic.recover expected_types ~action =
+    types_to_check = case expected_types of
+        Vector.Vector _ -> expected_types
+        _ -> [expected_types]
+    Panic.catch Any action caught_panic->
+        is_matched = types_to_check.exists typ->
+            caught_panic.payload.is_a typ
+        case is_matched of
+            True -> caught_panic.convert_to_dataflow_error
+            False -> Panic.throw caught_panic
