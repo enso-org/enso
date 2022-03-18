@@ -53,7 +53,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
 
   "Foo"             ?= Doc(Synopsis(Section.Raw("Foo")))
   "Foo\uD83D\uDC98" ?= Doc(Synopsis(Section.Raw("Foo", "\uD83D\uDC98")))
-  "*Foo1*"          ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo1"))))
+  "*Foo*"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
   "_Foo_"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
   "~Foo~" ?= Doc(
     Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
@@ -694,6 +694,36 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     )
   )
   """List
+    |  - First
+    |    - First1
+    |      - First2
+    |  - Second""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            4,
+            List.Unordered,
+            "First1",
+            List(
+              6,
+              List.Unordered,
+              "First2"
+            )
+          ),
+          "Second"
+        )
+      )
+    )
+  )
+
+  """List
     |  - First unordered item
     |  - Second unordered item
     |    * First ordered sub item
@@ -827,6 +857,38 @@ class DocParserTests extends AnyFlatSpec with Matchers {
               Formatter(Formatter.Italic, "styled")
             ),
             "Correct"
+          ),
+          "Second"
+        )
+      )
+    )
+  )
+
+  """List
+    |  - First
+    |    - First1
+    |   - Second1
+    |      - First2
+    |  - Second""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            4,
+            List.Unordered,
+            "First1",
+            Elem.MisalignedItem(3, List.Unordered, "Second1"),
+            List(
+              6,
+              List.Unordered,
+              "First2"
+            )
           ),
           "Second"
         )

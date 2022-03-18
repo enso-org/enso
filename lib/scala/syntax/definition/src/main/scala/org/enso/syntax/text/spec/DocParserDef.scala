@@ -501,14 +501,14 @@ case class DocParserDef() extends Parser[Doc] {
           list.startNewList(indent, typ)
         } else {
           if (indent > list.prev) {
-            stack = stack.tail
-            stack +:= indent
             list.endListItem()
             list.startMisalignedListItem(indent, typ)
           } else {
-            stack = stack.tail
-            list.endListItem()
-            list.endSublist()
+            do {
+              stack = stack.tail
+              list.endListItem()
+              list.endSublist()
+            } while (indent < list.current)
             list.startListItem()
           }
         }
