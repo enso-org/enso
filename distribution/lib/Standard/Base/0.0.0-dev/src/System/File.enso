@@ -817,7 +817,7 @@ rethrow_java file exception =
 
    Utility method for running an action with Java exceptions mapping.
 handle_java_exceptions file ~action =
-    err = Panic.recover action
+    err = Panic.recover Any action
     r = err.catch (here.rethrow_java file)
     r
 

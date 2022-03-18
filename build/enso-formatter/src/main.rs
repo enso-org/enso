@@ -567,7 +567,6 @@ fn main() {
 // =============
 
 #[test]
-#[ignore]
 fn test_formatting() {
     let input = r#"//! Module-level documentation
 //! written in two lines.
@@ -595,6 +594,10 @@ pub struct Struct1 {}
 
 // === Features ===
 #![allow(incomplete_features)]
+
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]

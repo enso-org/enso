@@ -203,12 +203,14 @@ Error.should_fail_with matcher frames_to_skip=0 =
              Test.expect_panic_with Examples.throw_panic Examples.My_Error
 expect_panic_with : Any -> Any -> Assertion
 expect_panic_with ~action matcher =
-    res = Panic.recover action
+    res = Panic.recover Any action
     case res of
-        _ -> here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded.")
+        _ ->
+            loc = Meta.get_source_location 2
+            here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded (at "+loc+").")
     err = res.catch x->x
     if err.is_a matcher then Nothing else
-        here.fail ("Unexpected error " + err.to_text + " thrown.")
+        here.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
 ## Asserts that `this` value is equal to the expected value.
 
@@ -606,7 +608,7 @@ type Assertion
    - behavior: The behavior to execute.
 run_spec : Any -> Assertion
 run_spec ~behavior =
-    recovery = Panic.recover <|
+    recovery = Panic.recover Any <|
         result = behavior
         result.catch err-> Panic.throw (Finished_With_Error err result.get_stack_trace_text)
         Nothing

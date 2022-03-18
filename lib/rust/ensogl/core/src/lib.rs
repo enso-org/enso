@@ -10,10 +10,11 @@
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
+#![feature(entry_insert)]
 #![feature(fn_traits)]
+#![feature(marker_trait_attr)]
 #![feature(specialization)]
 #![feature(trait_alias)]
-#![feature(marker_trait_attr)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 // === Standard Linter Configuration ===
