@@ -20,10 +20,9 @@ pub struct Counter {
 /// Generate a unique value.
 impl Default for Counter {
     fn default() -> Self {
-        crate::prelude::lazy_static! {
-            static ref NEXT: std::sync::atomic::AtomicU64 = Default::default();
-        }
-        let value = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        use std::sync::atomic;
+        static NEXT: atomic::AtomicU64 = atomic::AtomicU64::new(0);
+        let value = NEXT.fetch_add(1, atomic::Ordering::Relaxed);
         debug_assert_ne!(value + 1, 0);
         Self { value }
     }
