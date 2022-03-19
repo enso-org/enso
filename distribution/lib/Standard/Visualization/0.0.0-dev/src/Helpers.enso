@@ -89,7 +89,7 @@ Error.catch_ ~val = this.catch (_-> val)
 ## PRIVATE
 recover_errors : Any -> Any
 recover_errors ~body =
-    result = Panic.recover body
+    result = Panic.recover Any body
     result.catch err->
         Json.from_pairs [["error", err.to_display_text]] . to_text
 

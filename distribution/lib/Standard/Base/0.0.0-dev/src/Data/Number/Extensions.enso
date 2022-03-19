@@ -4,6 +4,7 @@ polyglot java import java.lang.Long
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
 polyglot java import java.lang.String
+polyglot java import java.lang.NumberFormatException
 
 ## ALIAS Inverse Sine
 
@@ -268,7 +269,7 @@ Number.to_json = Json.Number this
          Integer.parse "20220216"
 Integer.parse : Text -> Text -> Integer ! Parse_Error
 Integer.parse text (radix=10) =
-    Panic.recover (Long.parseLong text radix) . catch _->
+    Panic.catch NumberFormatException (Long.parseLong text radix) _->
          Error.throw (Parse_Error text)
 
 ## ALIAS From Text
@@ -285,7 +286,7 @@ Integer.parse text (radix=10) =
          Decimal.parse "7.6"
 Decimal.parse : Text -> Decimal ! Parse_Error
 Decimal.parse text =
-    Panic.recover (Double.parseDouble text) . catch _->
+    Panic.catch NumberFormatException (Double.parseDouble text) _->
         Error.throw (Parse_Error text)
 
 ## UNSTABLE

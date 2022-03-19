@@ -342,17 +342,17 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       context.executionComplete(contextId)
     )
@@ -504,7 +504,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(contextId, yId, Constants.INTEGER),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
@@ -566,12 +566,12 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -617,12 +617,12 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       context.executionComplete(contextId)
     )
@@ -706,12 +706,12 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -743,6 +743,7 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
+    val fooThrowId = metadata.addItem(74, 20)
     val xId        = metadata.addItem(111, 8)
     val yId        = metadata.addItem(128, 5)
     val mainResId  = metadata.addItem(138, 12)
@@ -796,12 +797,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodPointer(moduleName, moduleName, "foo"),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
       ),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -1328,12 +1329,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodPointer(moduleName, moduleName, "foo"),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(
         contextId,

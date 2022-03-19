@@ -210,7 +210,7 @@ type Matrix
 
              example_plus = Examples.matrix + Examples.matrix
     + : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    + value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
+    + value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -249,7 +249,7 @@ type Matrix
 
              example_minus = Examples.matrix - Examples.matrix
     - : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
+    - value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -293,7 +293,7 @@ type Matrix
          Multiply two matrices.
              m * m
     * : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
+    * value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -331,7 +331,7 @@ type Matrix
 
               example_div = Examples.matrix / Examples.matrix
     / : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
+    / value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
