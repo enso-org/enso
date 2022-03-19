@@ -840,7 +840,7 @@ macro_rules! define_endpoints_2 {
         )?
     ) => {
         $crate::define_endpoints_2_normalized! {{
-            [$($($param $(:$($constraints)*)?),*)?] [$($($param),*)?]
+            [<$($($param $(:$($constraints)*)?),*)?>] [<$($($param),*)?>]
 
             Input { [$($($global_opts)*)? $($($($input_opts)*)?)?]
                 /// Focus the element. Focused elements are meant to receive shortcut events.
@@ -950,17 +950,17 @@ macro_rules! generate_rc_structs_and_impls {
 
     ) => {
         #[derive(Debug, CloneRef)]
-        pub struct $name <$($ctx)*> {
-            data: Rc<$data_name <$($param)*>>
+        pub struct $name $($ctx)* {
+            data: Rc<$data_name $($param)*>
         }
-        impl <$($ctx)*> Deref for $name <$($param)*> {
-            type Target = $data_name <$($param)*>;
+        impl $($ctx)* Deref for $name $($param)* {
+            type Target = $data_name $($param)*;
             fn deref(&self) -> &Self::Target {
                 &self.data
             }
         }
 
-        impl <$($ctx)*> Clone for $name  <$($param)*> {
+        impl $($ctx)* Clone for $name  $($param)* {
             fn clone(&self) -> Self {
                 let data = Rc::clone(&self.data);
                 Self {data}
@@ -969,15 +969,15 @@ macro_rules! generate_rc_structs_and_impls {
 
         #[allow(unused_parens)]
         #[derive(Debug)]
-        pub struct $data_name <$($ctx)*> {
-            _phantom_type_args: PhantomData0 <$($param)*>,
+        pub struct $data_name $($ctx)* {
+            _phantom_type_args: PhantomData0 $($param)*,
             $(
                 $(#$field_attr)*
                 pub $field : $field_type
             ),*
         }
 
-        impl <$($ctx)*> $data_name <$($param)*> {
+        impl $($ctx)* $data_name $($param)* {
             fn new_from_tuple(tuple:($($field_type,)*)) -> Self {
                 let _phantom_type_args = default();
                 let ($($field,)*) = tuple;
@@ -986,14 +986,14 @@ macro_rules! generate_rc_structs_and_impls {
         }
 
 
-        impl <$($ctx)*> $name <$($param)*> {
+        impl $($ctx)* $name $($param)* {
             pub fn new($($arg: $arg_tp),*) -> Self {
                 let data = Rc::new($data_name::new($($arg),*));
                 Self { data }
             }
         }
         #[allow(unused_parens)]
-        impl <$($ctx)*> $data_name <$($param)*> {
+        impl $($ctx)* $data_name $($param)* {
             pub fn new($($arg: $arg_tp),*) -> Self {
                 Self::new_from_tuple($body)
             }
@@ -1028,30 +1028,30 @@ macro_rules! define_endpoints_2_normalized_public {
         /// that contains both input and output nodes and which is accessible via a `Deref`
         /// implementation on `Public`.
         #[derive(Debug, CloneRef, Clone)]
-        pub struct Public <$($ctx)*> {
-            pub input: public::Input <$($param)*>,
-            pub output: public::Output <$($param)*>,
-            pub (crate) combined: public::Combined <$($param)*>,
+        pub struct Public $($ctx)* {
+            pub input: public::Input $($param)*,
+            pub output: public::Output $($param)*,
+            pub (crate) combined: public::Combined $($param)*,
         }
 
-        impl <$($ctx)*> Public <$($param)*> {
+        impl $($ctx)* Public $($param)* {
             pub fn new(
-                input: public::Input <$($param)*>,
-                output: public::Output <$($param)*>,
-                combined: public::Combined <$($param)*>
+                input: public::Input $($param)*,
+                output: public::Output $($param)*,
+                combined: public::Combined $($param)*
             ) -> Self {
                 Self {input, output, combined}
             }
         }
 
-        impl <$($ctx)*> Deref for Public <$($param)*> {
-            type Target = public::Combined <$($param)*>;
+        impl $($ctx)* Deref for Public $($param)* {
+            type Target = public::Combined $($param)*;
             fn deref(&self) -> &Self::Target {
                 &self.combined
             }
         }
 
-        impl <$($ctx)*> $crate::application::command::CommandApi for Public <$($param)*>  {
+        impl $($ctx)* $crate::application::command::CommandApi for Public $($param)*  {
             fn command_api(&self)
                 -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
                 self.output.command_map.clone()
@@ -1084,7 +1084,7 @@ macro_rules! define_endpoints_2_normalized_public {
             }
 
             #[allow(unused_parens)]
-            impl <$($ctx)*> InputData <$($param)*> {
+            impl $($ctx)* InputData $($param)* {
                 $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
             }
 
@@ -1104,8 +1104,8 @@ macro_rules! define_endpoints_2_normalized_public {
 
                 pub fn new(
                     network: (&$crate::frp::Network),
-                    private_output: (&api::private::Output <$($param)*>),
-                    public_input: (&Input <$($param)*>)
+                    private_output: (&api::private::Output $($param)*),
+                    public_input: (&Input $($param)*)
                 ) {
                     use $crate::application::command::*;
 
@@ -1145,7 +1145,7 @@ macro_rules! define_endpoints_2_normalized_public {
                     )*
                 }
 
-                pub fn new(input: (&InputData <$($param)*>), output: (&OutputData <$($param)*>)) {
+                pub fn new(input: (&InputData $($param)*), output: (&OutputData $($param)*)) {
                     $(let $in_field = input.$in_field.clone_ref();)*
                     $(let $out_field = output.$out_field.clone_ref();)*
                     ( $($in_field,)* $($out_field,)* )
@@ -1153,7 +1153,7 @@ macro_rules! define_endpoints_2_normalized_public {
             }
 
             #[allow(unused_parens)]
-            impl <$($ctx)*> Combined <$($param)*> {
+            impl $($ctx)* Combined $($param)* {
                 $($crate::define_endpoints_emit_alias!{$in_field $in_field_type})*
             }
         }
@@ -1183,17 +1183,17 @@ macro_rules! define_endpoints_2_normalized_private {
     }) => {
         // No Clone. We do not want `network` to be cloned easily in the future.
         #[derive(Debug)]
-        pub struct Private <$($ctx)*> {
+        pub struct Private $($ctx)* {
             pub network: $crate::frp::Network,
-            pub input: private::Input <$($param)*>,
-            pub output: private::Output <$($param)*>,
+            pub input: private::Input $($param)*,
+            pub output: private::Output $($param)*,
         }
 
-        impl <$($ctx)*> Private <$($param)*> {
+        impl $($ctx)* Private $($param)* {
             pub fn new(
                 network: $crate::frp::Network,
-                input: private::Input <$($param)*>,
-                output: private::Output <$($param)*>
+                input: private::Input $($param)*,
+                output: private::Output $($param)*
             ) -> Self {
                 Self {network, input, output}
             }
@@ -1216,7 +1216,7 @@ macro_rules! define_endpoints_2_normalized_private {
 
                 pub fn new(
                     network: (&$crate::frp::Network),
-                    public_input: (&api::public::Input <$($param)*>)
+                    public_input: (&api::public::Input $($param)*)
                 ) {
                     $crate::frp::extend! { $input_opts network
                         $( $in_field <- public_input.$in_field.profile(); )*
@@ -1274,15 +1274,15 @@ macro_rules! define_endpoints_2_normalized_glue {
             #[derive(Debug)]
             #[derive(CloneRef)]
             #[allow(missing_docs)]
-            pub struct Frp <$($ctx)*> {
-                public: api::Public <$($param)*>,
+            pub struct Frp $($ctx)* {
+                public: api::Public $($param)*,
                 // `api::Private` is not cloneable, but the Frp still needs to be `CloneRef`able for
                 // API compatibility. In the future we want to make the `FRP` not cloneable, and we will
                 // be able to hold the `api::Private` directly..
-                private: Rc<api::Private <$($param)*>>,
+                private: Rc<api::Private $($param)*>,
             }
 
-             impl <$($ctx)*> Frp <$($param)*> {
+             impl $($ctx)* Frp $($param)* {
                 /// Create Frp endpoints within and the associated network.
                 pub fn new() -> Self {
                     let network = $crate::frp::Network::new(file!());
@@ -1297,15 +1297,15 @@ macro_rules! define_endpoints_2_normalized_glue {
                 }
             }
 
-            impl <$($ctx)*>
-            Default for Frp <$($param)*> {
+            impl $($ctx)*
+            Default for Frp $($param)* {
                 fn default() -> Self {
                     Self::new()
                 }
             }
 
-            impl <$($ctx)*>
-            Clone for Frp <$($param)*> {
+            impl $($ctx)*
+            Clone for Frp $($param)* {
                 fn clone(&self) -> Self {
                     let public = self.public.clone();
                     let private = self.private.clone();
@@ -1313,24 +1313,24 @@ macro_rules! define_endpoints_2_normalized_glue {
                 }
             }
 
-            impl <$($ctx)*> Deref for Frp <$($param)*> {
-                type Target = api::Public  <$($param)*>;
+            impl $($ctx)* Deref for Frp $($param)* {
+                type Target = api::Public  $($param)*;
                 fn deref(&self) -> &Self::Target {
                     &self.public
                 }
             }
 
-            impl <$($ctx)*>
-            $crate::application::command::FrpNetworkProvider for Frp <$($param)*>  {
+            impl $($ctx)*
+            $crate::application::command::FrpNetworkProvider for Frp $($param)*  {
                 fn network(&self) -> &$crate::frp::Network {
                     &self.private.network
                 }
             }
 
-            impl <$($ctx)*>
-            $crate::application::frp::API for Frp <$($param)*> {
-                type Public = api::Public  <$($param)*>;
-                type Private = api::Private  <$($param)*>;
+            impl $($ctx)*
+            $crate::application::frp::API for Frp $($param)* {
+                type Public = api::Public  $($param)*;
+                type Private = api::Private  $($param)*;
 
                 fn private(&self) -> &Self::Private {
                     &self.private

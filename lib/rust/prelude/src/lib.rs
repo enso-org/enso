@@ -17,7 +17,6 @@
 #![warn(unsafe_code)]
 #![recursion_limit = "256"]
 
-mod anglify;
 #[cfg(feature = "futures")]
 pub mod channel;
 mod clone;
@@ -49,7 +48,6 @@ mod wrapper;
 #[cfg(feature = "serde")]
 pub use crate::serde::*;
 pub use crate::smallvec::*;
-pub use anglify::*;
 pub use clone::*;
 pub use collections::*;
 pub use data::*;
