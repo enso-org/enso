@@ -23,7 +23,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "16384"]
+#![recursion_limit = "1024"]
 
 #[warn(missing_docs)]
 pub mod component;
