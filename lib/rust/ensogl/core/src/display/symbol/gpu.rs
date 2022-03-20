@@ -273,21 +273,22 @@ newtype_prim! {
 /// Symbol is a surface with attached `Shader`.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Symbol {
-    pub id:            SymbolId,
-    display_object:    display::object::Instance,
-    surface:           Mesh,
-    shader:            Shader,
-    surface_dirty:     GeometryDirty,
-    shader_dirty:      ShaderDirty,
-    variables:         UniformScope,
+    pub id:             SymbolId,
+    display_object:     display::object::Instance,
+    surface:            Mesh,
+    shader:             Shader,
+    surface_dirty:      GeometryDirty,
+    shader_dirty:       ShaderDirty,
+    variables:          UniformScope,
     /// Please note that changing the uniform type to `u32` breaks node ID encoding in GLSL, as the
     /// functions are declared to work on `int`s, not `uint`s. This might be improved one day.
-    symbol_id_uniform: Uniform<i32>,
-    context:           Rc<RefCell<Option<Context>>>,
-    logger:            Logger,
-    bindings:          Rc<RefCell<Bindings>>,
-    stats:             SymbolStats,
-    is_hidden:         Rc<Cell<bool>>,
+    symbol_id_uniform:  Uniform<i32>,
+    context:            Rc<RefCell<Option<Context>>>,
+    logger:             Logger,
+    bindings:           Rc<RefCell<Bindings>>,
+    stats:              SymbolStats,
+    is_hidden:          Rc<Cell<bool>>,
+    global_instance_id: Buffer<i32>,
 }
 
 impl Symbol {
@@ -314,6 +315,10 @@ impl Symbol {
             let symbol_id_uniform = variables.add_or_panic("symbol_id", (*id) as i32);
             let display_object = display::object::Instance::new(logger.clone());
             let is_hidden = Rc::new(Cell::new(false));
+
+            let instance_scope = surface.instance_scope();
+            let global_instance_id = instance_scope.add_buffer("global_instance_id");
+
             Self {
                 id,
                 display_object,
@@ -328,6 +333,7 @@ impl Symbol {
                 bindings,
                 stats,
                 is_hidden,
+                global_instance_id,
             }
             .init()
         })
