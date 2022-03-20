@@ -265,9 +265,10 @@ newtype_prim! {
     SymbolId(u32);
 }
 
-chyba powinnismy rejestrowac globlane id w symbolu - bo symbol w przyslosci powinien chyba odbierac
-klikniecia myszka. Na razie odbiera jes dynamic shape, ale to jest za wysoko. Moze warto zrobic osobna
-astrakcje nad symbolem? Ale to chyba za duzo
+// TODO
+// chyba powinnismy rejestrowac globlane id w symbolu - bo symbol w przyslosci powinien chyba
+// odbierac klikniecia myszka. Na razie odbiera jes dynamic shape, ale to jest za wysoko. Moze warto
+// zrobic osobna astrakcje nad symbolem? Ale to chyba za duzo
 
 /// Symbol is a surface with attached `Shader`.
 #[derive(Debug, Clone, CloneRef)]
