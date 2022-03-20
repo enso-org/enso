@@ -258,11 +258,16 @@ pub struct Bindings {
 
 // === Definition ===
 
+// FIXME: Every symbol is registered (probably), so these docs seems to be obsolete.
 newtype_prim! {
     /// The ID of a [`Symbol`] instance. The ID is also the index of the symbol inside of symbol
     /// registry. In case the symbol was not yet registered, the ID will be `0`.
     SymbolId(u32);
 }
+
+chyba powinnismy rejestrowac globlane id w symbolu - bo symbol w przyslosci powinien chyba odbierac
+klikniecia myszka. Na razie odbiera jes dynamic shape, ale to jest za wysoko. Moze warto zrobic osobna
+astrakcje nad symbolem? Ale to chyba za duzo
 
 /// Symbol is a surface with attached `Shader`.
 #[derive(Debug, Clone, CloneRef)]
