@@ -20,7 +20,7 @@ validate : [Aggregate_Column] -> Table -> Resolved_Columns
 validate aggregate_columns table =
     # Validate Columns
     missing_names = Vector.new_builder
-    oob_indexes = Vector.new_builder
+    oob_indices = Vector.new_builder
     valid_name name = table.at name . catch e->case e of
             No_Such_Column_Error n ->
                 missing_names.append n
@@ -28,7 +28,7 @@ validate aggregate_columns table =
             _ -> True
     length = table.columns.length
     valid_index index = if -length.up_to length . contains index then True else
-        oob_indexes.append index
+        oob_indices.append index
         False
     valid_column column = case column of
         Column _ -> valid_name column.name
@@ -36,7 +36,7 @@ validate aggregate_columns table =
         Integer -> valid_index column
     validate aggregate_column = case aggregate_column of
         Aggregate_Column.Group_By _ _ -> True
-        Aggregate_Column.Count_Distinct columns _ _ -> aggregate_column.columns.all valid_column
+        Aggregate_Column.Count_Distinct columns _ _ -> columns.all valid_column
         _ -> valid_column aggregate_column.column
     valid_aggregate_columns = aggregate_columns.filter validate
 
