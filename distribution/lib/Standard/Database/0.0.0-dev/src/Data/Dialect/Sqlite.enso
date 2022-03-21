@@ -1,0 +1,65 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Sql
+import Standard.Database.Data.Dialect
+import Standard.Database.Data.Internal.Base_Generator
+
+## PRIVATE
+
+   The dialect of SQLite databases.
+sqlite : Dialect
+sqlite =
+    Sqlite_Dialect here.make_internal_generator_dialect
+
+## PRIVATE
+
+   The dialect of SQLite databases.
+type Sqlite_Dialect
+    ## PRIVATE
+
+       The dialect of SQLite databases.
+    type Sqlite_Dialect internal_generator_dialect
+
+    ## PRIVATE
+       Name of the dialect.
+    name : Text
+    name = "sqlite"
+
+    ## PRIVATE
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : Query -> Sql.Statement
+    generate_sql query =
+        Base_Generator.generate_query this.internal_generator_dialect query . build
+
+## PRIVATE
+make_internal_generator_dialect =
+    starts_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation starts_with")
+    ends_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation ends_with")
+    contains arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code " || '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation contains")
+    my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    Base_Generator.base_dialect . extend_with my_mappings
