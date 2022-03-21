@@ -1,0 +1,27 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Column as Column_Module import Column
+import Standard.Table.Data.Aggregate_Column
+import Standard.Table.Internal.Unique_Name_Strategy
+
+type Prepared_Columns
+    type Prepared_Columns key_columns mapped_names renames invalid_names
+
+## PRIVATE
+   Given a set of Aggregate_Column:
+   - get the set of grouping keys
+   - create
+prepare_columns : [Aggregate_Column] -> Table -> Resolved_Columns
+prepare_columns columns table =
+    # Grouping Key
+    is_a_key c = case c of
+        Aggregate_Column.Group_By _ _ -> True
+        _ -> False
+    key_columns = columns.filter is_a_key . map c->(c.resolve_column table c.column)
+
+    # Resolve Names
+    name_strategy = Unique_Name_Strategy.new
+    pass_1 = columns.map c->(if c.new_name.is_nothing then Nothing else name_strategy.make_unique c.new_name)
+    mapped_names = pass_1.map_with_index i->c->(if c.is_nothing then name_strategy.make_unique (columns.at i . column_name table) else c)
+
+    Prepared_Columns key_columns mapped_names name_strategy.renames.to_vector name_strategy.invalid_names.to_vector
